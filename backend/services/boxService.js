@@ -7,6 +7,11 @@ async function getBoxesByParent(parentId) {
   return Box.find(filter).populate("parentBox");
 }
 
+async function updateBox(id, data) {
+  return Box.findByIdAndUpdate(id, data, { new: true, runValidators: true });
+}
+
 module.exports = {
-    getBoxesByParent
+    getBoxesByParent,
+    updateBox
 }

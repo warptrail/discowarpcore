@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
 const boxRoutes = require("./routes/boxes");
+const itemRoutes = require("./routes/items")
 
 const PORT = process.env.PORT || 5002;
 const app = express();
@@ -14,6 +15,7 @@ app.use(express.json());
 connectDB(process.env.MONGO_URI);
 
 app.use("/api/boxes", boxRoutes);
+app.use("/api/items", itemRoutes)
 
 app.get("/", (req, res) => {
   res.send("🏡 Welcome to the Disco Warp Core. This is the house website [under_construction 🚧🦺🏗️]. You have mail: 'Love you boo 💙' ");
