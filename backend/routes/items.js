@@ -1,15 +1,22 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
 const {
-  getItems,
+  getAllItemsApi,
+  getOrphanedItemsApi,
   postItem,
   patchItem,
   deleteItemById,
-} = require("../controllers/itemController");
+  backfillOrphanedTimestampsApi,
+} = require('../controllers/itemController');
 
-router.get("/", getItems);
-router.post("/", postItem);
-router.patch("/:id", patchItem);
-router.delete("/:id", deleteItemById);
+router.get('/', getAllItemsApi);
+router.get('/orphaned', getOrphanedItemsApi);
+router.post('/', postItem);
+router.patch('/:id', patchItem);
+router.delete('/:id', deleteItemById);
+router.post(
+  '/admin/backfill-orphaned-timestamps',
+  backfillOrphanedTimestampsApi
+);
 
 module.exports = router;

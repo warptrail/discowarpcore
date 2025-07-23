@@ -6,6 +6,7 @@ const boxSchema = new mongoose.Schema({
   location: String,
   description: String,
   notes: String,
+  tags: [String],
   imagePath: String,  // relative path to box image
   parentBox: { type: mongoose.Schema.Types.ObjectId, ref: "Box", default: null },
   items: [{ type: mongoose.Schema.Types.ObjectId, ref: "Item" }]
