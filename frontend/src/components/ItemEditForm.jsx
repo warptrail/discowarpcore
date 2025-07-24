@@ -5,13 +5,14 @@ import QuantityInput from './QuantityInput';
 
 import TagEdit from './TagEdit';
 
-const FormContainer = styled.form`
+const FormContainer = styled.div`
   background-color: #1e1e1e;
   color: #eee;
   padding: 1rem;
-  margin-top: 0.5rem;
-  border-radius: 10px;
+  /* margin-top: 0.5rem; */
+  border-radius: 0px 0px 10px 10px;
   border: 1px solid #333;
+  border-top: none;
 `;
 
 const Label = styled.label`
@@ -107,7 +108,7 @@ export default function ItemEditForm({ item, onClose, refreshBox }) {
     currentTags.filter((tag) => !originalTags.includes(tag))
   );
 
-  const handleSubmit = async (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
     setSaveSuccess(false);
@@ -147,7 +148,7 @@ export default function ItemEditForm({ item, onClose, refreshBox }) {
   }, [saveSuccess]);
 
   return (
-    <FormContainer onSubmit={handleSubmit}>
+    <FormContainer>
       <Label>
         Name:
         <Input
@@ -186,7 +187,7 @@ export default function ItemEditForm({ item, onClose, refreshBox }) {
         <Button type="button" $variant="close" onClick={onClose}>
           Close
         </Button>
-        <Button type="submit" disabled={saving || !dirty}>
+        <Button type="button" onClick={handleSave} disabled={saving || !dirty}>
           {saving ? (
             'Saving...'
           ) : saveSuccess && !dirty ? (

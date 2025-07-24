@@ -8,6 +8,7 @@ const Bubble = styled.div`
     justSaved ? '#144' : isNew ? '#222' : '#333'};
   color: #fff;
   padding: 0.25rem 0.5rem;
+  margin: 0.1rem 0.13rem;
   border-radius: 1rem;
   font-size: 0.9rem;
   border: ${({ isNew, justSaved }) =>
@@ -22,10 +23,14 @@ const Bubble = styled.div`
 const RemoveButton = styled.button`
   background: transparent;
   border: none;
-  color: #f44;
+  color: grey;
   font-weight: bold;
   margin-left: 0.5rem;
   cursor: pointer;
+
+  &:hover {
+    color: #f44;
+  }
 `;
 
 export default function TagBubble({ tag, onRemove, isNew, justSaved }) {
