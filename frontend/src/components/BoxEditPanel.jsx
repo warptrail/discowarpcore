@@ -1,15 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import ItemEditForm from './ItemEditForm';
+import MiniOrphanedList from './MiniOrphanedList';
 
 export default function BoxEditPanel({
   items,
   boxId,
+  boxMongoId,
   onItemUpdated,
   refreshBox,
+  orphanedItems,
+  fetchOrphanedItems,
+  handleItemAssigned,
 }) {
   const [openItemId, setOpenItemId] = useState(null);
   const [visibleItemId, setVisibleItemId] = useState(null);
+
   const timeoutRef = useRef(null);
 
   const handleToggle = (itemId) => {
@@ -34,6 +40,12 @@ export default function BoxEditPanel({
     };
   });
 
+  useEffect(() => {
+    fetchOrphanedItems();
+    console.log(boxId);
+    console.log(boxMongoId);
+  }, []);
+
   return (
     <PanelContainer>
       <ItemList>
@@ -48,7 +60,7 @@ export default function BoxEditPanel({
               </ItemRow>
 
               {isVisible && (
-                <ItemEditWrapper isOpen={isOpen}>
+                <ItemEditWrapper $isOpen={isOpen}>
                   <ItemEditForm
                     item={item}
                     boxId={boxId}
@@ -62,6 +74,12 @@ export default function BoxEditPanel({
           );
         })}
       </ItemList>
+      <MiniOrphanedList
+        boxMongoId={boxMongoId}
+        onItemAssigned={handleItemAssigned}
+        orphanedItems={orphanedItems}
+        // fetchOrphanedItems={fetchOrphanedItems}
+      />
     </PanelContainer>
   );
 }
@@ -70,10 +88,10 @@ export default function BoxEditPanel({
 
 const ItemEditWrapper = styled.div`
   overflow: hidden;
-  max-height: ${({ isOpen }) => (isOpen ? '500px' : '0')};
-  opacity: ${({ isOpen }) => (isOpen ? 1 : 0)};
-  transform: ${({ isOpen }) =>
-    isOpen ? 'translateY(0)' : 'translateY(-10px)'};
+  max-height: ${({ $isOpen }) => ($isOpen ? '500px' : '0')};
+  opacity: ${({ $isOpen }) => ($isOpen ? 1 : 0)};
+  transform: ${({ $isOpen }) =>
+    $isOpen ? 'translateY(0)' : 'translateY(-10px)'};
   transition: max-height 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
 `;
 
@@ -90,17 +108,17 @@ const ItemList = styled.div`
 `;
 
 const ItemRow = styled.div`
-  background-color: ${({ isOpen }) => (isOpen ? '#646060' : '#363434')};
+  background-color: ${({ $isOpen }) => ($isOpen ? '#646060' : '#363434')};
 
   padding: 0.75rem 1rem;
-  border-radius: ${({ isOpen }) => (isOpen ? '8px 8px 0px 0px' : '8px')};
+  border-radius: ${({ $isOpen }) => ($isOpen ? '8px 8px 0px 0px' : '8px')};
   cursor: pointer;
   transition: background-color 0.2s ease;
-  border: ${({ isOpen }) => (isOpen ? '1px solid #333' : 'none')};
+  border: ${({ $isOpen }) => ($isOpen ? '1px solid #333' : 'none')};
 
   &:hover {
     background-color: #9f9c9c;
-    color: ${({ isOpen }) => (isOpen ? '#010101' : '#2d2a2a')};
+    color: ${({ $isOpen }) => ($isOpen ? '#010101' : '#2d2a2a')};
   }
 `;
 

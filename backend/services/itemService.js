@@ -30,7 +30,6 @@ async function getAllItems() {
 }
 
 async function getOrphanedItems(sort, limit) {
-  const query = { box: null }; // just in case we store this as a ref in the future
   const sortOptions = {
     recent: { orphanedAt: -1 },
     alpha: { name: 1 },
@@ -57,6 +56,7 @@ async function deleteItem(id) {
   return Item.findByIdAndDelete(id);
 }
 
+// ! Note: Dev Function - Not for production env
 async function backfillOrphanedTimestamps() {
   const items = await Item.find({ orphanedAt: null }).lean();
   const boxes = await Box.find().select('items').lean();
@@ -78,6 +78,18 @@ async function backfillOrphanedTimestamps() {
   return updatedCount;
 }
 
+async function orphanAllItemsInBox(boxId) {
+  return Item.updateMany(
+    { boxId },
+    {
+      $set: {
+        boxId: null,
+        orphanedAt: new Date(),
+      },
+    }
+  );
+}
+
 module.exports = {
   getAllItems,
   getOrphanedItems,
@@ -85,4 +97,5 @@ module.exports = {
   updateItem,
   deleteItem,
   backfillOrphanedTimestamps,
+  orphanAllItemsInBox,
 };

@@ -8,6 +8,7 @@ const {
   getBoxTreeByBoxId,
   getAllBoxes,
   deleteBox,
+  deleteAllBoxes,
 } = require('../services/boxService');
 
 // GET /api/boxes/by-mongo-id/:id
@@ -161,6 +162,18 @@ async function deleteBoxApi(req, res) {
   }
 }
 
+async function deleteAllBoxesApi(req, res) {
+  try {
+    const deletedCount = await deleteAllBoxes();
+    res
+      .status(200)
+      .json({ message: `Deleted ${deletedCount} boxes. All items orphaned.` });
+  } catch (err) {
+    console.error('Error deleting all boxes:', err);
+    res.status(500).json({ error: 'Failed to delete all boxes' });
+  }
+}
+
 module.exports = {
   getBoxByMongoIdApi,
   getBoxByBoxIdApi,
@@ -172,4 +185,5 @@ module.exports = {
   getBoxTreeApi,
   getBoxTreeByBoxIdApi,
   deleteBoxApi,
+  deleteAllBoxesApi,
 };

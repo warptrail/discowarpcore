@@ -2,6 +2,8 @@
 const Box = require('../models/Box');
 const Item = require('../models/Item');
 
+const { orphanAllItemsInBox } = require('./itemService');
+
 async function getBoxByMongoId(id) {
   return await Box.findById(id);
 }
@@ -106,6 +108,19 @@ async function deleteBox(id) {
   return Box.findByIdAndDelete(id);
 }
 
+async function deleteAllBoxes() {
+  const allBoxes = await Box.find({});
+  const boxIds = allBoxes.map((box) => box._id);
+
+  // Orphan all items in each box
+  await Promise.all(boxIds.map((id) => orphanAllItemsInBox(id)));
+
+  // Delete all boxes
+  await Box.deleteMany({});
+
+  return boxIds.length;
+}
+
 module.exports = {
   getBoxByMongoId,
   getBoxByBoxId,
@@ -116,4 +131,5 @@ module.exports = {
   getBoxTree,
   getAllBoxes,
   deleteBox,
+  deleteAllBoxes,
 };

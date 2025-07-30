@@ -24,32 +24,6 @@ const Heading = styled.h2`
   }
 `;
 
-const ItemList = styled.ul`
-  list-style: none;
-  padding: 0;
-  margin: 0;
-`;
-
-const Item = styled.li`
-  padding: 1rem;
-  border-bottom: 1px solid #222;
-  font-size: 1.1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  word-wrap: break-word;
-  background-color: #111; /* default background */
-
-  &:nth-child(even) {
-    background-color: #191919; /* slightly lighter for contrast */
-  }
-
-  @media (min-width: 768px) {
-    font-size: 1rem;
-    padding: 0.75rem 0;
-  }
-`;
-
 const TabToggle = styled.div`
   display: flex;
   border-bottom: 2px solid #333;
@@ -227,6 +201,7 @@ function BoxDetailView() {
         <BoxEditPanel
           items={items}
           boxId={boxId}
+          boxMongoId={box._id}
           refreshBox={refreshBox}
           orphanedItems={orphanedItems}
           fetchOrphanedItems={fetchOrphanedItems}

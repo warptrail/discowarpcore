@@ -75,7 +75,7 @@ export default function MiniOrphanedList({
   fetchOrphanedItems,
 }) {
   useEffect(() => {
-    fetchOrphanedItems();
+    // fetchOrphanedItems();
   }, []);
 
   const handleAssign = async (itemId) => {
@@ -85,7 +85,7 @@ export default function MiniOrphanedList({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ itemId }),
       });
-      onItemAssigned(); // parent can re-fetch box
+      onItemAssigned(itemId); // parent can re-fetch box
       fetchOrphanedItems(); // refresh this list
     } catch (err) {
       console.error('❌ Failed to assign item:', err);
