@@ -5,6 +5,7 @@ const connectDB = require('./config/db');
 const boxRoutes = require('./routes/boxes');
 const itemRoutes = require('./routes/items');
 const boxItemRoutes = require('./routes/boxItem');
+const devRoutes = require('./routes/devRoutes');
 
 const PORT = process.env.PORT || 5002;
 const app = express();
@@ -16,8 +17,9 @@ app.use(express.json());
 connectDB(process.env.MONGO_URI);
 
 app.use('/api/boxes', boxRoutes);
-app.use('/api/boxItem', boxItemRoutes);
+app.use('/api/boxed-items', boxItemRoutes);
 app.use('/api/items', itemRoutes);
+app.use('/api/dev', devRoutes);
 
 app.get('/', (req, res) => {
   res.send(

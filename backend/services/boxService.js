@@ -25,6 +25,10 @@ async function getAllBoxes() {
     .lean();
 }
 
+async function getBoxesExcludingId(id) {
+  return await Box.find({ _id: { $ne: id } }).sort({ label: 1 });
+}
+
 /**
  * Recursive function that populates all children and items of a given box.
  */
@@ -130,6 +134,7 @@ module.exports = {
   getBoxTreeByBoxId,
   getBoxTree,
   getAllBoxes,
+  getBoxesExcludingId,
   deleteBox,
   deleteAllBoxes,
 };

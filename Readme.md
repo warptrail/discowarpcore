@@ -21,7 +21,7 @@ Disco Warp Core is:
 
 ## 📦 How Boxes Work
 
-In this system, *everything* is a box:
+In this system, _everything_ is a box:
 
 - A cardboard box? ✅
 - A kitchen drawer? ✅
@@ -47,3 +47,24 @@ Boxes can contain other boxes, be moved freely, and keep track of their contents
 npm install
 npm run dev:backend   # Start Express server
 npm run dev:frontend  # Start React frontend
+```
+
+# Notes and Todos
+
+## Long term Ideas
+
+1. Make the toast component a persistent ticker box even if there is no toast message so it doesn't jar the other components around. Consider adding a sort of blank message placeholder or little screensaver if there is no toast object.
+
+2. Item-First Interface (Or box-independent item configuration interface)
+
+3. Fire destroys items
+
+## Tonight!!
+
+1. Improve the View Mode on the box.
+2. Nesting Boxes Logic
+3. Destroying Boxes Logic
+4. Destroying individual items logic (Perhaps should only be accessible through the item view mode only.)
+5. Search
+6. I should be using Trello for this, I almost forgot about that thing
+7.

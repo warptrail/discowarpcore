@@ -80,12 +80,15 @@ export default function MiniOrphanedList({
 
   const handleAssign = async (itemId) => {
     try {
-      await fetch(`http://localhost:5002/api/boxItem/${boxMongoId}/additem`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId }),
-      });
-      onItemAssigned(itemId); // parent can re-fetch box
+      await fetch(
+        `http://localhost:5002/api/boxed-items/${boxMongoId}/addItem`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ itemId }),
+        }
+      );
+      onItemAssigned?.(itemId); // parent can re-fetch box
       fetchOrphanedItems(); // refresh this list
     } catch (err) {
       console.error('❌ Failed to assign item:', err);

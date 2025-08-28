@@ -1,9 +1,10 @@
+// Responsibilities: Renders inputs and collects user input only
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 
 import QuantityInput from './QuantityInput';
-
 import TagEdit from './TagEdit';
+import MoveItemBar from './MoveItemBar';
 
 const FormContainer = styled.div`
   background-color: #1e1e1e;
@@ -45,6 +46,12 @@ const Button = styled.button`
   border-radius: 6px;
   cursor: pointer;
 
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border: 1px solid red;
+  }
+
   &:hover {
     background-color: ${(props) =>
       props.$variant === 'close' ? '#666' : '#00796b'};
@@ -57,19 +64,33 @@ const SaveFlash = styled.span`
   margin-left: 8px;
 `;
 
-export default function ItemEditForm({ item, onClose, refreshBox }) {
+export default function ItemEditForm({
+  boxMongoId,
+  initialItem,
+  sourceBoxId,
+  sourceBoxLabel,
+  sourceBoxShortId,
+  onClose,
+  refreshBox,
+  onItemUpdated,
+  onMoveRequest,
+  onOrphanRequest,
+}) {
   const [formData, setFormData] = useState({
-    name: item.name || '',
-    notes: item.notes || '',
-    quantity: item.quantity || 1,
-    tags: item.tags || [],
+    name: initialItem.name || '',
+    notes: initialItem.notes || '',
+    quantity: initialItem.quantity || 1,
+    tags: initialItem.tags || [],
   });
 
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [savedTags, setSavedTags] = useState(initialItem.tags || []);
+  const [flashTagSet, setFlashTagSet] = useState(new Set());
 
   const markDirty = () => {
+    console.log('🔥 markDirty called');
     setDirty(true);
   };
 
@@ -102,12 +123,6 @@ export default function ItemEditForm({ item, onClose, refreshBox }) {
     markDirty();
   };
 
-  const originalTags = item.tags || [];
-  const currentTags = formData.tags || [];
-  const newTagSet = new Set(
-    currentTags.filter((tag) => !originalTags.includes(tag))
-  );
-
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -115,7 +130,7 @@ export default function ItemEditForm({ item, onClose, refreshBox }) {
 
     try {
       const response = await fetch(
-        `http://localhost:5002/api/items/${item._id}`,
+        `http://localhost:5002/api/items/${initialItem._id}`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -125,21 +140,76 @@ export default function ItemEditForm({ item, onClose, refreshBox }) {
 
       if (!response.ok) throw new Error(`Server error: ${response.status}`);
 
+      const updatedItem = await response.json();
+      console.log('updated Item', updatedItem);
+
+      if (onItemUpdated) {
+        onItemUpdated(updatedItem);
+      }
+
+      const newFlashTags = formData.tags.filter(
+        (tag) => !savedTags.includes(tag)
+      );
+      setFlashTagSet(new Set(newFlashTags));
+      setSavedTags([...formData.tags]);
       setSaveSuccess(true);
-      await refreshBox?.();
+
+      await refreshBox();
+
       setDirty(false);
     } catch (err) {
       console.error('Error saving item:', err);
     } finally {
       setSaving(false);
+      console.log(saving);
     }
   };
+
+  const handleMoveRequestProxy = ({ destBoxId, destLabel, destShortId }) => {
+    onMoveRequest({
+      itemId: initialItem._id,
+      itemName: initialItem.name,
+      itemQuantity: initialItem.quantity,
+      sourceBoxId, // ✅ correct owning box (nested-safe)
+      destBoxId,
+      destLabel,
+      destShortId,
+    });
+  };
+
+  const handleOrphanRequestProxy = () => {
+    onOrphanRequest({
+      boxMongoId: sourceBoxId,
+      itemId: initialItem._id,
+    });
+  };
+
+  // Save Button Logic:
+  const isDisabled = saving || !dirty;
+
+  let buttonContent;
+  if (saving) {
+    buttonContent = 'Saving...';
+  } else if (saveSuccess && !dirty) {
+    buttonContent = <SaveFlash $isVisible={true}>✅ Saved</SaveFlash>;
+  } else {
+    buttonContent = 'Save';
+  }
+
+  // Moving an item Logic:
+  let allBoxes = ['this is a box'];
+
+  // This ensures that switching between items resets the tag comparison baseline appropriately.
+  useEffect(() => {
+    setSavedTags(initialItem.tags || []);
+  }, [initialItem._id]);
 
   useEffect(() => {
     if (saveSuccess) {
       // Clear success flag after 2 seconds of it being true
       const timeout = setTimeout(() => {
         setSaveSuccess(false);
+        setFlashTagSet(new Set()); // 🧹 clear flashes
       }, 2000);
 
       // Cleanup in case component unmounts before timeout ends
@@ -162,7 +232,7 @@ export default function ItemEditForm({ item, onClose, refreshBox }) {
       <Label>
         Notes:
         <Input
-          type="text"
+          type="textarea"
           name="notes"
           value={formData.notes}
           onChange={handleChange}
@@ -171,30 +241,45 @@ export default function ItemEditForm({ item, onClose, refreshBox }) {
 
       <Label>Tags:</Label>
       <TagEdit
-        initialTags={item.tags}
+        initialTags={formData.tags}
         onTagsChange={handleTagsChange}
-        newTagSet={newTagSet}
-        saveSuccess={saveSuccess}
+        justSaved={saveSuccess}
+        newTagSet={
+          new Set(formData.tags.filter((tag) => !savedTags.includes(tag)))
+        }
+        flashTagSet={flashTagSet}
       />
 
       <Label>Quantity:</Label>
       <QuantityInput
         value={formData.quantity}
-        onChange={handleQuantityChange}
+        onChange={(newQuantity) => handleQuantityChange(newQuantity)}
+      />
+
+      <MoveItemBar
+        itemId={initialItem._id}
+        initialItem={initialItem}
+        boxes={allBoxes}
+        sourceBoxId={sourceBoxId}
+        refreshBox={refreshBox}
+        onMoveRequest={handleMoveRequestProxy}
+        onOrphanRequest={handleOrphanRequestProxy}
       />
 
       <ButtonRow>
         <Button type="button" $variant="close" onClick={onClose}>
           Close
         </Button>
-        <Button type="button" onClick={handleSave} disabled={saving || !dirty}>
-          {saving ? (
-            'Saving...'
-          ) : saveSuccess && !dirty ? (
-            <SaveFlash $isVisible={true}>✅ Saved</SaveFlash>
-          ) : (
-            'Save'
-          )}
+
+        <Button
+          type="button"
+          onClick={(e) => {
+            handleSave(e);
+            console.log('item saved!');
+          }}
+          disabled={isDisabled}
+        >
+          {buttonContent}
         </Button>
       </ButtonRow>
     </FormContainer>

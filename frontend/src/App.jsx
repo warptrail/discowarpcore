@@ -90,7 +90,7 @@ function App() {
 
       <Routes>
         <Route path="/" element={<BoxList boxes={boxes} />} />
-        <Route path="/boxes/:boxId" element={<BoxDetailView />} />
+        <Route path="/boxes/:shortId" element={<BoxDetailView />} />
         <Route path="/create-box" element={<BoxCreate />} />
         <Route path="/all-items" element={<AllItemsList />} />
       </Routes>

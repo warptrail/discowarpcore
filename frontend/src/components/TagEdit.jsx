@@ -3,6 +3,8 @@ import TagInput from './TagInput';
 import TagBubble from './TagBubble';
 import styled from 'styled-components';
 
+// TODO The yellow-dashed line should go away after we save, right now it persists.
+
 const TagEditorWrapper = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -14,9 +16,10 @@ const TagEditorWrapper = styled.div`
 
 export default function TagEdit({
   initialTags = [],
-  onTagsChange,
   newTagSet = new Set(),
-  saveSuccess = false,
+  onTagsChange,
+  justSaved = false,
+  flashTagSet,
 }) {
   const [tags, setTags] = useState(initialTags);
 
@@ -24,19 +27,18 @@ export default function TagEdit({
     setTags(initialTags);
   }, [initialTags]);
 
-  useEffect(() => {
-    console.log('Tags changed:', tags);
-
-    onTagsChange?.(tags);
-  }, [tags]);
-
   const addTag = (newTag) => {
     if (!newTag || tags.includes(newTag)) return;
-    setTags([...tags, newTag]);
+
+    const updatedTags = [...tags, newTag];
+    setTags(updatedTags);
+    onTagsChange?.(updatedTags); // ✅ fire only on actual change
   };
 
   const removeTag = (tagToRemove) => {
-    setTags((prevTags) => prevTags.filter((tag) => tag !== tagToRemove));
+    const updatedTags = tags.filter((tag) => tag !== tagToRemove);
+    setTags(updatedTags);
+    onTagsChange?.(updatedTags); // ✅ fire only when user removes something
   };
 
   return (
@@ -47,7 +49,7 @@ export default function TagEdit({
           tag={tag}
           onRemove={() => removeTag(tag)}
           isNew={newTagSet.has(tag)}
-          justSaved={saveSuccess}
+          isFlashing={justSaved && flashTagSet.has(tag)} // 👈 this is key
         />
       ))}
       <TagInput onAdd={addTag} />

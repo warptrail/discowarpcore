@@ -12,15 +12,17 @@ const {
   getBoxTreeApi,
   deleteBoxApi,
   deleteAllBoxesApi,
+  getBoxesExcludingApi,
 } = require('../controllers/boxController');
 
 router.get('/', getAllBoxesApi);
+router.get('/exclude/:id', getBoxesExcludingApi);
 router.get('/:box_id/tree', getBoxTreeByBoxIdApi);
 router.get('/byparent', getBoxesByParentApi);
 router.get('/tree', getBoxTreeApi);
 router.get('/by-mongo-id/:id', getBoxByMongoIdApi);
 router.get('/by-box-id/:box_id', getBoxByBoxIdApi);
-router.get('/check-id/:box_id', checkBoxIdAvailability);
+router.get('/check-id/:short_id', checkBoxIdAvailability);
 router.post('/', createBoxApi);
 router.patch('/:id', updateBoxApi);
 router.delete('/all', deleteAllBoxesApi);

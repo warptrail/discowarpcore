@@ -1,13 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const {
-  addItemToBoxApi,
-  removeItemFromBoxApi,
-  moveItemApi,
+  postCreateItemInBox,
+  patchAttachExistingItem,
+  patchAddItems,
+  patchRemoveItemFromBox,
+  patchMoveItem,
+  patchEmptyBoxItems,
 } = require('../controllers/boxItemController');
 
-router.patch('/:boxId/addItem', addItemToBoxApi);
-router.patch('/:boxId/removeItem', removeItemFromBoxApi);
-router.patch('/moveItem', moveItemApi);
+router.post('/boxes/:boxMongoId/items', postCreateItemInBox);
+router.patch('/:boxMongoId/addItem', patchAttachExistingItem);
+router.patch('/:boxMongoId/addItems', patchAddItems);
+router.patch('/:boxMongoId/removeItem', patchRemoveItemFromBox);
+router.patch('/moveItem', patchMoveItem);
+router.patch('/:boxMongoId/empty', patchEmptyBoxItems);
 
 module.exports = router;

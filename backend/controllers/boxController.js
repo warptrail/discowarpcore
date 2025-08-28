@@ -7,6 +7,7 @@ const {
   getBoxTree,
   getBoxTreeByBoxId,
   getAllBoxes,
+  getBoxesExcludingId,
   deleteBox,
   deleteAllBoxes,
 } = require('../services/boxService');
@@ -51,6 +52,18 @@ async function getAllBoxesApi(req, res) {
   }
 }
 
+async function getBoxesExcludingApi(req, res) {
+  const { id } = req.params;
+
+  try {
+    const boxes = await getBoxesExcludingId(id);
+    res.json(boxes);
+  } catch (err) {
+    console.error('❌ Error in getBoxesExcluding:', err);
+    res.status(500).json({ error: 'Failed to fetch boxes' });
+  }
+}
+
 async function getBoxesByParentApi(req, res) {
   try {
     const { parent } = req.query;
@@ -63,10 +76,10 @@ async function getBoxesByParentApi(req, res) {
 }
 
 async function checkBoxIdAvailability(req, res) {
-  const { box_id } = req.params;
+  const { short_id } = req.params;
 
   // Validate format: must be exactly 3 digits
-  const isValidFormat = /^\d{3}$/.test(box_id);
+  const isValidFormat = /^\d{3}$/.test(short_id);
 
   if (!isValidFormat) {
     return res.status(400).json({
@@ -75,7 +88,7 @@ async function checkBoxIdAvailability(req, res) {
   }
 
   try {
-    const box = await getBoxByBoxId(box_id);
+    const box = await getBoxByBoxId(short_id);
     return res.json({ available: !box });
   } catch (err) {
     console.error('Error checking box Id availability:', err);
@@ -178,6 +191,7 @@ module.exports = {
   getBoxByMongoIdApi,
   getBoxByBoxIdApi,
   getAllBoxesApi,
+  getBoxesExcludingApi,
   getBoxesByParentApi,
   checkBoxIdAvailability,
   createBoxApi,
