@@ -8,7 +8,7 @@ import {
 } from 'react-router-dom';
 import flattenBoxes from '../util/flattenBoxes';
 import BoxEditPanel from './BoxEditPanel';
-import ItemTags from './ItemTags';
+import ItemDetails from './ItemDetails';
 
 const flashBorder = keyframes`
   0%   { box-shadow: 0 0 0 0 rgba(78,199,123,0.0); }
@@ -64,152 +64,233 @@ const TabButton = styled.button`
   }
 `;
 
-const TreeWrapper = styled.div`
-  margin-left: 1.5rem;
-  border-left: 2px solid #444;
+// Top-level nested boxes list (for child boxes)
+const TreeList = styled.ul`
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+`;
+
+const TreeNode = styled.li`
+  list-style: none;
+  margin: 10px 0;
+  border: 1px solid #222;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #161818; /* boxes: solid background */
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: #2b2b2b;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.24);
+  }
+`;
+
+const ItemList = styled.ul`
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+`;
+
+const ItemNode = styled.li`
+  /* card look + alternation */
+  border: 1px solid #222;
+  border-radius: 14px;
+  overflow: hidden;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  margin: 10px 0;
+
+  &:nth-child(odd) {
+    background-color: #161818;
+  }
+  &:nth-child(even) {
+    background-color: #191b1a;
+  }
+
+  &:hover {
+    border-color: #2b2b2b;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.24);
+  }
+`;
+
+const NodeHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+
+  /* subtle glow when hovering over box header */
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+`;
+
+const NodeChildren = styled.div`
+  margin-left: 1rem;
+  margin-top: 0.5rem;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  /* Subtle left border line for hierarchy */
+  border-left: 1px dashed rgba(255, 255, 255, 0.1);
   padding-left: 1rem;
 `;
 
-const Subheading = styled.h3`
-  margin-top: 1.25rem;
-  margin-bottom: 0.5rem;
-  font-size: 1.1rem;
-  color: #ccc;
-`;
+const NodeTitle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 
-const TreeItemList = styled.ul`
-  list-style: disc;
-  padding-left: 1.25rem;
-  margin: 0.5rem 0;
-`;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f0f0f0;
 
-const TreeItem = styled.li`
-  margin-bottom: 0.25rem;
-  color: #aaa;
-`;
-
-// Styled empty message (dark-mode friendly)
-const EmptyMessage = styled.div`
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px dashed rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.85);
-  padding: 1rem;
-  border-radius: 12px;
-  text-align: center;
-  font-size: 0.95rem;
-  margin-top: 0.5rem;
-`;
-
-const ViewGrid = styled.ul`
-  list-style: none;
-  margin: 12px 0 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: 1fr; /* mobile-first */
-  gap: 10px;
-
-  @media (min-width: 480px) {
-    grid-template-columns: 1fr 1fr;
-  }
-  @media (min-width: 768px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  @media (min-width: 1024px) {
-    grid-template-columns: repeat(4, 1fr);
-  }
-`;
-
-const Card = styled.li`
-  background: #181818;
-  border: 1px solid #2a2a2a;
-  border-radius: 12px;
+  /* Allow long labels but gracefully cut them off */
+  max-width: 100%;
+  white-space: nowrap;
   overflow: hidden;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  min-height: 140px; /* uniform feel */
-  transition: border-color 0.15s ease, transform 0.05s ease;
+  text-overflow: ellipsis;
+`;
 
-  &:active {
-    transform: translateY(1px);
-  }
+const BoxLabelText = styled.span`
+  font-weight: 600;
+  font-size: 1rem;
+  color: #e6ffe6;
+
+  /* Ensure long labels don’t break layout */
+  max-width: 240px;
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
   &:hover {
-    border-color: #3a3a3a;
+    color: #9eff9e;
   }
 `;
 
-const ClickWrap = styled.button`
-  all: unset;
+const Meta = styled.span`
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-left: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+
+  /* Keeps the numbers/items aligned nicely */
+  display: inline-flex;
+  align-items: center;
+
+  &:first-of-type {
+    margin-left: 1rem; /* extra gap from the label text */
+  }
+`;
+
+/* the rest are divs/spans (not li) */
+const ItemRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px 6px;
+  min-height: 40px;
   cursor: pointer;
-  display: contents; /* let inner layout drive size */
 `;
 
-const CardBody = styled.div`
-  padding: 10px 12px 8px 12px;
-`;
-
-const TitleRow = styled.div`
+const ItemTitle = styled.div`
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
   gap: 8px;
-`;
-
-const ItemName = styled.div`
-  font-weight: 700;
-  color: #eaeaea;
-  font-size: 14px;
+  min-width: 0;
+  color: #f0f0f0;
+  font-size: 15px;
+  font-weight: 800;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
 
-const Qty = styled.span`
+const ItemQuantity = styled.span`
   font-size: 12px;
-  color: #bdbdbd;
-  background: #0f0f0f;
-  border: 1px solid #2a2a2a;
-  border-radius: 6px;
-  padding: 2px 6px;
-  flex-shrink: 0;
-`;
-
-const Desc = styled.p`
-  margin: 6px 0 0;
-  color: #bdbdbd;
-  font-size: 12px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2; /* truncate to 2 lines */
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  min-height: 2.6em; /* keeps rows uniform */
-`;
-
-const TagBar = styled.div`
-  display: flex;
-  gap: 6px;
-  padding: 8px 10px;
-  border-top: 1px solid #222;
-  overflow-x: auto;
-`;
-
-const TagChip = styled.span`
-  white-space: nowrap;
-  font-size: 11px;
-  color: #d7d7d7;
-  background: #1f1f1f;
-  border: 1px solid #2a2a2a;
-  border-radius: 999px;
-  padding: 4px 8px;
-`;
-
-const EmptyState = styled.div`
-  margin: 14px 0 0;
-  padding: 14px 12px;
+  font-weight: 600;
+  color: #e0e0e0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 10px;
-  border: 1px dashed #2a2a2a;
-  background: #101010;
-  color: #bdbdbd;
-  font-size: 14px;
+  padding: 2px 8px;
+  line-height: 1.4;
+  white-space: nowrap;
+`;
+
+const NotePreview = styled.div`
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 6px 14px 8px;
+
+  /* one-line clamp with ellipsis */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  /* reserve height even when empty */
+  line-height: 1.2;
+  min-height: 1.2em;
+`;
+
+const RowDivider = styled.div`
+  height: 1px;
+  margin: 0 10px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #202020 25%,
+    #202020 75%,
+    transparent
+  );
+  opacity: 0.9;
+`;
+
+const TagRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 12px 10px;
+  min-height: 28px;
+`;
+
+const TagBubble = styled.span`
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #d0d0d0;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 12px;
+  padding: 2px 10px;
+  white-space: nowrap;
+  user-select: none;
+`;
+
+const DetailsWrap = styled.div`
+  overflow: hidden;
+  /* simple fade-in; height is handled by mount/unmount */
+  animation: fadeIn 160ms ease;
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-2px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 `;
 
 // ! BoxDetailView COMPONENT START =======================
@@ -222,6 +303,7 @@ function BoxDetailView() {
   const [editMode, setEditMode] = useState(false);
   const [orphanedItems, setOrphanedItems] = useState([]);
   const [flashHeader, setFlashHeader] = useState(false);
+  const [openItemIdView, setOpenItemIdView] = useState(null);
 
   // ? Ref
   const abortRef = useRef(null);
@@ -231,9 +313,13 @@ function BoxDetailView() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const toggleItemOpen = (id) =>
+    setOpenItemIdView((prev) => (prev === id ? null : id));
+
   const goToItem = (item) => {
-    if (!item?._id) return;
-    navigate(`/items/${item._id}?from=${box.box_id}`, {
+    const id = item?._id;
+    if (!id) return;
+    navigate(`/items/${id}?from=${box.box_id}`, {
       state: {
         fromBox: { _id: box._id, shortId: box.box_id, label: box.label },
       },
@@ -328,20 +414,6 @@ function BoxDetailView() {
     await fetchOrphanedItems();
   };
 
-  const isTreeEmpty = (node) => {
-    if (!node) return true;
-    const itemCount = Array.isArray(node.items) ? node.items.length : 0;
-
-    // Support a few possible child fields: children, childBoxes, boxes
-    const kids = node.children || node.childBoxes || node.boxes || [];
-    if (itemCount > 0) return false;
-
-    if (Array.isArray(kids) && kids.length) {
-      return kids.every(isTreeEmpty);
-    }
-    return true;
-  };
-
   useEffect(() => {
     if (!shortId || !/^\d{3}$/.test(shortId)) {
       console.warn('⛔️ Invalid shortId:', shortId);
@@ -377,30 +449,108 @@ function BoxDetailView() {
 
   if (!box) return <p>Loading box #{shortId}...</p>;
 
-  function renderBoxTree(boxNode) {
+  const renderTree = (node, { isRoot = false } = {}) => {
+    if (!node) return null;
+
+    const childBoxes = Array.isArray(node.children)
+      ? node.children
+      : node.boxes || [];
+    const itemsHere = Array.isArray(node.items) ? node.items : [];
+
     return (
-      <div key={boxNode._id}>
-        <Subheading>
-          {boxNode.label} (#{boxNode.box_id})
-        </Subheading>
+      <TreeNode key={node._id || node.box_id}>
+        <NodeHeader>
+          <NodeTitle>
+            <BoxLabelText title={node.label || '(Unnamed Box)'}>
+              {node.label || '(Unnamed Box)'}&nbsp;(#{node.box_id})
+            </BoxLabelText>
+            <Meta>
+              {itemsHere.length} item{itemsHere.length === 1 ? '' : 's'}
+            </Meta>
+            {childBoxes.length ? (
+              <Meta>
+                {childBoxes.length} sub-box{childBoxes.length === 1 ? '' : 'es'}
+              </Meta>
+            ) : null}
+          </NodeTitle>
+        </NodeHeader>
 
-        <TreeItemList>
-          {boxNode.items.map((item) => (
-            <TreeItem key={item._id}>
-              {item.name} (x{item.quantity}) — {item.notes}
-              <ItemTags tags={item.tags} />
-            </TreeItem>
-          ))}
-        </TreeItemList>
+        <NodeChildren>
+          {/* Root-only empty message when no items */}
+          {isRoot && itemsHere.length === 0 && (
+            <EmptyMessage>
+              This box is empty. Add some items below.
+            </EmptyMessage>
+          )}
 
-        {boxNode.childBoxes?.length > 0 && (
-          <TreeWrapper>
-            {boxNode.childBoxes.map((child) => renderBoxTree(child))}
-          </TreeWrapper>
-        )}
-      </div>
+          {/* Items */}
+          {itemsHere.length > 0 && (
+            <ItemList>
+              {itemsHere.map((it) => {
+                const id = it?._id ?? it?.id;
+                const name = it?.name || '(Unnamed Item)';
+                const qty = it?.quantity ?? it?.qty ?? 1;
+                const notes = it?.notes || it?.description || it?.desc || '';
+                const tags = Array.isArray(it?.tags) ? it.tags : [];
+                const isOpen = openItemIdView === id;
+
+                return (
+                  <ItemNode key={id}>
+                    {/* Header row */}
+                    <ItemRow
+                      onClick={() => toggleItemOpen(id)}
+                      aria-expanded={isOpen}
+                      aria-controls={isOpen ? `item-${id}-details` : undefined}
+                    >
+                      <ItemTitle title={name}>{name}</ItemTitle>
+                      <ItemQuantity>x{qty}</ItemQuantity>
+                    </ItemRow>
+
+                    {/* always present, even if empty */}
+                    <NotePreview title={notes || undefined}>
+                      {notes || '\u00A0' /* non-breaking space keeps height */}
+                    </NotePreview>
+
+                    <RowDivider />
+
+                    {/* Right-aligned tags (reserve space when collapsed) */}
+                    {!isOpen && (
+                      <TagRow>
+                        {tags.length
+                          ? tags
+                              .slice(0, 8)
+                              .map((t) => (
+                                <TagBubble key={`${id}-${t}`}>#{t}</TagBubble>
+                              ))
+                          : null}
+                      </TagRow>
+                    )}
+
+                    {/* ✅ Mount ItemDetails ONLY when open */}
+                    {isOpen && (
+                      <DetailsWrap $open id={`item-${id}-details`}>
+                        <ItemDetails item={it} />
+                      </DetailsWrap>
+                    )}
+                  </ItemNode>
+                );
+              })}
+            </ItemList>
+          )}
+
+          {/* Child boxes (always open) */}
+          {childBoxes.length > 0 && (
+            <TreeList>{childBoxes.map((child) => renderTree(child))}</TreeList>
+          )}
+
+          {/* Child boxes (always open) */}
+          {childBoxes.length ? (
+            <TreeList>{childBoxes.map((child) => renderTree(child))}</TreeList>
+          ) : null}
+        </NodeChildren>
+      </TreeNode>
     );
-  }
+  };
 
   return (
     <Container>
@@ -431,52 +581,9 @@ function BoxDetailView() {
         />
       ) : (
         <>
-          {Array.isArray(items) && items.length > 0 ? (
-            <ViewGrid>
-              {items.map((it) => {
-                const id = it?._id ?? it?.id;
-                const name = it?.name || '(Unnamed Item)';
-                const qty = it?.quantity ?? it?.qty ?? 1;
-                const desc = it?.description || it?.desc || '';
-                const tags = Array.isArray(it?.tags) ? it.tags : [];
-
-                return (
-                  <Card key={id}>
-                    <ClickWrap
-                      onClick={() => goToItem(it)}
-                      aria-label={`Open ${name}`}
-                    >
-                      <CardBody>
-                        <TitleRow>
-                          <ItemName title={name}>{name}</ItemName>
-                          <Qty>x{qty}</Qty>
-                        </TitleRow>
-                        {desc ? (
-                          <Desc title={desc}>{desc}</Desc>
-                        ) : (
-                          <Desc>&nbsp;</Desc>
-                        )}
-                      </CardBody>
-
-                      <TagBar>
-                        {tags.length ? (
-                          tags
-                            .slice(0, 6)
-                            .map((t) => (
-                              <TagChip key={`${id}-${t}`}>#{t}</TagChip>
-                            ))
-                        ) : (
-                          <TagChip>no-tags</TagChip>
-                        )}
-                      </TagBar>
-                    </ClickWrap>
-                  </Card>
-                );
-              })}
-            </ViewGrid>
-          ) : (
-            <EmptyState>This box is empty. Add some items below.</EmptyState>
-          )}
+          {box ? (
+            <TreeList>{renderTree(box, { isRoot: true })}</TreeList>
+          ) : null}
         </>
       )}
     </Container>
