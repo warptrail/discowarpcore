@@ -1,3 +1,4 @@
+// const mongoose = require('mongoose');
 const Item = require('../models/Item');
 const Box = require('../models/Box');
 
@@ -27,6 +28,34 @@ async function getAllItems() {
   }));
 
   return enrichedItems;
+}
+
+async function getItemById(id) {
+  // Find the item
+  const item = await Item.findById(id).lean();
+  if (!item) {
+    return null; // let controller decide how to handle "not found"
+  }
+
+  // Find the box that contains this item
+  const box = await Box.findOne({ items: item._id })
+    .select('_id box_id label description')
+    .lean();
+
+  // Attach box info (or null if orphaned)
+  const enrichedItem = {
+    ...item,
+    box: box
+      ? {
+          _id: box._id,
+          box_id: box.box_id,
+          label: box.label,
+          description: box.description,
+        }
+      : null,
+  };
+
+  return enrichedItem;
 }
 
 async function getOrphanedItems(sort, limit) {
@@ -92,6 +121,7 @@ async function orphanAllItemsInBox(boxId) {
 
 module.exports = {
   getAllItems,
+  getItemById,
   getOrphanedItems,
   createItem,
   updateItem,

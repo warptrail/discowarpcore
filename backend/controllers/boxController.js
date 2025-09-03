@@ -8,7 +8,7 @@ const {
   getBoxTreeByBoxId,
   getAllBoxes,
   getBoxesExcludingId,
-  deleteBox,
+  deleteBoxById,
   deleteAllBoxes,
 } = require('../services/boxService');
 
@@ -160,9 +160,9 @@ async function getBoxTreeByBoxIdApi(req, res) {
   }
 }
 
-async function deleteBoxApi(req, res) {
+async function deleteBoxByIdApi(req, res) {
   try {
-    const deleted = await deleteBox(req.params.id);
+    const deleted = await deleteBoxById(req.params.id);
     if (!deleted) {
       return res.status(404).json({ error: 'Box not found' });
     }
@@ -198,6 +198,6 @@ module.exports = {
   updateBoxApi,
   getBoxTreeApi,
   getBoxTreeByBoxIdApi,
-  deleteBoxApi,
+  deleteBoxByIdApi,
   deleteAllBoxesApi,
 };

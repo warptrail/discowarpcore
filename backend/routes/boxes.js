@@ -10,7 +10,7 @@ const {
   updateBoxApi,
   getBoxTreeByBoxIdApi,
   getBoxTreeApi,
-  deleteBoxApi,
+  deleteBoxByIdApi,
   deleteAllBoxesApi,
   getBoxesExcludingApi,
 } = require('../controllers/boxController');
@@ -26,6 +26,6 @@ router.get('/check-id/:short_id', checkBoxIdAvailability);
 router.post('/', createBoxApi);
 router.patch('/:id', updateBoxApi);
 router.delete('/all', deleteAllBoxesApi);
-router.delete('/:id', deleteBoxApi);
+router.delete('/:id', deleteBoxByIdApi);
 
 module.exports = router;

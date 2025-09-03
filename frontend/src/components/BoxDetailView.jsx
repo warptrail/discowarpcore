@@ -7,6 +7,7 @@ import {
   useNavigate,
 } from 'react-router-dom';
 import flattenBoxes from '../util/flattenBoxes';
+import BoxMetaPanel from './BoxMetaPanel';
 import BoxEditPanel from './BoxEditPanel';
 import ItemDetails from './ItemDetails';
 
@@ -102,7 +103,7 @@ const ItemNode = styled.li`
   margin: 10px 0;
 
   &:nth-child(odd) {
-    background-color: #161818;
+    background-color: #272b2bff;
   }
   &:nth-child(even) {
     background-color: #191b1a;
@@ -293,6 +294,17 @@ const DetailsWrap = styled.div`
   }
 `;
 
+const EmptyMessage = styled.div`
+  padding: 16px;
+  color: ${({ theme }) => theme?.colors?.textSecondary || '#9aa6b2'};
+  border: 1px dashed
+    ${({ theme }) => theme?.colors?.border || 'rgba(120,130,155,0.35)'};
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+`;
+
+const API_BASE = 'http://localhost:5002';
+
 // ! BoxDetailView COMPONENT START =======================
 function BoxDetailView() {
   const { shortId } = useParams();
@@ -313,6 +325,25 @@ function BoxDetailView() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // ! Animation Helpers
+  // smooth close → then navigate
+  const nextTwoFrames = () =>
+    new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+  const closeAndGoToItem = async (itemId) => {
+    // 1) close the inline details panel
+    setOpenItemIdView(null);
+
+    // 2) let the collapse animation commit (2 RAFs is usually enough)
+    await nextTwoFrames();
+
+    // (optional) tiny buffer if your collapse uses transitions
+    // await new Promise((r) => setTimeout(r, 120));
+
+    // 3) navigate to the item page
+    navigate(`/items/${itemId}`);
+  };
+
   const toggleItemOpen = (id) =>
     setOpenItemIdView((prev) => (prev === id ? null : id));
 
@@ -324,6 +355,11 @@ function BoxDetailView() {
         fromBox: { _id: box._id, shortId: box.box_id, label: box.label },
       },
     });
+  };
+
+  const handleOpenItem = (itemId) => {
+    // navigate to the item’s dedicated page
+    navigate(`/items/${itemId}`);
   };
 
   // BoxDetailView.jsx
@@ -529,7 +565,14 @@ function BoxDetailView() {
                     {/* ✅ Mount ItemDetails ONLY when open */}
                     {isOpen && (
                       <DetailsWrap $open id={`item-${id}-details`}>
-                        <ItemDetails item={it} />
+                        <ItemDetails
+                          item={it}
+                          onOpenItem={() => closeAndGoToItem(it._id)}
+                          onGoToTag={(t) =>
+                            navigate(`/tags/${encodeURIComponent(t)}`)
+                          }
+                          onGoToItemsHome={() => navigate('/items')}
+                        />
                       </DetailsWrap>
                     )}
                   </ItemNode>
@@ -554,9 +597,21 @@ function BoxDetailView() {
 
   return (
     <Container>
-      <Heading $flash={flashHeader}>
-        {box.label} (#{box.box_id})
-      </Heading>
+      <BoxMetaPanel
+        box={box} // your boxTree/root of the current view
+        onGoToParent={
+          box?.parentBox
+            ? () => {
+                // If you store parent as full object:
+                const short =
+                  typeof box.parentBox === 'object'
+                    ? box.parentBox.box_id
+                    : box.parentBox;
+                navigate(`/boxes/${short}`); // keeps your rule: route is relative root
+              }
+            : undefined
+        }
+      />
       <TabToggle>
         <TabButton $active={!editMode} onClick={() => setEditMode(false)}>
           View Mode
@@ -582,7 +637,9 @@ function BoxDetailView() {
       ) : (
         <>
           {box ? (
-            <TreeList>{renderTree(box, { isRoot: true })}</TreeList>
+            <>
+              <TreeList>{renderTree(box, { isRoot: true })}</TreeList>
+            </>
           ) : null}
         </>
       )}

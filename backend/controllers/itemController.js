@@ -1,5 +1,6 @@
 const {
   getAllItems,
+  getItemById,
   getOrphanedItems,
   createItem,
   updateItem,
@@ -14,6 +15,34 @@ async function getAllItemsApi(req, res) {
   } catch (err) {
     console.error('❌ Error fetching items:', err);
     res.status(500).json({ error: 'Failed to fetch items' });
+  }
+}
+
+async function getItemByIdApi(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const populateBox = (req.query.populate || '').toLowerCase() === 'box';
+    const select = req.query.select
+      ? req.query.select
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .join(' ')
+      : undefined;
+
+    const item = await getItemById(id, { populateBox, select });
+
+    if (!item) {
+      return next(createHttpError(404, 'Item not found'));
+    }
+
+    return res.status(200).json({
+      ok: true,
+      data: item,
+    });
+  } catch (err) {
+    return next(err);
   }
 }
 
@@ -75,6 +104,7 @@ async function backfillOrphanedTimestampsApi(req, res) {
 
 module.exports = {
   getAllItemsApi,
+  getItemByIdApi,
   getOrphanedItemsApi,
   postItem,
   patchItem,

@@ -8,6 +8,7 @@ import BoxList from './components/BoxList';
 import AllItemsList from './components/AllItemsList';
 import BoxDetailView from './components/BoxDetailView';
 import BoxCreate from './components/BoxCreate';
+import ItemPage from './components/ItemPage';
 
 // ! STYLES
 const AppContainer = styled.div`
@@ -81,7 +82,7 @@ function App() {
     <AppContainer>
       <GlobalStyles />
       <HeadingLink to="/">
-        <Heading>Discowarpcore Inventory</Heading>
+        <Heading>Box Inventory</Heading>
       </HeadingLink>
       <Centered>
         <NewBoxLink to="/create-box">📦 New Box</NewBoxLink>
@@ -93,6 +94,7 @@ function App() {
         <Route path="/boxes/:shortId" element={<BoxDetailView />} />
         <Route path="/create-box" element={<BoxCreate />} />
         <Route path="/all-items" element={<AllItemsList />} />
+        <Route path="/items/:itemId" element={<ItemPage />} />
       </Routes>
     </AppContainer>
   );

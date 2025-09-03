@@ -142,7 +142,7 @@ function BoxCreate() {
       }
 
       // Navigate to the new box view
-      navigate(`/box/${boxId}`);
+      navigate(`/boxes/${boxId}`);
     } catch (err) {
       console.error(err);
       setError(err.message);

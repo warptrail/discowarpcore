@@ -104,12 +104,57 @@ async function updateBox(id, data) {
   return Box.findByIdAndUpdate(id, data, { new: true, runValidators: true });
 }
 
-async function deleteBox(id) {
-  // step 1: set parentBox to null for any children
-  await Box.updateMany({ parentBox: id }, { $set: { parentBox: null } });
+async function deleteBoxById(id) {
+  const session = await mongoose.startSession();
+  let ok = false;
 
-  // step 2: delete the box itself
-  return Box.findByIdAndDelete(id);
+  try {
+    await session.withTransaction(async () => {
+      const box = await Box.findById(id).session(session);
+      if (!box) {
+        ok = false;
+        return;
+      }
+
+      const boxId = box._id; // Mongo _id
+      const parentId = box.parentId || null; // if your schema has parentId
+
+      // (A) If parent exists and you maintain a children cache on parent, pull this child id.
+      //     If you don't keep a children array, you can remove this block safely.
+      if (parentId) {
+        await Box.updateOne(
+          { _id: parentId },
+          { $pull: { children: boxId } }, // only if you have a 'children' cache array
+          { session }
+        ).catch(() => {}); // ignore if path doesn't exist in your schema
+      }
+
+      // (B) Re-parent all direct children of this box to null (de-nest safely).
+      await Box.updateMany(
+        { parentId: boxId },
+        { $set: { parentId: null } },
+        { session }
+      );
+
+      // (C) Orphan all items assigned to this box (SoT = Item.boxId)
+      await orphanAllItemsInBox(boxId, session);
+
+      // (D) Optional: clean any cache arrays elsewhere that might still list these items.
+      // If you only store items on the box being deleted, skip. Otherwise:
+      // await Box.updateMany({ items: { $in: await Item.find({ boxId: boxId }).distinct('_id') } },
+      //   { $pull: { items: { $in: await Item.find({ boxId: boxId }).distinct('_id') } } },
+      //   { session });
+
+      // (E) Finally, delete the box
+      await Box.deleteOne({ _id: boxId }, { session });
+
+      ok = true;
+    });
+  } finally {
+    session.endSession();
+  }
+
+  return ok;
 }
 
 async function deleteAllBoxes() {
@@ -135,6 +180,6 @@ module.exports = {
   getBoxTree,
   getAllBoxes,
   getBoxesExcludingId,
-  deleteBox,
+  deleteBoxById,
   deleteAllBoxes,
 };

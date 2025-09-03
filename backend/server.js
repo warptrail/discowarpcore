@@ -27,6 +27,15 @@ app.get('/', (req, res) => {
   );
 });
 
+// Centralized error handler (ensure last)
+// app.use((err, _req, res, _next) => {
+//   const status = err.status || 500;
+//   res.status(status).json({
+//     ok: false,
+//     error: err.message || 'Internal Server Error',
+//   });
+// });
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running at:
   • http://localhost:${PORT}
