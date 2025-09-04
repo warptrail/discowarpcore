@@ -104,67 +104,36 @@ async function updateBox(id, data) {
   return Box.findByIdAndUpdate(id, data, { new: true, runValidators: true });
 }
 
-async function deleteBoxById(id) {
-  const session = await mongoose.startSession();
-  let ok = false;
-
-  try {
-    await session.withTransaction(async () => {
-      const box = await Box.findById(id).session(session);
-      if (!box) {
-        ok = false;
-        return;
-      }
-
-      const boxId = box._id; // Mongo _id
-      const parentId = box.parentId || null; // if your schema has parentId
-
-      // (A) If parent exists and you maintain a children cache on parent, pull this child id.
-      //     If you don't keep a children array, you can remove this block safely.
-      if (parentId) {
-        await Box.updateOne(
-          { _id: parentId },
-          { $pull: { children: boxId } }, // only if you have a 'children' cache array
-          { session }
-        ).catch(() => {}); // ignore if path doesn't exist in your schema
-      }
-
-      // (B) Re-parent all direct children of this box to null (de-nest safely).
-      await Box.updateMany(
-        { parentId: boxId },
-        { $set: { parentId: null } },
-        { session }
-      );
-
-      // (C) Orphan all items assigned to this box (SoT = Item.boxId)
-      await orphanAllItemsInBox(boxId, session);
-
-      // (D) Optional: clean any cache arrays elsewhere that might still list these items.
-      // If you only store items on the box being deleted, skip. Otherwise:
-      // await Box.updateMany({ items: { $in: await Item.find({ boxId: boxId }).distinct('_id') } },
-      //   { $pull: { items: { $in: await Item.find({ boxId: boxId }).distinct('_id') } } },
-      //   { session });
-
-      // (E) Finally, delete the box
-      await Box.deleteOne({ _id: boxId }, { session });
-
-      ok = true;
-    });
-  } finally {
-    session.endSession();
+// Delete a single box by its Mongo _id.
+// Orphans items first, then removes the box.
+async function deleteBoxById(id, { orphanItems = true } = {}) {
+  // Ensure the box exists
+  const box = await Box.findById(id);
+  if (!box) {
+    const err = new Error('Box not found');
+    err.status = 404;
+    throw err;
   }
 
-  return ok;
+  // Detach (or delete) items that belonged to this box
+  if (orphanItems) {
+    await orphanAllItemsInBox(Item, box._id);
+  } else {
+    await Item.deleteMany({ boxId: box._id });
+  }
+
+  // Delete the box itself
+  await Box.deleteOne({ _id: box._id });
+
+  return { ok: true, deleted: 1, boxId: String(box._id) };
 }
 
-async function deleteAllBoxes() {
+// Your earlier bulk helper (unchanged pattern)
+async function deleteAllBoxes({ Box, Item }) {
   const allBoxes = await Box.find({});
-  const boxIds = allBoxes.map((box) => box._id);
+  const boxIds = allBoxes.map((b) => b._id);
 
-  // Orphan all items in each box
-  await Promise.all(boxIds.map((id) => orphanAllItemsInBox(id)));
-
-  // Delete all boxes
+  await Promise.all(boxIds.map((id) => orphanAllItemsInBox(Item, id)));
   await Box.deleteMany({});
 
   return boxIds.length;

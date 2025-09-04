@@ -21,7 +21,7 @@ router.get('/:box_id/tree', getBoxTreeByBoxIdApi);
 router.get('/byparent', getBoxesByParentApi);
 router.get('/tree', getBoxTreeApi);
 router.get('/by-mongo-id/:id', getBoxByMongoIdApi);
-router.get('/by-box-id/:box_id', getBoxByBoxIdApi);
+router.get('/by-short/:short_id', getBoxByBoxIdApi);
 router.get('/check-id/:short_id', checkBoxIdAvailability);
 router.post('/', createBoxApi);
 router.patch('/:id', updateBoxApi);

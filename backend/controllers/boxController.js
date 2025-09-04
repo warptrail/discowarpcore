@@ -27,17 +27,19 @@ const getBoxByMongoIdApi = async (req, res) => {
   }
 };
 
-// GET /api/boxes/by-box-id/:box_id
+// GET /api/boxes/by-box-id/:short_id
 const getBoxByBoxIdApi = async (req, res) => {
-  const { box_id } = req.params;
+  const { short_id } = req.params;
   try {
-    const box = await getBoxByBoxId(box_id);
+    const box = await getBoxByBoxId(short_id);
     if (!box) {
-      return res.status(404).json({ message: 'Box not found (custom box_id)' });
+      return res
+        .status(404)
+        .json({ message: 'Box not found (custom short_id)' });
     }
     return res.status(200).json(box);
   } catch (err) {
-    console.error('❌ Error fetching box by box_id:', err);
+    console.error('❌ Error fetching box by short_id:', err);
     return res.status(500).json({ message: 'Server error' });
   }
 };

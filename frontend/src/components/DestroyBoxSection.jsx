@@ -1,207 +1,81 @@
-import React, { useMemo, useState } from 'react';
-import styled, { css } from 'styled-components';
+// src/components/DestroyBoxSection.jsx
+import { useState, useEffect } from 'react';
 
-const Panel = styled.div`
-  overflow: hidden;
-  background: #171717;
-  border-radius: 10px;
-  border: 1px solid #2a2a2a;
-  transition: max-height 220ms ease, margin-top 220ms ease;
-  max-height: 0;
-  margin-top: 0;
-
-  ${({ $open }) =>
-    $open &&
-    css`
-      max-height: 260px; /* adjust if your copy grows */
-      margin-top: 12px;
-    `}
-`;
-
-const Inner = styled.div`
-  padding: 12px;
-`;
-
-const Title = styled.div`
-  font-size: 15px;
-  font-weight: 700;
-  color: #eaeaea;
-`;
-
-const Subtle = styled.div`
-  font-size: 12px;
-  color: #bdbdbd;
-  margin-top: 6px;
-`;
-
-const DangerBox = styled.div`
-  margin-top: 10px;
-  background: #2a1616;
-  border: 1px solid #3a1d1d;
-  color: #ffbdbd;
-  border-radius: 8px;
-  padding: 10px 12px;
-  font-size: 12px;
-
-  strong {
-    color: #ffd1d1;
-  }
-`;
-
-const Field = styled.input`
-  width: 100%;
-  margin-top: 10px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid #3a3a3a;
-  background: #111;
-  color: #eaeaea;
-  font-size: 14px;
-
-  &:focus {
-    outline: none;
-    border-color: #ff4d4f;
-    box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2);
-  }
-`;
-
-const Row = styled.div`
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-top: 12px;
-`;
-
-const Ghost = styled.button`
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid #2f2f2f;
-  background: #141414;
-  color: #eaeaea;
-  cursor: pointer;
-  &:hover {
-    border-color: #4ec77b;
-  }
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-
-const Danger = styled.button`
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid #3a2323;
-  background: #2a1616;
-  color: #ffbdbd;
-  font-weight: 700;
-  cursor: pointer;
-
-  &:hover {
-    border-color: #ff4d4f;
-    color: #fff;
-  }
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-
-/**
- * DestroyBoxSection (inline, collapsible)
- *
- * Props:
- * - open: boolean                     // show/collapse
- * - boxMongoId: string                // current box id
- * - boxLabel: string                  // for confirmation UX, e.g. "Kitchen"
- * - boxShortId?: string | number      // optional, e.g. "A12"
- * - onCancel: () => void              // parent collapses panel (setActivePanel(null))
- * - onDeleted: () => void             // called after successful DELETE (parent shows toast / navigates)
- */
 export default function DestroyBoxSection({
   open,
+  busy,
+  shortId,
   boxMongoId,
-  boxLabel,
-  boxShortId,
-  onCancel,
-  onDeleted,
+  onRequestDelete, // <-- parent’s delete executor
+  onCancel, // optional
 }) {
-  const [text, setText] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
+  const [confirmText, setConfirmText] = useState('');
 
-  // We’ll accept either the exact label (case-sensitive) OR the literal word DELETE
-  const acceptTokens = useMemo(() => {
-    const tokens = ['DELETE'];
-    if (boxLabel) tokens.push(boxLabel);
-    return tokens;
-  }, [boxLabel]);
+  useEffect(() => {
+    setConfirmText('');
+  }, [shortId]);
 
-  const ok = acceptTokens.some((t) => t === text.trim());
+  const canSubmit = confirmText.trim() === shortId && !busy;
 
-  const doDelete = async () => {
-    if (!ok || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch(`http://localhost:5002/api/boxes/${boxMongoId}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) {
-        const msg = await res.text().catch(() => '');
-        throw new Error(msg || 'Failed to destroy box');
-      }
-      onDeleted?.(); // parent will: show sticky toast + navigate/refresh
-    } catch (e) {
-      setError(e.message || 'Delete failed');
-    } finally {
-      setBusy(false);
-    }
-  };
+  if (!open) return null; // nothing rendered
 
   return (
-    <Panel $open={open} aria-hidden={!open}>
-      {open && (
-        <Inner>
-          <Title>Destroy this box?</Title>
-          <Subtle>
-            This action <strong>cannot</strong> be undone. Items inside will
-            remain orphaned.
-            {boxShortId
-              ? `  Box: ${boxLabel} (#${boxShortId})`
-              : `  Box: ${boxLabel}`}
-          </Subtle>
+    <div style={{ border: '1px solid #333', borderRadius: 12, padding: 16 }}>
+      <h3 style={{ marginTop: 0 }}>Destroy Box</h3>
+      <p>
+        This will permanently delete box <strong>#{shortId}</strong>
+        {boxMongoId ? (
+          <>
+            {' '}
+            (<code>{boxMongoId}</code>)
+          </>
+        ) : null}
+        . This cannot be undone.
+      </p>
 
-          <DangerBox>
-            To confirm, type <strong>{boxLabel}</strong> exactly, or type{' '}
-            <strong>DELETE</strong>.
-          </DangerBox>
+      <label style={{ display: 'block', margin: '12px 0 6px' }}>
+        Type <code>{shortId}</code> to confirm:
+      </label>
+      <input
+        value={confirmText}
+        onChange={(e) => setConfirmText(e.target.value)}
+        disabled={busy}
+        placeholder={`Type ${shortId}`}
+        style={{
+          width: '100%',
+          padding: 8,
+          borderRadius: 8,
+          border: '1px solid #444',
+          background: '#0e0e0e',
+          color: '#eee',
+        }}
+      />
 
-          <Field
-            autoFocus
-            placeholder={`Type "${boxLabel}" or "DELETE" to confirm`}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && ok && !busy) doDelete();
-              if (e.key === 'Escape' && !busy) onCancel?.();
-            }}
-          />
+      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+        <button
+          onClick={onRequestDelete} // <-- trigger parent delete
+          disabled={!canSubmit}
+          aria-busy={busy ? 'true' : 'false'}
+          style={{
+            padding: '10px 14px',
+            borderRadius: 10,
+            border: '1px solid #5a1212',
+            background: '#2b0000',
+            color: '#ffd04d',
+            opacity: canSubmit ? 1 : 0.6,
+            cursor: canSubmit ? 'pointer' : 'not-allowed',
+          }}
+          title={!canSubmit ? 'Type the short id to enable' : 'Destroy box'}
+        >
+          {busy ? 'Destroying…' : 'Destroy Box'}
+        </button>
 
-          {error && (
-            <Subtle style={{ color: '#ffbdbd', marginTop: 6 }}>{error}</Subtle>
-          )}
-
-          <Row>
-            <Ghost onClick={onCancel} disabled={busy}>
-              Cancel
-            </Ghost>
-            <Danger onClick={doDelete} disabled={!ok || busy}>
-              {busy ? 'Destroying…' : 'Destroy box'}
-            </Danger>
-          </Row>
-        </Inner>
-      )}
-    </Panel>
+        {onCancel && (
+          <button onClick={onCancel} disabled={busy}>
+            Cancel
+          </button>
+        )}
+      </div>
+    </div>
   );
 }

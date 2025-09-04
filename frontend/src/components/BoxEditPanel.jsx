@@ -1,6 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE } from '../api/API_BASE';
 
 // Components
 import BoxControlBar from './BoxControlBar';
@@ -24,6 +25,9 @@ export default function BoxEditPanel({
   onItemAssigned,
   onBoxMetaUpdated,
   onBoxSaved,
+  busy,
+  onDeleted,
+  onRequestDelete,
 }) {
   // ? STATE
   const [openItemId, setOpenItemId] = useState(null);
@@ -112,8 +116,6 @@ export default function BoxEditPanel({
   const markBatchLeaving = (ids) => setZippingIds((curr) => addAll(curr, ids));
   const clearBatchLeaving = (ids) =>
     setZippingIds((curr) => removeAll(curr, ids));
-
-  // Snapshot Helpers
 
   // Toast Controls
 
@@ -815,42 +817,6 @@ export default function BoxEditPanel({
     console.log('chirp chirp chirp');
   };
 
-  const handleBoxSaved = async (updated) => {
-    // Old vs new short id
-    const oldShortId = boxTree?.box_id;
-    const newShortId = updated?.box_id;
-
-    // Optimistically update local box meta so the heading updates immediately
-    onBoxMetaUpdated?.({
-      label: updated?.label,
-      box_id: newShortId,
-      tags: updated?.tags,
-    });
-
-    // Close panel
-    setActivePanel(null);
-
-    // Reconcile with backend
-    await refreshBox?.();
-
-    // Navigate only if the short id actually changed
-    if (newShortId && newShortId !== oldShortId) {
-      navigate(`boxes/${newShortId}?open=edit`, {
-        state: { flash: 'renumber' }, // BoxDetailView will read this to flash the header
-        replace: true, // optional: avoid leaving the old shortId in history
-      });
-      // No toast here—we're navigating and will land with Edit open + header flash
-      return;
-    }
-
-    // If we didn't navigate (label/tags change only), show a toast
-    showToast?.({
-      title: 'Box updated',
-      message: 'Details saved.',
-      variant: 'success',
-    });
-  };
-
   const resetItemUIState = () => {
     setOpenItemId(null);
     setVisibleItemId(null);
@@ -861,16 +827,12 @@ export default function BoxEditPanel({
     setJustReturnedItemId(null);
   };
 
-  // const resetAnimState = () => {
-  //   setZippingItemId(null);
-  //   setIsMoving(false);
-  //   setIsUndoing(false);
-  // };
-
   // use when a specific item left this box successfully
   const clearZipIfMatches = (itemId) => {
     setZippingItemId((curr) => (curr === itemId ? null : curr));
   };
+
+  // ! ================ USE EFFECTS ===================
 
   // 1) Auto-measure the edit panel height when a row opens/closes
   useEffect(() => {
@@ -997,27 +959,10 @@ export default function BoxEditPanel({
       <DestroyBoxSection
         open={activePanel === 'destroy'}
         onCancel={() => setActivePanel(null)}
-        onConfirm={async () => {
-          try {
-            const res = await fetch(
-              `http://localhost:5002/api/boxes/${boxMongoId}`,
-              { method: 'DELETE' }
-            );
-            if (!res.ok) throw new Error('Failed to destroy box');
-            showToast({
-              title: 'Box destroyed',
-              message: 'The box was deleted.',
-              variant: 'success',
-            });
-            // navigate away or refresh parent view here
-          } catch (e) {
-            showToast({
-              title: 'Delete failed',
-              message: e.message || 'Unable to destroy this box.',
-              variant: 'danger',
-            });
-          }
-        }}
+        shortId={shortId} // <-- the human-friendly ID
+        boxMongoId={boxMongoId} // <-- the actual Mongo ObjectId
+        onRequestDelete={onRequestDelete}
+        busy={busy}
       />
 
       {/* {Items map} */}
@@ -1266,55 +1211,3 @@ const DetailsPanel = styled.div`
       border: 1px solid #2f2f2f;
     `}
 `;
-
-// TODO
-// 1. Alternating colors for ItemRows to differentiate items
-// 2. Consolidate Wire up the toast message
-// 3. Nested Boxes
-
-// TEMP stub: remove once the real dialog is wired
-function NestBoxDialog({ boxMongoId, currentBoxLabel, onClose, onConfirm }) {
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,.5)',
-        display: 'grid',
-        placeItems: 'center',
-        zIndex: 50,
-      }}
-    >
-      <div
-        style={{
-          background: '#191919',
-          border: '1px solid #2f2f2f',
-          borderRadius: 10,
-          padding: 16,
-          width: 320,
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>Nest this box</h3>
-        <p style={{ opacity: 0.85 }}>
-          Box: <strong>{currentBoxLabel || boxMongoId}</strong>
-        </p>
-        <p style={{ fontSize: 12, opacity: 0.7, marginTop: 8 }}>
-          (Placeholder dialog — wire real picker here)
-        </p>
-        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-          <button onClick={onClose} style={{ flex: 1 }}>
-            Cancel
-          </button>
-          <button
-            onClick={() =>
-              onConfirm?.('DEST_BOX_ID', 'Destination Label', 'A12')
-            }
-            style={{ flex: 1 }}
-          >
-            Confirm
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}

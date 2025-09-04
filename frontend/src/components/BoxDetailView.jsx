@@ -7,6 +7,7 @@ import {
   useNavigate,
 } from 'react-router-dom';
 import flattenBoxes from '../util/flattenBoxes';
+import { destroyBoxById } from '../api/boxes';
 import BoxMetaPanel from './BoxMetaPanel';
 import BoxEditPanel from './BoxEditPanel';
 import ItemDetails from './ItemDetails';
@@ -316,9 +317,13 @@ function BoxDetailView() {
   const [orphanedItems, setOrphanedItems] = useState([]);
   const [flashHeader, setFlashHeader] = useState(false);
   const [openItemIdView, setOpenItemIdView] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
 
   // ? Ref
   const abortRef = useRef(null);
+  // optional: if you want cancelability between operations
+  const opControllerRef = useRef(null);
 
   // ? Router helpers
   const [params] = useSearchParams();
@@ -362,7 +367,6 @@ function BoxDetailView() {
     navigate(`/items/${itemId}`);
   };
 
-  // BoxDetailView.jsx
   const handleBoxMetaUpdated = (partial) => {
     setBox((prev) => ({ ...prev, ...partial })); // label, box_id, tags, etc.
   };
@@ -411,59 +415,120 @@ function BoxDetailView() {
     );
   };
 
-  // ♻️ Reusable Fetch with full error handling
-  const fetchBox = async () => {
-    try {
+  async function fetchBoxByShortId(shortId, signal) {
+    // 1) Try the tree endpoint (preferred)
+    {
       const res = await fetch(
-        `http://localhost:5002/api/boxes/${shortId}/tree`,
-        {
-          headers: { Accept: 'application/json' },
-        }
+        `${API_BASE}/api/boxes/by-short/${encodeURIComponent(shortId)}?tree=1`,
+        { signal, headers: { Accept: 'application/json' } }
       );
-
-      const contentType = res.headers.get('content-type');
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Error ${res.status}: ${text}`);
+      const ct = res.headers.get('content-type') || '';
+      if (res.ok && ct.includes('application/json')) {
+        return await res.json(); // shape: { ok, data } OR plain data (adjust below)
       }
-
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await res.text();
+      // If it was a hard error (not 404), throw early so you can see it
+      if (res.status && res.status !== 404) {
+        const text = await res.text().catch(() => '');
         throw new Error(
-          `Unexpected content type: ${contentType || 'unknown'}\n${text}`
+          `Tree fetch failed (${res.status}): ${text.slice(0, 120)}`
         );
       }
-
-      const data = await res.json();
-      setBox(data);
-      console.log('📦 Box fetched:', data);
-    } catch (err) {
-      console.error('❌ Error fetching box tree:', err);
     }
-  };
+
+    // 2) Fallback: non-tree by-short
+    const res2 = await fetch(
+      `${API_BASE}/api/boxes/by-short/${encodeURIComponent(shortId)}`,
+      { signal, headers: { Accept: 'application/json' } }
+    );
+    const ct2 = res2.headers.get('content-type') || '';
+    if (!res2.ok) {
+      const text = ct2.includes('application/json')
+        ? JSON.stringify(await res2.json().catch(() => ({})))
+        : await res2.text().catch(() => '');
+      throw new Error(`Fetch failed (${res2.status}): ${text.slice(0, 120)}`);
+    }
+    if (!ct2.includes('application/json')) {
+      const text = await res2.text().catch(() => '');
+      throw new Error(`Expected JSON, got ${ct2}. ${text.slice(0, 120)}`);
+    }
+    return await res2.json();
+  }
+
+  function onDeleted() {
+    navigate('/'); // or refreshBoxes();
+  }
 
   // Refresh the box after updates
   const refreshBox = async () => {
     console.log('🔁 Refreshing full box...');
-    await fetchBox(); // gets current box data
+    await fetchBoxByShortId(shortId); // gets current box data
     await fetchOrphanedItems();
   };
+  async function handleDelete() {
+    if (busy) return;
+    setBusy(true);
+
+    // optional abort handling
+    opControllerRef.current?.abort?.();
+    const controller = new AbortController();
+    const boxMongoId = box._id;
+    opControllerRef.current = controller;
+
+    try {
+      await destroyBoxById(boxMongoId, { signal: controller.signal });
+      // success → let the provided onDeleted decide what to do (navigate, refresh, etc.)
+      onDeleted();
+    } catch (err) {
+      if (err?.name !== 'AbortError') {
+        console.error(err);
+        alert('Failed to destroy box. Please try again.');
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // ! ================ USE EFFECTS ===================
+
+  useEffect(
+    () => () => {
+      opControllerRef.current?.abort?.();
+    },
+    []
+  ); // <-- optional: if you want cancelability between operations
 
   useEffect(() => {
-    if (!shortId || !/^\d{3}$/.test(shortId)) {
+    // Validate the param early to avoid bad requests
+    if (!shortId || !/^\d+$/.test(shortId)) {
+      // if your short ids are numeric like "483"
       console.warn('⛔️ Invalid shortId:', shortId);
+      setBox(null);
       return;
     }
-    fetchBox(); // 🔁 Use the shared fetch function
-  }, [shortId]);
 
-  useEffect(() => {
-    if (box) {
-      const flat = flattenBoxes(box);
-      setItems(flat);
-    }
-  }, [box]);
+    const ctrl = new AbortController();
+
+    (async () => {
+      try {
+        setLoading(true);
+        const payload = await fetchBoxByShortId(shortId, ctrl.signal);
+
+        // Your APIs sometimes return { ok, data }, sometimes plain data.
+        const data = payload?.data ?? payload;
+        setBox(data || null);
+        // If you keep a flat items cache derived from the box:
+        if (data) setItems(flattenBoxes(data));
+      } catch (err) {
+        if (err.name === 'AbortError') return; // ignore aborts
+        console.error('❌ Error fetching box:', err);
+        setBox(null);
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    return () => ctrl.abort();
+  }, [shortId]);
 
   // one-time parse to auto-open edit and flash after renumber-nav
   useEffect(() => {
@@ -483,7 +548,9 @@ function BoxDetailView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!box) return <p>Loading box #{shortId}...</p>;
+  // TODO fix these styles into styled components
+  if (loading) return <div style={{ padding: 16 }}>Loading…</div>;
+  if (!box) return <div style={{ padding: 16 }}>Box not found.</div>;
 
   const renderTree = (node, { isRoot = false } = {}) => {
     if (!node) return null;
@@ -633,6 +700,9 @@ function BoxDetailView() {
           onItemUpdated={handleItemUpdated}
           refreshBox={refreshBox}
           onBoxSaved={handleBoxSaved}
+          busy={busy}
+          onDeleted={() => navigate('/')} // in case child wants to signal success
+          onRequestDelete={handleDelete} // child triggers, parent executes
         />
       ) : (
         <>
