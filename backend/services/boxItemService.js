@@ -1,199 +1,155 @@
 const Box = require('../models/Box');
 const Item = require('../models/Item');
-const { Types } = require('mongoose');
 
+/**
+ * Primitive A:
+ * Ensure an item is attached to exactly the given box.
+ * - Pull from ANY boxes that currently contain it (single-parent invariant)
+ * - Add to the destination box (idempotent via $addToSet)
+ * - Clear orphanedAt
+ */
+async function attachItemToBox({ itemId, boxId }) {
+  // remove from any other box
+  await Box.updateMany({ items: itemId }, { $pull: { items: itemId } });
+
+  // add to destination
+  const r = await Box.updateOne(
+    { _id: boxId },
+    { $addToSet: { items: itemId } }
+  );
+  if (r.matchedCount === 0) throw new Error('Box not found');
+
+  // clear orphan flag
+  await Item.updateOne({ _id: itemId }, { $unset: { orphanedAt: 1 } });
+
+  // return the destination box (unpopulated)
+  return Box.findById(boxId).lean();
+}
+
+/**
+ * Primitive B:
+ * Remove a specific item from a specific box.
+ * - Pull from that box (idempotent)
+ * - If the item is no longer in ANY box, mark as orphaned
+ */
+async function removeItemFromBox(boxId, itemId) {
+  // remove from the specified box
+  await Box.updateOne({ _id: boxId }, { $pull: { items: itemId } });
+
+  // Check if the item remains in any other box
+  const stillInABox = await Box.exists({ items: itemId });
+  if (!stillInABox) {
+    await Item.updateOne({ _id: itemId }, { $set: { orphanedAt: new Date() } });
+  }
+
+  return Box.findById(boxId).lean();
+}
+
+/** Thin wrapper:
+ * Create an Item (required name) and attach to box.
+ */
 async function createItemInBox(boxId, itemPayload) {
+  if (!itemPayload || !itemPayload.name) {
+    throw new Error('Item name is required');
+  }
   const item = await Item.create(itemPayload);
-  await addItemToBox(boxId, item._id);
+  await attachItemToBox({ itemId: item._id, boxId });
   return item;
 }
 
-/**
- * Add existing item to a box (idempotent).
- * - Uses $addToSet (no dupes, atomic)
- * - Clears orphanedAt
- * - Returns the updated box (unpopulated; populate outside if needed)
+/** Thin wrapper:
+ * Add existing item to a box (idempotent); canonicalizes through attachItemToBox.
  */
 async function addItemToBox(boxId, itemId) {
-  const box = await Box.findByIdAndUpdate(
-    boxId,
-    { $addToSet: { items: itemId } },
-    { new: true }
-  );
-  if (!box) throw new Error('Box not found');
-  await Item.findByIdAndUpdate(itemId, { $set: { orphanedAt: null } });
-  return box;
+  return attachItemToBox({ itemId, boxId });
 }
 
-async function addItemsToBox(boxMongoId, itemIds = []) {
+/** Thin wrapper:
+ * Bulk add items to a box (idempotent). Returns counts + destination box.
+ */
+async function addItemsToBox(boxId, itemIds) {
   if (!Array.isArray(itemIds) || itemIds.length === 0) {
     throw new Error('itemIds must be a non-empty array');
   }
-
-  // Load current items to compute counts
-  const box = await Box.findById(boxMongoId).lean();
-  if (!box) throw new Error('Box not found');
-
-  const currentIds = new Set((box.items || []).map(String));
-  const uniqueIncoming = [...new Set(itemIds.map(String))];
-
-  const toAdd = uniqueIncoming.filter((id) => !currentIds.has(id));
-  const alreadyPresent = uniqueIncoming.length - toAdd.length;
-
-  // Add to box
-  const updatedBox = await Box.findByIdAndUpdate(
-    boxMongoId,
-    { $addToSet: { items: { $each: toAdd } } },
-    { new: true }
-  )
-    .populate('items')
-    .lean();
-
-  // Clear orphanedAt on all incoming items (safe for both new + already-present)
-  await Item.updateMany(
-    { _id: { $in: uniqueIncoming } },
-    { $set: { orphanedAt: null } }
-  );
-
-  return {
-    addedCount: toAdd.length,
-    alreadyPresentCount: alreadyPresent,
-    totalInPayload: uniqueIncoming.length,
-    box: updatedBox,
-  };
+  let attached = 0;
+  for (const id of itemIds) {
+    await attachItemToBox({ itemId: id, boxId });
+    attached += 1;
+  }
+  const box = await Box.findById(boxId).lean();
+  return { attached, box };
 }
 
-/**
- * Remove item from box (idempotent).
- * - Uses $pull (atomic)
- * - Sets orphanedAt
- * - Returns the updated box
- */
-async function removeItemFromBox(boxId, itemId) {
-  // Cast to ObjectId to avoid string vs ObjectId mismatches
-  const oid = Types.ObjectId.isValid(itemId)
-    ? new Types.ObjectId(itemId)
-    : itemId;
-
-  // 1) Pull once with the ObjectId
-  let result = await Box.updateOne({ _id: boxId }, { $pull: { items: oid } });
-
-  // Debug log — remove once verified
-  console.log('[removeItemFromBox]', {
-    matched: result.matchedCount,
-    modified: result.modifiedCount,
-    boxId,
-    itemId,
-  });
-
-  // 2) If nothing changed, try pulling the raw string too (covers odd data)
-  if (result.matchedCount === 0) {
-    throw new Error('Box not found');
-  }
-  if (result.modifiedCount === 0) {
-    // second-chance pull in case the array contains strings
-    result = await Box.updateOne({ _id: boxId }, { $pull: { items: itemId } });
-  }
-
-  // 3) If still nothing changed, report clearly
-  if (result.modifiedCount === 0) {
-    // You can choose to throw, or return a flag; throwing is clearer during debug
-    throw new Error('Item was not attached to this box (no changes made)');
-  }
-
-  // 4) Mark the item orphaned
-  await Item.updateOne({ _id: oid }, { $set: { orphanedAt: new Date() } });
-
-  // 5) Return fresh box if you want it
-  return Box.findById(boxId);
-}
-/**
- * Move item between boxes.
- * - Pull from source, addToSet into dest
- * - Does NOT set orphanedAt (item remains boxed)
- * - Returns destination box populated if you want (kept your style)
+/** Thin wrapper:
+ * Move item between two boxes. Canonicalized by calling attachItemToBox(dest).
+ * (No need to manually pull from source — attach primitive handles it.)
  */
 async function moveItemBetweenBoxes(sourceBoxId, destBoxId, itemId) {
-  if (sourceBoxId === destBoxId) {
-    // no-op move; just ensure it's present in dest
-    const dest = await Box.findByIdAndUpdate(
-      destBoxId,
-      { $addToSet: { items: itemId } },
-      { new: true }
-    )
-      .populate('items')
-      .lean();
-    return dest;
-  }
-
-  // Step 1: remove from source (no error if not present)
-  await Box.findByIdAndUpdate(sourceBoxId, { $pull: { items: itemId } });
-
-  // Step 2: add to destination (idempotent)
-  const updatedDestination = await Box.findByIdAndUpdate(
-    destBoxId,
-    { $addToSet: { items: itemId } },
-    { new: true }
-  )
-    .populate('items')
-    .lean();
-
-  if (!updatedDestination) throw new Error('Destination box not found');
-
-  // Ensure item isn’t marked orphaned
-  await Item.findByIdAndUpdate(itemId, { $set: { orphanedAt: null } });
-
-  return updatedDestination;
+  await attachItemToBox({ itemId, boxId: destBoxId });
+  return Box.findById(destBoxId).lean();
 }
 
+/** Thin wrapper:
+ * Ensure the item is detached from ALL boxes and marked orphaned.
+ */
+async function detachItem({ itemId }) {
+  // remove from any boxes that have it
+  await Box.updateMany({ items: itemId }, { $pull: { items: itemId } });
+  // mark orphaned
+  await Item.updateOne({ _id: itemId }, { $set: { orphanedAt: new Date() } });
+  return { itemId, orphaned: true };
+}
+
+/** Thin wrapper:
+ * Alias for attach (for your API naming). Equivalent of "move to box".
+ */
+async function moveItem({ itemId, toBoxId }) {
+  await attachItemToBox({ itemId, boxId: toBoxId });
+  return { itemId, toBoxId };
+}
+
+/** Thin wrapper:
+ * Empties a box: marks its items orphaned and clears Box.items.
+ */
 async function emptyBoxItems(boxId) {
-  // we need to identify the box
-  const box = await Box.findById(boxId);
-  if (!box) {
-    throw new Error(`Box ${boxId} not found`);
+  const box = await Box.findById(boxId, { items: 1 }).lean();
+  if (!box) throw new Error('Box not found');
+
+  const itemIds = box.items || [];
+  if (itemIds.length) {
+    await Item.updateMany(
+      { _id: { $in: itemIds } },
+      { $set: { orphanedAt: new Date() } }
+    );
   }
 
-  // Validation: already empty
-  if (!box.items || box.items.length === 0) {
-    return {
-      success: false,
-      message: `Box ${boxId} is already empty`,
-      orphanedCount: 0,
-      fromBoxId: boxId,
-    };
-  }
-
-  // Get the items in the box
-  const itemIds = box.items;
-
-  // Get the current timestamp
-  const now = new Date();
-
-  // Update each item to be orphaned
-  await Item.updateMany(
-    { _id: { $in: itemIds } },
-    { $set: { orphanedAt: now } }
-  );
-
-  // Then clear the box's item array
-  box.items = [];
-  await box.save();
-
-  return {
-    success: true,
-    orphanedCount: itemIds.length,
-    orphanedAt: now,
-    fromBoxId: boxId,
-  };
+  await Box.updateOne({ _id: boxId }, { $set: { items: [] } });
+  return { boxId, removedCount: itemIds.length };
 }
 
-// TODO make emptyBoxItemsAPI function controller -->
+/** Query helper:
+ * List orphaned items; optional time filter (?since ISO 8601)
+ */
+async function getOrphanItems({ since } = {}) {
+  const q = { orphanedAt: { $ne: null } };
+  if (since) {
+    q.orphanedAt = { $gte: new Date(since) };
+  }
+  return Item.find(q).lean();
+}
 
 module.exports = {
+  // primitives
+  attachItemToBox,
+  removeItemFromBox,
+
+  // thin wrappers
   createItemInBox,
   addItemToBox,
   addItemsToBox,
-  removeItemFromBox,
   moveItemBetweenBoxes,
   emptyBoxItems,
+  detachItem,
+  moveItem,
+  getOrphanItems,
 };
