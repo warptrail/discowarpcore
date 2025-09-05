@@ -4,14 +4,39 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { fetchBoxTreeByShortId } from '../api/boxes';
 import { styledComponents as S } from '../styles/BoxDetailView.styles';
 
+// ? Component Imports
+
+import BoxEditPanel from './BoxEditPanel';
+import BoxMetaPanel from './BoxMetaPanel';
+import TabControlBar from './TabControlBar';
+import ItemRow from './ItemRow';
+
 export default function BoxDetailView({ onOpenBox, onOpenItem }) {
   const { shortId } = useParams(); // this is your box_id
   const navigate = useNavigate();
 
+  // ? State
   const [tree, setTree] = useState(null);
-  const [tab, setTab] = useState('boxes'); // "boxes" | "items"
+  const [tab, setTab] = useState('boxes'); // "boxes" | "items" | "edit"
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  // fetch helpers
+  async function refresh() {
+    try {
+      setBusy(true);
+      const ctrl = new AbortController();
+      const data = await fetchBoxTreeByShortId(shortId, {
+        signal: ctrl.signal,
+      });
+      setTree(data);
+    } catch (e) {
+      setErr(e?.message || 'Failed to refresh this box.');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   useEffect(() => {
     let alive = true;
@@ -78,43 +103,50 @@ export default function BoxDetailView({ onOpenBox, onOpenItem }) {
     );
   }
 
+  const itemsCount = allItems.length;
+  const totalQuantity = allItems.reduce(
+    (sum, it) => sum + Number(it.quantity || 0),
+    0
+  );
+
   return (
     <S.Container>
       <S.Heading>
         {tree.label} <S.Meta>#{tree.box_id || tree._id}</S.Meta>
       </S.Heading>
+      <BoxMetaPanel
+        box={tree}
+        onGoToBox={(sid) => {
+          if (!sid) return;
+          if (typeof openBox === 'function') return openBox(sid);
+          if (typeof navigate === 'function') navigate(`/boxes/${sid}`);
+        }}
+        itemsCount={itemsCount}
+        totalQuantity={totalQuantity}
+      />
 
-      {/* Immediate child boxes as quick chips by box_id (click to navigate) */}
-      {Array.isArray(tree.childBoxes) && tree.childBoxes.length > 0 ? (
-        <>
-          <S.NodeHeader>
-            <S.NodeTitle>Child boxes (box_id):</S.NodeTitle>
-          </S.NodeHeader>
-          <S.TagRow>
-            {tree.childBoxes.map((c) => (
-              <S.TagBubble key={c._id || c.box_id} onClick={() => openBox(c)}>
-                {c.box_id}
-              </S.TagBubble>
-            ))}
-          </S.TagRow>
-        </>
-      ) : (
-        <S.EmptyMessage>No child boxes</S.EmptyMessage>
+      <TabControlBar mode={tab} onChange={setTab} busy={busy} />
+
+      {tab === 'boxes' && (
+        <BoxTree node={tree} onOpenBox={openBox} onOpenItem={openItem} />
       )}
 
-      <S.TabToggle>
-        <S.TabButton $active={tab === 'boxes'} onClick={() => setTab('boxes')}>
-          Boxes
-        </S.TabButton>
-        <S.TabButton $active={tab === 'items'} onClick={() => setTab('items')}>
-          Items
-        </S.TabButton>
-      </S.TabToggle>
+      {tab === 'items' && <ItemsList items={allItems} onOpenItem={openItem} />}
 
-      {tab === 'boxes' ? (
-        <BoxTree node={tree} onOpenBox={openBox} onOpenItem={openItem} />
-      ) : (
-        <ItemsList items={allItems} onOpenItem={openItem} />
+      {tab === 'edit' && (
+        <div style={{ marginBottom: 12 }}>
+          <BoxEditPanel
+            flatItems={allItems}
+            boxTree={tree}
+            shortId={tree.box_id || tree._id} // matches your existing id usage
+            boxMongoId={tree._id}
+            onItemsDataUpdated={refresh} // optional; omit if not using refresh()
+            onBoxSaved={refresh} // optional
+            busy={busy} // optional
+            onDeleted={() => navigate('/')} // keep your existing navigate pattern
+            onRequestDelete={() => setTab('edit')}
+          />
+        </div>
       )}
     </S.Container>
   );

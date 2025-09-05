@@ -21,7 +21,7 @@ async function getBoxByShortId(shortId) {
 
   return box; // can be null if not found
 }
-
+/* 
 async function getBoxTreeByShortId(boxId) {
   // Find the root box using the 3-digit box_id
   const rootBox = await Box.findOne({ box_id: boxId }).populate('items').lean();
@@ -46,6 +46,85 @@ async function getBoxTreeByShortId(boxId) {
   rootBox.childBoxes = await populateChildren(rootBox);
 
   return rootBox;
+}
+*/
+
+async function getBoxTreeByShortId(shortId) {
+  // 1) Root
+  const root = await Box.findOne({ box_id: shortId }).lean();
+  if (!root) return null;
+
+  // 2) Gather ALL descendant boxes in breadth-first batches to avoid N+1
+  const byId = new Map([[String(root._id), root]]);
+  const childrenByParent = new Map(); // parentId -> Box[]
+  let frontier = [root._id];
+
+  while (frontier.length) {
+    const children = await Box.find({ parentBox: { $in: frontier } }).lean();
+
+    // index them
+    for (const c of children) {
+      byId.set(String(c._id), c);
+      const pid = String(c.parentBox);
+      if (!childrenByParent.has(pid)) childrenByParent.set(pid, []);
+      childrenByParent.get(pid).push(c);
+    }
+
+    // next layer
+    frontier = children.map((c) => c._id);
+  }
+
+  // 3) Fetch ALL items for ALL boxes once, then map back in
+  const allItemIdCandidates = [];
+  for (const b of byId.values()) {
+    if (Array.isArray(b.items)) {
+      // Only collect ObjectIds; we’ll rehydrate these into full docs
+      for (const id of b.items) {
+        if (id && typeof id === 'object') allItemIdCandidates.push(id);
+      }
+    }
+  }
+
+  let itemsById = new Map();
+  if (allItemIdCandidates.length) {
+    const allItems = await Item.find({
+      _id: { $in: allItemIdCandidates },
+    }).lean();
+    itemsById = new Map(allItems.map((i) => [String(i._id), i]));
+  }
+
+  // 4) Build the nested tree (non-mutating copies if you prefer)
+  function link(node) {
+    // Attach full item docs
+    const itemDocs = Array.isArray(node.items)
+      ? node.items
+          .map((i) => itemsById.get(String(i)) || i) // if already full doc, keep it
+          .filter(Boolean)
+      : [];
+
+    // Attach children
+    const kids = childrenByParent.get(String(node._id)) || [];
+    const childBoxes = kids.map(link);
+
+    // Return with conventional fields
+    return {
+      ...node,
+      items: itemDocs,
+      childBoxes,
+    };
+  }
+
+  const tree = link(root);
+
+  // (Optional small cleanup) strip __v if you don’t want it in the response
+  // const stripMeta = (n) => ({
+  //   ...Object.fromEntries(Object.entries(n).filter(([k]) => k !== '__v')),
+  //   items: n.items.map(i => Object.fromEntries(Object.entries(i).filter(([k]) => k !== '__v'))),
+  //   childBoxes: n.childBoxes.map(stripMeta),
+  // });
+  // return stripMeta(tree);
+
+  return tree;
 }
 
 async function getAllBoxes() {

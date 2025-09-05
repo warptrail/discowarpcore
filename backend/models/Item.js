@@ -5,7 +5,7 @@ const itemSchema = new mongoose.Schema({
   quantity: { type: Number, default: 1 },
   notes: String,
   tags: [String],
-  imagePath: String, // relative path to image file
+  imagePath: { type: String, default: null },
   orphanedAt: {
     type: Date,
     default: null,
