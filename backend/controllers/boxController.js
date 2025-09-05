@@ -1,11 +1,11 @@
 const {
   getBoxByMongoId,
-  getBoxByBoxId,
+  getBoxByShortId,
   createBox,
   getBoxesByParent,
   updateBox,
   getBoxTree,
-  getBoxTreeByBoxId,
+  getBoxTreeByShortId,
   getAllBoxes,
   getBoxesExcludingId,
   deleteBoxById,
@@ -27,22 +27,31 @@ const getBoxByMongoIdApi = async (req, res) => {
   }
 };
 
-// GET /api/boxes/by-box-id/:short_id
-const getBoxByBoxIdApi = async (req, res) => {
-  const { short_id } = req.params;
+async function getBoxByShortIdApi(req, res) {
   try {
-    const box = await getBoxByBoxId(short_id);
-    if (!box) {
-      return res
-        .status(404)
-        .json({ message: 'Box not found (custom short_id)' });
-    }
-    return res.status(200).json(box);
-  } catch (err) {
-    console.error('❌ Error fetching box by short_id:', err);
-    return res.status(500).json({ message: 'Server error' });
+    // accept either param name (shortId is canonical; boxId kept for back-compat)
+    const shortId = req.params.shortId ?? req.params.boxId;
+    const box = await getBoxByShortId(shortId);
+    if (!box)
+      return res.status(404).json({ ok: false, error: 'Box not found' });
+    res.json({ ok: true, box });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: e.message });
   }
-};
+}
+
+async function getBoxTreeByShortIdApi(req, res) {
+  try {
+    // accept either param name (shortId is canonical; boxId kept for back-compat)
+    const shortId = req.params.shortId ?? req.params.boxId;
+    const box = await getBoxTreeByShortId(shortId);
+    if (!box)
+      return res.status(404).json({ ok: false, error: 'Box not found' });
+    res.json({ ok: true, box });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: e.message });
+  }
+}
 
 async function getAllBoxesApi(req, res) {
   try {
@@ -90,7 +99,7 @@ async function checkBoxIdAvailability(req, res) {
   }
 
   try {
-    const box = await getBoxByBoxId(short_id);
+    const box = await getBoxByShortId(short_id);
     return res.json({ available: !box });
   } catch (err) {
     console.error('Error checking box Id availability:', err);
@@ -149,9 +158,9 @@ async function getBoxTreeApi(req, res) {
   }
 }
 
-async function getBoxTreeByBoxIdApi(req, res) {
+async function getBoxTreeByShortIdApi(req, res) {
   try {
-    const tree = await getBoxTreeByBoxId(req.params.box_id);
+    const tree = await getBoxTreeByShortId(req.params.shortId);
     if (!tree) {
       return res.status(404).json({ error: 'Box not found' });
     }
@@ -191,7 +200,7 @@ async function deleteAllBoxesApi(req, res) {
 
 module.exports = {
   getBoxByMongoIdApi,
-  getBoxByBoxIdApi,
+  getBoxByShortIdApi,
   getAllBoxesApi,
   getBoxesExcludingApi,
   getBoxesByParentApi,
@@ -199,7 +208,7 @@ module.exports = {
   createBoxApi,
   updateBoxApi,
   getBoxTreeApi,
-  getBoxTreeByBoxIdApi,
+  getBoxTreeByShortIdApi,
   deleteBoxByIdApi,
   deleteAllBoxesApi,
 };

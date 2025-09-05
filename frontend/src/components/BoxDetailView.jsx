@@ -1,720 +1,194 @@
-import { useEffect, useState, useRef } from 'react';
-import styled, { keyframes, css } from 'styled-components';
-import {
-  useParams,
-  useSearchParams,
-  useLocation,
-  useNavigate,
-} from 'react-router-dom';
-import flattenBoxes from '../util/flattenBoxes';
-import { destroyBoxById } from '../api/boxes';
-import BoxMetaPanel from './BoxMetaPanel';
-import BoxEditPanel from './BoxEditPanel';
-import ItemDetails from './ItemDetails';
+// src/views/BoxDetailView.jsx
+import React, { useEffect, useMemo, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { fetchBoxTreeByShortId } from '../api/boxes';
+import { styledComponents as S } from '../styles/BoxDetailView.styles';
 
-const flashBorder = keyframes`
-  0%   { box-shadow: 0 0 0 0 rgba(78,199,123,0.0); }
-  50%  { box-shadow: 0 0 0 3px rgba(78,199,123,0.35); }
-  100% { box-shadow: 0 0 0 0 rgba(78,199,123,0.0); }
-`;
-
-const Container = styled.div`
-  padding: 1.5rem 1rem;
-  color: #f0f0f0;
-  background-color: #0f0f0f;
-  font-family: 'Helvetica Neue', sans-serif;
-`;
-
-const Heading = styled.h2`
-  /* keep your existing styles */
-  ${({ $flash }) =>
-    $flash &&
-    css`
-      display: inline-block;
-      padding: 2px 6px;
-      border-radius: 8px;
-      animation: ${flashBorder} 600ms ease-out 0ms 2;
-      background: #19231d;
-    `}
-`;
-
-const TabToggle = styled.div`
-  display: flex;
-  border-bottom: 2px solid #333;
-  margin-bottom: 1.5rem;
-  justify-content: space-around;
-`;
-
-const TabButton = styled.button`
-  flex: 1;
-  padding: 1rem;
-  font-size: 1rem;
-  background: ${({ $active }) => ($active ? '#111' : 'transparent')};
-  color: ${({ $active }) => ($active ? '#f0f0f0' : '#aaa')};
-  border: none;
-  border-bottom: ${({ $active }) =>
-    $active ? '2px solid #00ffcc' : '2px solid transparent'};
-  cursor: pointer;
-  transition: background 0.2s ease;
-
-  &:hover {
-    background: #1a1a1a;
-  }
-
-  @media (min-width: 768px) {
-    font-size: 1.1rem;
-  }
-`;
-
-// Top-level nested boxes list (for child boxes)
-const TreeList = styled.ul`
-  list-style: none;
-  margin: 8px 0 0;
-  padding: 0;
-`;
-
-const TreeNode = styled.li`
-  list-style: none;
-  margin: 10px 0;
-  border: 1px solid #222;
-  border-radius: 14px;
-  overflow: hidden;
-  background: #161818; /* boxes: solid background */
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-
-  &:hover {
-    border-color: #2b2b2b;
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.24);
-  }
-`;
-
-const ItemList = styled.ul`
-  list-style: none;
-  margin: 8px 0;
-  padding: 0;
-`;
-
-const ItemNode = styled.li`
-  /* card look + alternation */
-  border: 1px solid #222;
-  border-radius: 14px;
-  overflow: hidden;
-  transition: background-color 0.15s ease, border-color 0.15s ease,
-    box-shadow 0.15s ease;
-  margin: 10px 0;
-
-  &:nth-child(odd) {
-    background-color: #272b2bff;
-  }
-  &:nth-child(even) {
-    background-color: #191b1a;
-  }
-
-  &:hover {
-    border-color: #2b2b2b;
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.24);
-  }
-`;
-
-const NodeHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-
-  /* subtle glow when hovering over box header */
-  &:hover {
-    background: rgba(255, 255, 255, 0.06);
-  }
-`;
-
-const NodeChildren = styled.div`
-  margin-left: 1rem;
-  margin-top: 0.5rem;
-
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-
-  /* Subtle left border line for hierarchy */
-  border-left: 1px dashed rgba(255, 255, 255, 0.1);
-  padding-left: 1rem;
-`;
-
-const NodeTitle = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-
-  font-size: 1rem;
-  font-weight: 600;
-  color: #f0f0f0;
-
-  /* Allow long labels but gracefully cut them off */
-  max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const BoxLabelText = styled.span`
-  font-weight: 600;
-  font-size: 1rem;
-  color: #e6ffe6;
-
-  /* Ensure long labels don’t break layout */
-  max-width: 240px;
-  display: inline-block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  &:hover {
-    color: #9eff9e;
-  }
-`;
-
-const Meta = styled.span`
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.6);
-  margin-left: 0.75rem;
-  padding: 0.15rem 0.5rem;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-
-  /* Keeps the numbers/items aligned nicely */
-  display: inline-flex;
-  align-items: center;
-
-  &:first-of-type {
-    margin-left: 1rem; /* extra gap from the label text */
-  }
-`;
-
-/* the rest are divs/spans (not li) */
-const ItemRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px 6px;
-  min-height: 40px;
-  cursor: pointer;
-`;
-
-const ItemTitle = styled.div`
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  min-width: 0;
-  color: #f0f0f0;
-  font-size: 15px;
-  font-weight: 800;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const ItemQuantity = styled.span`
-  font-size: 12px;
-  font-weight: 600;
-  color: #e0e0e0;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
-  padding: 2px 8px;
-  line-height: 1.4;
-  white-space: nowrap;
-`;
-
-const NotePreview = styled.div`
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.75);
-  margin: 6px 14px 8px;
-
-  /* one-line clamp with ellipsis */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  /* reserve height even when empty */
-  line-height: 1.2;
-  min-height: 1.2em;
-`;
-
-const RowDivider = styled.div`
-  height: 1px;
-  margin: 0 10px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    #202020 25%,
-    #202020 75%,
-    transparent
-  );
-  opacity: 0.9;
-`;
-
-const TagRow = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 8px 12px 10px;
-  min-height: 28px;
-`;
-
-const TagBubble = styled.span`
-  display: inline-block;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #d0d0d0;
-  font-size: 12px;
-  font-weight: 500;
-  border-radius: 12px;
-  padding: 2px 10px;
-  white-space: nowrap;
-  user-select: none;
-`;
-
-const DetailsWrap = styled.div`
-  overflow: hidden;
-  /* simple fade-in; height is handled by mount/unmount */
-  animation: fadeIn 160ms ease;
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(-2px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-`;
-
-const EmptyMessage = styled.div`
-  padding: 16px;
-  color: ${({ theme }) => theme?.colors?.textSecondary || '#9aa6b2'};
-  border: 1px dashed
-    ${({ theme }) => theme?.colors?.border || 'rgba(120,130,155,0.35)'};
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-`;
-
-const API_BASE = 'http://localhost:5002';
-
-// ! BoxDetailView COMPONENT START =======================
-function BoxDetailView() {
-  const { shortId } = useParams();
-
-  // ? State
-  const [box, setBox] = useState(null);
-  const [items, setItems] = useState([]);
-  const [editMode, setEditMode] = useState(false);
-  const [orphanedItems, setOrphanedItems] = useState([]);
-  const [flashHeader, setFlashHeader] = useState(false);
-  const [openItemIdView, setOpenItemIdView] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-
-  // ? Ref
-  const abortRef = useRef(null);
-  // optional: if you want cancelability between operations
-  const opControllerRef = useRef(null);
-
-  // ? Router helpers
-  const [params] = useSearchParams();
-  const location = useLocation();
+export default function BoxDetailView({ onOpenBox, onOpenItem }) {
+  const { shortId } = useParams(); // this is your box_id
   const navigate = useNavigate();
 
-  // ! Animation Helpers
-  // smooth close → then navigate
-  const nextTwoFrames = () =>
-    new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-  const closeAndGoToItem = async (itemId) => {
-    // 1) close the inline details panel
-    setOpenItemIdView(null);
-
-    // 2) let the collapse animation commit (2 RAFs is usually enough)
-    await nextTwoFrames();
-
-    // (optional) tiny buffer if your collapse uses transitions
-    // await new Promise((r) => setTimeout(r, 120));
-
-    // 3) navigate to the item page
-    navigate(`/items/${itemId}`);
-  };
-
-  const toggleItemOpen = (id) =>
-    setOpenItemIdView((prev) => (prev === id ? null : id));
-
-  const goToItem = (item) => {
-    const id = item?._id;
-    if (!id) return;
-    navigate(`/items/${id}?from=${box.box_id}`, {
-      state: {
-        fromBox: { _id: box._id, shortId: box.box_id, label: box.label },
-      },
-    });
-  };
-
-  const handleOpenItem = (itemId) => {
-    // navigate to the item’s dedicated page
-    navigate(`/items/${itemId}`);
-  };
-
-  const handleBoxMetaUpdated = (partial) => {
-    setBox((prev) => ({ ...prev, ...partial })); // label, box_id, tags, etc.
-  };
-
-  const handleBoxSaved = (updated) => {
-    const oldShortId = box?.box_id;
-    const newShortId = updated?.box_id;
-
-    // optimistic header update
-    handleBoxMetaUpdated({
-      label: updated?.label,
-      box_id: newShortId,
-      tags: updated?.tags,
-    });
-
-    // if shortId changed → navigate; tell child we navigated
-    if (newShortId && newShortId !== oldShortId) {
-      navigate(`/boxes/${newShortId}?open=edit`, {
-        state: { flash: 'renumber' },
-        replace: true,
-      });
-      return true; // <-- signal: navigated
-    }
-
-    return false; // <-- signal: no navigation
-  };
-
-  const fetchOrphanedItems = async () => {
-    try {
-      const res = await fetch(
-        'http://localhost:5002/api/items/orphaned?sort=recent&limit=20'
-      );
-      const data = await res.json();
-      setOrphanedItems(data);
-    } catch (err) {
-      console.error('❌ Failed to fetch orphaned items:', err);
-    }
-  };
-
-  const handleItemUpdated = (updatedItem) => {
-    console.log('testing handleItemUpdated');
-    setItems((prevItems) =>
-      prevItems.map((item) =>
-        item._id === updatedItem._id ? updatedItem : item
-      )
-    );
-  };
-
-  async function fetchBoxByShortId(shortId, signal) {
-    // 1) Try the tree endpoint (preferred)
-    {
-      const res = await fetch(
-        `${API_BASE}/api/boxes/by-short/${encodeURIComponent(shortId)}?tree=1`,
-        { signal, headers: { Accept: 'application/json' } }
-      );
-      const ct = res.headers.get('content-type') || '';
-      if (res.ok && ct.includes('application/json')) {
-        return await res.json(); // shape: { ok, data } OR plain data (adjust below)
-      }
-      // If it was a hard error (not 404), throw early so you can see it
-      if (res.status && res.status !== 404) {
-        const text = await res.text().catch(() => '');
-        throw new Error(
-          `Tree fetch failed (${res.status}): ${text.slice(0, 120)}`
-        );
-      }
-    }
-
-    // 2) Fallback: non-tree by-short
-    const res2 = await fetch(
-      `${API_BASE}/api/boxes/by-short/${encodeURIComponent(shortId)}`,
-      { signal, headers: { Accept: 'application/json' } }
-    );
-    const ct2 = res2.headers.get('content-type') || '';
-    if (!res2.ok) {
-      const text = ct2.includes('application/json')
-        ? JSON.stringify(await res2.json().catch(() => ({})))
-        : await res2.text().catch(() => '');
-      throw new Error(`Fetch failed (${res2.status}): ${text.slice(0, 120)}`);
-    }
-    if (!ct2.includes('application/json')) {
-      const text = await res2.text().catch(() => '');
-      throw new Error(`Expected JSON, got ${ct2}. ${text.slice(0, 120)}`);
-    }
-    return await res2.json();
-  }
-
-  function onDeleted() {
-    navigate('/'); // or refreshBoxes();
-  }
-
-  // Refresh the box after updates
-  const refreshBox = async () => {
-    console.log('🔁 Refreshing full box...');
-    await fetchBoxByShortId(shortId); // gets current box data
-    await fetchOrphanedItems();
-  };
-  async function handleDelete() {
-    if (busy) return;
-    setBusy(true);
-
-    // optional abort handling
-    opControllerRef.current?.abort?.();
-    const controller = new AbortController();
-    const boxMongoId = box._id;
-    opControllerRef.current = controller;
-
-    try {
-      await destroyBoxById(boxMongoId, { signal: controller.signal });
-      // success → let the provided onDeleted decide what to do (navigate, refresh, etc.)
-      onDeleted();
-    } catch (err) {
-      if (err?.name !== 'AbortError') {
-        console.error(err);
-        alert('Failed to destroy box. Please try again.');
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  // ! ================ USE EFFECTS ===================
-
-  useEffect(
-    () => () => {
-      opControllerRef.current?.abort?.();
-    },
-    []
-  ); // <-- optional: if you want cancelability between operations
+  const [tree, setTree] = useState(null);
+  const [tab, setTab] = useState('boxes'); // "boxes" | "items"
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
 
   useEffect(() => {
-    // Validate the param early to avoid bad requests
-    if (!shortId || !/^\d+$/.test(shortId)) {
-      // if your short ids are numeric like "483"
-      console.warn('⛔️ Invalid shortId:', shortId);
-      setBox(null);
-      return;
-    }
-
+    let alive = true;
     const ctrl = new AbortController();
 
     (async () => {
+      setLoading(true);
+      setErr('');
+      setTree(null);
       try {
-        setLoading(true);
-        const payload = await fetchBoxByShortId(shortId, ctrl.signal);
-
-        // Your APIs sometimes return { ok, data }, sometimes plain data.
-        const data = payload?.data ?? payload;
-        setBox(data || null);
-        // If you keep a flat items cache derived from the box:
-        if (data) setItems(flattenBoxes(data));
-      } catch (err) {
-        if (err.name === 'AbortError') return; // ignore aborts
-        console.error('❌ Error fetching box:', err);
-        setBox(null);
+        const data = await fetchBoxTreeByShortId(shortId, {
+          signal: ctrl.signal,
+        });
+        if (alive) setTree(data);
+      } catch (e) {
+        if (alive) setErr(e?.message || 'Failed to load box');
       } finally {
-        setLoading(false);
+        if (alive) setLoading(false);
       }
     })();
 
-    return () => ctrl.abort();
+    return () => {
+      alive = false;
+      ctrl.abort();
+    };
   }, [shortId]);
 
-  // one-time parse to auto-open edit and flash after renumber-nav
-  useEffect(() => {
-    const open = params.get('open');
-    if (open === 'edit') setEditMode?.(true);
+  // Flatten all items for the "Items" tab — recurse over childBoxes
+  const allItems = useMemo(() => {
+    if (!tree) return [];
+    const out = [];
+    (function walk(n) {
+      if (!n) return;
+      if (Array.isArray(n.items)) out.push(...n.items);
+      if (Array.isArray(n.childBoxes)) n.childBoxes.forEach(walk);
+    })(tree);
+    return out;
+  }, [tree]);
 
-    if (location.state?.flash === 'renumber') {
-      setFlashHeader(true);
-      setTimeout(() => setFlashHeader(false), 1400);
-    }
+  function openBox(box) {
+    if (onOpenBox) return onOpenBox(box);
+    if (box?.box_id) navigate(`/boxes/${box.box_id}`);
+  }
 
-    if (open) {
-      const cleaned = new URLSearchParams(params);
-      cleaned.delete('open');
-      navigate({ search: cleaned.toString() }, { replace: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  function openItem(item) {
+    if (onOpenItem) return onOpenItem(item);
+    if (item?._id) navigate(`/items/${item._id}`);
+  }
 
-  // TODO fix these styles into styled components
-  if (loading) return <div style={{ padding: 16 }}>Loading…</div>;
-  if (!box) return <div style={{ padding: 16 }}>Box not found.</div>;
-
-  const renderTree = (node, { isRoot = false } = {}) => {
-    if (!node) return null;
-
-    const childBoxes = Array.isArray(node.children)
-      ? node.children
-      : node.boxes || [];
-    const itemsHere = Array.isArray(node.items) ? node.items : [];
-
+  if (loading) {
     return (
-      <TreeNode key={node._id || node.box_id}>
-        <NodeHeader>
-          <NodeTitle>
-            <BoxLabelText title={node.label || '(Unnamed Box)'}>
-              {node.label || '(Unnamed Box)'}&nbsp;(#{node.box_id})
-            </BoxLabelText>
-            <Meta>
-              {itemsHere.length} item{itemsHere.length === 1 ? '' : 's'}
-            </Meta>
-            {childBoxes.length ? (
-              <Meta>
-                {childBoxes.length} sub-box{childBoxes.length === 1 ? '' : 'es'}
-              </Meta>
-            ) : null}
-          </NodeTitle>
-        </NodeHeader>
-
-        <NodeChildren>
-          {/* Root-only empty message when no items */}
-          {isRoot && itemsHere.length === 0 && (
-            <EmptyMessage>
-              This box is empty. Add some items below.
-            </EmptyMessage>
-          )}
-
-          {/* Items */}
-          {itemsHere.length > 0 && (
-            <ItemList>
-              {itemsHere.map((it) => {
-                const id = it?._id ?? it?.id;
-                const name = it?.name || '(Unnamed Item)';
-                const qty = it?.quantity ?? it?.qty ?? 1;
-                const notes = it?.notes || it?.description || it?.desc || '';
-                const tags = Array.isArray(it?.tags) ? it.tags : [];
-                const isOpen = openItemIdView === id;
-
-                return (
-                  <ItemNode key={id}>
-                    {/* Header row */}
-                    <ItemRow
-                      onClick={() => toggleItemOpen(id)}
-                      aria-expanded={isOpen}
-                      aria-controls={isOpen ? `item-${id}-details` : undefined}
-                    >
-                      <ItemTitle title={name}>{name}</ItemTitle>
-                      <ItemQuantity>x{qty}</ItemQuantity>
-                    </ItemRow>
-
-                    {/* always present, even if empty */}
-                    <NotePreview title={notes || undefined}>
-                      {notes || '\u00A0' /* non-breaking space keeps height */}
-                    </NotePreview>
-
-                    <RowDivider />
-
-                    {/* Right-aligned tags (reserve space when collapsed) */}
-                    {!isOpen && (
-                      <TagRow>
-                        {tags.length
-                          ? tags
-                              .slice(0, 8)
-                              .map((t) => (
-                                <TagBubble key={`${id}-${t}`}>#{t}</TagBubble>
-                              ))
-                          : null}
-                      </TagRow>
-                    )}
-
-                    {/* ✅ Mount ItemDetails ONLY when open */}
-                    {isOpen && (
-                      <DetailsWrap $open id={`item-${id}-details`}>
-                        <ItemDetails
-                          item={it}
-                          onOpenItem={() => closeAndGoToItem(it._id)}
-                          onGoToTag={(t) =>
-                            navigate(`/tags/${encodeURIComponent(t)}`)
-                          }
-                          onGoToItemsHome={() => navigate('/items')}
-                        />
-                      </DetailsWrap>
-                    )}
-                  </ItemNode>
-                );
-              })}
-            </ItemList>
-          )}
-
-          {/* Child boxes (always open) */}
-          {childBoxes.length > 0 && (
-            <TreeList>{childBoxes.map((child) => renderTree(child))}</TreeList>
-          )}
-
-          {/* Child boxes (always open) */}
-          {childBoxes.length ? (
-            <TreeList>{childBoxes.map((child) => renderTree(child))}</TreeList>
-          ) : null}
-        </NodeChildren>
-      </TreeNode>
+      <S.Container>
+        <S.Heading $flash>Loading…</S.Heading>
+      </S.Container>
     );
-  };
+  }
+
+  if (err || !tree) {
+    return (
+      <S.Container>
+        <S.Heading $flash>Box not found</S.Heading>
+        <S.EmptyMessage>{err || 'We couldn’t find that box.'}</S.EmptyMessage>
+      </S.Container>
+    );
+  }
 
   return (
-    <Container>
-      <BoxMetaPanel
-        box={box} // your boxTree/root of the current view
-        onGoToParent={
-          box?.parentBox
-            ? () => {
-                // If you store parent as full object:
-                const short =
-                  typeof box.parentBox === 'object'
-                    ? box.parentBox.box_id
-                    : box.parentBox;
-                navigate(`/boxes/${short}`); // keeps your rule: route is relative root
-              }
-            : undefined
-        }
-      />
-      <TabToggle>
-        <TabButton $active={!editMode} onClick={() => setEditMode(false)}>
-          View Mode
-        </TabButton>
-        <TabButton $active={editMode} onClick={() => setEditMode(true)}>
-          Edit Mode
-        </TabButton>
-      </TabToggle>
+    <S.Container>
+      <S.Heading>
+        {tree.label} <S.Meta>#{tree.box_id || tree._id}</S.Meta>
+      </S.Heading>
 
-      {editMode ? (
-        <BoxEditPanel
-          flatItems={items}
-          shortId={shortId}
-          boxMongoId={box._id}
-          boxTree={box}
-          onItemAssigned={refreshBox}
-          orphanedItems={orphanedItems}
-          fetchOrphanedItems={fetchOrphanedItems}
-          onItemUpdated={handleItemUpdated}
-          refreshBox={refreshBox}
-          onBoxSaved={handleBoxSaved}
-          busy={busy}
-          onDeleted={() => navigate('/')} // in case child wants to signal success
-          onRequestDelete={handleDelete} // child triggers, parent executes
-        />
-      ) : (
+      {/* Immediate child boxes as quick chips by box_id (click to navigate) */}
+      {Array.isArray(tree.childBoxes) && tree.childBoxes.length > 0 ? (
         <>
-          {box ? (
-            <>
-              <TreeList>{renderTree(box, { isRoot: true })}</TreeList>
-            </>
-          ) : null}
+          <S.NodeHeader>
+            <S.NodeTitle>Child boxes (box_id):</S.NodeTitle>
+          </S.NodeHeader>
+          <S.TagRow>
+            {tree.childBoxes.map((c) => (
+              <S.TagBubble key={c._id || c.box_id} onClick={() => openBox(c)}>
+                {c.box_id}
+              </S.TagBubble>
+            ))}
+          </S.TagRow>
         </>
+      ) : (
+        <S.EmptyMessage>No child boxes</S.EmptyMessage>
       )}
-    </Container>
+
+      <S.TabToggle>
+        <S.TabButton $active={tab === 'boxes'} onClick={() => setTab('boxes')}>
+          Boxes
+        </S.TabButton>
+        <S.TabButton $active={tab === 'items'} onClick={() => setTab('items')}>
+          Items
+        </S.TabButton>
+      </S.TabToggle>
+
+      {tab === 'boxes' ? (
+        <BoxTree node={tree} onOpenBox={openBox} onOpenItem={openItem} />
+      ) : (
+        <ItemsList items={allItems} onOpenItem={openItem} />
+      )}
+    </S.Container>
   );
 }
 
-export default BoxDetailView;
+/** Recursive tree renderer — expects { _id, box_id, label, items[], childBoxes[] } */
+function BoxTree({ node }) {
+  const navigate = useNavigate();
+
+  const goToBox = () => {
+    navigate(`/boxes/${node.box_id}`);
+  };
+
+  return (
+    <S.TreeList>
+      <S.TreeNode
+        role="link"
+        tabIndex={0}
+        onClick={goToBox}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            goToBox();
+          }
+        }}
+      >
+        <S.NodeHeader>
+          <S.NodeTitle>
+            <S.BoxLabelText>{node.label}</S.BoxLabelText>
+            <S.Meta>{node.items?.length ?? 0} items</S.Meta>
+            <S.Meta>{node.childBoxes?.length ?? 0} boxes</S.Meta>
+          </S.NodeTitle>
+        </S.NodeHeader>
+
+        <ItemsList items={node.items} />
+
+        {Array.isArray(node.childBoxes) && node.childBoxes.length > 0 && (
+          <S.NodeChildren>
+            {node.childBoxes.map((child) => (
+              <BoxTree key={child._id || child.box_id} node={child} />
+            ))}
+          </S.NodeChildren>
+        )}
+      </S.TreeNode>
+    </S.TreeList>
+  );
+}
+
+/** Flat list — items shaped like your Item model */
+function ItemsList({ items = [] }) {
+  if (!items.length) return <S.EmptyMessage>No items to show.</S.EmptyMessage>;
+
+  return (
+    <S.ItemList>
+      {items.map((it) => (
+        <S.ItemNode key={it._id}>
+          <S.ItemRow>
+            <S.ItemQuantity>{it.quantity}</S.ItemQuantity>
+            <S.ItemTitle>{it.name}</S.ItemTitle>
+          </S.ItemRow>
+          {it.notes ? (
+            <S.NotePreview>{it.notes}</S.NotePreview>
+          ) : (
+            <S.NotePreview />
+          )}
+          {it.tags?.length > 0 && (
+            <S.TagRow>
+              {it.tags.map((t, i) => (
+                <S.TagBubble key={`${it._id}-tag-${i}`}>{t}</S.TagBubble>
+              ))}
+            </S.TagRow>
+          )}
+        </S.ItemNode>
+      ))}
+    </S.ItemList>
+  );
+}

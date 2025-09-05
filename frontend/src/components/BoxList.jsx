@@ -1,135 +1,136 @@
+// src/views/BoxList.jsx
 import React from 'react';
-import styled from 'styled-components';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { styledComponents as S } from '../styles/BoxList.styles';
 
 /**
- * Styled Components
+ * boxes: [{
+ *   _id, box_id, label, location, description, notes,
+ *   tags: string[], items: [{ _id, name, quantity }],
+ *   childBoxes: same[]
+ * }]
  */
-const BoxListWrapper = styled.div`
-  padding: 1rem;
-`;
-
-const BoxContainer = styled.div`
-  border: 1px solid #444;
-  border-radius: 8px;
-  padding: 1rem;
-  margin: 0.75rem 0;
-  background-color: #1f1f1f;
-`;
-
-const BoxHeader = styled.h2`
-  font-size: 1.2rem;
-  margin: 0 0 0.5rem;
-  color: #fff;
-`;
-
-const BoxText = styled.p`
-  margin: 0.25rem 0;
-  color: #ccc;
-`;
-
-const BoxNote = styled.p`
-  font-style: italic;
-  color: #999;
-`;
-
-const ItemList = styled.ul`
-  padding-left: 1.25rem;
-  margin: 0.5rem 0;
-`;
-
-const ItemEntry = styled.li`
-  margin-bottom: 0.25rem;
-  color: #aaa;
-`;
-
-const ChildBoxesWrapper = styled.div`
-  margin-left: 1.25rem;
-  padding-left: 1rem;
-  border-left: 2px solid #333;
-`;
-
-const StyledLinkContainer = styled(Link)`
-  display: block;
-  text-decoration: none;
-  color: inherit;
-
-  &:hover {
-    outline: 2px solid #666;
-    background-color: #2a2a2a;
-  }
-`;
-
-const StyledBoxHeaderLink = styled(Link)`
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: #fff;
-  text-decoration: none;
-  display: block;
-  margin-bottom: 0.5rem;
-
-  &:hover {
-    text-decoration: underline;
-    color: #88f;
-  }
-`;
-
-/**
- * Recursive Tree Component
- * Renders one box and recursively calls itself for each childBox.
- */
-
-function BoxTreeNode({ box }) {
+export default function BoxList({ boxes = [], heading = 'Boxes' }) {
   return (
-    <BoxContainer>
-      <StyledBoxHeaderLink to={`/boxes/${box.box_id}`}>
-        {box.label} ({box.box_id})
-      </StyledBoxHeaderLink>
-
-      {box.location && (
-        <BoxText>
-          <strong>Location:</strong> {box.location}
-        </BoxText>
+    <S.Container>
+      <S.Heading>{heading}</S.Heading>
+      {!boxes || boxes.length === 0 ? (
+        <S.EmptyMessage>No boxes yet.</S.EmptyMessage>
+      ) : (
+        boxes.map((node) => (
+          <Branch key={node._id || node.box_id} node={node} />
+        ))
       )}
-      {box.description && <BoxText>{box.description}</BoxText>}
-      {box.notes && <BoxNote>{box.notes}</BoxNote>}
-
-      {box.items?.length > 0 && (
-        <>
-          <BoxText>
-            <strong>Items:</strong>
-          </BoxText>
-          <ItemList>
-            {box.items.map((item) => (
-              <ItemEntry key={item._id}>
-                {item.name} (x{item.quantity})
-              </ItemEntry>
-            ))}
-          </ItemList>
-        </>
-      )}
-
-      {box.childBoxes?.length > 0 && (
-        <ChildBoxesWrapper>
-          {box.childBoxes.map((child) => (
-            <BoxTreeNode key={child._id} box={child} />
-          ))}
-        </ChildBoxesWrapper>
-      )}
-    </BoxContainer>
+    </S.Container>
   );
 }
 
-/**
- * Top-level list of boxes (i.e., top-level tree roots).
- * This component gets the data from App and renders each top-level box using the recursive BoxTreeNode.
- */
-export default function BoxList({ boxes }) {
-  return (
-    <BoxListWrapper>
-      {boxes.map((box) => (
-        <BoxTreeNode key={box._id} box={box} />
-      ))}
-    </BoxListWrapper>
+function Branch({ node }) {
+  const navigate = useNavigate();
+  const childBoxes = Array.isArray(node.childBoxes) ? node.childBoxes : [];
+  const tags = Array.isArray(node.tags) ? node.tags : [];
+  const items = Array.isArray(node.items) ? node.items : [];
+
+  const itemQtyTotal = items.reduce(
+    (sum, it) => sum + (Number(it.quantity) || 0),
+    0
   );
+  const itemChips = items.slice(0, 8).map((it) => it.name || 'Untitled');
+
+  const go = () => navigate(`/boxes/${node.box_id}`);
+
+  return (
+    <>
+      <S.BoxCard onClick={go}>
+        {/* Header */}
+        <S.BoxHeader>
+          <S.ShortId>#{node.box_id}</S.ShortId>
+          <S.BoxTitle>{node.label || 'Untitled'}</S.BoxTitle>
+        </S.BoxHeader>
+
+        {/* Labeled fields */}
+        {node.location && (
+          <S.FieldGroup>
+            <S.FieldLabel>Location</S.FieldLabel>
+            <S.FieldValue>{node.location}</S.FieldValue>
+          </S.FieldGroup>
+        )}
+
+        {node.description && (
+          <S.FieldGroup>
+            <S.FieldLabel>Description</S.FieldLabel>
+            <S.FieldValue>{node.description}</S.FieldValue>
+          </S.FieldGroup>
+        )}
+
+        {node.notes && (
+          <S.FieldGroup>
+            <S.FieldLabel>Notes</S.FieldLabel>
+            <S.FieldValue>{node.notes}</S.FieldValue>
+          </S.FieldGroup>
+        )}
+
+        {/* Tags */}
+        {tags.length > 0 && (
+          <>
+            <S.FieldGroup>
+              <S.FieldLabel>Tags</S.FieldLabel>
+              <S.FieldValue />
+            </S.FieldGroup>
+            <S.TagRow>
+              {tags.map((t, i) => (
+                <S.TagBubble key={`${node._id || node.box_id}-tag-${i}`}>
+                  {t}
+                </S.TagBubble>
+              ))}
+            </S.TagRow>
+          </>
+        )}
+
+        {/* Footer stats */}
+        <S.BoxFooter>
+          <S.StatPill $variant="boxes">
+            {childBoxes.length} {childBoxes.length === 1 ? 'box' : 'boxes'}
+          </S.StatPill>
+          <S.StatPill $variant="items">
+            {itemQtyTotal} {itemQtyTotal === 1 ? 'item' : 'items'}
+          </S.StatPill>
+          <S.StatPill>
+            {node.location ? truncate(node.location, 24) : '—'}
+          </S.StatPill>
+        </S.BoxFooter>
+
+        {/* Low-priority tiny item chips */}
+        {itemChips.length > 0 && (
+          <>
+            <S.FieldGroup>
+              <S.FieldLabel>Items</S.FieldLabel>
+              <S.FieldValue />
+            </S.FieldGroup>
+            <S.TagRow>
+              {itemChips.map((name, i) => (
+                <S.TagBubble $tiny key={`${node._id || node.box_id}-chip-${i}`}>
+                  {name}
+                </S.TagBubble>
+              ))}
+            </S.TagRow>
+          </>
+        )}
+      </S.BoxCard>
+
+      {/* Children */}
+      {childBoxes.length > 0 && (
+        <S.NodeChildren>
+          {childBoxes.map((child) => (
+            <Branch key={child._id || child.box_id} node={child} />
+          ))}
+        </S.NodeChildren>
+      )}
+    </>
+  );
+}
+
+function truncate(str, n) {
+  if (!str) return '';
+  return str.length > n ? str.slice(0, n - 1) + '...' : str;
 }

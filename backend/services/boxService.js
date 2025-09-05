@@ -7,12 +7,45 @@ const { orphanAllItemsInBox } = require('./itemService');
 async function getBoxByMongoId(id) {
   return await Box.findById(id);
 }
+async function getBoxByShortId(shortId) {
+  const raw = String(shortId || '').trim();
+  if (!raw) throw new Error('shortId required');
 
-async function getBoxByBoxId(box_id) {
-  return await Box.findOne({ box_id }).populate({
-    path: 'items',
-    select: 'name quantity notes imagePath',
-  });
+  // Try exact match first (covers zero-padded storage like "005"),
+  // then try normalized form (e.g., "5").
+  const normalized = raw.replace(/^0+/, '') || '0';
+
+  const box =
+    (await Box.findOne({ box_id: raw }).populate('items').lean()) ||
+    (await Box.findOne({ box_id: normalized }).populate('items').lean());
+
+  return box; // can be null if not found
+}
+
+async function getBoxTreeByShortId(boxId) {
+  // Find the root box using the 3-digit box_id
+  const rootBox = await Box.findOne({ box_id: boxId }).populate('items').lean();
+  if (!rootBox) return null;
+
+  async function populateChildren(box) {
+    // Get child boxes where parentBox is the current box's Mongo _id
+    const children = await Box.find({ parentBox: box._id }).lean();
+
+    for (let child of children) {
+      // Populate this child's items
+      child.items = await Item.find({ _id: { $in: child.items } }).lean();
+
+      // Recursively populate childBoxes of this child
+      child.childBoxes = await populateChildren(child);
+    }
+
+    return children;
+  }
+
+  // Populate the full childBoxes tree
+  rootBox.childBoxes = await populateChildren(rootBox);
+
+  return rootBox;
 }
 
 async function getAllBoxes() {
@@ -70,32 +103,6 @@ async function getBoxesByParent(parentId) {
   return Box.find(filter).populate('parentBox');
 }
 
-async function getBoxTreeByBoxId(boxId) {
-  // Find the root box using the 3-digit box_id
-  const rootBox = await Box.findOne({ box_id: boxId }).populate('items').lean();
-  if (!rootBox) return null;
-
-  async function populateChildren(box) {
-    // Get child boxes where parentBox is the current box's Mongo _id
-    const children = await Box.find({ parentBox: box._id }).lean();
-
-    for (let child of children) {
-      // Populate this child's items
-      child.items = await Item.find({ _id: { $in: child.items } }).lean();
-
-      // Recursively populate childBoxes of this child
-      child.childBoxes = await populateChildren(child);
-    }
-
-    return children;
-  }
-
-  // Populate the full childBoxes tree
-  rootBox.childBoxes = await populateChildren(rootBox);
-
-  return rootBox;
-}
-
 async function createBox(data) {
   return Box.create(data);
 }
@@ -141,11 +148,11 @@ async function deleteAllBoxes({ Box, Item }) {
 
 module.exports = {
   getBoxByMongoId,
-  getBoxByBoxId,
+  getBoxByShortId,
   getBoxesByParent,
   createBox,
   updateBox,
-  getBoxTreeByBoxId,
+  getBoxTreeByShortId,
   getBoxTree,
   getAllBoxes,
   getBoxesExcludingId,
