@@ -1,4 +1,4 @@
-// BoxDetailView.styles.js
+// frontend/src/styles/BoxDetailView.styles.js
 import styled, { css, keyframes } from 'styled-components';
 
 /* ==== LCARS-ish Palette (subtle, readable, high-contrast) ==== */
@@ -42,7 +42,7 @@ const panelBase = css`
 `;
 
 /* ==== Layout container ==== */
-const Container = styled.div`
+export const Container = styled.div`
   --pad: clamp(12px, 3vw, 20px);
   max-width: 920px;
   margin: 0 auto;
@@ -53,7 +53,6 @@ const Container = styled.div`
     Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
   line-height: 1.45;
 
-  /* mobile-friendly tap targets by default */
   *:focus-visible {
     outline: none;
     box-shadow: ${focusRing};
@@ -63,14 +62,13 @@ const Container = styled.div`
 `;
 
 /* ==== Heading with LCARS elbow bar ==== */
-const Heading = styled.h2`
+export const Heading = styled.h2`
   position: relative;
   margin: 0 0 14px;
   font-weight: 800;
   letter-spacing: 0.2px;
   font-size: clamp(20px, 3.6vw, 28px);
 
-  /* LCARS elbow: colored block + thin runner */
   &::before {
     content: '';
     position: absolute;
@@ -111,7 +109,7 @@ const Heading = styled.h2`
 `;
 
 /* ==== Tabs (fat, thumb-friendly, LCARS chips) ==== */
-const TabToggle = styled.div`
+export const TabToggle = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
@@ -123,7 +121,7 @@ const TabToggle = styled.div`
   }
 `;
 
-const TabButton = styled.button`
+export const TabButton = styled.button`
   ${panelBase};
   position: relative;
   padding: 12px 14px;
@@ -146,48 +144,47 @@ const TabButton = styled.button`
   }
 `;
 
-/* ==== Tree containers ==== */
-const TreeList = styled.ul`
+/* ==== Tree containers (optional exports that other views may use) ==== */
+export const TreeList = styled.ul`
   list-style: none;
   margin: 10px 0 0;
   padding: 0;
 `;
 
-const NodeRow = styled.div`
+export const NodeRow = styled.div`
   display: flex;
   align-items: baseline;
   gap: 8px;
   padding: 4px 0;
 `;
 
-const NodeLabel = styled.span`
+export const NodeLabel = styled.span`
   font-weight: 700;
 `;
 
-const NodeDim = styled.span`
+export const NodeDim = styled.span`
   opacity: 0.72;
   font-size: 0.94em;
 `;
 
-const Indent = styled.div`
+export const Indent = styled.div`
   padding-left: ${({ depth = 0 }) => depth * 16}px;
 `;
 
-/* ==== Each box card (LCARS ribbon + rounded corners) ==== */
-const TreeNode = styled.div`
+/* ==== Each box card ==== */
+export const TreeNode = styled.div`
   display: block;
   cursor: pointer;
-  /* keep all your existing box panel styles */
 `;
 
-/* ==== Items ==== */
-const ItemList = styled.ul`
+/* ==== Items (optional exports used by item rows) ==== */
+export const ItemList = styled.ul`
   list-style: none;
   margin: 8px 0;
   padding: 0;
 `;
 
-const ItemNode = styled.a`
+export const ItemNode = styled.a`
   display: block;
   text-decoration: none;
   cursor: pointer;
@@ -208,11 +205,11 @@ const ItemNode = styled.a`
   }
 `;
 
-const NodeHeader = styled.div`
+export const NodeHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 18px; /* was 12px 14px */
+  padding: 16px 18px;
   border-bottom: 1px solid ${LCARS.line};
   background: ${LCARS.panelAlt};
 
@@ -221,25 +218,22 @@ const NodeHeader = styled.div`
   }
 `;
 
-const NodeChildren = styled.div`
+export const NodeChildren = styled.div`
   margin-left: 10px;
   margin-top: 8px;
-
   display: flex;
   flex-direction: column;
   gap: 10px;
-
-  border-left: 2px dashed ${LCARS.lilac}33; /* nudge toward “box accent” */
+  border-left: 2px dashed ${LCARS.lilac}33;
   padding-left: 12px;
 `;
 
-const NodeTitle = styled.div`
+export const NodeTitle = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-
-  font-size: clamp(16px, 3.6vw, 18px); /* was 15->16 */
+  font-size: clamp(16px, 3.6vw, 18px);
   font-weight: 800;
   color: ${LCARS.text};
   max-width: 100%;
@@ -247,9 +241,10 @@ const NodeTitle = styled.div`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
-const BoxLabelText = styled.span`
+
+export const BoxLabelText = styled.span`
   font-weight: 900;
-  font-size: clamp(18px, 4vw, 22px); /* bigger title */
+  font-size: clamp(18px, 4vw, 22px);
   color: ${LCARS.text};
   max-width: min(72vw, 560px);
   display: inline-block;
@@ -264,7 +259,7 @@ const BoxLabelText = styled.span`
   }
 `;
 
-const Meta = styled.span`
+export const Meta = styled.span`
   font-size: 0.9rem;
   color: ${LCARS.textDim};
   margin-left: 8px;
@@ -280,13 +275,13 @@ const Meta = styled.span`
 `;
 
 /* item row content */
-const ItemRow = styled.div`
+export const ItemRow = styled.div`
   display: grid;
-  grid-template-columns: auto 1fr; /* qty first, then title */
-  align-items: start; /* top align for “top-left” qty */
+  grid-template-columns: auto 1fr;
+  align-items: start;
   column-gap: 10px;
-  padding: 8px 12px 4px; /* shorter overall */
-  min-height: 38px; /* shorter than before */
+  padding: 8px 12px 4px;
+  min-height: 38px;
   cursor: pointer;
 
   &:hover ._qty {
@@ -294,29 +289,28 @@ const ItemRow = styled.div`
   }
 `;
 
-const ItemTitle = styled.div`
+export const ItemTitle = styled.div`
   display: flex;
   align-items: baseline;
   gap: 8px;
   min-width: 0;
   color: ${LCARS.text};
-  font-size: clamp(13px, 3vw, 15px); /* slightly smaller */
+  font-size: clamp(13px, 3vw, 15px);
   font-weight: 800;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
 
-const ItemQuantity = styled.span.attrs({ className: '_qty' })`
-  order: -1; /* appears before the name */
-  align-self: start; /* top-left alignment */
+export const ItemQuantity = styled.span.attrs({ className: '_qty' })`
+  order: -1;
+  align-self: start;
   margin-top: 2px;
   margin-right: 2px;
-
   font-size: 11px;
   font-weight: 900;
   color: ${LCARS.bg};
-  background: ${LCARS.amber}; /* item accent */
+  background: ${LCARS.amber};
   border: 1px solid ${LCARS.amber}90;
   border-radius: 999px;
   padding: 2px 8px;
@@ -324,18 +318,18 @@ const ItemQuantity = styled.span.attrs({ className: '_qty' })`
   white-space: nowrap;
 `;
 
-const NotePreview = styled.div`
+export const NotePreview = styled.div`
   font-size: clamp(12px, 2.8vw, 13px);
   color: ${LCARS.textDim};
-  margin: 4px 12px 8px; /* tighter margins */
+  margin: 4px 12px 8px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.2; /* shorter line height */
+  line-height: 1.2;
   min-height: 1.1em;
 `;
 
-const RowDivider = styled.div`
+export const RowDivider = styled.div`
   height: 1px;
   margin: 0 10px 8px;
   background: linear-gradient(
@@ -349,7 +343,7 @@ const RowDivider = styled.div`
 `;
 
 /* tag row doubles as chip rack */
-const TagRow = styled.div`
+export const TagRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-start;
@@ -358,14 +352,13 @@ const TagRow = styled.div`
   min-height: 36px;
 `;
 
-const TagBubble = styled.span`
+export const TagBubble = styled.span`
   display: inline-flex;
   align-items: center;
   gap: 6px;
   height: 32px;
   padding: 0 12px;
   border-radius: 999px;
-
   color: ${LCARS.bg};
   background: ${LCARS.teal};
   border: 1px solid ${LCARS.teal}90;
@@ -381,7 +374,7 @@ const TagBubble = styled.span`
   }
 `;
 
-const DetailsWrap = styled.div`
+export const DetailsWrap = styled.div`
   overflow: hidden;
   animation: fadeIn 160ms ease;
   @keyframes fadeIn {
@@ -396,7 +389,7 @@ const DetailsWrap = styled.div`
   }
 `;
 
-const EmptyMessage = styled.div`
+export const EmptyMessage = styled.div`
   ${panelBase};
   padding: 14px;
   color: ${LCARS.textDim};
@@ -406,32 +399,36 @@ const EmptyMessage = styled.div`
     ${LCARS.panelAlt};
 `;
 
-/* ==== Export (unchanged names) ==== */
-export const styledComponents = {
-  Container,
-  Heading,
-  TabToggle,
-  TabButton,
-  TreeList,
-  NodeRow,
-  NodeLabel,
-  NodeDim,
-  Indent,
-  TreeNode,
-  ItemList,
-  ItemNode,
-  NodeHeader,
-  NodeChildren,
-  NodeTitle,
-  BoxLabelText,
-  Meta,
-  ItemRow,
-  ItemTitle,
-  ItemQuantity,
-  NotePreview,
-  RowDivider,
-  TagRow,
-  TagBubble,
-  DetailsWrap,
-  EmptyMessage,
-};
+/* ======= Small shims so your component’s names exist ======= */
+export const HeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+`;
+
+// Aliases
+export const Title = Heading; // <S.Title> maps to Heading
+export const Tabs = TabToggle; // <S.Tabs>  maps to TabToggle
+
+export const ShortId = styled.span`
+  font-size: 0.9rem;
+  color: ${LCARS.textDim};
+  margin-left: 8px;
+`;
+
+export const Spacer = styled.div`
+  flex: 1;
+`;
+
+export const BackBtn = styled.button`
+  ${panelBase};
+  padding: 8px 12px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+`;
+
+export const Body = styled.div`
+  padding: 8px 0;
+`;

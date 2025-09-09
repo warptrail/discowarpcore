@@ -1,226 +1,163 @@
-// src/views/BoxDetailView.jsx
+// frontend/src/components/BoxDetailView.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetchBoxTreeByShortId } from '../api/boxes';
-import { styledComponents as S } from '../styles/BoxDetailView.styles';
+// import { styledComponents as S } from '../styles/BoxDetailView.styles';
+import * as S from '../styles/BoxDetailView.styles';
+// import * as S from '../styles/BoxTree.styles';
+// import * as S from '../styles/ItemsFlatList.styles';
 
-// ? Component Imports
-
-import BoxEditPanel from './BoxEditPanel';
 import BoxMetaPanel from './BoxMetaPanel';
-import TabControlBar from './TabControlBar';
-import ItemRow from './ItemRow';
+import BoxTree from './BoxTree';
+import ItemsFlatList from './ItemsFlatList';
+import ItemDetails from './ItemDetails';
 
-export default function BoxDetailView({ onOpenBox, onOpenItem }) {
-  const { shortId } = useParams(); // this is your box_id
+import flattenBoxes from '../util/flattenBoxes';
+import { fetchBoxTreeByShortId } from '../api/boxes';
+
+export default function BoxDetailView() {
+  const { shortId } = useParams();
   const navigate = useNavigate();
 
-  // ? State
-  const [tree, setTree] = useState(null);
-  const [tab, setTab] = useState('boxes'); // "boxes" | "items" | "edit"
+  const [box, setBox] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
 
-  // fetch helpers
-  async function refresh() {
-    try {
-      setBusy(true);
-      const ctrl = new AbortController();
-      const data = await fetchBoxTreeByShortId(shortId, {
-        signal: ctrl.signal,
-      });
-      setTree(data);
-    } catch (e) {
-      setErr(e?.message || 'Failed to refresh this box.');
-    } finally {
-      setBusy(false);
-    }
-  }
+  const [activeTab, setActiveTab] = useState('tree'); // 'tree' | 'items'
+  const [openItemId, setOpenItemId] = useState(null);
 
   useEffect(() => {
-    let alive = true;
-    const ctrl = new AbortController();
+    if (!shortId) return;
+    const ac = new AbortController();
+    setLoading(true);
+    setError(null);
 
-    (async () => {
-      setLoading(true);
-      setErr('');
-      setTree(null);
-      try {
-        const data = await fetchBoxTreeByShortId(shortId, {
-          signal: ctrl.signal,
-        });
-        if (alive) setTree(data);
-      } catch (e) {
-        if (alive) setErr(e?.message || 'Failed to load box');
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
+    fetchBoxTreeByShortId(shortId, { signal: ac.signal })
+      .then((data) => setBox(data))
+      .catch((err) => {
+        if (err.name !== 'AbortError')
+          setError(err.message || 'Failed to load box');
+      })
+      .finally(() => setLoading(false));
 
-    return () => {
-      alive = false;
-      ctrl.abort();
-    };
+    return () => ac.abort();
   }, [shortId]);
 
-  // Flatten all items for the "Items" tab — recurse over childBoxes
-  const allItems = useMemo(() => {
-    if (!tree) return [];
-    const out = [];
-    (function walk(n) {
-      if (!n) return;
-      if (Array.isArray(n.items)) out.push(...n.items);
-      if (Array.isArray(n.childBoxes)) n.childBoxes.forEach(walk);
-    })(tree);
-    return out;
-  }, [tree]);
+  const flatItems = useMemo(() => (box ? flattenBoxes(box) : []), [box]);
 
-  function openBox(box) {
-    if (onOpenBox) return onOpenBox(box);
-    if (box?.box_id) navigate(`/boxes/${box.box_id}`);
-  }
+  const itemIndexById = useMemo(() => {
+    const idx = new Map();
+    for (const it of flatItems) {
+      const id = String(it?._id ?? it?.id ?? '');
+      if (id) idx.set(id, it);
+    }
+    return idx;
+  }, [flatItems]);
 
-  function openItem(item) {
-    if (onOpenItem) return onOpenItem(item);
-    if (item?._id) navigate(`/items/${item._id}`);
-  }
+  const openItem = openItemId ? itemIndexById.get(openItemId) : null;
+
+  const handleBack = () => navigate(-1);
+  const handleNavigateBox = (sid) => {
+    setOpenItemId(null);
+    navigate(`/boxes/${sid}`);
+  };
+  const handleToggleItem = (id) => {
+    setOpenItemId((curr) => (curr === id ? null : id));
+  };
+  const handleDetailsNavigate = (href) => {
+    setOpenItemId(null);
+    navigate(href);
+  };
 
   if (loading) {
     return (
       <S.Container>
-        <S.Heading $flash>Loading…</S.Heading>
+        <S.HeaderRow>
+          <S.Title>Loading…</S.Title>
+          <S.Spacer />
+          <S.BackBtn onClick={handleBack}>Back</S.BackBtn>
+        </S.HeaderRow>
+        <S.Body>Fetching box {shortId}…</S.Body>
       </S.Container>
     );
   }
 
-  if (err || !tree) {
+  if (error || !box) {
     return (
       <S.Container>
-        <S.Heading $flash>Box not found</S.Heading>
-        <S.EmptyMessage>{err || 'We couldn’t find that box.'}</S.EmptyMessage>
+        <S.HeaderRow>
+          <S.Title>Error</S.Title>
+          <S.Spacer />
+          <S.BackBtn onClick={handleBack}>Back</S.BackBtn>
+        </S.HeaderRow>
+        <S.Body>{error || 'Box not found'}</S.Body>
       </S.Container>
     );
   }
 
-  const itemsCount = allItems.length;
-  const totalQuantity = allItems.reduce(
-    (sum, it) => sum + Number(it.quantity || 0),
-    0
-  );
+  console.log({
+    BoxTree,
+    ItemsFlatList,
+    BoxMetaPanel,
+    ItemDetails,
+    stylesKeys: Object.keys(S || {}),
+  });
 
   return (
     <S.Container>
-      <S.Heading>
-        {tree.label} <S.Meta>#{tree.box_id || tree._id}</S.Meta>
-      </S.Heading>
-      <BoxMetaPanel
-        box={tree}
-        onGoToBox={(sid) => {
-          if (!sid) return;
-          if (typeof openBox === 'function') return openBox(sid);
-          if (typeof navigate === 'function') navigate(`/boxes/${sid}`);
-        }}
-        itemsCount={itemsCount}
-        totalQuantity={totalQuantity}
-      />
+      <S.HeaderRow>
+        <S.Title>
+          {box.label} <S.ShortId>({box.box_id})</S.ShortId>
+        </S.Title>
+        <S.Spacer />
+        <S.BackBtn onClick={handleBack}>Back</S.BackBtn>
+      </S.HeaderRow>
 
-      <TabControlBar mode={tab} onChange={setTab} busy={busy} />
+      <BoxMetaPanel box={box} />
 
-      {tab === 'boxes' && (
-        <BoxTree node={tree} onOpenBox={openBox} onOpenItem={openItem} />
+      <S.Tabs>
+        <S.TabButton
+          type="button"
+          data-active={activeTab === 'tree'}
+          onClick={() => setActiveTab('tree')}
+        >
+          Tree
+        </S.TabButton>
+        <S.TabButton
+          type="button"
+          data-active={activeTab === 'items'}
+          onClick={() => setActiveTab('items')}
+        >
+          Items
+        </S.TabButton>
+      </S.Tabs>
+
+      {activeTab === 'tree' && (
+        <BoxTree
+          tree={box}
+          openItemId={openItemId}
+          onOpenItem={handleToggleItem}
+          onNavigateBox={handleNavigateBox}
+        />
       )}
 
-      {tab === 'items' && <ItemsList items={allItems} onOpenItem={openItem} />}
+      {activeTab === 'items' && (
+        <ItemsFlatList
+          items={flatItems}
+          openItemId={openItemId}
+          onOpenItem={handleToggleItem}
+          title={`Items in ${box.label}`}
+        />
+      )}
 
-      {tab === 'edit' && (
-        <div style={{ marginBottom: 12 }}>
-          <BoxEditPanel
-            flatItems={allItems}
-            boxTree={tree}
-            shortId={tree.box_id || tree._id} // matches your existing id usage
-            boxMongoId={tree._id}
-            onItemsDataUpdated={refresh} // optional; omit if not using refresh()
-            onBoxSaved={refresh} // optional
-            busy={busy} // optional
-            onDeleted={() => navigate('/')} // keep your existing navigate pattern
-            onRequestDelete={() => setTab('edit')}
-          />
-        </div>
+      {openItem && (
+        <ItemDetails
+          item={openItem}
+          itemId={openItemId}
+          parentBoxShortId={box.box_id}
+          onClose={() => setOpenItemId(null)}
+          onNavigate={handleDetailsNavigate} // the only place with navigation to item page
+        />
       )}
     </S.Container>
-  );
-}
-
-/** Recursive tree renderer — expects { _id, box_id, label, items[], childBoxes[] } */
-function BoxTree({ node }) {
-  const navigate = useNavigate();
-
-  const goToBox = () => {
-    navigate(`/boxes/${node.box_id}`);
-  };
-
-  return (
-    <S.TreeList>
-      <S.TreeNode
-        role="link"
-        tabIndex={0}
-        onClick={goToBox}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            goToBox();
-          }
-        }}
-      >
-        <S.NodeHeader>
-          <S.NodeTitle>
-            <S.BoxLabelText>{node.label}</S.BoxLabelText>
-            <S.Meta>{node.items?.length ?? 0} items</S.Meta>
-            <S.Meta>{node.childBoxes?.length ?? 0} boxes</S.Meta>
-          </S.NodeTitle>
-        </S.NodeHeader>
-
-        <ItemsList items={node.items} />
-
-        {Array.isArray(node.childBoxes) && node.childBoxes.length > 0 && (
-          <S.NodeChildren>
-            {node.childBoxes.map((child) => (
-              <BoxTree key={child._id || child.box_id} node={child} />
-            ))}
-          </S.NodeChildren>
-        )}
-      </S.TreeNode>
-    </S.TreeList>
-  );
-}
-
-/** Flat list — items shaped like your Item model */
-function ItemsList({ items = [] }) {
-  if (!items.length) return <S.EmptyMessage>No items to show.</S.EmptyMessage>;
-
-  return (
-    <S.ItemList>
-      {items.map((it) => (
-        <S.ItemNode key={it._id}>
-          <S.ItemRow>
-            <S.ItemQuantity>{it.quantity}</S.ItemQuantity>
-            <S.ItemTitle>{it.name}</S.ItemTitle>
-          </S.ItemRow>
-          {it.notes ? (
-            <S.NotePreview>{it.notes}</S.NotePreview>
-          ) : (
-            <S.NotePreview />
-          )}
-          {it.tags?.length > 0 && (
-            <S.TagRow>
-              {it.tags.map((t, i) => (
-                <S.TagBubble key={`${it._id}-tag-${i}`}>{t}</S.TagBubble>
-              ))}
-            </S.TagRow>
-          )}
-        </S.ItemNode>
-      ))}
-    </S.ItemList>
   );
 }
