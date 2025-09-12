@@ -1,121 +1,179 @@
-// src/components/ItemRow.styles.js
-import styled, { css } from 'styled-components';
+// src/components/styles/ItemRow.styles.js
+import styled, { keyframes, css } from 'styled-components';
+import {
+  OPEN_ACCENT, // fallback accent color
+  BASE_BORDER,
+  ACTIVE_BORDER,
+  ROW_BG,
+  ROW_BG_ACTIVE,
+} from '../styles/tokens';
 
-export const Empty = styled.div`
-  opacity: 0.7;
-  font-size: 0.95rem;
-  padding: 0.5rem 0.25rem;
+/* One-time border glow pulse (you can trigger via [data-opening='true'] or leave it out) */
+export const borderPulse = keyframes`
+  0%   { box-shadow: 0 0 0 0 var(--accent); }
+  50%  { box-shadow: 0 0 10px 3px var(--accent); }
+  100% { box-shadow: 0 0 0 0 var(--accent); }
 `;
 
-export const Row = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 10px;
+/* Repeating “attention” flash you can toggle with the $pulsing prop */
+const pulseFlash = keyframes`
+  0%   { box-shadow: 0 0 0 0 var(--accent); }
+  50%  { box-shadow: 0 0 12px 4px var(--accent); }
+  100% { box-shadow: 0 0 0 0 var(--accent); }
 `;
 
-export const Chip = styled.button`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 10px;
+/* Subtle steady glow while open */
+const steadyGlow = css`
+  box-shadow: 0 0 6px 0 var(--accent), 0 0 14px 2px rgba(0, 0, 0, 0);
+`;
+
+/* ===== Frame (single source of truth for the border) ===== */
+export const Wrapper = styled.div`
+  /* accent hue is still configurable */
+  --accent: ${({ $accent }) => $accent || OPEN_ACCENT};
+  --b: 2px; /* visual border thickness */
+  --r: 10px; /* outer radius */
+
+  position: relative;
   width: 100%;
-  padding: 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.35);
+  margin: 0 0 10px 0;
+  border-radius: var(--r);
+  padding: var(--b); /* creates the “border” gap */
+  overflow: hidden;
+
+  /* gradient frame behind the content */
+  background: linear-gradient(135deg, ${BASE_BORDER}, ${ACTIVE_BORDER});
+  transition: background 280ms ease, box-shadow 280ms ease;
+
+  /* opening pulse (optional – keep if you like) */
+  &[data-opening='true'] {
+    animation: ${borderPulse} 800ms ease;
+  }
+
+  /* OPEN: shift to accent gradient + soft glow */
+  &[data-open='true'] {
+    background: linear-gradient(135deg, var(--accent), ${ACTIVE_BORDER});
+    ${steadyGlow}
+  }
+
+  /* CLOSING: settle back */
+  &[data-closing='true'] {
+    background: linear-gradient(135deg, ${BASE_BORDER}, ${ACTIVE_BORDER});
+    box-shadow: none;
+  }
+
+  /* Optional attention flash */
+  ${({ $pulsing }) =>
+    $pulsing &&
+    css`
+      animation: ${pulseFlash} 900ms ease-in-out infinite;
+    `}
+`;
+/* ===== Clickable row content (no borders here) ===== */
+export const Row = styled.div`
+  position: relative;
+  z-index: 1; /* content above the gradient frame */
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+
+  /* the readable card on top */
+  background: ${ROW_BG};
+  border: 0;
+  border-radius: calc(var(--r) - var(--b)); /* inner radius = outer - border */
   cursor: pointer;
-  text-align: left;
-  ${(p) =>
-    p.$compact &&
-    css`
-      padding: 8px;
-      gap: 8px;
-    `}
-  ${(p) =>
-    p.$selected &&
-    css`
-      border-color: rgba(255, 220, 100, 0.6);
-      box-shadow: 0 0 0 2px rgba(255, 220, 100, 0.15) inset;
-    `}
-  &:hover {
-    border-color: rgba(255, 255, 255, 0.18);
-    transform: translateY(-1px);
+  transition: background 240ms ease;
+
+  &:active {
+    background: #1e1e1e;
+  }
+
+  &[data-open='true'] {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
   }
 `;
-
-export const Thumb = styled.img`
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
-  object-fit: cover;
-  background: #111;
+/* ===== Simple slide-down container for details ===== */
+export const Collapse = styled.div`
+  overflow: hidden;
+  transition: height var(--collapse-dur, 520ms) cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 380ms ease, transform 380ms ease;
+  opacity: ${({ ['data-open']: open }) => (open === 'true' ? 1 : 0)};
+  transform: translateY(
+    ${({ ['data-open']: open }) => (open === 'true' ? '0px' : '-6px')}
+  );
+  border: 0;
+  outline: none;
+  background: transparent;
 `;
 
-export const Meta = styled.div`
-  display: grid;
-  gap: 6px;
-  min-width: 0;
+/* ===== Details panel (borderless; Wrapper owns the frame) ===== */
+export const DetailsCard = styled.div`
+  position: relative;
+  z-index: 1;
+  border: 0;
+  border-radius: 0 0 10px 10px;
+  background: ${ROW_BG_ACTIVE}; /* or swap to your CARD_BG token if desired */
+  padding: 12px 12px 16px;
 `;
 
-export const TopLine = styled.div`
+/* ===== Little helpers for the row body ===== */
+export const Left = styled.div`
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
   min-width: 0;
 `;
 
-export const Name = styled.div`
-  font-size: ${(p) => (p.$compact ? '0.95rem' : '1rem')};
+export const Right = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  margin-left: 1rem;
+`;
+
+export const Title = styled.div`
+  font-size: 1rem;
   font-weight: 600;
+  color: #eee;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 `;
 
-export const Badge = styled.span`
-  font-size: 0.75rem;
-  padding: 1px 6px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  opacity: 0.9;
+export const Breadcrumb = styled.div`
+  font-size: 0.8rem;
+  color: #aaa;
 `;
 
-export const Tags = styled.div`
+export const TagRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 0.25rem;
 `;
 
 export const Tag = styled.span`
+  padding: 0.2rem 0.5rem;
   font-size: 0.75rem;
-  padding: 2px 6px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  opacity: 0.85;
+  background: #333;
+  color: #ccc;
+  border: 1px solid #555;
 `;
 
 export const Notes = styled.div`
-  font-size: 0.85rem;
-  opacity: 0.8;
-  line-height: 1.25;
-  max-height: 2.5em;
+  font-size: 0.8rem;
+  color: #bbb;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 `;
 
-export const MetaRow = styled.div`
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
+export const Qty = styled.span`
   font-size: 0.8rem;
-  opacity: 0.8;
+  font-weight: 700;
+  color: #0c0;
 `;
-
-export const BoxChip = styled.span`
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 2px 8px;
-  border-radius: 999px;
-  opacity: 0.9;
-`;
-
-export const Micro = styled.span``;

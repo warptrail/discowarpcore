@@ -1,170 +1,218 @@
 // src/styles/BoxMetaPanel.styles.js
-// Minimal dark-mode styles with slight LCARS rounding.
-// You can refine and theme later; this keeps BoxMetaPanel.jsx lean.
-
 import styled from 'styled-components';
 
-const Wrap = styled.section`
-  display: grid;
-  gap: 14px;
-  padding: 14px;
-  border: 1px solid #222;
-  border-radius: 16px; /* LCARS vibe */
-  background: #131414; /* dark mode card */
-`;
+/* ---- LCARS-ish fixed palette (no ThemeProvider required) ---- */
+const LCARS = {
+  bg: '#0E0F12',
+  panel: '#151921',
+  panelSoft: '#1B2029',
+  line: 'rgba(255,255,255,0.08)',
+  text: '#E7ECF3',
+  textDim: 'rgba(231,236,243,0.72)',
+  lilac: '#A7B6FF',
+  coral: '#F08A7B',
+  amber: '#E8B15C',
+  teal: '#4CC6C1',
+  lime: '#9BE564',
+};
 
-const TopGrid = styled.div`
+const RADIUS = '12px';
+const CHIP = '999px';
+
+/* ---- Root panel ---- */
+export const Panel = styled.section`
+  background: ${LCARS.panel};
+  border: 1px solid ${LCARS.line};
+  border-radius: ${RADIUS};
+  padding: 16px;
   display: grid;
   gap: 12px;
-  grid-template-columns: 100px 1fr;
+  position: relative;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25), 0 12px 26px rgba(0, 0, 0, 0.22);
 
-  @media (min-width: 900px) {
-    grid-template-columns: 140px 1fr;
+  /* LCARS vertical accent */
+  &:before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    bottom: 12px;
+    left: 10px;
+    width: 6px;
+    border-radius: 6px;
+    background: linear-gradient(${LCARS.coral}, ${LCARS.teal});
+    opacity: 0.9;
   }
 `;
 
-const ImageSquare = styled.button`
-  all: unset;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid #2a2a2a;
-  background: #0f0f0f;
+/* ---- Row 1: scope + breadcrumb ---- */
+export const TopRow = styled.div`
   display: block;
-  cursor: pointer;
-
-  &:hover {
-    filter: brightness(1.05);
-  }
 `;
 
-const ThumbImg = styled.img`
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-`;
-
-const Core = styled.div`
-  display: grid;
-  gap: 6px;
-`;
-
-const Title = styled.h2`
-  margin: 0;
-  font-size: clamp(1.05rem, 1.8vw, 1.2rem);
-  color: #e9f0f5;
-  font-weight: 700;
-`;
-
-const Subtle = styled.div`
-  color: #9fb0bd;
-  font-size: 13px;
-`;
-
-const Row = styled.div`
+export const Crumbs = styled.nav`
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  min-width: 0;
 `;
 
-const Stat = styled.div`
+export const ScopeBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 10px;
-  border: 1px solid #2a2f33;
-  border-radius: 12px;
-  background: #0e1012;
-  color: #cfe2ef;
-  font-size: 13px;
-  line-height: 1;
+  border-radius: ${CHIP};
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: ${LCARS.bg};
+  background: ${({ $tone }) =>
+    $tone === 'coral'
+      ? LCARS.coral
+      : $tone === 'amber'
+      ? LCARS.amber
+      : $tone === 'lime'
+      ? LCARS.lime
+      : $tone === 'teal'
+      ? LCARS.teal
+      : LCARS.lilac};
+  border: 1px solid rgba(255, 255, 255, 0.18);
 `;
 
-const Chip = styled.button`
-  all: unset;
-  cursor: pointer;
+export const Crumb = styled.a`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 6px 10px;
-  border-radius: 12px;
-  background: #101214;
-  border: 1px solid #2a2f33;
-  color: #d7e3ea;
-  font-size: 13px;
-  line-height: 1;
-  transition: background 0.2s ease, border-color 0.2s ease, transform 0.05s ease;
+  border-radius: ${CHIP};
+  color: ${LCARS.text};
+  text-decoration: none;
+  background: linear-gradient(90deg, ${LCARS.coral}20, transparent 35%)
+      no-repeat,
+    ${LCARS.panel};
+  border: 1px solid ${LCARS.line};
+  white-space: nowrap;
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   &:hover {
-    background: #151a1f;
-    border-color: #3a4249;
+    background: linear-gradient(90deg, ${LCARS.lime}1a, transparent 45%)
+        no-repeat,
+      ${LCARS.panelSoft};
+    transform: translateY(-1px);
   }
-  &:active {
-    transform: translateY(1px);
+
+  &[aria-current='page'] {
+    outline: 2px solid ${LCARS.teal}44;
   }
 `;
 
-const Divider = styled.hr`
+export const CrumbSep = styled.span`
+  color: ${LCARS.textDim};
+  user-select: none;
+`;
+
+export const BoxIdMono = styled.span`
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: ${CHIP};
+  color: ${LCARS.bg};
+  background: ${LCARS.teal};
+  border: 1px solid ${LCARS.teal}a0;
+`;
+
+/* ---- Row 2: stats ---- */
+export const StatsRow = styled.div`
+  background: linear-gradient(90deg, ${LCARS.teal}17, transparent 40%) no-repeat,
+    ${LCARS.panelSoft};
+  border: 1px solid ${LCARS.line};
+  border-radius: ${RADIUS};
+  padding: 10px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+`;
+
+export const StatGroup = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+`;
+
+export const StatPill = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: ${CHIP};
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: ${LCARS.bg};
+  background: ${({ $tone }) =>
+    $tone === 'lilac'
+      ? LCARS.lilac
+      : $tone === 'amber'
+      ? LCARS.amber
+      : $tone === 'coral'
+      ? LCARS.coral
+      : $tone === 'lime'
+      ? LCARS.lime
+      : LCARS.teal};
+  border: 1px solid rgba(255, 255, 255, 0.18);
+`;
+
+/* ---- Divider ---- */
+export const Divider = styled.div`
   height: 1px;
-  border: none;
-  background: #1a1d21;
-  margin: 6px 0 2px;
+  background: linear-gradient(90deg, transparent, ${LCARS.line}, transparent);
+  margin: 2px 0;
 `;
 
-const SectionHeader = styled.div`
-  display: flex;
-  align-items: baseline;
+/* ---- Row 3: children ---- */
+export const ChildrenBlock = styled.div`
+  display: grid;
   gap: 8px;
-  margin-top: 2px;
 `;
 
-const SectionTitle = styled.h3`
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #cfd6dd;
+export const Label = styled.span`
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: ${LCARS.textDim};
 `;
 
-const ChipRow = styled.div`
+export const ChildrenRow = styled.div`
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
-  margin-top: 8px;
 `;
 
-const Muted = styled.div`
-  color: #7b8894;
-  font-size: 13px;
+export const BoxLink = styled.a`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: ${CHIP};
+  color: ${LCARS.text};
+  text-decoration: none;
+  background: linear-gradient(90deg, ${LCARS.teal}22, transparent 35%) no-repeat,
+    ${LCARS.panel};
+  border: 1px solid ${LCARS.line};
+
+  &:hover {
+    background: linear-gradient(90deg, ${LCARS.lime}1a, transparent 45%)
+        no-repeat,
+      ${LCARS.panelSoft};
+    transform: translateY(-1px);
+  }
 `;
 
-const TagRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+export const Muted = styled.span`
+  color: ${LCARS.textDim};
+  opacity: 0.9;
 `;
-
-const Tag = styled.div`
-  padding: 5px 8px;
-  border: 1px solid #2a2f33;
-  border-radius: 10px;
-  background: #0d0f11;
-  color: #b6c6d2;
-  font-size: 12px;
-`;
-
-export const styledComponents = {
-  Wrap,
-  TopGrid,
-  ImageSquare,
-  ThumbImg,
-  Core,
-  Title,
-  Subtle,
-  Row,
-  Stat,
-  Chip,
-  Divider,
-  SectionHeader,
-  SectionTitle,
-  ChipRow,
-  Muted,
-  TagRow,
-  Tag,
-};

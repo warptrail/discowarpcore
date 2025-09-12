@@ -1,33 +1,29 @@
-// src/api/boxes.js
 import { API_BASE } from './API_BASE';
 
-export async function fetchBoxByShortId(
+export async function fetchBoxDataStructure(
   shortId,
-  { tree = false, signal } = {}
+  { ancestors = false, flat = 'none', stats = true, signal } = {}
 ) {
-  if (
-    shortId === undefined ||
-    shortId === null ||
-    String(shortId).trim() === ''
-  ) {
-    throw new Error('shortId is required');
-  }
+  if (!shortId) throw new Error('shortId is required');
 
-  // Keep whatever zero-padding you pass (e.g., "003")
-  const base = `${API_BASE}/api/boxes/by-short-id/${encodeURIComponent(
-    String(shortId)
-  )}`;
-  const url = new URL(base);
-  if (tree) url.searchParams.set('tree', '1');
+  const url = new URL(
+    `${API_BASE}/api/boxes/by-short-id/${encodeURIComponent(shortId)}`
+  );
+
+  if (ancestors) url.searchParams.set('ancestors', '1'); // breadcrumb
+  if (flat === 'items' || flat === 'all') url.searchParams.set('flat', flat); // flatten server-side
+  if (!stats) url.searchParams.set('stats', '0'); // skip stats if you want
 
   const res = await fetch(url.toString(), { signal });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`Fetch failed (${res.status}): ${text || res.statusText}`);
+    throw new Error(text || res.statusText);
   }
   const json = await res.json();
-  return json.box ?? json.data ?? json;
+  return json.box ?? json; // controller returns { ok, box }
 }
+
+//? Destroy a box by mongo id
 export async function destroyBoxById(boxMongoId, opts = {}) {
   const res = await fetch(`${API_BASE}/api/boxes/${boxMongoId}`, {
     method: 'DELETE',
@@ -46,14 +42,4 @@ export async function destroyBoxById(boxMongoId, opts = {}) {
   } catch {
     return {};
   }
-}
-
-export async function fetchBoxTreeByShortId(shortId, { signal } = {}) {
-  const res = await fetch(
-    `${API_BASE}/api/boxes/by-short-id/${encodeURIComponent(shortId)}/tree`,
-    { signal }
-  );
-  if (!res.ok) throw new Error(await res.text().catch(() => res.statusText));
-  const json = await res.json();
-  return json.box ?? json.data ?? json; // normalize
 }

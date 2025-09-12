@@ -12,6 +12,7 @@ const boxSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Box',
     default: null,
+    index: true,
   },
   items: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Item' }],
 });
@@ -20,5 +21,9 @@ const boxSchema = new mongoose.Schema({
 boxSchema.statics.newId = function () {
   return new mongoose.Types.ObjectId();
 };
+
+// Good to have both indexes:
+boxSchema.index({ box_id: 1 }, { unique: true });
+boxSchema.index({ parentBox: 1 });
 
 module.exports = mongoose.model('Box', boxSchema);

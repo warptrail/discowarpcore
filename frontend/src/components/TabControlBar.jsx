@@ -38,24 +38,24 @@ const Btn = styled.button`
 `;
 
 export default function TabControlBar({ mode, onChange, busy = false }) {
-  // mode: 'boxes' | 'items' | 'edit'
+  // mode: 'boxes' | 'flat' | 'edit'
   return (
     <Bar>
       <Btn
         type="button"
-        $active={mode === 'boxes'}
-        onClick={() => onChange?.('boxes')}
+        $active={mode === 'tree'}
+        onClick={() => onChange?.('tree')}
         disabled={busy}
       >
-        Boxes
+        Box Tree
       </Btn>
       <Btn
         type="button"
-        $active={mode === 'items'}
-        onClick={() => onChange?.('items')}
+        $active={mode === 'flat'}
+        onClick={() => onChange?.('flat')}
         disabled={busy}
       >
-        Items
+        Flat Items
       </Btn>
       <Btn
         type="button"
@@ -63,7 +63,7 @@ export default function TabControlBar({ mode, onChange, busy = false }) {
         onClick={() => onChange?.('edit')}
         disabled={busy}
       >
-        Edit
+        Edit Items
       </Btn>
     </Bar>
   );

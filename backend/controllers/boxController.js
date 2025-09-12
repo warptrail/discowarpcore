@@ -10,7 +10,32 @@ const {
   getBoxesExcludingId,
   deleteBoxById,
   deleteAllBoxes,
+  getBoxDataStructure,
 } = require('../services/boxService');
+
+async function getBoxDataStructureApi(req, res, next) {
+  try {
+    const { shortId } = req.params;
+    const includeAncestors = req.query.ancestors === '1';
+    const includeStats = req.query.stats !== '0'; // default on
+    const flat =
+      req.query.flat === 'items' || req.query.flat === 'all'
+        ? req.query.flat
+        : 'none';
+
+    const box = await getBoxDataStructure(shortId, {
+      includeAncestors,
+      includeStats,
+      flat,
+    });
+
+    if (!box)
+      return res.status(404).json({ ok: false, error: 'Box not found' });
+    res.json({ ok: true, box });
+  } catch (err) {
+    next(err);
+  }
+}
 
 // GET /api/boxes/by-mongo-id/:id
 const getBoxByMongoIdApi = async (req, res) => {
@@ -199,6 +224,7 @@ async function deleteAllBoxesApi(req, res) {
 }
 
 module.exports = {
+  getBoxDataStructureApi,
   getBoxByMongoIdApi,
   getBoxByShortIdApi,
   getAllBoxesApi,

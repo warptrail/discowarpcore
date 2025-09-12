@@ -4,6 +4,8 @@ const Item = require('../models/Item');
 
 const { orphanAllItemsInBox } = require('./itemService');
 
+const { computeStats, flattenBoxes } = require('../utils/boxHelpers');
+
 async function getBoxByMongoId(id) {
   return await Box.findById(id);
 }
@@ -21,34 +23,118 @@ async function getBoxByShortId(shortId) {
 
   return box; // can be null if not found
 }
-/* 
-async function getBoxTreeByShortId(boxId) {
-  // Find the root box using the 3-digit box_id
-  const rootBox = await Box.findOne({ box_id: boxId }).populate('items').lean();
-  if (!rootBox) return null;
 
-  async function populateChildren(box) {
-    // Get child boxes where parentBox is the current box's Mongo _id
-    const children = await Box.find({ parentBox: box._id }).lean();
+// ! Main Function
+async function getBoxDataStructure(
+  shortId,
+  {
+    includeAncestors = false,
+    includeStats = true,
+    flat = 'none', // 'none' | 'items' | 'all'
+  } = {}
+) {
+  // 1) Root box (by public short id)
+  const root = await Box.findOne({ box_id: shortId })
+    .select('_id box_id label name parentBox items')
+    .lean();
+  if (!root) return null;
+  root.label = root.label ?? root.name ?? 'Box';
 
-    for (let child of children) {
-      // Populate this child's items
-      child.items = await Item.find({ _id: { $in: child.items } }).lean();
+  // 2) Collect all descendant boxes (BFS)
+  const nodesById = new Map([[String(root._id), root]]);
+  const childrenByParent = new Map(); // parentId -> [child nodes]
+  let frontier = [root._id];
 
-      // Recursively populate childBoxes of this child
-      child.childBoxes = await populateChildren(child);
+  while (frontier.length) {
+    const children = await Box.find({ parentBox: { $in: frontier } })
+      .select('_id box_id label name parentBox items')
+      .lean();
+
+    for (const c of children) {
+      c.label = c.label ?? c.name ?? 'Box';
+      nodesById.set(String(c._id), c);
+      const pid = String(c.parentBox);
+      if (!childrenByParent.has(pid)) childrenByParent.set(pid, []);
+      childrenByParent.get(pid).push(c);
     }
-
-    return children;
+    frontier = children.map((c) => c._id);
   }
 
-  // Populate the full childBoxes tree
-  rootBox.childBoxes = await populateChildren(rootBox);
+  // 3) Fetch all Items once, index by _id
+  const allItemIds = [];
+  for (const node of nodesById.values()) {
+    if (Array.isArray(node.items)) allItemIds.push(...node.items);
+  }
 
-  return rootBox;
+  let itemsById = new Map();
+  if (allItemIds.length) {
+    const allItems = await Item.find({ _id: { $in: allItemIds } }).lean();
+    itemsById = new Map(allItems.map((i) => [String(i._id), i]));
+  }
+
+  // 4) Build hydrated nested tree
+  function link(node) {
+    const id = String(node._id);
+    const itemDocs = Array.isArray(node.items)
+      ? node.items.map((iid) => itemsById.get(String(iid))).filter(Boolean)
+      : [];
+    const kids = childrenByParent.get(id) || [];
+    return {
+      _id: node._id,
+      box_id: node.box_id,
+      label: node.label,
+      parentBox: node.parentBox ? String(node.parentBox) : null,
+      items: itemDocs,
+      childBoxes: kids.map(link),
+    };
+  }
+  const tree = link(root);
+
+  // 5) Optional: ancestors for breadcrumb (root → … → parent)
+  let ancestors;
+  if (includeAncestors) {
+    ancestors = [];
+    let cur = root;
+    while (cur.parentBox) {
+      const parent = await Box.findById(cur.parentBox)
+        .select('_id box_id label name parentBox')
+        .lean();
+      if (!parent) break;
+      ancestors.push({
+        _id: parent._id,
+        box_id: parent.box_id,
+        label: parent.label ?? parent.name ?? 'Box',
+      });
+      cur = parent;
+    }
+    ancestors.reverse();
+  }
+
+  // 6) Optional: stats (boxes, unique item names, total quantity)
+  let stats;
+  if (includeStats) {
+    stats = computeStats(nodesById, itemsById);
+  }
+
+  // 7) Optional: server-side flat list of items (includes parent + parentPath)
+  let flatItems;
+  if (flat === 'items' || flat === 'all') {
+    flatItems = flattenBoxes(tree); // already adds parent + parentPath
+  }
+
+  // 8) Response (additive)
+  return {
+    _id: root._id,
+    box_id: root.box_id,
+    label: root.label,
+    tree,
+    ...(includeAncestors ? { ancestors } : {}),
+    ...(includeStats ? { stats } : {}),
+    ...(flatItems ? { flatItems } : {}),
+  };
 }
-*/
 
+// todo this needs to become the function above ⬆️↙️
 async function getBoxTreeByShortId(shortId) {
   // 1) Root
   const root = await Box.findOne({ box_id: shortId }).lean();
@@ -226,6 +312,7 @@ async function deleteAllBoxes({ Box, Item }) {
 }
 
 module.exports = {
+  getBoxDataStructure,
   getBoxByMongoId,
   getBoxByShortId,
   getBoxesByParent,

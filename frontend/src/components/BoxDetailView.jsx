@@ -1,163 +1,173 @@
-// frontend/src/components/BoxDetailView.jsx
+// src/components/BoxDetailView.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-// import { styledComponents as S } from '../styles/BoxDetailView.styles';
-import * as S from '../styles/BoxDetailView.styles';
-// import * as S from '../styles/BoxTree.styles';
-// import * as S from '../styles/ItemsFlatList.styles';
 
+import { fetchBoxDataStructure } from '../api/boxes';
+
+// Child components (must be default exports)
+import TabControlBar from './TabControlBar';
 import BoxMetaPanel from './BoxMetaPanel';
 import BoxTree from './BoxTree';
 import ItemsFlatList from './ItemsFlatList';
-import ItemDetails from './ItemDetails';
+import BoxEditPanel from './BoxEditPanel';
 
-import flattenBoxes from '../util/flattenBoxes';
-import { fetchBoxTreeByShortId } from '../api/boxes';
+// Styles (Wrap, Spinner, ErrorBanner)
+import * as S from '../styles/BoxDetailView.styles';
 
 export default function BoxDetailView() {
   const { shortId } = useParams();
   const navigate = useNavigate();
 
-  const [box, setBox] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // ---------- Minimal state ----------
+  const [activeTab, setActiveTab] = useState('tree'); // 'tree' | 'flat' | 'edit'
+  const [data, setData] = useState(null); // { tree, ancestors?, flatItems?, stats? }
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [openItemId, setOpenItemId] = useState(null); // used by ItemRow toggles
 
-  const [activeTab, setActiveTab] = useState('tree'); // 'tree' | 'items'
-  const [openItemId, setOpenItemId] = useState(null);
+  // ---------- Derivations ----------
+  const tree = data?.tree || null;
+  const flatItems = data?.flatItems || [];
+  const parentPath = useMemo(
+    () =>
+      (data?.ancestors || []).map((a) => ({ id: a.box_id, label: a.label })),
+    [data?.ancestors]
+  );
 
+  // Reset when the route shortId changes
   useEffect(() => {
-    if (!shortId) return;
-    const ac = new AbortController();
-    setLoading(true);
+    setActiveTab('tree');
+    setData(null);
     setError(null);
-
-    fetchBoxTreeByShortId(shortId, { signal: ac.signal })
-      .then((data) => setBox(data))
-      .catch((err) => {
-        if (err.name !== 'AbortError')
-          setError(err.message || 'Failed to load box');
-      })
-      .finally(() => setLoading(false));
-
-    return () => ac.abort();
+    setOpenItemId(null);
   }, [shortId]);
 
-  const flatItems = useMemo(() => (box ? flattenBoxes(box) : []), [box]);
+  const handleOpen = (idOrNull) => {
+    setOpenItemId((prev) =>
+      idOrNull == null ? null : prev === idOrNull ? null : idOrNull
+    );
+  };
 
-  const itemIndexById = useMemo(() => {
-    const idx = new Map();
-    for (const it of flatItems) {
-      const id = String(it?._id ?? it?.id ?? '');
-      if (id) idx.set(id, it);
-    }
-    return idx;
-  }, [flatItems]);
+  // One fetch on mount for this box id: get everything needed for both tabs
+  useEffect(() => {
+    if (!shortId) return;
 
-  const openItem = openItemId ? itemIndexById.get(openItemId) : null;
+    const ac = new AbortController();
+    let active = true;
 
-  const handleBack = () => navigate(-1);
+    // show spinner immediately; clear any prior error
+    setLoading(true);
+    setError(null);
+    // NOTE: don't clear data here if you want to keep stale content visible during refetch
+    // If you prefer blank + spinner, uncomment the next line:
+    // setData(null);
+
+    (async () => {
+      try {
+        const payload = await fetchBoxDataStructure(shortId, {
+          ancestors: true, // breadcrumb for meta panel
+          flat: 'items', // server-provided flat list for ItemsFlatList
+          stats: true, // counts for meta panel
+          signal: ac.signal,
+        });
+
+        if (!active) return;
+
+        if (payload) {
+          setData(payload);
+        } else {
+          // Only mark not found after request completes
+          setData(null);
+          setError('Box not found');
+        }
+      } catch (err) {
+        if (!active || err?.name === 'AbortError' || ac.signal.aborted) return;
+        setData(null);
+        setError(err?.message || 'Failed to load box');
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+      ac.abort();
+    };
+  }, [shortId]);
+
+  // Navigate to a different box by short id (used by BoxMetaPanel)
   const handleNavigateBox = (sid) => {
-    setOpenItemId(null);
+    if (!sid) return;
     navigate(`/boxes/${sid}`);
   };
-  const handleToggleItem = (id) => {
-    setOpenItemId((curr) => (curr === id ? null : id));
+
+  // Normalize whatever TabControlBar passes (string, {key}, {value}, event.target.value)
+  const handleTabChange = (nextMode) => {
+    // TabControlBar seems to send "tree" | "items" | "edit"
+    // We render using "tree" | "flat" | "edit"
+    if (nextMode === 'items') {
+      setActiveTab('flat');
+    } else if (
+      nextMode === 'tree' ||
+      nextMode === 'edit' ||
+      nextMode === 'flat'
+    ) {
+      setActiveTab(nextMode);
+    }
   };
-  const handleDetailsNavigate = (href) => {
-    setOpenItemId(null);
-    navigate(href);
-  };
 
-  if (loading) {
-    return (
-      <S.Container>
-        <S.HeaderRow>
-          <S.Title>Loading…</S.Title>
-          <S.Spacer />
-          <S.BackBtn onClick={handleBack}>Back</S.BackBtn>
-        </S.HeaderRow>
-        <S.Body>Fetching box {shortId}…</S.Body>
-      </S.Container>
-    );
-  }
+  if (loading) return <S.Spinner label={`Loading box ${shortId}…`} />;
+  if (error) return <S.ErrorBanner title="Error" message={error} />;
+  // now safe to assume data (or render a neutral empty state)
 
-  if (error || !box) {
-    return (
-      <S.Container>
-        <S.HeaderRow>
-          <S.Title>Error</S.Title>
-          <S.Spacer />
-          <S.BackBtn onClick={handleBack}>Back</S.BackBtn>
-        </S.HeaderRow>
-        <S.Body>{error || 'Box not found'}</S.Body>
-      </S.Container>
-    );
-  }
-
-  console.log({
-    BoxTree,
-    ItemsFlatList,
-    BoxMetaPanel,
-    ItemDetails,
-    stylesKeys: Object.keys(S || {}),
-  });
-
+  // ---------- Render ----------
   return (
-    <S.Container>
-      <S.HeaderRow>
-        <S.Title>
-          {box.label} <S.ShortId>({box.box_id})</S.ShortId>
-        </S.Title>
-        <S.Spacer />
-        <S.BackBtn onClick={handleBack}>Back</S.BackBtn>
-      </S.HeaderRow>
+    <S.Wrap>
+      <S.Content>
+        {/* Meta / Header */}
+        {tree && (
+          <>
+            <BoxMetaPanel
+              box={tree}
+              parentPath={parentPath}
+              onNavigateBox={handleNavigateBox}
+            />
 
-      <BoxMetaPanel box={box} />
+            {/* Your styled TabControlBar. We pass both prop name styles to be safe. */}
+            <TabControlBar
+              mode={activeTab}
+              onChange={handleTabChange}
+              busy={loading}
+            />
+          </>
+        )}
 
-      <S.Tabs>
-        <S.TabButton
-          type="button"
-          data-active={activeTab === 'tree'}
-          onClick={() => setActiveTab('tree')}
-        >
-          Tree
-        </S.TabButton>
-        <S.TabButton
-          type="button"
-          data-active={activeTab === 'items'}
-          onClick={() => setActiveTab('items')}
-        >
-          Items
-        </S.TabButton>
-      </S.Tabs>
+        {/* Status */}
+        {loading && <S.Spinner />}
+        {error && <S.ErrorBanner>{error}</S.ErrorBanner>}
 
-      {activeTab === 'tree' && (
-        <BoxTree
-          tree={box}
-          openItemId={openItemId}
-          onOpenItem={handleToggleItem}
-          onNavigateBox={handleNavigateBox}
-        />
-      )}
+        {/* Content */}
+        {!loading && !error && tree && activeTab === 'tree' && (
+          <BoxTree
+            tree={tree}
+            openItemId={openItemId}
+            onOpenItem={handleOpen}
+          />
+        )}
 
-      {activeTab === 'items' && (
-        <ItemsFlatList
-          items={flatItems}
-          openItemId={openItemId}
-          onOpenItem={handleToggleItem}
-          title={`Items in ${box.label}`}
-        />
-      )}
+        {!loading && !error && tree && activeTab === 'flat' && (
+          <ItemsFlatList
+            items={flatItems}
+            openItemId={openItemId}
+            onOpenItem={handleOpen}
+          />
+        )}
 
-      {openItem && (
-        <ItemDetails
-          item={openItem}
-          itemId={openItemId}
-          parentBoxShortId={box.box_id}
-          onClose={() => setOpenItemId(null)}
-          onNavigate={handleDetailsNavigate} // the only place with navigation to item page
-        />
-      )}
-    </S.Container>
+        {/* Optional third tab */}
+        {!loading && !error && tree && activeTab === 'edit' && (
+          <BoxEditPanel box={tree} />
+        )}
+      </S.Content>
+    </S.Wrap>
   );
 }

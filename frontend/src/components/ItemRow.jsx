@@ -1,42 +1,146 @@
 // src/components/ItemRow.jsx
-import React from 'react';
-import * as S from '../styles/ItemRow.styles'; // your existing styled-components
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import * as S from '../styles/ItemRow.styles';
+import ItemDetails from './ItemDetails';
 
-/**
- * Props:
- * - vm: { id, name, tags[], quantity, notes, parent: { shortId, name, path[] } }
- * - onOpen: (itemId) => void
- * - isOpen?: boolean
- */
-export default function ItemRow({ vm, onOpen, isOpen }) {
-  if (!vm) return null;
+export default function ItemRow({
+  item,
+  isOpen,
+  onOpen, // onOpen(id) — pass null to close
+  // Appearance controls (match ItemRow.styles.js)
+  accent, // string color, e.g. '#ffd166' (optional)
+  pulsing = false, // boolean to flash attention (optional)
+  // Animation timing
+  collapseDurMs = 520,
+}) {
+  const {
+    _id,
+    name,
+    quantity,
+    tags = [],
+    notes,
+    parentBoxLabel,
+    parentBoxId,
+  } = item || {};
 
-  const breadcrumb = [...(vm.parent?.path || []), vm.parent?.shortId].filter(
-    Boolean
-  );
+  // State flags for styling/transitions (DO NOT CHANGE LOGIC)
+  const [isOpening, setIsOpening] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  // Presence + collapse measurements (DO NOT CHANGE LOGIC)
+  const [present, setPresent] = useState(!!isOpen);
+  const [targetHeight, setTargetHeight] = useState(0);
+  const contentRef = useRef(null);
+
+  // Kick the opening sweep; ensure the details are mounted (DO NOT CHANGE)
+  useEffect(() => {
+    if (isOpen) {
+      setPresent(true);
+      setIsClosing(false);
+      setIsOpening(true);
+      const t = setTimeout(() => setIsOpening(false), 700); // keep in sync with your open sweep
+      return () => clearTimeout(t);
+    }
+  }, [isOpen]);
+
+  // Measure details panel for smooth collapse (DO NOT CHANGE)
+  useLayoutEffect(() => {
+    if (!contentRef.current) {
+      setTargetHeight(0);
+      return;
+    }
+    setTargetHeight(isOpen ? contentRef.current.scrollHeight : 0);
+  }, [isOpen, present]);
+
+  // Re-measure if contents change while open (DO NOT CHANGE)
+  useEffect(() => {
+    if (!contentRef.current || !isOpen) return;
+    const ro = new ResizeObserver(() => {
+      if (isOpen && contentRef.current) {
+        setTargetHeight(contentRef.current.scrollHeight);
+      }
+    });
+    ro.observe(contentRef.current);
+    return () => ro.disconnect();
+  }, [isOpen]);
+
+  // Whole row toggles (DO NOT CHANGE)
+  const handleRowClick = () => {
+    if (isOpen) {
+      setIsClosing(true);
+      onOpen?.(null); // tell parent to close (only one open at a time)
+    } else {
+      onOpen?.(_id); // tell parent to open this one
+    }
+  };
+
+  // Tiny delay on open to feel more natural (same as before)
+  const collapseDelay = useMemo(() => (isOpen ? 120 : 0), [isOpen]);
+
+  // When the height transition finishes, unmount details if closed
+  const handleCollapseTransitionEnd = (e) => {
+    if (e.propertyName !== 'height') return;
+    if (!isOpen) {
+      setPresent(false);
+      setIsClosing(false);
+    }
+  };
 
   return (
-    <S.Row data-open={isOpen ? 'true' : 'false'}>
-      <S.Left>
-        <S.Title>{vm.name}</S.Title>
-        {breadcrumb.length > 0 && (
-          <S.Breadcrumb>{breadcrumb.join(' / ')}</S.Breadcrumb>
-        )}
-        {!!vm.tags?.length && (
-          <S.TagRow>
-            {vm.tags.map((t) => (
-              <S.Tag key={t}>{t}</S.Tag>
-            ))}
-          </S.TagRow>
-        )}
-      </S.Left>
+    <S.Wrapper
+      $accent={accent}
+      $pulsing={pulsing}
+      data-open={isOpen ? 'true' : 'false'}
+      data-opening={isOpening ? 'true' : 'false'}
+      data-closing={isClosing ? 'true' : 'false'}
+    >
+      <S.Row onClick={handleRowClick} data-open={isOpen ? 'true' : 'false'}>
+        <S.Left>
+          <S.Title>{name}</S.Title>
 
-      <S.Right>
-        {vm.quantity != null && <S.Qty>x{vm.quantity}</S.Qty>}
-        <S.OpenBtn onClick={() => onOpen?.(vm.id)}>
-          {isOpen ? 'Close' : 'Open'}
-        </S.OpenBtn>
-      </S.Right>
-    </S.Row>
+          {(parentBoxLabel || parentBoxId) && (
+            <S.Breadcrumb>
+              {parentBoxLabel} {!!parentBoxId && `(${parentBoxId})`}
+            </S.Breadcrumb>
+          )}
+
+          {!!tags.length && (
+            <S.TagRow>
+              {tags.map((t) => (
+                <S.Tag key={t}>{t}</S.Tag>
+              ))}
+            </S.TagRow>
+          )}
+
+          {notes && <S.Notes>{notes}</S.Notes>}
+        </S.Left>
+
+        <S.Right>{quantity != null && <S.Qty>x{quantity}</S.Qty>}</S.Right>
+      </S.Row>
+
+      <S.Collapse
+        style={{
+          height: `${targetHeight}px`,
+          transitionDelay: `${collapseDelay}ms`,
+          ['--collapse-dur']: `${collapseDurMs}ms`,
+        }}
+        data-open={isOpen ? 'true' : 'false'}
+        onTransitionEnd={handleCollapseTransitionEnd}
+      >
+        {present && (
+          <div ref={contentRef}>
+            <S.DetailsCard>
+              <ItemDetails item={item} />
+            </S.DetailsCard>
+          </div>
+        )}
+      </S.Collapse>
+    </S.Wrapper>
   );
 }

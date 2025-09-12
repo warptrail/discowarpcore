@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
+  getBoxDataStructureApi,
   getBoxByMongoIdApi,
   getBoxByShortIdApi,
   getAllBoxesApi,
@@ -20,9 +21,9 @@ router.get('/exclude/:id', getBoxesExcludingApi);
 router.get('/byparent', getBoxesByParentApi);
 router.get('/tree', getBoxTreeApi);
 router.get('/by-mongo-id/:id', getBoxByMongoIdApi);
-router.get('/by-short-id/:shortId', getBoxByShortIdApi); // new canonical
-router.get('/by-short-id/:shortId/tree', getBoxTreeByShortIdApi);
-router.get('/by-box-id/:shortId', getBoxByShortIdApi); // back-compat alias
+router.get('/by-short-id/:shortId', getBoxDataStructureApi); // yeah?
+router.get('/by-box-id/:shortId', getBoxDataStructureApi); // back-compat alias
+// router.get('/by-short-id/:shortId/tree', getBoxTreeByShortIdApi);
 router.get('/check-id/:short_id', checkBoxIdAvailability);
 router.post('/', createBoxApi);
 router.patch('/:id', updateBoxApi);
