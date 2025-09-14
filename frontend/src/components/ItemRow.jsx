@@ -96,51 +96,57 @@ export default function ItemRow({
     <S.Wrapper
       $accent={accent}
       $pulsing={pulsing}
+      $hDuration="6s"
+      $hStart={200}
+      $hSat={90}
+      $hLight={58}
       data-open={isOpen ? 'true' : 'false'}
       data-opening={isOpening ? 'true' : 'false'}
       data-closing={isClosing ? 'true' : 'false'}
     >
-      <S.Row onClick={handleRowClick} data-open={isOpen ? 'true' : 'false'}>
-        <S.Left>
-          <S.Title>{name}</S.Title>
+      <S.Clip>
+        <S.Row onClick={handleRowClick} data-open={isOpen ? 'true' : 'false'}>
+          <S.Left>
+            <S.Title>{name}</S.Title>
 
-          {(parentBoxLabel || parentBoxId) && (
-            <S.Breadcrumb>
-              {parentBoxLabel} {!!parentBoxId && `(${parentBoxId})`}
-            </S.Breadcrumb>
+            {(parentBoxLabel || parentBoxId) && (
+              <S.Breadcrumb>
+                {parentBoxLabel} {!!parentBoxId && `(${parentBoxId})`}
+              </S.Breadcrumb>
+            )}
+
+            {!!tags.length && (
+              <S.TagRow>
+                {tags.map((t) => (
+                  <S.Tag key={t}>{t}</S.Tag>
+                ))}
+              </S.TagRow>
+            )}
+
+            {notes && <S.Notes>{notes}</S.Notes>}
+          </S.Left>
+
+          <S.Right>{quantity != null && <S.Qty>x{quantity}</S.Qty>}</S.Right>
+        </S.Row>
+
+        <S.Collapse
+          style={{
+            height: `${targetHeight}px`,
+            transitionDelay: `${collapseDelay}ms`,
+            ['--collapse-dur']: `${collapseDurMs}ms`,
+          }}
+          data-open={isOpen ? 'true' : 'false'}
+          onTransitionEnd={handleCollapseTransitionEnd}
+        >
+          {present && (
+            <div ref={contentRef}>
+              <S.DetailsCard>
+                <ItemDetails item={item} />
+              </S.DetailsCard>
+            </div>
           )}
-
-          {!!tags.length && (
-            <S.TagRow>
-              {tags.map((t) => (
-                <S.Tag key={t}>{t}</S.Tag>
-              ))}
-            </S.TagRow>
-          )}
-
-          {notes && <S.Notes>{notes}</S.Notes>}
-        </S.Left>
-
-        <S.Right>{quantity != null && <S.Qty>x{quantity}</S.Qty>}</S.Right>
-      </S.Row>
-
-      <S.Collapse
-        style={{
-          height: `${targetHeight}px`,
-          transitionDelay: `${collapseDelay}ms`,
-          ['--collapse-dur']: `${collapseDurMs}ms`,
-        }}
-        data-open={isOpen ? 'true' : 'false'}
-        onTransitionEnd={handleCollapseTransitionEnd}
-      >
-        {present && (
-          <div ref={contentRef}>
-            <S.DetailsCard>
-              <ItemDetails item={item} />
-            </S.DetailsCard>
-          </div>
-        )}
-      </S.Collapse>
+        </S.Collapse>
+      </S.Clip>
     </S.Wrapper>
   );
 }
