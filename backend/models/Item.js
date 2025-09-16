@@ -1,26 +1,46 @@
+// models/Item.js
 const mongoose = require('mongoose');
 
-const itemSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  quantity: { type: Number, default: 1 },
-  notes: String,
-  tags: [String],
-  imagePath: { type: String, default: null },
-  orphanedAt: {
-    type: Date,
-    default: null,
+const itemSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, default: '' },
+    quantity: { type: Number, default: 1 },
+    description: { type: String, default: '' },
+    notes: { type: String, default: '' },
+    tags: { type: [String], default: [] },
+    imagePath: { type: String, default: '' },
+    location: { type: String, default: '' },
+    orphanedAt: { type: Date, default: null },
+
+    // 🔒 Always cents. Must be a non-negative whole integer.
+    valueCents: {
+      type: Number,
+      default: 0,
+      min: [0, 'valueCents must be >= 0'],
+      validate: {
+        validator: Number.isInteger,
+        message: 'valueCents must be an integer number of cents',
+      },
+    },
   },
+  {
+    timestamps: true,
+    toObject: { virtuals: true },
+    toJSON: { virtuals: true },
+  }
+);
+
+// Read-only virtual for convenience (dollars). No setter.
+itemSchema.virtual('value').get(function () {
+  return (this.valueCents ?? 0) / 100;
 });
 
-// Virtual: find the one Box that contains this item._id in its `items` array
+// Keep your parentBox virtual if you use it
 itemSchema.virtual('parentBox', {
   ref: 'Box',
   localField: '_id',
   foreignField: 'items',
-  justOne: true, // enforce single-parent assumption at the model boundary
+  justOne: true,
 });
-
-itemSchema.set('toObject', { virtuals: true });
-itemSchema.set('toJSON', { virtuals: true });
 
 module.exports = mongoose.model('Item', itemSchema);

@@ -1,3 +1,4 @@
+// controllers/itemController.js
 const {
   getAllItems,
   getItemById,
@@ -18,11 +19,10 @@ async function getAllItemsApi(req, res) {
   }
 }
 
-async function getItemByIdApi(req, res, next) {
+async function getItemByIdApi(req, res) {
   try {
     const { id } = req.params;
-
-    const populateBox = (req.query.populate || '').toLowerCase() === 'box';
+    // optional: allow ?select= to trim fields, else return full doc
     const select = req.query.select
       ? req.query.select
           .split(',')
@@ -31,21 +31,18 @@ async function getItemByIdApi(req, res, next) {
           .join(' ')
       : undefined;
 
-    const item = await getItemById(id, { populateBox, select });
+    const data = await getItemById(id, { select });
 
-    if (!item) {
-      return next(createHttpError(404, 'Item not found'));
-    }
-
-    return res.status(200).json({
-      ok: true,
-      data: item,
-    });
+    if (!data)
+      return res.status(404).json({ ok: false, error: 'Item not found' });
+    return res.status(200).json({ ok: true, data });
   } catch (err) {
-    return next(err);
+    console.error('❌ getItemByIdApi:', err);
+    return res.status(400).json({ ok: false, error: 'Bad request' });
   }
 }
 
+// (others unchanged)
 async function getOrphanedItemsApi(req, res) {
   const sort = req.query.sort || 'recent';
   const limit = parseInt(req.query.limit) || 20;
@@ -80,7 +77,6 @@ async function patchItem(req, res) {
   }
 }
 
-// todo --> add a logging system to log deleted items
 async function deleteItemById(req, res) {
   try {
     const deleted = await deleteItem(req.params.id);
