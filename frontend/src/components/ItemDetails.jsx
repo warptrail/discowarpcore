@@ -1,13 +1,44 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as S from '../styles/ItemDetails.styles';
+import { fetchItemDetails, patchItem, createAborter } from '../api/itemDetails';
 
 export default function ItemDetails({
-  item,
+  item: listItem, // lightweight item from the row
   isOpen = false,
   isOpening = false,
   isClosing = false,
 }) {
-  if (!item) return null;
+  const id = listItem?._id;
+  const [fullItem, setFullItem] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState(null);
+  const abortRef = useRef(null);
+
+  // Fetch enriched item when the panel opens (breadcrumb, depth, topBox, etc.)
+  useEffect(() => {
+    if (!isOpen || !id) return;
+
+    // cancel any in-flight
+    abortRef.current?.cancel?.();
+    abortRef.current = createAborter();
+
+    setLoading(true);
+    setErr(null);
+
+    fetchItemDetails(id, { signal: abortRef.current.signal })
+      .then((data) => setFullItem(data))
+      .catch((e) => {
+        if (e.name !== 'AbortError') setErr(e);
+      })
+      .finally(() => setLoading(false));
+
+    return () => abortRef.current?.cancel?.();
+  }, [isOpen, id]);
+
+  // Prefer the enriched document once loaded
+  const item = fullItem || listItem;
+  if (!id || !item) return null;
 
   const {
     name,
@@ -20,24 +51,19 @@ export default function ItemDetails({
     lastUsedAt,
     orphanedAt,
     location,
-    // enriched
     box, // { _id, box_id, label, description }
     breadcrumb, // [{ _id, box_id, label }, ...]
-    depth, // number
-    topBox, // first of breadcrumb or null
-    shortId, // optional
+    depth,
+    topBox,
+    shortId,
     createdAt,
     updatedAt,
   } = item;
 
-  useEffect(() => {
-    if (item) {
-      console.log('📦 ItemDetails props.item:', item);
-    }
-  }, [item]); // logs whenever the item changes
-
-  const thumbSrc = useMemo(() => {
-    return imagePath || null;
+  const imgSrc = useMemo(() => {
+    // prefer the item image; else the provided example
+    if (typeof imagePath === 'string' && imagePath.trim()) return imagePath;
+    return 'https://imgur.com/sA9VT';
   }, [imagePath]);
 
   const boxShortId = box?.box_id ?? null;
@@ -45,10 +71,16 @@ export default function ItemDetails({
 
   const breadcrumbTrail = useMemo(() => {
     if (!Array.isArray(breadcrumb) || breadcrumb.length === 0) return null;
-    // Show e.g. "526 › 528 › 529 › 530"
-    const chain = breadcrumb.map((b) => b.box_id || '—').join(' › ');
-    return chain;
+    return breadcrumb.map((b) => b.box_id || '—').join(' › ');
   }, [breadcrumb]);
+
+  const dollars =
+    Number.isInteger(valueCents) && valueCents >= 0 ? valueCents / 100 : null;
+
+  const showLocation =
+    Boolean(orphanedAt) &&
+    typeof location === 'string' &&
+    location.trim().length > 0;
 
   const microBits = useMemo(() => {
     const bits = [];
@@ -58,16 +90,27 @@ export default function ItemDetails({
     return bits;
   }, [quantity, boxShortId, shortId]);
 
-  const dollars = useMemo(() => {
-    if (Number.isInteger(valueCents) && valueCents >= 0)
-      return valueCents / 100;
-    return null;
-  }, [valueCents]);
+  // Action: mark last-used now (PATCH with ISO timestamp)
+  async function markLastUsedNow() {
+    try {
+      setSaving(true);
+      const updated = await patchItem(id, {
+        lastUsedAt: new Date().toISOString(),
+      });
+      // normalize into state (updated may be the item itself)
+      setFullItem((prev) => ({
+        ...(prev || {}),
+        ...(updated?.data || updated),
+      }));
+    } catch (e) {
+      setErr(e);
+    } finally {
+      setSaving(false);
+    }
+  }
 
-  const showLocation =
-    Boolean(orphanedAt) &&
-    typeof location === 'string' &&
-    location.trim().length > 0;
+  // Link to full item page (adjust route if yours differs)
+  const itemPageHref = `/items/${id}`;
 
   return (
     <S.DetailsCard
@@ -77,20 +120,15 @@ export default function ItemDetails({
       aria-hidden={!isOpen && !isOpening}
     >
       <S.Wrapper>
+        {/* Header */}
         <S.Header>
-          {thumbSrc ? (
-            <S.Thumb
-              src={thumbSrc}
-              alt={name ? `${name} thumbnail` : 'Item thumbnail'}
-            />
-          ) : null}
-
+          <S.Thumb
+            src={imgSrc}
+            alt={name ? `${name} thumbnail` : 'Item thumbnail'}
+          />
           <div>
             <S.Title>{name || 'Untitled item'}</S.Title>
-
-            {/* optional secondary line under the title */}
             {description ? <S.SubTitle>{description}</S.SubTitle> : null}
-
             {microBits.length > 0 ? (
               <S.Micro aria-label="Item metadata">
                 {microBits.join(' • ')}
@@ -99,51 +137,89 @@ export default function ItemDetails({
           </div>
         </S.Header>
 
+        {/* Actions */}
+        <S.Actions>
+          <S.Button onClick={markLastUsedNow} disabled={saving}>
+            {saving ? 'Saving…' : 'Mark last used'}
+          </S.Button>
+          <S.LinkButton href={itemPageHref} aria-label="Open item home page">
+            Open item page
+          </S.LinkButton>
+        </S.Actions>
+
+        {/* Optional notes */}
         {notes ? <S.Notes>{notes}</S.Notes> : null}
 
-        {/* DENSE GRID */}
-        <S.DataGrid>
-          <dt>Path</dt>
-          <dd>{breadcrumbTrail ?? '—'}</dd>
+        {/* GROUP: Location / Placement */}
+        <S.Section>
+          <S.SectionTitle>Placement</S.SectionTitle>
+          <S.DataGrid>
+            <dt>Path</dt>
+            <dd>{breadcrumbTrail ?? '—'}</dd>
 
-          <dt>Depth</dt>
-          <dd>{Number.isFinite(depth) ? depth : '—'}</dd>
+            <dt>Depth</dt>
+            <dd>{Number.isFinite(depth) ? depth : '—'}</dd>
 
-          <dt>Top</dt>
-          <dd>
-            {topBox?.box_id
-              ? `${topBox.box_id} — ${topBox.label || ''}`.trim()
-              : '—'}
-          </dd>
+            <dt>Top</dt>
+            <dd>
+              {topBox?.box_id
+                ? `${topBox.box_id} — ${topBox.label || ''}`.trim()
+                : '—'}
+            </dd>
 
-          <dt>Box</dt>
-          <dd>
-            {boxShortId
-              ? `${boxShortId}${boxLabel ? ` — ${boxLabel}` : ''}`
-              : '—'}
-          </dd>
+            <dt>Box</dt>
+            <dd>
+              {boxShortId
+                ? `${boxShortId}${boxLabel ? ` — ${boxLabel}` : ''}`
+                : '—'}
+            </dd>
 
-          <dt>Value</dt>
-          <dd>{dollars != null ? fmtCurrency(dollars) : '—'}</dd>
+            <dt>Location</dt>
+            <dd>{showLocation ? location : '—'}</dd>
+          </S.DataGrid>
+        </S.Section>
 
-          <dt>Purchased</dt>
-          <dd>{purchaseDate ? fmtDate(purchaseDate) : '—'}</dd>
+        {/* GROUP: Value / Quantities */}
+        <S.Section>
+          <S.SectionTitle>Details</S.SectionTitle>
+          <S.DataGrid>
+            <dt>ID</dt>
+            <dd>
+              <S.Mono>{item?._id ?? '—'}</S.Mono>
+            </dd>
 
-          <dt>Last used</dt>
-          <dd>{lastUsedAt ? fmtDate(lastUsedAt) : '—'}</dd>
+            <dt>Quantity</dt>
+            <dd>{quantity ?? '—'}</dd>
 
-          <dt>Orphaned</dt>
-          <dd>{orphanedAt ? fmtDate(orphanedAt) : '—'}</dd>
+            <dt>Value</dt>
+            <dd>{dollars != null ? fmtCurrency(dollars) : '—'}</dd>
+          </S.DataGrid>
+        </S.Section>
 
-          <dt>Location</dt>
-          <dd>{showLocation ? location : '—'}</dd>
+        {/* GROUP: Dates (clustered) */}
+        <S.Section>
+          <S.SectionTitle>Dates</S.SectionTitle>
+          <S.DataGrid>
+            <dt>Purchased</dt>
+            <dd>{purchaseDate ? fmtDate(purchaseDate) : '—'}</dd>
 
-          <dt>Created</dt>
-          <dd>{createdAt ? fmtDate(createdAt) : '—'}</dd>
+            <dt>Last used</dt>
+            <dd>{lastUsedAt ? fmtDate(lastUsedAt) : '—'}</dd>
 
-          <dt>Updated</dt>
-          <dd>{updatedAt ? fmtDate(updatedAt) : '—'}</dd>
-        </S.DataGrid>
+            <dt>Orphaned</dt>
+            <dd>{orphanedAt ? fmtDate(orphanedAt) : '—'}</dd>
+
+            <dt>Created</dt>
+            <dd>{createdAt ? fmtDate(createdAt) : '—'}</dd>
+
+            <dt>Updated</dt>
+            <dd>{updatedAt ? fmtDate(updatedAt) : '—'}</dd>
+          </S.DataGrid>
+        </S.Section>
+
+        {/* Loading / error */}
+        {loading && !fullItem ? <S.Skel>Loading item…</S.Skel> : null}
+        {err ? <S.Error>Couldn’t load/save item.</S.Error> : null}
       </S.Wrapper>
     </S.DetailsCard>
   );

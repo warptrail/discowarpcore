@@ -1,5 +1,5 @@
 // src/components/BoxDetailView.jsx
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import { fetchBoxDataStructure } from '../api/boxes';
@@ -24,15 +24,32 @@ export default function BoxDetailView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [openItemId, setOpenItemId] = useState(null); // used by ItemRow toggles
+  // list-level appearance (user toggle-able if you want)
+  const [listMode, setListMode] = useState('default'); // 'default' | 'compact'
 
   // ---------- Derivations ----------
   const tree = data?.tree || null;
-  const flatItems = data?.flatItems || [];
+  const flatItems = useMemo(() => {
+    if (!data) return [];
+    if (Array.isArray(data.flatItems)) return data.flatItems;
+    if (Array.isArray(data.items)) return data.items;
+    // If you have a flatten util and only a tree arrives, you can do it here:
+    // if (data.tree) return flattenBoxes(data.tree);
+    return [];
+  }, [data]);
   const parentPath = useMemo(
     () =>
       (data?.ancestors || []).map((a) => ({ id: a.box_id, label: a.label })),
     [data?.ancestors]
   );
+
+  const itemsForTree = flatItems; // pass same list into BoxTree if useful
+
+  // Optional: cheap guards to help you spot unexpected shapes during dev
+  useEffect(() => {
+    if (data && !tree)
+      console.warn('BoxDetailView: data present but no tree', data);
+  }, [data, tree]);
 
   // Reset when the route shortId changes
   useEffect(() => {
@@ -42,11 +59,31 @@ export default function BoxDetailView() {
     setOpenItemId(null);
   }, [shortId]);
 
-  const handleOpen = (idOrNull) => {
+  // toggle-aware open handler (your original logic) with stable identity
+  const handleOpen = useCallback((idOrNull) => {
     setOpenItemId((prev) =>
       idOrNull == null ? null : prev === idOrNull ? null : idOrNull
     );
-  };
+  }, []);
+
+  // compute mode for a given row id (minimal if that row is open)
+  const modeFor = useCallback(
+    (id) => (id === openItemId ? 'minimal' : listMode),
+    [openItemId, listMode]
+  );
+
+  // derive the list once (choose whatever your server fills: flatItems / items / tree)
+  const list = useMemo(() => {
+    if (!data) return [];
+    // preferred flat list if your code already creates it:
+    if (Array.isArray(data.flatItems)) return data.flatItems;
+
+    // fallback: if your API returns a plain array
+    if (Array.isArray(data.items)) return data.items;
+
+    // final fallback: no list available yet
+    return [];
+  }, [data]);
 
   // One fetch on mount for this box id: get everything needed for both tabs
   useEffect(() => {
@@ -116,6 +153,8 @@ export default function BoxDetailView() {
     }
   };
 
+  // ------------ Loading & Error Render -----------
+
   if (loading) return <S.Spinner label={`Loading box ${shortId}…`} />;
   if (error) return <S.ErrorBanner title="Error" message={error} />;
   // now safe to assume data (or render a neutral empty state)
@@ -132,40 +171,43 @@ export default function BoxDetailView() {
               parentPath={parentPath}
               onNavigateBox={handleNavigateBox}
             />
-
-            {/* Your styled TabControlBar. We pass both prop name styles to be safe. */}
             <TabControlBar
               mode={activeTab}
               onChange={handleTabChange}
-              busy={loading}
+              busy={!!loading}
             />
           </>
         )}
 
         {/* Status */}
         {loading && <S.Spinner />}
-        {error && <S.ErrorBanner>{error}</S.ErrorBanner>}
+        {error && <S.ErrorBanner>{String(error)}</S.ErrorBanner>}
 
         {/* Content */}
         {!loading && !error && tree && activeTab === 'tree' && (
           <BoxTree
             tree={tree}
+            items={itemsForTree} // <-- array (safe)
             openItemId={openItemId}
             onOpenItem={handleOpen}
+            modeFor={modeFor}
           />
         )}
 
         {!loading && !error && tree && activeTab === 'flat' && (
           <ItemsFlatList
-            items={flatItems}
+            items={flatItems} // <-- array (safe)
             openItemId={openItemId}
             onOpenItem={handleOpen}
+            modeFor={modeFor}
           />
         )}
 
-        {/* Optional third tab */}
         {!loading && !error && tree && activeTab === 'edit' && (
-          <BoxEditPanel box={tree} />
+          <BoxEditPanel
+            box={tree}
+            items={flatItems} // ready for editor usage
+          />
         )}
       </S.Content>
     </S.Wrap>
