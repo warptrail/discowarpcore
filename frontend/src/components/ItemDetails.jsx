@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+} from 'react';
 import * as S from '../styles/ItemDetails.styles';
 import { fetchItemDetails, patchItem, createAborter } from '../api/itemDetails';
 
@@ -92,21 +98,7 @@ export default function ItemDetails({
 
   // Action: mark last-used now (PATCH with ISO timestamp)
   async function markLastUsedNow() {
-    try {
-      setSaving(true);
-      const updated = await patchItem(id, {
-        lastUsedAt: new Date().toISOString(),
-      });
-      // normalize into state (updated may be the item itself)
-      setFullItem((prev) => ({
-        ...(prev || {}),
-        ...(updated?.data || updated),
-      }));
-    } catch (e) {
-      setErr(e);
-    } finally {
-      setSaving(false);
-    }
+    console.log('Filler fun');
   }
 
   // Link to full item page (adjust route if yours differs)

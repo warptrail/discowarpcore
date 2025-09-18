@@ -14,6 +14,24 @@ import BoxEditPanel from './BoxEditPanel';
 // Styles (Wrap, Spinner, ErrorBanner)
 import * as S from '../styles/BoxDetailView.styles';
 
+// ----------- Animations ----------
+
+// Global default look
+const DEFAULT_ACCENT = '#4CC6C1';
+const DEFAULT_COLLAPSE_MS = 520;
+
+// 3-pulse timing: if your CSS pulse is 600ms per cycle, 3x = 1800ms
+const PULSE_CYCLE_MS = 600;
+const PULSE_REPEAT = 3;
+const PULSE_TOTAL_MS = PULSE_CYCLE_MS * PULSE_REPEAT + 150; // small buffer
+// Map of “kinds” to colors
+const FLASH_COLORS = {
+  edit: '#36c26e', // green
+  cancel: '#ffd166', // yellow
+  move: '#5aa5ff', // blue
+  error: '#ff4d4f', // red
+};
+
 export default function BoxDetailView() {
   const { shortId } = useParams();
   const navigate = useNavigate();
@@ -26,6 +44,15 @@ export default function BoxDetailView() {
   const [openItemId, setOpenItemId] = useState(null); // used by ItemRow toggles
   // list-level appearance (user toggle-able if you want)
   const [listMode, setListMode] = useState('default'); // 'default' | 'compact'
+  const [effectsById, setEffectsById] = useState({});
+
+  // If you want pulsing to reflect a recent action, drive it off your own state.
+  // For now, just default false:
+  const pulsing = false;
+
+  // Accent can be static for the whole view, or vary by box
+  const accent = DEFAULT_ACCENT;
+  const collapseDurMs = DEFAULT_COLLAPSE_MS;
 
   // ---------- Derivations ----------
   const tree = data?.tree || null;
@@ -37,27 +64,14 @@ export default function BoxDetailView() {
     // if (data.tree) return flattenBoxes(data.tree);
     return [];
   }, [data]);
+
+  const itemsForTree = flatItems; // pass same list into BoxTree if useful
+
   const parentPath = useMemo(
     () =>
       (data?.ancestors || []).map((a) => ({ id: a.box_id, label: a.label })),
     [data?.ancestors]
   );
-
-  const itemsForTree = flatItems; // pass same list into BoxTree if useful
-
-  // Optional: cheap guards to help you spot unexpected shapes during dev
-  useEffect(() => {
-    if (data && !tree)
-      console.warn('BoxDetailView: data present but no tree', data);
-  }, [data, tree]);
-
-  // Reset when the route shortId changes
-  useEffect(() => {
-    setActiveTab('tree');
-    setData(null);
-    setError(null);
-    setOpenItemId(null);
-  }, [shortId]);
 
   // toggle-aware open handler (your original logic) with stable identity
   const handleOpen = useCallback((idOrNull) => {
@@ -72,18 +86,19 @@ export default function BoxDetailView() {
     [openItemId, listMode]
   );
 
-  // derive the list once (choose whatever your server fills: flatItems / items / tree)
-  const list = useMemo(() => {
-    if (!data) return [];
-    // preferred flat list if your code already creates it:
-    if (Array.isArray(data.flatItems)) return data.flatItems;
+  // Optional: cheap guards to help you spot unexpected shapes during dev
+  useEffect(() => {
+    if (data && !tree)
+      console.warn('BoxDetailView: data present but no tree', data);
+  }, [data, tree]);
 
-    // fallback: if your API returns a plain array
-    if (Array.isArray(data.items)) return data.items;
-
-    // final fallback: no list available yet
-    return [];
-  }, [data]);
+  // Reset when the route shortId changes
+  useEffect(() => {
+    setActiveTab('tree');
+    setData(null);
+    setError(null);
+    setOpenItemId(null);
+  }, [shortId]);
 
   // One fetch on mount for this box id: get everything needed for both tabs
   useEffect(() => {
@@ -153,6 +168,24 @@ export default function BoxDetailView() {
     }
   };
 
+  // Called by ItemDetails via props to simulate a visual flash on a row
+  const handleFlash = useCallback((itemId, kind = 'edit') => {
+    const color = FLASH_COLORS[kind] ?? DEFAULT_ACCENT;
+    setEffectsById((m) => ({
+      ...m,
+      [itemId]: { accent: color, pulsing: true },
+    }));
+
+    // auto-clear after 3 pulses
+    window.setTimeout(() => {
+      setEffectsById((m) => {
+        const next = { ...m };
+        delete next[itemId];
+        return next;
+      });
+    }, PULSE_TOTAL_MS);
+  }, []);
+
   // ------------ Loading & Error Render -----------
 
   if (loading) return <S.Spinner label={`Loading box ${shortId}…`} />;
@@ -191,23 +224,30 @@ export default function BoxDetailView() {
             openItemId={openItemId}
             onOpenItem={handleOpen}
             modeFor={modeFor}
+            accent={accent}
+            pulsing={pulsing}
+            collapseDurMs={collapseDurMs}
+            effectsById={effectsById}
+            onFlash={handleFlash}
           />
         )}
 
         {!loading && !error && tree && activeTab === 'flat' && (
           <ItemsFlatList
-            items={flatItems} // <-- array (safe)
+            items={flatItems}
             openItemId={openItemId}
             onOpenItem={handleOpen}
             modeFor={modeFor}
+            accent={accent}
+            pulsing={pulsing}
+            collapseDurMs={collapseDurMs}
+            effectsById={effectsById}
+            onFlash={handleFlash}
           />
         )}
 
-        {!loading && !error && tree && activeTab === 'edit' && (
-          <BoxEditPanel
-            box={tree}
-            items={flatItems} // ready for editor usage
-          />
+        {!loading && !error && activeTab === 'edit' && (
+          <BoxEditPanel box={{}} />
         )}
       </S.Content>
     </S.Wrap>
