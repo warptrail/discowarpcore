@@ -10,6 +10,7 @@ import * as S from '../styles/ItemRow.styles';
 import ItemDetails from './ItemDetails';
 
 export default function ItemRow({
+<<<<<<< HEAD
   item,
   isOpen,
   onOpen, // onOpen(id) — pass null to close
@@ -19,6 +20,16 @@ export default function ItemRow({
   // Animation timing
   onTogglePulse,
   collapseDurMs,
+=======
+  item, // ← full item; includes whatever came from server
+  isOpen = false,
+  onOpen,
+  // appearance
+  mode = 'default', // 'default' | 'compact' | 'minimal'
+  accent, // string e.g. '#ffd166' (optional)
+  pulsing = false, // boolean (optional)
+  collapseDurMs = 520, // timing (optional)
+>>>>>>> 3123b55bb2392bac94571c9ff3fca80901946793
 }) {
   const {
     _id,
@@ -41,23 +52,24 @@ export default function ItemRow({
 
   // Kick the opening sweep; ensure the details are mounted (DO NOT CHANGE)
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !present) {
       setPresent(true);
-      setIsClosing(false);
       setIsOpening(true);
-      const t = setTimeout(() => setIsOpening(false), 700); // keep in sync with your open sweep
+      const t = setTimeout(() => setIsOpening(false), collapseDurMs);
+      return () => clearTimeout(t);
+    } else if (!isOpen && present) {
+      setIsClosing(true);
+      const t = setTimeout(() => {
+        setIsClosing(false);
+        setPresent(false);
+      }, collapseDurMs);
       return () => clearTimeout(t);
     }
-  }, [isOpen]);
+  }, [isOpen, present, collapseDurMs]);
 
-  // Measure details panel for smooth collapse (DO NOT CHANGE)
-  useLayoutEffect(() => {
-    if (!contentRef.current) {
-      setTargetHeight(0);
-      return;
-    }
-    setTargetHeight(isOpen ? contentRef.current.scrollHeight : 0);
-  }, [isOpen, present]);
+  useEffect(() => {
+    if (contentRef.current) setTargetHeight(contentRef.current.scrollHeight);
+  }, [present, item]);
 
   // Re-measure if contents change while open (DO NOT CHANGE)
   useEffect(() => {
@@ -93,6 +105,19 @@ export default function ItemRow({
     }
   };
 
+  // strings for compact/minimal lines
+  const compactLine = useMemo(() => {
+    const parts = [];
+    if (typeof quantity === 'number') parts.push(`Qty ${quantity}`);
+    if (parentBoxLabel) parts.push(`${parentBoxLabel} [${parentBoxId || '?'}]`);
+    return parts.join(' • ');
+  }, [quantity, parentBoxLabel, parentBoxId]);
+
+  const minimalLine = useMemo(() => {
+    if (!parentBoxLabel && !parentBoxId) return '—';
+    return `${parentBoxLabel || 'Box'} [${parentBoxId || '?'}]`;
+  }, [parentBoxLabel, parentBoxId]);
+
   return (
     <S.Wrapper
       $accent={accent}
@@ -101,9 +126,11 @@ export default function ItemRow({
       $hStart={200}
       $hSat={90}
       $hLight={58}
+      $collapseDurMs={collapseDurMs}
       data-open={isOpen ? 'true' : 'false'}
       data-opening={isOpening ? 'true' : 'false'}
       data-closing={isClosing ? 'true' : 'false'}
+      data-pulsing={pulsing ? 'true' : 'false'}
     >
       <S.Clip>
         <S.Row onClick={handleRowClick} data-open={isOpen ? 'true' : 'false'}>

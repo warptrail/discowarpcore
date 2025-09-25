@@ -195,3 +195,21 @@ export const Qty = styled.span`
   font-weight: 700;
   color: #0c0;
 `;
+
+// Monospace text for short ids
+export const Mono = styled.code`
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.8rem;
+  color: #d8dde2;
+  word-break: break-word;
+`;
+
+// A single-line row for the minimal mode
+export const MonoLine = styled.div`
+  font-size: 0.82rem;
+  color: #c8cdd2;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2rem;
+`;

@@ -1,5 +1,9 @@
 // src/components/BoxDetailView.jsx
+<<<<<<< HEAD
 import React, { useEffect, useMemo, useState, useRef } from 'react';
+=======
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+>>>>>>> 3123b55bb2392bac94571c9ff3fca80901946793
 import { useParams, useNavigate } from 'react-router-dom';
 
 import { fetchBoxDataStructure } from '../api/boxes';
@@ -14,6 +18,24 @@ import BoxEditPanel from './BoxEditPanel';
 // Styles (Wrap, Spinner, ErrorBanner)
 import * as S from '../styles/BoxDetailView.styles';
 
+// ----------- Animations ----------
+
+// Global default look
+const DEFAULT_ACCENT = '#4CC6C1';
+const DEFAULT_COLLAPSE_MS = 520;
+
+// 3-pulse timing: if your CSS pulse is 600ms per cycle, 3x = 1800ms
+const PULSE_CYCLE_MS = 600;
+const PULSE_REPEAT = 3;
+const PULSE_TOTAL_MS = PULSE_CYCLE_MS * PULSE_REPEAT + 150; // small buffer
+// Map of “kinds” to colors
+const FLASH_COLORS = {
+  edit: '#36c26e', // green
+  cancel: '#ffd166', // yellow
+  move: '#5aa5ff', // blue
+  error: '#ff4d4f', // red
+};
+
 export default function BoxDetailView() {
   const { shortId } = useParams();
   const navigate = useNavigate();
@@ -24,18 +46,61 @@ export default function BoxDetailView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [openItemId, setOpenItemId] = useState(null); // used by ItemRow toggles
+<<<<<<< HEAD
   const [pulsingItems, setPulsingItems] = useState([]);
   const accent = 'blue'; // or however you choose this
   const collapseDurMs = 300; // consistent animation speed
+=======
+  // list-level appearance (user toggle-able if you want)
+  const [listMode, setListMode] = useState('default'); // 'default' | 'compact'
+  const [effectsById, setEffectsById] = useState({});
+
+  // If you want pulsing to reflect a recent action, drive it off your own state.
+  // For now, just default false:
+  const pulsing = false;
+
+  // Accent can be static for the whole view, or vary by box
+  const accent = DEFAULT_ACCENT;
+  const collapseDurMs = DEFAULT_COLLAPSE_MS;
+>>>>>>> 3123b55bb2392bac94571c9ff3fca80901946793
 
   // ---------- Derivations ----------
   const tree = data?.tree || null;
-  const flatItems = data?.flatItems || [];
+  const flatItems = useMemo(() => {
+    if (!data) return [];
+    if (Array.isArray(data.flatItems)) return data.flatItems;
+    if (Array.isArray(data.items)) return data.items;
+    // If you have a flatten util and only a tree arrives, you can do it here:
+    // if (data.tree) return flattenBoxes(data.tree);
+    return [];
+  }, [data]);
+
+  const itemsForTree = flatItems; // pass same list into BoxTree if useful
+
   const parentPath = useMemo(
     () =>
       (data?.ancestors || []).map((a) => ({ id: a.box_id, label: a.label })),
     [data?.ancestors]
   );
+
+  // toggle-aware open handler (your original logic) with stable identity
+  const handleOpen = useCallback((idOrNull) => {
+    setOpenItemId((prev) =>
+      idOrNull == null ? null : prev === idOrNull ? null : idOrNull
+    );
+  }, []);
+
+  // compute mode for a given row id (minimal if that row is open)
+  const modeFor = useCallback(
+    (id) => (id === openItemId ? 'minimal' : listMode),
+    [openItemId, listMode]
+  );
+
+  // Optional: cheap guards to help you spot unexpected shapes during dev
+  useEffect(() => {
+    if (data && !tree)
+      console.warn('BoxDetailView: data present but no tree', data);
+  }, [data, tree]);
 
   // Reset when the route shortId changes
   useEffect(() => {
@@ -45,6 +110,7 @@ export default function BoxDetailView() {
     setOpenItemId(null);
   }, [shortId]);
 
+<<<<<<< HEAD
   const handleOpen = (idOrNull) => {
     setOpenItemId((prev) =>
       idOrNull == null ? null : prev === idOrNull ? null : idOrNull
@@ -93,6 +159,8 @@ export default function BoxDetailView() {
     []
   );
 
+=======
+>>>>>>> 3123b55bb2392bac94571c9ff3fca80901946793
   // One fetch on mount for this box id: get everything needed for both tabs
   useEffect(() => {
     if (!shortId) return;
@@ -161,6 +229,26 @@ export default function BoxDetailView() {
     }
   };
 
+  // Called by ItemDetails via props to simulate a visual flash on a row
+  const handleFlash = useCallback((itemId, kind = 'edit') => {
+    const color = FLASH_COLORS[kind] ?? DEFAULT_ACCENT;
+    setEffectsById((m) => ({
+      ...m,
+      [itemId]: { accent: color, pulsing: true },
+    }));
+
+    // auto-clear after 3 pulses
+    window.setTimeout(() => {
+      setEffectsById((m) => {
+        const next = { ...m };
+        delete next[itemId];
+        return next;
+      });
+    }, PULSE_TOTAL_MS);
+  }, []);
+
+  // ------------ Loading & Error Render -----------
+
   if (loading) return <S.Spinner label={`Loading box ${shortId}…`} />;
   if (error) return <S.ErrorBanner title="Error" message={error} />;
   // now safe to assume data (or render a neutral empty state)
@@ -177,30 +265,38 @@ export default function BoxDetailView() {
               parentPath={parentPath}
               onNavigateBox={handleNavigateBox}
             />
-
-            {/* Your styled TabControlBar. We pass both prop name styles to be safe. */}
             <TabControlBar
               mode={activeTab}
               onChange={handleTabChange}
-              busy={loading}
+              busy={!!loading}
             />
           </>
         )}
 
         {/* Status */}
         {loading && <S.Spinner />}
-        {error && <S.ErrorBanner>{error}</S.ErrorBanner>}
+        {error && <S.ErrorBanner>{String(error)}</S.ErrorBanner>}
 
         {/* Content */}
         {!loading && !error && tree && activeTab === 'tree' && (
           <BoxTree
             tree={tree}
+            items={itemsForTree} // <-- array (safe)
             openItemId={openItemId}
             onOpenItem={handleOpen}
+<<<<<<< HEAD
             accent={accent}
             pulsingItems={pulsingItems}
             onTogglePulse={handleTogglePulse}
             collapseDurMs={collapseDurMs}
+=======
+            modeFor={modeFor}
+            accent={accent}
+            pulsing={pulsing}
+            collapseDurMs={collapseDurMs}
+            effectsById={effectsById}
+            onFlash={handleFlash}
+>>>>>>> 3123b55bb2392bac94571c9ff3fca80901946793
           />
         )}
 
@@ -209,16 +305,24 @@ export default function BoxDetailView() {
             items={flatItems}
             openItemId={openItemId}
             onOpenItem={handleOpen}
+<<<<<<< HEAD
             accent={accent}
             pulsingItems={pulsingItems}
             onTogglePulse={handleTogglePulse}
             collapseDurMs={collapseDurMs}
+=======
+            modeFor={modeFor}
+            accent={accent}
+            pulsing={pulsing}
+            collapseDurMs={collapseDurMs}
+            effectsById={effectsById}
+            onFlash={handleFlash}
+>>>>>>> 3123b55bb2392bac94571c9ff3fca80901946793
           />
         )}
 
-        {/* Optional third tab */}
-        {!loading && !error && tree && activeTab === 'edit' && (
-          <BoxEditPanel box={tree} />
+        {!loading && !error && activeTab === 'edit' && (
+          <BoxEditPanel box={{}} />
         )}
       </S.Content>
     </S.Wrap>
