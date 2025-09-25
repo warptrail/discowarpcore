@@ -46,23 +46,9 @@ export default function BoxDetailView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [openItemId, setOpenItemId] = useState(null); // used by ItemRow toggles
-<<<<<<< HEAD
   const [pulsingItems, setPulsingItems] = useState([]);
   const accent = 'blue'; // or however you choose this
   const collapseDurMs = 300; // consistent animation speed
-=======
-  // list-level appearance (user toggle-able if you want)
-  const [listMode, setListMode] = useState('default'); // 'default' | 'compact'
-  const [effectsById, setEffectsById] = useState({});
-
-  // If you want pulsing to reflect a recent action, drive it off your own state.
-  // For now, just default false:
-  const pulsing = false;
-
-  // Accent can be static for the whole view, or vary by box
-  const accent = DEFAULT_ACCENT;
-  const collapseDurMs = DEFAULT_COLLAPSE_MS;
->>>>>>> 3123b55bb2392bac94571c9ff3fca80901946793
 
   // ---------- Derivations ----------
   const tree = data?.tree || null;
