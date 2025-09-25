@@ -8,6 +8,10 @@ export default function ItemsFlatList({
   openItemId,
   onOpenItem,
   title = 'Items',
+  accent,
+  pulsingItems,
+  onTogglePulse,
+  collapseDurMs,
 }) {
   const list = Array.isArray(items) ? items : [];
   return (
@@ -27,6 +31,10 @@ export default function ItemsFlatList({
               item={it}
               isOpen={openItemId === id}
               onOpen={() => onOpenItem?.(id)}
+              accent={accent}
+              pulsing={pulsingItems.includes(it._id)}
+              onTogglePulse={() => onTogglePulse(it._id)}
+              collapseDurMs={collapseDurMs}
             />
           );
         })}

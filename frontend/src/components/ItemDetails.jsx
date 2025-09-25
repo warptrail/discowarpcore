@@ -6,6 +6,7 @@ export default function ItemDetails({
   isOpen = false,
   isOpening = false,
   isClosing = false,
+  onTogglePulse,
 }) {
   if (!item) return null;
 
@@ -87,10 +88,7 @@ export default function ItemDetails({
 
           <div>
             <S.Title>{name || 'Untitled item'}</S.Title>
-
-            {/* optional secondary line under the title */}
             {description ? <S.SubTitle>{description}</S.SubTitle> : null}
-
             {microBits.length > 0 ? (
               <S.Micro aria-label="Item metadata">
                 {microBits.join(' • ')}
@@ -101,46 +99,40 @@ export default function ItemDetails({
 
         {notes ? <S.Notes>{notes}</S.Notes> : null}
 
-        {/* DENSE GRID */}
+        {/* 🔘 Button to trigger parent-controlled animation */}
+        <S.LastUsedButton onClick={onTogglePulse}>
+          Trigger Glow
+        </S.LastUsedButton>
+
         <S.DataGrid>
           <dt>Path</dt>
           <dd>{breadcrumbTrail ?? '—'}</dd>
-
           <dt>Depth</dt>
           <dd>{Number.isFinite(depth) ? depth : '—'}</dd>
-
           <dt>Top</dt>
           <dd>
             {topBox?.box_id
               ? `${topBox.box_id} — ${topBox.label || ''}`.trim()
               : '—'}
           </dd>
-
           <dt>Box</dt>
           <dd>
             {boxShortId
               ? `${boxShortId}${boxLabel ? ` — ${boxLabel}` : ''}`
               : '—'}
           </dd>
-
           <dt>Value</dt>
           <dd>{dollars != null ? fmtCurrency(dollars) : '—'}</dd>
-
           <dt>Purchased</dt>
           <dd>{purchaseDate ? fmtDate(purchaseDate) : '—'}</dd>
-
           <dt>Last used</dt>
           <dd>{lastUsedAt ? fmtDate(lastUsedAt) : '—'}</dd>
-
           <dt>Orphaned</dt>
           <dd>{orphanedAt ? fmtDate(orphanedAt) : '—'}</dd>
-
           <dt>Location</dt>
           <dd>{showLocation ? location : '—'}</dd>
-
           <dt>Created</dt>
           <dd>{createdAt ? fmtDate(createdAt) : '—'}</dd>
-
           <dt>Updated</dt>
           <dd>{updatedAt ? fmtDate(updatedAt) : '—'}</dd>
         </S.DataGrid>

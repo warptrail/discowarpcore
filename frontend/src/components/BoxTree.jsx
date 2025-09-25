@@ -3,56 +3,54 @@ import React from 'react';
 import * as S from '../styles/BoxTree.styles';
 import ItemRow from './ItemRow';
 
-/* ---- safe getters for slightly wobbly API shapes ---- */
-function itemsOf(node) {
-  // try multiple keys; always return an array
-  const a = node?.items ?? node?.box_items ?? node?.contents ?? [];
-  return Array.isArray(a) ? a : [];
-}
-
-function kidsOf(node) {
-  const a = node?.childBoxes ?? node?.children ?? node?.boxes ?? [];
-  return Array.isArray(a) ? a : [];
-}
-
 /* ---- one titled section per box (root included) ---- */
-function BoxSection({ node, depth, openItemId, onOpenItem }) {
+function BoxSection({
+  node,
+  depth,
+  openItemId,
+  onOpenItem,
+  accent,
+  pulsingItems,
+  onTogglePulse,
+  collapseDurMs,
+}) {
   if (!node) return null;
 
   const parentBoxLabel = node.label ?? node.name ?? 'Box';
   const parentBoxId = node.box_id ?? node.shortId ?? '';
 
-  const items = itemsOf(node);
-  const kids = kidsOf(node);
+  const items = Array.isArray(node.items) ? node.items : [];
+  const kids = Array.isArray(node.childBoxes) ? node.childBoxes : [];
 
   return (
     <S.SectionGroup>
-      {/* header for this box at every depth */}
       <S.SectionTitle>
         {parentBoxLabel} <S.ShortId>({parentBoxId || '?'})</S.ShortId>
       </S.SectionTitle>
 
-      {/* items in this box */}
       {items.length > 0 && (
         <S.List>
           {items.map((it, idx) => {
             const id = String(it?._id ?? it?.id ?? '');
-            // If somehow there is no id, still render (no toggle) so we can see the data
             const key = id || `noid-${depth}-${idx}`;
             const annotated = { ...it, parentBoxLabel, parentBoxId };
+
             return (
               <ItemRow
                 key={key}
                 item={annotated}
                 isOpen={id ? openItemId === id : false}
                 onOpen={id ? () => onOpenItem?.(id) : undefined}
+                accent={accent}
+                collapseDurMs={collapseDurMs}
+                pulsing={pulsingItems.includes(id)}
+                onTogglePulse={id ? () => onTogglePulse?.(id) : undefined}
               />
             );
           })}
         </S.List>
       )}
 
-      {/* recurse into children, with LCARS bracket rails via S.Nest */}
       {kids.map((child, i) => (
         <S.Nest
           key={String(
@@ -69,6 +67,10 @@ function BoxSection({ node, depth, openItemId, onOpenItem }) {
             depth={depth + 1}
             openItemId={openItemId}
             onOpenItem={onOpenItem}
+            accent={accent}
+            pulsingItems={pulsingItems} // ✅ forwarded
+            onTogglePulse={onTogglePulse} // ✅ forwarded
+            collapseDurMs={collapseDurMs}
           />
         </S.Nest>
       ))}
@@ -76,21 +78,15 @@ function BoxSection({ node, depth, openItemId, onOpenItem }) {
   );
 }
 
-export default function BoxTree({ tree, openItemId, onOpenItem }) {
-  // ---- sanity logs: comment these after confirming once ----
-  if (process.env.NODE_ENV !== 'production') {
-    // eslint-disable-next-line no-console
-    console.log('[BoxTree] has tree?', !!tree, tree && Object.keys(tree));
-    if (tree) {
-      // eslint-disable-next-line no-console
-      console.log(
-        '[BoxTree] root items/kids:',
-        itemsOf(tree).length,
-        kidsOf(tree).length
-      );
-    }
-  }
-
+export default function BoxTree({
+  tree,
+  openItemId,
+  onOpenItem,
+  accent,
+  pulsingItems = [],
+  onTogglePulse,
+  collapseDurMs,
+}) {
   if (!tree) return null;
 
   return (
@@ -101,6 +97,10 @@ export default function BoxTree({ tree, openItemId, onOpenItem }) {
         depth={0}
         openItemId={openItemId}
         onOpenItem={onOpenItem}
+        accent={accent}
+        pulsingItems={pulsingItems}
+        onTogglePulse={onTogglePulse}
+        collapseDurMs={collapseDurMs}
       />
     </S.Container>
   );

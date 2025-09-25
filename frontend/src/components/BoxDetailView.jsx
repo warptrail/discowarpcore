@@ -1,5 +1,5 @@
 // src/components/BoxDetailView.jsx
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import { fetchBoxDataStructure } from '../api/boxes';
@@ -24,6 +24,9 @@ export default function BoxDetailView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [openItemId, setOpenItemId] = useState(null); // used by ItemRow toggles
+  const [pulsingItems, setPulsingItems] = useState([]);
+  const accent = 'blue'; // or however you choose this
+  const collapseDurMs = 300; // consistent animation speed
 
   // ---------- Derivations ----------
   const tree = data?.tree || null;
@@ -47,6 +50,48 @@ export default function BoxDetailView() {
       idOrNull == null ? null : prev === idOrNull ? null : idOrNull
     );
   };
+
+  const pulseTimerRef = useRef(null);
+  const stopPulseTimerRef = useRef(null);
+
+  const handleTogglePulse = (itemId) => {
+    // clear existing timers
+    if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
+    if (stopPulseTimerRef.current) clearTimeout(stopPulseTimerRef.current);
+
+    // close the details panel
+    setOpenItemId(null);
+
+    // wait a bit before pulsing
+    pulseTimerRef.current = setTimeout(() => {
+      // ✅ always set as an array
+      setPulsingItems([String(itemId)]);
+
+      // optional: stop pulsing after 3s
+      stopPulseTimerRef.current = setTimeout(() => {
+        setPulsingItems([]); // ✅ back to empty array
+      }, 3000);
+    }, 1000);
+  };
+
+  const handlePulseBox = (box) => {
+    const itemIds = box.items.map((i) => i._id);
+
+    setPulsingItems(itemIds); // ✅ all rows in this box pulse
+
+    stopPulseTimerRef.current = setTimeout(() => {
+      setPulsingItems([]);
+    }, 3000);
+  };
+
+  // Clean up timers on unmount
+  useEffect(
+    () => () => {
+      if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
+      if (stopPulseTimerRef.current) clearTimeout(stopPulseTimerRef.current);
+    },
+    []
+  );
 
   // One fetch on mount for this box id: get everything needed for both tabs
   useEffect(() => {
@@ -152,6 +197,10 @@ export default function BoxDetailView() {
             tree={tree}
             openItemId={openItemId}
             onOpenItem={handleOpen}
+            accent={accent}
+            pulsingItems={pulsingItems}
+            onTogglePulse={handleTogglePulse}
+            collapseDurMs={collapseDurMs}
           />
         )}
 
@@ -160,6 +209,10 @@ export default function BoxDetailView() {
             items={flatItems}
             openItemId={openItemId}
             onOpenItem={handleOpen}
+            accent={accent}
+            pulsingItems={pulsingItems}
+            onTogglePulse={handleTogglePulse}
+            collapseDurMs={collapseDurMs}
           />
         )}
 

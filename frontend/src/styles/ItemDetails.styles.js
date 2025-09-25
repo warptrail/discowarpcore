@@ -134,3 +134,24 @@ export const DataGrid = styled.dl`
     }
   }
 `;
+
+export const LastUsedButton = styled.button`
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.9rem;
+  padding: 0.35rem 0.75rem;
+  margin: 0.75rem 0;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.35);
+  }
+
+  &:active {
+    background: rgba(255, 255, 255, 0.2);
+  }
+`;

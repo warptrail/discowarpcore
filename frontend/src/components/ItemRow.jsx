@@ -15,9 +15,10 @@ export default function ItemRow({
   onOpen, // onOpen(id) — pass null to close
   // Appearance controls (match ItemRow.styles.js)
   accent, // string color, e.g. '#ffd166' (optional)
-  pulsing = false, // boolean to flash attention (optional)
+  pulsingItems = false, // boolean to flash attention (optional)
   // Animation timing
-  collapseDurMs = 520,
+  onTogglePulse,
+  collapseDurMs,
 }) {
   const {
     _id,
@@ -95,7 +96,7 @@ export default function ItemRow({
   return (
     <S.Wrapper
       $accent={accent}
-      $pulsing={pulsing}
+      $pulsingItems={pulsingItems}
       $hDuration="6s"
       $hStart={200}
       $hSat={90}
@@ -141,7 +142,7 @@ export default function ItemRow({
           {present && (
             <div ref={contentRef}>
               <S.DetailsCard>
-                <ItemDetails item={item} />
+                <ItemDetails item={item} onTogglePulse={onTogglePulse} />
               </S.DetailsCard>
             </div>
           )}
