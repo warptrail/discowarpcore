@@ -143,7 +143,6 @@ export default function ItemDetails({
         {/* Optional notes */}
         {notes ? <S.Notes>{notes}</S.Notes> : null}
 
-<<<<<<< HEAD
         {/* 🔘 Button to trigger parent-controlled animation */}
         <S.LastUsedButton onClick={onTogglePulse}>
           Trigger Glow
@@ -181,78 +180,6 @@ export default function ItemDetails({
           <dt>Updated</dt>
           <dd>{updatedAt ? fmtDate(updatedAt) : '—'}</dd>
         </S.DataGrid>
-=======
-        {/* GROUP: Location / Placement */}
-        <S.Section>
-          <S.SectionTitle>Placement</S.SectionTitle>
-          <S.DataGrid>
-            <dt>Path</dt>
-            <dd>{breadcrumbTrail ?? '—'}</dd>
-
-            <dt>Depth</dt>
-            <dd>{Number.isFinite(depth) ? depth : '—'}</dd>
-
-            <dt>Top</dt>
-            <dd>
-              {topBox?.box_id
-                ? `${topBox.box_id} — ${topBox.label || ''}`.trim()
-                : '—'}
-            </dd>
-
-            <dt>Box</dt>
-            <dd>
-              {boxShortId
-                ? `${boxShortId}${boxLabel ? ` — ${boxLabel}` : ''}`
-                : '—'}
-            </dd>
-
-            <dt>Location</dt>
-            <dd>{showLocation ? location : '—'}</dd>
-          </S.DataGrid>
-        </S.Section>
-
-        {/* GROUP: Value / Quantities */}
-        <S.Section>
-          <S.SectionTitle>Details</S.SectionTitle>
-          <S.DataGrid>
-            <dt>ID</dt>
-            <dd>
-              <S.Mono>{item?._id ?? '—'}</S.Mono>
-            </dd>
-
-            <dt>Quantity</dt>
-            <dd>{quantity ?? '—'}</dd>
-
-            <dt>Value</dt>
-            <dd>{dollars != null ? fmtCurrency(dollars) : '—'}</dd>
-          </S.DataGrid>
-        </S.Section>
-
-        {/* GROUP: Dates (clustered) */}
-        <S.Section>
-          <S.SectionTitle>Dates</S.SectionTitle>
-          <S.DataGrid>
-            <dt>Purchased</dt>
-            <dd>{purchaseDate ? fmtDate(purchaseDate) : '—'}</dd>
-
-            <dt>Last used</dt>
-            <dd>{lastUsedAt ? fmtDate(lastUsedAt) : '—'}</dd>
-
-            <dt>Orphaned</dt>
-            <dd>{orphanedAt ? fmtDate(orphanedAt) : '—'}</dd>
-
-            <dt>Created</dt>
-            <dd>{createdAt ? fmtDate(createdAt) : '—'}</dd>
-
-            <dt>Updated</dt>
-            <dd>{updatedAt ? fmtDate(updatedAt) : '—'}</dd>
-          </S.DataGrid>
-        </S.Section>
-
-        {/* Loading / error */}
-        {loading && !fullItem ? <S.Skel>Loading item…</S.Skel> : null}
-        {err ? <S.Error>Couldn’t load/save item.</S.Error> : null}
->>>>>>> 3123b55bb2392bac94571c9ff3fca80901946793
       </S.Wrapper>
     </S.DetailsCard>
   );

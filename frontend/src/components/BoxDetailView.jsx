@@ -1,245 +1,92 @@
-// src/components/BoxDetailView.jsx
-<<<<<<< HEAD
-import React, { useEffect, useMemo, useState, useRef } from 'react';
-=======
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
->>>>>>> 3123b55bb2392bac94571c9ff3fca80901946793
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
+import { fetchBoxTreeByShortId } from '../api/boxes';
+import flattenBoxes from '../util/flattenBoxes';
+import * as S from '../styles/BoxDetailView.styles';
 
-import { fetchBoxDataStructure } from '../api/boxes';
-
-// Child components (must be default exports)
-import TabControlBar from './TabControlBar';
 import BoxMetaPanel from './BoxMetaPanel';
+import TabControlBar from './TabControlBar';
 import BoxTree from './BoxTree';
 import ItemsFlatList from './ItemsFlatList';
 import BoxEditPanel from './BoxEditPanel';
 
-// Styles (Wrap, Spinner, ErrorBanner)
-import * as S from '../styles/BoxDetailView.styles';
-
-// ----------- Animations ----------
-
-// Global default look
-const DEFAULT_ACCENT = '#4CC6C1';
-const DEFAULT_COLLAPSE_MS = 520;
-
-// 3-pulse timing: if your CSS pulse is 600ms per cycle, 3x = 1800ms
-const PULSE_CYCLE_MS = 600;
-const PULSE_REPEAT = 3;
-const PULSE_TOTAL_MS = PULSE_CYCLE_MS * PULSE_REPEAT + 150; // small buffer
-// Map of “kinds” to colors
-const FLASH_COLORS = {
-  edit: '#36c26e', // green
-  cancel: '#ffd166', // yellow
-  move: '#5aa5ff', // blue
-  error: '#ff4d4f', // red
-};
-
-export default function BoxDetailView() {
+export default function BoxDetailView({ parentPath, onNavigateBox }) {
   const { shortId } = useParams();
-  const navigate = useNavigate();
 
-  // ---------- Minimal state ----------
-  const [activeTab, setActiveTab] = useState('tree'); // 'tree' | 'flat' | 'edit'
-  const [data, setData] = useState(null); // { tree, ancestors?, flatItems?, stats? }
+  // --- normalized state ---
+  const [tree, setTree] = useState(null);
+  const [flatItems, setFlatItems] = useState([]); // ✅ add this
+  const [boxesById, setBoxesById] = useState(new Map());
+  const [itemsById, setItemsById] = useState(new Map());
+  const [childrenByBoxId, setChildrenByBoxId] = useState(new Map());
+  const [rootId, setRootId] = useState(null);
+
+  // --- status state ---
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [openItemId, setOpenItemId] = useState(null); // used by ItemRow toggles
-  const [pulsingItems, setPulsingItems] = useState([]);
-  const accent = 'blue'; // or however you choose this
-  const collapseDurMs = 300; // consistent animation speed
 
-  // ---------- Derivations ----------
-  const tree = data?.tree || null;
-  const flatItems = useMemo(() => {
-    if (!data) return [];
-    if (Array.isArray(data.flatItems)) return data.flatItems;
-    if (Array.isArray(data.items)) return data.items;
-    // If you have a flatten util and only a tree arrives, you can do it here:
-    // if (data.tree) return flattenBoxes(data.tree);
-    return [];
-  }, [data]);
+  // --- UI state ---
+  const [activeTab, setActiveTab] = useState('tree');
+  const [openItemId, setOpenItemId] = useState(null);
+  const [pulsing, setPulsing] = useState([]);
+  const [effectsById, setEffectsById] = useState({});
+  const [accent, setAccent] = useState('blue');
+  const [collapseDurMs] = useState(300);
 
-  const itemsForTree = flatItems; // pass same list into BoxTree if useful
-
-  const parentPath = useMemo(
-    () =>
-      (data?.ancestors || []).map((a) => ({ id: a.box_id, label: a.label })),
-    [data?.ancestors]
+  // --- handlers ---
+  const handleTabChange = useCallback((mode) => setActiveTab(mode), []);
+  const handleOpen = useCallback((id) => {
+    setOpenItemId((prev) => (prev === id ? null : id));
+  }, []);
+  const handleNavigateBox = useCallback(
+    (boxId) => onNavigateBox?.(boxId),
+    [onNavigateBox]
   );
-
-  // toggle-aware open handler (your original logic) with stable identity
-  const handleOpen = useCallback((idOrNull) => {
-    setOpenItemId((prev) =>
-      idOrNull == null ? null : prev === idOrNull ? null : idOrNull
-    );
+  const handleFlash = useCallback((id, effect) => {
+    setEffectsById((prev) => ({ ...prev, [id]: effect }));
   }, []);
 
-  // compute mode for a given row id (minimal if that row is open)
-  const modeFor = useCallback(
-    (id) => (id === openItemId ? 'minimal' : listMode),
-    [openItemId, listMode]
-  );
-
-  // Optional: cheap guards to help you spot unexpected shapes during dev
-  useEffect(() => {
-    if (data && !tree)
-      console.warn('BoxDetailView: data present but no tree', data);
-  }, [data, tree]);
-
-  // Reset when the route shortId changes
-  useEffect(() => {
-    setActiveTab('tree');
-    setData(null);
-    setError(null);
-    setOpenItemId(null);
-  }, [shortId]);
-
-<<<<<<< HEAD
-  const handleOpen = (idOrNull) => {
-    setOpenItemId((prev) =>
-      idOrNull == null ? null : prev === idOrNull ? null : idOrNull
-    );
-  };
-
-  const pulseTimerRef = useRef(null);
-  const stopPulseTimerRef = useRef(null);
-
-  const handleTogglePulse = (itemId) => {
-    // clear existing timers
-    if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
-    if (stopPulseTimerRef.current) clearTimeout(stopPulseTimerRef.current);
-
-    // close the details panel
-    setOpenItemId(null);
-
-    // wait a bit before pulsing
-    pulseTimerRef.current = setTimeout(() => {
-      // ✅ always set as an array
-      setPulsingItems([String(itemId)]);
-
-      // optional: stop pulsing after 3s
-      stopPulseTimerRef.current = setTimeout(() => {
-        setPulsingItems([]); // ✅ back to empty array
-      }, 3000);
-    }, 1000);
-  };
-
-  const handlePulseBox = (box) => {
-    const itemIds = box.items.map((i) => i._id);
-
-    setPulsingItems(itemIds); // ✅ all rows in this box pulse
-
-    stopPulseTimerRef.current = setTimeout(() => {
-      setPulsingItems([]);
-    }, 3000);
-  };
-
-  // Clean up timers on unmount
-  useEffect(
-    () => () => {
-      if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
-      if (stopPulseTimerRef.current) clearTimeout(stopPulseTimerRef.current);
-    },
-    []
-  );
-
-=======
->>>>>>> 3123b55bb2392bac94571c9ff3fca80901946793
-  // One fetch on mount for this box id: get everything needed for both tabs
   useEffect(() => {
     if (!shortId) return;
+    let ignore = false;
 
-    const ac = new AbortController();
-    let active = true;
+    async function load() {
+      setLoading(true);
+      setError(null);
 
-    // show spinner immediately; clear any prior error
-    setLoading(true);
-    setError(null);
-    // NOTE: don't clear data here if you want to keep stale content visible during refetch
-    // If you prefer blank + spinner, uncomment the next line:
-    // setData(null);
-
-    (async () => {
       try {
-        const payload = await fetchBoxDataStructure(shortId, {
-          ancestors: true, // breadcrumb for meta panel
-          flat: 'items', // server-provided flat list for ItemsFlatList
-          stats: true, // counts for meta panel
-          signal: ac.signal,
-        });
+        const raw = await fetchBoxTreeByShortId(shortId);
+        const treeNode = raw.tree ?? raw;
 
-        if (!active) return;
+        if (!ignore && treeNode) {
+          setTree(treeNode);
 
-        if (payload) {
-          setData(payload);
-        } else {
-          // Only mark not found after request completes
-          setData(null);
-          setError('Box not found');
+          // 👇 Flatten items with defensive logging
+          const flatArray = flattenBoxes(treeNode);
+          console.log('Flat array result:', flatArray);
+          console.table(flatArray, [
+            '_id',
+            'name',
+            'quantity',
+            'parentBoxLabel',
+          ]);
+
+          setFlatItems(flatArray);
         }
-      } catch (err) {
-        if (!active || err?.name === 'AbortError' || ac.signal.aborted) return;
-        setData(null);
-        setError(err?.message || 'Failed to load box');
+      } catch (e) {
+        if (!ignore) setError(e.message || String(e));
       } finally {
-        if (active) setLoading(false);
+        if (!ignore) setLoading(false);
       }
-    })();
+    }
 
+    load();
     return () => {
-      active = false;
-      ac.abort();
+      ignore = true;
     };
   }, [shortId]);
 
-  // Navigate to a different box by short id (used by BoxMetaPanel)
-  const handleNavigateBox = (sid) => {
-    if (!sid) return;
-    navigate(`/boxes/${sid}`);
-  };
-
-  // Normalize whatever TabControlBar passes (string, {key}, {value}, event.target.value)
-  const handleTabChange = (nextMode) => {
-    // TabControlBar seems to send "tree" | "items" | "edit"
-    // We render using "tree" | "flat" | "edit"
-    if (nextMode === 'items') {
-      setActiveTab('flat');
-    } else if (
-      nextMode === 'tree' ||
-      nextMode === 'edit' ||
-      nextMode === 'flat'
-    ) {
-      setActiveTab(nextMode);
-    }
-  };
-
-  // Called by ItemDetails via props to simulate a visual flash on a row
-  const handleFlash = useCallback((itemId, kind = 'edit') => {
-    const color = FLASH_COLORS[kind] ?? DEFAULT_ACCENT;
-    setEffectsById((m) => ({
-      ...m,
-      [itemId]: { accent: color, pulsing: true },
-    }));
-
-    // auto-clear after 3 pulses
-    window.setTimeout(() => {
-      setEffectsById((m) => {
-        const next = { ...m };
-        delete next[itemId];
-        return next;
-      });
-    }, PULSE_TOTAL_MS);
-  }, []);
-
-  // ------------ Loading & Error Render -----------
-
-  if (loading) return <S.Spinner label={`Loading box ${shortId}…`} />;
-  if (error) return <S.ErrorBanner title="Error" message={error} />;
-  // now safe to assume data (or render a neutral empty state)
-
-  // ---------- Render ----------
+  // --- render ---
   return (
     <S.Wrap>
       <S.Content>
@@ -266,49 +113,38 @@ export default function BoxDetailView() {
         {/* Content */}
         {!loading && !error && tree && activeTab === 'tree' && (
           <BoxTree
-            tree={tree}
-            items={itemsForTree} // <-- array (safe)
+            node={tree} // 👈 send the raw tree node
             openItemId={openItemId}
             onOpenItem={handleOpen}
-<<<<<<< HEAD
-            accent={accent}
-            pulsingItems={pulsingItems}
-            onTogglePulse={handleTogglePulse}
-            collapseDurMs={collapseDurMs}
-=======
-            modeFor={modeFor}
             accent={accent}
             pulsing={pulsing}
+            onTogglePulse={() => {}} // hook if needed
             collapseDurMs={collapseDurMs}
             effectsById={effectsById}
             onFlash={handleFlash}
->>>>>>> 3123b55bb2392bac94571c9ff3fca80901946793
           />
         )}
 
         {!loading && !error && tree && activeTab === 'flat' && (
-          <ItemsFlatList
-            items={flatItems}
-            openItemId={openItemId}
-            onOpenItem={handleOpen}
-<<<<<<< HEAD
-            accent={accent}
-            pulsingItems={pulsingItems}
-            onTogglePulse={handleTogglePulse}
-            collapseDurMs={collapseDurMs}
-=======
-            modeFor={modeFor}
-            accent={accent}
-            pulsing={pulsing}
-            collapseDurMs={collapseDurMs}
-            effectsById={effectsById}
-            onFlash={handleFlash}
->>>>>>> 3123b55bb2392bac94571c9ff3fca80901946793
-          />
+          <>
+            <div style={{ color: 'yellow' }}>
+              Flat view: {flatItems.length} items loaded
+            </div>
+            <ItemsFlatList
+              items={flatItems}
+              openItemId={openItemId}
+              onOpenItem={handleOpen}
+              accent={accent}
+              pulsing={pulsing}
+              collapseDurMs={collapseDurMs}
+              effectsById={effectsById}
+              onFlash={handleFlash}
+            />
+          </>
         )}
 
         {!loading && !error && activeTab === 'edit' && (
-          <BoxEditPanel box={{}} />
+          <BoxEditPanel box={tree || {}} />
         )}
       </S.Content>
     </S.Wrap>

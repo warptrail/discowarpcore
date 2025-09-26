@@ -1,26 +1,22 @@
 import { API_BASE } from './API_BASE';
 
-export async function fetchBoxDataStructure(
-  shortId,
-  { ancestors = false, flat = 'none', stats = true, signal } = {}
-) {
+// frontend/src/api/boxes.js
+export async function fetchBoxTreeByShortId(shortId, { signal } = {}) {
   if (!shortId) throw new Error('shortId is required');
 
-  const url = new URL(
-    `${API_BASE}/api/boxes/by-short-id/${encodeURIComponent(shortId)}`
+  console.log('fetchBoxTreeByShortId called with:', shortId);
+
+  const res = await fetch(
+    `${API_BASE}/api/boxes/by-short-id/${encodeURIComponent(shortId)}`,
+    { signal }
   );
 
-  if (ancestors) url.searchParams.set('ancestors', '1'); // breadcrumb
-  if (flat === 'items' || flat === 'all') url.searchParams.set('flat', flat); // flatten server-side
-  if (!stats) url.searchParams.set('stats', '0'); // skip stats if you want
+  console.log('Response status:', res.status);
 
-  const res = await fetch(url.toString(), { signal });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(text || res.statusText);
-  }
   const json = await res.json();
-  return json.box ?? json; // controller returns { ok, box }
+  console.log('Raw JSON from API:', json);
+
+  return json.box ?? json.data ?? json;
 }
 
 //? Destroy a box by mongo id

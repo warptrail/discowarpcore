@@ -3,7 +3,6 @@ import React from 'react';
 import * as S from '../styles/BoxTree.styles';
 import ItemRow from './ItemRow';
 
-<<<<<<< HEAD
 /* ---- one titled section per box (root included) ---- */
 function BoxSection({
   node,
@@ -11,36 +10,11 @@ function BoxSection({
   openItemId,
   onOpenItem,
   accent,
-  pulsingItems,
+  pulsing,
   onTogglePulse,
   collapseDurMs,
 }) {
   if (!node) return null;
-=======
-/* ---- safe getters ---- */
-function itemsOf(node) {
-  const a = node?.items ?? node?.box_items ?? node?.contents ?? [];
-  return Array.isArray(a) ? a : [];
-}
-function kidsOf(node) {
-  const a = node?.childBoxes ?? node?.children ?? node?.boxes ?? [];
-  return Array.isArray(a) ? a : [];
-}
-
-/* ---- one titled section per box (root included) ---- */
-function BoxSection(props) {
-  const {
-    node,
-    depth,
-    openItemId,
-    onOpenItem,
-    modeFor,
-    accent,
-    pulsing,
-    collapseDurMs,
-    effectsById,
-  } = props;
->>>>>>> 3123b55bb2392bac94571c9ff3fca80901946793
 
   const parentBoxLabel = node.label ?? node.name ?? 'Box';
   const parentBoxId = node.box_id ?? node.shortId ?? '';
@@ -50,13 +24,9 @@ function BoxSection(props) {
 
   return (
     <S.SectionGroup>
-<<<<<<< HEAD
       <S.SectionTitle>
         {parentBoxLabel} <S.ShortId>({parentBoxId || '?'})</S.ShortId>
       </S.SectionTitle>
-=======
-      {/* title … */}
->>>>>>> 3123b55bb2392bac94571c9ff3fca80901946793
 
       {items.length > 0 && (
         <S.List>
@@ -65,38 +35,22 @@ function BoxSection(props) {
             const key = id || `noid-${depth}-${idx}`;
             const annotated = { ...it, parentBoxLabel, parentBoxId };
 
-<<<<<<< HEAD
-=======
-            // per-row overrides (if any)
-            const eff = id ? effectsById?.[id] : null;
-            const rowAccent = eff?.accent ?? accent;
-            const rowPulsing = eff?.pulsing ?? pulsing;
-
->>>>>>> 3123b55bb2392bac94571c9ff3fca80901946793
             return (
               <ItemRow
                 key={key}
                 item={annotated}
                 isOpen={id ? openItemId === id : false}
                 onOpen={id ? () => onOpenItem?.(id) : undefined}
-<<<<<<< HEAD
                 accent={accent}
                 collapseDurMs={collapseDurMs}
-                pulsing={pulsingItems.includes(id)}
+                pulsing={!!id && pulsing.includes(id)} // ✅ now uses the item id
                 onTogglePulse={id ? () => onTogglePulse?.(id) : undefined}
-=======
-                mode={id && modeFor ? modeFor(id) : 'default'}
-                accent={rowAccent}
-                pulsing={rowPulsing}
-                collapseDurMs={collapseDurMs}
->>>>>>> 3123b55bb2392bac94571c9ff3fca80901946793
               />
             );
           })}
         </S.List>
       )}
 
-<<<<<<< HEAD
       {kids.map((child, i) => (
         <S.Nest
           key={String(
@@ -114,82 +68,49 @@ function BoxSection(props) {
             openItemId={openItemId}
             onOpenItem={onOpenItem}
             accent={accent}
-            pulsingItems={pulsingItems} // ✅ forwarded
+            pulsing={pulsing} // ✅ forwarded
             onTogglePulse={onTogglePulse} // ✅ forwarded
             collapseDurMs={collapseDurMs}
           />
         </S.Nest>
       ))}
-=======
-      {/* recurse; pass effects through */}
-      {kids.map((child, i) => {
-        const childKey =
-          String(
-            child?._id ?? child?.id ?? child?.box_id ?? child?.shortId ?? ''
-          ) || `child-${depth}-${i}`;
-
-        return (
-          <S.Nest key={childKey} $depth={depth + 1}>
-            <BoxSection
-              node={child}
-              depth={depth + 1}
-              openItemId={openItemId}
-              onOpenItem={onOpenItem}
-              modeFor={modeFor}
-              accent={accent}
-              pulsing={pulsing}
-              collapseDurMs={collapseDurMs}
-              effectsById={effectsById}
-            />
-          </S.Nest>
-        );
-      })}
->>>>>>> 3123b55bb2392bac94571c9ff3fca80901946793
     </S.SectionGroup>
   );
 }
 
 export default function BoxTree({
-  tree,
-<<<<<<< HEAD
+  node,
   openItemId,
   onOpenItem,
   accent,
-  pulsingItems = [],
+  pulsing,
   onTogglePulse,
   collapseDurMs,
-=======
-  items,
-  openItemId,
-  onOpenItem,
-  modeFor,
-  accent,
-  pulsing = false,
-  collapseDurMs = 520,
-  effectsById = {},
-  onFlash, // if you bubble it into ItemDetails inside
->>>>>>> 3123b55bb2392bac94571c9ff3fca80901946793
+  effectsById,
+  onFlash,
 }) {
-  if (!tree) return null;
-
+  if (!node) return null;
+  console.log('BoxTree debug:', {
+    TreeRoot: S.TreeRoot,
+    SectionGroup: S.SectionGroup,
+    SectionTitle: S.SectionTitle,
+    ShortId: S.ShortId,
+    List: S.List,
+    Nest: S.Nest,
+    ItemRow,
+  });
   return (
-    <S.Container>
+    <S.TreeRoot>
       <BoxSection
-        node={tree}
+        node={node}
         depth={0}
         openItemId={openItemId}
         onOpenItem={onOpenItem}
-<<<<<<< HEAD
-        accent={accent}
-        pulsingItems={pulsingItems}
-        onTogglePulse={onTogglePulse}
-=======
-        modeFor={modeFor}
         accent={accent}
         pulsing={pulsing}
->>>>>>> 3123b55bb2392bac94571c9ff3fca80901946793
+        onTogglePulse={onTogglePulse}
         collapseDurMs={collapseDurMs}
       />
-    </S.Container>
+    </S.TreeRoot>
   );
 }

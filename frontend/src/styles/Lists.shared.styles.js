@@ -43,6 +43,12 @@ export const Container = styled.div`
   color: ${LCARS.text};
 `;
 
+export const TreeRoot = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
 export const HeaderRow = styled.div`
   display: flex;
   align-items: center;

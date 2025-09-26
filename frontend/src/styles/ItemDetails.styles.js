@@ -192,7 +192,6 @@ export const DataGrid = styled.dl`
   }
 `;
 
-<<<<<<< HEAD
 export const LastUsedButton = styled.button`
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.25);
@@ -212,25 +211,4 @@ export const LastUsedButton = styled.button`
   &:active {
     background: rgba(255, 255, 255, 0.2);
   }
-=======
-/* Tiny helpers */
-export const Skel = styled.div`
-  font-size: 0.78rem;
-  color: #a8a8a8;
-  margin-top: 6px;
-`;
-export const Error = styled.div`
-  font-size: 0.78rem;
-  color: #ff8b8b;
-  margin-top: 6px;
-`;
-
-export const Mono = styled.code`
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  font-size: 0.78rem;
-  user-select: text;
-  color: #d8dde2;
-  word-break: break-all;
->>>>>>> 3123b55bb2392bac94571c9ff3fca80901946793
 `;
