@@ -6,20 +6,26 @@ const hueDial = keyframes`
   to   { filter: hue-rotate(360deg); }
 `;
 
-// 🔥 Flash animation: big glow in/out
-const flash = keyframes`
-  0%, 100% {
-    box-shadow: 0 0 0px rgba(0, 255, 200, 0),
-                0 0 0px rgba(0, 255, 200, 0);
-    filter: brightness(1);
-  }
+export const flashColors = {
+  blue: 'rgba(0, 255, 200, 0.8)',
+  yellow: 'rgba(255, 220, 50, 0.85)',
+  red: 'rgba(255, 80, 80, 0.9)',
+};
 
-  35% {
-   box-shadow: 0 0 1em rgba(0, 255, 200, 0.8),
-              0 0 2em rgba(0, 255, 200, 0.5);
-    filter: brightness(1.6);
-  }
-`;
+// 🔥 Flash animation: big glow in/out
+const flashGlow = (colorName) => {
+  const color = flashColors[colorName] || flashColors.blue;
+  return keyframes`
+    0%, 100% {
+      box-shadow: 0 0 0px ${color};
+      filter: brightness(1);
+    }
+    35% {
+      box-shadow: 0 0 1em ${color}, 0 0 2em ${color};
+      filter: brightness(1.6);
+    }
+  `;
+};
 
 /* Outer wrapper: paints the gradient border */
 export const Wrapper = styled.div`
@@ -49,14 +55,11 @@ export const Wrapper = styled.div`
     `}
 
   /* ⚡ flashing state = extreme glow */
-    ${({ $flashing }) =>
-    $flashing
-      ? css`
-          animation: ${flash} 1s cubic-bezier(0.3, 0, 0.3, 1) forwards;
-        `
-      : css`
-          animation: none;
-        `}
+${({ $flashing, $flashColor }) =>
+    $flashing &&
+    css`
+      animation: ${flashGlow($flashColor)} 1s linear;
+    `}
 
   &::after {
     content: '';

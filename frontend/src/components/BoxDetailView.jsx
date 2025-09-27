@@ -46,32 +46,32 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
     setPulsing((prev) => prev.filter((id) => id !== itemId));
   }, []);
 
-  const triggerFlash = useCallback((itemId, ms = FLASH_MS) => {
-    // 1) clear any active timer for this item
+  const triggerFlash = useCallback((itemId, color = 'blue', ms = FLASH_MS) => {
+    // clear existing timer if present
     if (flashTimersRef.current[itemId]) {
       clearTimeout(flashTimersRef.current[itemId]);
       delete flashTimersRef.current[itemId];
     }
 
-    // 2) force animation reset by dropping the flag
+    // 1. set to null to drop the flash (ensures reset)
     setEffectsById((prev) => ({
       ...prev,
-      [itemId]: { ...prev[itemId], flash: false },
+      [itemId]: { ...prev[itemId], flash: null },
     }));
 
-    // 3) in the next paint(s), raise flag again so CSS restarts the animation
+    // 2. re-enable flash on the next paint
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         setEffectsById((prev) => ({
           ...prev,
-          [itemId]: { ...prev[itemId], flash: true },
+          [itemId]: { ...prev[itemId], flash: color },
         }));
 
-        // 4) schedule the auto-clear to baseline after duration
+        // 3. schedule cleanup
         const t = setTimeout(() => {
           setEffectsById((prev) => ({
             ...prev,
-            [itemId]: { ...prev[itemId], flash: false },
+            [itemId]: { ...prev[itemId], flash: null },
           }));
           delete flashTimersRef.current[itemId];
         }, ms);

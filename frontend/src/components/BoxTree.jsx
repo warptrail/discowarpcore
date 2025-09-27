@@ -37,6 +37,7 @@ function BoxSection({
             const annotated = { ...it, parentBoxLabel, parentBoxId };
             const isOpen = id && openItemId === id;
             const isPulsing = Array.isArray(pulsing) && pulsing.includes(id);
+            const flashColor = effectsById?.[id]?.flash || 'blue'; // default to blue
             const isFlashing = !!effectsById?.[id]?.flash;
 
             return (
@@ -49,6 +50,7 @@ function BoxSection({
                 collapseDurMs={collapseDurMs}
                 pulsing={isPulsing}
                 flashing={isFlashing}
+                flashColor={flashColor} // 👈 now explicit
                 triggerFlash={triggerFlash}
               />
             );

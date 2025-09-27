@@ -1,202 +1,37 @@
-import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useCallback,
-} from 'react';
-import * as S from '../styles/ItemDetails.styles';
-import { fetchItemDetails, patchItem, createAborter } from '../api/itemDetails';
+import React from 'react';
 
-export default function ItemDetails({
-  item: listItem, // lightweight item from the row
-  isOpen = false,
-  isOpening = false,
-  isClosing = false,
-  onTogglePulse,
-}) {
-  const id = listItem?._id;
-  const [fullItem, setFullItem] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState(null);
-  const abortRef = useRef(null);
-
-  // Fetch enriched item when the panel opens (breadcrumb, depth, topBox, etc.)
-  useEffect(() => {
-    if (!isOpen || !id) return;
-
-    // cancel any in-flight
-    abortRef.current?.cancel?.();
-    abortRef.current = createAborter();
-
-    setLoading(true);
-    setErr(null);
-
-    fetchItemDetails(id, { signal: abortRef.current.signal })
-      .then((data) => setFullItem(data))
-      .catch((e) => {
-        if (e.name !== 'AbortError') setErr(e);
-      })
-      .finally(() => setLoading(false));
-
-    return () => abortRef.current?.cancel?.();
-  }, [isOpen, id]);
-
-  // Prefer the enriched document once loaded
-  const item = fullItem || listItem;
-  if (!id || !item) return null;
-
-  const {
-    name,
-    description,
-    notes,
-    quantity,
-    imagePath,
-    valueCents,
-    purchaseDate,
-    lastUsedAt,
-    orphanedAt,
-    location,
-    box, // { _id, box_id, label, description }
-    breadcrumb, // [{ _id, box_id, label }, ...]
-    depth,
-    topBox,
-    shortId,
-    createdAt,
-    updatedAt,
-  } = item;
-
-  const imgSrc = useMemo(() => {
-    // prefer the item image; else the provided example
-    if (typeof imagePath === 'string' && imagePath.trim()) return imagePath;
-    return 'https://imgur.com/sA9VT';
-  }, [imagePath]);
-
-  const boxShortId = box?.box_id ?? null;
-  const boxLabel = box?.label ?? null;
-
-  const breadcrumbTrail = useMemo(() => {
-    if (!Array.isArray(breadcrumb) || breadcrumb.length === 0) return null;
-    return breadcrumb.map((b) => b.box_id || '—').join(' › ');
-  }, [breadcrumb]);
-
-  const dollars =
-    Number.isInteger(valueCents) && valueCents >= 0 ? valueCents / 100 : null;
-
-  const showLocation =
-    Boolean(orphanedAt) &&
-    typeof location === 'string' &&
-    location.trim().length > 0;
-
-  const microBits = useMemo(() => {
-    const bits = [];
-    if (quantity != null) bits.push(`Qty: ${quantity}`);
-    if (boxShortId) bits.push(`Box: ${boxShortId}`);
-    if (shortId) bits.push(`Item: ${shortId}`);
-    return bits;
-  }, [quantity, boxShortId, shortId]);
-
-  // Action: mark last-used now (PATCH with ISO timestamp)
-  async function markLastUsedNow() {
-    console.log('Filler fun');
-  }
-
-  // Link to full item page (adjust route if yours differs)
-  const itemPageHref = `/items/${id}`;
+export default function ItemDetails({ item, triggerFlash }) {
+  if (!item) return null;
 
   return (
-    <S.DetailsCard
-      data-open={isOpen ? 'true' : 'false'}
-      data-opening={isOpening ? 'true' : 'false'}
-      data-closing={isClosing ? 'true' : 'false'}
-      aria-hidden={!isOpen && !isOpening}
-    >
-      <S.Wrapper>
-        {/* Header */}
-        <S.Header>
-          <S.Thumb
-            src={imgSrc}
-            alt={name ? `${name} thumbnail` : 'Item thumbnail'}
-          />
-          <div>
-            <S.Title>{name || 'Untitled item'}</S.Title>
-            {description ? <S.SubTitle>{description}</S.SubTitle> : null}
-            {microBits.length > 0 ? (
-              <S.Micro aria-label="Item metadata">
-                {microBits.join(' • ')}
-              </S.Micro>
-            ) : null}
-          </div>
-        </S.Header>
+    <div>
+      <h3>{item.name}</h3>
+      <p>Quantity: {item.quantity}</p>
 
-        {/* Actions */}
-        <S.Actions>
-          <S.Button onClick={markLastUsedNow} disabled={saving}>
-            {saving ? 'Saving…' : 'Mark last used'}
-          </S.Button>
-          <S.LinkButton href={itemPageHref} aria-label="Open item home page">
-            Open item page
-          </S.LinkButton>
-        </S.Actions>
+      {/* Test buttons */}
+      <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+        <button
+          onClick={() => triggerFlash(item._id, 'yellow')}
+          style={{
+            background: '#ffd700',
+            color: '#000',
+            padding: '0.4rem 0.8rem',
+          }}
+        >
+          Flash Yellow
+        </button>
 
-        {/* Optional notes */}
-        {notes ? <S.Notes>{notes}</S.Notes> : null}
-
-        <S.DataGrid>
-          <dt>Path</dt>
-          <dd>{breadcrumbTrail ?? '—'}</dd>
-          <dt>Depth</dt>
-          <dd>{Number.isFinite(depth) ? depth : '—'}</dd>
-          <dt>Top</dt>
-          <dd>
-            {topBox?.box_id
-              ? `${topBox.box_id} — ${topBox.label || ''}`.trim()
-              : '—'}
-          </dd>
-          <dt>Box</dt>
-          <dd>
-            {boxShortId
-              ? `${boxShortId}${boxLabel ? ` — ${boxLabel}` : ''}`
-              : '—'}
-          </dd>
-          <dt>Value</dt>
-          <dd>{dollars != null ? fmtCurrency(dollars) : '—'}</dd>
-          <dt>Purchased</dt>
-          <dd>{purchaseDate ? fmtDate(purchaseDate) : '—'}</dd>
-          <dt>Last used</dt>
-          <dd>{lastUsedAt ? fmtDate(lastUsedAt) : '—'}</dd>
-          <dt>Orphaned</dt>
-          <dd>{orphanedAt ? fmtDate(orphanedAt) : '—'}</dd>
-          <dt>Location</dt>
-          <dd>{showLocation ? location : '—'}</dd>
-          <dt>Created</dt>
-          <dd>{createdAt ? fmtDate(createdAt) : '—'}</dd>
-          <dt>Updated</dt>
-          <dd>{updatedAt ? fmtDate(updatedAt) : '—'}</dd>
-        </S.DataGrid>
-      </S.Wrapper>
-    </S.DetailsCard>
+        <button
+          onClick={() => triggerFlash(item._id, 'red')}
+          style={{
+            background: '#dc3545',
+            color: '#fff',
+            padding: '0.4rem 0.8rem',
+          }}
+        >
+          Flash Red
+        </button>
+      </div>
+    </div>
   );
-}
-
-function fmtDate(d) {
-  try {
-    const dateObj = d instanceof Date ? d : new Date(d);
-    if (Number.isNaN(dateObj.getTime())) return String(d);
-    return dateObj.toLocaleString();
-  } catch {
-    return String(d);
-  }
-}
-
-function fmtCurrency(n) {
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency: 'USD',
-    }).format(n);
-  } catch {
-    return `$${Number(n).toFixed(2)}`;
-  }
 }

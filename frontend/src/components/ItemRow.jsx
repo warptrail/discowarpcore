@@ -9,6 +9,7 @@ export default function ItemRow({
   accent = 'blue',
   pulsing = false, // now boolean for this row
   flashing = false, // new prop
+  flashColor = 'blue',
   collapseDurMs = 300,
   triggerFlash,
   startPulse,
@@ -41,15 +42,13 @@ export default function ItemRow({
     onOpen?.(isOpen ? null : itemId);
   };
 
-  const pulsingArray = Array.isArray(pulsing) ? pulsing : [];
-  const isPulsing = pulsingArray.includes(itemId);
-
   return (
     <S.Wrapper
       $accent={accent}
       $open={isOpen}
       $pulsing={pulsing}
       $flashing={flashing}
+      $flashColor={flashColor}
       $collapseDurMs={collapseDurMs}
       $height={targetHeight}
     >
@@ -86,7 +85,7 @@ export default function ItemRow({
           <S.DetailsCard>
             <ItemDetails
               item={item}
-              onFlash={() => triggerFlash?.(item._id)}
+              triggerFlash={triggerFlash} // 👈 forward again
               onStartPulse={() => startPulse?.(item._id)}
               onStopPulse={() => stopPulse?.(item._id)}
             />
