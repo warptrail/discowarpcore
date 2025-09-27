@@ -10,6 +10,8 @@ import BoxTree from './BoxTree';
 import ItemsFlatList from './ItemsFlatList';
 import BoxEditPanel from './BoxEditPanel';
 
+const FLASH_MS = 1000; // keep in sync with CSS animation duration
+
 export default function BoxDetailView({ parentPath, onNavigateBox }) {
   const { shortId } = useParams();
 
@@ -34,6 +36,7 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
   const [collapseDurMs] = useState(300);
 
   const flashTimeoutRef = useRef({}); // store timeouts per item
+  const flashTimersRef = useRef({});
 
   const startPulse = useCallback((itemId) => {
     setPulsing((prev) => [...new Set([...prev, itemId])]);
@@ -43,26 +46,39 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
     setPulsing((prev) => prev.filter((id) => id !== itemId));
   }, []);
 
-  const triggerFlash = useCallback((itemId) => {
-    // Clear any previous timeout for this item
-    if (flashTimeoutRef.current[itemId]) {
-      clearTimeout(flashTimeoutRef.current[itemId]);
+  const triggerFlash = useCallback((itemId, ms = FLASH_MS) => {
+    // 1) clear any active timer for this item
+    if (flashTimersRef.current[itemId]) {
+      clearTimeout(flashTimersRef.current[itemId]);
+      delete flashTimersRef.current[itemId];
     }
 
-    // Start flash
+    // 2) force animation reset by dropping the flag
     setEffectsById((prev) => ({
       ...prev,
-      [itemId]: { ...prev[itemId], flash: true },
+      [itemId]: { ...prev[itemId], flash: false },
     }));
 
-    // Auto-clear after 1s (or match your CSS animation length)
-    flashTimeoutRef.current[itemId] = setTimeout(() => {
-      setEffectsById((prev) => ({
-        ...prev,
-        [itemId]: { ...prev[itemId], flash: false },
-      }));
-      delete flashTimeoutRef.current[itemId];
-    }, 1000); // match animation-duration
+    // 3) in the next paint(s), raise flag again so CSS restarts the animation
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setEffectsById((prev) => ({
+          ...prev,
+          [itemId]: { ...prev[itemId], flash: true },
+        }));
+
+        // 4) schedule the auto-clear to baseline after duration
+        const t = setTimeout(() => {
+          setEffectsById((prev) => ({
+            ...prev,
+            [itemId]: { ...prev[itemId], flash: false },
+          }));
+          delete flashTimersRef.current[itemId];
+        }, ms);
+
+        flashTimersRef.current[itemId] = t;
+      });
+    });
   }, []);
 
   // Cleanup on unmount

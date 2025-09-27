@@ -49,11 +49,14 @@ export const Wrapper = styled.div`
     `}
 
   /* ⚡ flashing state = extreme glow */
-  ${({ $flashing }) =>
-    $flashing &&
-    css`
-      animation: ${flash} 1s cubic-bezier(0.3, 0, 0.3, 1) forwards;
-    `}
+    ${({ $flashing }) =>
+    $flashing
+      ? css`
+          animation: ${flash} 1s cubic-bezier(0.3, 0, 0.3, 1) forwards;
+        `
+      : css`
+          animation: none;
+        `}
 
   &::after {
     content: '';
