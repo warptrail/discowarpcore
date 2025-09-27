@@ -143,11 +143,6 @@ export default function ItemDetails({
         {/* Optional notes */}
         {notes ? <S.Notes>{notes}</S.Notes> : null}
 
-        {/* 🔘 Button to trigger parent-controlled animation */}
-        <S.LastUsedButton onClick={onTogglePulse}>
-          Trigger Glow
-        </S.LastUsedButton>
-
         <S.DataGrid>
           <dt>Path</dt>
           <dd>{breadcrumbTrail ?? '—'}</dd>

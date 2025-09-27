@@ -11,8 +11,9 @@ function BoxSection({
   onOpenItem,
   accent,
   pulsing,
-  onTogglePulse,
   collapseDurMs,
+  effectsById,
+  triggerFlash,
 }) {
   if (!node) return null;
 
@@ -34,17 +35,21 @@ function BoxSection({
             const id = String(it?._id ?? it?.id ?? '');
             const key = id || `noid-${depth}-${idx}`;
             const annotated = { ...it, parentBoxLabel, parentBoxId };
+            const isOpen = id && openItemId === id;
+            const isPulsing = Array.isArray(pulsing) && pulsing.includes(id);
+            const isFlashing = !!effectsById?.[id]?.flash;
 
             return (
               <ItemRow
                 key={key}
                 item={annotated}
-                isOpen={id ? openItemId === id : false}
-                onOpen={id ? () => onOpenItem?.(id) : undefined}
+                isOpen={isOpen}
+                onOpen={() => onOpenItem?.(id)}
                 accent={accent}
                 collapseDurMs={collapseDurMs}
-                pulsing={!!id && pulsing.includes(id)} // ✅ now uses the item id
-                onTogglePulse={id ? () => onTogglePulse?.(id) : undefined}
+                pulsing={isPulsing}
+                flashing={isFlashing}
+                triggerFlash={triggerFlash}
               />
             );
           })}
@@ -63,14 +68,16 @@ function BoxSection({
           $depth={depth + 1}
         >
           <BoxSection
+            key={child._id}
             node={child}
             depth={depth + 1}
             openItemId={openItemId}
             onOpenItem={onOpenItem}
             accent={accent}
             pulsing={pulsing} // ✅ forwarded
-            onTogglePulse={onTogglePulse} // ✅ forwarded
             collapseDurMs={collapseDurMs}
+            effectsById={effectsById} // 👈 forward it down
+            triggerFlash={triggerFlash} // 👈 forward it down
           />
         </S.Nest>
       ))}
@@ -84,10 +91,9 @@ export default function BoxTree({
   onOpenItem,
   accent,
   pulsing,
-  onTogglePulse,
-  collapseDurMs,
   effectsById,
-  onFlash,
+  collapseDurMs,
+  triggerFlash,
 }) {
   if (!node) return null;
   console.log('BoxTree debug:', {
@@ -108,8 +114,9 @@ export default function BoxTree({
         onOpenItem={onOpenItem}
         accent={accent}
         pulsing={pulsing}
-        onTogglePulse={onTogglePulse}
+        effectsById={effectsById}
         collapseDurMs={collapseDurMs}
+        triggerFlash={triggerFlash} // 👈 send from BoxDetailView
       />
     </S.TreeRoot>
   );

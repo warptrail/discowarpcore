@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { fetchBoxTreeByShortId } from '../api/boxes';
 import flattenBoxes from '../util/flattenBoxes';
@@ -33,11 +33,68 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
   const [accent, setAccent] = useState('blue');
   const [collapseDurMs] = useState(300);
 
+  const flashTimeoutRef = useRef({}); // store timeouts per item
+
+  const startPulse = useCallback((itemId) => {
+    setPulsing((prev) => [...new Set([...prev, itemId])]);
+  }, []);
+
+  const stopPulse = useCallback((itemId) => {
+    setPulsing((prev) => prev.filter((id) => id !== itemId));
+  }, []);
+
+  const triggerFlash = useCallback((itemId) => {
+    // Clear any previous timeout for this item
+    if (flashTimeoutRef.current[itemId]) {
+      clearTimeout(flashTimeoutRef.current[itemId]);
+    }
+
+    // Start flash
+    setEffectsById((prev) => ({
+      ...prev,
+      [itemId]: { ...prev[itemId], flash: true },
+    }));
+
+    // Auto-clear after 1s (or match your CSS animation length)
+    flashTimeoutRef.current[itemId] = setTimeout(() => {
+      setEffectsById((prev) => ({
+        ...prev,
+        [itemId]: { ...prev[itemId], flash: false },
+      }));
+      delete flashTimeoutRef.current[itemId];
+    }, 1000); // match animation-duration
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(flashTimeoutRef.current).forEach(clearTimeout);
+      flashTimeoutRef.current = {};
+    };
+  }, []);
+
   // --- handlers ---
   const handleTabChange = useCallback((mode) => setActiveTab(mode), []);
-  const handleOpen = useCallback((id) => {
-    setOpenItemId((prev) => (prev === id ? null : id));
-  }, []);
+
+  const handleOpen = useCallback(
+    (itemId) => {
+      if (openItemId === itemId) {
+        triggerFlash(itemId);
+        stopPulse(itemId);
+        setOpenItemId(null);
+      } else {
+        if (openItemId) {
+          triggerFlash(openItemId);
+          stopPulse(openItemId);
+        }
+        triggerFlash(itemId);
+        startPulse(itemId);
+        setOpenItemId(itemId);
+      }
+    },
+    [openItemId, triggerFlash, startPulse, stopPulse]
+  );
+
   const handleNavigateBox = useCallback(
     (boxId) => onNavigateBox?.(boxId),
     [onNavigateBox]
@@ -113,15 +170,16 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
         {/* Content */}
         {!loading && !error && tree && activeTab === 'tree' && (
           <BoxTree
-            node={tree} // 👈 send the raw tree node
+            node={tree}
             openItemId={openItemId}
             onOpenItem={handleOpen}
             accent={accent}
-            pulsing={pulsing}
-            onTogglePulse={() => {}} // hook if needed
+            pulsing={pulsing} // array of pulsing IDs
             collapseDurMs={collapseDurMs}
             effectsById={effectsById}
-            onFlash={handleFlash}
+            triggerFlash={triggerFlash}
+            startPulse={startPulse}
+            stopPulse={stopPulse}
           />
         )}
 

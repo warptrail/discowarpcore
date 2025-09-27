@@ -6,6 +6,21 @@ const hueDial = keyframes`
   to   { filter: hue-rotate(360deg); }
 `;
 
+// 🔥 Flash animation: big glow in/out
+const flash = keyframes`
+  0%, 100% {
+    box-shadow: 0 0 0px rgba(0, 255, 200, 0),
+                0 0 0px rgba(0, 255, 200, 0);
+    filter: brightness(1);
+  }
+
+  35% {
+   box-shadow: 0 0 1em rgba(0, 255, 200, 0.8),
+              0 0 2em rgba(0, 255, 200, 0.5);
+    filter: brightness(1.6);
+  }
+`;
+
 /* Outer wrapper: paints the gradient border */
 export const Wrapper = styled.div`
   --r: 10px; /* corner radius */
@@ -16,6 +31,9 @@ export const Wrapper = styled.div`
   border-radius: var(--r);
   overflow: hidden;
   isolation: isolate;
+  /* Avoid animation fighting with transitions */
+  transition: none;
+  will-change: box-shadow;
 
   /* 🌈 gradient frame */
   background: linear-gradient(135deg, #355070, #6d597a);
@@ -28,6 +46,13 @@ export const Wrapper = styled.div`
       background: linear-gradient(135deg, #1cd3ff, #20ff9d);
       opacity: 1;
       animation: ${hueDial} var(--ring-speed) linear infinite;
+    `}
+
+  /* ⚡ flashing state = extreme glow */
+  ${({ $flashing }) =>
+    $flashing &&
+    css`
+      animation: ${flash} 1s cubic-bezier(0.3, 0, 0.3, 1) forwards;
     `}
 
   &::after {
@@ -68,10 +93,11 @@ export const Collapse = styled.div`
   z-index: 1;
   overflow: hidden;
 
-  margin: 0 var(--gap) var(--gap); /* keep inset so border shows */
+  margin: 0 var(--gap) var(--gap);
   background: ${ROW_BG};
   border-radius: 0 0 calc(var(--r) - var(--gap)) calc(var(--r) - var(--gap));
 
+  height: ${({ $height }) => $height}px; /* 👈 now styled prop */
   transition: height ${({ $collapseDurMs }) => $collapseDurMs}ms
       cubic-bezier(0.2, 0.8, 0.2, 1),
     opacity ${({ $collapseDurMs }) => $collapseDurMs}ms ease,

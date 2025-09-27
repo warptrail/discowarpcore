@@ -7,10 +7,12 @@ export default function ItemRow({
   isOpen = false,
   onOpen,
   accent = 'blue',
-  pulsing = [], // array of pulsing IDs
+  pulsing = false, // now boolean for this row
+  flashing = false, // new prop
   collapseDurMs = 300,
-  effects,
-  onTogglePulse,
+  triggerFlash,
+  startPulse,
+  stopPulse,
 }) {
   const {
     _id,
@@ -46,8 +48,10 @@ export default function ItemRow({
     <S.Wrapper
       $accent={accent}
       $open={isOpen}
-      $pulsing={isPulsing}
+      $pulsing={pulsing}
+      $flashing={flashing}
       $collapseDurMs={collapseDurMs}
+      $height={targetHeight}
     >
       <S.Row onClick={handleRowClick} $open={isOpen}>
         <S.Left>
@@ -76,11 +80,16 @@ export default function ItemRow({
       <S.Collapse
         $open={isOpen}
         $collapseDurMs={collapseDurMs}
-        style={{ height: `${targetHeight}px` }}
+        $height={targetHeight} // 👈 pass as prop instead of inline style
       >
         <div ref={contentRef}>
           <S.DetailsCard>
-            <ItemDetails item={item} onTogglePulse={onTogglePulse} />
+            <ItemDetails
+              item={item}
+              onFlash={() => triggerFlash?.(item._id)}
+              onStartPulse={() => startPulse?.(item._id)}
+              onStopPulse={() => stopPulse?.(item._id)}
+            />
           </S.DetailsCard>
         </div>
       </S.Collapse>
