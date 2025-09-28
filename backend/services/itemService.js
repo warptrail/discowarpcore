@@ -1,72 +1,16 @@
-// const mongoose = require('mongoose');
+// services/itemService.js
 const Item = require('../models/Item');
 const Box = require('../models/Box');
 
-// ---- helpers ---------------------------------------------------------------
-
-function buildBoxMaps(boxes) {
-  const boxById = new Map();
-  const parentOf = new Map(); // childId -> parentId
-
-  for (const b of boxes) {
-    const id = String(b._id);
-    boxById.set(id, b);
-
-    // accept multiple possible parent field names (robust to schema variants)
-    const p =
-      b.parent ??
-      b.parentId ??
-      b.parent_id ??
-      b.parentBox ??
-      b.parentBoxId ??
-      null;
-
-    if (p) parentOf.set(id, String(p));
-
-    // also infer parent from children[] if present
-    if (Array.isArray(b.children)) {
-      for (const c of b.children) parentOf.set(String(c), id);
-    }
-  }
-
-  return { boxById, parentOf };
-}
-
-function makeBreadcrumb(leafId, maps) {
-  if (!leafId) {
-    return { breadcrumb: [], depth: 0, rootBox: null, leafBox: null };
-  }
-  const { boxById, parentOf } = maps;
-  const chain = [];
-  const seen = new Set();
-  let cur = String(leafId);
-  let hops = 0;
-
-  while (cur && !seen.has(cur) && hops < 100) {
-    seen.add(cur);
-    const b = boxById.get(cur);
-    if (!b) break;
-    chain.unshift({ _id: b._id, box_id: b.box_id, label: b.label });
-    cur = parentOf.get(cur);
-    hops += 1;
-  }
-
-  return {
-    breadcrumb: chain,
-    depth: chain.length,
-    rootBox: chain[0] || null,
-    leafBox: chain[chain.length - 1] || null,
-  };
-}
-
+/**
+ * Get all items with breadcrumb + box info.
+ * (This one still builds maps — fine for bulk fetch.)
+ */
 async function getAllItems() {
   const items = await Item.find().lean();
 
-  // pull all boxes once; include fields we might need
   const boxes = await Box.find()
-    .select(
-      '_id box_id label description items parent parentId parent_id parentBox parentBoxId children'
-    )
+    .select('_id box_id label description items parentBox')
     .lean();
 
   // itemId -> leaf box id
@@ -77,6 +21,8 @@ async function getAllItems() {
     }
   }
 
+  // build maps using helpers
+  const { buildBoxMaps, makeBreadcrumb } = require('../utils/boxHelpers');
   const maps = buildBoxMaps(boxes);
 
   return items.map((i) => {
@@ -85,69 +31,31 @@ async function getAllItems() {
       leafId,
       maps
     );
-    // keep a small "box" object like you had, based on the leaf
+
     const box =
-      leafBox && maps.boxById.get(String(leafBox._id))
+      leafBox && maps.byId.get(String(leafBox._id))
         ? {
-            _id: maps.boxById.get(String(leafBox._id))._id,
-            box_id: maps.boxById.get(String(leafBox._id)).box_id,
-            label: maps.boxById.get(String(leafBox._id)).label,
+            _id: maps.byId.get(String(leafBox._id))._id,
+            box_id: maps.byId.get(String(leafBox._id)).box_id,
+            label: maps.byId.get(String(leafBox._id)).label,
           }
         : null;
 
-    return {
-      ...i,
-      box,
-      breadcrumb,
-      depth,
-      topBox: rootBox,
-    };
+    return { ...i, box, breadcrumb, depth, topBox: rootBox };
   });
 }
 
+/**
+ * Get a single item by id with breadcrumb + box info.
+ * Delegates to Item model static.
+ */
 async function getItemById(id, { select } = {}) {
-  // allow controller to pass select
-  const q = Item.findById(id);
-  if (select) q.select(select);
-  const item = await q.lean();
-  if (!item) return null;
-
-  // find the leaf box (the one that directly contains the item)
-  const leaf = await Box.findOne({ items: item._id })
-    .select(
-      '_id box_id label description parent parentId parent_id parentBox parentBoxId children'
-    )
-    .lean();
-
-  if (!leaf) {
-    // orphaned: still return empty breadcrumb + depth 0
-    return { ...item, box: null, breadcrumb: [], depth: 0, topBox: null };
-  }
-
-  // fetch all boxes once to compute ancestors robustly
-  const allBoxes = await Box.find()
-    .select(
-      '_id box_id label description parent parentId parent_id parentBox parentBoxId children'
-    )
-    .lean();
-
-  const maps = buildBoxMaps(allBoxes);
-  const { breadcrumb, depth, rootBox } = makeBreadcrumb(leaf._id, maps);
-
-  return {
-    ...item,
-    box: {
-      _id: leaf._id,
-      box_id: leaf.box_id,
-      label: leaf.label,
-      description: leaf.description,
-    },
-    breadcrumb,
-    depth,
-    topBox: rootBox,
-  };
+  return await Item.findItemById(id, { select });
 }
 
+/**
+ * Orphaned items
+ */
 async function getOrphanedItems(sort, limit) {
   const order =
     sort === 'alpha'
@@ -155,15 +63,19 @@ async function getOrphanedItems(sort, limit) {
       : sort === 'oldest'
       ? { orphanedAt: 1 }
       : { orphanedAt: -1 };
+
   return Item.find({ orphanedAt: { $ne: null } })
     .sort(order)
     .limit(limit)
     .lean();
 }
 
+/**
+ * CRUD operations
+ */
 async function createItem(data) {
   assertValidCentsPayload(data);
-  return Item.create(data); // schema validators will also run
+  return Item.create(data);
 }
 
 async function updateItem(id, data) {
@@ -175,7 +87,9 @@ async function deleteItem(id) {
   return Item.findByIdAndDelete(id);
 }
 
-// ! Note: Dev Function - Not for production env
+/**
+ * Maintenance helpers
+ */
 async function backfillOrphanedTimestamps() {
   const items = await Item.find({ orphanedAt: null }).lean();
   const boxes = await Box.find().select('items').lean();
@@ -186,30 +100,25 @@ async function backfillOrphanedTimestamps() {
   });
 
   let updatedCount = 0;
-
   for (const item of items) {
     if (!boxedItemIds.has(item._id.toString())) {
       await Item.findByIdAndUpdate(item._id, { orphanedAt: new Date() });
       updatedCount++;
     }
   }
-
   return updatedCount;
 }
 
 async function orphanAllItemsInBox(boxId) {
   return Item.updateMany(
     { boxId },
-    {
-      $set: {
-        boxId: null,
-        orphanedAt: new Date(),
-      },
-    }
+    { $set: { boxId: null, orphanedAt: new Date() } }
   );
 }
 
-// Hard rule: backend only accepts valueCents as integer >= 0
+/**
+ * Validation helper for valueCents
+ */
 function assertValidCentsPayload(data = {}) {
   if ('value' in data) {
     const err = new Error(
@@ -220,7 +129,6 @@ function assertValidCentsPayload(data = {}) {
   }
   if ('valueCents' in data) {
     const v = data.valueCents;
-    // Reject strings with dots, decimals, negatives, NaN, etc.
     if (typeof v === 'string' && v.includes('.')) {
       const err = new Error(
         'valueCents must be a whole integer (no decimals).'
@@ -234,7 +142,6 @@ function assertValidCentsPayload(data = {}) {
       err.status = 400;
       throw err;
     }
-    // Normalize to Number in case it was a numeric string like "12999"
     data.valueCents = n;
   }
   return data;

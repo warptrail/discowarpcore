@@ -1,0 +1,39 @@
+{
+  "descriptions": [
+    "Essential kit for off-world missions.",
+    "Backup supplies stored for emergencies.",
+    "Standard issue field equipment.",
+    "Collected during deep-space salvage operations."
+  ],
+  "locations": [
+    "Storage Bay Alpha",
+    "Engineering Deck",
+    "Medical Locker",
+    "Cargo Hold 3",
+    "Workshop Bench",
+    "Bridge Compartment",
+    "Crew Quarters"
+  ],
+  "notes": [
+    "Requires calibration every 6 months.",
+    "Keep in dry storage.",
+    "Assigned to cadet training programs.",
+    "Check before deployment."
+  ],
+  "tags": ["emergency", "training", "field", "medical", "engineering", "spare"],
+  "imagePaths": [
+    "/images/items/water-kit.jpg",
+    "/images/items/med-kit.png",
+    "/images/items/toolbox.png",
+    "/images/items/rations.jpg"
+  ],
+  "sources": [
+    "Amazon",
+    "eBay",
+    "Target",
+    "Gift",
+    "Found",
+    "REI",
+    "Local Market"
+  ]
+}

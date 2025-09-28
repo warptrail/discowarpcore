@@ -28,7 +28,7 @@ export function makeItemDetailsURL(id, opts = {}) {
       ).trim()
     : '';
   if (sel) qs.set('select', sel);
-  return `${API_BASE}/items/${encodeURIComponent(id)}${
+  return `${API_BASE}/api/items/${encodeURIComponent(id)}${
     qs.toString() ? `?${qs}` : ''
   }`;
 }
@@ -45,7 +45,7 @@ export async function fetchItemDetails(id, opts = {}) {
 /** PATCH generic item fields. Used for "Mark last used", etc. */
 export async function patchItem(id, body, opts = {}) {
   if (!id) throw new Error('patchItem: id is required');
-  const url = `${API_BASE}/items/${encodeURIComponent(id)}`;
+  const url = `${API_BASE}/api/items/${encodeURIComponent(id)}`;
   const res = await fetch(url, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },

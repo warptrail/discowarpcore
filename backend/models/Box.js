@@ -1,3 +1,4 @@
+// models/Box.js
 const mongoose = require('mongoose');
 
 const boxSchema = new mongoose.Schema({
@@ -20,6 +21,11 @@ const boxSchema = new mongoose.Schema({
 // 🔑 Helper for generating new ObjectIds without pulling mongoose into services
 boxSchema.statics.newId = function () {
   return new mongoose.Types.ObjectId();
+};
+
+// 🔎 New helper: fetch slim set for breadcrumb maps
+boxSchema.statics.findAllBoxesForMaps = async function () {
+  return this.find().select('_id box_id label description parentBox').lean();
 };
 
 // Good to have both indexes:

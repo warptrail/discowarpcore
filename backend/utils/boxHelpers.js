@@ -46,4 +46,50 @@ function flattenBoxes(tree) {
   return out;
 }
 
-module.exports = { computeStats, flattenBoxes };
+/**
+ * Build quick lookup maps for boxes
+ * @param {Array} boxes - array of lean Box docs
+ */
+function buildBoxMaps(boxes) {
+  const byId = new Map();
+  const parentOf = new Map();
+
+  for (const b of boxes) {
+    byId.set(String(b._id), b);
+    if (b.parentBox) {
+      parentOf.set(String(b._id), String(b.parentBox));
+    }
+  }
+
+  return { byId, parentOf };
+}
+
+/**
+ * Walk up from a leaf box to build breadcrumb and depth
+ * @param {ObjectId|String} leafId - box _id of the leaf
+ * @param {Object} maps - { byId, parentOf }
+ */
+function makeBreadcrumb(leafId, maps) {
+  const breadcrumb = [];
+  let currentId = String(leafId);
+  let depth = 0;
+
+  while (currentId) {
+    const box = maps.byId.get(currentId);
+    if (!box) break;
+
+    breadcrumb.unshift({
+      _id: box._id,
+      box_id: box.box_id,
+      label: box.label,
+    });
+
+    depth++;
+    currentId = maps.parentOf.get(currentId);
+  }
+
+  const rootBox = breadcrumb.length > 0 ? breadcrumb[0] : null;
+  return { breadcrumb, depth, rootBox };
+}
+
+module.exports = { computeStats, flattenBoxes, buildBoxMaps, makeBreadcrumb };
