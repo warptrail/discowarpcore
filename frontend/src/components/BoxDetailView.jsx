@@ -119,6 +119,39 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
     setEffectsById((prev) => ({ ...prev, [id]: effect }));
   }, []);
 
+  // In BoxDetailView.jsx
+  const handleItemSaved = (updated) => {
+    if (!updated?._id) return;
+
+    // --- Update the flat itemsById map ---
+    setItemsById((prev) => {
+      const next = new Map(prev);
+      next.set(updated._id, updated);
+      return next;
+    });
+
+    // --- Update the nested tree recursively ---
+    setTree((prev) => {
+      if (!prev) return prev;
+
+      const replaceItemInNode = (node) => {
+        if (!node) return node;
+
+        // Replace in this node's items
+        const items = (node.items || []).map((it) =>
+          String(it._id) === String(updated._id) ? updated : it
+        );
+
+        // Recurse into children
+        const childBoxes = (node.childBoxes || []).map(replaceItemInNode);
+
+        return { ...node, items, childBoxes };
+      };
+
+      return replaceItemInNode(prev);
+    });
+  };
+
   useEffect(() => {
     if (!shortId) return;
     let ignore = false;
@@ -196,6 +229,7 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
             triggerFlash={triggerFlash}
             startPulse={startPulse}
             stopPulse={stopPulse}
+            onItemSaved={handleItemSaved} // root handler
           />
         )}
 

@@ -14,6 +14,7 @@ function BoxSection({
   collapseDurMs,
   effectsById,
   triggerFlash,
+  onItemSaved,
 }) {
   if (!node) return null;
 
@@ -50,8 +51,12 @@ function BoxSection({
                 collapseDurMs={collapseDurMs}
                 pulsing={isPulsing}
                 flashing={isFlashing}
-                flashColor={flashColor} // 👈 now explicit
+                flashColor={flashColor}
                 triggerFlash={triggerFlash}
+                onSaved={(updated) => {
+                  // call back up to BoxDetailView
+                  onItemSaved?.(updated);
+                }}
               />
             );
           })}
@@ -96,6 +101,7 @@ export default function BoxTree({
   effectsById,
   collapseDurMs,
   triggerFlash,
+  onItemSaved,
 }) {
   if (!node) return null;
   console.log('BoxTree debug:', {
@@ -118,7 +124,8 @@ export default function BoxTree({
         pulsing={pulsing}
         effectsById={effectsById}
         collapseDurMs={collapseDurMs}
-        triggerFlash={triggerFlash} // 👈 send from BoxDetailView
+        triggerFlash={triggerFlash}
+        onItemSaved={onItemSaved} // forward up directly
       />
     </S.TreeRoot>
   );

@@ -12,7 +12,7 @@ import {
 } from '../styles/ItemDetails.styles';
 import { fetchItemDetails, createAborter } from '../api/itemDetails';
 
-export default function ItemDetails({ item, triggerFlash }) {
+export default function ItemDetails({ itemId, triggerFlash }) {
   const [itemData, setItemData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -21,13 +21,11 @@ export default function ItemDetails({ item, triggerFlash }) {
   const fmt = (d) => (d ? dayjs(d).format('YYYY-MM-DD') : '—');
 
   useEffect(() => {
-    if (!item?._id) return;
-
     const { signal, cancel } = createAborter();
     setLoading(true);
     setError(null);
 
-    fetchItemDetails(item._id, { signal })
+    fetchItemDetails(itemId, { signal })
       .then((data) => setItemData(data))
       .catch((err) => {
         if (err?.name !== 'AbortError') {
@@ -37,10 +35,18 @@ export default function ItemDetails({ item, triggerFlash }) {
       .finally(() => setLoading(false));
 
     return () => cancel();
-  }, [item?._id]);
+  }, [itemId]);
 
-  if (loading) return <Status>Loading…</Status>;
-  if (error) return <Status>Error: {error}</Status>;
+  if (loading)
+    return (
+      <S.Skeleton>
+        <div />
+        <div />
+        <div />
+      </S.Skeleton>
+    );
+
+  if (error) return <S.ErrorMsg>{error}</S.ErrorMsg>;
   if (!itemData) return null;
 
   const {
@@ -172,10 +178,10 @@ export default function ItemDetails({ item, triggerFlash }) {
       )}
 
       <TestButtons>
-        <button onClick={() => triggerFlash(item._id, 'yellow')}>
+        <button onClick={() => triggerFlash(itemId, 'yellow')}>
           Yellow Flash
         </button>
-        <button onClick={() => triggerFlash(item._id, 'red')}>Red Flash</button>
+        <button onClick={() => triggerFlash(itemId, 'red')}>Red Flash</button>
       </TestButtons>
     </Container>
   );

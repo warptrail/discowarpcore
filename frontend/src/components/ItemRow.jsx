@@ -1,16 +1,18 @@
-import React, { useState, useRef, useLayoutEffect } from 'react';
+import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
 import * as S from '../styles/ItemRow.styles';
 import ItemDetails from './ItemDetails';
+import EditItemDetailsForm from './EditItemDetailsForm';
 
 export default function ItemRow({
   item,
   isOpen = false,
   onOpen,
+  onSaved,
   accent = 'blue',
-  pulsing = false, // now boolean for this row
-  flashing = false, // new prop
-  flashColor = 'blue',
+  pulsing = [],
   collapseDurMs = 300,
+  flashing = false,
+  flashColor = 'blue',
   triggerFlash,
   startPulse,
   stopPulse,
@@ -20,26 +22,53 @@ export default function ItemRow({
     name,
     quantity,
     tags = [],
-    notes,
     parentBoxLabel,
     parentBoxId,
+    notes,
   } = item;
-  const itemId = String(_id);
 
-  const contentRef = useRef(null);
+  const [editMode, setEditMode] = useState(false);
   const [targetHeight, setTargetHeight] = useState(0);
+  const contentRef = useRef(null);
 
-  // measure details height when open
+  // ---- measure helpers
+  const measureNow = () => {
+    const el = contentRef.current;
+    if (!el) return;
+    setTargetHeight(el.scrollHeight);
+  };
+
+  // Re-measure on open/edit/item switch (double rAF ensures subtree has swapped)
   useLayoutEffect(() => {
-    if (isOpen && contentRef.current) {
-      setTargetHeight(contentRef.current.scrollHeight);
-    } else {
+    if (!isOpen) {
       setTargetHeight(0);
+      return;
     }
-  }, [isOpen, item]);
+    const id1 = requestAnimationFrame(() => {
+      const id2 = requestAnimationFrame(measureNow);
+      return () => cancelAnimationFrame(id2);
+    });
+    return () => cancelAnimationFrame(id1);
+  }, [isOpen, editMode, _id]); // depend on id (or item) to catch item changes
 
-  const handleRowClick = () => {
-    onOpen?.(isOpen ? null : itemId);
+  // Track content growth (e.g., ItemDetails finishes loading)
+  useEffect(() => {
+    if (!isOpen || !contentRef.current || typeof ResizeObserver === 'undefined')
+      return;
+
+    const ro = new ResizeObserver(() => {
+      // Only adjust while open
+      if (contentRef.current) setTargetHeight(contentRef.current.scrollHeight);
+    });
+
+    ro.observe(contentRef.current);
+    return () => ro.disconnect();
+  }, [isOpen]);
+
+  const handleRowClick = () => onOpen?.(isOpen ? null : _id);
+  const handleToggleEdit = (e) => {
+    e.stopPropagation();
+    setEditMode((prev) => !prev);
   };
 
   return (
@@ -73,22 +102,39 @@ export default function ItemRow({
           {notes && <S.Notes>{notes}</S.Notes>}
         </S.Left>
 
-        <S.Right>{quantity != null && <S.Qty>x{quantity}</S.Qty>}</S.Right>
+        <S.Right>
+          {quantity != null && <S.Qty>x{quantity}</S.Qty>}
+          {isOpen && (
+            <S.EditButton onClick={handleToggleEdit}>
+              {editMode ? 'Close Edit' : 'Edit'}
+            </S.EditButton>
+          )}
+        </S.Right>
       </S.Row>
 
       <S.Collapse
         $open={isOpen}
         $collapseDurMs={collapseDurMs}
-        $height={targetHeight} // 👈 pass as prop instead of inline style
+        $height={targetHeight}
       >
         <div ref={contentRef}>
           <S.DetailsCard>
-            <ItemDetails
-              item={item}
-              triggerFlash={triggerFlash} // 👈 forward again
-              onStartPulse={() => startPulse?.(item._id)}
-              onStopPulse={() => stopPulse?.(item._id)}
-            />
+            {editMode ? (
+              <EditItemDetailsForm
+                item={item}
+                triggerFlash={triggerFlash}
+                onSaved={(updated) => {
+                  onSaved?.(updated);
+                }}
+              />
+            ) : (
+              <ItemDetails
+                itemId={_id}
+                triggerFlash={triggerFlash}
+                onStartPulse={() => startPulse?.(_id)}
+                onStopPulse={() => stopPulse?.(_id)}
+              />
+            )}
           </S.DetailsCard>
         </div>
       </S.Collapse>

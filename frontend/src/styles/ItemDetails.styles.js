@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 
 export const Container = styled.div`
   padding: 1rem;
@@ -68,4 +68,34 @@ export const TestButtons = styled.div`
     background: #dc3545;
     color: #fff;
   }
+`;
+const shimmer = keyframes`
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+`;
+
+export const Skeleton = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem;
+
+  div {
+    height: 0.9rem;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 37%, #2a2a2a 63%);
+    background-size: 400% 100%;
+    animation: ${shimmer} 1.4s ease infinite;
+  }
+`;
+
+// optional: generic error message style
+export const ErrorMsg = styled.div`
+  padding: 1rem;
+  color: #ff6b6b;
+  font-size: 0.9rem;
 `;

@@ -167,3 +167,20 @@ export const Qty = styled.span`
   font-weight: bold;
   color: #aaa;
 `;
+
+export const EditButton = styled.button`
+  margin-left: 0.5rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #1d1d1d;
+  color: #ddd;
+  cursor: pointer;
+  font-size: 0.85rem;
+  &:hover {
+    border-color: #0ff;
+  }
+  &:active {
+    background: #111;
+  }
+`;

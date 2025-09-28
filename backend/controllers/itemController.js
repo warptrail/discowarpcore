@@ -68,9 +68,21 @@ async function postItem(req, res) {
 
 async function patchItem(req, res) {
   try {
-    const updatedItem = await updateItem(req.params.id, req.body);
-    if (!updatedItem) return res.status(404).json({ error: 'Item not found' });
-    res.json(updatedItem);
+    const { id } = req.params;
+
+    // Update the item
+    const updated = await updateItem(id, req.body);
+    if (!updated) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
+    // Re-fetch full enriched shape
+    const refreshed = await getItemById(id);
+    if (!refreshed) {
+      return res.status(404).json({ error: 'Item not found after update' });
+    }
+
+    res.json({ ok: true, data: refreshed });
   } catch (err) {
     console.error('❌ Error updating item:', err);
     res.status(400).json({ error: 'Failed to update item' });
