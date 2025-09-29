@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import * as S from '../styles/EditItemDetailsForm.styles';
 import { editItem } from '../api/editItem';
+import { normalizeTags } from '../util/normalizeTags';
+
+import QuantityInput from './QuantityInput';
+import TagContainer from './TagContainer';
 
 export default function EditItemDetailsForm({ item, triggerFlash, onSaved }) {
-  const [formData, setFormData] = useState({ ...item });
-  const [initialData, setInitialData] = useState({ ...item });
+  const [formData, setFormData] = useState(() => ({
+    ...item,
+    tags: normalizeTags(item?.tags),
+  }));
+  const [initialData, setInitialData] = useState(() => ({
+    ...item,
+    tags: normalizeTags(item?.tags),
+  }));
   const [saving, setSaving] = useState(false);
-
-  // Reset form when item prop changes (BoxDetailView updates after save)
   useEffect(() => {
-    setFormData({ ...item });
-    setInitialData({ ...item });
+    setFormData({ ...item, tags: normalizeTags(item?.tags) });
+    setInitialData({ ...item, tags: normalizeTags(item?.tags) });
   }, [item]);
 
   const handleChange = (e) => {
@@ -18,21 +26,53 @@ export default function EditItemDetailsForm({ item, triggerFlash, onSaved }) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // ✅ Handle tags
+  const handleAddTag = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      tags: [
+        ...(prev.tags || []),
+        { value, status: 'new' }, // stage new
+      ],
+    }));
+  };
+
+  const handleRemoveTag = (tagValue) => {
+    setFormData((prev) => ({
+      ...prev,
+      tags: prev.tags.map((t) =>
+        t.value === tagValue
+          ? { ...t, status: t.status === 'deleted' ? 'normal' : 'deleted' }
+          : t
+      ),
+    }));
+  };
+
+  // when updating tags from TagContainer
+  const handleTagsChange = (tags) => {
+    setFormData((prev) => ({
+      ...prev,
+      tags: normalizeTags(tags),
+    }));
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      const updated = await editItem(item._id, formData);
+      const payload = {
+        ...formData,
+        tags: normalizeTags(formData.tags)
+          .filter((t) => t.status !== 'deleted')
+          .map((t) => t.value),
+      };
 
-      // Flash success feedback
+      const updated = await editItem(item._id, payload);
       triggerFlash?.(item._id, 'yellow');
-
-      // Bubble fresh item up to BoxDetailView
       onSaved?.(updated);
 
-      // Reset dirty state locally
-      setInitialData(updated);
-      setFormData(updated);
+      setInitialData({ ...updated, tags: normalizeTags(updated.tags) });
+      setFormData({ ...updated, tags: normalizeTags(updated.tags) });
     } catch (err) {
       console.error('Update failed:', err);
       triggerFlash?.(item._id, 'red');
@@ -43,7 +83,7 @@ export default function EditItemDetailsForm({ item, triggerFlash, onSaved }) {
 
   const handleRevert = (e) => {
     e.preventDefault();
-    setFormData({ ...initialData });
+    setFormData({ ...initialData, tags: normalizeTags(initialData.tags) });
     triggerFlash?.(item._id, 'blue');
   };
 
@@ -76,6 +116,26 @@ export default function EditItemDetailsForm({ item, triggerFlash, onSaved }) {
             name="notes"
             value={formData.notes || ''}
             onChange={handleChange}
+          />
+        </S.Field>
+
+        {/* 👇 New Tag Container */}
+        <S.Field>
+          <S.Label>Tags</S.Label>
+          <TagContainer
+            tags={formData.tags}
+            onChange={handleTagsChange}
+            mode="edit"
+          />
+        </S.Field>
+
+        <S.Field>
+          <S.Label>Quantity</S.Label>
+          <QuantityInput
+            value={formData.quantity}
+            onChange={(num) =>
+              setFormData((prev) => ({ ...prev, quantity: num }))
+            }
           />
         </S.Field>
 

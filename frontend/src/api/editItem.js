@@ -1,13 +1,42 @@
 // src/api/editItem.js
 import { API_BASE } from './API_BASE'; // adjust path if needed
+export async function editItem(itemId, payload) {
+  // Remove disallowed virtual fields
+  const {
+    name,
+    quantity,
+    description,
+    notes,
+    tags,
+    imagePath,
+    location,
+    orphanedAt,
+    valueCents,
+    dateAcquired,
+    dateLastUsed,
+    usageHistory,
+  } = payload;
 
-export async function editItem(itemId, payload, { signal } = {}) {
+  const safePayload = {
+    name,
+    quantity,
+    description,
+    notes,
+    tags,
+    imagePath,
+    location,
+    orphanedAt,
+    valueCents,
+    dateAcquired,
+    dateLastUsed,
+    usageHistory,
+  };
+
   const url = `${API_BASE}/api/items/${itemId}`;
   const res = await fetch(url, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    signal,
+    body: JSON.stringify(safePayload),
   });
 
   if (!res.ok) {
@@ -16,5 +45,5 @@ export async function editItem(itemId, payload, { signal } = {}) {
   }
 
   const data = await res.json();
-  return data?.data || data; // unwrap { ok, data } shape if present
+  return data?.data || data;
 }
