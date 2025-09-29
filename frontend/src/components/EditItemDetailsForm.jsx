@@ -51,45 +51,47 @@ export default function EditItemDetailsForm({ item, triggerFlash, onSaved }) {
 
   return (
     <S.Form onSubmit={handleSave}>
-      <S.Field>
-        <S.Label>Name</S.Label>
-        <S.Input
-          name="name"
-          value={formData.name || ''}
-          onChange={handleChange}
-        />
-      </S.Field>
+      <S.Fieldset disabled={saving}>
+        <S.Field>
+          <S.Label>Name</S.Label>
+          <S.Input
+            name="name"
+            value={formData.name || ''}
+            onChange={handleChange}
+          />
+        </S.Field>
 
-      <S.Field>
-        <S.Label>Description</S.Label>
-        <S.TextArea
-          name="description"
-          value={formData.description || ''}
-          onChange={handleChange}
-        />
-      </S.Field>
+        <S.Field>
+          <S.Label>Description</S.Label>
+          <S.TextArea
+            name="description"
+            value={formData.description || ''}
+            onChange={handleChange}
+          />
+        </S.Field>
 
-      <S.Field>
-        <S.Label>Notes</S.Label>
-        <S.TextArea
-          name="notes"
-          value={formData.notes || ''}
-          onChange={handleChange}
-        />
-      </S.Field>
+        <S.Field>
+          <S.Label>Notes</S.Label>
+          <S.TextArea
+            name="notes"
+            value={formData.notes || ''}
+            onChange={handleChange}
+          />
+        </S.Field>
 
-      <S.Actions>
-        <S.SaveButton type="submit" disabled={!isDirty || saving}>
-          {saving ? 'Saving…' : 'Save'}
-        </S.SaveButton>
-        <S.RevertButton
-          type="button"
-          onClick={handleRevert}
-          disabled={!isDirty}
-        >
-          Revert
-        </S.RevertButton>
-      </S.Actions>
+        <S.Actions>
+          <S.SaveButton type="submit" disabled={!isDirty || saving}>
+            {saving ? 'Saving…' : 'Save'}
+          </S.SaveButton>
+          <S.RevertButton
+            type="button"
+            onClick={handleRevert}
+            disabled={!isDirty || saving}
+          >
+            Revert
+          </S.RevertButton>
+        </S.Actions>
+      </S.Fieldset>
     </S.Form>
   );
 }

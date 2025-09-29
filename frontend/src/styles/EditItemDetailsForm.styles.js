@@ -100,3 +100,17 @@ export const RevertButton = styled.button`
     ${disabledStyles}
   }
 `;
+
+export const Fieldset = styled.fieldset`
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  &:disabled {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+`;
