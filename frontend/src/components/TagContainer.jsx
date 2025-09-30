@@ -1,23 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import * as S from '../styles/TagContainer.styles';
+import React, { useState } from 'react';
 import TagChip from './TagChip';
+import * as S from '../styles/TagContainer.styles';
 
 export default function TagContainer({ tags = [], onChange, mode = 'view' }) {
-  const [inputValue, setInputValue] = useState('');
+  const [draft, setDraft] = useState('');
 
-  const handleAddTag = (e) => {
-    e.preventDefault();
-    if (!inputValue.trim()) return;
-    const newTag = { value: inputValue.trim(), status: 'new' };
-    onChange([...tags, newTag]); // bubble to EditItemDetailsForm
-    setInputValue('');
+  const hasTag = (val) =>
+    tags.some((t) => (t?.value || '').toLowerCase() === val.toLowerCase());
+
+  const stageNewTag = () => {
+    const value = draft.trim();
+    if (!value) return;
+    if (hasTag(value)) {
+      setDraft('');
+      return;
+    }
+    const next = [...tags, { value, status: 'new' }];
+    onChange?.(next);
+    setDraft('');
   };
 
-  const handleRemoveTag = (index) => {
-    const updated = tags.map((t, i) =>
-      i === index ? { ...t, status: 'delete' } : t
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      stageNewTag();
+    }
+  };
+
+  const handleToggleDeleteByIndex = (index) => {
+    const next = tags.map((t, i) =>
+      i === index
+        ? { ...t, status: t.status === 'deleted' ? 'unchanged' : 'deleted' }
+        : t
     );
-    onChange(updated); // bubble to EditItemDetailsForm
+    onChange?.(next);
   };
 
   return (
@@ -25,25 +41,29 @@ export default function TagContainer({ tags = [], onChange, mode = 'view' }) {
       <S.TagList>
         {tags.map((tag, i) => (
           <TagChip
-            key={`${tag.value}-${i}`}
+            key={`${tag?.value ?? 'tag'}-${i}`}
             tag={tag}
-            onDelete={() => handleRemoveTag(i)} // ✅ now wired
-            mode={mode}
+            onDelete={
+              mode === 'edit' ? () => handleToggleDeleteByIndex(i) : undefined
+            }
           />
         ))}
-      </S.TagList>
 
-      {mode === 'edit' && (
-        <S.InputRow onSubmit={handleAddTag}>
-          <S.Input
-            type="text"
-            placeholder="Add tag..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-          />
-          <S.AddButton type="submit">+</S.AddButton>
-        </S.InputRow>
-      )}
+        {mode === 'edit' && (
+          <S.InputChip>
+            <S.Input
+              type="text"
+              placeholder="Add tag…"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+            <S.AddButton type="button" onClick={stageNewTag}>
+              +
+            </S.AddButton>
+          </S.InputChip>
+        )}
+      </S.TagList>
     </S.Container>
   );
 }
