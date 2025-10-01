@@ -1,19 +1,19 @@
 import styled, { css, keyframes } from 'styled-components';
 
 const pulseGreen = keyframes`
-  0%,100% { box-shadow: 0 0 0 rgba(0,255,128,0); }
-  50%     { box-shadow: 0 0 10px rgba(0,255,128,0.9); }
+  0%, 100% { box-shadow: 0 0 0 rgba(0,255,128,0); }
+  50%      { box-shadow: 0 0 8px rgba(0,255,128,0.8); }
 `;
 
 const pulseRed = keyframes`
-  0%,100% { box-shadow: 0 0 0 rgba(255,64,64,0); }
-  50%     { box-shadow: 0 0 10px rgba(255,64,64,0.95); }
+  0%, 100% { box-shadow: 0 0 0 rgba(255,64,64,0); }
+  50%      { box-shadow: 0 0 8px rgba(255,64,64,0.9); }
 `;
 
 export const Chip = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.35rem;
   padding: 0.25rem 0.6rem;
   border-radius: 14px;
   font-size: 0.85rem;
@@ -26,7 +26,7 @@ export const Chip = styled.span`
   ${({ $status }) =>
     $status === 'unchanged' &&
     css`
-      border-color: #838383;
+      border-color: #666;
     `}
 
   ${({ $status }) =>
