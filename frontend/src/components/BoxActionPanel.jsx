@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { API_BASE } from '../api/API_BASE';
 
 // Components
@@ -13,10 +13,9 @@ import MiniOrphanedList from './MiniOrphanedList';
 import AddItemToThisBoxForm from './AddItemToThisBoxForm';
 import BoxActionToast from './BoxActionToast';
 
-export default function BoxEditPanel({
+export default function BoxActionPanel({
   flatItems,
   boxTree,
-  shortId,
   boxMongoId,
   onItemUpdated,
   refreshBox,
@@ -61,6 +60,7 @@ export default function BoxEditPanel({
 
   // ? Navigate
   const navigate = useNavigate();
+  const { shortId: routeShortId } = useParams();
   const ANIM_LEAVE_MS = 1000; // must match zipAway duration
 
   // For toggling the activePanel state from BoxControlBar
@@ -102,7 +102,7 @@ export default function BoxEditPanel({
   const startBatchEntered = async (ids, { undo = false } = {}) => {
     // wait two frames so rows exist before we animate
     await new Promise((r) =>
-      requestAnimationFrame(() => requestAnimationFrame(r))
+      requestAnimationFrame(() => requestAnimationFrame(r)),
     );
     setJustReturnedIds((curr) => addAll(curr, ids));
     if (undo) setIsUndoing(true);
@@ -183,7 +183,7 @@ export default function BoxEditPanel({
       title: 'Item moved',
       message: `${fmtQtyName(name, quantity)} → ${fmtDest(
         destLabel,
-        destShortId
+        destShortId,
       )}`,
       variant: 'info',
       sticky, // stays up by default so Undo/Go are usable
@@ -274,7 +274,7 @@ export default function BoxEditPanel({
   // --- shared tiny helpers (put near the other handlers) ---
   const nextTwoFrames = () =>
     new Promise((resolve) =>
-      requestAnimationFrame(() => requestAnimationFrame(resolve))
+      requestAnimationFrame(() => requestAnimationFrame(resolve)),
     );
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -335,7 +335,7 @@ export default function BoxEditPanel({
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ itemId, sourceBoxId, destBoxId }),
-        }
+        },
       );
       if (!res.ok) throw new Error('Move failed');
 
@@ -395,7 +395,7 @@ export default function BoxEditPanel({
       setIsUndoing(true);
       // ensure the row is mounted before we mark it as "returned"
       await new Promise((r) =>
-        requestAnimationFrame(() => requestAnimationFrame(r))
+        requestAnimationFrame(() => requestAnimationFrame(r)),
       );
       setJustReturnedItemId(itemId);
 
@@ -406,7 +406,7 @@ export default function BoxEditPanel({
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ itemId }),
-        }
+        },
       );
       if (!res.ok) throw new Error('Undo orphan failed');
 
@@ -439,7 +439,7 @@ export default function BoxEditPanel({
       // Kick yellow zip-in immediately
       setIsUndoing(true);
       await new Promise((r) =>
-        requestAnimationFrame(() => requestAnimationFrame(r))
+        requestAnimationFrame(() => requestAnimationFrame(r)),
       );
       setJustReturnedItemId(itemId);
 
@@ -454,7 +454,7 @@ export default function BoxEditPanel({
             sourceBoxId: destBoxId,
             destBoxId: sourceBoxId,
           }),
-        }
+        },
       );
       if (!res.ok) throw new Error('Undo move failed');
 
@@ -491,7 +491,7 @@ export default function BoxEditPanel({
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ itemId }),
-        }
+        },
       );
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body?.message || 'Orphan failed');
@@ -652,7 +652,7 @@ export default function BoxEditPanel({
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ itemId }),
-      }
+      },
     );
     if (!res.ok) {
       const msg = await res.text().catch(() => '');
@@ -667,7 +667,7 @@ export default function BoxEditPanel({
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ itemIds }),
-      }
+      },
     );
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data?.message || 'Attach many failed');
@@ -698,7 +698,7 @@ export default function BoxEditPanel({
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-        }
+        },
       ).then(async (res) => {
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body?.message || 'Failed to empty');
@@ -813,6 +813,7 @@ export default function BoxEditPanel({
     }
   };
 
+  // todo
   const handleNestBox = () => {
     console.log('chirp chirp chirp');
   };
@@ -860,7 +861,7 @@ export default function BoxEditPanel({
   useEffect(() => {
     if (!zippingItemId) return;
     const present = (itemsUI || []).some(
-      (it) => (it?._id ?? it) === zippingItemId
+      (it) => (it?._id ?? it) === zippingItemId,
     );
     if (!present) setZippingItemId(null);
   }, [itemsUI, zippingItemId]);
@@ -925,22 +926,19 @@ export default function BoxEditPanel({
         onClickDestroy={() => togglePanel('destroy')}
         busy={isMoving}
       />
+
       {/* Nest inline section */}
       <NestBoxSection
         open={activePanel === 'nest'}
-        boxMongoId={boxMongoId}
-        boxTree={boxTree}
-        onConfirm={(destBoxId, destLabel, destShortId) => {
-          // You can trigger a toast or start a backend call here
-          showToast?.({
-            title: 'Nest request',
-            message: `Nest “${boxTree?.label}” into ${destLabel} (#${destShortId}).`,
-            variant: 'info',
-            timeoutMs: 3000,
-          });
-          // Keep panel open or close it—your call. Example: close after confirm
-          setActivePanel(null);
+        onClose={() => setActivePanel(null)}
+        onConfirm={(dest) => {
+          // dest = { mongoId, label, shortId }
+          // call backend here, then refreshBox()
         }}
+        sourceBoxMongoId={boxMongoId}
+        sourceBoxLabel={boxTree?.label}
+        boxTree={boxTree} // Option A
+        busy={busy || isMoving}
       />
 
       {/* Edit details collapsible panel */}
@@ -959,7 +957,7 @@ export default function BoxEditPanel({
       <DestroyBoxSection
         open={activePanel === 'destroy'}
         onCancel={() => setActivePanel(null)}
-        shortId={shortId} // <-- the human-friendly ID
+        shortId={routeShortId} // <-- the human-friendly ID
         boxMongoId={boxMongoId} // <-- the actual Mongo ObjectId
         onRequestDelete={onRequestDelete}
         busy={busy}
@@ -987,10 +985,10 @@ export default function BoxEditPanel({
             const flashProp = isUndo
               ? 'yellow'
               : isEntering
-              ? 'green'
-              : isLeaving
-              ? 'red'
-              : undefined;
+                ? 'green'
+                : isLeaving
+                  ? 'red'
+                  : undefined;
 
             return (
               <div key={item._id}>
@@ -1011,7 +1009,7 @@ export default function BoxEditPanel({
                       <ItemEditForm
                         key={item.item_id}
                         initialItem={item}
-                        boxId={shortId}
+                        boxId={routeShortId}
                         boxMongoId={boxMongoId}
                         sourceBoxId={owner.boxId}
                         sourceBoxLabel={owner.label} // optional
@@ -1040,7 +1038,7 @@ export default function BoxEditPanel({
       <AddItemToThisBoxForm
         boxMongoId={boxMongoId}
         onAdded={handleItemAdded}
-        boxShortId={shortId}
+        boxShortId={routeShortId}
       />
     </PanelContainer>
   );
@@ -1054,7 +1052,10 @@ const ItemEditWrapper = styled.div`
   opacity: ${({ $isOpen }) => ($isOpen ? 1 : 0)};
   transform: ${({ $isOpen }) =>
     $isOpen ? 'translateY(0)' : 'translateY(-10px)'};
-  transition: max-height 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    max-height 0.3s ease,
+    opacity 0.3s ease,
+    transform 0.3s ease;
 `;
 
 const PanelContainer = styled.div`
@@ -1108,8 +1109,11 @@ export const ItemRow = styled.li`
   cursor: pointer;
   border: ${({ $isOpen }) =>
     $isOpen ? '1px solid #3fa46a' : '1px solid #2f2f2f'};
-  transition: background-color 0.2s ease, border-color 0.2s ease,
-    color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
   will-change: transform, opacity;
 
   /* Pre-enter pose to avoid first-frame flicker */
@@ -1127,11 +1131,11 @@ export const ItemRow = styled.li`
           animation: ${zipIn} 280ms ease-out both;
         `
       : $zip === 'out'
-      ? css`
-          animation: ${zipAway} 1000ms ease-in forwards;
-          pointer-events: none;
-        `
-      : ''}
+        ? css`
+            animation: ${zipAway} 1000ms ease-in forwards;
+            pointer-events: none;
+          `
+        : ''}
 
   /* Flash (uses outline so no layout shift) */
   ${({ $flash, $flashDelay = 0, $zip }) => {
@@ -1145,14 +1149,16 @@ export const ItemRow = styled.li`
     if ($zip === 'in') {
       return css`
         ${base};
-        animation: ${zipIn} 280ms ease-out both,
+        animation:
+          ${zipIn} 280ms ease-out both,
           ${flashBorder} 600ms ease-out ${$flashDelay}ms 2;
       `;
     }
     if ($zip === 'out') {
       return css`
         ${base};
-        animation: ${zipAway} 1000ms ease-in forwards,
+        animation:
+          ${zipAway} 1000ms ease-in forwards,
           ${flashBorder} 600ms ease-out ${$flashDelay}ms 2;
       `;
     }
@@ -1194,7 +1200,9 @@ const DetailsPanel = styled.div`
   overflow: hidden;
   background: #191919;
   border-radius: 10px;
-  transition: max-height 220ms ease, margin-bottom 220ms ease,
+  transition:
+    max-height 220ms ease,
+    margin-bottom 220ms ease,
     border-color 220ms ease;
 
   /* closed state */

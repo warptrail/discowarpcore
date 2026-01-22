@@ -4,7 +4,7 @@
 
 const Box = require('../models/Box');
 const Item = require('../models/Item');
-const TREES = require('../seed/boxTrees.mock');
+const TREES = require('../seed/boxTrees.withImages.mock');
 
 // We’ll reserve this range of shortIds for dev seeds only.
 // Adjust if you need more or less.

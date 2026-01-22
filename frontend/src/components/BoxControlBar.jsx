@@ -13,6 +13,13 @@ const Bar = styled.div`
   margin: 12px 0;
 `;
 
+const btnActiveStyles = css`
+  border-color: #4ec77b;
+  background: #19231d;
+  box-shadow: 0 0 0 2px rgba(78, 199, 123, 0.15) inset;
+  color: #e9fcee;
+`;
+
 const Btn = styled.button`
   width: 100%;
   padding: 12px 10px;
@@ -22,7 +29,10 @@ const Btn = styled.button`
   color: #eaeaea;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.08s ease, box-shadow 0.2s ease, border-color 0.2s ease,
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
     background 0.2s ease;
 
   &:hover {
@@ -37,38 +47,34 @@ const Btn = styled.button`
     cursor: not-allowed;
   }
 
-  ${({ $active }) =>
-    $active &&
-    css`
-      border-color: #4ec77b;
-      background: #19231d;
-      box-shadow: 0 0 0 2px rgba(78, 199, 123, 0.15) inset;
-      color: #e9fcee;
-    `}
+  ${(props) => props.$active && btnActiveStyles}
+`;
+
+const dangerBtnActiveStyles = css`
+  border-color: #ff4d4f;
+  background: #2a1616;
+  box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2) inset;
 `;
 
 const DangerBtn = styled(Btn)`
   border-color: #3a2323;
+
   &:hover {
     border-color: #ff4d4f;
     background: #2a1616;
     box-shadow: 0 0 6px rgba(255, 77, 79, 0.35);
   }
-  ${({ $active }) =>
-    $active &&
-    css`
-      border-color: #ff4d4f;
-      background: #2a1616;
-      box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2) inset;
-    `}
+
+  ${(props) => props.$active && dangerBtnActiveStyles}
 `;
 
-/**
+/*
  * Props:
  * - active: null | 'nest' | 'edit' | 'destroy'
  * - onClickEmpty, onClickNest, onClickEdit, onClickDestroy
  * - busy?: boolean
  */
+
 export default function BoxControlBar({
   active,
   onClickEmpty,

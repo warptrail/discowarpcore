@@ -11,6 +11,7 @@ const {
   deleteBoxById,
   deleteAllBoxes,
   getBoxDataStructure,
+  releaseChildrenToFloor,
 } = require('../services/boxService');
 
 async function getBoxDataStructureApi(req, res, next) {
@@ -159,17 +160,95 @@ async function createBoxApi(req, res) {
 async function updateBoxApi(req, res) {
   try {
     const updated = await updateBox(req.params.id, req.body);
+
     if (!updated) {
-      return res.status(404).json({ error: 'Box not found' });
+      return res.status(404).json({
+        ok: false,
+        error: 'Box not found',
+        code: 'BOX_NOT_FOUND',
+      });
     }
-    res.json(updated);
+
+    return res.status(200).json({ ok: true, box: updated });
   } catch (err) {
+    // Duplicate box_id
     if (err.code === 11000 && err.keyPattern?.box_id) {
-      return res.status(400).json({ error: 'Box ID is already in use' });
+      return res.status(400).json({
+        ok: false,
+        error: 'Box ID is already in use',
+        code: 'DUPLICATE_BOX_ID',
+      });
+    }
+
+    // Invalid ObjectId (service-level)
+    if (err.code === 'INVALID_OBJECT_ID') {
+      return res.status(err.status || 400).json({
+        ok: false,
+        error: err.message || 'Invalid box id',
+        code: err.code,
+      });
+    }
+
+    // Not found (service-level)
+    if (err.code === 'BOX_NOT_FOUND') {
+      return res.status(err.status || 404).json({
+        ok: false,
+        error: err.message || 'Box not found',
+        code: err.code,
+      });
+    }
+
+    // Cycle prevention
+    if (err.code === 'CYCLE_DETECTED') {
+      return res.status(err.status || 409).json({
+        ok: false,
+        error: err.message,
+        code: err.code,
+      });
     }
 
     console.error('❌ Error updating box:', err);
-    res.status(400).json({ error: 'Failed to update box' });
+    return res.status(err.status || 400).json({
+      ok: false,
+      error: err.message || 'Failed to update box',
+    });
+  }
+}
+
+// POST /api/boxes/:id/release-children
+async function releaseChildrenToFloorApi(req, res) {
+  try {
+    const { id } = req.params;
+    const result = await releaseChildrenToFloor(id);
+
+    return res.status(200).json({
+      ok: true,
+      message: 'Children released to floor',
+      modifiedCount: result.modifiedCount ?? 0,
+    });
+  } catch (err) {
+    console.error('❌ Error releasing children to floor:', err);
+
+    if (err.code === 'INVALID_OBJECT_ID') {
+      return res.status(err.status || 400).json({
+        ok: false,
+        error: err.message || 'Invalid box id',
+        code: err.code,
+      });
+    }
+
+    if (err.code === 'BOX_NOT_FOUND') {
+      return res.status(err.status || 404).json({
+        ok: false,
+        error: err.message || 'Box not found',
+        code: err.code,
+      });
+    }
+
+    return res.status(err.status || 400).json({
+      ok: false,
+      error: err.message || 'Failed to release children',
+    });
   }
 }
 
@@ -233,6 +312,7 @@ module.exports = {
   checkBoxIdAvailability,
   createBoxApi,
   updateBoxApi,
+  releaseChildrenToFloorApi,
   getBoxTreeApi,
   getBoxTreeByShortIdApi,
   deleteBoxByIdApi,

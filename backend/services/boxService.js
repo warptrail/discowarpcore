@@ -5,6 +5,7 @@ const Item = require('../models/Item');
 const { orphanAllItemsInBox } = require('./itemService');
 
 const { computeStats, flattenBoxes } = require('../utils/boxHelpers');
+const { wouldCreateCycle } = require('../utils/wouldCreateCycle');
 
 async function getBoxByMongoId(id) {
   return await Box.findById(id);
@@ -31,7 +32,7 @@ async function getBoxDataStructure(
     includeAncestors = false,
     includeStats = true,
     flat = 'none', // 'none' | 'items' | 'all'
-  } = {}
+  } = {},
 ) {
   // 1) Root box (by public short id)
   const root = await Box.findOne({ box_id: shortId })
@@ -273,7 +274,54 @@ async function createBox(data) {
 }
 
 async function updateBox(id, data) {
-  return Box.findByIdAndUpdate(id, data, { new: true, runValidators: true });
+  // Only guard when a parent change is being requested.
+  // IMPORTANT: allow explicit null to unparent.
+  //
+  // The `in` operator checks for *property presence*, not truthiness.
+  // This allows `{ parentBox: null }` to be treated as intentional.
+  if ('parentBox' in data) {
+    const destId = data.parentBox; // may be null
+
+    // Load the existing box so we can compare current state
+    const existing = await Box.findById(id).lean();
+    if (!existing) {
+      const err = new Error('Box not found');
+      err.status = 404;
+      err.code = 'BOX_NOT_FOUND';
+      throw err;
+    }
+
+    // Guard 1: prevent no-op moves
+    // If the box is already nested in the requested parent,
+    // this update would do nothing.
+    if (String(existing.parentBox ?? null) === String(destId ?? null)) {
+      const err = new Error(
+        'Box is already nested in the specified parent (no-op move).',
+      );
+      err.status = 400;
+      err.code = 'NO_OP_MOVE';
+      throw err;
+    }
+
+    // Guard 2: prevent cycles (DAG invariant)
+    const cycle = await wouldCreateCycle(id, destId);
+    if (cycle) {
+      const err = new Error(
+        destId
+          ? 'Illegal nesting: destination is inside the source subtree (cycle prevented).'
+          : 'Illegal nesting: cannot set parentBox to itself.',
+      );
+      err.status = 409;
+      err.code = 'CYCLE_DETECTED';
+      throw err;
+    }
+  }
+
+  // Perform the update
+  return Box.findByIdAndUpdate(id, data, {
+    new: true,
+    runValidators: true,
+  });
 }
 
 // Delete a single box by its Mongo _id.
@@ -311,6 +359,31 @@ async function deleteAllBoxes({ Box, Item }) {
   return boxIds.length;
 }
 
+async function releaseChildrenToFloor(boxId) {
+  // Validate id
+  if (!Box.isValidId(boxId)) {
+    const err = new Error('Invalid box id');
+    err.status = 400;
+    err.code = 'INVALID_OBJECT_ID';
+    throw err;
+  }
+
+  // Ensure parent exists (optional but nice UX)
+  const parentExists = await Box.existsById(boxId);
+  if (!parentExists) {
+    const err = new Error('Box not found');
+    err.status = 404;
+    err.code = 'BOX_NOT_FOUND';
+    throw err;
+  }
+
+  // Perform the one-level flatten (direct children only)
+  const result = await Box.releaseChildrenToFloor(boxId);
+
+  const modifiedCount = result.modifiedCount ?? result.nModified ?? 0;
+  return { modifiedCount };
+}
+
 module.exports = {
   getBoxDataStructure,
   getBoxByMongoId,
@@ -324,4 +397,5 @@ module.exports = {
   getBoxesExcludingId,
   deleteBoxById,
   deleteAllBoxes,
+  releaseChildrenToFloor,
 };

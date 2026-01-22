@@ -8,7 +8,7 @@ import BoxMetaPanel from './BoxMetaPanel';
 import TabControlBar from './TabControlBar';
 import BoxTree from './BoxTree';
 import ItemsFlatList from './ItemsFlatList';
-import BoxEditPanel from './BoxEditPanel';
+import BoxActionPanel from '././BoxActionPanel';
 
 const FLASH_MS = 1000; // keep in sync with CSS animation duration
 
@@ -108,12 +108,12 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
         setOpenItemId(itemId);
       }
     },
-    [openItemId, triggerFlash, startPulse, stopPulse]
+    [openItemId, triggerFlash, startPulse, stopPulse],
   );
 
   const handleNavigateBox = useCallback(
     (boxId) => onNavigateBox?.(boxId),
-    [onNavigateBox]
+    [onNavigateBox],
   );
   const handleFlash = useCallback((id, effect) => {
     setEffectsById((prev) => ({ ...prev, [id]: effect }));
@@ -139,7 +139,7 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
 
         // Replace in this node's items
         const items = (node.items || []).map((it) =>
-          String(it._id) === String(updated._id) ? updated : it
+          String(it._id) === String(updated._id) ? updated : it,
         );
 
         // Recurse into children
@@ -251,8 +251,13 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
           </>
         )}
 
-        {!loading && !error && activeTab === 'edit' && (
-          <BoxEditPanel box={tree || {}} />
+        {!loading && !error && activeTab === 'edit' && tree && (
+          <BoxActionPanel
+            box={tree}
+            boxTree={tree}
+            boxMongoId={tree._id}
+            flatItems={flatItems}
+          />
         )}
       </S.Content>
     </S.Wrap>

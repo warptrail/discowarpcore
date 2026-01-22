@@ -17,7 +17,10 @@ const Btn = styled.button`
   border-radius: 14px; /* slight LCARS */
   border: 1px solid #2a2a2a;
   background: #111; /* dark mode */
-  transition: transform 0.05s ease, background 0.2s ease, border-color 0.2s ease;
+  transition:
+    transform 0.05s ease,
+    background 0.2s ease,
+    border-color 0.2s ease;
   user-select: none;
 
   ${({ $active }) =>
@@ -63,7 +66,7 @@ export default function TabControlBar({ mode, onChange, busy = false }) {
         onClick={() => onChange?.('edit')}
         disabled={busy}
       >
-        Edit Items
+        Box Actions
       </Btn>
     </Bar>
   );

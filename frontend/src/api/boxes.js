@@ -8,7 +8,7 @@ export async function fetchBoxTreeByShortId(shortId, { signal } = {}) {
 
   const res = await fetch(
     `${API_BASE}/api/boxes/by-short-id/${encodeURIComponent(shortId)}`,
-    { signal }
+    { signal },
   );
 
   console.log('Response status:', res.status);
@@ -16,6 +16,58 @@ export async function fetchBoxTreeByShortId(shortId, { signal } = {}) {
   const json = await res.json();
   console.log('Raw JSON from API:', json);
 
+  return json.box ?? json.data ?? json;
+}
+
+export async function releaseChildrenToFloor(boxMongoId, opts = {}) {
+  const res = await fetch(
+    `${API_BASE}/api/boxes/${boxMongoId}/release-children`,
+    {
+      method: 'POST',
+      signal: opts.signal,
+    },
+  );
+
+  if (!res.ok) {
+    let errorMessage = `Failed to release children for box ${boxMongoId}`;
+    try {
+      const json = await res.json();
+      errorMessage = json.error || json.message || errorMessage;
+    } catch {
+      const text = await res.text().catch(() => '');
+      if (text) errorMessage = text;
+    }
+    throw new Error(errorMessage);
+  }
+
+  try {
+    return await res.json();
+  } catch {
+    return {};
+  }
+}
+
+export async function updateBoxById(boxMongoId, patch, opts = {}) {
+  const res = await fetch(`${API_BASE}/api/boxes/${boxMongoId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+    signal: opts.signal,
+  });
+
+  if (!res.ok) {
+    let errorMessage = `Failed to update box ${boxMongoId}`;
+    try {
+      const json = await res.json();
+      errorMessage = json.error || json.message || errorMessage;
+    } catch {
+      const text = await res.text().catch(() => '');
+      if (text) errorMessage = text;
+    }
+    throw new Error(errorMessage);
+  }
+
+  const json = await res.json();
   return json.box ?? json.data ?? json;
 }
 

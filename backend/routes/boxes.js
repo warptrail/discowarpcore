@@ -9,6 +9,7 @@ const {
   checkBoxIdAvailability,
   createBoxApi,
   updateBoxApi,
+  releaseChildrenToFloorApi,
   getBoxTreeByShortIdApi,
   getBoxTreeApi,
   deleteBoxByIdApi,
@@ -27,6 +28,7 @@ router.get('/by-box-id/:shortId', getBoxDataStructureApi); // back-compat alias
 router.get('/check-id/:short_id', checkBoxIdAvailability);
 router.post('/', createBoxApi);
 router.patch('/:id', updateBoxApi);
+router.post('/:id/release-children', releaseChildrenToFloorApi);
 router.delete('/all', deleteAllBoxesApi);
 router.delete('/:id', deleteBoxByIdApi);
 

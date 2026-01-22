@@ -1,23 +1,21 @@
 // NestBoxSection.jsx (inline drop-down, no modal)
 import React, { useEffect, useMemo, useState } from 'react';
 import styled, { css } from 'styled-components';
+import { updateBoxById } from '../api/boxes';
 
 /* --- Styled wrappers --- */
 
 const NestPanel = styled.div`
-  overflow: hidden;
   background: #171717;
   border-radius: 10px;
   border: 1px solid #2a2a2a;
-  transition: max-height 220ms ease, margin-top 220ms ease,
-    border-color 220ms ease;
-  max-height: 0;
   margin-top: 0;
+  display: none;
 
-  ${({ $open, $maxHeight = 600 }) =>
+  ${({ $open }) =>
     $open &&
     css`
-      max-height: ${$maxHeight}px;
+      display: block;
       margin-top: 12px;
     `}
 `;
@@ -45,15 +43,7 @@ const Note = styled.div`
   color: #bdbdbd;
 `;
 
-const DangerNote = styled.div`
-  margin: 8px 0 10px;
-  background: #2a1616;
-  border: 1px solid #3a1d1d;
-  color: #ffbdbd;
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 12px;
-`;
+/* Removed DangerNote styled component as per instructions */
 
 const Grid = styled.div`
   display: grid;
@@ -79,7 +69,9 @@ const BoxBtn = styled.button`
   color: #eaeaea;
   cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
   opacity: ${({ $disabled }) => ($disabled ? 0.65 : 1)};
-  transition: border-color 0.15s ease, background 0.15s ease,
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
     transform 0.08s ease;
 
   &:hover {
@@ -93,6 +85,22 @@ const BoxBtn = styled.button`
 const Meta = styled.div`
   font-size: 12px;
   color: #bdbdbd;
+`;
+
+const DepthStrip = styled.div`
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  height: 6px;
+  align-items: center;
+`;
+
+const DepthSeg = styled.div`
+  flex: 1 1 0;
+  height: 6px;
+  border-radius: 999px;
+  background: ${({ $level }) =>
+    `rgba(78, 199, 123, ${Math.min(0.15 + $level * 0.12, 0.9)})`};
 `;
 
 const Footer = styled.div`
@@ -123,44 +131,83 @@ function collectDescendantBoxIds(root) {
   const ids = new Set();
   if (!root) return ids;
 
-  const stack = [root];
+  // We only care about descendant *boxes*, so traverse `childBoxes` only.
+  const stack = Array.isArray(root?.childBoxes) ? [...root.childBoxes] : [];
+
   while (stack.length) {
     const node = stack.pop();
-    // Push nested containers; adjust keys to match your box tree
-    const kids = node?.children || node?.boxes || node?.items || [];
+    if (!node) continue;
 
+    if (node?._id) ids.add(String(node._id));
+
+    const kids = Array.isArray(node?.childBoxes) ? node.childBoxes : [];
     for (const child of kids) {
-      // Consider it a box if it has children/items/boxes (tweak as needed)
-      const isBox =
-        !!child?.children?.length ||
-        !!child?.boxes?.length ||
-        !!child?.items?.length ||
-        child?.kind === 'box' ||
-        child?.type === 'box';
-
-      if (isBox && child?._id) {
-        ids.add(String(child._id));
-      }
-      // Always traverse deeper
       if (child) stack.push(child);
     }
   }
+
   return ids;
+}
+
+function buildDepthById(boxes) {
+  const parentById = new Map();
+  for (const b of boxes || []) {
+    const id = b?._id != null ? String(b._id) : null;
+    if (!id) continue;
+    const parentId =
+      b?.parentBox && b.parentBox._id != null ? String(b.parentBox._id) : null;
+    parentById.set(id, parentId);
+  }
+
+  const memo = new Map();
+
+  const depthOf = (id) => {
+    const key = String(id);
+    if (memo.has(key)) return memo.get(key);
+
+    let depth = 0;
+    let cur = key;
+    const seen = new Set();
+
+    while (true) {
+      const p = parentById.get(cur);
+      if (!p) break;
+
+      // Defensive: if data ever contains a cycle, avoid infinite loops.
+      if (seen.has(cur)) {
+        depth = 0;
+        break;
+      }
+      seen.add(cur);
+
+      depth += 1;
+      cur = p;
+    }
+
+    memo.set(key, depth);
+    return depth;
+  };
+
+  const out = new Map();
+  for (const id of parentById.keys()) out.set(id, depthOf(id));
+  return out;
 }
 
 /* --- Component --- */
 
 export default function NestBoxSection({
   open, // boolean: show/collapse
-  boxMongoId, // current box id (string)
+  sourceBoxMongoId, // Mongo _id of the box being moved (string)
   boxTree, // the current box tree (for descendant detection)
   onClose, // () => void
   onConfirm, // (destBoxId, destLabel, destShortId) => void
-  maxHeight = 600, // optional: cap panel height when open
+  onDidNest, // optional: (result) => void
+  onDidUnnest, // optional: (result) => void
 }) {
   const [loading, setLoading] = useState(false);
   const [boxes, setBoxes] = useState([]); // all candidate boxes (except current)
   const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   // For future selection visuals if you want (not required to confirm)
   const [selectedId, setSelectedId] = useState(null);
@@ -168,9 +215,21 @@ export default function NestBoxSection({
   // Find descendants of the current box to prevent illegal choices
   const descendantIds = useMemo(
     () => collectDescendantBoxIds(boxTree),
-    [boxTree]
+    [boxTree],
   );
-  const hasNestedChildren = descendantIds.size > 0;
+
+  const depthById = useMemo(() => buildDepthById(boxes), [boxes]);
+
+  const currentParentId = useMemo(() => {
+    const p = boxTree?.parentBox;
+    if (!p) return null;
+    // parentBox can be either an object ({ _id, ... }) or a string id
+    return typeof p === 'string'
+      ? String(p)
+      : p?._id != null
+        ? String(p._id)
+        : null;
+  }, [boxTree]);
 
   // Fetch all boxes except this one (uses your existing endpoint)
   useEffect(() => {
@@ -182,7 +241,7 @@ export default function NestBoxSection({
       setError(null);
       try {
         const res = await fetch(
-          `http://localhost:5002/api/boxes?exclude=${boxMongoId}`
+          `http://localhost:5002/api/boxes?exclude=${sourceBoxMongoId}`,
         );
         const data = await res.json();
         if (!res.ok) throw new Error(data?.message || 'Failed to load boxes');
@@ -201,78 +260,165 @@ export default function NestBoxSection({
     return () => {
       alive = false;
     };
-  }, [open, boxMongoId]);
+  }, [open, sourceBoxMongoId]);
 
-  // Inline click handler for a destination choice
-  const chooseDest = (b) => {
+  const chooseDest = async (b) => {
     if (!b?._id) return;
-    const isSelf = String(b._id) === String(boxMongoId);
+    const isSelf =
+      sourceBoxMongoId != null && String(b._id) === String(sourceBoxMongoId);
     const isDesc = descendantIds.has(String(b._id));
-    if (isSelf || isDesc) return; // safety: should be disabled anyway
+    const isCurrentParent =
+      currentParentId != null && String(b._id) === String(currentParentId);
+    if (isSelf || isDesc || isCurrentParent) return;
 
-    // Optionally set selected for a quick visual cue
     setSelectedId(b._id);
+    setBusy(true);
+    setError(null);
 
-    // Pass back the destination
-    onConfirm?.(b._id, b.label, b.box_id);
+    try {
+      // Nest the current box into the destination box
+      const result = await updateBoxById(sourceBoxMongoId, {
+        parentBox: b._id,
+      });
+
+      // Back-compat: notify parent if it still expects the old callback
+      onConfirm?.(b._id, b.label, b.box_id);
+
+      // Preferred callback: parent can refresh tree state
+      onDidNest?.(result);
+
+      // Close after success
+      onClose?.();
+    } catch (e) {
+      setError(e.message || 'Failed to nest box');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleUnnestToFloor = async () => {
+    if (!sourceBoxMongoId) return;
+    setBusy(true);
+    setError(null);
+
+    try {
+      const result = await updateBoxById(sourceBoxMongoId, { parentBox: null });
+      onDidUnnest?.(result);
+      onClose?.();
+    } catch (e) {
+      setError(e.message || 'Failed to unnest box');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
-    <NestPanel $open={open} $maxHeight={maxHeight}>
+    <NestPanel $open={open}>
       {open && (
         <SectionInner>
           <SectionHeader>
             <Title>Nest “{boxTree?.label ?? 'This box'}” in another box</Title>
-            <GhostBtn onClick={onClose}>Close</GhostBtn>
+            <GhostBtn onClick={onClose} disabled={busy}>
+              Close
+            </GhostBtn>
           </SectionHeader>
 
-          {hasNestedChildren && (
-            <DangerNote>
-              Heads up: this box contains nested boxes. You can still nest it,
-              but you <em>cannot</em> select any of its own descendants as a
-              destination.
-            </DangerNote>
-          )}
-
-          {error && <DangerNote>{error}</DangerNote>}
+          {/* Removed error display as per instructions */}
 
           <Note style={{ marginBottom: 8 }}>Choose a destination box:</Note>
 
           {loading ? (
             <Note>Loading boxes…</Note>
           ) : (
-            <Grid>
-              {boxes.map((b) => {
-                const isSelf = String(b._id) === String(boxMongoId);
-                const isDesc = descendantIds.has(String(b._id));
-                const disabled = isSelf || isDesc;
-                return (
-                  <BoxBtn
-                    key={b._id}
-                    $disabled={disabled}
-                    $selected={selectedId === b._id}
-                    onClick={() => chooseDest(b)}
-                    disabled={disabled}
-                    title={
-                      disabled
-                        ? isSelf
-                          ? 'Cannot nest a box into itself'
-                          : 'Cannot nest into a descendant (would create a cycle)'
-                        : `Nest into ${b.label} (#${b.box_id})`
-                    }
-                  >
-                    <div style={{ fontWeight: 700 }}>{b.label}</div>
-                    <Meta>
-                      #{b.box_id} &middot; {b._id}
-                    </Meta>
-                  </BoxBtn>
-                );
-              })}
+            <>
+              {(() => {
+                const visibleBoxes = boxes
+                  .filter(
+                    (b) =>
+                      !descendantIds.has(String(b?._id)) &&
+                      String(b?._id) !== String(sourceBoxMongoId) &&
+                      (currentParentId == null ||
+                        String(b?._id) !== String(currentParentId)),
+                  )
+                  .sort((a, b) => {
+                    const da = depthById.get(String(a?._id)) ?? 0;
+                    const db = depthById.get(String(b?._id)) ?? 0;
+                    if (da !== db) return da - db;
 
-              {boxes.length === 0 && !loading && !error && (
-                <Note>No available boxes to nest into.</Note>
-              )}
-            </Grid>
+                    const na = Number(a?.box_id);
+                    const nb = Number(b?.box_id);
+                    if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+
+                    return String(a?.box_id ?? '').localeCompare(
+                      String(b?.box_id ?? ''),
+                    );
+                  });
+                return (
+                  <Grid>
+                    {currentParentId && (
+                      <BoxBtn
+                        key="__floor__"
+                        $selected={selectedId === '__floor__'}
+                        $disabled={busy}
+                        disabled={busy}
+                        onClick={() => {
+                          setSelectedId('__floor__');
+                          handleUnnestToFloor();
+                        }}
+                        title="Unnest to floor (no parent)"
+                      >
+                        <div style={{ fontWeight: 700 }}>Floor (no parent)</div>
+                        <Meta>Unnest this box to the top level</Meta>
+                        <DepthStrip title="Floor level (no parent)">
+                          <DepthSeg
+                            style={{ background: 'rgba(220, 180, 60, 0.85)' }}
+                            title="Floor level"
+                          />
+                        </DepthStrip>
+                      </BoxBtn>
+                    )}
+                    {visibleBoxes.map((b) => (
+                      <BoxBtn
+                        key={b._id}
+                        $selected={selectedId === b._id}
+                        $disabled={busy}
+                        disabled={busy}
+                        onClick={() => chooseDest(b)}
+                        title={`Nest into ${b.label} (#${b.box_id})`}
+                      >
+                        <div style={{ fontWeight: 700 }}>{b.label}</div>
+                        <Meta>
+                          #{b.box_id} &middot; {b._id}
+                        </Meta>
+                        {(() => {
+                          const depth = depthById.get(String(b._id)) ?? 0;
+                          const capped = Math.min(depth, 6);
+                          if (depth <= 0) return null;
+
+                          return (
+                            <DepthStrip title={`Nesting depth: ${depth}`}>
+                              {Array.from({ length: capped }).map((_, i) => (
+                                <DepthSeg key={i} $level={i + 1} />
+                              ))}
+                              {depth > 6 && (
+                                <DepthSeg
+                                  $level={7}
+                                  title={`Nesting depth: ${depth}`}
+                                />
+                              )}
+                            </DepthStrip>
+                          );
+                        })()}
+                      </BoxBtn>
+                    ))}
+
+                    {visibleBoxes.length === 0 && !loading && !error && (
+                      <Note>No available boxes to nest into.</Note>
+                    )}
+                  </Grid>
+                );
+              })()}
+            </>
           )}
           {/* You can add “Create new box” or extra actions here later */}
         </SectionInner>
