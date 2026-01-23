@@ -8,7 +8,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node backend/server.js",
-    "dev": "nodemon backend/server.js"
+    "dev": "nodemon backend/server.js",
+    "install:all": "npm install && cd frontend && npm install"
   },
   "dependencies": {
     "cors": "^2.8.5",
