@@ -1,7 +1,7 @@
 // NestBoxSection.jsx (inline drop-down, no modal)
 import React, { useEffect, useMemo, useState } from 'react';
 import styled, { css } from 'styled-components';
-import { updateBoxById } from '../api/boxes';
+import { updateBoxById, releaseChildrenToFloor } from '../api/boxes';
 
 /* --- Styled wrappers --- */
 
@@ -41,6 +41,108 @@ const Title = styled.h4`
 const Note = styled.div`
   font-size: 12px;
   color: #bdbdbd;
+`;
+
+const ContextCard = styled.div`
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+`;
+
+const ContextTitle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-weight: 800;
+  font-size: 15px;
+  color: #eaeaea;
+`;
+
+const Pill = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 12px;
+  background: rgba(78, 199, 123, 0.16);
+  border: 1px solid rgba(78, 199, 123, 0.35);
+  color: rgba(220, 255, 235, 0.95);
+`;
+
+const Breadcrumb = styled.div`
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+`;
+
+const Crumb = styled.span`
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+`;
+
+const Sep = styled.span`
+  color: rgba(255, 255, 255, 0.35);
+`;
+
+const SubLabel = styled.div`
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.82);
+`;
+
+const Hint = styled.div`
+  margin-top: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+`;
+
+const ActionRow = styled.div`
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+`;
+
+const SmallBtn = styled.button`
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.92);
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 12px;
+  cursor: pointer;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+`;
+
+const WarnBtn = styled(SmallBtn)`
+  border-color: rgba(255, 212, 0, 0.35);
+  background: rgba(255, 212, 0, 0.08);
+
+  &:hover {
+    border-color: rgba(255, 212, 0, 0.55);
+    background: rgba(255, 212, 0, 0.12);
+  }
 `;
 
 /* Removed DangerNote styled component as per instructions */
@@ -198,30 +300,37 @@ function buildDepthById(boxes) {
 export default function NestBoxSection({
   open, // boolean: show/collapse
   sourceBoxMongoId, // Mongo _id of the box being moved (string)
+  sourceBoxShortId, // optional: short id (#) for display
   boxTree, // the current box tree (for descendant detection)
   onClose, // () => void
   onConfirm, // (destBoxId, destLabel, destShortId) => void
   onDidNest, // optional: (result) => void
   onDidUnnest, // optional: (result) => void
+  onDidReleaseChildren, // optional: (modifiedCount:number) => void
 }) {
   const [loading, setLoading] = useState(false);
   const [boxes, setBoxes] = useState([]); // all candidate boxes (except current)
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [localBoxTree, setLocalBoxTree] = useState(boxTree);
 
   // For future selection visuals if you want (not required to confirm)
   const [selectedId, setSelectedId] = useState(null);
 
+  useEffect(() => {
+    setLocalBoxTree(boxTree);
+  }, [boxTree]);
+
   // Find descendants of the current box to prevent illegal choices
   const descendantIds = useMemo(
-    () => collectDescendantBoxIds(boxTree),
-    [boxTree],
+    () => collectDescendantBoxIds(localBoxTree),
+    [localBoxTree],
   );
 
   const depthById = useMemo(() => buildDepthById(boxes), [boxes]);
 
   const currentParentId = useMemo(() => {
-    const p = boxTree?.parentBox;
+    const p = localBoxTree?.parentBox;
     if (!p) return null;
     // parentBox can be either an object ({ _id, ... }) or a string id
     return typeof p === 'string'
@@ -229,14 +338,52 @@ export default function NestBoxSection({
       : p?._id != null
         ? String(p._id)
         : null;
-  }, [boxTree]);
+  }, [localBoxTree]);
+
+  const parentChain = useMemo(() => {
+    // Map of fetched boxes (note: list excludes the source box, but includes parents)
+    const byId = new Map((boxes || []).map((b) => [String(b?._id), b]));
+    const chain = [];
+
+    let p = localBoxTree?.parentBox;
+    const seen = new Set();
+
+    while (p) {
+      const pid =
+        typeof p === 'string'
+          ? String(p)
+          : p?._id != null
+            ? String(p._id)
+            : null;
+      if (!pid) break;
+      if (seen.has(pid)) break; // defensive
+      seen.add(pid);
+
+      // Prefer the populated parent object, fallback to the fetched list entry
+      const parentObj =
+        typeof p === 'object' ? p : byId.get(pid) || { _id: pid };
+      chain.push(parentObj);
+
+      const next = byId.get(pid);
+      p = next?.parentBox ?? null;
+    }
+
+    return chain.reverse();
+  }, [boxes, localBoxTree]);
+
+  const directChildren = Array.isArray(localBoxTree?.childBoxes)
+    ? localBoxTree.childBoxes
+    : [];
+  const directChildShortIds = directChildren
+    .map((c) => c?.box_id)
+    .filter(Boolean);
 
   // Fetch all boxes except this one (uses your existing endpoint)
   useEffect(() => {
     if (!open) return;
     let alive = true;
 
-    (async () => {
+    const fetchBoxesList = async () => {
       setLoading(true);
       setError(null);
       try {
@@ -245,22 +392,36 @@ export default function NestBoxSection({
         );
         const data = await res.json();
         if (!res.ok) throw new Error(data?.message || 'Failed to load boxes');
-
         if (!alive) return;
-
-        // Expecting an array of { _id, label, box_id, ... }
         setBoxes(Array.isArray(data) ? data : data?.boxes || []);
       } catch (e) {
         if (alive) setError(e.message || 'Failed to load boxes');
       } finally {
         if (alive) setLoading(false);
       }
+    };
+
+    (async () => {
+      await fetchBoxesList();
     })();
 
     return () => {
       alive = false;
     };
   }, [open, sourceBoxMongoId]);
+
+  const refetchBoxes = async () => {
+    try {
+      const res = await fetch(
+        `http://localhost:5002/api/boxes?exclude=${sourceBoxMongoId}`,
+      );
+      const data = await res.json();
+      if (!res.ok) return;
+      setBoxes(Array.isArray(data) ? data : data?.boxes || []);
+    } catch {
+      // silent for now; toast will handle later
+    }
+  };
 
   const chooseDest = async (b) => {
     if (!b?._id) return;
@@ -281,14 +442,22 @@ export default function NestBoxSection({
         parentBox: b._id,
       });
 
+      setLocalBoxTree((prev) =>
+        prev
+          ? {
+              ...prev,
+              parentBox: { _id: b._id, box_id: b.box_id, label: b.label },
+            }
+          : prev,
+      );
+      await refetchBoxes();
+
       // Back-compat: notify parent if it still expects the old callback
       onConfirm?.(b._id, b.label, b.box_id);
 
       // Preferred callback: parent can refresh tree state
       onDidNest?.(result);
-
-      // Close after success
-      onClose?.();
+      // Panel stays open: do not call onClose here
     } catch (e) {
       setError(e.message || 'Failed to nest box');
     } finally {
@@ -303,10 +472,32 @@ export default function NestBoxSection({
 
     try {
       const result = await updateBoxById(sourceBoxMongoId, { parentBox: null });
+      setLocalBoxTree((prev) => (prev ? { ...prev, parentBox: null } : prev));
+      await refetchBoxes();
       onDidUnnest?.(result);
-      onClose?.();
+      // Panel stays open: do not call onClose here
     } catch (e) {
       setError(e.message || 'Failed to unnest box');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleReleaseChildrenToFloor = async () => {
+    if (!sourceBoxMongoId) return;
+    setBusy(true);
+    setError(null);
+
+    try {
+      const res = await releaseChildrenToFloor(sourceBoxMongoId);
+      const modified = res?.modifiedCount ?? res?.data?.modifiedCount ?? 0;
+      setLocalBoxTree((prev) => (prev ? { ...prev, childBoxes: [] } : prev));
+      await refetchBoxes();
+      onDidReleaseChildren?.(modified);
+      // Panel stays open: do not call onClose here
+    } catch (e) {
+      // Inline errors are hidden; parent/toast will surface later.
+      setError(e.message || 'Failed to release children');
     } finally {
       setBusy(false);
     }
@@ -317,13 +508,99 @@ export default function NestBoxSection({
       {open && (
         <SectionInner>
           <SectionHeader>
-            <Title>Nest “{boxTree?.label ?? 'This box'}” in another box</Title>
+            <Title>
+              Nest “{localBoxTree?.label ?? 'This box'}”
+              {sourceBoxShortId || localBoxTree?.box_id
+                ? ` (#${sourceBoxShortId || localBoxTree?.box_id})`
+                : ''}{' '}
+              in another box
+            </Title>
             <GhostBtn onClick={onClose} disabled={busy}>
               Close
             </GhostBtn>
           </SectionHeader>
 
-          {/* Removed error display as per instructions */}
+          <ContextCard>
+            <ContextTitle>
+              <Pill>Working on</Pill>
+              <span>
+                {localBoxTree?.label ?? 'This box'}
+                {sourceBoxShortId || localBoxTree?.box_id
+                  ? ` (#${sourceBoxShortId || localBoxTree?.box_id})`
+                  : ''}
+              </span>
+            </ContextTitle>
+
+            <SubLabel>Parent path</SubLabel>
+            <Breadcrumb>
+              <Crumb>
+                <strong>Path:</strong> <span>Floor</span>
+              </Crumb>
+              {parentChain.map((p) => (
+                <React.Fragment
+                  key={String(p?._id || p?.box_id || Math.random())}
+                >
+                  <Sep>→</Sep>
+                  <Crumb>
+                    <span>{p?.box_id ? `#${p.box_id}` : ''}</span>
+                    <span>{p?.label || p?.description || ''}</span>
+                  </Crumb>
+                </React.Fragment>
+              ))}
+            </Breadcrumb>
+
+            {!currentParentId && (
+              <Hint>This box is already on the floor (no parent).</Hint>
+            )}
+
+            <ActionRow>
+              <WarnBtn
+                disabled={busy || !currentParentId}
+                onClick={handleUnnestToFloor}
+                title={
+                  currentParentId
+                    ? 'Move this box to the floor (no parent)'
+                    : 'Already on the floor'
+                }
+              >
+                Unnest to floor
+              </WarnBtn>
+
+              <WarnBtn
+                disabled={busy || directChildren.length === 0}
+                onClick={handleReleaseChildrenToFloor}
+                title={
+                  directChildren.length > 0
+                    ? 'Move this box’s direct child boxes to the floor (non-recursive)'
+                    : 'No direct child boxes to release'
+                }
+              >
+                Release direct children to floor
+              </WarnBtn>
+            </ActionRow>
+
+            <SubLabel>Direct children</SubLabel>
+            <Breadcrumb>
+              <Crumb>
+                <strong>Children:</strong> <span>{directChildren.length}</span>
+              </Crumb>
+
+              {directChildShortIds.length > 0 && (
+                <>
+                  <Sep>•</Sep>
+                  <Crumb>
+                    <span>
+                      {directChildShortIds.map((id) => `#${id}`).join(', ')}
+                    </span>
+                  </Crumb>
+                </>
+              )}
+            </Breadcrumb>
+
+            {directChildren.length === 0 && (
+              <Hint>No direct child boxes inside this box.</Hint>
+            )}
+          </ContextCard>
 
           <Note style={{ marginBottom: 8 }}>Choose a destination box:</Note>
 
@@ -355,28 +632,6 @@ export default function NestBoxSection({
                   });
                 return (
                   <Grid>
-                    {currentParentId && (
-                      <BoxBtn
-                        key="__floor__"
-                        $selected={selectedId === '__floor__'}
-                        $disabled={busy}
-                        disabled={busy}
-                        onClick={() => {
-                          setSelectedId('__floor__');
-                          handleUnnestToFloor();
-                        }}
-                        title="Unnest to floor (no parent)"
-                      >
-                        <div style={{ fontWeight: 700 }}>Floor (no parent)</div>
-                        <Meta>Unnest this box to the top level</Meta>
-                        <DepthStrip title="Floor level (no parent)">
-                          <DepthSeg
-                            style={{ background: 'rgba(220, 180, 60, 0.85)' }}
-                            title="Floor level"
-                          />
-                        </DepthStrip>
-                      </BoxBtn>
-                    )}
                     {visibleBoxes.map((b) => (
                       <BoxBtn
                         key={b._id}

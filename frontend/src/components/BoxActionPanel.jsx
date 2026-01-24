@@ -11,7 +11,6 @@ import DestroyBoxSection from './DestroyBoxSection';
 import ItemEditForm from './ItemEditForm';
 import MiniOrphanedList from './MiniOrphanedList';
 import AddItemToThisBoxForm from './AddItemToThisBoxForm';
-import BoxActionToast from './BoxActionToast';
 
 export default function BoxActionPanel({
   flatItems,
@@ -33,7 +32,6 @@ export default function BoxActionPanel({
   const [visibleItemId, setVisibleItemId] = useState(null);
   const [itemEditHeight, setItemEditHeight] = useState('0px');
   // const [movePrompt, setMovePrompt] = useState(null);
-  const [toast, setToast] = useState(null);
   const [isMoving, setIsMoving] = useState(false);
   const [zippingItemId, setZippingItemId] = useState(null);
   const [zippingIds, setZippingIds] = useState(() => new Set());
@@ -48,7 +46,6 @@ export default function BoxActionPanel({
   // ? REF
   const timeoutRef = useRef(null);
   const itemEditRef = useRef(null);
-  const clearToastTimerRef = useRef(null);
   const moveTimersRef = useRef({ pre: null, zip: null });
   const undoFlashTimerRef = useRef(null);
   const enterFlashTimerRef = useRef(null);
@@ -117,144 +114,6 @@ export default function BoxActionPanel({
   const clearBatchLeaving = (ids) =>
     setZippingIds((curr) => removeAll(curr, ids));
 
-  // Toast Controls
-
-  const getItemNameById = (id) => {
-    if (!id) return 'Item';
-    // Try orphaned list first (assign flow)
-    const o = orphanedItems?.find?.((x) => x?._id === id);
-    if (o?.name) return o.name;
-
-    // Try itemsUI next (added/after refresh)
-    const i = itemsUI?.find?.((x) => (x?._id ?? x) === id);
-    if (i?.name) return i.name;
-
-    return 'Item';
-  };
-
-  // Utilities to build consistent labels
-  const fmtQtyName = (name, qty) =>
-    qty != null && qty !== undefined ? `${name} ×${qty}` : name;
-  const fmtDest = (label, shortId) =>
-    shortId ? `${label} (#${shortId})` : label;
-
-  const showToast = (cfg) => {
-    // cancel any previous auto-dismiss timer
-    if (clearToastTimerRef.current) {
-      clearTimeout(clearToastTimerRef.current);
-      clearToastTimerRef.current = null;
-    }
-
-    const id = Date.now();
-    setToast({ id, ...cfg });
-
-    // schedule auto-dismiss unless sticky
-    if (!cfg?.sticky) {
-      clearToastTimerRef.current = setTimeout(() => {
-        setToast(null);
-        clearToastTimerRef.current = null;
-      }, cfg?.timeoutMs ?? 4500);
-    }
-  };
-
-  const closeToast = () => {
-    if (clearToastTimerRef.current) {
-      clearTimeout(clearToastTimerRef.current);
-      clearToastTimerRef.current = null;
-    }
-    setToast(null);
-  };
-
-  /**
-   * Move between boxes
-   * cfg: { name, quantity, destLabel, destShortId, onGo, onUndo, sticky, timeoutMs }
-   */
-  const toastMoveSuccess = ({
-    name,
-    quantity,
-    destLabel,
-    destShortId,
-    onGo,
-    onUndo,
-    sticky = true,
-    timeoutMs, // optional override if you ever want auto-dismiss
-  }) =>
-    showToast({
-      title: 'Item moved',
-      message: `${fmtQtyName(name, quantity)} → ${fmtDest(
-        destLabel,
-        destShortId,
-      )}`,
-      variant: 'info',
-      sticky, // stays up by default so Undo/Go are usable
-      timeoutMs,
-      actions: [
-        onUndo && { label: 'Undo', onClick: onUndo, kind: 'ghost' },
-        onGo && { label: 'Go', onClick: onGo, kind: 'primary' },
-      ].filter(Boolean),
-    });
-
-  /**
-   * Orphaned (removed from this box)
-   * cfg: { name, quantity, onUndo, sticky, timeoutMs }
-   */
-  const toastOrphaned = ({
-    name,
-    quantity,
-    onUndo,
-    sticky = false, // usually okay to auto-dismiss
-    timeoutMs, // default will be 4500ms from showToast
-  }) =>
-    showToast({
-      title: 'Item orphaned',
-      message: `${fmtQtyName(name, quantity)} was removed from this box.`,
-      variant: 'danger',
-      sticky,
-      timeoutMs,
-      actions: onUndo
-        ? [{ label: 'Undo', onClick: onUndo, kind: 'primary' }]
-        : [],
-    });
-
-  // ✅ Item added / assigned to this box (usually auto-dismisses)
-  const toastAdded = ({
-    name,
-    quantity,
-    sticky = false, // add toasts typically fade out
-    timeoutMs, // override if you want a shorter/longer lifetime
-    onUndo, // optional: provide to quickly orphan it back
-  }) =>
-    showToast({
-      title: 'Item added',
-      message: `${fmtQtyName(name, quantity)} is now in this box.`,
-      variant: 'success',
-      sticky,
-      timeoutMs,
-      actions: onUndo
-        ? [{ label: 'Undo', onClick: onUndo, kind: 'primary' }]
-        : [],
-    });
-
-  // ✅ Box emptied → items moved to Orphaned
-  const plural = (n, one, many) => (n === 1 ? one : many);
-
-  const toastEmptied = ({
-    count,
-    sticky = true, // tends to be a big action; keep it up with Undo when available
-    timeoutMs,
-    onUndo, // optional: only if you support “restore last emptied set”
-  }) =>
-    showToast({
-      title: 'Box emptied',
-      message: `${count} ${plural(count, 'item', 'items')} moved to Orphaned.`,
-      variant: 'warning',
-      sticky,
-      timeoutMs,
-      actions: onUndo
-        ? [{ label: 'Undo', onClick: onUndo, kind: 'primary' }]
-        : [],
-    });
-
   const handleToggle = (itemId) => {
     if (openItemId === itemId) {
       setOpenItemId(null); // begin closing
@@ -289,11 +148,7 @@ export default function BoxActionPanel({
     // shortId unchanged → finish local edit UX here
     setActivePanel(null); // close “Edit Details” section
     await refreshBox?.(); // reconcile latest data
-    showToast?.({
-      title: 'Box updated',
-      message: 'Details saved.',
-      variant: 'success',
-    });
+    // TODO(toast): show Box updated via ToastContext
   };
 
   const handleMoveRequest = async ({
@@ -346,31 +201,7 @@ export default function BoxActionPanel({
       clearZipIfMatches(itemId);
 
       // 8) Toast: show name, quantity (if known), and destination label/short id
-      toastMoveSuccess({
-        // e.g., “Widget ×2 → Kitchen (#A12)”
-        itemName: qtyForToast
-          ? `${nameForToast} ×${qtyForToast}`
-          : nameForToast,
-        destLabel: destShortId ? `${destLabel} (#${destShortId})` : destLabel,
-
-        onGo: () => {
-          // If you navigate by short id, wire it here.
-          // navigate(`/boxes/${destShortId || destBoxId}`);
-          closeToast();
-        },
-
-        onUndo: () => {
-          closeToast();
-          // Use the same metadata so undo can animate back with context
-          undoMove({
-            itemId,
-            itemName: nameForToast,
-            itemQuantity: qtyForToast ?? undefined,
-            sourceBoxId, // original source
-            destBoxId, // original dest
-          });
-        },
-      });
+      // TODO(toast): show Item moved via ToastContext
     } catch (e) {
       console.error('[handleMoveRequest] failed:', e);
       // Roll back the zip so the row doesn’t stay ghosted
@@ -477,7 +308,7 @@ export default function BoxActionPanel({
 
     // 🔸 take snapshot before we zip out / mutate lists
     const snap = snapshotItem(itemId);
-    const itemName = snap?.name || getItemName(itemId);
+    // const itemName = snap?.name || getItemName(itemId);
 
     try {
       setOpenItemId(null);
@@ -499,14 +330,7 @@ export default function BoxActionPanel({
       await Promise.all([refreshBox?.(), fetchOrphanedItems?.()]);
       clearZipIfMatches(itemId);
 
-      // ✅ Toast uses the snapshot name, never "undefined"
-      toastOrphaned({
-        itemName, // stable
-        onUndo: () => {
-          closeToast();
-          undoOrphan({ boxMongoId, itemId, itemName });
-        },
-      });
+      // TODO(toast): show Item orphaned via ToastContext
     } catch (e) {
       console.error('[handleOrphanRequest] failed:', e);
       setZippingItemId(null);
@@ -550,8 +374,8 @@ export default function BoxActionPanel({
 
   const handleItemAdded = (newItem) => {
     const id = newItem?._id ?? newItem?.id;
-    const name = newItem?.name ?? '(Unnamed Item)';
-    const qty = newItem?.quantity;
+    // const name = newItem?.name ?? '(Unnamed Item)';
+    // const qty = newItem?.quantity;
     if (id) enteringIdsRef.current.add(id); // pre-enter mask
 
     setItemsUI((prev) => (id ? [...prev, newItem] : prev));
@@ -559,8 +383,7 @@ export default function BoxActionPanel({
 
     // Start the entrance animation (zip-in + green flash)
     markEntered(id);
-    // ✅ toast
-    toastAdded({ name, quantity: qty });
+    // TODO(toast): show Item added via ToastContext
 
     // Keep server state in sync
     fetchOrphanedItems?.();
@@ -575,14 +398,7 @@ export default function BoxActionPanel({
     if (itemId) {
       // Animate entrance
       markEntered(itemId);
-
-      // ✅ Toast: “Item added”
-      const name = getItemNameById(itemId);
-      showToast?.({
-        title: 'Item added',
-        message: `${name} is now in this box.`,
-        variant: 'success',
-      });
+      // TODO(toast): show Item added via ToastContext
     }
 
     onItemAssigned?.(itemId);
@@ -720,22 +536,12 @@ export default function BoxActionPanel({
       clearBatchLeaving(ids);
 
       // 6) Toast with Undo
-      toastEmptied({
-        count,
-        onUndo: () => {
-          closeToast();
-          undoEmpty();
-        },
-      });
+      // TODO(toast): show Box emptied via ToastContext
     } catch (e) {
       console.error('[handleEmptyBox] failed:', e);
       // Roll back leaving flags
       clearBatchLeaving(ids);
-      showToast({
-        title: 'Empty failed',
-        message: e.message || 'Unable to empty this box.',
-        variant: 'danger',
-      });
+      // TODO(toast): show Empty failed via ToastContext
     }
   };
 
@@ -749,12 +555,7 @@ export default function BoxActionPanel({
 
     // Guard: if there’s no snapshot (or it’s for a different box), bail nicely.
     if (!items?.length || boxId !== boxMongoId) {
-      showToast({
-        title: 'Nothing to undo',
-        message: 'No recent “empty box” snapshot found for this box.',
-        variant: 'warning',
-        timeoutMs: 3000,
-      });
+      // TODO(toast): show Nothing to undo via ToastContext
       return;
     }
 
@@ -804,12 +605,7 @@ export default function BoxActionPanel({
       ids.forEach((id) => enteringIdsRef.current.delete(id));
       setIsUndoing(false);
 
-      // 8) ERROR TOAST — let the user know the undo didn’t stick.
-      showToast({
-        title: 'Undo failed',
-        message: e.message || 'Could not restore items to this box.',
-        variant: 'danger',
-      });
+      // TODO(toast): show Undo failed via ToastContext
     }
   };
 
@@ -871,12 +667,7 @@ export default function BoxActionPanel({
   useEffect(() => {
     return () => {
       // clear single-timeout refs (if set)
-      [
-        timeoutRef,
-        clearToastTimerRef,
-        undoFlashTimerRef,
-        enterFlashTimerRef,
-      ].forEach((ref) => {
+      [timeoutRef, undoFlashTimerRef, enterFlashTimerRef].forEach((ref) => {
         if (ref?.current) {
           clearTimeout(ref.current);
           ref.current = null;
@@ -909,14 +700,7 @@ export default function BoxActionPanel({
 
   return (
     <PanelContainer>
-      <BoxActionToast
-        open={!!toast}
-        title={toast?.title}
-        message={toast?.message}
-        variant={toast?.variant}
-        actions={toast?.actions ?? []}
-        onClose={closeToast}
-      />
+      {/* TODO(toast): Toast UI handled via ToastContext */}
       {/* // ? {Box Actions switch bar } */}
       <BoxControlBar
         active={activePanel}
