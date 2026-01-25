@@ -47,7 +47,7 @@ export function ToastProvider({ children }) {
   }, []);
 
   return (
-    <ToastContext.Provider value={{ showToast, hideToast }}>
+    <ToastContext.Provider value={{ toast, showToast, hideToast }}>
       {children}
 
       {toast && (

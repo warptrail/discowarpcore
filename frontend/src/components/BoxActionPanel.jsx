@@ -2,6 +2,8 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { useNavigate, useParams } from 'react-router-dom';
 import { API_BASE } from '../api/API_BASE';
+import { useContext } from 'react';
+import { ToastContext } from './Toast';
 
 // Components
 import BoxControlBar from './BoxControlBar';
@@ -42,6 +44,11 @@ export default function BoxActionPanel({
   const [showBoxDetails, setShowBoxDetails] = useState(false);
   const [activePanel, setActivePanel] = useState(null);
   const [detailsHeight, setDetailsHeight] = useState(0);
+
+  //? CONTEXT
+  const toastCtx = useContext(ToastContext);
+  const showToast = toastCtx?.showToast;
+  const hideToast = toastCtx?.hideToast;
 
   // ? REF
   const timeoutRef = useRef(null);
@@ -536,13 +543,100 @@ export default function BoxActionPanel({
       clearBatchLeaving(ids);
 
       // 6) Toast with Undo
-      // TODO(toast): show Box emptied via ToastContext
+      showToast?.({
+        variant: 'success',
+        title: 'Box emptied',
+        message: `Orphaned ${count} item${count === 1 ? '' : 's'}.`,
+        sticky: true,
+        actions: [
+          {
+            id: `undo-empty-${boxMongoId}-${lastEmptiedRef.current.at}`,
+            label: 'Undo',
+            kind: 'primary',
+            onClick: async () => {
+              hideToast?.();
+              await undoEmpty();
+            },
+          },
+        ],
+      });
     } catch (e) {
       console.error('[handleEmptyBox] failed:', e);
       // Roll back leaving flags
       clearBatchLeaving(ids);
-      // TODO(toast): show Empty failed via ToastContext
+      showToast?.({
+        variant: 'danger',
+        title: 'Empty failed',
+        message: e?.message || 'Failed to empty this box.',
+        sticky: true,
+        actions: [
+          {
+            id: 'dismiss-empty-failed',
+            label: 'Dismiss',
+            kind: 'ghost',
+            onClick: () => hideToast?.(),
+          },
+        ],
+      });
     }
+  };
+
+  // ---------- CONFIRM: Empty box (warning toast) ----------
+  const requestEmptyConfirm = () => {
+    console.log('[BoxActionPanel] Empty clicked → requestEmptyConfirm');
+    console.log('[BoxActionPanel] toastCtx:', toastCtx);
+    console.log('[BoxActionPanel] typeof showToast:', typeof showToast);
+
+    // TEMP DEBUG: force a simple toast so we can verify Header wiring
+    if (typeof showToast === 'function') {
+      showToast({
+        variant: 'warning',
+        title: 'Toast pipe test',
+        message: 'If you see this in the header, Context is flowing. 🖖',
+        timeoutMs: 3000,
+      });
+    } else {
+      console.warn(
+        '[BoxActionPanel] showToast is not a function — ToastProvider or exports may be miswired',
+      );
+    }
+
+    const snapshot = snapshotBoxItems();
+    const ids = idsOf(snapshot);
+
+    if (!ids.length) {
+      showToast?.({
+        variant: 'info',
+        title: 'Nothing to empty',
+        message: 'This box is already empty.',
+        timeoutMs: 2200,
+      });
+      return;
+    }
+
+    showToast?.({
+      variant: 'warning',
+      title: 'Empty this box?',
+      message: `This will orphan ${ids.length} item${ids.length === 1 ? '' : 's'}. You can undo right after.`,
+      sticky: true,
+      actions: [
+        {
+          id: 'cancel-empty',
+          label: 'Cancel',
+          kind: 'ghost',
+          onClick: () => hideToast?.(),
+        },
+        {
+          id: 'confirm-empty',
+          label: 'Empty',
+          kind: 'danger',
+          onClick: async () => {
+            hideToast?.();
+            await handleEmptyBox();
+          },
+        },
+      ],
+    });
   };
 
   // ---- Bulk attach helper (matches your API style)
@@ -704,7 +798,7 @@ export default function BoxActionPanel({
       {/* // ? {Box Actions switch bar } */}
       <BoxControlBar
         active={activePanel}
-        onClickEmpty={handleEmptyBox} // one-and-done, no panel
+        onClickEmpty={requestEmptyConfirm} // confirm via toast
         onClickNest={() => togglePanel('nest')}
         onClickEdit={() => togglePanel('edit')}
         onClickDestroy={() => togglePanel('destroy')}
