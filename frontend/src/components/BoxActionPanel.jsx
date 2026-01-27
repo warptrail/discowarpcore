@@ -15,7 +15,6 @@ import MiniOrphanedList from './MiniOrphanedList';
 import AddItemToThisBoxForm from './AddItemToThisBoxForm';
 
 export default function BoxActionPanel({
-  flatItems,
   boxTree,
   boxMongoId,
   onItemUpdated,
@@ -40,7 +39,9 @@ export default function BoxActionPanel({
   const [justReturnedIds, setJustReturnedIds] = useState(() => new Set());
   const [isUndoing, setIsUndoing] = useState(false);
   const [justReturnedItemId, setJustReturnedItemId] = useState(null);
-  const [itemsUI, setItemsUI] = useState(flatItems || []);
+  const [itemsUI, setItemsUI] = useState(() =>
+    Array.isArray(boxTree?.items) ? boxTree.items : [],
+  );
   const [showBoxDetails, setShowBoxDetails] = useState(false);
   const [activePanel, setActivePanel] = useState(null);
   const [detailsHeight, setDetailsHeight] = useState(0);
@@ -61,11 +62,18 @@ export default function BoxActionPanel({
   const itemSnapshotRef = useRef(new Map()); // Map<string, Item>
   const detailsInnerRef = useRef(null);
   const lastEmptiedRef = useRef({ boxId: null, items: [], at: 0 });
+  // Guard: true while an empty operation is in flight, to prevent UI resync from stale props
+  const isEmptyingRef = useRef(false);
 
   // ? Navigate
   const navigate = useNavigate();
   const { shortId: routeShortId } = useParams();
   const ANIM_LEAVE_MS = 1000; // must match zipAway duration
+  // Direct items only (no child box items)
+  const directItems = useMemo(
+    () => (Array.isArray(boxTree?.items) ? boxTree.items : []),
+    [boxTree],
+  );
 
   // For toggling the activePanel state from BoxControlBar
   const togglePanel = (boxCtrlBtn) =>
@@ -410,58 +418,6 @@ export default function BoxActionPanel({
 
     onItemAssigned?.(itemId);
   };
-  // Walk the box tree and build a Map from itemId -> { boxId, label, shortId }.
-  // Assumptions (rename to your real fields if needed):
-  // - A "box node" looks like: { _id, label, box_id, items, childBoxes }
-  // - `items` can be either an array of item objects ({ _id, ... }) or itemId strings.
-  // - `childBoxes` is an array of nested box nodes (or undefined).
-
-  // Build Map: itemId -> { boxId, label, shortId }
-  function buildItemOwnershipIndex(rootBoxNode) {
-    const index = new Map(); // Map<string, { boxId: string, label?: string, shortId?: string }>
-    const toId = (x) => (x == null ? '' : String(x));
-
-    function dfs(boxNode) {
-      if (!boxNode) return;
-
-      const items = Array.isArray(boxNode.items) ? boxNode.items : [];
-      for (const it of items) {
-        const rawId = typeof it === 'string' ? it : it && it._id;
-        const itemId = toId(rawId);
-        if (!itemId) continue;
-
-        const prev = index.get(itemId);
-        if (prev && prev.boxId !== toId(boxNode._id)) {
-          // Optional: keep or remove this warning if you don't want console noise
-          console.warn('[ownershipIndex] Item appears in multiple boxes:', {
-            itemId,
-            prevBoxId: prev.boxId,
-            currentBoxId: toId(boxNode._id),
-          });
-        }
-
-        index.set(itemId, {
-          boxId: toId(boxNode._id),
-          label: boxNode.label ?? '',
-          shortId: toId(boxNode.box_id),
-        });
-      }
-
-      const children = Array.isArray(boxNode.childBoxes)
-        ? boxNode.childBoxes
-        : [];
-      for (const child of children) dfs(child);
-    }
-
-    dfs(rootBoxNode);
-    return index;
-  }
-
-  // Recompute only when the box tree reference changes (after refreshBox, etc.)
-  const ownershipIndex = useMemo(() => {
-    if (!boxTree) return new Map();
-    return buildItemOwnershipIndex(boxTree);
-  }, [boxTree]);
 
   // Snapshot helpers
   const snapshotBoxItems = () => (itemsUI || []).map((it) => ({ ...it })); // full objects (for immediate form data)
@@ -510,6 +466,7 @@ export default function BoxActionPanel({
       items: snapshot,
       at: Date.now(),
     };
+    isEmptyingRef.current = true;
 
     // 2) Kick batch zip-out animation
     markBatchLeaving(ids);
@@ -538,9 +495,12 @@ export default function BoxActionPanel({
 
       // 4) Now reconcile (this is when rows actually disappear from data)
       await Promise.all([refreshBox?.(), fetchOrphanedItems?.()]);
+      // Commit local UI to the emptied state immediately (prevents stale directItems from repopulating)
+      setItemsUI([]);
 
       // 5) Clear leaving flags
       clearBatchLeaving(ids);
+      isEmptyingRef.current = false;
 
       // 6) Toast with Undo
       showToast?.({
@@ -564,6 +524,7 @@ export default function BoxActionPanel({
       console.error('[handleEmptyBox] failed:', e);
       // Roll back leaving flags
       clearBatchLeaving(ids);
+      isEmptyingRef.current = false;
       showToast?.({
         variant: 'danger',
         title: 'Empty failed',
@@ -650,6 +611,7 @@ export default function BoxActionPanel({
     // Guard: if there’s no snapshot (or it’s for a different box), bail nicely.
     if (!items?.length || boxId !== boxMongoId) {
       // TODO(toast): show Nothing to undo via ToastContext
+      isEmptyingRef.current = false;
       return;
     }
 
@@ -684,6 +646,7 @@ export default function BoxActionPanel({
 
       // 6) RECONCILE — refresh canonical state (box + orphan list)
       await Promise.all([refreshBox?.(), fetchOrphanedItems?.()]);
+      isEmptyingRef.current = false;
 
       // (Optional) You could clear lastEmptiedRef here so it’s a one-shot undo:
       // lastEmptiedRef.current = { boxId: null, items: [], at: 0 };
@@ -698,6 +661,7 @@ export default function BoxActionPanel({
       setJustReturnedIds((curr) => removeAll(curr, ids));
       ids.forEach((id) => enteringIdsRef.current.delete(id));
       setIsUndoing(false);
+      isEmptyingRef.current = false;
 
       // TODO(toast): show Undo failed via ToastContext
     }
@@ -734,11 +698,16 @@ export default function BoxActionPanel({
     }
   }, [openItemId]);
 
-  // 2) Keep local UI list in sync with incoming flatItems
+  // 2) Keep local UI list in sync with incoming direct items (this box only)
   useEffect(() => {
-    setItemsUI(flatItems || []);
-    // console.log(flatItems, 'flat items'); // optional: remove noisy logs in prod
-  }, [flatItems]);
+    // During a batch empty, directItems can temporarily lag behind backend truth.
+    // Avoid rehydrating the UI from stale props; only accept updates once the box
+    // actually reports empty (or we're not emptying).
+    const next = directItems || [];
+    if (isEmptyingRef.current && next.length > 0) return;
+    setItemsUI(next);
+    // console.log(next, 'direct items'); // optional: remove noisy logs in prod
+  }, [directItems]);
 
   // 3) On mount: fetch the orphaned list once
   useEffect(() => {
@@ -850,7 +819,6 @@ export default function BoxActionPanel({
             const id = item._id;
             const isOpen = openItemId === id;
             const isVisible = visibleItemId === id;
-            const owner = ownershipIndex.get(id) || {};
             const leavingByBatch = zippingIds.has(id);
             const leavingBySingle = zippingItemId === id;
             const enteringByBatch = justReturnedIds.has(id);
@@ -889,9 +857,9 @@ export default function BoxActionPanel({
                         initialItem={item}
                         boxId={routeShortId}
                         boxMongoId={boxMongoId}
-                        sourceBoxId={owner.boxId}
-                        sourceBoxLabel={owner.label} // optional
-                        sourceBoxShortId={owner.shortId} // optional
+                        sourceBoxId={boxMongoId}
+                        sourceBoxLabel={boxTree?.label}
+                        sourceBoxShortId={routeShortId}
                         onClose={() => handleToggle(item._id)}
                         onItemUpdated={onItemUpdated}
                         onMoveRequest={handleMoveRequest}

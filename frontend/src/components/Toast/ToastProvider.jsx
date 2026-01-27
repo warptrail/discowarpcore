@@ -1,5 +1,4 @@
 import { useCallback, useRef, useState } from 'react';
-import Toast from './Toast';
 import { ToastContext } from './ToastContext';
 
 export function ToastProvider({ children }) {
@@ -49,17 +48,6 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={{ toast, showToast, hideToast }}>
       {children}
-
-      {toast && (
-        <Toast
-          open
-          title={toast.title}
-          message={toast.message}
-          variant={toast.variant}
-          actions={toast.actions}
-          onClose={hideToast}
-        />
-      )}
     </ToastContext.Provider>
   );
 }

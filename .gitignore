@@ -43,6 +43,7 @@ frontend/.DS_Store
 frontend/node_modules/
 frontend/dist/
 repo_context.txt
+v2_repo_context.txt
 
 # macOS folder view settings
 Desktop.ini

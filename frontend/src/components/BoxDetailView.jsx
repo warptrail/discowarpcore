@@ -252,12 +252,7 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
         )}
 
         {!loading && !error && activeTab === 'edit' && tree && (
-          <BoxActionPanel
-            box={tree}
-            boxTree={tree}
-            boxMongoId={tree._id}
-            flatItems={flatItems}
-          />
+          <BoxActionPanel box={tree} boxTree={tree} boxMongoId={tree._id} />
         )}
       </S.Content>
     </S.Wrap>

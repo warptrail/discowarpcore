@@ -9,7 +9,9 @@
   "scripts": {
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js",
-    "install:all": "npm install && cd frontend && npm install"
+    "install:all": "npm install && cd frontend && npm install",
+    "seed": "node backend/scripts/seed.js",
+    "seed:all": "node backend/scripts/seed.js --all"
   },
   "dependencies": {
     "cors": "^2.8.5",

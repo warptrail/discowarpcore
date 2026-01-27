@@ -1,14 +1,13 @@
 // services/devService.js
 const Box = require('../models/Box');
 const Item = require('../models/Item');
-const TREES = require('../seed/boxTrees.mock');
 const dayjs = require('dayjs');
 
 async function orphanAllItemsSequential(startAt = '2000-01-01T00:00:00Z') {
   // 1) Collect item IDs from all boxes, preserve encounter order, dedupe
   const boxes = await Box.find(
     { items: { $exists: true, $ne: [] } },
-    { items: 1 }
+    { items: 1 },
   )
     .sort({ box_id: 1, createdAt: 1, _id: 1 })
     .lean();
@@ -46,7 +45,7 @@ async function orphanAllItemsSequential(startAt = '2000-01-01T00:00:00Z') {
     // Clear items arrays in boxes (keep nesting intact)
     await Box.updateMany(
       { items: { $exists: true, $ne: [] } },
-      { $set: { items: [] } }
+      { $set: { items: [] } },
     );
   }
 

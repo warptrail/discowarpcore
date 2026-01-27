@@ -5,17 +5,9 @@ const Item = require('../models/Item');
 const mockData = require('../mock_data.json');
 
 const { orphanAllItemsSequentialApi } = require('../controllers/devController');
-const {
-  seedNestedApi,
-  deleteSeedNestedApi,
-} = require('../controllers/devSeedController');
 
 // Orphan every item, 1-second apart starting at startAt (optional)
 router.post('/orphan/all-items-seq', orphanAllItemsSequentialApi);
-
-// Seed and delete mock data
-router.post('/seed-nested', seedNestedApi);
-router.delete('/seed-nested', deleteSeedNestedApi);
 
 // PATCH /api/tools/backfill-items?key=dev123
 // Helper: pick random element(s)
@@ -53,7 +45,7 @@ router.patch('/backfill-items', async (req, res) => {
 
         for (let i = 0; i < numUses; i++) {
           const d = new Date(
-            start.getTime() + Math.random() * (Date.now() - start.getTime())
+            start.getTime() + Math.random() * (Date.now() - start.getTime()),
           );
           history.push(d.toISOString());
         }
