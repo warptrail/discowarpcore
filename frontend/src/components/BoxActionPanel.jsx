@@ -46,6 +46,10 @@ export default function BoxActionPanel({
   const [activePanel, setActivePanel] = useState(null);
   const [detailsHeight, setDetailsHeight] = useState(0);
 
+  // Panel mode flags
+  const isDestroyMode = activePanel === 'destroy';
+  const isEmptyMode = activePanel === 'empty';
+
   //? CONTEXT
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
@@ -77,7 +81,28 @@ export default function BoxActionPanel({
 
   // For toggling the activePanel state from BoxControlBar
   const togglePanel = (boxCtrlBtn) =>
-    setActivePanel((prev) => (prev === boxCtrlBtn ? null : boxCtrlBtn));
+    setActivePanel((prev) => {
+      const next = prev === boxCtrlBtn ? null : boxCtrlBtn;
+      // If we are leaving Empty mode, cancel its confirmation toast
+      if (prev === 'empty' && next !== 'empty') {
+        hideToast?.();
+      }
+      return next;
+    });
+  // Dedicated handler for Empty tab: toggles empty mode and shows confirm toast
+  const handleEmptyTab = () => {
+    setActivePanel((prev) => {
+      if (prev === 'empty') {
+        // Toggle off = cancel
+        hideToast?.();
+        return null;
+      }
+      // Enter empty mode and show confirm toast
+      requestEmptyConfirm();
+      return 'empty';
+    });
+  };
+
   // Snapshot cache helpers
   const getItemFromUIById = (id) =>
     (itemsUI || []).find((it) => (it?._id ?? it?.id) === id);
@@ -585,7 +610,10 @@ export default function BoxActionPanel({
           id: 'cancel-empty',
           label: 'Cancel',
           kind: 'ghost',
-          onClick: () => hideToast?.(),
+          onClick: () => {
+            hideToast?.();
+            setActivePanel((prev) => (prev === 'empty' ? null : prev));
+          },
         },
         {
           id: 'confirm-empty',
@@ -593,6 +621,7 @@ export default function BoxActionPanel({
           kind: 'danger',
           onClick: async () => {
             hideToast?.();
+            setActivePanel((prev) => (prev === 'empty' ? null : prev));
             await handleEmptyBox();
           },
         },
@@ -767,7 +796,7 @@ export default function BoxActionPanel({
       {/* // ? {Box Actions switch bar } */}
       <BoxControlBar
         active={activePanel}
-        onClickEmpty={requestEmptyConfirm} // confirm via toast
+        onClickEmpty={handleEmptyTab} // confirm via toast + enter empty mode
         onClickNest={() => togglePanel('nest')}
         onClickEdit={() => togglePanel('edit')}
         onClickDestroy={() => togglePanel('destroy')}
@@ -810,82 +839,101 @@ export default function BoxActionPanel({
         busy={busy}
       />
 
-      {/* {Items map} */}
-      {itemsUI.length === 0 ? (
-        <EmptyMessage>This box is empty. Add some items below.</EmptyMessage>
-      ) : (
-        <ItemList>
-          {itemsUI.map((item) => {
-            const id = item._id;
-            const isOpen = openItemId === id;
-            const isVisible = visibleItemId === id;
-            const leavingByBatch = zippingIds.has(id);
-            const leavingBySingle = zippingItemId === id;
-            const enteringByBatch = justReturnedIds.has(id);
-            const enteringBySingle = justReturnedItemId === id;
-            const isLeaving = leavingByBatch || leavingBySingle;
-            const isUndo = isUndoing && (enteringByBatch || enteringBySingle);
-            const isEntering = enteringByBatch || enteringBySingle; // includes undo
-            const isPreEnter = enteringIdsRef.current.has(id); // 👈 first paint mask
-            const zipProp = isLeaving ? 'out' : isEntering ? 'in' : undefined;
-            const flashProp = isUndo
-              ? 'yellow'
-              : isEntering
-                ? 'green'
-                : isLeaving
-                  ? 'red'
-                  : undefined;
+      {/* Items map and related UI, only shown when not in destroy mode */}
+      {!isDestroyMode && (
+        <>
+          {/* {Items map} */}
+          {itemsUI.length === 0 ? (
+            <EmptyMessage>
+              This box is empty. Add some items below.
+            </EmptyMessage>
+          ) : (
+            <ItemList>
+              {itemsUI.map((item) => {
+                const id = item._id;
+                const isOpen = openItemId === id;
+                const isVisible = visibleItemId === id;
+                const leavingByBatch = zippingIds.has(id);
+                const leavingBySingle = zippingItemId === id;
+                const enteringByBatch = justReturnedIds.has(id);
+                const enteringBySingle = justReturnedItemId === id;
+                const isLeaving = leavingByBatch || leavingBySingle;
+                const isUndo =
+                  isUndoing && (enteringByBatch || enteringBySingle);
+                const isEntering = enteringByBatch || enteringBySingle; // includes undo
+                const isPreEnter = enteringIdsRef.current.has(id); // 👈 first paint mask
+                const zipProp = isLeaving
+                  ? 'out'
+                  : isEntering
+                    ? 'in'
+                    : undefined;
+                const flashProp = isUndo
+                  ? 'yellow'
+                  : isEntering
+                    ? 'green'
+                    : isLeaving
+                      ? 'red'
+                      : undefined;
 
-            return (
-              <div key={item._id}>
-                <ItemRow
-                  onClick={() => handleToggle(item._id)}
-                  $isOpen={isOpen}
-                  $zip={zipProp}
-                  $flash={flashProp}
-                  $flashDelay={isEntering ? 280 : 0} // flash after zip-in; immediate for undo/leave
-                  $preEnter={isPreEnter}
-                >
-                  <BoxLabel>{item.name || '(Unnamed Item)'}</BoxLabel>
-                </ItemRow>
+                return (
+                  <div key={item._id}>
+                    <ItemRow
+                      onClick={() => handleToggle(item._id)}
+                      $isOpen={isOpen}
+                      $zip={zipProp}
+                      $flash={flashProp}
+                      $flashDelay={isEntering ? 280 : 0} // flash after zip-in; immediate for undo/leave
+                      $preEnter={isPreEnter}
+                    >
+                      <BoxLabel>{item.name || '(Unnamed Item)'}</BoxLabel>
+                    </ItemRow>
 
-                {isVisible && (
-                  <ItemEditWrapper $isOpen={isOpen} $maxHeight={itemEditHeight}>
-                    <div ref={itemEditRef}>
-                      <ItemEditForm
-                        key={item.item_id}
-                        initialItem={item}
-                        boxId={routeShortId}
-                        boxMongoId={boxMongoId}
-                        sourceBoxId={boxMongoId}
-                        sourceBoxLabel={boxTree?.label}
-                        sourceBoxShortId={routeShortId}
-                        onClose={() => handleToggle(item._id)}
-                        onItemUpdated={onItemUpdated}
-                        onMoveRequest={handleMoveRequest}
-                        onOrphanRequest={handleOrphanRequest}
-                        refreshBox={refreshBox}
-                      />
-                    </div>
-                  </ItemEditWrapper>
-                )}
-              </div>
-            );
-          })}
-        </ItemList>
+                    {isVisible && (
+                      <ItemEditWrapper
+                        $isOpen={isOpen}
+                        $maxHeight={itemEditHeight}
+                      >
+                        <div ref={itemEditRef}>
+                          <ItemEditForm
+                            key={item.item_id}
+                            initialItem={item}
+                            boxId={routeShortId}
+                            boxMongoId={boxMongoId}
+                            sourceBoxId={boxMongoId}
+                            sourceBoxLabel={boxTree?.label}
+                            sourceBoxShortId={routeShortId}
+                            onClose={() => handleToggle(item._id)}
+                            onItemUpdated={onItemUpdated}
+                            onMoveRequest={handleMoveRequest}
+                            onOrphanRequest={handleOrphanRequest}
+                            refreshBox={refreshBox}
+                          />
+                        </div>
+                      </ItemEditWrapper>
+                    )}
+                  </div>
+                );
+              })}
+            </ItemList>
+          )}
+        </>
       )}
-      <MiniOrphanedList
-        boxMongoId={boxMongoId}
-        onItemAssigned={handleItemAssigned}
-        onItemUpdated={onItemUpdated}
-        orphanedItems={orphanedItems}
-        fetchOrphanedItems={fetchOrphanedItems}
-      />
-      <AddItemToThisBoxForm
-        boxMongoId={boxMongoId}
-        onAdded={handleItemAdded}
-        boxShortId={routeShortId}
-      />
+      {!isDestroyMode && (
+        <MiniOrphanedList
+          boxMongoId={boxMongoId}
+          onItemAssigned={handleItemAssigned}
+          onItemUpdated={onItemUpdated}
+          orphanedItems={orphanedItems}
+          fetchOrphanedItems={fetchOrphanedItems}
+        />
+      )}
+      {!isDestroyMode && !isEmptyMode && (
+        <AddItemToThisBoxForm
+          boxMongoId={boxMongoId}
+          onAdded={handleItemAdded}
+          boxShortId={routeShortId}
+        />
+      )}
     </PanelContainer>
   );
 }

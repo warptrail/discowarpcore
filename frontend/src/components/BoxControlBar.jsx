@@ -50,6 +50,25 @@ const Btn = styled.button`
   ${(props) => props.$active && btnActiveStyles}
 `;
 
+const warningBtnActiveStyles = css`
+  border-color: #ffd400;
+  background: #231f19;
+  box-shadow: 0 0 0 2px rgba(255, 212, 0, 0.25) inset;
+  color: #ffe27a;
+`;
+
+const WarningBtn = styled(Btn)`
+  border-color: #3a3623;
+
+  &:hover {
+    border-color: #ffd400;
+    background: #231f19;
+    box-shadow: 0 0 6px rgba(255, 212, 0, 0.35);
+  }
+
+  ${(props) => props.$active && warningBtnActiveStyles}
+`;
+
 const dangerBtnActiveStyles = css`
   border-color: #ff4d4f;
   background: #2a1616;
@@ -70,7 +89,7 @@ const DangerBtn = styled(Btn)`
 
 /*
  * Props:
- * - active: null | 'nest' | 'edit' | 'destroy'
+ * - active: null | 'empty' | 'nest' | 'edit' | 'destroy'
  * - onClickEmpty, onClickNest, onClickEdit, onClickDestroy
  * - busy?: boolean
  */
@@ -85,16 +104,17 @@ export default function BoxControlBar({
 }) {
   return (
     <Bar>
-      <Btn
+      <WarningBtn
         type="button"
         disabled={busy || !onClickEmpty}
         onClick={onClickEmpty}
+        $active={active === 'empty'}
         aria-label="Empty this box"
         title="Empty this box"
-        aria-pressed={false}
+        aria-pressed={active === 'empty'}
       >
         Empty
-      </Btn>
+      </WarningBtn>
 
       <Btn
         type="button"
