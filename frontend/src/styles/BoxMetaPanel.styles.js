@@ -1,7 +1,6 @@
 // src/styles/BoxMetaPanel.styles.js
 import styled from 'styled-components';
 
-/* ---- LCARS-ish fixed palette (no ThemeProvider required) ---- */
 const LCARS = {
   bg: '#0E0F12',
   panel: '#151921',
@@ -16,203 +15,360 @@ const LCARS = {
   lime: '#9BE564',
 };
 
-const RADIUS = '12px';
-const CHIP = '999px';
+const PANEL_RADIUS = '14px';
+const NODE_RADIUS = '10px';
+const FAST = '150ms ease';
 
-/* ---- Root panel ---- */
+const toneColor = (tone) =>
+  tone === 'coral'
+    ? LCARS.coral
+    : tone === 'amber'
+    ? LCARS.amber
+    : tone === 'lime'
+    ? LCARS.lime
+    : tone === 'teal'
+    ? LCARS.teal
+    : LCARS.lilac;
+
 export const Panel = styled.section`
-  background: ${LCARS.panel};
-  border: 1px solid ${LCARS.line};
-  border-radius: ${RADIUS};
-  padding: 16px;
-  display: grid;
-  gap: 12px;
   position: relative;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25), 0 12px 26px rgba(0, 0, 0, 0.22);
+  display: grid;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid ${LCARS.line};
+  border-radius: ${PANEL_RADIUS};
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 28%),
+    ${LCARS.panel};
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.28), 0 10px 20px rgba(0, 0, 0, 0.2);
 
-  /* LCARS vertical accent */
   &:before {
     content: '';
     position: absolute;
-    top: 12px;
-    bottom: 12px;
-    left: 10px;
-    width: 6px;
-    border-radius: 6px;
-    background: linear-gradient(${LCARS.coral}, ${LCARS.teal});
-    opacity: 0.9;
+    left: 18px;
+    right: 18px;
+    top: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(
+      90deg,
+      ${LCARS.teal},
+      ${LCARS.coral} 48%,
+      transparent 92%
+    );
+    opacity: 0.45;
   }
 `;
 
-/* ---- Row 1: scope + breadcrumb ---- */
-export const TopRow = styled.div`
-  display: block;
+export const IdentityZone = styled.div`
+  display: grid;
+  gap: 10px;
 `;
 
-export const Crumbs = styled.nav`
+export const IdentityHeader = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  min-width: 0;
+  justify-content: space-between;
+  gap: 10px;
 `;
 
 export const ScopeBadge = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: ${CHIP};
-  font-size: 0.78rem;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid ${({ $tone }) => `${toneColor($tone)}66`};
+  background: ${({ $tone }) => `${toneColor($tone)}1f`};
+  color: ${({ $tone }) => toneColor($tone)};
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  &:before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 8px currentColor;
+    opacity: 0.75;
+  }
+`;
+
+export const DepthHint = styled.span`
+  color: ${LCARS.textDim};
+  font-size: 0.76rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+`;
+
+export const CurrentBox = styled.div`
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid ${LCARS.teal}52;
+  border-radius: ${NODE_RADIUS};
+  color: ${LCARS.text};
+  background: linear-gradient(105deg, ${LCARS.teal}26, transparent 58%),
+    ${LCARS.panelSoft};
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  cursor: default;
+`;
+
+export const CurrentBoxId = styled.span`
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.93rem;
   font-weight: 800;
-  color: ${LCARS.bg};
-  background: ${({ $tone }) =>
-    $tone === 'coral'
-      ? LCARS.coral
-      : $tone === 'amber'
-      ? LCARS.amber
-      : $tone === 'lime'
-      ? LCARS.lime
-      : $tone === 'teal'
-      ? LCARS.teal
-      : LCARS.lilac};
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  letter-spacing: 0.14em;
+  line-height: 1;
+  padding: 5px 8px;
+  border-radius: 8px;
+  color: ${LCARS.teal};
+  background: ${LCARS.teal}1f;
+  border: 1px solid ${LCARS.teal}57;
+`;
+
+export const CurrentBoxTitle = styled.span`
+  font-size: 1.02rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+export const Crumbs = styled.nav`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+`;
+
+export const PathContext = styled.div`
+  display: grid;
+  gap: 6px;
+`;
+
+export const PathLabel = styled.span`
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: ${LCARS.textDim};
 `;
 
 export const Crumb = styled.a`
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
-  border-radius: ${CHIP};
+  min-width: 0;
+  padding: 6px 9px;
+  border-radius: 8px;
+  border: 1px solid ${LCARS.line};
   color: ${LCARS.text};
   text-decoration: none;
-  background: linear-gradient(90deg, ${LCARS.coral}20, transparent 35%)
-      no-repeat,
-    ${LCARS.panel};
-  border: 1px solid ${LCARS.line};
-  white-space: nowrap;
-  max-width: 360px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  background: ${LCARS.panelSoft};
+  opacity: 0.9;
+  transition: border-color ${FAST}, background ${FAST}, opacity ${FAST},
+    transform ${FAST};
 
   &:hover {
-    background: linear-gradient(90deg, ${LCARS.lime}1a, transparent 45%)
-        no-repeat,
+    opacity: 1;
+    border-color: ${LCARS.teal}42;
+    background: linear-gradient(98deg, ${LCARS.teal}14, transparent 52%),
       ${LCARS.panelSoft};
     transform: translateY(-1px);
-  }
-
-  &[aria-current='page'] {
-    outline: 2px solid ${LCARS.teal}44;
   }
 `;
 
 export const CrumbSep = styled.span`
   color: ${LCARS.textDim};
+  font-size: 0.9rem;
+  line-height: 1;
   user-select: none;
 `;
 
 export const BoxIdMono = styled.span`
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     'Liberation Mono', 'Courier New', monospace;
-  font-weight: 900;
+  font-size: 0.74rem;
+  font-weight: 700;
   letter-spacing: 0.08em;
-  padding: 2px 6px;
-  border-radius: ${CHIP};
-  color: ${LCARS.bg};
-  background: ${LCARS.teal};
-  border: 1px solid ${LCARS.teal}a0;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 6px;
+  color: ${LCARS.textDim};
+  background: ${LCARS.panelSoft};
+  border: 1px solid ${LCARS.line};
 `;
 
-/* ---- Row 2: stats ---- */
-export const StatsRow = styled.div`
-  background: linear-gradient(90deg, ${LCARS.teal}17, transparent 40%) no-repeat,
-    ${LCARS.panelSoft};
-  border: 1px solid ${LCARS.line};
-  border-radius: ${RADIUS};
-  padding: 10px 12px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
+export const CrumbLabel = styled.span`
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+export const MetaZone = styled.div`
+  padding: 2px 0;
+  border-top: 1px solid ${LCARS.line};
+  border-bottom: 1px solid ${LCARS.line};
 `;
 
 export const StatGroup = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 10px 2px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 440px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const StatItem = styled.div`
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+`;
+
+export const StatLabel = styled.span`
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: ${LCARS.textDim};
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+`;
+
+export const StatValue = styled.span`
+  font-size: 1rem;
+  font-weight: 700;
+  color: ${({ $tone }) => toneColor($tone)};
+`;
+
+export const ChildrenZone = styled.div`
+  display: grid;
+  gap: 10px;
+`;
+
+export const SectionHeader = styled.div`
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-`;
-
-export const StatPill = styled.span`
-  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  border-radius: ${CHIP};
-  padding: 6px 10px;
-  font-size: 0.82rem;
-  font-weight: 800;
-  color: ${LCARS.bg};
-  background: ${({ $tone }) =>
-    $tone === 'lilac'
-      ? LCARS.lilac
-      : $tone === 'amber'
-      ? LCARS.amber
-      : $tone === 'coral'
-      ? LCARS.coral
-      : $tone === 'lime'
-      ? LCARS.lime
-      : LCARS.teal};
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  justify-content: space-between;
+  gap: 12px;
 `;
 
-/* ---- Divider ---- */
-export const Divider = styled.div`
-  height: 1px;
-  background: linear-gradient(90deg, transparent, ${LCARS.line}, transparent);
-  margin: 2px 0;
+export const Label = styled.span`
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: ${LCARS.textDim};
 `;
 
-/* ---- Row 3: children ---- */
-export const ChildrenBlock = styled.div`
+export const SectionHint = styled.span`
+  color: ${LCARS.textDim};
+  font-size: 0.8rem;
+`;
+
+export const MetaCount = styled.span`
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  color: ${LCARS.textDim};
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+`;
+
+export const ChildrenRow = styled.div`
   display: grid;
   gap: 8px;
 `;
 
-export const Label = styled.span`
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: ${LCARS.textDim};
+export const DescendantNode = styled.div`
+  display: grid;
+  gap: 6px;
+  min-width: 0;
 `;
 
-export const ChildrenRow = styled.div`
+export const DescendantRow = styled.div`
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+`;
+
+export const DescendantConnector = styled.span`
+  width: ${({ $depth }) => ($depth > 0 ? '10px' : '0px')};
+  flex: 0 0 ${({ $depth }) => ($depth > 0 ? '10px' : '0px')};
+  height: 1px;
+  background: ${LCARS.line};
+  opacity: ${({ $depth }) => ($depth > 0 ? 1 : 0)};
 `;
 
 export const BoxLink = styled.a`
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: ${CHIP};
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 9px;
   color: ${LCARS.text};
   text-decoration: none;
-  background: linear-gradient(90deg, ${LCARS.teal}22, transparent 35%) no-repeat,
-    ${LCARS.panel};
+  background: ${LCARS.panelSoft};
   border: 1px solid ${LCARS.line};
+  min-width: 0;
+  transition: border-color ${FAST}, background ${FAST}, transform ${FAST};
 
   &:hover {
-    background: linear-gradient(90deg, ${LCARS.lime}1a, transparent 45%)
-        no-repeat,
+    border-color: ${LCARS.teal}4d;
+    background: linear-gradient(98deg, ${LCARS.teal}1a, transparent 52%),
       ${LCARS.panelSoft};
     transform: translateY(-1px);
   }
 `;
 
+export const DescendantLink = styled(BoxLink)`
+  flex: 1;
+`;
+
+export const DescendantMeta = styled.span`
+  color: ${LCARS.textDim};
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  @media (max-width: 560px) {
+    display: none;
+  }
+`;
+
+export const DescendantChildren = styled.div`
+  display: grid;
+  gap: 6px;
+  margin-left: 14px;
+  padding-left: 12px;
+  border-left: 1px solid ${LCARS.line};
+`;
+
+export const BoxLinkLabel = styled.span`
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
 export const Muted = styled.span`
   color: ${LCARS.textDim};
-  opacity: 0.9;
+  font-size: 0.92rem;
+  padding: 4px 0;
 `;

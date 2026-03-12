@@ -5,9 +5,10 @@ export async function fetchBoxTreeByShortId(shortId, { signal } = {}) {
   if (!shortId) throw new Error('shortId is required');
 
   console.log('fetchBoxTreeByShortId called with:', shortId);
+  const query = new URLSearchParams({ ancestors: '1' });
 
   const res = await fetch(
-    `${API_BASE}/api/boxes/by-short-id/${encodeURIComponent(shortId)}`,
+    `${API_BASE}/api/boxes/by-short-id/${encodeURIComponent(shortId)}?${query}`,
     { signal },
   );
 
@@ -90,4 +91,46 @@ export async function destroyBoxById(boxMongoId, opts = {}) {
   } catch {
     return {};
   }
+}
+
+export async function checkBoxIdAvailability(shortId, opts = {}) {
+  if (!/^\d{3}$/.test(shortId || '')) return false;
+
+  const res = await fetch(
+    `${API_BASE}/api/boxes/check-id/${encodeURIComponent(shortId)}`,
+    { signal: opts.signal },
+  );
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.message || 'Failed to check availability');
+  }
+  return !!data?.available;
+}
+
+export async function updateBoxDetails(boxMongoId, payload, opts = {}) {
+  const res = await fetch(`${API_BASE}/api/boxes/${boxMongoId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal: opts.signal,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.message || 'Failed to update box');
+  }
+  return data?.box || data?.data || data;
+}
+
+export async function createBox(payload, opts = {}) {
+  const res = await fetch(`${API_BASE}/api/boxes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal: opts.signal,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error || data?.message || 'Unknown error');
+  }
+  return data?.box || data?.data || data;
 }

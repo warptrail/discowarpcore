@@ -23,71 +23,77 @@ function BoxSection({
 
   const items = Array.isArray(node.items) ? node.items : [];
   const kids = Array.isArray(node.childBoxes) ? node.childBoxes : [];
+  const isRootSection = depth === 0;
 
   return (
-    <S.SectionGroup>
-      <S.SectionTitle>
-        {parentBoxLabel} <S.ShortId>({parentBoxId || '?'})</S.ShortId>
-      </S.SectionTitle>
+    <S.SectionGroup $isRoot={isRootSection} $depth={depth}>
+      <S.RailBack aria-hidden="true" $isRoot={isRootSection} $depth={depth} />
 
-      {items.length > 0 && (
-        <S.List>
-          {items.map((it, idx) => {
-            const id = String(it?._id ?? it?.id ?? '');
-            const key = id || `noid-${depth}-${idx}`;
-            const annotated = { ...it, parentBoxLabel, parentBoxId };
-            const isOpen = id && openItemId === id;
-            const isPulsing = Array.isArray(pulsing) && pulsing.includes(id);
-            const flashColor = effectsById?.[id]?.flash || 'blue'; // default to blue
-            const isFlashing = !!effectsById?.[id]?.flash;
+      <S.RailFront $isRoot={isRootSection} $depth={depth}>
+        <S.SectionTitle $isRoot={isRootSection} $depth={depth}>
+          {parentBoxLabel} <S.ShortId>({parentBoxId || '?'})</S.ShortId>
+        </S.SectionTitle>
 
-            return (
-              <ItemRow
-                key={key}
-                item={annotated}
-                isOpen={isOpen}
-                onOpen={() => onOpenItem?.(id)}
-                accent={accent}
-                collapseDurMs={collapseDurMs}
-                pulsing={isPulsing}
-                flashing={isFlashing}
-                flashColor={flashColor}
-                triggerFlash={triggerFlash}
-                onSaved={(updated) => {
-                  // call back up to BoxDetailView
-                  onItemSaved?.(updated);
-                }}
-              />
-            );
-          })}
-        </S.List>
-      )}
+        {items.length > 0 && (
+          <S.List>
+            {items.map((it, idx) => {
+              const id = String(it?._id ?? it?.id ?? '');
+              const key = id || `noid-${depth}-${idx}`;
+              const annotated = { ...it, parentBoxLabel, parentBoxId };
+              const isOpen = id && openItemId === id;
+              const isPulsing = Array.isArray(pulsing) && pulsing.includes(id);
+              const flashColor = effectsById?.[id]?.flash || 'blue'; // default to blue
+              const isFlashing = !!effectsById?.[id]?.flash;
 
-      {kids.map((child, i) => (
-        <S.Nest
-          key={String(
-            child?._id ??
-              child?.id ??
-              child?.box_id ??
-              child?.shortId ??
-              `child-${depth}-${i}`
-          )}
-          $depth={depth + 1}
-        >
-          <BoxSection
-            key={child._id}
-            node={child}
-            depth={depth + 1}
-            openItemId={openItemId}
-            onOpenItem={onOpenItem}
-            accent={accent}
-            pulsing={pulsing} // ✅ forwarded
-            collapseDurMs={collapseDurMs}
-            effectsById={effectsById} // 👈 forward it down
-            triggerFlash={triggerFlash} // 👈 forward it down
-          />
-        </S.Nest>
-      ))}
+              return (
+                <ItemRow
+                  key={key}
+                  item={annotated}
+                  isOpen={isOpen}
+                  onOpen={() => onOpenItem?.(id)}
+                  accent={accent}
+                  collapseDurMs={collapseDurMs}
+                  pulsing={isPulsing}
+                  flashing={isFlashing}
+                  flashColor={flashColor}
+                  triggerFlash={triggerFlash}
+                  onSaved={(updated) => {
+                    // call back up to BoxDetailView
+                    onItemSaved?.(updated);
+                  }}
+                />
+              );
+            })}
+          </S.List>
+        )}
+
+        {kids.map((child, i) => (
+          <S.Nest
+            key={String(
+              child?._id ??
+                child?.id ??
+                child?.box_id ??
+                child?.shortId ??
+                `child-${depth}-${i}`
+            )}
+            $depth={depth + 1}
+          >
+            <BoxSection
+              key={child._id}
+              node={child}
+              depth={depth + 1}
+              openItemId={openItemId}
+              onOpenItem={onOpenItem}
+              accent={accent}
+              pulsing={pulsing} // ✅ forwarded
+              collapseDurMs={collapseDurMs}
+              effectsById={effectsById} // 👈 forward it down
+              triggerFlash={triggerFlash} // 👈 forward it down
+              onItemSaved={onItemSaved}
+            />
+          </S.Nest>
+        ))}
+      </S.RailFront>
     </S.SectionGroup>
   );
 }
@@ -104,15 +110,6 @@ export default function BoxTree({
   onItemSaved,
 }) {
   if (!node) return null;
-  console.log('BoxTree debug:', {
-    TreeRoot: S.TreeRoot,
-    SectionGroup: S.SectionGroup,
-    SectionTitle: S.SectionTitle,
-    ShortId: S.ShortId,
-    List: S.List,
-    Nest: S.Nest,
-    ItemRow,
-  });
   return (
     <S.TreeRoot>
       <BoxSection

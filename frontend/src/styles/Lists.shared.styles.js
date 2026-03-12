@@ -23,6 +23,45 @@ const BRACKET_COLORS = [
   '#E8B15C', // amber
   '#9BE564', // lime
 ];
+const ROOT_RAIL = '#7FD7FF';
+const RAIL_W = '3px';
+
+const railTone = ({ $isRoot, $depth = 0 }) =>
+  $isRoot ? ROOT_RAIL : BRACKET_COLORS[$depth % BRACKET_COLORS.length];
+const toneAlpha = (hex, alpha = 'ff') => `${hex}${alpha}`;
+const depthStep = ({ $depth = 0 }) => Math.min(Math.max($depth, 0), 4);
+
+const railOuterCorners = ({ $isRoot, $depth = 0 }) => {
+  const d = depthStep({ $depth });
+  if ($isRoot) {
+    return `${26 - d}px ${14 - d * 0.4}px ${10 - d * 0.25}px ${20 - d * 0.8}px / ${
+      16 - d * 0.6
+    }px ${12 - d * 0.3}px ${8 - d * 0.2}px ${20 - d * 0.8}px`;
+  }
+  return `${22 - d * 0.8}px ${11 - d * 0.3}px ${9 - d * 0.2}px ${
+    16 - d * 0.6
+  }px / ${13 - d * 0.5}px ${9 - d * 0.25}px ${7 - d * 0.15}px ${
+    16 - d * 0.6
+  }px`;
+};
+
+const railInnerCorners = ({ $isRoot, $depth = 0 }) => {
+  const d = depthStep({ $depth });
+  if ($isRoot) {
+    return `${23 - d * 0.9}px ${11 - d * 0.35}px ${8 - d * 0.2}px ${
+      17 - d * 0.7
+    }px / ${13 - d * 0.55}px ${10 - d * 0.25}px ${6 - d * 0.15}px ${
+      17 - d * 0.7
+    }px`;
+  }
+  return `${19 - d * 0.7}px ${9 - d * 0.25}px ${7 - d * 0.15}px ${
+    13 - d * 0.5
+  }px / ${10 - d * 0.4}px ${7 - d * 0.2}px ${5 - d * 0.1}px ${
+    13 - d * 0.5
+  }px`;
+};
+const railBaseX = ({ $isRoot }) => ($isRoot ? '0' : '-0.74rem');
+const railTop = ({ $isRoot }) => ($isRoot ? '0.22rem' : '0.3rem');
 
 const radius = '14px';
 const chipRadius = '999px';
@@ -31,7 +70,9 @@ const panelBase = css`
   background: ${LCARS.panel};
   border: 1px solid ${LCARS.line};
   border-radius: ${radius};
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25), 0 10px 28px rgba(0, 0, 0, 0.24);
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.25),
+    0 10px 28px rgba(0, 0, 0, 0.24);
 `;
 
 /* ===== Core layout (names preserved) ===== */
@@ -78,15 +119,24 @@ export const Title = styled.h3`
 `;
 
 export const ShortId = styled.span`
-  font-size: 0.9rem;
-  color: ${LCARS.textDim};
+  font-size: 0.94rem;
+  color: currentColor;
+  opacity: 0.78;
 `;
 
 export const SectionTitle = styled.h4`
-  font-size: 1rem;
-  font-weight: 700;
-  margin: 0.75rem 0 0.25rem 0;
-  color: ${LCARS.text};
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.015em;
+  margin: 0.72rem 0 0.28rem 0;
+  color: ${({ $isRoot, $depth = 0 }) =>
+    toneAlpha(railTone({ $isRoot, $depth }), 'ee')};
+  text-shadow: 0 0 10px
+    ${({ $isRoot, $depth = 0 }) =>
+      toneAlpha(railTone({ $isRoot, $depth }), '2a')};
 `;
 
 export const TagRow = styled.div`
@@ -102,15 +152,18 @@ export const TagBubble = styled.button`
   font-size: 0.9rem;
   color: ${LCARS.text};
   cursor: pointer;
-  transition: border-color 120ms ease, background 120ms ease,
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
     transform 120ms ease;
-  background: linear-gradient(90deg, ${LCARS.teal}22, transparent 36%) no-repeat,
+  background:
+    linear-gradient(90deg, ${LCARS.teal}22, transparent 36%) no-repeat,
     ${LCARS.panel};
 
   &:hover {
     border-color: ${LCARS.teal};
-    background: linear-gradient(90deg, ${LCARS.lime}1f, transparent 44%)
-        no-repeat,
+    background:
+      linear-gradient(90deg, ${LCARS.lime}1f, transparent 44%) no-repeat,
       ${LCARS.panelAlt};
     transform: translateY(-1px);
   }
@@ -138,18 +191,67 @@ export const MetaRow = styled.div`
 /* Indentation for nested sections */
 export const Nest = styled.div`
   position: relative;
-  margin-left: ${({ $depth = 0 }) => Math.min($depth * 14, 48)}px;
-  padding-left: 0.75rem;
-  border-left: 4px solid
-    ${({ $depth = 0 }) => BRACKET_COLORS[$depth % BRACKET_COLORS.length]};
-  border-radius: 0 0 0 8px;
+  margin-left: ${({ $depth = 0 }) => Math.min($depth * 11, 40)}px;
+  padding-left: 0.3rem;
+  border-radius: 0 0 0 10px;
   background: ${({ $depth = 0 }) =>
     $depth % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent'};
 `;
 
 /* Spacing between logical groups */
 export const SectionGroup = styled.div`
-  margin-top: 0.6rem;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  min-width: 0;
+  margin-top: 0.5rem;
+  isolation: isolate;
+`;
+
+export const RailBack = styled.div`
+  grid-area: 1 / 1;
+  align-self: stretch;
+  justify-self: stretch;
+  margin-left: ${({ $isRoot }) => railBaseX({ $isRoot })};
+  margin-top: ${({ $isRoot }) => railTop({ $isRoot })};
+  border-radius: ${({ $isRoot, $depth = 0 }) =>
+    railOuterCorners({ $isRoot, $depth })};
+  background: ${({ $isRoot, $depth = 0 }) => railTone({ $isRoot, $depth })};
+  opacity: ${({ $isRoot }) => ($isRoot ? 0.96 : 0.9)};
+  filter: drop-shadow(
+    0 0 ${({ $isRoot }) => ($isRoot ? '3px' : '2px')}
+      ${({ $isRoot, $depth = 0 }) => `${railTone({ $isRoot, $depth })}2d`}
+  );
+  pointer-events: none;
+  z-index: 0;
+`;
+
+export const RailFront = styled.div`
+  grid-area: 1 / 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+  width: auto;
+  min-width: 0;
+  z-index: 1;
+  margin-left: calc(${RAIL_W} + 0.08rem);
+  margin-right: ${RAIL_W};
+  margin-top: ${({ $isRoot }) => `calc(${railTop({ $isRoot })} + ${RAIL_W})`};
+  margin-bottom: ${RAIL_W};
+  padding-top: 0.34rem;
+  padding-right: 0.45rem;
+  padding-left: ${({ $isRoot }) => ($isRoot ? '1.92rem' : '1.7rem')};
+  padding-bottom: 0.2rem;
+  border-radius: ${({ $isRoot, $depth = 0 }) =>
+    railInnerCorners({ $isRoot, $depth })};
+  background: linear-gradient(
+    140deg,
+    ${LCARS.bg} 32%,
+    rgba(12, 15, 17, 0.94) 68%,
+    rgba(12, 15, 17, 0.9) 100%
+  );
 `;
 
 /* ===== NEW: Breadcrumb / Tree map + Stats ===== */
@@ -162,8 +264,8 @@ export const CrumbBar = styled.div`
   gap: 0.75rem;
   align-items: center;
   padding: 0.6rem 0.75rem;
-  background: linear-gradient(90deg, ${LCARS.coral}1c, transparent 35%)
-      no-repeat,
+  background:
+    linear-gradient(90deg, ${LCARS.coral}1c, transparent 35%) no-repeat,
     ${LCARS.panel};
 `;
 
@@ -222,12 +324,12 @@ export const StatPill = styled.span`
     $tone === 'lilac'
       ? LCARS.lilac
       : $tone === 'amber'
-      ? LCARS.amber
-      : $tone === 'coral'
-      ? LCARS.coral
-      : $tone === 'lime'
-      ? LCARS.lime
-      : LCARS.teal};
+        ? LCARS.amber
+        : $tone === 'coral'
+          ? LCARS.coral
+          : $tone === 'lime'
+            ? LCARS.lime
+            : LCARS.teal};
   border: 1px solid rgba(255, 255, 255, 0.18);
 `;
 

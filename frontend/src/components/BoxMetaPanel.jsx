@@ -61,6 +61,57 @@ function computeStatsFromTree(root) {
   return { boxes, uniqueItems: names.size, totalItems };
 }
 
+function DescendantBranch({ node, depth = 0, onNavigateBox }) {
+  if (!node) return null;
+
+  const nodeId = String(node?.box_id ?? node?.shortId ?? '');
+  const nodeLabel = node?.label ?? node?.name ?? 'Box';
+  const nested = kidsOf(node);
+
+  return (
+    <S.DescendantNode>
+      <S.DescendantRow>
+        <S.DescendantConnector $depth={depth} />
+        <S.DescendantLink
+          href={nodeId ? `/boxes/${nodeId}` : undefined}
+          onClick={(e) => {
+            if (!nodeId) return;
+            e.preventDefault();
+            onNavigateBox?.(nodeId);
+          }}
+          title={`${nodeLabel}${nodeId ? ` (${nodeId})` : ''}`}
+        >
+          <S.BoxIdMono>{pad3(nodeId)}</S.BoxIdMono>
+          <S.BoxLinkLabel>{nodeLabel}</S.BoxLinkLabel>
+        </S.DescendantLink>
+        {nested.length > 0 && (
+          <S.DescendantMeta>
+            {nested.length} {nested.length === 1 ? 'child' : 'children'}
+          </S.DescendantMeta>
+        )}
+      </S.DescendantRow>
+
+      {nested.length > 0 && (
+        <S.DescendantChildren>
+          {nested.map((child, idx) => (
+            <DescendantBranch
+              key={String(
+                child?._id ??
+                  child?.box_id ??
+                  child?.shortId ??
+                  `desc-${depth + 1}-${idx}`
+              )}
+              node={child}
+              depth={depth + 1}
+              onNavigateBox={onNavigateBox}
+            />
+          ))}
+        </S.DescendantChildren>
+      )}
+    </S.DescendantNode>
+  );
+}
+
 // ----------------------------------------------------------------------------
 
 export default function BoxMetaPanel({
@@ -69,29 +120,32 @@ export default function BoxMetaPanel({
   onNavigateBox,
   stats,
 }) {
-  if (!box) return null;
-
-  const shortId = String(box.box_id ?? box.shortId ?? '');
-  const title = box.label ?? box.name ?? 'Box';
+  const shortId = String(box?.box_id ?? box?.shortId ?? '');
+  const title = box?.label ?? box?.name ?? 'Box';
   const children = kidsOf(box);
 
   // Badge logic (uses only data we have on this node)
   const scope = useMemo(() => {
+    if (!box) return { tone: 'lilac', text: 'Standalone' };
     const hasParent = !!box.parentBox;
     if (hasParent) return { tone: 'teal', text: 'In tree' };
     if (children.length > 0) return { tone: 'amber', text: 'Root of tree' };
     return { tone: 'lilac', text: 'Standalone' };
-  }, [box.parentBox, children.length]);
+  }, [box, children.length]);
 
   // Prefer backend stats if provided, otherwise compute from subtree
   const safeStats = useMemo(
-    () => stats ?? computeStatsFromTree(box),
+    () =>
+      box
+        ? stats ?? computeStatsFromTree(box)
+        : { boxes: 0, uniqueItems: 0, totalItems: 0 },
     [stats, box]
   );
 
   // Breadcrumb: ancestors (parentPath) + current
   // Build crumbs (root → … → parent → current)
   const crumbs = useMemo(() => {
+    if (!box) return [];
     const shortId = String(box.box_id ?? box.shortId ?? '');
     const title = box.label ?? box.name ?? 'Box';
 
@@ -105,6 +159,16 @@ export default function BoxMetaPanel({
   }, [box, parentPath]);
 
   const depth = crumbs.length - 1;
+  const currentCrumb = crumbs[crumbs.length - 1];
+  const ancestorCrumbs = crumbs.slice(0, -1);
+  const descendantCount = useMemo(() => {
+    if (!box) return 0;
+    let count = 0;
+    walk(box, () => {
+      count += 1;
+    });
+    return Math.max(0, count - 1);
+  }, [box]);
 
   // Child box click
   const goBox = (id) => {
@@ -112,105 +176,98 @@ export default function BoxMetaPanel({
     onNavigateBox?.(String(id));
   };
 
+  if (!box) return null;
+
   return (
     <S.Panel>
-      {/* Row 1: Scope badge + breadcrumb chips */}
-      <S.TopRow>
-        <S.Crumbs aria-label="Breadcrumb">
-          {/* Scope badge: Standalone / Root of tree / In tree */}
-          <S.ScopeBadge
-            $tone={
-              box.parentBox
-                ? 'teal'
-                : Array.isArray(box.childBoxes) && box.childBoxes.length
-                ? 'amber'
-                : 'lilac'
-            }
-          >
-            {box.parentBox
-              ? 'In tree'
-              : Array.isArray(box.childBoxes) && box.childBoxes.length
-              ? 'Root of tree'
-              : 'Standalone'}
-          </S.ScopeBadge>
+      <S.IdentityZone>
+        <S.IdentityHeader>
+          <S.ScopeBadge $tone={scope.tone}>{scope.text}</S.ScopeBadge>
+          {!!depth && <S.DepthHint>level {depth}</S.DepthHint>}
+        </S.IdentityHeader>
 
-          {/* Depth hint — optional, omit if you don’t want it */}
-          {!!depth && <S.CrumbSep>level {depth}</S.CrumbSep>}
+        {ancestorCrumbs.length > 0 && (
+          <S.PathContext>
+            <S.PathLabel>Ancestors</S.PathLabel>
+            <S.Crumbs aria-label="Ancestor path">
+              {ancestorCrumbs.map((c, idx) => {
+                const isLastAncestor = idx === ancestorCrumbs.length - 1;
+                const id = c.id;
+                const label = c.label;
+                return (
+                  <React.Fragment key={`${id}:${idx}`}>
+                    <S.Crumb
+                      href={id ? `/boxes/${id}` : undefined}
+                      onClick={(e) => {
+                        if (!id) return;
+                        e.preventDefault();
+                        onNavigateBox?.(id);
+                      }}
+                      title={`${label}${id ? ` (${id})` : ''}`}
+                    >
+                      <S.BoxIdMono>{pad3(id)}</S.BoxIdMono>
+                      <S.CrumbLabel>{label}</S.CrumbLabel>
+                    </S.Crumb>
+                    {!isLastAncestor && <S.CrumbSep>›</S.CrumbSep>}
+                  </React.Fragment>
+                );
+              })}
+            </S.Crumbs>
+          </S.PathContext>
+        )}
 
-          {crumbs.map((c, idx) => {
-            const isLast = idx === crumbs.length - 1;
-            const id = c.id;
-            const label = c.label;
-            const chip = (
-              <S.Crumb
-                key={`${id}:${idx}`}
-                href={id ? `/boxes/${id}` : undefined}
-                onClick={(e) => {
-                  if (!id || isLast) return;
-                  e.preventDefault();
-                  onNavigateBox?.(id);
-                }}
-                aria-current={isLast ? 'page' : undefined}
-                title={`${label}${id ? ` (${id})` : ''}`}
-              >
-                <S.BoxIdMono>{pad3(id)}</S.BoxIdMono>
-                <span>{label}</span>
-              </S.Crumb>
-            );
+        <S.CurrentBox
+          aria-current="page"
+          aria-label={`Current box ${currentCrumb?.label ?? title}`}
+          title={`${title}${shortId ? ` (${shortId})` : ''}`}
+        >
+          <S.CurrentBoxId>{pad3(currentCrumb?.id)}</S.CurrentBoxId>
+          <S.CurrentBoxTitle>{currentCrumb?.label ?? title}</S.CurrentBoxTitle>
+        </S.CurrentBox>
+      </S.IdentityZone>
 
-            return isLast ? (
-              <React.Fragment key={`${id}:${idx}`}>{chip}</React.Fragment>
-            ) : (
-              <React.Fragment key={`${id}:${idx}`}>
-                {chip}
-                <S.CrumbSep>›</S.CrumbSep>
-              </React.Fragment>
-            );
-          })}
-        </S.Crumbs>
-      </S.TopRow>
-
-      {/* Row 2: Stats row (own soft panel for breathing room) */}
-      <S.StatsRow>
+      <S.MetaZone>
         <S.StatGroup>
-          <S.StatPill $tone="lilac">{safeStats.boxes} boxes</S.StatPill>
-          <S.StatPill $tone="teal">{safeStats.uniqueItems} unique</S.StatPill>
-          <S.StatPill $tone="amber">{safeStats.totalItems} total</S.StatPill>
+          <S.StatItem>
+            <S.StatLabel>Boxes</S.StatLabel>
+            <S.StatValue $tone="lilac">{safeStats.boxes}</S.StatValue>
+          </S.StatItem>
+          <S.StatItem>
+            <S.StatLabel>Unique</S.StatLabel>
+            <S.StatValue $tone="teal">{safeStats.uniqueItems}</S.StatValue>
+          </S.StatItem>
+          <S.StatItem>
+            <S.StatLabel>Total</S.StatLabel>
+            <S.StatValue $tone="amber">{safeStats.totalItems}</S.StatValue>
+          </S.StatItem>
         </S.StatGroup>
-      </S.StatsRow>
+      </S.MetaZone>
 
-      <S.Divider />
-
-      {/* Row 3: Children (links) */}
-      <S.ChildrenBlock>
-        <S.Label>Children</S.Label>
+      <S.ChildrenZone>
+        <S.SectionHeader>
+          <S.Label>Descendants</S.Label>
+          <S.MetaCount>
+            {descendantCount} total • {children.length} direct
+          </S.MetaCount>
+        </S.SectionHeader>
+        <S.SectionHint>Select a box below to focus that subtree.</S.SectionHint>
         <S.ChildrenRow>
           {children.length === 0 ? (
             <S.Muted>None</S.Muted>
           ) : (
-            children.map((c) => {
-              const kidId = String(c?.box_id ?? c?.shortId ?? '');
-              const kidLabel = c?.label ?? c?.name ?? 'Box';
-              const key = String(c?._id ?? kidId);
-              return (
-                <S.BoxLink
-                  key={key}
-                  href={kidId ? `/boxes/${kidId}` : undefined}
-                  onClick={(e) => {
-                    if (!kidId) return;
-                    e.preventDefault();
-                    goBox(kidId);
-                  }}
-                  title={`${kidLabel}${kidId ? ` (${kidId})` : ''}`}
-                >
-                  <S.BoxIdMono>{pad3(kidId)}</S.BoxIdMono>
-                  <span>{kidLabel}</span>
-                </S.BoxLink>
-              );
-            })
+            children.map((child, idx) => (
+              <DescendantBranch
+                key={String(
+                  child?._id ?? child?.box_id ?? child?.shortId ?? `desc-0-${idx}`
+                )}
+                node={child}
+                depth={0}
+                onNavigateBox={goBox}
+              />
+            ))
           )}
         </S.ChildrenRow>
-      </S.ChildrenBlock>
+      </S.ChildrenZone>
     </S.Panel>
   );
 }

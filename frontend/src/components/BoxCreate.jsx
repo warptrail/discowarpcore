@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+
+import { createBox } from '../api/boxes';
+import useShortIdAvailability from '../hooks/useShortIdAvailability';
 
 const Container = styled.div`
   max-width: 500px;
@@ -44,8 +47,8 @@ const Status = styled.div`
     $available === true
       ? '#00cc88'
       : $available === false
-      ? '#ff5555'
-      : '#aaa'};
+        ? '#ff5555'
+        : '#aaa'};
 `;
 
 const Error = styled.div`
@@ -80,68 +83,41 @@ function BoxCreate() {
   const [label, setLabel] = useState('');
   const [storageLocation, setStorageLocation] = useState('');
   const [error, setError] = useState('');
-  const [checking, setChecking] = useState(false);
-  const [available, setAvailable] = useState(null);
 
-  // Debounced check for box_id availability
-  useEffect(() => {
-    if (!/^\d{3}$/.test(boxId)) {
-      setAvailable(null);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      setChecking(true);
-      try {
-        const res = await fetch(
-          `http://localhost:5002/api/boxes/check-id/${boxId}`
-        );
-        const data = await res.json();
-        setAvailable(data.available);
-        setError('');
-      } catch (err) {
-        console.error(err);
-        setAvailable(null);
-        setError('Failed to check box ID availability');
-      } finally {
-        setChecking(false);
-      }
-    }, 500); // debounce delay
-
-    return () => clearTimeout(timer);
-  }, [boxId]);
+  const {
+    shortIdValid,
+    shortIdAvail,
+    shortIdChecking,
+    checkError,
+  } = useShortIdAvailability({
+    shortId: boxId,
+    debounceMs: 500,
+  });
+  const availabilityState = shortIdValid ? shortIdAvail : null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (!/^\d{3}$/.test(boxId)) {
-      return setError('Box ID must be exactly 3 digits (e.g. 001)');
+    if (!shortIdValid) {
+      setError('Box ID must be exactly 3 digits (e.g. 001)');
+      return;
     }
     if (!label.trim()) {
-      return setError('Label is required');
+      setError('Label is required');
+      return;
     }
-    if (available === false) {
-      return setError('Box ID is already in use');
+    if (shortIdAvail === false) {
+      setError('Box ID is already in use');
+      return;
     }
 
     try {
-      const res = await fetch('http://localhost:5002/api/boxes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          box_id: boxId,
-          label,
-          location: storageLocation,
-        }),
+      await createBox({
+        box_id: boxId,
+        label,
+        location: storageLocation,
       });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Unknown error');
-      }
-
-      // Navigate to the new box view
       navigate(`/boxes/${boxId}`);
     } catch (err) {
       console.error(err);
@@ -173,7 +149,7 @@ function BoxCreate() {
               const atMaxLength = boxId.length >= 3;
 
               if (!isDigit && !isControl) {
-                e.preventDefault(); // block non-digit
+                e.preventDefault();
               }
 
               if (
@@ -181,36 +157,26 @@ function BoxCreate() {
                 atMaxLength &&
                 window.getSelection()?.toString().length === 0
               ) {
-                // block typing more digits if not selecting/replacing existing text
                 e.preventDefault();
               }
             }}
             placeholder="e.g. 004"
-            maxLength={3} // just in case, as a double check
+            maxLength={3}
           />
-          <Status $available={available}>
-            {checking && '🔄 Checking...'}
+          <Status $available={availabilityState}>
+            {shortIdChecking && '🔄 Checking...'}
 
-            {!checking &&
-              boxId &&
-              !/^\d{3}$/.test(boxId) &&
-              '⚠️ Must be exactly 3 digits'}
+            {!shortIdChecking && boxId && !shortIdValid && '⚠️ Must be exactly 3 digits'}
 
-            {!checking &&
-              /^\d{3}$/.test(boxId) &&
-              available === true &&
-              '✅ Available'}
+            {!shortIdChecking && shortIdValid && availabilityState === true && '✅ Available'}
 
-            {!checking &&
-              /^\d{3}$/.test(boxId) &&
-              available === false &&
+            {!shortIdChecking &&
+              shortIdValid &&
+              availabilityState === false &&
+              !checkError &&
               '❌ Already in use'}
 
-            {!checking &&
-              /^\d{3}$/.test(boxId) &&
-              available === null &&
-              error &&
-              '⚠️ Could not verify'}
+            {!shortIdChecking && shortIdValid && checkError && '⚠️ Could not verify'}
           </Status>
         </Field>
 
@@ -224,6 +190,7 @@ function BoxCreate() {
             placeholder="e.g. Winter Decorations"
           />
         </Field>
+
         <Field>
           <Label htmlFor="storageLocation">Location</Label>
           <Input
@@ -236,7 +203,7 @@ function BoxCreate() {
 
         <Button
           type="submit"
-          disabled={!boxId || !label || available === false}
+          disabled={!boxId || !label || availabilityState === false}
         >
           Create Box
         </Button>

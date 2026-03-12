@@ -1,75 +1,12 @@
-// Responsibilities: Renders inputs and collects user input only
-import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
+import React, { useEffect, useState } from 'react';
 
-import QuantityInput from './QuantityInput';
-import TagEdit from './TagEdit';
 import MoveItemBar from './MoveItemBar';
-
-const FormContainer = styled.div`
-  background-color: #1e1e1e;
-  color: #eee;
-  padding: 1rem;
-  /* margin-top: 0.5rem; */
-  border-radius: 0px 0px 10px 10px;
-  border: 1px solid #333;
-  border-top: none;
-`;
-
-const Label = styled.label`
-  display: block;
-  margin-bottom: 0.5rem;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  background-color: #2a2a2a;
-  color: white;
-  border: 1px solid #444;
-  border-radius: 6px;
-  padding: 0.5rem;
-  margin-bottom: 1rem;
-`;
-
-const ButtonRow = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-`;
-
-const Button = styled.button`
-  background-color: ${(props) =>
-    props.$variant === 'close' ? '#555' : '#009688'};
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    border: 1px solid red;
-  }
-
-  &:hover {
-    background-color: ${(props) =>
-      props.$variant === 'close' ? '#666' : '#00796b'};
-  }
-`;
-
-const SaveFlash = styled.span`
-  color: limegreen;
-  font-weight: bold;
-  margin-left: 8px;
-`;
+import ItemEditFieldsForm from './ItemEditFieldsForm';
+import * as S from './ItemEditForm.styles';
 
 export default function ItemEditForm({
-  boxMongoId,
   initialItem,
   sourceBoxId,
-  sourceBoxLabel,
-  sourceBoxShortId,
   onClose,
   refreshBox,
   onItemUpdated,
@@ -113,8 +50,6 @@ export default function ItemEditForm({
     markDirty();
   };
 
-  // ! Tag Logic
-
   const handleTagsChange = (newTags) => {
     setFormData((prev) => ({
       ...prev,
@@ -135,7 +70,7 @@ export default function ItemEditForm({
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
-        }
+        },
       );
 
       if (!response.ok) throw new Error(`Server error: ${response.status}`);
@@ -147,9 +82,7 @@ export default function ItemEditForm({
         onItemUpdated(updatedItem);
       }
 
-      const newFlashTags = formData.tags.filter(
-        (tag) => !savedTags.includes(tag)
-      );
+      const newFlashTags = formData.tags.filter((tag) => !savedTags.includes(tag));
       setFlashTagSet(new Set(newFlashTags));
       setSavedTags([...formData.tags]);
       setSaveSuccess(true);
@@ -170,7 +103,7 @@ export default function ItemEditForm({
       itemId: initialItem._id,
       itemName: initialItem.name,
       itemQuantity: initialItem.quantity,
-      sourceBoxId, // ✅ correct owning box (nested-safe)
+      sourceBoxId,
       destBoxId,
       destLabel,
       destShortId,
@@ -184,76 +117,51 @@ export default function ItemEditForm({
     });
   };
 
-  // Save Button Logic:
   const isDisabled = saving || !dirty;
 
   let buttonContent;
   if (saving) {
     buttonContent = 'Saving...';
   } else if (saveSuccess && !dirty) {
-    buttonContent = <SaveFlash $isVisible={true}>✅ Saved</SaveFlash>;
+    buttonContent = <S.SaveFlash $isVisible={true}>✅ Saved</S.SaveFlash>;
   } else {
     buttonContent = 'Save';
   }
 
-  // Moving an item Logic:
-  let allBoxes = ['this is a box'];
+  const allBoxes = ['this is a box'];
 
-  // This ensures that switching between items resets the tag comparison baseline appropriately.
   useEffect(() => {
     setSavedTags(initialItem.tags || []);
-  }, [initialItem._id]);
+  }, [initialItem._id, initialItem.tags]);
 
   useEffect(() => {
     if (saveSuccess) {
-      // Clear success flag after 2 seconds of it being true
       const timeout = setTimeout(() => {
         setSaveSuccess(false);
-        setFlashTagSet(new Set()); // 🧹 clear flashes
+        setFlashTagSet(new Set());
       }, 2000);
 
-      // Cleanup in case component unmounts before timeout ends
       return () => clearTimeout(timeout);
     }
   }, [saveSuccess]);
 
   return (
-    <FormContainer>
-      <Label>
-        Name:
-        <Input
-          type="text"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-        />
-      </Label>
-
-      <Label>
-        Notes:
-        <Input
-          type="textarea"
-          name="notes"
-          value={formData.notes}
-          onChange={handleChange}
-        />
-      </Label>
-
-      <Label>Tags:</Label>
-      <TagEdit
-        initialTags={formData.tags}
+    <S.FormContainer>
+      <ItemEditFieldsForm
+        formData={formData}
+        onFieldChange={handleChange}
+        onQuantityChange={handleQuantityChange}
         onTagsChange={handleTagsChange}
-        justSaved={saveSuccess}
-        newTagSet={
-          new Set(formData.tags.filter((tag) => !savedTags.includes(tag)))
-        }
+        saveSuccess={saveSuccess}
+        savedTags={savedTags}
         flashTagSet={flashTagSet}
-      />
-
-      <Label>Quantity:</Label>
-      <QuantityInput
-        value={formData.quantity}
-        onChange={(newQuantity) => handleQuantityChange(newQuantity)}
+        onClose={onClose}
+        onSave={(e) => {
+          handleSave(e);
+          console.log('item saved!');
+        }}
+        isDisabled={isDisabled}
+        buttonContent={buttonContent}
       />
 
       <MoveItemBar
@@ -265,23 +173,6 @@ export default function ItemEditForm({
         onMoveRequest={handleMoveRequestProxy}
         onOrphanRequest={handleOrphanRequestProxy}
       />
-
-      <ButtonRow>
-        <Button type="button" $variant="close" onClick={onClose}>
-          Close
-        </Button>
-
-        <Button
-          type="button"
-          onClick={(e) => {
-            handleSave(e);
-            console.log('item saved!');
-          }}
-          disabled={isDisabled}
-        >
-          {buttonContent}
-        </Button>
-      </ButtonRow>
-    </FormContainer>
+    </S.FormContainer>
   );
 }
