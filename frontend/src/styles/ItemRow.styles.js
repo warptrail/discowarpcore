@@ -1,9 +1,14 @@
 import styled, { keyframes, css } from 'styled-components';
 
-const ROW_BG = '#111'; // dark surface fill
+const ROW_BG = '#111';
+
 const hueDial = keyframes`
-  from { filter: hue-rotate(0deg); }
-  to   { filter: hue-rotate(360deg); }
+  from {
+    filter: hue-rotate(0deg);
+  }
+  to {
+    filter: hue-rotate(360deg);
+  }
 `;
 
 export const flashColors = {
@@ -12,75 +17,78 @@ export const flashColors = {
   red: 'rgba(255, 80, 80, 0.9)',
 };
 
-// 🔥 Flash animation: big glow in/out
 const flashGlow = (colorName) => {
   const color = flashColors[colorName] || flashColors.blue;
   return keyframes`
     0%, 100% {
-      box-shadow: 0 0 0px ${color};
-      filter: brightness(1);
+      box-shadow: 0 0 0 ${color};
     }
     35% {
-      box-shadow: 0 0 1em ${color}, 0 0 2em ${color};
-      filter: brightness(1.6);
+      box-shadow: 0 0 1.1em ${color}, 0 0 2em ${color};
     }
   `;
 };
 
-/* Outer wrapper: paints the gradient border */
 export const Wrapper = styled.div`
-  --r: 10px; /* corner radius */
-  --gap: 3px; /* border thickness */
-  --ring-speed: 8s;
+  --r: 10px;
+  --gap: 3px;
+  --ring-speed: 16s;
 
   position: relative;
   border-radius: var(--r);
   overflow: hidden;
   isolation: isolate;
-  /* Avoid animation fighting with transitions */
   transition: none;
-  will-change: box-shadow;
+  will-change: box-shadow, filter;
 
-  /* 🌈 gradient frame */
-  background: linear-gradient(135deg, #355070, #6d597a);
-  /* opacity: 0.4; */
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    border-radius: inherit;
+    pointer-events: none;
+  }
 
-  /* 🌈 active state: bright + animated */
+  &::before {
+    inset: 0;
+    z-index: 0;
+    opacity: 0.84;
+    background: linear-gradient(135deg, #355070, #6d597a);
+  }
+
   ${({ $open, $pulsing }) =>
     ($open || $pulsing) &&
     css`
-      background: linear-gradient(135deg, #1cd3ff, #20ff9d);
-      opacity: 1;
-      animation: ${hueDial} var(--ring-speed) linear infinite;
+      &::before {
+        opacity: 0.96;
+        background: #1cd3ff;
+        animation: ${hueDial} var(--ring-speed) linear infinite;
+      }
     `}
 
-  /* ⚡ flashing state = extreme glow */
-${({ $flashing, $flashColor }) =>
+  ${({ $flashing, $flashColor }) =>
     $flashing &&
     css`
       animation: ${flashGlow($flashColor)} 1s linear;
     `}
 
   &::after {
-    content: '';
-    position: absolute;
     inset: var(--gap);
+    z-index: 1;
     border-radius: calc(var(--r) - var(--gap));
     background: ${ROW_BG};
-    z-index: 0;
   }
 `;
 
-/* Main clickable row */
 export const Row = styled.div`
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
 
   padding: 0.75rem 1rem;
-  background: transparent; /* surface is handled by Wrapper::after */
+  background: transparent;
   border-radius: ${({ $open }) =>
     $open
       ? 'calc(var(--r) - var(--gap)) calc(var(--r) - var(--gap)) 0 0'
@@ -93,17 +101,16 @@ export const Row = styled.div`
   }
 `;
 
-/* Expanding details panel */
 export const Collapse = styled.div`
   position: relative;
-  z-index: 1;
+  z-index: 2;
   overflow: hidden;
 
   margin: 0 var(--gap) var(--gap);
   background: ${ROW_BG};
   border-radius: 0 0 calc(var(--r) - var(--gap)) calc(var(--r) - var(--gap));
 
-  height: ${({ $height }) => $height}px; /* 👈 now styled prop */
+  height: ${({ $height }) => $height}px;
   transition: height ${({ $collapseDurMs }) => $collapseDurMs}ms
       cubic-bezier(0.2, 0.8, 0.2, 1),
     opacity ${({ $collapseDurMs }) => $collapseDurMs}ms ease,
@@ -113,16 +120,14 @@ export const Collapse = styled.div`
   transform: translateY(${({ $open }) => ($open ? '0' : '-6px')});
 `;
 
-/* Content inside collapse */
 export const DetailsCard = styled.div`
   position: relative;
-  z-index: 1;
+  z-index: 2;
   padding: 1rem;
   border-radius: 0 0 calc(var(--r) - var(--gap)) calc(var(--r) - var(--gap));
   background: #181818;
 `;
 
-/* Text + Layout Elements */
 export const Left = styled.div`
   display: flex;
   flex-direction: column;
@@ -131,7 +136,7 @@ export const Left = styled.div`
 
 export const Right = styled.div`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
 `;
 
@@ -164,23 +169,38 @@ export const Notes = styled.div`
 
 export const Qty = styled.span`
   font-size: 0.9rem;
-  font-weight: bold;
-  color: #aaa;
+  font-weight: 700;
+  color: #aeb8cc;
+  letter-spacing: 0.04em;
+  margin-top: 0.28rem;
 `;
 
 export const EditButton = styled.button`
-  margin-left: 0.5rem;
-  padding: 0.35rem 0.65rem;
-  border-radius: 6px;
-  border: 1px solid #444;
-  background: #1d1d1d;
-  color: #ddd;
+  margin-left: 0.4rem;
+  padding: 0.37rem 0.82rem 0.34rem;
+  border-radius: 12px 12px 8px 8px;
+  border: 1px solid rgba(240, 138, 123, 0.64);
+  background: linear-gradient(180deg, #2f364d, #262c3f);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 0 1px rgba(12, 17, 27, 0.55);
+  color: #f1f4fb;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.085em;
+  text-transform: uppercase;
+  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+
   &:hover {
-    border-color: #0ff;
+    border-color: rgba(76, 198, 193, 0.86);
+    background: linear-gradient(180deg, #354261, #2b3552);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 0 12px rgba(76, 198, 193, 0.22);
   }
+
   &:active {
-    background: #111;
+    transform: translateY(1px);
   }
 `;

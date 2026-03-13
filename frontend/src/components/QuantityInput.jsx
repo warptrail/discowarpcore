@@ -22,8 +22,8 @@ export default function QuantityInput({ value = 1, onChange }) {
 
   return (
     <S.Wrapper>
-      <S.Button type="button" onClick={handleDecrement}>
-        ➖
+      <S.Button type="button" onClick={handleDecrement} aria-label="Decrease quantity">
+        -
       </S.Button>
       <S.Input
         type="number"
@@ -31,9 +31,10 @@ export default function QuantityInput({ value = 1, onChange }) {
         onChange={handleDirectInput}
         min="1"
         max="99"
+        aria-label="Quantity"
       />
-      <S.Button type="button" onClick={handleIncrement}>
-        ➕
+      <S.Button type="button" onClick={handleIncrement} aria-label="Increase quantity">
+        +
       </S.Button>
     </S.Wrapper>
   );
