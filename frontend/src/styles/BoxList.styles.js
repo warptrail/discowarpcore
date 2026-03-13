@@ -1,103 +1,247 @@
 // src/styles/BoxList.styles.js
 import styled, { css, keyframes } from 'styled-components';
 
-/* Toned-down palette with gentle teal/lime cues */
-const UI = {
+const LCARS = {
   bg: '#0c0f11',
-  panel: '#121518',
-  panelAlt: '#171b1f',
+  panel: '#14181b',
+  panelAlt: '#1a1f24',
   text: '#e6edf3',
-  textDim: 'rgba(230,237,243,0.75)',
-  line: 'rgba(255,255,255,0.10)',
-  teal: '#55c8c3',
-  lime: '#9FE070',
-  amber: '#E4B26E',
+  textDim: 'rgba(230,237,243,0.72)',
+  line: 'rgba(255,255,255,0.08)',
+  coral: '#F08A7B',
+  teal: '#4CC6C1',
+  lilac: '#A7B6FF',
+  amber: '#E8B15C',
+  lime: '#9BE564',
 };
 
-const shadowCard = `0 6px 22px rgba(0,0,0,0.28)`;
-const radiusXL = '16px';
+const BRACKET_COLORS = [
+  LCARS.coral,
+  LCARS.teal,
+  LCARS.lilac,
+  LCARS.amber,
+  LCARS.lime,
+];
+const ROOT_RAIL = '#7FD7FF';
+const RAIL_W = '3px';
+const RADIUS = '14px';
 const radiusL = '12px';
+const railBaseX = '-0.74rem';
+
+const railTone = ({ $isRoot, $depth = 0 }) =>
+  $isRoot ? ROOT_RAIL : BRACKET_COLORS[$depth % BRACKET_COLORS.length];
+const toneAlpha = (hex, alpha = 'ff') => `${hex}${alpha}`;
+const depthStep = ({ $depth = 0 }) => Math.min(Math.max($depth, 0), 4);
+const railTop = ({ $isRoot }) => ($isRoot ? '0.22rem' : '0.3rem');
+
+const railOuterCorners = ({ $isRoot, $depth = 0 }) => {
+  const d = depthStep({ $depth });
+  if ($isRoot) {
+    return `${26 - d}px ${14 - d * 0.4}px ${10 - d * 0.25}px ${20 - d * 0.8}px / ${
+      16 - d * 0.6
+    }px ${12 - d * 0.3}px ${8 - d * 0.2}px ${20 - d * 0.8}px`;
+  }
+  return `${22 - d * 0.8}px ${11 - d * 0.3}px ${9 - d * 0.2}px ${
+    16 - d * 0.6
+  }px / ${13 - d * 0.5}px ${9 - d * 0.25}px ${7 - d * 0.15}px ${
+    16 - d * 0.6
+  }px`;
+};
+
+const railInnerCorners = ({ $isRoot, $depth = 0 }) => {
+  const d = depthStep({ $depth });
+  if ($isRoot) {
+    return `${23 - d * 0.9}px ${11 - d * 0.35}px ${8 - d * 0.2}px ${
+      17 - d * 0.7
+    }px / ${13 - d * 0.55}px ${10 - d * 0.25}px ${6 - d * 0.15}px ${
+      17 - d * 0.7
+    }px`;
+  }
+  return `${19 - d * 0.7}px ${9 - d * 0.25}px ${7 - d * 0.15}px ${
+    13 - d * 0.5
+  }px / ${10 - d * 0.4}px ${7 - d * 0.2}px ${5 - d * 0.1}px ${
+    13 - d * 0.5
+  }px`;
+};
 
 const breatheIn = keyframes`
-  from { opacity: 0; transform: translateY(2px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 `;
 
 const panelBase = css`
-  background: ${UI.panel};
-  border: 1px solid ${UI.line};
-  border-radius: ${radiusXL};
-  box-shadow: ${shadowCard};
+  background: ${LCARS.panel};
+  border: 1px solid ${LCARS.line};
+  border-radius: ${RADIUS};
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.25),
+    0 10px 28px rgba(0, 0, 0, 0.24);
 `;
 
-/* Page */
 const Container = styled.div`
   --pad: clamp(12px, 3vw, 20px);
-  max-width: 920px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  max-width: 940px;
   margin: 0 auto;
-  padding: calc(var(--pad) * 1.4) var(--pad) calc(var(--pad) * 2);
-  color: ${UI.text};
-  background: ${UI.bg};
+  padding: calc(var(--pad) * 1.2) var(--pad) calc(var(--pad) * 1.8);
+  color: ${LCARS.text};
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top right, #7fd7ff15 0%, transparent 44%),
+    linear-gradient(180deg, #0d1013, #0b0e11 45%, #0d1013 100%);
 `;
 
-/* Page heading */
 const Heading = styled.h2`
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
   font-size: clamp(20px, 4.2vw, 26px);
   font-weight: 900;
-  color: ${UI.text};
-  margin: 22px 0 14px;
-  letter-spacing: 0.2px;
-  border-bottom: 2px solid ${UI.line};
-  padding-bottom: 8px;
+  color: ${LCARS.text};
+  margin: 0.4rem 0 0.25rem;
+  letter-spacing: 0.25px;
+
+  &::before {
+    content: '';
+    width: 9px;
+    height: 28px;
+    border-radius: 8px;
+    background: ${LCARS.coral};
+    box-shadow: 0 0 0 2px ${toneAlpha(LCARS.coral, '2f')} inset;
+  }
 `;
 
-/* Card */
+const NodeSection = styled.div`
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  min-width: 0;
+  margin-top: 0.44rem;
+  isolation: isolate;
+`;
+
+const RailBack = styled.div`
+  grid-area: 1 / 1;
+  align-self: stretch;
+  justify-self: stretch;
+  margin-left: ${railBaseX};
+  margin-top: ${({ $isRoot }) => railTop({ $isRoot })};
+  border-radius: ${({ $isRoot, $depth = 0 }) =>
+    railOuterCorners({ $isRoot, $depth })};
+  background: ${({ $isRoot, $depth = 0 }) => railTone({ $isRoot, $depth })};
+  opacity: ${({ $isRoot }) => ($isRoot ? 0.96 : 0.9)};
+  filter: drop-shadow(
+    0 0 ${({ $isRoot }) => ($isRoot ? '3px' : '2px')}
+      ${({ $isRoot, $depth = 0 }) => `${railTone({ $isRoot, $depth })}2d`}
+  );
+  pointer-events: none;
+  z-index: 0;
+`;
+
+const RailFront = styled.div`
+  grid-area: 1 / 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.44rem;
+  width: auto;
+  min-width: 0;
+  z-index: 1;
+  margin-left: calc(${RAIL_W} + 0.08rem);
+  margin-right: ${RAIL_W};
+  margin-top: ${({ $isRoot }) => `calc(${railTop({ $isRoot })} + ${RAIL_W})`};
+  margin-bottom: ${RAIL_W};
+  padding-top: 0.38rem;
+  padding-right: 0.45rem;
+  padding-left: ${({ $isRoot }) => ($isRoot ? '1.94rem' : '1.72rem')};
+  padding-bottom: 0.35rem;
+  border-radius: ${({ $isRoot, $depth = 0 }) =>
+    railInnerCorners({ $isRoot, $depth })};
+  background: linear-gradient(
+    140deg,
+    ${LCARS.bg} 34%,
+    rgba(12, 15, 17, 0.95) 68%,
+    rgba(12, 15, 17, 0.9) 100%
+  );
+`;
+
 const BoxCard = styled.div`
   ${panelBase};
   position: relative;
   display: flex;
   flex-direction: column;
-  border-radius: ${radiusXL};
   overflow: hidden;
   cursor: pointer;
   animation: ${breatheIn} 140ms ease both;
-  transition: transform 120ms ease, background 160ms ease,
-    border-color 160ms ease;
+  border-color: ${({ $isRoot, $depth = 0 }) =>
+    toneAlpha(railTone({ $isRoot, $depth }), '3f')};
+  background:
+    linear-gradient(
+      92deg,
+      ${({ $isRoot, $depth = 0 }) => toneAlpha(railTone({ $isRoot, $depth }), '15')} 0%,
+      transparent 36%
+    ),
+    ${LCARS.panel};
+  transition:
+    transform 130ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
 
-  /* very subtle depth cue on the left */
   &::before {
     content: '';
     position: absolute;
     inset: 0 auto 0 0;
     width: 5px;
-    background: ${UI.lime};
-    opacity: 0.22;
+    background: ${({ $isRoot, $depth = 0 }) => railTone({ $isRoot, $depth })};
+    opacity: 0.28;
   }
 
   &:hover {
     transform: translateY(-1px);
-    background: ${UI.panelAlt};
+    border-color: ${({ $isRoot, $depth = 0 }) =>
+      toneAlpha(railTone({ $isRoot, $depth }), '7a')};
+    background:
+      linear-gradient(
+        92deg,
+        ${({ $isRoot, $depth = 0 }) =>
+          toneAlpha(railTone({ $isRoot, $depth }), '1f')} 0%,
+        transparent 42%
+      ),
+      ${LCARS.panelAlt};
   }
 `;
+
 const BoxHeader = styled.div`
   display: grid;
-  grid-template-columns: auto 1fr; /* shortId then title */
+  grid-template-columns: auto 1fr;
   align-items: center;
   gap: 12px;
-  padding: 16px 16px 12px;
-  border-bottom: 1px solid ${UI.line};
+  padding: 15px 16px 11px;
+  border-bottom: 1px solid ${LCARS.line};
 `;
 
 const BoxTitle = styled.div`
   font-weight: 900;
   font-size: clamp(18px, 3.6vw, 22px);
-  color: ${UI.text};
+  color: ${({ $isRoot, $depth = 0 }) =>
+    toneAlpha(railTone({ $isRoot, $depth }), 'ee')};
+  text-shadow: 0 0 10px
+    ${({ $isRoot, $depth = 0 }) => toneAlpha(railTone({ $isRoot, $depth }), '1f')};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 `;
 
-// NEW: big, obvious short-id badge
 const ShortId = styled.span`
   display: inline-flex;
   align-items: center;
@@ -106,23 +250,23 @@ const ShortId = styled.span`
   font-weight: 900;
   font-size: clamp(14px, 3.4vw, 18px);
   letter-spacing: 0.4px;
-
-  color: ${UI.lime};
-  background: transparent; /* no fill */
-  border: 2px solid ${UI.lime}; /* strong outline */
+  color: ${({ $isRoot, $depth = 0 }) =>
+    toneAlpha(railTone({ $isRoot, $depth }), 'f0')};
+  background: transparent;
+  border: 2px solid
+    ${({ $isRoot, $depth = 0 }) => toneAlpha(railTone({ $isRoot, $depth }), 'bd')};
 `;
 
 const Meta = styled.span`
   font-size: 12px;
-  color: ${UI.textDim};
+  color: ${LCARS.textDim};
   padding: 2px 8px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid ${UI.line};
+  border: 1px solid ${LCARS.line};
   align-self: start;
 `;
 
-/* Labeled info rows */
 const FieldGroup = styled.div`
   display: grid;
   grid-template-columns: auto 1fr;
@@ -132,7 +276,7 @@ const FieldGroup = styled.div`
 `;
 
 const FieldLabel = styled.span`
-  color: ${UI.textDim};
+  color: ${LCARS.textDim};
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.4px;
@@ -141,7 +285,7 @@ const FieldLabel = styled.span`
 `;
 
 const FieldValue = styled.div`
-  color: ${UI.text};
+  color: ${LCARS.text};
   font-size: 13px;
   line-height: 1.45;
   opacity: 0.95;
@@ -149,7 +293,6 @@ const FieldValue = styled.div`
   word-break: break-word;
 `;
 
-/* Chip rows */
 const TagRow = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -167,29 +310,36 @@ const TagBubble = styled.span`
   font-weight: 800;
   letter-spacing: 0.25px;
   user-select: none;
+  color: ${LCARS.textDim};
+  background:
+    linear-gradient(
+      90deg,
+      ${({ $isRoot, $depth = 0 }) =>
+          toneAlpha(railTone({ $isRoot, $depth }), '20')}
+        0%,
+      transparent 70%
+    ),
+    #121518;
+  border: 1px solid
+    ${({ $isRoot, $depth = 0 }) => toneAlpha(railTone({ $isRoot, $depth }), '7f')};
 
-  /* black/near-black background with accent border only */
-  background: ${UI.bg};
-  color: ${UI.textDim};
-  border: 1px solid ${UI.teal};
-
-  /* optional tiny variant (for item name chips) */
-  ${({ $tiny }) =>
+  ${({ $tiny, $isRoot, $depth }) =>
     $tiny &&
     css`
       height: 20px;
       font-size: 10px;
       font-weight: 700;
-      border-color: ${UI.line}; /* even quieter */
+      border-color: ${toneAlpha(railTone({ $isRoot, $depth }), '49')};
+      color: ${toneAlpha(LCARS.text, 'b8')};
     `}
 `;
-/* Footer pills */
+
 const BoxFooter = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   padding: 8px 16px 12px;
-  border-top: 1px dashed ${UI.line};
+  border-top: 1px dashed ${LCARS.line};
 `;
 
 const StatPill = styled.span`
@@ -199,44 +349,45 @@ const StatPill = styled.span`
   padding: 2px 8px;
   line-height: 1.2;
   white-space: nowrap;
-
-  color: ${UI.textDim};
+  color: ${LCARS.textDim};
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid ${UI.line};
+  border: 1px solid
+    ${({ $isRoot, $depth = 0 }) => toneAlpha(railTone({ $isRoot, $depth }), '52')};
 
   ${({ $variant }) =>
     $variant === 'boxes' &&
     css`
       color: #0b0e10;
-      background: ${UI.lime};
-      border-color: ${UI.lime};
+      background: ${LCARS.lime};
+      border-color: ${LCARS.lime};
     `}
+
   ${({ $variant }) =>
     $variant === 'items' &&
     css`
       color: #0b0e10;
-      background: ${UI.amber};
-      border-color: ${UI.amber};
+      background: ${LCARS.amber};
+      border-color: ${LCARS.amber};
     `}
 `;
 
-/* Tree indentation */
 const NodeChildren = styled.div`
-  margin-left: 12px;
-  margin-top: 10px;
+  margin-left: ${({ $depth = 1 }) => Math.min(Math.max($depth, 1) * 8, 32)}px;
+  margin-top: 2px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  border-left: 2px dashed rgba(159, 224, 112, 0.35);
-  padding-left: 12px;
+  gap: 0.72rem;
+  padding-left: 0.24rem;
 `;
 
 const EmptyMessage = styled.div`
   ${panelBase};
   padding: 16px;
-  color: ${UI.textDim};
+  color: ${LCARS.textDim};
   border-style: dashed;
-  background: ${UI.panelAlt};
+  background:
+    linear-gradient(90deg, ${toneAlpha(LCARS.coral, '1b')}, transparent 34%),
+    ${LCARS.panelAlt};
   text-align: center;
   border-radius: ${radiusL};
 `;
@@ -244,6 +395,10 @@ const EmptyMessage = styled.div`
 export const styledComponents = {
   Container,
   Heading,
+
+  NodeSection,
+  RailBack,
+  RailFront,
 
   BoxCard,
   BoxHeader,

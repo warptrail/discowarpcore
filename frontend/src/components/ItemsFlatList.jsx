@@ -8,6 +8,7 @@ export default function ItemsFlatList({
   openItemId,
   onOpenItem,
   title = 'Items',
+  showHeader = true,
   accent,
   pulsing,
   onTogglePulse,
@@ -16,15 +17,17 @@ export default function ItemsFlatList({
   const list = Array.isArray(items) ? items : [];
   return (
     <S.Container>
-      <S.HeaderRow>
-        <S.Title>{title}</S.Title>
-        <S.Count>{list.length} items</S.Count>
-      </S.HeaderRow>
+      {showHeader ? (
+        <S.HeaderRow>
+          <S.Title>{title}</S.Title>
+          <S.Count>{list.length} items</S.Count>
+        </S.HeaderRow>
+      ) : null}
 
       <S.List>
         {list.map((it) => {
           const id = String(it?._id ?? it?.id ?? '');
-          const isPulsing = !!pulsing?.includes?.(it._id); // ✅ boolean!
+          const isPulsing = !!pulsing?.includes?.(it._id);
           const isOpen = openItemId === it._id;
 
           if (!id) return null;
@@ -35,8 +38,8 @@ export default function ItemsFlatList({
               isOpen={isOpen}
               onOpen={() => onOpenItem?.(id)}
               accent={accent}
-              pulsing={pulsing.includes(it._id)}
-              onTogglePulse={() => onTogglePulse(it._id)}
+              pulsing={isPulsing}
+              onTogglePulse={() => onTogglePulse?.(it._id)}
               collapseDurMs={collapseDurMs}
             />
           );

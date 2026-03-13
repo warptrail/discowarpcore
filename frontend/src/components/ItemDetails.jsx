@@ -90,6 +90,17 @@ export default function ItemDetails({ itemId, triggerFlash }) {
     tags,
     imagePath,
     orphanedAt,
+    keepPriority,
+    primaryOwnerName,
+    condition,
+    isConsumable,
+    minimumDesiredQuantity,
+    lastCheckedAt,
+    acquisitionType,
+    purchasePriceCents,
+    lastMaintainedAt,
+    maintenanceIntervalDays,
+    maintenanceNotes,
     box,
     breadcrumb,
     depth,
@@ -143,6 +154,7 @@ export default function ItemDetails({ itemId, triggerFlash }) {
           <DetailRow label="Quantity" value={quantity ?? '—'} />
           <DetailRow label="Value ($)" value={value ?? '—'} />
           <DetailRow label="Value (cents)" value={valueCents ?? '—'} />
+          <DetailRow label="Purchase Price (cents)" value={purchasePriceCents ?? '—'} />
         </DetailSection>
 
         <DetailSection title="Description / Notes" tone="lilac" wide>
@@ -153,6 +165,7 @@ export default function ItemDetails({ itemId, triggerFlash }) {
         <DetailSection title="Lifecycle" tone="teal" wide>
           <DetailRow label="Date Acquired" value={fmtDate(dateAcquired)} />
           <DetailRow label="Last Used" value={fmtDate(dateLastUsed)} />
+          <DetailRow label="Last Checked" value={fmtDate(lastCheckedAt)} />
           <DetailRow
             label="Usage History"
             value={
@@ -172,6 +185,37 @@ export default function ItemDetails({ itemId, triggerFlash }) {
           />
           <DetailRow label="Avg Interval (days)" value={avgUseIntervalDays ?? '—'} />
           <DetailRow label="Orphaned At" value={fmtDate(orphanedAt)} />
+        </DetailSection>
+
+        <DetailSection title="Ownership / Retention" tone="amber" wide>
+          <DetailRow label="Keep Priority" value={keepPriority || '—'} />
+          <DetailRow label="Primary Owner" value={primaryOwnerName || '—'} />
+          <DetailRow label="Condition" value={condition || '—'} />
+          <DetailRow
+            label="Consumable"
+            value={isConsumable ? 'Yes' : 'No'}
+          />
+          <DetailRow
+            label="Min Desired Qty"
+            value={minimumDesiredQuantity ?? '—'}
+          />
+          <DetailRow label="Acquisition Type" value={acquisitionType || '—'} />
+        </DetailSection>
+
+        <DetailSection title="Maintenance" tone="teal" wide>
+          <DetailRow
+            label="Last Maintained"
+            value={fmtDate(lastMaintainedAt)}
+          />
+          <DetailRow
+            label="Interval (days)"
+            value={maintenanceIntervalDays ?? '—'}
+          />
+          <DetailRow
+            label="Maintenance Notes"
+            value={maintenanceNotes || '—'}
+            stretch
+          />
         </DetailSection>
 
         <DetailSection title="Placement / Hierarchy" tone="coral" wide>

@@ -15,6 +15,17 @@ export async function editItem(itemId, payload) {
     dateAcquired,
     dateLastUsed,
     usageHistory,
+    keepPriority,
+    condition,
+    isConsumable,
+    minimumDesiredQuantity,
+    lastCheckedAt,
+    acquisitionType,
+    purchasePriceCents,
+    primaryOwnerName,
+    lastMaintainedAt,
+    maintenanceIntervalDays,
+    maintenanceNotes,
   } = payload;
 
   const safePayload = {
@@ -30,6 +41,17 @@ export async function editItem(itemId, payload) {
     dateAcquired,
     dateLastUsed,
     usageHistory,
+    keepPriority,
+    condition,
+    isConsumable,
+    minimumDesiredQuantity,
+    lastCheckedAt,
+    acquisitionType,
+    purchasePriceCents,
+    primaryOwnerName,
+    lastMaintainedAt,
+    maintenanceIntervalDays,
+    maintenanceNotes,
   };
 
   const url = `${API_BASE}/api/items/${itemId}`;

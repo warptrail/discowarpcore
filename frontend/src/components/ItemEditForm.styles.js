@@ -24,6 +24,58 @@ export const Input = styled.input`
   margin-bottom: 1rem;
 `;
 
+export const TextArea = styled.textarea`
+  width: 100%;
+  background-color: #2a2a2a;
+  color: white;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  min-height: 80px;
+  resize: vertical;
+`;
+
+export const Select = styled.select`
+  width: 100%;
+  background-color: #2a2a2a;
+  color: white;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+`;
+
+export const SectionTitle = styled.h4`
+  margin: 1rem 0 0.5rem;
+  font-size: 0.92rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #b7d4d1;
+`;
+
+export const FieldGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const CheckboxRow = styled.label`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+`;
+
+export const Checkbox = styled.input`
+  width: auto;
+  margin: 0;
+`;
+
 export const ButtonRow = styled.div`
   display: flex;
   justify-content: flex-end;

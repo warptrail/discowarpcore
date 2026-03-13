@@ -110,9 +110,16 @@ async function backfillOrphanedTimestamps() {
 }
 
 async function orphanAllItemsInBox(boxId) {
+  const box = await Box.findById(boxId).select('items').lean();
+  const itemIds = Array.isArray(box?.items) ? box.items : [];
+
+  if (!itemIds.length) {
+    return { acknowledged: true, matchedCount: 0, modifiedCount: 0 };
+  }
+
   return Item.updateMany(
-    { boxId },
-    { $set: { boxId: null, orphanedAt: new Date() } }
+    { _id: { $in: itemIds } },
+    { $set: { orphanedAt: new Date(), location: '' } }
   );
 }
 
@@ -127,24 +134,76 @@ function assertValidCentsPayload(data = {}) {
     err.status = 400;
     throw err;
   }
-  if ('valueCents' in data) {
-    const v = data.valueCents;
-    if (typeof v === 'string' && v.includes('.')) {
-      const err = new Error(
-        'valueCents must be a whole integer (no decimals).'
-      );
-      err.status = 400;
-      throw err;
-    }
-    const n = Number(v);
-    if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) {
-      const err = new Error('valueCents must be a non-negative integer.');
-      err.status = 400;
-      throw err;
-    }
-    data.valueCents = n;
-  }
+
+  assertNonNegativeIntegerField(data, 'valueCents');
+  assertNonNegativeIntegerField(data, 'purchasePriceCents', { allowNull: true });
+  assertNonNegativeIntegerField(data, 'maintenanceIntervalDays', {
+    allowNull: true,
+  });
+  normalizeNullableStringField(data, 'primaryOwnerName');
+  normalizeStringField(data, 'maintenanceNotes');
+  normalizeKeepPriority(data);
+
   return data;
+}
+
+function assertNonNegativeIntegerField(
+  data,
+  field,
+  { allowNull = false } = {}
+) {
+  if (!(field in data)) return;
+
+  const raw = data[field];
+
+  if (allowNull && (raw === null || raw === '')) {
+    data[field] = null;
+    return;
+  }
+
+  if (typeof raw === 'string' && raw.includes('.')) {
+    const err = new Error(`${field} must be a whole integer (no decimals).`);
+    err.status = 400;
+    throw err;
+  }
+
+  const n = Number(raw);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) {
+    const err = new Error(`${field} must be a non-negative integer.`);
+    err.status = 400;
+    throw err;
+  }
+
+  data[field] = n;
+}
+
+function normalizeNullableStringField(data, field) {
+  if (!(field in data)) return;
+  if (data[field] == null) {
+    data[field] = null;
+    return;
+  }
+  const s = String(data[field]).trim();
+  data[field] = s ? s : null;
+}
+
+function normalizeStringField(data, field) {
+  if (!(field in data)) return;
+  if (data[field] == null) {
+    data[field] = '';
+    return;
+  }
+  data[field] = String(data[field]).trim();
+}
+
+function normalizeKeepPriority(data) {
+  if (!('keepPriority' in data)) return;
+  if (data.keepPriority == null || data.keepPriority === '') {
+    data.keepPriority = null;
+    return;
+  }
+  const mapped = String(data.keepPriority).trim().toLowerCase();
+  data.keepPriority = mapped === 'normal' ? 'medium' : mapped;
 }
 
 module.exports = {

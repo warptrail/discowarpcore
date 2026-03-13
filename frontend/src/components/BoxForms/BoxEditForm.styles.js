@@ -50,6 +50,22 @@ export const Input = styled.input`
     `}
 `;
 
+export const Select = styled.select`
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #2f2f2f;
+  background: #101010;
+  color: #eaeaea;
+  font-size: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #4ec77b;
+    box-shadow: 0 0 0 2px rgba(78, 199, 123, 0.2);
+  }
+`;
+
 export const statusColor = ($status) =>
   $status === 'inProgress'
     ? '#ffd400'

@@ -5,6 +5,12 @@ const boxSchema = new mongoose.Schema({
   box_id: { type: String, required: true, unique: true },
   label: { type: String, required: true },
   location: String,
+  locationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Location',
+    default: null,
+    index: true,
+  },
   description: String,
   notes: String,
   tags: [String],

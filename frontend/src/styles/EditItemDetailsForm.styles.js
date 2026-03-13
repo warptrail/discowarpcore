@@ -149,6 +149,35 @@ export const TextArea = styled.textarea`
   resize: vertical;
 `;
 
+export const Select = styled.select`
+  ${fieldControlStyles}
+`;
+
+export const InlineGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const CheckboxRow = styled.label`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: ${LCARS.text};
+  cursor: pointer;
+`;
+
+export const Checkbox = styled.input`
+  width: 1rem;
+  height: 1rem;
+  accent-color: ${LCARS.teal};
+`;
+
 export const Actions = styled.div`
   display: flex;
   justify-content: flex-end;

@@ -1,14 +1,49 @@
 // services/boxService.js
 const Box = require('../models/Box');
 const Item = require('../models/Item');
+const Location = require('../models/Location');
 
 const { orphanAllItemsInBox } = require('./itemService');
+const { resolveBoxLocationFields } = require('./locationService');
 
 const { computeStats, flattenBoxes } = require('../utils/boxHelpers');
 const { wouldCreateCycle } = require('../utils/wouldCreateCycle');
 
+function collectLocationIds(nodes = []) {
+  const ids = new Set();
+  for (const node of nodes) {
+    if (node?.locationId) ids.add(String(node.locationId));
+  }
+  return Array.from(ids);
+}
+
+async function buildLocationNameMap(nodes = []) {
+  const ids = collectLocationIds(nodes);
+  if (!ids.length) return new Map();
+  const locations = await Location.find({ _id: { $in: ids } })
+    .select('_id name')
+    .lean();
+  return new Map(locations.map((loc) => [String(loc._id), loc.name]));
+}
+
+function withLocation(box, locationNameMap) {
+  const id = box?.locationId ? String(box.locationId) : null;
+  const resolvedName = id ? locationNameMap.get(id) : null;
+  return {
+    ...box,
+    locationId: id,
+    location: resolvedName ?? box?.location ?? '',
+  };
+}
+
 async function getBoxByMongoId(id) {
-  return await Box.findById(id);
+  const box = await Box.findById(id).populate('locationId', 'name').lean();
+  if (!box) return null;
+  return {
+    ...box,
+    locationId: box.locationId?._id ? String(box.locationId._id) : null,
+    location: box.locationId?.name ?? box.location ?? '',
+  };
 }
 async function getBoxByShortId(shortId) {
   const raw = String(shortId || '').trim();
@@ -19,10 +54,21 @@ async function getBoxByShortId(shortId) {
   const normalized = raw.replace(/^0+/, '') || '0';
 
   const box =
-    (await Box.findOne({ box_id: raw }).populate('items').lean()) ||
-    (await Box.findOne({ box_id: normalized }).populate('items').lean());
+    (await Box.findOne({ box_id: raw })
+      .populate('items')
+      .populate('locationId', 'name')
+      .lean()) ||
+    (await Box.findOne({ box_id: normalized })
+      .populate('items')
+      .populate('locationId', 'name')
+      .lean());
 
-  return box; // can be null if not found
+  if (!box) return null;
+  return {
+    ...box,
+    locationId: box.locationId?._id ? String(box.locationId._id) : null,
+    location: box.locationId?.name ?? box.location ?? '',
+  };
 }
 
 // ! Main Function
@@ -36,7 +82,7 @@ async function getBoxDataStructure(
 ) {
   // 1) Root box (by public short id)
   const root = await Box.findOne({ box_id: shortId })
-    .select('_id box_id label name parentBox items')
+    .select('_id box_id label name parentBox items location locationId')
     .lean();
   if (!root) return null;
   root.label = root.label ?? root.name ?? 'Box';
@@ -48,7 +94,7 @@ async function getBoxDataStructure(
 
   while (frontier.length) {
     const children = await Box.find({ parentBox: { $in: frontier } })
-      .select('_id box_id label name parentBox items')
+      .select('_id box_id label name parentBox items location locationId')
       .lean();
 
     for (const c of children) {
@@ -60,6 +106,8 @@ async function getBoxDataStructure(
     }
     frontier = children.map((c) => c._id);
   }
+
+  const locationNameMap = await buildLocationNameMap(Array.from(nodesById.values()));
 
   // 3) Fetch all Items once, index by _id
   const allItemIds = [];
@@ -85,6 +133,10 @@ async function getBoxDataStructure(
       box_id: node.box_id,
       label: node.label,
       parentBox: node.parentBox ? String(node.parentBox) : null,
+      locationId: node.locationId ? String(node.locationId) : null,
+      location: node.locationId
+        ? locationNameMap.get(String(node.locationId)) ?? node.location ?? ''
+        : node.location ?? '',
       items: itemDocs,
       childBoxes: kids.map(link),
     };
@@ -161,6 +213,8 @@ async function getBoxTreeByShortId(shortId) {
     frontier = children.map((c) => c._id);
   }
 
+  const locationNameMap = await buildLocationNameMap(Array.from(byId.values()));
+
   // 3) Fetch ALL items for ALL boxes once, then map back in
   const allItemIdCandidates = [];
   for (const b of byId.values()) {
@@ -196,6 +250,10 @@ async function getBoxTreeByShortId(shortId) {
     // Return with conventional fields
     return {
       ...node,
+      locationId: node.locationId ? String(node.locationId) : null,
+      location: node.locationId
+        ? locationNameMap.get(String(node.locationId)) ?? node.location ?? ''
+        : node.location ?? '',
       items: itemDocs,
       childBoxes,
     };
@@ -215,13 +273,19 @@ async function getBoxTreeByShortId(shortId) {
 }
 
 async function getAllBoxes() {
-  return Box.find()
+  const boxes = await Box.find()
     .populate({
       path: 'parentBox',
       select: '_id box_id description', // 👈 Only these fields
     })
+    .populate('locationId', 'name')
     .populate('items') // Leave items fully populated (or adjust as needed)
     .lean();
+  return boxes.map((box) => ({
+    ...box,
+    locationId: box.locationId?._id ? String(box.locationId._id) : null,
+    location: box.locationId?.name ?? box.location ?? '',
+  }));
 }
 
 async function getBoxesExcludingId(id) {
@@ -235,13 +299,17 @@ async function getBoxesExcludingId(id) {
 async function populateChildren(box) {
   // Find all child boxes where this box is the parent
   const children = await Box.find({ parentBox: box._id }).lean();
+  const locationNameMap = await buildLocationNameMap(children);
 
   // For each child box, recursively fetch its own children
-  for (let child of children) {
+  for (let i = 0; i < children.length; i += 1) {
+    let child = children[i];
     // Populate items inside the child box
+    child = withLocation(child, locationNameMap);
     child.items = await Item.find({ _id: { $in: child.items } }).lean();
 
     child.childBoxes = await populateChildren(child);
+    children[i] = child;
   }
 
   return children;
@@ -253,10 +321,14 @@ async function populateChildren(box) {
 
 async function getBoxTree() {
   const topLevelBoxes = await Box.find({ parentBox: null }).lean();
+  const locationNameMap = await buildLocationNameMap(topLevelBoxes);
 
-  for (let box of topLevelBoxes) {
+  for (let i = 0; i < topLevelBoxes.length; i += 1) {
+    let box = topLevelBoxes[i];
+    box = withLocation(box, locationNameMap);
     box.items = await Item.find({ _id: { $in: box.items } }).lean();
     box.childBoxes = await populateChildren(box);
+    topLevelBoxes[i] = box;
   }
 
   return topLevelBoxes;
@@ -266,21 +338,63 @@ async function getBoxesByParent(parentId) {
   const filter =
     parentId === 'null' ? { parentBox: null } : { parentBox: parentId };
   console.log(filter);
-  return Box.find(filter).populate('parentBox');
+  const boxes = await Box.find(filter)
+    .populate('parentBox')
+    .populate('locationId', 'name')
+    .lean();
+  return boxes.map((box) => ({
+    ...box,
+    locationId: box.locationId?._id ? String(box.locationId._id) : null,
+    location: box.locationId?.name ?? box.location ?? '',
+  }));
 }
 
 async function createBox(data) {
-  return Box.create(data);
+  const payload = { ...data };
+  const resolvedLocation = await resolveBoxLocationFields({
+    locationId:
+      data && Object.prototype.hasOwnProperty.call(data, 'locationId')
+        ? data.locationId
+        : undefined,
+    location:
+      data && Object.prototype.hasOwnProperty.call(data, 'location')
+        ? data.location
+        : undefined,
+  });
+  if (resolvedLocation) {
+    payload.locationId = resolvedLocation.locationId;
+    payload.location = resolvedLocation.location;
+  }
+  return Box.create(payload);
 }
 
 async function updateBox(id, data) {
+  const patch = { ...data };
+
+  const resolvedLocation = await resolveBoxLocationFields({
+    locationId:
+      data && Object.prototype.hasOwnProperty.call(data, 'locationId')
+        ? data.locationId
+        : undefined,
+    location:
+      data &&
+      !Object.prototype.hasOwnProperty.call(data, 'locationId') &&
+      Object.prototype.hasOwnProperty.call(data, 'location')
+        ? data.location
+        : undefined,
+  });
+  if (resolvedLocation) {
+    patch.locationId = resolvedLocation.locationId;
+    patch.location = resolvedLocation.location;
+  }
+
   // Only guard when a parent change is being requested.
   // IMPORTANT: allow explicit null to unparent.
   //
   // The `in` operator checks for *property presence*, not truthiness.
   // This allows `{ parentBox: null }` to be treated as intentional.
-  if ('parentBox' in data) {
-    const destId = data.parentBox; // may be null
+  if ('parentBox' in patch) {
+    const destId = patch.parentBox; // may be null
 
     // Load the existing box so we can compare current state
     const existing = await Box.findById(id).lean();
@@ -318,7 +432,7 @@ async function updateBox(id, data) {
   }
 
   // Perform the update
-  return Box.findByIdAndUpdate(id, data, {
+  return Box.findByIdAndUpdate(id, patch, {
     new: true,
     runValidators: true,
   });
@@ -328,7 +442,7 @@ async function updateBox(id, data) {
 // Orphans items first, then removes the box.
 async function deleteBoxById(id, { orphanItems = true } = {}) {
   // Ensure the box exists
-  const box = await Box.findById(id);
+  const box = await Box.findById(id).select('_id items').lean();
   if (!box) {
     const err = new Error('Box not found');
     err.status = 404;
@@ -337,9 +451,9 @@ async function deleteBoxById(id, { orphanItems = true } = {}) {
 
   // Detach (or delete) items that belonged to this box
   if (orphanItems) {
-    await orphanAllItemsInBox(Item, box._id);
-  } else {
-    await Item.deleteMany({ boxId: box._id });
+    await orphanAllItemsInBox(box._id);
+  } else if (Array.isArray(box.items) && box.items.length) {
+    await Item.deleteMany({ _id: { $in: box.items } });
   }
 
   // Delete the box itself
@@ -348,12 +462,25 @@ async function deleteBoxById(id, { orphanItems = true } = {}) {
   return { ok: true, deleted: 1, boxId: String(box._id) };
 }
 
-// Your earlier bulk helper (unchanged pattern)
-async function deleteAllBoxes({ Box, Item }) {
-  const allBoxes = await Box.find({});
+async function deleteAllBoxes() {
+  const allBoxes = await Box.find().select('_id items').lean();
   const boxIds = allBoxes.map((b) => b._id);
 
-  await Promise.all(boxIds.map((id) => orphanAllItemsInBox(Item, id)));
+  const itemIds = new Set();
+  for (const box of allBoxes) {
+    for (const itemId of box.items || []) {
+      itemIds.add(String(itemId));
+    }
+  }
+
+  const itemIdList = Array.from(itemIds);
+  if (itemIdList.length) {
+    await Item.updateMany(
+      { _id: { $in: itemIdList } },
+      { $set: { orphanedAt: new Date(), location: '' } }
+    );
+  }
+
   await Box.deleteMany({});
 
   return boxIds.length;

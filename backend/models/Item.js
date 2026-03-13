@@ -2,6 +2,10 @@
 const mongoose = require('mongoose');
 const { buildBoxMaps, makeBreadcrumb } = require('../utils/boxHelpers');
 
+function isNonNegativeIntegerOrNull(v) {
+  return v == null || (Number.isInteger(v) && v >= 0);
+}
+
 const itemSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, default: '' },
@@ -25,6 +29,51 @@ const itemSchema = new mongoose.Schema(
         message: 'valueCents must be an integer number of cents',
       },
     },
+    keepPriority: {
+      type: String,
+      enum: ['low', 'medium', 'high', 'essential'],
+      default: null,
+    },
+    primaryOwnerName: { type: String, default: null },
+    condition: {
+      type: String,
+      enum: ['unknown', 'new', 'good', 'fair', 'poor', 'needs_repair'],
+      default: 'unknown',
+    },
+    isConsumable: { type: Boolean, default: false },
+    minimumDesiredQuantity: {
+      type: Number,
+      default: null,
+      validate: {
+        validator: isNonNegativeIntegerOrNull,
+        message:
+          'minimumDesiredQuantity must be null or a non-negative integer',
+      },
+    },
+    lastCheckedAt: { type: Date, default: null },
+    acquisitionType: {
+      type: String,
+      enum: ['unknown', 'purchase', 'gift', 'found', 'made', 'inherited'],
+      default: 'unknown',
+    },
+    purchasePriceCents: {
+      type: Number,
+      default: null,
+      validate: {
+        validator: isNonNegativeIntegerOrNull,
+        message: 'purchasePriceCents must be null or a non-negative integer',
+      },
+    },
+    lastMaintainedAt: { type: Date, default: null },
+    maintenanceIntervalDays: {
+      type: Number,
+      default: null,
+      validate: {
+        validator: isNonNegativeIntegerOrNull,
+        message: 'maintenanceIntervalDays must be null or a non-negative integer',
+      },
+    },
+    maintenanceNotes: { type: String, default: '' },
   },
   {
     timestamps: true,

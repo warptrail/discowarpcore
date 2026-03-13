@@ -19,6 +19,17 @@ function randSubset(arr, max = 3) {
   return shuffled.slice(0, Math.floor(Math.random() * max) + 1);
 }
 
+const KEEP_PRIORITIES = ['low', 'medium', 'high', 'essential'];
+const CONDITIONS = ['unknown', 'new', 'good', 'fair', 'poor', 'needs_repair'];
+const ACQUISITION_TYPES = [
+  'unknown',
+  'purchase',
+  'gift',
+  'found',
+  'made',
+  'inherited',
+];
+
 // PATCH /api/tools/backfill-items?key=dev123
 router.patch('/backfill-items', async (req, res) => {
   try {
@@ -73,6 +84,49 @@ router.patch('/backfill-items', async (req, res) => {
       // Random valueCents ($1–$500)
       if (!item.valueCents || item.valueCents === 0) {
         item.valueCents = Math.floor(Math.random() * 50000) + 100;
+      }
+
+      // New structured fields (optional, safe defaults for dev datasets)
+      if (!item.keepPriority) item.keepPriority = randFrom(KEEP_PRIORITIES);
+      if (!item.condition) item.condition = randFrom(CONDITIONS);
+      if (!item.acquisitionType) {
+        item.acquisitionType = randFrom(ACQUISITION_TYPES);
+      }
+      if (item.isConsumable === undefined || item.isConsumable === null) {
+        item.isConsumable = !!item.tags?.includes('consumable');
+      }
+      if (item.minimumDesiredQuantity === undefined) {
+        item.minimumDesiredQuantity = item.isConsumable
+          ? Math.floor(Math.random() * 4) + 1
+          : null;
+      }
+      if (
+        item.purchasePriceCents === undefined &&
+        item.acquisitionType === 'purchase'
+      ) {
+        item.purchasePriceCents = Math.floor(Math.random() * 50000) + 100;
+      }
+      if (!item.lastCheckedAt) {
+        const daysAgo = Math.floor(Math.random() * 120);
+        item.lastCheckedAt = new Date(
+          Date.now() - daysAgo * 24 * 60 * 60 * 1000
+        ).toISOString();
+      }
+      if (!item.primaryOwnerName) {
+        item.primaryOwnerName = randFrom(['Shared', 'Mom', 'Erelas']);
+      }
+      if (!item.lastMaintainedAt) {
+        const daysAgo = Math.floor(Math.random() * 365);
+        item.lastMaintainedAt = new Date(
+          Date.now() - daysAgo * 24 * 60 * 60 * 1000
+        ).toISOString();
+      }
+      if (item.maintenanceIntervalDays === undefined) {
+        item.maintenanceIntervalDays = Math.floor(Math.random() * 180);
+      }
+      if (!item.maintenanceNotes) {
+        item.maintenanceNotes =
+          Math.random() > 0.5 ? 'No issues noted.' : 'Needs periodic check.';
       }
 
       await item.save();

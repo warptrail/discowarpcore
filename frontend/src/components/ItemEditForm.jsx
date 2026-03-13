@@ -1,8 +1,53 @@
 import React, { useEffect, useState } from 'react';
 
+import { editItem } from '../api/editItem';
 import MoveItemBar from './MoveItemBar';
 import ItemEditFieldsForm from './ItemEditFieldsForm';
 import * as S from './ItemEditForm.styles';
+
+const toNullableNonNegativeInteger = (value) => {
+  if (value === '' || value === null || value === undefined) return null;
+  const n = Number(value);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) return null;
+  return n;
+};
+
+const toNullableTrimmedString = (value) => {
+  if (value == null) return null;
+  const s = String(value).trim();
+  return s ? s : null;
+};
+
+const normalizeKeepPriority = (value) => {
+  if (value == null || value === '') return '';
+  const v = String(value).trim().toLowerCase();
+  return v === 'normal' ? 'medium' : v;
+};
+
+const buildFormData = (item) => ({
+  name: item?.name || '',
+  description: item?.description || '',
+  notes: item?.notes || '',
+  quantity: item?.quantity || 1,
+  tags: item?.tags || [],
+  keepPriority: normalizeKeepPriority(item?.keepPriority),
+  primaryOwnerName: item?.primaryOwnerName || '',
+  condition: item?.condition || 'unknown',
+  isConsumable: !!item?.isConsumable,
+  minimumDesiredQuantity: toNullableNonNegativeInteger(
+    item?.minimumDesiredQuantity
+  ),
+  lastCheckedAt: item?.lastCheckedAt ? String(item.lastCheckedAt).slice(0, 10) : '',
+  acquisitionType: item?.acquisitionType || 'unknown',
+  purchasePriceCents: toNullableNonNegativeInteger(item?.purchasePriceCents),
+  lastMaintainedAt: item?.lastMaintainedAt
+    ? String(item.lastMaintainedAt).slice(0, 10)
+    : '',
+  maintenanceIntervalDays: toNullableNonNegativeInteger(
+    item?.maintenanceIntervalDays
+  ),
+  maintenanceNotes: item?.maintenanceNotes || '',
+});
 
 export default function ItemEditForm({
   initialItem,
@@ -13,12 +58,7 @@ export default function ItemEditForm({
   onMoveRequest,
   onOrphanRequest,
 }) {
-  const [formData, setFormData] = useState({
-    name: initialItem.name || '',
-    notes: initialItem.notes || '',
-    quantity: initialItem.quantity || 1,
-    tags: initialItem.tags || [],
-  });
+  const [formData, setFormData] = useState(() => buildFormData(initialItem));
 
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -26,17 +66,14 @@ export default function ItemEditForm({
   const [savedTags, setSavedTags] = useState(initialItem.tags || []);
   const [flashTagSet, setFlashTagSet] = useState(new Set());
 
-  const markDirty = () => {
-    console.log('🔥 markDirty called');
-    setDirty(true);
-  };
+  const markDirty = () => setDirty(true);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
 
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === 'checkbox' ? checked : value,
     }));
 
     markDirty();
@@ -58,25 +95,40 @@ export default function ItemEditForm({
     markDirty();
   };
 
+  const handleNumberFieldChange = (name, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: toNullableNonNegativeInteger(value),
+    }));
+    markDirty();
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
     setSaveSuccess(false);
 
     try {
-      const response = await fetch(
-        `http://localhost:5002/api/items/${initialItem._id}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
-        },
-      );
+      const payload = {
+        ...formData,
+        keepPriority: formData.keepPriority || null,
+        primaryOwnerName: toNullableTrimmedString(formData.primaryOwnerName),
+        minimumDesiredQuantity: toNullableNonNegativeInteger(
+          formData.minimumDesiredQuantity
+        ),
+        purchasePriceCents: toNullableNonNegativeInteger(
+          formData.purchasePriceCents
+        ),
+        maintenanceIntervalDays: toNullableNonNegativeInteger(
+          formData.maintenanceIntervalDays
+        ),
+        lastCheckedAt: formData.lastCheckedAt || null,
+        lastMaintainedAt: formData.lastMaintainedAt || null,
+        maintenanceNotes: String(formData.maintenanceNotes || '').trim(),
+        isConsumable: !!formData.isConsumable,
+      };
 
-      if (!response.ok) throw new Error(`Server error: ${response.status}`);
-
-      const updatedItem = await response.json();
-      console.log('updated Item', updatedItem);
+      const updatedItem = await editItem(initialItem._id, payload);
 
       if (onItemUpdated) {
         onItemUpdated(updatedItem);
@@ -94,7 +146,6 @@ export default function ItemEditForm({
       console.error('Error saving item:', err);
     } finally {
       setSaving(false);
-      console.log(saving);
     }
   };
 
@@ -131,8 +182,10 @@ export default function ItemEditForm({
   const allBoxes = ['this is a box'];
 
   useEffect(() => {
+    setFormData(buildFormData(initialItem));
+    setDirty(false);
     setSavedTags(initialItem.tags || []);
-  }, [initialItem._id, initialItem.tags]);
+  }, [initialItem?._id]);
 
   useEffect(() => {
     if (saveSuccess) {
@@ -150,6 +203,7 @@ export default function ItemEditForm({
       <ItemEditFieldsForm
         formData={formData}
         onFieldChange={handleChange}
+        onNumberFieldChange={handleNumberFieldChange}
         onQuantityChange={handleQuantityChange}
         onTagsChange={handleTagsChange}
         saveSuccess={saveSuccess}
@@ -158,7 +212,6 @@ export default function ItemEditForm({
         onClose={onClose}
         onSave={(e) => {
           handleSave(e);
-          console.log('item saved!');
         }}
         isDisabled={isDisabled}
         buttonContent={buttonContent}

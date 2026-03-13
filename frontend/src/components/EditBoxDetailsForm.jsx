@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { updateBoxDetails } from '../api/boxes';
+import { listLocations } from '../api/locations';
 import useShortIdAvailability from '../hooks/useShortIdAvailability';
 
 import * as S from './BoxForms/BoxEditForm.styles';
@@ -15,8 +16,18 @@ export default function EditBoxDetailsForm({
   onCancel,
   TagInputComponent,
 }) {
+  const initialLocationId =
+    initial?.locationId?._id ??
+    initial?.locationId ??
+    null;
+
   const [shortId, setShortId] = useState(initial?.box_id ?? '');
   const [label, setLabel] = useState(initial?.label ?? '');
+  const [locationId, setLocationId] = useState(
+    initialLocationId ? String(initialLocationId) : '',
+  );
+  const [locationOptions, setLocationOptions] = useState([]);
+  const [locationsLoading, setLocationsLoading] = useState(false);
   const [tags, setTags] = useState(() =>
     Array.isArray(initial?.tags) ? initial.tags : [],
   );
@@ -27,8 +38,41 @@ export default function EditBoxDetailsForm({
   useEffect(() => {
     setShortId(initial?.box_id ?? '');
     setLabel(initial?.label ?? '');
+    const nextLocationId =
+      initial?.locationId?._id ??
+      initial?.locationId ??
+      '';
+    setLocationId(nextLocationId ? String(nextLocationId) : '');
     setTags(Array.isArray(initial?.tags) ? initial.tags : []);
-  }, [initial?._id, initial?.box_id, initial?.label, initial?.tags, initialTagsKey]);
+  }, [
+    initial?._id,
+    initial?.box_id,
+    initial?.label,
+    initial?.locationId,
+    initial?.tags,
+    initialTagsKey,
+  ]);
+
+  useEffect(() => {
+    let active = true;
+    setLocationsLoading(true);
+    listLocations()
+      .then((locations) => {
+        if (!active) return;
+        setLocationOptions(Array.isArray(locations) ? locations : []);
+      })
+      .catch((e) => {
+        console.error('Failed to load locations:', e);
+        if (active) setLocationOptions([]);
+      })
+      .finally(() => {
+        if (active) setLocationsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const {
     inProgress,
@@ -47,11 +91,13 @@ export default function EditBoxDetailsForm({
   const changed = useMemo(() => {
     const sameId = String(shortId || '') === String(initial?.box_id || '');
     const sameLabel = String(label || '') === String(initial?.label || '');
+    const sameLocation =
+      String(locationId || '') === String(initial?.locationId?._id ?? initial?.locationId ?? '');
     const sameTags =
       JSON.stringify([...tags].sort()) ===
       JSON.stringify([...(initial?.tags || [])].sort());
-    return !(sameId && sameLabel && sameTags);
-  }, [shortId, label, tags, initial]);
+    return !(sameId && sameLabel && sameLocation && sameTags);
+  }, [shortId, label, locationId, tags, initial]);
 
   const canSave =
     !busy &&
@@ -71,6 +117,7 @@ export default function EditBoxDetailsForm({
       const updated = await updateBoxDetails(boxMongoId, {
         box_id: shortId,
         label: label.trim(),
+        locationId: locationId || null,
         tags,
       });
       onSaved?.(updated || { _id: boxMongoId, box_id: shortId, label, tags });
@@ -95,6 +142,10 @@ export default function EditBoxDetailsForm({
         shortIdAvail={shortIdAvail}
         label={label}
         setLabel={setLabel}
+        locationId={locationId}
+        setLocationId={setLocationId}
+        locationOptions={locationOptions}
+        locationsLoading={locationsLoading}
       />
 
       <BoxTagsField

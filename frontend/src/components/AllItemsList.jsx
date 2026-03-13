@@ -36,7 +36,7 @@ const Select = styled.select`
 export default function AllItemsList() {
   const [items, setItems] = useState([]);
   const [sortBy, setSortBy] = useState('alpha');
-  const [filter, setFilter] = useState('all'); // 'all', 'orphaned', 'boxed'
+  const [filter, setFilter] = useState('all'); // 'all', 'orphaned', 'boxed', 'consumable', 'nonConsumable'
 
   useEffect(() => {
     fetch('http://localhost:5002/api/items')
@@ -52,6 +52,10 @@ export default function AllItemsList() {
       filtered = filtered.filter((item) => !item.box);
     } else if (filter === 'boxed') {
       filtered = filtered.filter((item) => item.box);
+    } else if (filter === 'consumable') {
+      filtered = filtered.filter((item) => item.isConsumable);
+    } else if (filter === 'nonConsumable') {
+      filtered = filtered.filter((item) => !item.isConsumable);
     }
 
     if (sortBy === 'alpha') {
@@ -67,6 +71,36 @@ export default function AllItemsList() {
         const aTime = new Date(parseInt(a._id.substring(0, 8), 16) * 1000);
         const bTime = new Date(parseInt(b._id.substring(0, 8), 16) * 1000);
         return bTime - aTime; // most recent first
+      });
+    } else if (sortBy === 'keepPriority') {
+      const priorityOrder = { essential: 0, high: 1, medium: 2, low: 3 };
+      filtered.sort((a, b) => {
+        const aRank = priorityOrder[a.keepPriority] ?? 4;
+        const bRank = priorityOrder[b.keepPriority] ?? 4;
+        if (aRank !== bRank) return aRank - bRank;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+    } else if (sortBy === 'owner') {
+      filtered.sort((a, b) =>
+        (a.primaryOwnerName || '').localeCompare(b.primaryOwnerName || '')
+      );
+    } else if (sortBy === 'lastMaintained') {
+      filtered.sort((a, b) => {
+        const at = a.lastMaintainedAt ? Date.parse(a.lastMaintainedAt) : -1;
+        const bt = b.lastMaintainedAt ? Date.parse(b.lastMaintainedAt) : -1;
+        if (at !== bt) return bt - at;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+    } else if (sortBy === 'purchasePrice') {
+      filtered.sort((a, b) => {
+        const aPrice = Number.isFinite(a.purchasePriceCents)
+          ? a.purchasePriceCents
+          : -1;
+        const bPrice = Number.isFinite(b.purchasePriceCents)
+          ? b.purchasePriceCents
+          : -1;
+        if (aPrice !== bPrice) return bPrice - aPrice;
+        return (a.name || '').localeCompare(b.name || '');
       });
     }
 
@@ -85,6 +119,8 @@ export default function AllItemsList() {
             <option value="all">All</option>
             <option value="boxed">Boxed</option>
             <option value="orphaned">Orphaned</option>
+            <option value="consumable">Consumable</option>
+            <option value="nonConsumable">Non-Consumable</option>
           </Select>
         </label>
 
@@ -94,6 +130,10 @@ export default function AllItemsList() {
             <option value="alpha">Alphabetical</option>
             <option value="box">Box ID</option>
             <option value="date">Date Added</option>
+            <option value="keepPriority">Keep Priority</option>
+            <option value="owner">Primary Owner</option>
+            <option value="lastMaintained">Last Maintained</option>
+            <option value="purchasePrice">Purchase Price (cents)</option>
           </Select>
         </label>
       </Controls>

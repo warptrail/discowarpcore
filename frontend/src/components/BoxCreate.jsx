@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 
 import { createBox } from '../api/boxes';
+import { listLocations } from '../api/locations';
 import useShortIdAvailability from '../hooks/useShortIdAvailability';
 
 const Container = styled.div`
@@ -31,6 +32,16 @@ const Label = styled.label`
 `;
 
 const Input = styled.input`
+  width: 100%;
+  padding: 0.75rem;
+  background: #222;
+  color: #f0f0f0;
+  border: 1px solid #444;
+  border-radius: 4px;
+  font-size: 1rem;
+`;
+
+const Select = styled.select`
   width: 100%;
   padding: 0.75rem;
   background: #222;
@@ -81,8 +92,24 @@ function BoxCreate() {
   const navigate = useNavigate();
   const [boxId, setBoxId] = useState('');
   const [label, setLabel] = useState('');
-  const [storageLocation, setStorageLocation] = useState('');
+  const [locationId, setLocationId] = useState('');
+  const [locations, setLocations] = useState([]);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    listLocations()
+      .then((data) => {
+        if (!active) return;
+        setLocations(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        console.error('Failed to load locations:', err);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const {
     shortIdValid,
@@ -116,7 +143,7 @@ function BoxCreate() {
       await createBox({
         box_id: boxId,
         label,
-        location: storageLocation,
+        locationId: locationId || null,
       });
       navigate(`/boxes/${boxId}`);
     } catch (err) {
@@ -192,13 +219,19 @@ function BoxCreate() {
         </Field>
 
         <Field>
-          <Label htmlFor="storageLocation">Location</Label>
-          <Input
-            id="storageLocation"
-            value={storageLocation}
-            onChange={(e) => setStorageLocation(e.target.value)}
-            placeholder="e.g. Hall Closet, Garage Shelf"
-          />
+          <Label htmlFor="locationId">Location</Label>
+          <Select
+            id="locationId"
+            value={locationId}
+            onChange={(e) => setLocationId(e.target.value)}
+          >
+            <option value="">None / Unassigned</option>
+            {locations.map((loc) => (
+              <option key={loc._id} value={loc._id}>
+                {loc.name}
+              </option>
+            ))}
+          </Select>
         </Field>
 
         <Button

@@ -134,7 +134,7 @@ async function checkBoxIdAvailability(req, res) {
 }
 
 async function createBoxApi(req, res) {
-  const { box_id, label, parentBox, items } = req.body;
+  const { box_id, label, parentBox, items, location, locationId } = req.body;
 
   // 👇 you can now safely use box_id
   const isValidFormat = /^\d{3}$/.test(box_id);
@@ -145,11 +145,24 @@ async function createBoxApi(req, res) {
   }
 
   try {
-    const newBox = await createBox({ box_id, label, parentBox, items });
+    const newBox = await createBox({
+      box_id,
+      label,
+      parentBox,
+      items,
+      location,
+      locationId,
+    });
     res.status(201).json(newBox);
   } catch (err) {
     if (err.code === 11000 && err.keyPattern?.box_id) {
       return res.status(400).json({ error: 'Box ID is already in use' });
+    }
+
+    if (err?.status) {
+      return res
+        .status(err.status)
+        .json({ error: err.message || 'Failed to create box', code: err.code });
     }
 
     console.error('❌ Box creation error:', err);

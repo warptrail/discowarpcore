@@ -11,6 +11,7 @@ import AllItemsList from './components/AllItemsList';
 import BoxDetailView from './components/BoxDetailView';
 import BoxCreate from './components/BoxCreate';
 import ItemPage from './components/ItemPage';
+import { API_BASE } from './api/API_BASE';
 
 // ! STYLES
 const AppContainer = styled.div`
@@ -30,15 +31,48 @@ const Heading = styled.h1`
 
 function App() {
   const [boxes, setBoxes] = useState([]);
+  const [orphanedCount, setOrphanedCount] = useState(0);
+  const [locations, setLocations] = useState([]);
 
   // for refreshing the home page on location change
   const location = useLocation();
 
   useEffect(() => {
-    fetch('http://localhost:5002/api/boxes/tree')
-      .then((res) => res.json())
-      .then((data) => setBoxes(data))
-      .catch((err) => console.error('Error fetching boxes:', err));
+    let isAlive = true;
+
+    const loadHomeData = async () => {
+      try {
+        const [boxesRes, orphanedRes, locationsRes] = await Promise.all([
+          fetch(`${API_BASE}/api/boxes/tree`),
+          fetch(`${API_BASE}/api/items/orphaned?sort=recent&limit=10000`),
+          fetch(`${API_BASE}/api/locations`),
+        ]);
+
+        const boxesData = await boxesRes.json();
+        const orphanedData = orphanedRes.ok ? await orphanedRes.json() : [];
+        const locationsData = locationsRes.ok ? await locationsRes.json() : {};
+
+        if (!isAlive) return;
+        setBoxes(Array.isArray(boxesData) ? boxesData : []);
+        setOrphanedCount(
+          Array.isArray(orphanedData) ? orphanedData.length : 0,
+        );
+        setLocations(
+          Array.isArray(locationsData?.locations) ? locationsData.locations : [],
+        );
+      } catch (err) {
+        if (!isAlive) return;
+        console.error('Error fetching home data:', err);
+        setBoxes([]);
+        setOrphanedCount(0);
+        setLocations([]);
+      }
+    };
+
+    loadHomeData();
+    return () => {
+      isAlive = false;
+    };
   }, [location]);
 
   return (
@@ -47,7 +81,16 @@ function App() {
       <Header />
 
       <Routes>
-        <Route path="/" element={<BoxList boxes={boxes} />} />
+        <Route
+          path="/"
+          element={
+            <BoxList
+              boxes={boxes}
+              orphanedCount={orphanedCount}
+              locations={locations}
+            />
+          }
+        />
         <Route path="/boxes/:shortId" element={<BoxDetailView />} />
         <Route path="/create-box" element={<BoxCreate />} />
         <Route path="/all-items" element={<AllItemsList />} />
