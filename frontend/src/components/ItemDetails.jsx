@@ -1,24 +1,50 @@
 import React, { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import {
-  Container,
-  Header,
-  Table,
-  CellLabel,
-  CellValue,
-  Crumb,
-  Status,
-  TestButtons,
-} from '../styles/ItemDetails.styles';
+import * as S from '../styles/ItemDetails.styles';
 import { fetchItemDetails, createAborter } from '../api/itemDetails';
+
+function fmtDate(value) {
+  return value ? dayjs(value).format('YYYY-MM-DD') : '—';
+}
+
+function DetailRow({ label, value, stretch = false }) {
+  return (
+    <S.DetailRow $stretch={stretch}>
+      <S.RowLabel>{label}</S.RowLabel>
+      <S.RowValue>{value}</S.RowValue>
+    </S.DetailRow>
+  );
+}
+
+function DetailSection({ title, tone = 'teal', wide = false, children }) {
+  return (
+    <S.SectionCard $tone={tone} $wide={wide}>
+      <S.SectionTitle>{title}</S.SectionTitle>
+      <S.SectionBody>{children}</S.SectionBody>
+    </S.SectionCard>
+  );
+}
+
+function BreadcrumbTrail({ breadcrumb = [] }) {
+  if (!breadcrumb.length) return <S.MutedValue>—</S.MutedValue>;
+
+  return (
+    <S.BreadcrumbList aria-label="Box breadcrumb">
+      {breadcrumb.map((node, index) => (
+        <S.BreadcrumbNode key={node?._id || `${node?.box_id || 'box'}-${index}`}>
+          <S.BreadcrumbId>{node?.box_id || '—'}</S.BreadcrumbId>
+          <S.BreadcrumbLabel>{node?.label || 'Box'}</S.BreadcrumbLabel>
+          {index < breadcrumb.length - 1 && <S.BreadcrumbSep>›</S.BreadcrumbSep>}
+        </S.BreadcrumbNode>
+      ))}
+    </S.BreadcrumbList>
+  );
+}
 
 export default function ItemDetails({ itemId, triggerFlash }) {
   const [itemData, setItemData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // Helper: safe date formatting
-  const fmt = (d) => (d ? dayjs(d).format('YYYY-MM-DD') : '—');
 
   useEffect(() => {
     const { signal, cancel } = createAborter();
@@ -37,7 +63,7 @@ export default function ItemDetails({ itemId, triggerFlash }) {
     return () => cancel();
   }, [itemId]);
 
-  if (loading)
+  if (loading) {
     return (
       <S.Skeleton>
         <div />
@@ -45,12 +71,12 @@ export default function ItemDetails({ itemId, triggerFlash }) {
         <div />
       </S.Skeleton>
     );
+  }
 
-  if (error) return <S.ErrorMsg>{error}</S.ErrorMsg>;
+  if (error) return <S.ErrorMsg role="alert">{error}</S.ErrorMsg>;
   if (!itemData) return null;
 
   const {
-    name,
     description,
     notes,
     location,
@@ -70,119 +96,121 @@ export default function ItemDetails({ itemId, triggerFlash }) {
     topBox,
   } = itemData;
 
+  const tagList = Array.isArray(tags) ? tags : [];
+  const usageDates = Array.isArray(usageHistory) ? usageHistory : [];
+
+  const isOrphaned = !box;
+  const statusLabel = isOrphaned ? 'Orphaned' : 'Assigned';
+  const primaryBox = box ? `${box.label} (${box.box_id})` : '—';
+  const topBoxSummary = topBox ? `${topBox?.label || '—'} (${topBox?.box_id || '—'})` : '—';
+
   return (
-    <Container>
-      <Header>{name}</Header>
+    <S.Panel>
+      <S.HeaderBand>
+        <S.TitleBlock>
+          <S.HeaderMeta $compact>
+            <S.StatePill $tone={isOrphaned ? 'coral' : 'teal'}>
+              {statusLabel}
+            </S.StatePill>
+            {quantity != null && <S.MetaTag>qty {quantity}</S.MetaTag>}
+            {box?.box_id && <S.MetaTag>box {box.box_id}</S.MetaTag>}
+          </S.HeaderMeta>
+        </S.TitleBlock>
+      </S.HeaderBand>
 
-      <Table>
-        <tbody>
-          <tr>
-            <CellLabel>Description</CellLabel>
-            <CellValue>{description || '—'}</CellValue>
-          </tr>
-          <tr>
-            <CellLabel>Notes</CellLabel>
-            <CellValue>{notes || '—'}</CellValue>
-          </tr>
-          <tr>
-            <CellLabel>Location</CellLabel>
-            <CellValue>{location || '—'}</CellValue>
-          </tr>
-          <tr>
-            <CellLabel>Date Acquired</CellLabel>
-            <CellValue>{fmt(dateAcquired)}</CellValue>
-          </tr>
-          <tr>
-            <CellLabel>Last Used</CellLabel>
-            <CellValue>{fmt(dateLastUsed)}</CellValue>
-          </tr>
-          <tr>
-            <CellLabel>Usage History</CellLabel>
-            <CellValue>
-              {usageHistory?.length
-                ? usageHistory.map((d, i) => (
-                    <span key={i}>
-                      {fmt(d)}
-                      {i < usageHistory.length - 1 ? ', ' : ''}
-                    </span>
-                  ))
-                : '—'}
-            </CellValue>
-          </tr>
-          <tr>
-            <CellLabel>Avg Interval (days)</CellLabel>
-            <CellValue>{avgUseIntervalDays ?? '—'}</CellValue>
-          </tr>
-          <tr>
-            <CellLabel>Quantity</CellLabel>
-            <CellValue>{quantity}</CellValue>
-          </tr>
-          <tr>
-            <CellLabel>Tags</CellLabel>
-            <CellValue>{tags?.length ? tags.join(', ') : '—'}</CellValue>
-          </tr>
-          <tr>
-            <CellLabel>Value (cents)</CellLabel>
-            <CellValue>{valueCents}</CellValue>
-          </tr>
-          <tr>
-            <CellLabel>Value ($)</CellLabel>
-            <CellValue>{value}</CellValue>
-          </tr>
-          <tr>
-            <CellLabel>Orphaned At</CellLabel>
-            <CellValue>{fmt(orphanedAt)}</CellValue>
-          </tr>
-          <tr>
-            <CellLabel>Image Path</CellLabel>
-            <CellValue>{imagePath || '—'}</CellValue>
-          </tr>
-        </tbody>
-      </Table>
+      <S.SectionGrid>
+        <DetailSection title="Identity / Summary" tone="teal">
+          <DetailRow label="Status" value={statusLabel} />
+          <DetailRow label="Primary Box" value={primaryBox} />
+          <DetailRow
+            label="Tags"
+            value={
+              tagList.length ? (
+                <S.TagList>
+                  {tagList.map((tag, idx) => (
+                    <S.TagChip key={`${tag}-${idx}`}>{tag}</S.TagChip>
+                  ))}
+                </S.TagList>
+              ) : (
+                <S.MutedValue>—</S.MutedValue>
+              )
+            }
+            stretch
+          />
+        </DetailSection>
 
-      {box && (
-        <Table>
-          <tbody>
-            <tr>
-              <CellLabel>Box</CellLabel>
-              <CellValue>
-                {box.label} ({box.box_id})
-              </CellValue>
-            </tr>
-            <tr>
-              <CellLabel>Box Description</CellLabel>
-              <CellValue>{box.description || '—'}</CellValue>
-            </tr>
-            <tr>
-              <CellLabel>Depth</CellLabel>
-              <CellValue>{depth}</CellValue>
-            </tr>
-            <tr>
-              <CellLabel>Top Box</CellLabel>
-              <CellValue>
-                {topBox?.label || '—'} ({topBox?.box_id || '—'})
-              </CellValue>
-            </tr>
-          </tbody>
-        </Table>
-      )}
+        <DetailSection title="Inventory / Value" tone="amber">
+          <DetailRow label="Quantity" value={quantity ?? '—'} />
+          <DetailRow label="Value ($)" value={value ?? '—'} />
+          <DetailRow label="Value (cents)" value={valueCents ?? '—'} />
+        </DetailSection>
 
-      {breadcrumb?.length > 0 && (
-        <div>
-          {breadcrumb.map((b, i) => (
-            <Crumb key={b._id || i}>
-              {b.label} ({b.box_id})
-            </Crumb>
-          ))}
-        </div>
-      )}
+        <DetailSection title="Description / Notes" tone="lilac" wide>
+          <DetailRow label="Description" value={description || '—'} stretch />
+          <DetailRow label="Notes" value={notes || '—'} stretch />
+        </DetailSection>
 
-      <TestButtons>
-        <button onClick={() => triggerFlash(itemId, 'yellow')}>
-          Yellow Flash
-        </button>
-        <button onClick={() => triggerFlash(itemId, 'red')}>Red Flash</button>
-      </TestButtons>
-    </Container>
+        <DetailSection title="Lifecycle" tone="teal" wide>
+          <DetailRow label="Date Acquired" value={fmtDate(dateAcquired)} />
+          <DetailRow label="Last Used" value={fmtDate(dateLastUsed)} />
+          <DetailRow
+            label="Usage History"
+            value={
+              usageDates.length ? (
+                <S.UsageList>
+                  {usageDates.map((dateValue, index) => (
+                    <S.UsageItem key={`${dateValue}-${index}`}>
+                      {fmtDate(dateValue)}
+                    </S.UsageItem>
+                  ))}
+                </S.UsageList>
+              ) : (
+                <S.MutedValue>—</S.MutedValue>
+              )
+            }
+            stretch
+          />
+          <DetailRow label="Avg Interval (days)" value={avgUseIntervalDays ?? '—'} />
+          <DetailRow label="Orphaned At" value={fmtDate(orphanedAt)} />
+        </DetailSection>
+
+        <DetailSection title="Placement / Hierarchy" tone="coral" wide>
+          <DetailRow label="Location" value={location || '—'} stretch />
+          <DetailRow label="Box" value={primaryBox} stretch />
+          <DetailRow label="Box Description" value={box?.description || '—'} stretch />
+          <DetailRow label="Depth" value={depth ?? '—'} />
+          <DetailRow label="Top Box" value={topBoxSummary} stretch />
+          <DetailRow
+            label="Breadcrumb"
+            value={<BreadcrumbTrail breadcrumb={breadcrumb} />}
+            stretch
+          />
+        </DetailSection>
+
+        <DetailSection title="Media Metadata" tone="lilac" wide>
+          <DetailRow label="Image Path" value={imagePath || '—'} stretch />
+        </DetailSection>
+      </S.SectionGrid>
+
+      <S.UtilityDock>
+        <S.UtilityTitle>Debug</S.UtilityTitle>
+        <S.TestButtons>
+          <S.FlashButton
+            type="button"
+            $tone="yellow"
+            onClick={() => triggerFlash?.(itemId, 'yellow')}
+          >
+            Yellow Flash
+          </S.FlashButton>
+          <S.FlashButton
+            type="button"
+            $tone="red"
+            onClick={() => triggerFlash?.(itemId, 'red')}
+          >
+            Red Flash
+          </S.FlashButton>
+        </S.TestButtons>
+      </S.UtilityDock>
+    </S.Panel>
   );
 }

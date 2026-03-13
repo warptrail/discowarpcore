@@ -24,7 +24,7 @@ export default function ItemRow({
     tags = [],
     parentBoxLabel,
     parentBoxId,
-    notes,
+    description,
   } = item;
 
   const [editMode, setEditMode] = useState(false);
@@ -67,7 +67,12 @@ export default function ItemRow({
 
   const handleRowClick = () => onOpen?.(isOpen ? null : _id);
   const handleToggleEdit = (e) => {
-    e.stopPropagation();
+    e?.stopPropagation?.();
+    if (!isOpen) {
+      onOpen?.(_id);
+      setEditMode(true);
+      return;
+    }
     setEditMode((prev) => !prev);
   };
 
@@ -82,9 +87,17 @@ export default function ItemRow({
       $height={targetHeight}
     >
       <S.Row onClick={handleRowClick} $open={isOpen}>
-        <S.Left>
+        <S.RowHeader $open={isOpen}>
           <S.Title>{name}</S.Title>
+          <S.RowActions>
+            {!isOpen && quantity != null && <S.Qty>qty {quantity}</S.Qty>}
+            <S.EditButton onClick={handleToggleEdit}>
+              {isOpen && editMode ? 'Close Edit' : 'Edit'}
+            </S.EditButton>
+          </S.RowActions>
+        </S.RowHeader>
 
+        <S.QuickView $collapsed={isOpen}>
           {(parentBoxLabel || parentBoxId) && (
             <S.Breadcrumb>
               {parentBoxLabel} {!!parentBoxId && `(${parentBoxId})`}
@@ -99,17 +112,8 @@ export default function ItemRow({
             </S.TagRow>
           )}
 
-          {notes && <S.Notes>{notes}</S.Notes>}
-        </S.Left>
-
-        <S.Right>
-          {quantity != null && <S.Qty>x{quantity}</S.Qty>}
-          {isOpen && (
-            <S.EditButton onClick={handleToggleEdit}>
-              {editMode ? 'Close Edit' : 'Edit'}
-            </S.EditButton>
-          )}
-        </S.Right>
+          {description && <S.Description>{description}</S.Description>}
+        </S.QuickView>
       </S.Row>
 
       <S.Collapse
