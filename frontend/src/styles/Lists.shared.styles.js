@@ -60,7 +60,7 @@ const railInnerCorners = ({ $isRoot, $depth = 0 }) => {
     13 - d * 0.5
   }px`;
 };
-const railBaseX = ({ $isRoot }) => ($isRoot ? '0' : '-0.74rem');
+const railBaseX = '-0.74rem';
 const railTop = ({ $isRoot }) => ($isRoot ? '0.22rem' : '0.3rem');
 
 const radius = '14px';
@@ -213,7 +213,7 @@ export const RailBack = styled.div`
   grid-area: 1 / 1;
   align-self: stretch;
   justify-self: stretch;
-  margin-left: ${({ $isRoot }) => railBaseX({ $isRoot })};
+  margin-left: ${railBaseX};
   margin-top: ${({ $isRoot }) => railTop({ $isRoot })};
   border-radius: ${({ $isRoot, $depth = 0 }) =>
     railOuterCorners({ $isRoot, $depth })};

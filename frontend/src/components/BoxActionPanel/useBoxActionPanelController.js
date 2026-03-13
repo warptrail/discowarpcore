@@ -10,9 +10,6 @@ export default function useBoxActionPanelController({
   fetchOrphanedItems,
   onItemAssigned,
 }) {
-  const [openItemId, setOpenItemId] = useState(null);
-  const [visibleItemId, setVisibleItemId] = useState(null);
-  const [itemEditHeight, setItemEditHeight] = useState('0px');
   const [isMoving, setIsMoving] = useState(false);
   const [zippingItemId, setZippingItemId] = useState(null);
   const [zippingIds, setZippingIds] = useState(() => new Set());
@@ -24,17 +21,12 @@ export default function useBoxActionPanelController({
   );
   const [activePanel, setActivePanel] = useState(null);
 
-  const isDestroyMode = activePanel === 'destroy';
   const isEmptyMode = activePanel === 'empty';
 
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
   const hideToast = toastCtx?.hideToast;
 
-  const timeoutRef = useRef(null);
-  const itemEditRef = useRef(null);
-  const moveTimersRef = useRef({ pre: null, zip: null });
-  const undoFlashTimerRef = useRef(null);
   const enterFlashTimerRef = useRef(null);
   const enteringIdsRef = useRef(new Set());
   const itemSnapshotRef = useRef(new Map());
@@ -56,6 +48,14 @@ export default function useBoxActionPanelController({
         hideToast?.();
       }
       return next;
+    });
+
+  const clearActivePanel = () =>
+    setActivePanel((prev) => {
+      if (prev === 'empty') {
+        hideToast?.();
+      }
+      return null;
     });
 
   const handleEmptyTab = () => {
@@ -107,21 +107,6 @@ export default function useBoxActionPanelController({
   const clearBatchLeaving = (ids) =>
     setZippingIds((curr) => removeAll(curr, ids));
 
-  const handleToggle = (itemId) => {
-    if (openItemId === itemId) {
-      setOpenItemId(null);
-      timeoutRef.current = setTimeout(() => {
-        setVisibleItemId(null);
-      }, 300);
-    } else {
-      clearTimeout(timeoutRef.current);
-      setVisibleItemId(itemId);
-      requestAnimationFrame(() => {
-        setOpenItemId(itemId);
-      });
-    }
-  };
-
   const nextTwoFrames = () =>
     new Promise((resolve) =>
       requestAnimationFrame(() => requestAnimationFrame(resolve)),
@@ -143,24 +128,16 @@ export default function useBoxActionPanelController({
 
   const handleMoveRequest = async ({
     itemId,
-    itemName,
-    itemQuantity,
     sourceBoxId,
     destBoxId,
   }) => {
     if (isMoving) return;
     setIsMoving(true);
 
-    const snap = snapshotItem(itemId);
-    const _nameForToast = itemName ?? snap?.name ?? '(Unnamed Item)';
-    const _qtyForToast = itemQuantity ?? snap?.quantity ?? null;
+    snapshotItem(itemId);
 
     try {
-      setOpenItemId(null);
-      await new Promise((resolve) => {
-        requestAnimationFrame(() => requestAnimationFrame(resolve));
-      });
-
+      await nextTwoFrames();
       setZippingItemId(itemId);
       await new Promise((r) => setTimeout(r, 1000));
 
@@ -188,7 +165,6 @@ export default function useBoxActionPanelController({
     snapshotItem(itemId);
 
     try {
-      setOpenItemId(null);
       await nextTwoFrames();
       setZippingItemId(itemId);
       await sleep(1000);
@@ -232,9 +208,6 @@ export default function useBoxActionPanelController({
   };
 
   const resetItemUIState = () => {
-    setOpenItemId(null);
-    setVisibleItemId(null);
-    setItemEditHeight('0px');
     setIsMoving(false);
     setZippingItemId(null);
     setIsUndoing(false);
@@ -453,14 +426,6 @@ export default function useBoxActionPanelController({
   };
 
   useEffect(() => {
-    if (openItemId && itemEditRef.current) {
-      setItemEditHeight(`${itemEditRef.current.scrollHeight}px`);
-    } else {
-      setItemEditHeight('0px');
-    }
-  }, [openItemId]);
-
-  useEffect(() => {
     const next = directItems || [];
     if (isEmptyingRef.current && next.length > 0) return;
     setItemsUI(next);
@@ -482,18 +447,9 @@ export default function useBoxActionPanelController({
   useEffect(() => {
     const enteringIds = enteringIdsRef.current;
     return () => {
-      [timeoutRef, undoFlashTimerRef, enterFlashTimerRef].forEach((ref) => {
-        if (ref?.current) {
-          clearTimeout(ref.current);
-          ref.current = null;
-        }
-      });
-
-      if (moveTimersRef?.current) {
-        const { pre, zip } = moveTimersRef.current;
-        if (pre) clearTimeout(pre);
-        if (zip) clearTimeout(zip);
-        moveTimersRef.current = { pre: null, zip: null };
+      if (enterFlashTimerRef.current) {
+        clearTimeout(enterFlashTimerRef.current);
+        enterFlashTimerRef.current = null;
       }
 
       if (enteringIds?.clear) {
@@ -504,22 +460,18 @@ export default function useBoxActionPanelController({
 
   return {
     activePanel,
-    isDestroyMode,
     isEmptyMode,
     isMoving,
     routeShortId,
     itemsUI,
-    openItemId,
-    visibleItemId,
-    itemEditHeight,
     zippingIds,
     zippingItemId,
     justReturnedIds,
     justReturnedItemId,
     isUndoing,
-    itemEditRef,
     enteringIdsRef,
     setActivePanel,
+    clearActivePanel,
     togglePanel,
     handleEmptyTab,
     handleFormSaved,
@@ -527,6 +479,5 @@ export default function useBoxActionPanelController({
     handleOrphanRequest,
     handleItemAdded,
     handleItemAssigned,
-    handleToggle,
   };
 }

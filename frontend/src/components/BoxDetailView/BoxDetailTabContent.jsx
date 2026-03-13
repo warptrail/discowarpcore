@@ -3,6 +3,7 @@ import React from 'react';
 import BoxTree from '../BoxTree';
 import ItemsFlatList from '../ItemsFlatList';
 import BoxActionPanel from '../BoxActionPanel';
+import * as S from './BoxDetailTabContent.styles';
 
 export default function BoxDetailTabContent({
   activeTab,
@@ -26,19 +27,21 @@ export default function BoxDetailTabContent({
 
   if (activeTab === 'tree') {
     return (
-      <BoxTree
-        node={tree}
-        openItemId={openItemId}
-        onOpenItem={handleOpen}
-        accent={accent}
-        pulsing={pulsing}
-        collapseDurMs={collapseDurMs}
-        effectsById={effectsById}
-        triggerFlash={triggerFlash}
-        startPulse={startPulse}
-        stopPulse={stopPulse}
-        onItemSaved={handleItemSaved}
-      />
+      <S.TreeTabScope>
+        <BoxTree
+          node={tree}
+          openItemId={openItemId}
+          onOpenItem={handleOpen}
+          accent={accent}
+          pulsing={pulsing}
+          collapseDurMs={collapseDurMs}
+          effectsById={effectsById}
+          triggerFlash={triggerFlash}
+          startPulse={startPulse}
+          stopPulse={stopPulse}
+          onItemSaved={handleItemSaved}
+        />
+      </S.TreeTabScope>
     );
   }
 

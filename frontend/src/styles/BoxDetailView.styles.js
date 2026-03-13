@@ -41,6 +41,11 @@ export const Content = styled.div`
   min-width: 0; /* critical for preventing flex/grid overflow */
 `;
 
+export const TabViewport = styled.div`
+  position: relative;
+  min-width: 0;
+`;
+
 /* Spinner */
 const spin = keyframes`
   0% { transform: rotate(0deg); }

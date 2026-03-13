@@ -4,7 +4,7 @@ import styled from 'styled-components';
 const Wrap = styled.div`
   display: flex;
   gap: 0.75rem;
-  align-items: center;
+  align-items: ${({ $hasContent }) => ($hasContent ? 'flex-start' : 'center')};
   width: 100%;
   margin: 10px 0;
   min-height: 56px;
@@ -34,11 +34,20 @@ const Wrap = styled.div`
   border-radius: 10px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
 `;
+const Body = styled.div`
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: ${({ $hasContent }) => ($hasContent ? '0.55rem' : '0.2rem')};
+`;
 const Title = styled.div`
   font-weight: 600;
 `;
 const Msg = styled.div`
   opacity: 0.9;
+`;
+const ContentWrap = styled.div`
+  width: 100%;
 `;
 const Idle = styled.div`
   display: flex;
@@ -46,8 +55,10 @@ const Idle = styled.div`
   gap: 0.6rem;
   opacity: 0.9;
 `;
-const Spacer = styled.div`
-  flex: 1;
+const Controls = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
 `;
 const Btn = styled.button`
   background: transparent;
@@ -65,6 +76,7 @@ export default function Toast({
   open,
   title,
   message,
+  content,
   variant = 'info', // 'success' | 'warning' | 'danger' | 'info'
   actions = [], // [{id?, label, onClick, kind}] kind 'primary'|'ghost'
   onClose,
@@ -73,14 +85,17 @@ export default function Toast({
   idleText = 'Standing by…',
 }) {
   const isIdle = !open;
+  const hasContent = !isIdle && !!content;
+
   return (
     <Wrap
       $variant={variant}
       $idle={isIdle}
+      $hasContent={hasContent}
       role={variant === 'danger' ? 'alert' : 'status'}
       aria-live={variant === 'danger' ? 'assertive' : 'polite'}
     >
-      <div>
+      <Body $hasContent={hasContent}>
         {isIdle ? (
           showIdle ? (
             <Idle>
@@ -92,33 +107,36 @@ export default function Toast({
           <>
             {title && <Title>{title}</Title>}
             {message && <Msg>{message}</Msg>}
+            {hasContent && <ContentWrap>{content}</ContentWrap>}
           </>
         )}
-      </div>
-      <Spacer />
-      {!isIdle &&
-        actions.map((a, i) => (
-          <Btn
-            key={
-              a?.id ?? `${a?.label ?? 'action'}-${a?.kind ?? 'default'}-${i}`
-            }
-            onClick={a.onClick}
-            style={
-              a.kind === 'primary'
-                ? { background: '#fff', color: '#111', borderColor: '#fff' }
-                : a.kind === 'danger'
-                  ? {
-                      background: '#e03131',
-                      color: '#fff',
-                      borderColor: '#e03131',
-                    }
-                  : {}
-            }
-          >
-            {a.label}
-          </Btn>
-        ))}
-      {!isIdle && onClose && <Btn onClick={onClose}>✕</Btn>}
+      </Body>
+      {!isIdle && (
+        <Controls>
+          {actions.map((a, i) => (
+            <Btn
+              key={
+                a?.id ?? `${a?.label ?? 'action'}-${a?.kind ?? 'default'}-${i}`
+              }
+              onClick={a.onClick}
+              style={
+                a.kind === 'primary'
+                  ? { background: '#fff', color: '#111', borderColor: '#fff' }
+                  : a.kind === 'danger'
+                    ? {
+                        background: '#e03131',
+                        color: '#fff',
+                        borderColor: '#e03131',
+                      }
+                    : {}
+              }
+            >
+              {a.label}
+            </Btn>
+          ))}
+          {onClose && <Btn onClick={onClose}>✕</Btn>}
+        </Controls>
+      )}
     </Wrap>
   );
 }

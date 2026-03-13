@@ -1,153 +1,181 @@
-// src/components/DestroyBoxSection.jsx
-import { useEffect, useContext, useRef, useState } from 'react';
-import { ToastContext } from './Toast';
+import React from 'react';
+import styled, { keyframes } from 'styled-components';
+
+const riseIn = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+`;
+
+const ConfirmWrap = styled.section`
+  margin: 0;
+  border: 1px solid #7a2a2a;
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(126, 33, 33, 0.34) 0%,
+      rgba(37, 14, 14, 0.95) 56%,
+      rgba(24, 12, 12, 0.98) 100%
+    ),
+    #170f0f;
+  box-shadow:
+    0 -10px 20px rgba(255, 110, 110, 0.18),
+    0 0 0 1px rgba(255, 104, 104, 0.2) inset;
+  padding: 1rem;
+  animation: ${riseIn} 220ms ease-out;
+`;
+
+const Banner = styled.div`
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  font-size: 1.02rem;
+  color: #ffd9d9;
+  margin-bottom: 0.65rem;
+`;
+
+const Body = styled.div`
+  display: grid;
+  gap: 0.65rem;
+  color: #f3e6e6;
+`;
+
+const Intro = styled.p`
+  margin: 0;
+  line-height: 1.38;
+`;
+
+const ConsequenceList = styled.ul`
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.3rem;
+  color: #f7d3d3;
+`;
+
+const Prompt = styled.label`
+  margin-top: 0.2rem;
+  display: block;
+  font-weight: 700;
+  color: #ffe9e9;
+`;
+
+const ConfirmInput = styled.input`
+  width: 100%;
+  margin-top: 0.45rem;
+  padding: 0.65rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid #6e3b3b;
+  background: #120f0f;
+  color: #fff;
+  font-size: 0.98rem;
+
+  &:focus {
+    outline: none;
+    border-color: #ff7f7f;
+    box-shadow: 0 0 0 2px rgba(255, 127, 127, 0.25);
+  }
+`;
+
+const ActionRow = styled.div`
+  margin-top: 0.2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+`;
+
+const ActionBtn = styled.button`
+  border-radius: 8px;
+  border: 1px solid #3f3f3f;
+  background: #202020;
+  color: #e8e8e8;
+  padding: 0.5rem 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: #2a2a2a;
+    border-color: #585858;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+`;
+
+const DestroyBtn = styled(ActionBtn)`
+  border-color: #8a2e2e;
+  background: #3b1111;
+  color: #ffd5d5;
+
+  &:hover:not(:disabled) {
+    background: #4a1616;
+    border-color: #bf4949;
+  }
+`;
 
 export default function DestroyBoxSection({
-  open,
   busy,
   shortId,
-  boxMongoId,
-  onRequestDelete, // <-- parent’s delete executor
-  onCancel, // optional
+  confirmText,
+  onConfirmTextChange,
+  isConfirmValid,
+  onCancel,
+  onConfirm,
 }) {
-  const { showToast, hideToast } = useContext(ToastContext);
-  const toastShownForRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    // Prevent re-firing the toast repeatedly while the section stays open
-    const key = `${boxMongoId || ''}:${shortId || ''}`;
-    if (toastShownForRef.current === key) return;
-    toastShownForRef.current = key;
-
-    const ToastBody = function DestroyBoxToastBody() {
-      const [confirmText, setConfirmText] = useState('');
-      const canSubmit = confirmText.trim() === String(shortId) && !busy;
-
-      return (
-        <div style={{ display: 'grid', gap: 10 }}>
-          <p style={{ margin: 0 }}>
-            This will permanently delete box <strong>#{shortId}</strong>. This
-            cannot be undone.
-          </p>
-
-          <label style={{ display: 'block' }}>
-            Type <code>{shortId}</code> to confirm:
-          </label>
-
-          <input
-            value={confirmText}
-            onChange={(e) => setConfirmText(e.target.value)}
-            disabled={busy}
-            placeholder={`Type ${shortId}`}
-            style={{
-              width: '100%',
-              padding: 8,
-              borderRadius: 8,
-              border: '1px solid #444',
-              background: '#0e0e0e',
-              color: '#eee',
-            }}
-          />
-
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={() => {
-                hideToast?.();
-                onCancel?.();
-              }}
-              disabled={busy}
-              style={{
-                padding: '10px 14px',
-                borderRadius: 10,
-              }}
-            >
-              Cancel
-            </button>
-
-            <button
-              onClick={async () => {
-                if (!canSubmit) return;
-                await onRequestDelete?.();
-              }}
-              disabled={!canSubmit}
-              aria-busy={busy ? 'true' : 'false'}
-              style={{
-                padding: '10px 14px',
-                borderRadius: 10,
-                border: '1px solid #5a1212',
-                background: '#2b0000',
-                color: '#ffd04d',
-                opacity: canSubmit ? 1 : 0.6,
-                cursor: canSubmit ? 'pointer' : 'not-allowed',
-              }}
-              title={!canSubmit ? 'Type the short id to enable' : 'Destroy box'}
-            >
-              {busy ? 'Destroying…' : 'Destroy Box'}
-            </button>
-          </div>
-        </div>
-      );
-    };
-
-    showToast?.({
-      variant: 'danger',
-      title: `Destroy Box #${shortId}`,
-      message: 'Type the code below to confirm.',
-      content: <ToastBody />,
-      sticky: true,
-      onClose: () => {
-        onCancel?.();
-      },
-    });
-  }, [
-    open,
-    boxMongoId,
-    shortId,
-    busy,
-    showToast,
-    hideToast,
-    onRequestDelete,
-    onCancel,
-  ]);
-
-  if (!open) return null; // nothing rendered
+  const canDestroy = !!isConfirmValid && !busy && typeof onConfirm === 'function';
 
   return (
-    <div style={{ border: '1px solid #333', borderRadius: 12, padding: 16 }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 22 }} role="img" aria-label="danger">
-            🔥🔥
-          </span>
-          <div>
-            <div style={{ fontWeight: 700 }}>Danger zone</div>
-            <div style={{ opacity: 0.8, fontSize: 13 }}>
-              Destruction confirmation is active in the header toast.
-            </div>
-          </div>
-        </div>
+    <ConfirmWrap>
+      <Banner>WRECKING BALL CONFIRMATION</Banner>
 
-        {onCancel && (
-          <button
-            onClick={() => {
-              hideToast?.();
-              onCancel();
-            }}
+      <Body>
+        <Intro>
+          You are about to destroy box <strong>#{shortId}</strong>. This is
+          permanent and cannot be undone.
+        </Intro>
+
+        <ConsequenceList>
+          <li>The box itself will be deleted.</li>
+          <li>Direct items in this box will be orphaned.</li>
+          <li>Direct child boxes will be released to floor level.</li>
+        </ConsequenceList>
+
+        <Prompt>
+          Type exactly <code>DESTROY</code> to unlock the destructive action.
+          <ConfirmInput
+            value={confirmText}
+            onChange={(e) => onConfirmTextChange?.(e.target.value)}
             disabled={busy}
-          >
+            placeholder="DESTROY"
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </Prompt>
+
+        <ActionRow>
+          <ActionBtn type="button" onClick={onCancel} disabled={busy}>
             Cancel
-          </button>
-        )}
-      </div>
-    </div>
+          </ActionBtn>
+          <DestroyBtn
+            type="button"
+            onClick={onConfirm}
+            disabled={!canDestroy}
+            aria-disabled={!canDestroy}
+            title={
+              canDestroy ? 'Destroy this box now' : 'Type DESTROY to enable'
+            }
+          >
+            {busy ? 'Destroying...' : 'Destroy Box'}
+          </DestroyBtn>
+        </ActionRow>
+      </Body>
+    </ConfirmWrap>
   );
 }

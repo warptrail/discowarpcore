@@ -78,24 +78,26 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
         {loading && <S.Spinner />}
         {error && <S.ErrorBanner>{String(error)}</S.ErrorBanner>}
 
-        <BoxDetailTabContent
-          activeTab={activeTab}
-          loading={loading}
-          error={error}
-          tree={tree}
-          flatItems={flatItems}
-          openItemId={openItemId}
-          handleOpen={handleOpen}
-          accent={accent}
-          pulsing={pulsing}
-          collapseDurMs={collapseDurMs}
-          effectsById={effectsById}
-          triggerFlash={triggerFlash}
-          startPulse={startPulse}
-          stopPulse={stopPulse}
-          handleFlash={handleFlash}
-          handleItemSaved={handleItemSaved}
-        />
+        <S.TabViewport key={`tab-${activeTab}`}>
+          <BoxDetailTabContent
+            activeTab={activeTab}
+            loading={loading}
+            error={error}
+            tree={tree}
+            flatItems={flatItems}
+            openItemId={openItemId}
+            handleOpen={handleOpen}
+            accent={accent}
+            pulsing={pulsing}
+            collapseDurMs={collapseDurMs}
+            effectsById={effectsById}
+            triggerFlash={triggerFlash}
+            startPulse={startPulse}
+            stopPulse={stopPulse}
+            handleFlash={handleFlash}
+            handleItemSaved={handleItemSaved}
+          />
+        </S.TabViewport>
       </S.Content>
     </S.Wrap>
   );

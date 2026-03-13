@@ -25,6 +25,8 @@ export function ToastProvider({ children }) {
       message,
       variant = 'info',
       actions = [],
+      content = null,
+      onClose,
       sticky = false,
       timeoutMs = 4500,
     } = config;
@@ -34,6 +36,8 @@ export function ToastProvider({ children }) {
       message,
       variant,
       actions,
+      content,
+      onClose,
       sticky,
     });
 

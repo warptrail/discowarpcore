@@ -201,6 +201,17 @@ export default function Header() {
   const toast = toastCtx?.toast ?? null;
   const hideToast = toastCtx?.hideToast;
 
+  const handleToastClose = () => {
+    if (typeof toast?.onClose === 'function') {
+      toast.onClose();
+      return;
+    }
+
+    if (typeof hideToast === 'function') {
+      hideToast();
+    }
+  };
+
   useEffect(() => {
     const onScroll = () => setCondensed(window.scrollY > 36);
     onScroll();
@@ -255,9 +266,10 @@ export default function Header() {
           open={!!toast}
           title={toast?.title}
           message={toast?.message}
+          content={toast?.content}
           variant={toast?.variant ?? 'info'}
           actions={toast?.actions ?? []}
-          onClose={typeof hideToast === 'function' ? hideToast : undefined}
+          onClose={toast ? handleToastClose : undefined}
           showIdle
           idleIcon="📦"
           idleText="Console ready. Awaiting orders…"
