@@ -1,5 +1,10 @@
 import React from 'react';
 import * as S from '../../styles/EditItemDetailsForm.styles';
+import {
+  ITEM_CATEGORIES,
+  formatItemCategory,
+  normalizeItemCategory,
+} from '../../util/itemCategories';
 
 const asInputValue = (value) => (value == null ? '' : String(value));
 
@@ -11,6 +16,21 @@ export default function EditItemStructuredFieldsSection({
   return (
     <>
       <S.InlineGrid>
+        <S.Field>
+          <S.Label>Category</S.Label>
+          <S.Select
+            name="category"
+            value={normalizeItemCategory(formData.category)}
+            onChange={onMetadataChange}
+          >
+            {ITEM_CATEGORIES.map((category) => (
+              <option key={category} value={category}>
+                {formatItemCategory(category)}
+              </option>
+            ))}
+          </S.Select>
+        </S.Field>
+
         <S.Field>
           <S.Label>Keep Priority</S.Label>
           <S.Select

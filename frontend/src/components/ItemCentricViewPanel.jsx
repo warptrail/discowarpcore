@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
+import { formatItemCategory, normalizeItemCategory } from '../util/itemCategories';
 
 /**
  * ItemCentricViewPanel
@@ -22,6 +23,7 @@ export default function ItemCentricViewPanel({
     () => (Array.isArray(item?.tags) ? item.tags : []),
     [item]
   );
+  const categoryLabel = formatItemCategory(normalizeItemCategory(item?.category));
 
   if (!item) {
     return (
@@ -59,6 +61,10 @@ export default function ItemCentricViewPanel({
           <Fact>
             <FactLabel>Status:</FactLabel>
             <FactValue>{orphaned ? 'Orphaned' : 'Assigned'}</FactValue>
+          </Fact>
+          <Fact>
+            <FactLabel>Category:</FactLabel>
+            <FactValue>{categoryLabel}</FactValue>
           </Fact>
           {!orphaned && (
             <Fact>

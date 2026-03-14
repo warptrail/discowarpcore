@@ -3,6 +3,11 @@ import React from 'react';
 import QuantityInput from './QuantityInput';
 import TagEdit from './TagEdit';
 import * as S from './ItemEditForm.styles';
+import {
+  ITEM_CATEGORIES,
+  formatItemCategory,
+  normalizeItemCategory,
+} from '../util/itemCategories';
 
 const asInputValue = (v) => (v == null ? '' : String(v));
 
@@ -61,6 +66,21 @@ export default function ItemEditFieldsForm({
 
       <S.Label>Quantity:</S.Label>
       <QuantityInput value={formData.quantity} onChange={onQuantityChange} />
+
+      <S.Label>
+        Category:
+        <S.Select
+          name="category"
+          value={normalizeItemCategory(formData.category)}
+          onChange={onFieldChange}
+        >
+          {ITEM_CATEGORIES.map((category) => (
+            <option key={category} value={category}>
+              {formatItemCategory(category)}
+            </option>
+          ))}
+        </S.Select>
+      </S.Label>
 
       <S.SectionTitle>Ownership / Retention</S.SectionTitle>
       <S.FieldGrid>

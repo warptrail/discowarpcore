@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const Item = require('../models/Item');
 const mockData = require('../mock_data.json');
+const { DEFAULT_ITEM_CATEGORY } = require('../utils/itemCategory');
 
 const { orphanAllItemsSequentialApi } = require('../controllers/devController');
 
@@ -127,6 +128,9 @@ router.patch('/backfill-items', async (req, res) => {
       if (!item.maintenanceNotes) {
         item.maintenanceNotes =
           Math.random() > 0.5 ? 'No issues noted.' : 'Needs periodic check.';
+      }
+      if (!item.category) {
+        item.category = DEFAULT_ITEM_CATEGORY;
       }
 
       await item.save();

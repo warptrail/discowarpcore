@@ -1,4 +1,5 @@
 import styled, { keyframes, css } from 'styled-components';
+import { Link } from 'react-router-dom';
 
 const ROW_BG = '#111';
 
@@ -190,6 +191,22 @@ export const Title = styled.div`
   letter-spacing: 0.015em;
   line-height: 1.25;
   overflow-wrap: anywhere;
+`;
+
+export const TitleLink = styled(Link)`
+  color: #e7ecf3;
+  font-size: clamp(1.02rem, 1.85vw, 1.15rem);
+  font-weight: 760;
+  letter-spacing: 0.015em;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+    text-decoration-color: rgba(76, 198, 193, 0.86);
+    text-underline-offset: 2px;
+  }
 `;
 
 export const Breadcrumb = styled.div`

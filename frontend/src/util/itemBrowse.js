@@ -1,3 +1,5 @@
+import { normalizeItemCategory } from './itemCategories';
+
 export function normalizeItemQuery(value) {
   return String(value || '').trim().toLowerCase();
 }
@@ -27,6 +29,7 @@ export function matchesItemQuery(item, query, context = {}) {
       item?.name,
       item?.description,
       item?.notes,
+      normalizeItemCategory(item?.category),
       tags,
       boxLabel,
       boxId,
@@ -80,6 +83,22 @@ export function compareItemsByMode(a, b, sortMode = 'recentlyAdded') {
     }
     case 'nameDesc': {
       const diff = compareText(b?.name, a?.name);
+      if (diff !== 0) return diff;
+      break;
+    }
+    case 'categoryAsc': {
+      const diff = compareText(
+        normalizeItemCategory(a?.category),
+        normalizeItemCategory(b?.category),
+      );
+      if (diff !== 0) return diff;
+      break;
+    }
+    case 'categoryDesc': {
+      const diff = compareText(
+        normalizeItemCategory(b?.category),
+        normalizeItemCategory(a?.category),
+      );
       if (diff !== 0) return diff;
       break;
     }

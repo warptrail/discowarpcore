@@ -1,6 +1,13 @@
 // AddItemForm.jsx
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
+import { API_BASE } from '../api/API_BASE';
+import {
+  DEFAULT_ITEM_CATEGORY,
+  ITEM_CATEGORIES,
+  formatItemCategory,
+  normalizeItemCategory,
+} from '../util/itemCategories';
 
 export default function AddItemForm({
   boxMongoId, // Mongo _id of the current box
@@ -10,6 +17,7 @@ export default function AddItemForm({
 }) {
   const [name, setName] = useState('');
   const [qty, setQty] = useState(1);
+  const [category, setCategory] = useState(DEFAULT_ITEM_CATEGORY);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
 
@@ -27,6 +35,7 @@ export default function AddItemForm({
       const newItem = await api.createItem({
         name: name.trim(),
         quantity: qty,
+        category: normalizeItemCategory(category),
       });
 
       // 2) attach to this box
@@ -38,6 +47,7 @@ export default function AddItemForm({
       // 4) clear form
       setName('');
       setQty(1);
+      setCategory(DEFAULT_ITEM_CATEGORY);
       setMsg(`${name} - x${qty} added to box ${boxShortId}`);
     } catch (e) {
       setMsg(e?.message || 'Failed to add item.');
@@ -63,6 +73,17 @@ export default function AddItemForm({
           onChange={(e) => setQty(parseInt(e.target.value || '1', 10))}
           aria-label="Quantity"
         />
+        <Select
+          value={category}
+          onChange={(e) => setCategory(normalizeItemCategory(e.target.value))}
+          aria-label="Category"
+        >
+          {ITEM_CATEGORIES.map((value) => (
+            <option key={value} value={value}>
+              {formatItemCategory(value)}
+            </option>
+          ))}
+        </Select>
         <Button
           type="button"
           onClick={handleAdd}
@@ -80,7 +101,7 @@ export default function AddItemForm({
 /* ---------- default API (adjust to your routes if needed) ---------- */
 const defaultApi = {
   async createItem(payload) {
-    const r = await fetch('http://localhost:5002/api/items', {
+    const r = await fetch(`${API_BASE}/api/items`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -91,7 +112,7 @@ const defaultApi = {
   },
   async attachItemToBox(boxMongoId, itemId) {
     const r = await fetch(
-      `http://localhost:5002/api/boxed-items/${boxMongoId}/addItem`,
+      `${API_BASE}/api/boxed-items/${boxMongoId}/addItem`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -114,11 +135,11 @@ const Wrap = styled.div`
 
 const Row = styled.div`
   display: grid;
-  grid-template-columns: 1fr 88px 96px; /* name | qty | add */
+  grid-template-columns: 1fr;
   gap: 0.5rem;
 
   @media (min-width: 700px) {
-    grid-template-columns: 1fr 100px 120px;
+    grid-template-columns: 1fr 100px 190px 120px;
   }
 `;
 
@@ -143,6 +164,19 @@ const Input = styled.input`
 `;
 
 const NumberInput = styled(Input).attrs({ inputMode: 'numeric' })``;
+
+const Select = styled.select`
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 0.55rem 0.6rem;
+  font-size: 0.95rem;
+  &:focus {
+    outline: none;
+    border-color: rgba(120, 170, 255, 0.7);
+  }
+`;
 
 const Button = styled.button`
   width: 100%;

@@ -1,13 +1,20 @@
 // services/itemService.js
 const Item = require('../models/Item');
 const Box = require('../models/Box');
+const {
+  normalizeItemCategory,
+  withNormalizedItemCategory,
+} = require('../utils/itemCategory');
 
 /**
  * Get all items with breadcrumb + box info.
  * (This one still builds maps — fine for bulk fetch.)
  */
 async function getAllItems() {
-  const items = await Item.find().lean();
+  const itemDocs = await Item.find();
+  const items = itemDocs.map((doc) =>
+    withNormalizedItemCategory(doc.toObject({ virtuals: true }))
+  );
 
   const boxes = await Box.find()
     .select('_id box_id label description items parentBox')
@@ -38,10 +45,11 @@ async function getAllItems() {
             _id: maps.byId.get(String(leafBox._id))._id,
             box_id: maps.byId.get(String(leafBox._id)).box_id,
             label: maps.byId.get(String(leafBox._id)).label,
+            description: maps.byId.get(String(leafBox._id)).description,
           }
         : null;
 
-    return { ...i, box, breadcrumb, depth, topBox: rootBox };
+    return withNormalizedItemCategory({ ...i, box, breadcrumb, depth, topBox: rootBox });
   });
 }
 
@@ -50,7 +58,8 @@ async function getAllItems() {
  * Delegates to Item model static.
  */
 async function getItemById(id, { select } = {}) {
-  return await Item.findItemById(id, { select });
+  const item = await Item.findItemById(id, { select });
+  return withNormalizedItemCategory(item);
 }
 
 /**
@@ -64,10 +73,11 @@ async function getOrphanedItems(sort, limit) {
       ? { orphanedAt: 1 }
       : { orphanedAt: -1 };
 
-  return Item.find({ orphanedAt: { $ne: null } })
+  const items = await Item.find({ orphanedAt: { $ne: null } })
     .sort(order)
     .limit(limit)
     .lean();
+  return items.map((item) => withNormalizedItemCategory(item));
 }
 
 /**
@@ -143,6 +153,7 @@ function assertValidCentsPayload(data = {}) {
   normalizeNullableStringField(data, 'primaryOwnerName');
   normalizeStringField(data, 'maintenanceNotes');
   normalizeKeepPriority(data);
+  normalizeItemCategoryField(data);
 
   return data;
 }
@@ -204,6 +215,11 @@ function normalizeKeepPriority(data) {
   }
   const mapped = String(data.keepPriority).trim().toLowerCase();
   data.keepPriority = mapped === 'normal' ? 'medium' : mapped;
+}
+
+function normalizeItemCategoryField(data) {
+  if (!('category' in data)) return;
+  data.category = normalizeItemCategory(data.category);
 }
 
 module.exports = {

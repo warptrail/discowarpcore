@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { fetchBoxTreeByShortId } from '../../api/boxes';
 import flattenBoxes from '../../util/flattenBoxes';
 
@@ -10,51 +10,50 @@ export default function useBoxDetailData(shortId) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (!shortId) return;
-    let ignore = false;
+  const loadBoxData = useCallback(
+    async ({ signal, silent = false } = {}) => {
+      if (!shortId) return null;
 
-    async function load() {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
 
       try {
-        const raw = await fetchBoxTreeByShortId(shortId);
+        const raw = await fetchBoxTreeByShortId(shortId, { signal });
         const treeNode = raw.tree ?? raw;
         const ancestorPath = Array.isArray(raw?.ancestors) ? raw.ancestors : [];
 
-        if (!ignore && treeNode) {
+        if (treeNode) {
           setTree(treeNode);
           setParentPath(ancestorPath);
           setStats(raw?.stats ?? null);
-
-          const flatArray = flattenBoxes(treeNode);
-          console.log('Flat array result:', flatArray);
-          console.table(flatArray, [
-            '_id',
-            'name',
-            'quantity',
-            'parentBoxLabel',
-          ]);
-
-          setFlatItems(flatArray);
+          setFlatItems(flattenBoxes(treeNode));
         }
+
+        return treeNode;
       } catch (e) {
-        if (!ignore) {
-          setError(e.message || String(e));
-          setParentPath([]);
-          setStats(null);
-        }
+        if (e?.name === 'AbortError') return null;
+        setError(e.message || String(e));
+        setParentPath([]);
+        setStats(null);
+        return null;
       } finally {
-        if (!ignore) setLoading(false);
+        if (!silent) setLoading(false);
       }
-    }
+    },
+    [shortId],
+  );
 
-    load();
-    return () => {
-      ignore = true;
-    };
-  }, [shortId]);
+  useEffect(() => {
+    if (!shortId) return;
+    const controller = new AbortController();
+    loadBoxData({ signal: controller.signal });
+    return () => controller.abort();
+  }, [shortId, loadBoxData]);
+
+  const refreshBox = useCallback(
+    async () => loadBoxData({ silent: true }),
+    [loadBoxData],
+  );
 
   const handleItemSaved = (updated) => {
     if (!updated?._id) return;
@@ -86,5 +85,6 @@ export default function useBoxDetailData(shortId) {
     loading,
     error,
     handleItemSaved,
+    refreshBox,
   };
 }

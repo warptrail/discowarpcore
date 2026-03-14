@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { styledComponents as S } from '../styles/BoxList.styles';
 import InventoryGridHeader from './InventoryGridHeader';
+import { normalizeItemCategory } from '../util/itemCategories';
 
 /**
  * boxes: [{
@@ -13,8 +14,9 @@ import InventoryGridHeader from './InventoryGridHeader';
  */
 export default function BoxList({ boxes = [], orphanedCount = 0, locations = [] }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('name');
+  const [sortBy, setSortBy] = useState('boxId');
   const [filterBy, setFilterBy] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState('all');
 
   const telemetry = useMemo(
@@ -28,9 +30,10 @@ export default function BoxList({ boxes = [], orphanedCount = 0, locations = [] 
         searchQuery,
         sortBy,
         filterBy,
+        categoryFilter,
         locationFilter,
       }),
-    [boxes, searchQuery, sortBy, filterBy, locationFilter],
+    [boxes, searchQuery, sortBy, filterBy, categoryFilter, locationFilter],
   );
 
   const noData = !boxes || boxes.length === 0;
@@ -48,6 +51,8 @@ export default function BoxList({ boxes = [], orphanedCount = 0, locations = [] 
         onSortChange={setSortBy}
         filterBy={filterBy}
         onFilterChange={setFilterBy}
+        categoryFilter={categoryFilter}
+        onCategoryFilterChange={setCategoryFilter}
         locationFilter={locationFilter}
         onLocationFilterChange={setLocationFilter}
         locations={locations}
@@ -210,8 +215,9 @@ function applyTreeControls(
   nodes,
   {
     searchQuery = '',
-    sortBy = 'name',
+    sortBy = 'boxId',
     filterBy = 'all',
+    categoryFilter = 'all',
     locationFilter = 'all',
   },
 ) {
@@ -226,17 +232,24 @@ function applyTreeControls(
 
     const matchesSearch = !query || matchesQuery(node, query);
     const qty = sumItemQty(node.items);
+    const normalizedCategoryFilter =
+      categoryFilter === 'all'
+        ? 'all'
+        : normalizeItemCategory(categoryFilter);
     const matchesFilter =
       filterBy === 'all' ||
       (filterBy === 'withItems' && qty > 0) ||
       (filterBy === 'empty' && qty === 0);
+    const matchesCategory =
+      normalizedCategoryFilter === 'all' ||
+      hasItemWithCategory(node.items, normalizedCategoryFilter);
     const nodeLocationId = String(getLocationId(node) || '');
     const matchesLocation =
       locationFilter === 'all' ||
       (nodeLocationId && nodeLocationId === String(locationFilter));
 
     const include =
-      (matchesSearch && matchesFilter && matchesLocation) ||
+      (matchesSearch && matchesFilter && matchesCategory && matchesLocation) ||
       children.length > 0;
     if (!include) return null;
 
@@ -320,6 +333,15 @@ function compareText(a, b) {
 
 function normalize(value) {
   return String(value || '').trim().toLowerCase();
+}
+
+function hasItemWithCategory(items, categoryFilter) {
+  if (!categoryFilter) return true;
+  if (!Array.isArray(items) || items.length === 0) return false;
+
+  return items.some(
+    (item) => normalizeItemCategory(item?.category) === categoryFilter
+  );
 }
 
 function getLocationId(node) {

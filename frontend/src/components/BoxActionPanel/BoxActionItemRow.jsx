@@ -1,27 +1,14 @@
 import React from 'react';
+import { getItemHomeHref } from '../../api/itemDetails';
 import {
   ActionButton,
   ItemActions,
   ItemCard,
   ItemMain,
-  ItemMetaRow,
   ItemName,
-  ItemSummary,
-  ItemTitleRow,
-  MetaPill,
+  ItemNameLink,
+  QtyPill,
 } from './BoxActionPanel.styles';
-
-const MAX_NOTE_PREVIEW = 100;
-const MAX_TAGS = 3;
-
-const getNotePreview = (rawNotes) => {
-  const normalized = String(rawNotes || '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (!normalized) return '';
-  if (normalized.length <= MAX_NOTE_PREVIEW) return normalized;
-  return `${normalized.slice(0, MAX_NOTE_PREVIEW)}...`;
-};
 
 export default function BoxActionItemRow({
   item,
@@ -38,14 +25,12 @@ export default function BoxActionItemRow({
   onMove,
   onOrphan,
 }) {
-  const tags = Array.isArray(item?.tags) ? item.tags.filter(Boolean) : [];
-  const visibleTags = tags.slice(0, MAX_TAGS);
-  const hiddenTagCount = tags.length - visibleTags.length;
-  const notePreview = getNotePreview(item?.notes);
+  const itemName = item?.name || '(Unnamed Item)';
   const hasQuantity =
     item?.quantity !== null &&
     item?.quantity !== undefined &&
     item?.quantity !== '';
+  const itemHref = item?._id ? getItemHomeHref(item._id) : null;
 
   return (
     <ItemCard
@@ -57,20 +42,16 @@ export default function BoxActionItemRow({
       $isFocused={isFocusedRow}
     >
       <ItemMain>
-        <ItemTitleRow>
-          {hasQuantity && <MetaPill>Qty {item.quantity}</MetaPill>}
-          <ItemName>{item?.name || '(Unnamed Item)'}</ItemName>
-        </ItemTitleRow>
-
-        <ItemMetaRow>
-          {visibleTags.map((tag) => (
-            <MetaPill key={`${item?._id || item?.id}-${tag}`}>#{tag}</MetaPill>
-          ))}
-          {hiddenTagCount > 0 && <MetaPill>+{hiddenTagCount} tags</MetaPill>}
-        </ItemMetaRow>
-
-        {notePreview && <ItemSummary>{notePreview}</ItemSummary>}
+        {itemHref ? (
+          <ItemNameLink to={itemHref} title={itemName}>
+            {itemName}
+          </ItemNameLink>
+        ) : (
+          <ItemName title={itemName}>{itemName}</ItemName>
+        )}
       </ItemMain>
+
+      {hasQuantity && <QtyPill>Qty {item.quantity}</QtyPill>}
 
       <ItemActions>
         <ActionButton

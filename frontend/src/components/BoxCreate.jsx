@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 
 import { createBox } from '../api/boxes';
-import { listLocations } from '../api/locations';
 import useShortIdAvailability from '../hooks/useShortIdAvailability';
+import useLocationRegistry from '../hooks/useLocationRegistry';
 
 const Container = styled.div`
   max-width: 500px;
@@ -93,23 +93,8 @@ function BoxCreate() {
   const [boxId, setBoxId] = useState('');
   const [label, setLabel] = useState('');
   const [locationId, setLocationId] = useState('');
-  const [locations, setLocations] = useState([]);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    let active = true;
-    listLocations()
-      .then((data) => {
-        if (!active) return;
-        setLocations(Array.isArray(data) ? data : []);
-      })
-      .catch((err) => {
-        console.error('Failed to load locations:', err);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+  const { locations } = useLocationRegistry();
 
   const {
     shortIdValid,

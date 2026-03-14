@@ -1,25 +1,35 @@
-import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import ItemCentricViewPanel from '../components/ItemCentricViewPanel';
-
-const API_BASE = 'http://localhost:5002'; // direct to Express, no Vite proxy
+import { useParams } from 'react-router-dom';
+import { API_BASE } from '../api/API_BASE';
+import ItemDetails from './ItemDetails';
+import ItemPageBreadcrumb from './ItemPageBreadcrumb';
+import * as S from '../styles/ItemPage.styles';
 
 export default function ItemPage() {
   const { itemId } = useParams();
 
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!itemId) return;
+    if (!itemId) {
+      setLoading(false);
+      setNotFound(false);
+      setItem(null);
+      setError('Missing item id.');
+      return undefined;
+    }
 
     const abort = new AbortController();
+    let isAlive = true;
 
     (async () => {
       try {
         setLoading(true);
         setError(null);
+        setNotFound(false);
 
         const url = `${API_BASE}/api/items/${encodeURIComponent(itemId)}`;
         const res = await fetch(url, {
@@ -27,31 +37,96 @@ export default function ItemPage() {
           headers: { Accept: 'application/json' },
         });
 
-        if (!res.ok) {
-          const text = await res.text().catch(() => '');
-          throw new Error(`HTTP ${res.status}: ${text?.slice(0, 120)}`);
+        if (res.status === 404) {
+          if (!isAlive) return;
+          setItem(null);
+          setNotFound(true);
+          return;
         }
 
-        const json = await res.json(); // { ok, data }
-        setItem(json?.data ?? null);
+        if (!res.ok) {
+          const raw = await res.text().catch(() => '');
+          let body = null;
+          if (raw) {
+            try {
+              body = JSON.parse(raw);
+            } catch {
+              body = null;
+            }
+          }
+          const message =
+            body?.error ||
+            body?.message ||
+            raw ||
+            `Request failed (${res.status})`;
+          throw new Error(message);
+        }
+
+        const json = await res.json().catch(() => ({}));
+        const nextItem = json?.data ?? null;
+
+        if (!isAlive) return;
+        if (!nextItem) {
+          setItem(null);
+          setNotFound(true);
+          return;
+        }
+
+        setItem(nextItem);
       } catch (err) {
-        if (err.name !== 'AbortError') {
+        if (err?.name !== 'AbortError' && isAlive) {
           console.error('fetch item failed:', err);
-          setError('Failed to load item.');
+          setItem(null);
+          setError(err?.message || 'Failed to load item.');
         }
       } finally {
-        setLoading(false);
+        if (isAlive) setLoading(false);
       }
     })();
 
-    return () => abort.abort();
+    return () => {
+      isAlive = false;
+      abort.abort();
+    };
   }, [itemId]);
 
-  if (loading) return <div style={{ padding: 16 }}>Loading…</div>;
-  if (error) return <div style={{ padding: 16 }}>{error}</div>;
-  if (!item) return <div style={{ padding: 16 }}>Item not found.</div>;
+  if (loading) {
+    return (
+      <S.Page>
+        <ItemPageBreadcrumb itemId={itemId} />
+        <S.StateCard>Loading item details…</S.StateCard>
+      </S.Page>
+    );
+  }
+
+  if (error) {
+    return (
+      <S.Page>
+        <ItemPageBreadcrumb itemId={itemId} />
+        <S.StateCard $tone="error">{error}</S.StateCard>
+      </S.Page>
+    );
+  }
+
+  if (notFound || !item) {
+    return (
+      <S.Page>
+        <ItemPageBreadcrumb itemId={itemId} />
+        <S.StateCard $tone="error">Item not found.</S.StateCard>
+      </S.Page>
+    );
+  }
 
   return (
-    <ItemCentricViewPanel item={item} fallbackSrc="/assets/filler-item.png" />
+    <S.Page>
+      <ItemPageBreadcrumb item={item} itemId={itemId} />
+
+      <S.TitleBar>
+        <S.Title>{item?.name || 'Unnamed Item'}</S.Title>
+        <S.Meta>Item ID {item?._id || itemId}</S.Meta>
+      </S.TitleBar>
+
+      <ItemDetails itemId={itemId} itemData={item} />
+    </S.Page>
   );
 }

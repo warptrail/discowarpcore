@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 
 import { updateBoxDetails } from '../api/boxes';
-import { listLocations } from '../api/locations';
 import useShortIdAvailability from '../hooks/useShortIdAvailability';
+import useLocationRegistry from '../hooks/useLocationRegistry';
+import { ToastContext } from './Toast';
 
 import * as S from './BoxForms/BoxEditForm.styles';
 import BoxIdentityFields from './BoxForms/BoxIdentityFields';
@@ -26,14 +27,23 @@ export default function EditBoxDetailsForm({
   const [locationId, setLocationId] = useState(
     initialLocationId ? String(initialLocationId) : '',
   );
-  const [locationOptions, setLocationOptions] = useState([]);
-  const [locationsLoading, setLocationsLoading] = useState(false);
+  const [locationError, setLocationError] = useState('');
+  const [locationCreateBusy, setLocationCreateBusy] = useState(false);
   const [tags, setTags] = useState(() =>
     Array.isArray(initial?.tags) ? initial.tags : [],
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const toastCtx = useContext(ToastContext);
+  const showToast = toastCtx?.showToast;
   const initialTagsKey = JSON.stringify(initial?.tags || []);
+
+  const {
+    locations: locationOptions,
+    loading: locationsLoading,
+    error: locationsError,
+    createLocationInline,
+  } = useLocationRegistry();
 
   useEffect(() => {
     setShortId(initial?.box_id ?? '');
@@ -43,6 +53,7 @@ export default function EditBoxDetailsForm({
       initial?.locationId ??
       '';
     setLocationId(nextLocationId ? String(nextLocationId) : '');
+    setLocationError('');
     setTags(Array.isArray(initial?.tags) ? initial.tags : []);
   }, [
     initial?._id,
@@ -52,27 +63,6 @@ export default function EditBoxDetailsForm({
     initial?.tags,
     initialTagsKey,
   ]);
-
-  useEffect(() => {
-    let active = true;
-    setLocationsLoading(true);
-    listLocations()
-      .then((locations) => {
-        if (!active) return;
-        setLocationOptions(Array.isArray(locations) ? locations : []);
-      })
-      .catch((e) => {
-        console.error('Failed to load locations:', e);
-        if (active) setLocationOptions([]);
-      })
-      .finally(() => {
-        if (active) setLocationsLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
 
   const {
     inProgress,
@@ -105,6 +95,43 @@ export default function EditBoxDetailsForm({
     shortIdValid &&
     shortIdAvail &&
     (label || '').trim().length > 0;
+
+  const handleCreateLocation = async (rawValue) => {
+    const normalized = String(rawValue || '').trim().replace(/\s+/g, ' ');
+    if (!normalized) {
+      setLocationError('Location name is required');
+      throw new Error('Location name is required');
+    }
+
+    setLocationCreateBusy(true);
+    setLocationError('');
+    try {
+      const created = await createLocationInline(normalized);
+      if (!created?._id) {
+        throw new Error('Failed to create location');
+      }
+      setLocationId(String(created._id));
+      showToast?.({
+        variant: 'success',
+        title: 'Location ready',
+        message: `Assigned location "${created.name}".`,
+        timeoutMs: 2600,
+      });
+      return created;
+    } catch (createErr) {
+      const msg = createErr?.message || 'Failed to create location';
+      setLocationError(msg);
+      showToast?.({
+        variant: 'danger',
+        title: 'Location create failed',
+        message: msg,
+        timeoutMs: 4200,
+      });
+      throw createErr;
+    } finally {
+      setLocationCreateBusy(false);
+    }
+  };
 
   const onSubmit = async (e) => {
     e?.preventDefault?.();
@@ -146,6 +173,9 @@ export default function EditBoxDetailsForm({
         setLocationId={setLocationId}
         locationOptions={locationOptions}
         locationsLoading={locationsLoading}
+        onCreateLocation={handleCreateLocation}
+        locationCreateBusy={locationCreateBusy}
+        locationError={locationError || locationsError}
       />
 
       <BoxTagsField

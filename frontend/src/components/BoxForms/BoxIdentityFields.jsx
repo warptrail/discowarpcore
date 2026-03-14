@@ -1,5 +1,6 @@
 import React from 'react';
 import * as S from './BoxEditForm.styles';
+import BoxLocationField from './BoxLocationField';
 
 export default function BoxIdentityFields({
   shortId,
@@ -17,6 +18,9 @@ export default function BoxIdentityFields({
   setLocationId,
   locationOptions = [],
   locationsLoading = false,
+  onCreateLocation,
+  locationCreateBusy = false,
+  locationError = '',
 }) {
   return (
     <>
@@ -72,21 +76,15 @@ export default function BoxIdentityFields({
 
       <S.Row>
         <S.Field>
-          <S.Label htmlFor="box-location-id">Location</S.Label>
-          <S.Select
-            id="box-location-id"
-            value={locationId || ''}
-            onChange={(e) => setLocationId(e.target.value)}
-            disabled={locationsLoading}
-          >
-            <option value="">None / Unassigned</option>
-            {(locationOptions || []).map((loc) => (
-              <option key={loc._id} value={loc._id}>
-                {loc.name}
-              </option>
-            ))}
-          </S.Select>
-          {locationsLoading && <S.Hint>Loading locations…</S.Hint>}
+          <BoxLocationField
+            locationId={locationId}
+            setLocationId={setLocationId}
+            locationOptions={locationOptions}
+            locationsLoading={locationsLoading}
+            onCreateLocation={onCreateLocation}
+            createBusy={locationCreateBusy}
+            errorMessage={locationError}
+          />
         </S.Field>
       </S.Row>
     </>

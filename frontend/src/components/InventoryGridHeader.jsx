@@ -1,11 +1,12 @@
 import React from 'react';
 import * as S from '../styles/InventoryGridHeader.styles';
+import { ITEM_CATEGORIES, formatItemCategory } from '../util/itemCategories';
 
 const SORT_OPTIONS = [
+  { value: 'boxId', label: 'Box ID' },
   { value: 'name', label: 'Name' },
   { value: 'location', label: 'Location' },
   { value: 'itemCount', label: 'Item Count' },
-  { value: 'boxId', label: 'Box ID' },
 ];
 
 const FILTER_OPTIONS = [
@@ -23,10 +24,12 @@ export default function InventoryGridHeader({
   orphanedCount = 0,
   searchQuery = '',
   onSearchChange,
-  sortBy = 'name',
+  sortBy = 'boxId',
   onSortChange,
   filterBy = 'all',
   onFilterChange,
+  categoryFilter = 'all',
+  onCategoryFilterChange,
   locationFilter = 'all',
   onLocationFilterChange,
   locations = [],
@@ -89,6 +92,22 @@ export default function InventoryGridHeader({
             {FILTER_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
+              </option>
+            ))}
+          </S.Select>
+        </S.ControlGroup>
+
+        <S.ControlGroup $tone="#5BC0EB">
+          <S.ControlLabel>Category</S.ControlLabel>
+          <S.Select
+            value={categoryFilter}
+            onChange={(e) => onCategoryFilterChange?.(e.target.value)}
+            aria-label="Filter by item category"
+          >
+            <option value="all">All Categories</option>
+            {ITEM_CATEGORIES.map((category) => (
+              <option key={category} value={category}>
+                {formatItemCategory(category)}
               </option>
             ))}
           </S.Select>

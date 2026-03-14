@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { editItem } from '../../api/editItem';
 import { normalizeTags } from '../../util/normalizeTags';
+import { normalizeItemCategory } from '../../util/itemCategories';
 
 const toNullableNonNegativeInteger = (value) => {
   if (value === '' || value === null || value === undefined) return null;
@@ -20,6 +21,7 @@ const buildFormState = (item) => ({
   keepPriority: item?.keepPriority || '',
   primaryOwnerName: item?.primaryOwnerName || '',
   condition: item?.condition || 'unknown',
+  category: normalizeItemCategory(item?.category),
   isConsumable: !!item?.isConsumable,
   minimumDesiredQuantity: toNullableNonNegativeInteger(
     item?.minimumDesiredQuantity
@@ -109,6 +111,7 @@ export default function useEditItemDetailsFormState({ item, triggerFlash, onSave
         keepPriority: formData.keepPriority || null,
         primaryOwnerName: toNullableTrimmedString(formData.primaryOwnerName),
         maintenanceNotes: String(formData.maintenanceNotes || '').trim(),
+        category: normalizeItemCategory(formData.category),
         isConsumable: !!formData.isConsumable,
         tags: normalizeTags(formData.tags)
           .filter((t) => t.status !== 'deleted')

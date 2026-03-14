@@ -18,7 +18,8 @@ import useBoxActionPanelController from './BoxActionPanel/useBoxActionPanelContr
 import BoxActionItemList from './BoxActionPanel/BoxActionItemList';
 import { DetailsPanel, PanelContainer } from './BoxActionPanel/BoxActionPanel.styles';
 import { ToastContext } from './Toast';
-import { destroyBoxById, releaseChildrenToFloor } from '../api/boxes';
+import { destroyBoxById, releaseChildrenToFloor, updateBoxById } from '../api/boxes';
+import { API_BASE } from '../api/API_BASE';
 
 const DESTROY_CONFIRM_PHRASE = 'DESTROY';
 
@@ -33,14 +34,38 @@ export default function BoxActionPanel({
   onBoxSaved,
   busy,
   onRequestDelete,
+  activePanelState = null,
+  onActivePanelStateChange,
 }) {
+  const [localOrphanedItems, setLocalOrphanedItems] = useState([]);
+
+  const fetchPanelOrphanedItems = useCallback(async () => {
+    const res = await fetch(`${API_BASE}/api/items/orphaned?sort=recent&limit=10000`);
+    const body = await res.json().catch(() => []);
+    if (!res.ok) {
+      throw new Error(body?.error || body?.message || 'Failed to fetch orphaned items');
+    }
+    setLocalOrphanedItems(Array.isArray(body) ? body : []);
+    return body;
+  }, []);
+
+  const resolvedFetchOrphanedItems =
+    typeof fetchOrphanedItems === 'function'
+      ? fetchOrphanedItems
+      : fetchPanelOrphanedItems;
+
+  const resolvedOrphanedItems = Array.isArray(orphanedItems)
+    ? orphanedItems
+    : localOrphanedItems;
+
   const controller = useBoxActionPanelController({
     boxTree,
     boxMongoId,
     onBoxSaved,
     refreshBox,
-    fetchOrphanedItems,
+    fetchOrphanedItems: resolvedFetchOrphanedItems,
     onItemAssigned,
+    initialActivePanel: activePanelState,
   });
 
   const {
@@ -69,6 +94,7 @@ export default function BoxActionPanel({
   const [mode, setMode] = useState('default');
   const [destroyConfirmInput, setDestroyConfirmInput] = useState('');
   const destroyToastActiveRef = useRef(false);
+  const undoNestBusyRef = useRef(false);
   const navigate = useNavigate();
 
   const toastCtx = useContext(ToastContext);
@@ -175,6 +201,112 @@ export default function BoxActionPanel({
     togglePanel('edit');
   };
 
+  const refreshAfterNestMutation = useCallback(async () => {
+    try {
+      await refreshBox?.();
+    } catch (err) {
+      console.error('[BoxActionPanel] refresh after nest mutation failed:', err);
+      showToast?.({
+        variant: 'danger',
+        title: 'Refresh failed',
+        message: 'Box hierarchy changed, but the panel failed to refresh.',
+        timeoutMs: 4200,
+      });
+    }
+  }, [refreshBox, showToast]);
+
+  const handleDidNest = useCallback(async (nestEvent = {}) => {
+    await refreshAfterNestMutation();
+    const previousParentId = nestEvent?.previousParentId || null;
+    const toLabel =
+      nestEvent?.nextParentLabel ||
+      (nestEvent?.nextParentShortId ? `Box #${nestEvent.nextParentShortId}` : 'selected parent');
+
+    showToast?.({
+      variant: 'success',
+      title: 'Box nested',
+      message: `Moved box #${routeShortId} under ${toLabel}.`,
+      sticky: true,
+      actions: [
+        {
+          id: `undo-nest-${boxMongoId}-${Date.now()}`,
+          label: 'Undo',
+          kind: 'primary',
+          onClick: async () => {
+            if (undoNestBusyRef.current) return;
+            undoNestBusyRef.current = true;
+            try {
+              await updateBoxById(boxMongoId, {
+                parentBox: previousParentId || null,
+              });
+              await refreshAfterNestMutation();
+              hideToast?.();
+              showToast?.({
+                variant: 'success',
+                title: 'Nest undone',
+                message:
+                  previousParentId
+                    ? `Box #${routeShortId} returned to its previous parent.`
+                    : `Box #${routeShortId} returned to floor level.`,
+                timeoutMs: 3600,
+              });
+            } catch (err) {
+              console.error('[BoxActionPanel] undo nest failed:', err);
+              showToast?.({
+                variant: 'danger',
+                title: 'Undo failed',
+                message: err?.message || 'Could not reverse this box move.',
+                timeoutMs: 5200,
+              });
+            } finally {
+              undoNestBusyRef.current = false;
+            }
+          },
+        },
+      ],
+    });
+  }, [
+    refreshAfterNestMutation,
+    showToast,
+    routeShortId,
+    boxMongoId,
+    hideToast,
+  ]);
+
+  const handleDidUnnest = useCallback(async () => {
+    await refreshAfterNestMutation();
+    showToast?.({
+      variant: 'success',
+      title: 'Box moved to floor',
+      message: `Box #${routeShortId} is now at floor level.`,
+      timeoutMs: 3200,
+    });
+  }, [refreshAfterNestMutation, showToast, routeShortId]);
+
+  const handleDidReleaseChildren = useCallback(
+    async (modifiedCount = 0) => {
+      await refreshAfterNestMutation();
+      showToast?.({
+        variant: 'success',
+        title: 'Children released',
+        message: `Released ${modifiedCount} direct child box${
+          modifiedCount === 1 ? '' : 'es'
+        } to floor level.`,
+        timeoutMs: 3600,
+      });
+    },
+    [refreshAfterNestMutation, showToast],
+  );
+
+  useEffect(() => {
+    if (Array.isArray(orphanedItems) && typeof fetchOrphanedItems !== 'function') {
+      return;
+    }
+    resolvedFetchOrphanedItems?.().catch((err) => {
+      console.error('[BoxActionPanel] orphaned fetch failed:', err);
+    });
+  }, [orphanedItems, fetchOrphanedItems, resolvedFetchOrphanedItems]);
+
   useEffect(() => {
     if (!isDestroyConfirmMode) return;
 
@@ -223,6 +355,11 @@ export default function BoxActionPanel({
     [hideToast],
   );
 
+  useEffect(() => {
+    if (typeof onActivePanelStateChange !== 'function') return;
+    onActivePanelStateChange(activePanel);
+  }, [activePanel, onActivePanelStateChange]);
+
   return (
     <PanelContainer>
       <BoxControlBar
@@ -239,9 +376,13 @@ export default function BoxActionPanel({
         onClose={() => setActivePanel(null)}
         onConfirm={() => {}}
         sourceBoxMongoId={boxMongoId}
+        sourceBoxShortId={routeShortId}
         sourceBoxLabel={boxTree?.label}
         boxTree={boxTree}
         busy={busy || isMoving}
+        onDidNest={handleDidNest}
+        onDidUnnest={handleDidUnnest}
+        onDidReleaseChildren={handleDidReleaseChildren}
       />
 
       <DetailsPanel $open={!isDestroyConfirmMode && activePanel === 'edit'} $maxHeight={420}>
@@ -279,9 +420,8 @@ export default function BoxActionPanel({
         <MiniOrphanedList
           boxMongoId={boxMongoId}
           onItemAssigned={handleItemAssigned}
-          onItemUpdated={onItemUpdated}
-          orphanedItems={orphanedItems}
-          fetchOrphanedItems={fetchOrphanedItems}
+          orphanedItems={resolvedOrphanedItems}
+          fetchOrphanedItems={resolvedFetchOrphanedItems}
         />
       )}
 

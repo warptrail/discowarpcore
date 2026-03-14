@@ -13,6 +13,8 @@ const LCARS = {
   lilac: '#A7B6FF',
   amber: '#E8B15C',
   lime: '#9BE564',
+  ice: '#7FD7FF',
+  cyan: '#67D9D3',
 };
 
 const BRACKET_COLORS = [
@@ -357,17 +359,17 @@ const StatPill = styled.span`
   ${({ $variant }) =>
     $variant === 'boxes' &&
     css`
-      color: #0b0e10;
-      background: ${LCARS.lime};
-      border-color: ${LCARS.lime};
+      color: #061018;
+      background: linear-gradient(135deg, ${LCARS.ice}, ${LCARS.cyan});
+      border-color: ${toneAlpha(LCARS.ice, 'd8')};
     `}
 
   ${({ $variant }) =>
     $variant === 'items' &&
     css`
-      color: #0b0e10;
-      background: ${LCARS.amber};
-      border-color: ${LCARS.amber};
+      color: #091027;
+      background: linear-gradient(135deg, ${LCARS.lilac}, #8ec6ff);
+      border-color: ${toneAlpha(LCARS.lilac, 'd8')};
     `}
 `;
 

@@ -72,6 +72,7 @@ export default function BoxActionItemList({
       itemId,
       itemName: item?.name,
       itemQuantity: item?.quantity,
+      sourceBoxShortId: routeShortId,
       sourceBoxId: boxMongoId,
       destBoxId,
       destLabel,

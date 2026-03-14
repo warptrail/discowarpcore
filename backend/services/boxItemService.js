@@ -1,6 +1,7 @@
 // services/boxItemService.js
 const Box = require('../models/Box');
 const Item = require('../models/Item');
+const { withNormalizedItemCategory } = require('../utils/itemCategory');
 
 /**
  * Primitive A:
@@ -141,7 +142,8 @@ async function emptyBoxItems(boxId) {
 async function getOrphanItems({ since } = {}) {
   const q = { orphanedAt: { $ne: null } };
   if (since) q.orphanedAt = { $gte: new Date(since) };
-  return Item.find(q).lean();
+  const items = await Item.find(q).lean();
+  return items.map((item) => withNormalizedItemCategory(item));
 }
 
 module.exports = {

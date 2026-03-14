@@ -2,6 +2,8 @@ import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
 import * as S from '../styles/ItemRow.styles';
 import ItemDetails from './ItemDetails';
 import EditItemDetailsForm from './EditItemDetailsForm';
+import { getItemHomeHref } from '../api/itemDetails';
+import { formatItemCategory, normalizeItemCategory } from '../util/itemCategories';
 
 export default function ItemRow({
   item,
@@ -25,11 +27,14 @@ export default function ItemRow({
     parentBoxLabel,
     parentBoxId,
     description,
+    category,
   } = item;
+  const categoryLabel = formatItemCategory(normalizeItemCategory(category));
 
   const [editMode, setEditMode] = useState(false);
   const [targetHeight, setTargetHeight] = useState(0);
   const contentRef = useRef(null);
+  const itemHomeHref = _id ? getItemHomeHref(_id) : null;
 
   // ---- measure helpers
   const measureNow = () => {
@@ -88,7 +93,13 @@ export default function ItemRow({
     >
       <S.Row onClick={handleRowClick} $open={isOpen}>
         <S.RowHeader $open={isOpen}>
-          <S.Title>{name}</S.Title>
+          {itemHomeHref ? (
+            <S.TitleLink to={itemHomeHref} onClick={(e) => e.stopPropagation()}>
+              {name}
+            </S.TitleLink>
+          ) : (
+            <S.Title>{name}</S.Title>
+          )}
           <S.RowActions>
             {!isOpen && quantity != null && <S.Qty>qty {quantity}</S.Qty>}
             <S.EditButton onClick={handleToggleEdit}>
@@ -103,6 +114,7 @@ export default function ItemRow({
               {parentBoxLabel} {!!parentBoxId && `(${parentBoxId})`}
             </S.Breadcrumb>
           )}
+          <S.Breadcrumb>Category: {categoryLabel}</S.Breadcrumb>
 
           {!!tags.length && (
             <S.TagRow>

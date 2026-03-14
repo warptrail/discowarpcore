@@ -1,6 +1,12 @@
 // models/Item.js
 const mongoose = require('mongoose');
 const { buildBoxMaps, makeBreadcrumb } = require('../utils/boxHelpers');
+const {
+  ITEM_CATEGORIES,
+  DEFAULT_ITEM_CATEGORY,
+  normalizeItemCategory,
+  withNormalizedItemCategory,
+} = require('../utils/itemCategory');
 
 function isNonNegativeIntegerOrNull(v) {
   return v == null || (Number.isInteger(v) && v >= 0);
@@ -39,6 +45,13 @@ const itemSchema = new mongoose.Schema(
       type: String,
       enum: ['unknown', 'new', 'good', 'fair', 'poor', 'needs_repair'],
       default: 'unknown',
+    },
+    category: {
+      type: String,
+      enum: ITEM_CATEGORIES,
+      default: DEFAULT_ITEM_CATEGORY,
+      index: true,
+      set: normalizeItemCategory,
     },
     isConsumable: { type: Boolean, default: false },
     minimumDesiredQuantity: {
@@ -104,7 +117,7 @@ itemSchema.statics.findItemById = async function (id, { select } = {}) {
   if (!itemDoc) return null;
 
   // Convert to plain object with virtuals included
-  const item = itemDoc.toObject({ virtuals: true });
+  const item = withNormalizedItemCategory(itemDoc.toObject({ virtuals: true }));
 
   const Box = mongoose.model('Box');
   const leaf = await Box.findOne({ items: item._id })
@@ -112,14 +125,20 @@ itemSchema.statics.findItemById = async function (id, { select } = {}) {
     .lean();
 
   if (!leaf) {
-    return { ...item, box: null, breadcrumb: [], depth: 0, topBox: null };
+    return withNormalizedItemCategory({
+      ...item,
+      box: null,
+      breadcrumb: [],
+      depth: 0,
+      topBox: null,
+    });
   }
 
   const allBoxes = await Box.findAllBoxesForMaps();
   const maps = buildBoxMaps(allBoxes);
   const { breadcrumb, depth, rootBox } = makeBreadcrumb(leaf._id, maps);
 
-  return {
+  return withNormalizedItemCategory({
     ...item,
     box: {
       _id: leaf._id,
@@ -130,7 +149,7 @@ itemSchema.statics.findItemById = async function (id, { select } = {}) {
     breadcrumb,
     depth,
     topBox: rootBox,
-  };
+  });
 };
 itemSchema.virtual('avgUseIntervalDays').get(function () {
   if (!this.usageHistory || this.usageHistory.length < 2) return null;

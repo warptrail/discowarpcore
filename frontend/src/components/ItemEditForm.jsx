@@ -4,6 +4,7 @@ import { editItem } from '../api/editItem';
 import MoveItemBar from './MoveItemBar';
 import ItemEditFieldsForm from './ItemEditFieldsForm';
 import * as S from './ItemEditForm.styles';
+import { normalizeItemCategory } from '../util/itemCategories';
 
 const toNullableNonNegativeInteger = (value) => {
   if (value === '' || value === null || value === undefined) return null;
@@ -33,6 +34,7 @@ const buildFormData = (item) => ({
   keepPriority: normalizeKeepPriority(item?.keepPriority),
   primaryOwnerName: item?.primaryOwnerName || '',
   condition: item?.condition || 'unknown',
+  category: normalizeItemCategory(item?.category),
   isConsumable: !!item?.isConsumable,
   minimumDesiredQuantity: toNullableNonNegativeInteger(
     item?.minimumDesiredQuantity
@@ -125,6 +127,7 @@ export default function ItemEditForm({
         lastCheckedAt: formData.lastCheckedAt || null,
         lastMaintainedAt: formData.lastMaintainedAt || null,
         maintenanceNotes: String(formData.maintenanceNotes || '').trim(),
+        category: normalizeItemCategory(formData.category),
         isConsumable: !!formData.isConsumable,
       };
 

@@ -2,6 +2,9 @@ import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ToastContext } from '../Toast';
 
+const VALID_PANELS = new Set(['empty', 'nest', 'edit', 'destroy']);
+const normalizePanelState = (value) => (VALID_PANELS.has(value) ? value : null);
+
 export default function useBoxActionPanelController({
   boxTree,
   boxMongoId,
@@ -9,6 +12,7 @@ export default function useBoxActionPanelController({
   refreshBox,
   fetchOrphanedItems,
   onItemAssigned,
+  initialActivePanel = null,
 }) {
   const [isMoving, setIsMoving] = useState(false);
   const [zippingItemId, setZippingItemId] = useState(null);
@@ -19,7 +23,9 @@ export default function useBoxActionPanelController({
   const [itemsUI, setItemsUI] = useState(() =>
     Array.isArray(boxTree?.items) ? boxTree.items : [],
   );
-  const [activePanel, setActivePanel] = useState(null);
+  const [activePanel, setActivePanel] = useState(() =>
+    normalizePanelState(initialActivePanel),
+  );
 
   const isEmptyMode = activePanel === 'empty';
 
@@ -32,6 +38,8 @@ export default function useBoxActionPanelController({
   const itemSnapshotRef = useRef(new Map());
   const lastEmptiedRef = useRef({ boxId: null, items: [], at: 0 });
   const isEmptyingRef = useRef(false);
+  const undoMoveInFlightRef = useRef(new Set());
+  const undoOrphanInFlightRef = useRef(new Set());
 
   const { shortId: routeShortId } = useParams();
   const ANIM_LEAVE_MS = 1000;
@@ -126,10 +134,105 @@ export default function useBoxActionPanelController({
     setZippingItemId((curr) => (curr === itemId ? null : curr));
   };
 
+  const removeItemFromUIById = (itemId) => {
+    if (!itemId) return;
+    setItemsUI((prev) =>
+      (prev || []).filter((it) => (it?._id ?? it?.id) !== itemId),
+    );
+  };
+
+  const requestMove = async ({ itemId, sourceBoxId, destBoxId }) => {
+    const res = await fetch('http://localhost:5002/api/boxed-items/moveItem', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ itemId, sourceBoxId, destBoxId }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body?.message || 'Move failed');
+    }
+  };
+
+  const requestAttachToBox = async ({ boxId, itemId }) => {
+    const res = await fetch(
+      `http://localhost:5002/api/boxed-items/${boxId}/addItem`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemId }),
+      },
+    );
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(body?.message || 'Restore failed');
+    }
+  };
+
+  const undoMove = async ({
+    itemId,
+    itemName,
+    sourceBoxId,
+    sourceBoxShortId,
+    destBoxId,
+    destLabel,
+  }) => {
+    if (!itemId || !sourceBoxId || !destBoxId) {
+      showToast?.({
+        variant: 'danger',
+        title: 'Undo unavailable',
+        message: 'Move context is missing and cannot be reversed.',
+        timeoutMs: 4200,
+      });
+      return;
+    }
+
+    if (undoMoveInFlightRef.current.has(itemId)) return;
+    undoMoveInFlightRef.current.add(itemId);
+
+    try {
+      await requestMove({
+        itemId,
+        sourceBoxId: destBoxId,
+        destBoxId: sourceBoxId,
+      });
+
+      if (String(boxMongoId || '') === String(sourceBoxId || '')) {
+        enteringIdsRef.current.add(itemId);
+        await refreshBox?.();
+        await markEntered(itemId);
+      } else {
+        await refreshBox?.();
+      }
+
+      showToast?.({
+        variant: 'success',
+        title: 'Move undone',
+        message: `${itemName || 'Item'} returned to box #${sourceBoxShortId || routeShortId}.`,
+        timeoutMs: 3600,
+      });
+    } catch (error) {
+      console.error('[undoMove] failed:', error);
+      showToast?.({
+        variant: 'danger',
+        title: 'Undo failed',
+        message:
+          error?.message ||
+          `Could not return ${itemName || 'item'} from ${destLabel || 'destination box'}.`,
+        timeoutMs: 5200,
+      });
+    } finally {
+      undoMoveInFlightRef.current.delete(itemId);
+    }
+  };
+
   const handleMoveRequest = async ({
     itemId,
+    itemName,
+    sourceBoxShortId,
     sourceBoxId,
     destBoxId,
+    destLabel,
+    destShortId,
   }) => {
     if (isMoving) return;
     setIsMoving(true);
@@ -141,17 +244,47 @@ export default function useBoxActionPanelController({
       setZippingItemId(itemId);
       await new Promise((r) => setTimeout(r, 1000));
 
-      const res = await fetch('http://localhost:5002/api/boxed-items/moveItem', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId, sourceBoxId, destBoxId }),
-      });
-      if (!res.ok) throw new Error('Move failed');
+      await requestMove({ itemId, sourceBoxId, destBoxId });
 
+      // Keep source-list UI consistent immediately after confirmed move.
+      removeItemFromUIById(itemId);
       await refreshBox?.();
       clearZipIfMatches(itemId);
+
+      const fromShort = sourceBoxShortId || routeShortId;
+      const toLabel = destLabel || (destShortId ? `Box #${destShortId}` : 'destination box');
+      showToast?.({
+        variant: 'success',
+        title: 'Item moved',
+        message: `Moved "${itemName || 'Item'}" from box #${fromShort} to ${toLabel}.`,
+        timeoutMs: 6500,
+        actions: [
+          {
+            id: `undo-move-${itemId}-${Date.now()}`,
+            label: 'Undo',
+            kind: 'primary',
+            onClick: async () => {
+              hideToast?.();
+              await undoMove({
+                itemId,
+                itemName,
+                sourceBoxId,
+                sourceBoxShortId: fromShort,
+                destBoxId,
+                destLabel: toLabel,
+              });
+            },
+          },
+        ],
+      });
     } catch (e) {
       console.error('[handleMoveRequest] failed:', e);
+      showToast?.({
+        variant: 'danger',
+        title: 'Move failed',
+        message: e?.message || 'Could not move this item.',
+        timeoutMs: 4200,
+      });
       setZippingItemId(null);
     } finally {
       setIsMoving(false);
@@ -162,7 +295,9 @@ export default function useBoxActionPanelController({
     if (isMoving) return;
     setIsMoving(true);
 
-    snapshotItem(itemId);
+    const snap = snapshotItem(itemId);
+    const orphanItemName =
+      snap?.name || getItemFromUIById(itemId)?.name || 'Item';
 
     try {
       await nextTwoFrames();
@@ -180,10 +315,74 @@ export default function useBoxActionPanelController({
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body?.message || 'Orphan failed');
 
+      removeItemFromUIById(itemId);
       await Promise.all([refreshBox?.(), fetchOrphanedItems?.()]);
       clearZipIfMatches(itemId);
+
+      showToast?.({
+        variant: 'success',
+        title: 'Item orphaned',
+        message: `Orphaned "${orphanItemName}".`,
+        sticky: true,
+        actions: [
+          {
+            id: `undo-orphan-${itemId}-${Date.now()}`,
+            label: 'Undo',
+            kind: 'primary',
+            onClick: async () => {
+              if (!itemId || !sourceBoxId) return;
+              if (undoOrphanInFlightRef.current.has(itemId)) return;
+              undoOrphanInFlightRef.current.add(itemId);
+
+              hideToast?.();
+
+              try {
+                await requestAttachToBox({
+                  boxId: sourceBoxId,
+                  itemId,
+                });
+
+                const sourceIsCurrentBox =
+                  String(sourceBoxId || '') === String(boxMongoId || '');
+                if (sourceIsCurrentBox) enteringIdsRef.current.add(itemId);
+
+                await Promise.all([refreshBox?.(), fetchOrphanedItems?.()]);
+
+                if (sourceIsCurrentBox) {
+                  await markEntered(itemId);
+                }
+
+                showToast?.({
+                  variant: 'success',
+                  title: 'Orphan undone',
+                  message: `${orphanItemName} restored to box #${routeShortId}.`,
+                  timeoutMs: 3600,
+                });
+              } catch (undoErr) {
+                console.error('[undoOrphan] failed:', undoErr);
+                showToast?.({
+                  variant: 'danger',
+                  title: 'Undo failed',
+                  message:
+                    undoErr?.message ||
+                    `Could not restore ${orphanItemName} to its box.`,
+                  timeoutMs: 5200,
+                });
+              } finally {
+                undoOrphanInFlightRef.current.delete(itemId);
+              }
+            },
+          },
+        ],
+      });
     } catch (e) {
       console.error('[handleOrphanRequest] failed:', e);
+      showToast?.({
+        variant: 'danger',
+        title: 'Orphan failed',
+        message: e?.message || 'Could not orphan this item.',
+        timeoutMs: 4200,
+      });
       setZippingItemId(null);
     } finally {
       setIsMoving(false);
@@ -432,6 +631,17 @@ export default function useBoxActionPanelController({
   }, [directItems]);
 
   useEffect(() => {
+    const nextPanel = normalizePanelState(initialActivePanel);
+    setActivePanel((prev) => {
+      if (prev === nextPanel) return prev;
+      if (prev === 'empty' && nextPanel !== 'empty') {
+        hideToast?.();
+      }
+      return nextPanel;
+    });
+  }, [hideToast, initialActivePanel]);
+
+  useEffect(() => {
     fetchOrphanedItems?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -439,7 +649,7 @@ export default function useBoxActionPanelController({
   useEffect(() => {
     if (!zippingItemId) return;
     const present = (itemsUI || []).some(
-      (it) => (it?._id ?? it) === zippingItemId,
+      (it) => (it?._id ?? it?.id) === zippingItemId,
     );
     if (!present) setZippingItemId(null);
   }, [itemsUI, zippingItemId]);

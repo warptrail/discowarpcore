@@ -1,3 +1,5 @@
+import { normalizeItemCategory } from './itemCategories';
+
 // src/utils/itemVM.js
 /**
  * A single, unified view-model for ItemRow to consume
@@ -6,6 +8,7 @@
  * {
  *   id: string,            // item _id
  *   name: string,          // item name
+ *   category: string,      // normalized category slug
  *   tags: string[],        // normalized tag list
  *   quantity: number|null, // optional
  *   notes: string|null,    // optional
@@ -54,6 +57,7 @@ export function toItemVM(rawItem, parentBox, ancestors = []) {
   return {
     id,
     name: str(rawItem.name),
+    category: normalizeItemCategory(rawItem.category),
     tags: arr(rawItem.tags),
     quantity: num(rawItem.quantity),
     notes: str(rawItem.notes ?? ''),

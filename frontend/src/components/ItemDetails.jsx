@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import * as S from '../styles/ItemDetails.styles';
 import { fetchItemDetails, createAborter } from '../api/itemDetails';
+import { formatItemCategory, normalizeItemCategory } from '../util/itemCategories';
 
 function fmtDate(value) {
   return value ? dayjs(value).format('YYYY-MM-DD') : '—';
@@ -41,12 +42,30 @@ function BreadcrumbTrail({ breadcrumb = [] }) {
   );
 }
 
-export default function ItemDetails({ itemId, triggerFlash }) {
+export default function ItemDetails({
+  itemId,
+  itemData: providedItemData = null,
+  triggerFlash,
+}) {
   const [itemData, setItemData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const shouldFetch = !providedItemData && !!itemId;
 
   useEffect(() => {
+    if (!shouldFetch) {
+      setLoading(false);
+      setError(null);
+      return undefined;
+    }
+
+    if (!itemId) {
+      setItemData(null);
+      setLoading(false);
+      setError(null);
+      return undefined;
+    }
+
     const { signal, cancel } = createAborter();
     setLoading(true);
     setError(null);
@@ -61,7 +80,9 @@ export default function ItemDetails({ itemId, triggerFlash }) {
       .finally(() => setLoading(false));
 
     return () => cancel();
-  }, [itemId]);
+  }, [itemId, shouldFetch]);
+
+  const resolvedItemData = providedItemData ?? itemData;
 
   if (loading) {
     return (
@@ -74,7 +95,7 @@ export default function ItemDetails({ itemId, triggerFlash }) {
   }
 
   if (error) return <S.ErrorMsg role="alert">{error}</S.ErrorMsg>;
-  if (!itemData) return null;
+  if (!resolvedItemData) return null;
 
   const {
     description,
@@ -93,6 +114,7 @@ export default function ItemDetails({ itemId, triggerFlash }) {
     keepPriority,
     primaryOwnerName,
     condition,
+    category,
     isConsumable,
     minimumDesiredQuantity,
     lastCheckedAt,
@@ -105,10 +127,13 @@ export default function ItemDetails({ itemId, triggerFlash }) {
     breadcrumb,
     depth,
     topBox,
-  } = itemData;
+  } = resolvedItemData;
+
+  const resolvedItemId = resolvedItemData?._id ?? itemId;
 
   const tagList = Array.isArray(tags) ? tags : [];
   const usageDates = Array.isArray(usageHistory) ? usageHistory : [];
+  const categoryLabel = formatItemCategory(normalizeItemCategory(category));
 
   const isOrphaned = !box;
   const statusLabel = isOrphaned ? 'Orphaned' : 'Assigned';
@@ -133,6 +158,7 @@ export default function ItemDetails({ itemId, triggerFlash }) {
         <DetailSection title="Identity / Summary" tone="teal">
           <DetailRow label="Status" value={statusLabel} />
           <DetailRow label="Primary Box" value={primaryBox} />
+          <DetailRow label="Category" value={categoryLabel} />
           <DetailRow
             label="Tags"
             value={
@@ -236,25 +262,27 @@ export default function ItemDetails({ itemId, triggerFlash }) {
         </DetailSection>
       </S.SectionGrid>
 
-      <S.UtilityDock>
-        <S.UtilityTitle>Debug</S.UtilityTitle>
-        <S.TestButtons>
-          <S.FlashButton
-            type="button"
-            $tone="yellow"
-            onClick={() => triggerFlash?.(itemId, 'yellow')}
-          >
-            Yellow Flash
-          </S.FlashButton>
-          <S.FlashButton
-            type="button"
-            $tone="red"
-            onClick={() => triggerFlash?.(itemId, 'red')}
-          >
-            Red Flash
-          </S.FlashButton>
-        </S.TestButtons>
-      </S.UtilityDock>
+      {typeof triggerFlash === 'function' ? (
+        <S.UtilityDock>
+          <S.UtilityTitle>Debug</S.UtilityTitle>
+          <S.TestButtons>
+            <S.FlashButton
+              type="button"
+              $tone="yellow"
+              onClick={() => triggerFlash?.(resolvedItemId, 'yellow')}
+            >
+              Yellow Flash
+            </S.FlashButton>
+            <S.FlashButton
+              type="button"
+              $tone="red"
+              onClick={() => triggerFlash?.(resolvedItemId, 'red')}
+            >
+              Red Flash
+            </S.FlashButton>
+          </S.TestButtons>
+        </S.UtilityDock>
+      ) : null}
     </S.Panel>
   );
 }

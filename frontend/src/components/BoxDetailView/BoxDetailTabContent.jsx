@@ -18,6 +18,8 @@ const FLAT_SORT_OPTIONS = [
   { value: 'recentlyUpdated', label: 'Recently Updated' },
   { value: 'nameAsc', label: 'Name A-Z' },
   { value: 'nameDesc', label: 'Name Z-A' },
+  { value: 'categoryAsc', label: 'Category A-Z' },
+  { value: 'categoryDesc', label: 'Category Z-A' },
   { value: 'valueDesc', label: 'Value High-Low' },
   { value: 'valueAsc', label: 'Value Low-High' },
 ];
@@ -39,6 +41,9 @@ export default function BoxDetailTabContent({
   stopPulse,
   handleFlash,
   handleItemSaved,
+  refreshBox,
+  activePanel,
+  onActivePanelChange,
 }) {
   const [flatSearchQuery, setFlatSearchQuery] = useState('');
   const [flatSortMode, setFlatSortMode] = useState('treeOrder');
@@ -130,7 +135,16 @@ export default function BoxDetailTabContent({
   }
 
   if (activeTab === 'edit') {
-    return <BoxActionPanel box={tree} boxTree={tree} boxMongoId={tree._id} />;
+    return (
+      <BoxActionPanel
+        box={tree}
+        boxTree={tree}
+        boxMongoId={tree._id}
+        refreshBox={refreshBox}
+        activePanelState={activePanel}
+        onActivePanelStateChange={onActivePanelChange}
+      />
+    );
   }
 
   return null;

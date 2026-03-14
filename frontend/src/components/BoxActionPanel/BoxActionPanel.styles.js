@@ -1,4 +1,5 @@
 import styled, { keyframes, css } from 'styled-components';
+import { Link } from 'react-router-dom';
 
 export const PanelContainer = styled.div`
   background-color: #121212;
@@ -37,19 +38,46 @@ export const ItemList = styled.ul`
 `;
 
 export const ItemCard = styled.li`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-  padding: 0.8rem 0.9rem;
-  border-radius: 10px;
-  border: 1px solid #2f2f2f;
-  background-color: #1f1f1f;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: 0.55rem;
+  row-gap: 0.4rem;
+  min-height: 72px;
+  padding: 0.56rem 0.62rem 0.56rem 0.78rem;
+  border-radius: 22px 11px 11px 18px;
+  border: 1px solid #334840;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(62, 106, 87, 0.2) 0%,
+      rgba(30, 44, 38, 0.5) 30%,
+      rgba(27, 31, 34, 0.96) 60%
+    ) no-repeat,
+    #1b1f22;
+  background-size:
+    100% 100%,
+    auto;
   transition:
     background-color 0.2s ease,
     border-color 0.2s ease,
     box-shadow 0.2s ease;
   will-change: transform, opacity;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0.42rem;
+    top: 0.44rem;
+    bottom: 0.44rem;
+    width: 5px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #67c99a, #3f8f68 68%, #326e52);
+    opacity: 0.58;
+    pointer-events: none;
+  }
 
   ${({ $preEnter }) =>
     $preEnter &&
@@ -108,22 +136,49 @@ export const ItemCard = styled.li`
     ($isFocused
       ? css`
           border-color: #4ec77b;
-          background-color: #243429;
+          background:
+            linear-gradient(
+              90deg,
+              rgba(64, 137, 98, 0.32) 0%,
+              rgba(38, 68, 52, 0.62) 34%,
+              rgba(28, 47, 36, 0.94) 60%
+            ) no-repeat,
+            #213629;
+          background-size:
+            100% 100%,
+            auto;
           box-shadow:
             0 0 0 1px rgba(78, 199, 123, 0.4),
             0 0 12px rgba(78, 199, 123, 0.2);
         `
       : css`
           opacity: 0.45;
-          padding: 0.55rem 0.75rem;
-          border-color: #252525;
-          background-color: #171717;
+          min-height: 58px;
+          padding: 0.44rem 0.56rem 0.44rem 0.72rem;
+          border-color: #252d2a;
+          background:
+            linear-gradient(90deg, rgba(54, 64, 59, 0.18) 0%, rgba(25, 29, 31, 0.9) 52%)
+              no-repeat,
+            #171a1c;
+          background-size:
+            100% 100%,
+            auto;
           box-shadow: none;
         `)}
 
   &:hover {
     border-color: #4ec77b;
-    background-color: #253128;
+    background:
+      linear-gradient(
+        90deg,
+        rgba(65, 123, 95, 0.3) 0%,
+        rgba(40, 67, 53, 0.54) 32%,
+        rgba(31, 47, 39, 0.9) 58%
+      ) no-repeat,
+      #253128;
+    background-size:
+      100% 100%,
+      auto;
     box-shadow: 0 0 8px rgba(78, 199, 123, 0.32);
   }
 
@@ -133,64 +188,105 @@ export const ItemCard = styled.li`
     css`
       &:hover {
         border-color: #323232;
-        background-color: #191919;
+        background:
+          linear-gradient(
+            90deg,
+            rgba(54, 64, 59, 0.16) 0%,
+            rgba(24, 27, 29, 0.9) 52%
+          ) no-repeat,
+          #191919;
+        background-size:
+          100% 100%,
+          auto;
         box-shadow: none;
       }
     `}
 
+  @media (max-width: 860px) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
   @media (max-width: 720px) {
-    flex-direction: column;
-    align-items: stretch;
+    grid-template-columns: 1fr;
+    min-height: auto;
+    padding: 0.56rem 0.62rem 0.62rem 0.78rem;
   }
 `;
 
 export const ItemMain = styled.div`
   min-width: 0;
-  flex: 1;
-`;
-
-export const ItemTitleRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  min-width: 0;
+  padding-left: 0.6rem;
 `;
 
 export const ItemName = styled.h3`
   margin: 0;
   font-size: 1rem;
+  font-weight: 700;
   color: #f2f2f2;
-  line-height: 1.3;
-`;
-
-export const ItemMetaRow = styled.div`
-  margin-top: 0.45rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-`;
-
-export const MetaPill = styled.span`
-  font-size: 0.75rem;
-  color: #c9e8d4;
-  border: 1px solid #355443;
-  background: #1b2b22;
-  border-radius: 999px;
-  padding: 0.15rem 0.55rem;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
-export const ItemSummary = styled.p`
-  margin: 0.5rem 0 0;
-  color: #b7c1b9;
-  font-size: 0.85rem;
-  line-height: 1.3;
+export const ItemNameLink = styled(Link)`
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f2f2f2;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+    text-decoration-color: rgba(78, 199, 123, 0.86);
+    text-underline-offset: 2px;
+  }
+`;
+
+export const QtyPill = styled.span`
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 0.62rem;
+  border-radius: 10px;
+  border: 1px solid #456b59;
+  background: linear-gradient(180deg, #1f352a, #16261f);
+  color: #d5f0e2;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  @media (max-width: 720px) {
+    justify-self: start;
+  }
 `;
 
 export const ItemActions = styled.div`
-  display: flex;
-  gap: 0.45rem;
-  flex-wrap: wrap;
+  justify-self: end;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  gap: 0.34rem;
+  padding: 0.24rem;
+  border-radius: 11px;
+  border: 1px solid #323c38;
+  background: linear-gradient(180deg, #1a1f22, #15191b);
+
+  @media (max-width: 860px) {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
 `;
 
 const toneStyles = {
@@ -228,12 +324,17 @@ const toneStyles = {
 
 export const ActionButton = styled.button`
   border: 1px solid transparent;
-  border-radius: 6px;
-  padding: 0.35rem 0.65rem;
-  font-size: 0.82rem;
-  font-weight: 600;
+  border-radius: 8px;
+  min-height: 32px;
+  min-width: 68px;
+  padding: 0 0.66rem;
+  font-size: 0.78rem;
+  font-weight: 700;
   letter-spacing: 0.02em;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease,

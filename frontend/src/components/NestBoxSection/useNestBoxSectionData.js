@@ -126,6 +126,26 @@ export default function useNestBoxSectionData({
     setError(null);
 
     try {
+      const previousParentRaw = localBoxTree?.parentBox;
+      const previousParentId =
+        previousParentRaw == null
+          ? null
+          : typeof previousParentRaw === 'string'
+            ? String(previousParentRaw)
+            : previousParentRaw?._id != null
+              ? String(previousParentRaw._id)
+              : null;
+
+      const previousParentFromChain = parentChain[parentChain.length - 1] || null;
+      const previousParentLabel =
+        (typeof previousParentRaw === 'object' ? previousParentRaw?.label : null) ||
+        previousParentFromChain?.label ||
+        null;
+      const previousParentShortId =
+        (typeof previousParentRaw === 'object' ? previousParentRaw?.box_id : null) ||
+        previousParentFromChain?.box_id ||
+        null;
+
       const result = await updateBoxById(sourceBoxMongoId, {
         parentBox: b._id,
       });
@@ -141,7 +161,16 @@ export default function useNestBoxSectionData({
       await fetchBoxesList({ silent: true });
 
       onConfirm?.(b._id, b.label, b.box_id);
-      onDidNest?.(result);
+      onDidNest?.({
+        result,
+        sourceBoxId: sourceBoxMongoId,
+        previousParentId,
+        previousParentLabel,
+        previousParentShortId,
+        nextParentId: String(b._id),
+        nextParentLabel: b.label ?? null,
+        nextParentShortId: b.box_id ?? null,
+      });
     } catch (e) {
       setError(e.message || 'Failed to nest box');
     } finally {

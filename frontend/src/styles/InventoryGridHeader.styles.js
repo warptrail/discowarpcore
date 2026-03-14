@@ -90,6 +90,7 @@ export const ControlsRow = styled.div`
     minmax(220px, 1fr)
     minmax(130px, 170px)
     minmax(130px, 170px)
+    minmax(150px, 220px)
     minmax(150px, 220px);
   gap: 0.55rem;
 

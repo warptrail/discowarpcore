@@ -19,6 +19,8 @@ const SORT_OPTIONS = [
   { value: 'leastRecentlyUsed', label: 'Least Recently Used' },
   { value: 'nameAsc', label: 'Name A-Z' },
   { value: 'nameDesc', label: 'Name Z-A' },
+  { value: 'categoryAsc', label: 'Category A-Z' },
+  { value: 'categoryDesc', label: 'Category Z-A' },
   { value: 'valueDesc', label: 'Value High-Low' },
   { value: 'valueAsc', label: 'Value Low-High' },
 ];

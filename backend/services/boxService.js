@@ -5,6 +5,7 @@ const Location = require('../models/Location');
 
 const { orphanAllItemsInBox } = require('./itemService');
 const { resolveBoxLocationFields } = require('./locationService');
+const { withNormalizedItemCategory } = require('../utils/itemCategory');
 
 const { computeStats, flattenBoxes } = require('../utils/boxHelpers');
 const { wouldCreateCycle } = require('../utils/wouldCreateCycle');
@@ -66,6 +67,9 @@ async function getBoxByShortId(shortId) {
   if (!box) return null;
   return {
     ...box,
+    items: Array.isArray(box.items)
+      ? box.items.map((item) => withNormalizedItemCategory(item))
+      : [],
     locationId: box.locationId?._id ? String(box.locationId._id) : null,
     location: box.locationId?.name ?? box.location ?? '',
   };
@@ -118,6 +122,7 @@ async function getBoxDataStructure(
   let itemsById = new Map();
   if (allItemIds.length) {
     const allItems = await Item.find({ _id: { $in: allItemIds } }).lean();
+    allItems.forEach((item) => withNormalizedItemCategory(item));
     itemsById = new Map(allItems.map((i) => [String(i._id), i]));
   }
 
@@ -231,6 +236,7 @@ async function getBoxTreeByShortId(shortId) {
     const allItems = await Item.find({
       _id: { $in: allItemIdCandidates },
     }).lean();
+    allItems.forEach((item) => withNormalizedItemCategory(item));
     itemsById = new Map(allItems.map((i) => [String(i._id), i]));
   }
 
@@ -283,6 +289,9 @@ async function getAllBoxes() {
     .lean();
   return boxes.map((box) => ({
     ...box,
+    items: Array.isArray(box.items)
+      ? box.items.map((item) => withNormalizedItemCategory(item))
+      : [],
     locationId: box.locationId?._id ? String(box.locationId._id) : null,
     location: box.locationId?.name ?? box.location ?? '',
   }));
@@ -307,6 +316,7 @@ async function populateChildren(box) {
     // Populate items inside the child box
     child = withLocation(child, locationNameMap);
     child.items = await Item.find({ _id: { $in: child.items } }).lean();
+    child.items = child.items.map((item) => withNormalizedItemCategory(item));
 
     child.childBoxes = await populateChildren(child);
     children[i] = child;
@@ -327,6 +337,7 @@ async function getBoxTree() {
     let box = topLevelBoxes[i];
     box = withLocation(box, locationNameMap);
     box.items = await Item.find({ _id: { $in: box.items } }).lean();
+    box.items = box.items.map((item) => withNormalizedItemCategory(item));
     box.childBoxes = await populateChildren(box);
     topLevelBoxes[i] = box;
   }

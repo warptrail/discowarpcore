@@ -66,6 +66,99 @@ export const Select = styled.select`
   }
 `;
 
+export const LocationSection = styled.div`
+  border: 1px solid #2a3430;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #151a17 0%, #101412 100%);
+  padding: 8px;
+`;
+
+export const LocationShell = styled.div`
+  position: relative;
+`;
+
+export const LocationInput = styled.input`
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid #2f3a35;
+  background: #0f1211;
+  color: #eaeaea;
+  font-size: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #4ec77b;
+    box-shadow: 0 0 0 2px rgba(78, 199, 123, 0.18);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+`;
+
+export const LocationDropdown = styled.ul`
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid #2f3a35;
+  background: #0f1211;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.38);
+  max-height: 240px;
+  overflow: auto;
+`;
+
+export const LocationOption = styled.li`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid
+    ${({ $active }) => ($active ? 'rgba(78,199,123,0.45)' : 'transparent')};
+  background: ${({ $active }) => ($active ? 'rgba(78,199,123,0.12)' : 'transparent')};
+  color: ${({ $muted }) => ($muted ? '#a8b1ad' : '#e0e6e4')};
+  cursor: pointer;
+
+  &:hover {
+    border-color: rgba(78, 199, 123, 0.36);
+    background: rgba(78, 199, 123, 0.16);
+  }
+`;
+
+export const LocationOptionName = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+export const LocationOptionMeta = styled.span`
+  font-size: 11px;
+  color: #a8b1ad;
+  white-space: nowrap;
+`;
+
+export const CreateBadge = styled.span`
+  border: 1px solid #3f5a4d;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: #d8f3e5;
+  background: #1a2a22;
+  white-space: nowrap;
+`;
+
 export const statusColor = ($status) =>
   $status === 'inProgress'
     ? '#ffd400'

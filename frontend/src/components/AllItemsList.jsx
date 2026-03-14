@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import { getItemHomeHref } from '../api/itemDetails';
+import { API_BASE } from '../api/API_BASE';
+import {
+  ITEM_CATEGORIES,
+  formatItemCategory,
+  normalizeItemCategory,
+} from '../util/itemCategories';
 
 const Wrapper = styled.div`
   padding: 2rem;
@@ -29,6 +37,16 @@ const TD = styled.td`
   padding: 8px;
 `;
 
+const ItemLink = styled(Link)`
+  color: #fff;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+`;
+
 const Select = styled.select`
   padding: 0.5rem;
 `;
@@ -36,10 +54,10 @@ const Select = styled.select`
 export default function AllItemsList() {
   const [items, setItems] = useState([]);
   const [sortBy, setSortBy] = useState('alpha');
-  const [filter, setFilter] = useState('all'); // 'all', 'orphaned', 'boxed', 'consumable', 'nonConsumable'
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    fetch('http://localhost:5002/api/items')
+    fetch(`${API_BASE}/api/items`)
       .then((res) => res.json())
       .then(setItems)
       .catch((err) => console.error('❌ Failed to fetch items:', err));
@@ -56,6 +74,11 @@ export default function AllItemsList() {
       filtered = filtered.filter((item) => item.isConsumable);
     } else if (filter === 'nonConsumable') {
       filtered = filtered.filter((item) => !item.isConsumable);
+    } else if (filter.startsWith('category:')) {
+      const selectedCategory = filter.slice('category:'.length);
+      filtered = filtered.filter(
+        (item) => normalizeItemCategory(item?.category) === selectedCategory,
+      );
     }
 
     if (sortBy === 'alpha') {
@@ -102,6 +125,14 @@ export default function AllItemsList() {
         if (aPrice !== bPrice) return bPrice - aPrice;
         return (a.name || '').localeCompare(b.name || '');
       });
+    } else if (sortBy === 'category') {
+      filtered.sort((a, b) => {
+        const aCategory = normalizeItemCategory(a?.category);
+        const bCategory = normalizeItemCategory(b?.category);
+        const categoryDiff = aCategory.localeCompare(bCategory);
+        if (categoryDiff !== 0) return categoryDiff;
+        return (a.name || '').localeCompare(b.name || '');
+      });
     }
 
     return filtered;
@@ -121,6 +152,11 @@ export default function AllItemsList() {
             <option value="orphaned">Orphaned</option>
             <option value="consumable">Consumable</option>
             <option value="nonConsumable">Non-Consumable</option>
+            {ITEM_CATEGORIES.map((category) => (
+              <option key={category} value={`category:${category}`}>
+                Category: {formatItemCategory(category)}
+              </option>
+            ))}
           </Select>
         </label>
 
@@ -134,6 +170,7 @@ export default function AllItemsList() {
             <option value="owner">Primary Owner</option>
             <option value="lastMaintained">Last Maintained</option>
             <option value="purchasePrice">Purchase Price (cents)</option>
+            <option value="category">Category</option>
           </Select>
         </label>
       </Controls>
@@ -143,6 +180,7 @@ export default function AllItemsList() {
           <tr>
             <TH>Name</TH>
             <TH>Quantity</TH>
+            <TH>Category</TH>
             <TH>Tags</TH>
             <TH>Box</TH>
           </tr>
@@ -150,8 +188,15 @@ export default function AllItemsList() {
         <tbody>
           {filteredItems.map((item) => (
             <tr key={item._id}>
-              <TD>{item.name}</TD>
+              <TD>
+                {item?._id ? (
+                  <ItemLink to={getItemHomeHref(item._id)}>{item.name}</ItemLink>
+                ) : (
+                  item.name
+                )}
+              </TD>
               <TD>{item.quantity}</TD>
+              <TD>{formatItemCategory(item?.category)}</TD>
               <TD>{item.tags?.join(', ')}</TD>
               <TD>
                 {item.box ? (
