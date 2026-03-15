@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { editItem } from '../../api/editItem';
 import { normalizeTags } from '../../util/normalizeTags';
 import { normalizeItemCategory } from '../../util/itemCategories';
+import { getItemOwnershipContext } from '../../util/itemOwnership';
 
 const toNullableNonNegativeInteger = (value) => {
   if (value === '' || value === null || value === undefined) return null;
@@ -38,10 +39,12 @@ const buildFormState = (item) => ({
     item?.maintenanceIntervalDays
   ),
   maintenanceNotes: item?.maintenanceNotes || '',
+  location: item?.location || '',
   tags: normalizeTags(item?.tags),
 });
 
 export default function useEditItemDetailsFormState({ item, triggerFlash, onSaved }) {
+  const ownership = useMemo(() => getItemOwnershipContext(item), [item]);
   const [formData, setFormData] = useState(() => buildFormState(item));
   const [initialData, setInitialData] = useState(() => buildFormState(item));
   const [saving, setSaving] = useState(false);
@@ -113,10 +116,15 @@ export default function useEditItemDetailsFormState({ item, triggerFlash, onSave
         maintenanceNotes: String(formData.maintenanceNotes || '').trim(),
         category: normalizeItemCategory(formData.category),
         isConsumable: !!formData.isConsumable,
+        location: String(formData.location || '').trim(),
         tags: normalizeTags(formData.tags)
           .filter((t) => t.status !== 'deleted')
           .map((t) => t.value),
       };
+
+      if (ownership.isBoxed) {
+        delete payload.location;
+      }
 
       const updated = await editItem(item._id, payload);
       triggerFlash?.(item._id, 'yellow');
@@ -140,6 +148,7 @@ export default function useEditItemDetailsFormState({ item, triggerFlash, onSave
 
   return {
     formData,
+    ownership,
     saving,
     isDirty,
     handleTextChange,

@@ -8,9 +8,15 @@ import EditItemStructuredFieldsSection from './EditItemDetailsForm/EditItemStruc
 import EditItemFormActions from './EditItemDetailsForm/EditItemFormActions';
 import useEditItemDetailsFormState from './EditItemDetailsForm/useEditItemDetailsFormState';
 
-export default function EditItemDetailsForm({ item, triggerFlash, onSaved }) {
+export default function EditItemDetailsForm({
+  item,
+  triggerFlash,
+  onSaved,
+  onCancel,
+}) {
   const {
     formData,
+    ownership,
     saving,
     isDirty,
     handleTextChange,
@@ -32,6 +38,7 @@ export default function EditItemDetailsForm({ item, triggerFlash, onSaved }) {
         <EditItemTextFieldsSection
           formData={formData}
           onTextChange={handleTextChange}
+          ownership={ownership}
         />
 
         <EditItemTagsSection tags={formData.tags} onTagsChange={handleTagsChange} />
@@ -51,6 +58,7 @@ export default function EditItemDetailsForm({ item, triggerFlash, onSaved }) {
           saving={saving}
           isDirty={isDirty}
           onRevert={handleRevert}
+          onCancel={onCancel}
         />
       </S.Fieldset>
     </S.Form>

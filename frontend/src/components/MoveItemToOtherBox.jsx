@@ -125,25 +125,22 @@ export default function MoveItemToOtherBox({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Guard: don’t fetch until we have a real id
-    if (!currentBoxId) return;
-
     let isAlive = true; // if component unmounts or id changes, ignore late responses
 
     (async () => {
       try {
         setLoading(true);
 
-        const url = `/api/boxes/exclude/${encodeURIComponent(
-          String(currentBoxId)
-        )}`;
+        const url = currentBoxId
+          ? `/api/boxes/exclude/${encodeURIComponent(String(currentBoxId))}`
+          : '/api/boxes';
         const res = await fetch(url);
 
         const contentType = res.headers.get('content-type') || '';
         const bodyText = await res.text(); // read once
 
         if (!res.ok) {
-          console.warn('exclude failed', res.status, bodyText.slice(0, 160));
+          console.warn('box list fetch failed', res.status, bodyText.slice(0, 160));
           if (isAlive) setOtherBoxes([]);
           return;
         }
@@ -159,14 +156,14 @@ export default function MoveItemToOtherBox({
             data = JSON.parse(bodyText);
           } catch {
             console.warn(
-              'exclude: JSON parse failed. Preview:',
+              'box list: JSON parse failed. Preview:',
               bodyText.slice(0, 120)
             );
             data = [];
           }
         } else {
           console.warn(
-            'exclude: non-JSON response. CT:',
+            'box list: non-JSON response. CT:',
             contentType,
             'Preview:',
             bodyText.slice(0, 120)

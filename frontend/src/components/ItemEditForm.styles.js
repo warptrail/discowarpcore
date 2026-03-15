@@ -33,6 +33,17 @@ export const Label = styled.label`
   }
 `;
 
+export const FieldHint = styled.div`
+  margin-top: 0.3rem;
+  color: rgba(234, 234, 234, 0.66);
+  font-size: 0.74rem;
+  line-height: 1.35;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+  }
+`;
+
 export const Input = styled.input`
   width: 100%;
   background-color: #2a2a2a;

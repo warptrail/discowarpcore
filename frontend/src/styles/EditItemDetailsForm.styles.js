@@ -152,6 +152,16 @@ export const Label = styled.label`
   }
 `;
 
+export const FieldHint = styled.span`
+  color: rgba(214, 226, 241, 0.64);
+  font-size: 0.7rem;
+  line-height: 1.35;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+  }
+`;
+
 const fieldControlStyles = `
   width: 100%;
   border-radius: 9px;

@@ -13,6 +13,7 @@ const asInputValue = (v) => (v == null ? '' : String(v));
 
 export default function ItemEditFieldsForm({
   formData,
+  ownership,
   onFieldChange,
   onNumberFieldChange,
   onQuantityChange,
@@ -25,6 +26,10 @@ export default function ItemEditFieldsForm({
   isDisabled,
   buttonContent,
 }) {
+  const isBoxed = !!ownership?.isBoxed;
+  const parentBoxLabel = ownership?.parentBoxLabel || '';
+  const inheritedLocation = ownership?.inheritedLocation || formData.location || '';
+
   return (
     <>
       <S.Label>
@@ -53,6 +58,25 @@ export default function ItemEditFieldsForm({
           value={formData.notes}
           onChange={onFieldChange}
         />
+      </S.Label>
+
+      <S.Label>
+        Location:
+        <S.Input
+          type="text"
+          name="location"
+          value={isBoxed ? inheritedLocation : formData.location || ''}
+          onChange={onFieldChange}
+          disabled={isBoxed}
+          readOnly={isBoxed}
+          placeholder={isBoxed ? 'Inherited from parent box' : 'Room, shelf, area...'}
+        />
+        {isBoxed ? (
+          <S.FieldHint>
+            Location is inherited from parent box
+            {parentBoxLabel ? ` (${parentBoxLabel})` : ''}.
+          </S.FieldHint>
+        ) : null}
       </S.Label>
 
       <S.Label>Tags:</S.Label>

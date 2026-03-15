@@ -142,6 +142,25 @@ export const TitleBar = styled.header`
   }
 `;
 
+export const TitleRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+  min-width: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.42rem;
+    flex-wrap: wrap;
+  }
+`;
+
+export const TitleInfo = styled.div`
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+`;
+
 export const Title = styled.h2`
   margin: 0;
   color: ${LCARS.text};
@@ -168,6 +187,38 @@ export const Meta = styled.div`
   }
 `;
 
+export const ModeToggle = styled.button`
+  border: 1px solid ${LCARS.teal}78;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(76, 198, 193, 0.22), rgba(76, 198, 193, 0.12));
+  color: ${LCARS.text};
+  padding: 0.34rem 0.74rem;
+  min-height: 34px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+
+  &:hover {
+    border-color: ${LCARS.teal};
+    background: linear-gradient(180deg, rgba(76, 198, 193, 0.32), rgba(76, 198, 193, 0.16));
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 32px;
+    padding: 0.28rem 0.62rem;
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.04em;
+  }
+`;
+
 export const StateCard = styled.div`
   border: 1px solid ${({ $tone }) => ($tone === 'error' ? '#a84a4a' : LCARS.line)};
   border-radius: 10px;
@@ -181,4 +232,136 @@ export const StateCard = styled.div`
     padding: 0.62rem 0.68rem;
     font-size: ${MOBILE_FONT_SM};
   }
+`;
+
+export const ContainerCard = styled.section`
+  display: grid;
+  gap: 0.62rem;
+  padding: 0.76rem 0.84rem;
+  border: 1px solid ${LCARS.line};
+  border-radius: 10px;
+  background: ${LCARS.panel};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.5rem;
+    padding: 0.56rem 0.6rem;
+    border-radius: ${MOBILE_PANEL_RADIUS};
+  }
+`;
+
+export const ContainerTitle = styled.h3`
+  margin: 0;
+  color: ${LCARS.text};
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+    letter-spacing: 0.05em;
+  }
+`;
+
+export const ContainerBody = styled.div`
+  display: grid;
+  gap: 0.4rem;
+`;
+
+export const ContainerRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(96px, 120px) minmax(0, 1fr);
+  gap: 0.56rem;
+  align-items: start;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+`;
+
+export const ContainerLabel = styled.div`
+  color: ${LCARS.textMuted};
+  font-size: 0.74rem;
+  font-weight: 680;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+  }
+`;
+
+export const ContainerValue = styled.div`
+  color: ${LCARS.textDim};
+  font-size: 0.88rem;
+  min-width: 0;
+`;
+
+export const ContainerLink = styled(Link)`
+  color: ${LCARS.teal};
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+export const ContainerMuted = styled.span`
+  color: ${LCARS.textMuted};
+`;
+
+export const ContainerActions = styled.div`
+  display: flex;
+  gap: 0.48rem;
+  flex-wrap: wrap;
+`;
+
+export const ContainerButton = styled.button`
+  border: 1px solid ${LCARS.teal}80;
+  border-radius: 8px;
+  background: rgba(76, 198, 193, 0.15);
+  color: ${LCARS.text};
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.56rem;
+  min-height: 34px;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+
+  &:hover:enabled {
+    border-color: ${LCARS.teal};
+    background: rgba(76, 198, 193, 0.24);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex: 1 1 160px;
+    min-height: 32px;
+    font-size: ${MOBILE_FONT_XS};
+    padding: 0.26rem 0.46rem;
+  }
+`;
+
+export const ContainerPickerWrap = styled.div`
+  border: 1px solid ${LCARS.line};
+  border-radius: 8px;
+  padding: 0.3rem 0.42rem 0.42rem;
+  background: rgba(255, 255, 255, 0.02);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: 7px;
+    padding: 0.22rem 0.28rem 0.28rem;
+  }
+`;
+
+export const ContainerError = styled.div`
+  color: #ffc8c8;
+  font-size: 0.78rem;
 `;

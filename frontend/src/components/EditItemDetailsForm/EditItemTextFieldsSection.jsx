@@ -1,7 +1,15 @@
 import React from 'react';
 import * as S from '../../styles/EditItemDetailsForm.styles';
 
-export default function EditItemTextFieldsSection({ formData, onTextChange }) {
+export default function EditItemTextFieldsSection({
+  formData,
+  onTextChange,
+  ownership,
+}) {
+  const isBoxed = !!ownership?.isBoxed;
+  const parentBoxLabel = ownership?.parentBoxLabel || '';
+  const inheritedLocation = ownership?.inheritedLocation || formData.location || '';
+
   return (
     <>
       <S.Field>
@@ -29,6 +37,24 @@ export default function EditItemTextFieldsSection({ formData, onTextChange }) {
           value={formData.notes || ''}
           onChange={onTextChange}
         />
+      </S.Field>
+
+      <S.Field>
+        <S.Label>Location</S.Label>
+        <S.Input
+          name="location"
+          value={isBoxed ? inheritedLocation : formData.location || ''}
+          onChange={onTextChange}
+          disabled={isBoxed}
+          readOnly={isBoxed}
+          placeholder={isBoxed ? 'Inherited from parent box' : 'Room, shelf, area...'}
+        />
+        {isBoxed ? (
+          <S.FieldHint>
+            Location is inherited from parent box
+            {parentBoxLabel ? ` (${parentBoxLabel})` : ''}.
+          </S.FieldHint>
+        ) : null}
       </S.Field>
     </>
   );

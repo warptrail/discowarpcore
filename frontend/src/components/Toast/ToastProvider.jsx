@@ -1,7 +1,9 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { ToastContext } from './ToastContext';
 
 export function ToastProvider({ children }) {
+  const location = useLocation();
   const [toast, setToast] = useState(null);
   const dismissTimerRef = useRef(null);
 
@@ -48,6 +50,11 @@ export function ToastProvider({ children }) {
       }, timeoutMs);
     }
   }, []);
+
+  useEffect(() => {
+    // Clear route-scoped console/toast state on path navigation.
+    hideToast();
+  }, [location.pathname, hideToast]);
 
   return (
     <ToastContext.Provider value={{ toast, showToast, hideToast }}>

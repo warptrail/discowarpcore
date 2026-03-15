@@ -5,6 +5,7 @@ import MoveItemBar from './MoveItemBar';
 import ItemEditFieldsForm from './ItemEditFieldsForm';
 import * as S from './ItemEditForm.styles';
 import { normalizeItemCategory } from '../util/itemCategories';
+import { getItemOwnershipContext } from '../util/itemOwnership';
 
 const toNullableNonNegativeInteger = (value) => {
   if (value === '' || value === null || value === undefined) return null;
@@ -49,17 +50,26 @@ const buildFormData = (item) => ({
     item?.maintenanceIntervalDays
   ),
   maintenanceNotes: item?.maintenanceNotes || '',
+  location: item?.location || '',
 });
 
 export default function ItemEditForm({
   initialItem,
   sourceBoxId,
+  sourceBoxLabel,
+  sourceBoxShortId,
   onClose,
   refreshBox,
   onItemUpdated,
   onMoveRequest,
   onOrphanRequest,
 }) {
+  const ownership = getItemOwnershipContext({
+    ...initialItem,
+    sourceBoxId,
+    parentBoxLabel: initialItem?.parentBoxLabel || sourceBoxLabel,
+    parentBoxId: initialItem?.parentBoxId || sourceBoxShortId,
+  });
   const [formData, setFormData] = useState(() => buildFormData(initialItem));
 
   const [saving, setSaving] = useState(false);
@@ -129,7 +139,12 @@ export default function ItemEditForm({
         maintenanceNotes: String(formData.maintenanceNotes || '').trim(),
         category: normalizeItemCategory(formData.category),
         isConsumable: !!formData.isConsumable,
+        location: String(formData.location || '').trim(),
       };
+
+      if (ownership.isBoxed) {
+        delete payload.location;
+      }
 
       const updatedItem = await editItem(initialItem._id, payload);
 
@@ -205,6 +220,7 @@ export default function ItemEditForm({
     <S.FormContainer>
       <ItemEditFieldsForm
         formData={formData}
+        ownership={ownership}
         onFieldChange={handleChange}
         onNumberFieldChange={handleNumberFieldChange}
         onQuantityChange={handleQuantityChange}
