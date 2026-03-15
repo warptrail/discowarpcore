@@ -142,7 +142,7 @@ export default function useBoxActionPanelController({
   };
 
   const requestMove = async ({ itemId, sourceBoxId, destBoxId }) => {
-    const res = await fetch('http://localhost:5002/api/boxed-items/moveItem', {
+    const res = await fetch('/api/boxed-items/moveItem', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ itemId, sourceBoxId, destBoxId }),
@@ -155,7 +155,7 @@ export default function useBoxActionPanelController({
 
   const requestAttachToBox = async ({ boxId, itemId }) => {
     const res = await fetch(
-      `http://localhost:5002/api/boxed-items/${boxId}/addItem`,
+      `/api/boxed-items/${boxId}/addItem`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -305,7 +305,7 @@ export default function useBoxActionPanelController({
       await sleep(1000);
 
       const res = await fetch(
-        `http://localhost:5002/api/boxed-items/${sourceBoxId}/removeItem`,
+        `/api/boxed-items/${sourceBoxId}/removeItem`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -442,7 +442,7 @@ export default function useBoxActionPanelController({
 
   const attachMany = async (itemIds) => {
     const res = await fetch(
-      `http://localhost:5002/api/boxed-items/${boxMongoId}/addItems`,
+      `/api/boxed-items/${boxMongoId}/addItems`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -469,7 +469,7 @@ export default function useBoxActionPanelController({
     markBatchLeaving(ids);
 
     try {
-      const req = fetch(`http://localhost:5002/api/boxed-items/${boxMongoId}/empty`, {
+      const req = fetch(`/api/boxed-items/${boxMongoId}/empty`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
       }).then(async (res) => {

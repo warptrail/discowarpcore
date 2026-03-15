@@ -1,8 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
+import {
+  MOBILE_BREAKPOINT,
+  MOBILE_FONT_SM,
+  MOBILE_FONT_XS,
+  MOBILE_NARROW_BREAKPOINT,
+} from '../styles/tokens';
 
 const Container = styled.div`
   padding: 0.35rem 0 0;
+  min-width: 0;
 `;
 
 const BoxList = styled.ul`
@@ -34,6 +41,13 @@ const BoxItem = styled.li`
     border-color: #4ec77b;
     box-shadow: 0 0 0 1px rgba(78, 199, 123, 0.2);
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: 1fr;
+    gap: 0.36rem;
+    min-height: 0;
+    padding: 0.34rem 0.46rem;
+  }
 `;
 
 const BoxName = styled.span`
@@ -45,6 +59,11 @@ const BoxName = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
   padding-left: ${({ $depth = 0 }) => `${Math.min(Math.max($depth, 0), 6) * 0.42}rem`};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+    padding-left: ${({ $depth = 0 }) => `${Math.min(Math.max($depth, 0), 6) * 0.32}rem`};
+  }
 `;
 
 const MetaLane = styled.span`
@@ -53,6 +72,12 @@ const MetaLane = styled.span`
   gap: 0.34rem;
   flex-wrap: wrap;
   justify-content: flex-end;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 0.24rem;
+  }
 `;
 
 const MetaPill = styled.span`
@@ -67,6 +92,12 @@ const MetaPill = styled.span`
   font-size: 0.72rem;
   letter-spacing: 0.02em;
   white-space: nowrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 20px;
+    font-size: ${MOBILE_FONT_XS};
+    padding: 0 0.3rem;
+  }
 `;
 
 const IdPill = styled(MetaPill)`
@@ -80,6 +111,10 @@ const LevelPill = styled(MetaPill)`
   border-color: #405270;
   background: #182030;
   color: #cfdbf9;
+
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    display: none;
+  }
 `;
 
 export default function MoveItemToOtherBox({
@@ -99,7 +134,7 @@ export default function MoveItemToOtherBox({
       try {
         setLoading(true);
 
-        const url = `http://localhost:5002/api/boxes/exclude/${encodeURIComponent(
+        const url = `/api/boxes/exclude/${encodeURIComponent(
           String(currentBoxId)
         )}`;
         const res = await fetch(url);

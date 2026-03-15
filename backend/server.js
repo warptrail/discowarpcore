@@ -10,6 +10,7 @@ const locationRoutes = require('./routes/locations');
 const { backfillBoxLocations } = require('./services/locationService');
 
 const PORT = process.env.PORT || 5002;
+const HOST = process.env.HOST || '0.0.0.0';
 const app = express();
 
 app.use(cors());
@@ -21,6 +22,10 @@ app.use('/api/boxed-items', boxItemRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/dev', devRoutes);
+
+app.get('/api/health', (_req, res) => {
+  res.json({ ok: true });
+});
 
 app.get('/', (req, res) => {
   res.send(
@@ -47,7 +52,7 @@ async function startServer() {
     console.error('⚠️ Location backfill failed:', err);
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  app.listen(PORT, HOST, () => {
     console.log(`🚀 Server running at:
   • http://localhost:${PORT}
   • http://<your-local-ip>:${PORT}`);

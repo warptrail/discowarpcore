@@ -1,6 +1,14 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import {
+  MOBILE_BREAKPOINT,
+  MOBILE_CONTROL_MIN_HEIGHT,
+  MOBILE_FONT_SM,
+  MOBILE_FONT_XS,
+  MOBILE_PANEL_RADIUS,
+  MOBILE_NARROW_BREAKPOINT,
+} from '../styles/tokens';
 
 import { API_BASE } from '../api/API_BASE';
 import { getItemHomeHref } from '../api/itemDetails';
@@ -12,6 +20,11 @@ const Panel = styled.section`
   border-radius: 10px;
   background: linear-gradient(180deg, #141817 0%, #101312 100%);
   overflow: hidden;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: 0.62rem;
+    border-radius: ${MOBILE_PANEL_RADIUS};
+  }
 `;
 
 const Header = styled.div`
@@ -22,6 +35,10 @@ const Header = styled.div`
   padding: 0.5rem 0.68rem;
   border-bottom: 1px solid #25302b;
   background: linear-gradient(90deg, rgba(78, 199, 123, 0.12) 0%, transparent 48%);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.42rem 0.5rem;
+  }
 `;
 
 const Title = styled.h4`
@@ -30,17 +47,31 @@ const Title = styled.h4`
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #d9e5de;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.06em;
+  }
 `;
 
 const Count = styled.span`
   font-size: 0.72rem;
   color: #a5b3ab;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+  }
 `;
 
 const Body = styled.div`
   display: grid;
   gap: 0.35rem;
   padding: 0.5rem 0.55rem 0.56rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.3rem;
+    padding: 0.42rem;
+  }
 `;
 
 const Row = styled.div`
@@ -53,6 +84,13 @@ const Row = styled.div`
   border-radius: 7px;
   border: 1px solid #2a332f;
   background: #171b1a;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    gap: 0.3rem;
+    padding: 0.32rem 0.4rem;
+  }
 `;
 
 const Identity = styled.div`
@@ -61,6 +99,12 @@ const Identity = styled.div`
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 0.38rem;
+
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    grid-template-columns: 1fr;
+    justify-items: start;
+    gap: 0.18rem;
+  }
 `;
 
 const Name = styled.span`
@@ -70,6 +114,10 @@ const Name = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+  }
 `;
 
 const NameLink = styled(Link)`
@@ -83,6 +131,10 @@ const NameLink = styled(Link)`
   text-overflow: ellipsis;
   text-decoration: none;
 
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+  }
+
   &:hover {
     text-decoration: underline;
     text-underline-offset: 2px;
@@ -94,6 +146,10 @@ const Meta = styled.span`
   font-size: 0.7rem;
   color: #a3b0a8;
   white-space: nowrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+  }
 `;
 
 const AssignBtn = styled.button`
@@ -107,6 +163,7 @@ const AssignBtn = styled.button`
   font-weight: 700;
   letter-spacing: 0.02em;
   cursor: pointer;
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
 
   &:hover:not(:disabled) {
     border-color: #4ec77b;
@@ -117,12 +174,23 @@ const AssignBtn = styled.button`
     opacity: 0.55;
     cursor: not-allowed;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    min-height: 34px;
+    font-size: ${MOBILE_FONT_XS};
+  }
 `;
 
 const StateText = styled.div`
   font-size: 0.75rem;
   color: ${({ $error }) => ($error ? '#f2b8b8' : '#9faea6')};
   padding: 0.1rem 0.12rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    padding: 0.08rem 0.08rem;
+  }
 `;
 
 const parseOrphanedTime = (item) => {

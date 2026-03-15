@@ -11,7 +11,8 @@
     "dev": "nodemon backend/server.js",
     "install:all": "npm install && cd frontend && npm install",
     "seed": "node backend/scripts/seed.js",
-    "seed:all": "node backend/scripts/seed.js --all"
+    "seed:all": "node backend/scripts/seed.js --all",
+    "test:delete-enforcement": "node backend/scripts/test_box_delete_enforcement.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

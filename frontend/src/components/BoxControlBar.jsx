@@ -1,6 +1,11 @@
 // BoxControlBar.jsx
 import React from 'react';
 import styled, { css } from 'styled-components';
+import {
+  MOBILE_BREAKPOINT,
+  MOBILE_CONTROL_MIN_HEIGHT,
+  MOBILE_FONT_SM,
+} from '../styles/tokens';
 
 const Bar = styled.div`
   display: grid;
@@ -11,6 +16,11 @@ const Bar = styled.div`
     gap: 10px;
   }
   margin: 12px 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 6px;
+    margin: 8px 0;
+  }
 `;
 
 const btnActiveStyles = css`
@@ -45,6 +55,15 @@ const Btn = styled.button`
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 8px 7px;
+    border-radius: 9px;
+    font-size: ${MOBILE_FONT_SM};
+    letter-spacing: 0.01em;
   }
 
   ${(props) => props.$active && btnActiveStyles}

@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { MOBILE_BREAKPOINT } from '../../styles/tokens';
 
 export const TreeTabScope = styled.div`
   position: relative;
@@ -6,6 +7,10 @@ export const TreeTabScope = styled.div`
   contain: paint;
   min-width: 0;
   padding-left: 0.74rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding-left: 0.14rem;
+  }
 `;
 
 export const FlatTabScope = styled.div`
@@ -13,6 +18,10 @@ export const FlatTabScope = styled.div`
   flex-direction: column;
   gap: 0.55rem;
   min-width: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.42rem;
+  }
 `;
 
 export const FlatEmpty = styled.div`
@@ -24,4 +33,10 @@ export const FlatEmpty = styled.div`
   background:
     linear-gradient(90deg, rgba(167, 182, 255, 0.16) 0%, transparent 44%),
     #14181b;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: 10px;
+    padding: 0.44rem 0.52rem;
+    font-size: 0.8rem;
+  }
 `;

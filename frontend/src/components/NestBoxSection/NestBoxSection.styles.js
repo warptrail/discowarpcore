@@ -1,4 +1,11 @@
 import styled, { css } from 'styled-components';
+import {
+  MOBILE_BREAKPOINT,
+  MOBILE_CONTROL_MIN_HEIGHT,
+  MOBILE_FONT_SM,
+  MOBILE_FONT_XS,
+  MOBILE_PANEL_RADIUS,
+} from '../../styles/tokens';
 
 export const NestPanel = styled.div`
   background: #171717;
@@ -13,10 +20,24 @@ export const NestPanel = styled.div`
       display: block;
       margin-top: 12px;
     `}
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: ${MOBILE_PANEL_RADIUS};
+
+    ${({ $open }) =>
+      $open &&
+      css`
+        margin-top: 8px;
+      `}
+  }
 `;
 
 export const SectionInner = styled.div`
   padding: 12px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 8px;
+  }
 `;
 
 export const SectionHeader = styled.div`
@@ -25,17 +46,32 @@ export const SectionHeader = styled.div`
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 8px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
 `;
 
 export const Title = styled.h4`
   margin: 0;
   font-size: 15px;
   color: #eaeaea;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+    line-height: 1.3;
+  }
 `;
 
 export const Note = styled.div`
   font-size: 12px;
   color: #bdbdbd;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+  }
 `;
 
 export const ContextCard = styled.div`
@@ -44,6 +80,12 @@ export const ContextCard = styled.div`
   border-radius: 12px;
   padding: 12px 14px;
   margin-bottom: 12px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: ${MOBILE_PANEL_RADIUS};
+    padding: 8px 9px;
+    margin-bottom: 8px;
+  }
 `;
 
 export const ContextTitle = styled.div`
@@ -54,6 +96,10 @@ export const ContextTitle = styled.div`
   font-weight: 800;
   font-size: 15px;
   color: #eaeaea;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+  }
 `;
 
 export const Pill = styled.span`
@@ -66,6 +112,11 @@ export const Pill = styled.span`
   background: rgba(78, 199, 123, 0.16);
   border: 1px solid rgba(78, 199, 123, 0.35);
   color: rgba(220, 255, 235, 0.95);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    padding: 2px 8px;
+  }
 `;
 
 export const Breadcrumb = styled.div`
@@ -76,6 +127,11 @@ export const Breadcrumb = styled.div`
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    gap: 4px;
+  }
 `;
 
 export const Crumb = styled.span`
@@ -93,12 +149,20 @@ export const SubLabel = styled.div`
   font-size: 12px;
   font-weight: 800;
   color: rgba(255, 255, 255, 0.82);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+  }
 `;
 
 export const Hint = styled.div`
   margin-top: 6px;
   font-size: 12px;
   color: rgba(255, 255, 255, 0.55);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+  }
 `;
 
 export const ActionRow = styled.div`
@@ -106,6 +170,11 @@ export const ActionRow = styled.div`
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 10px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 6px;
+    margin-top: 7px;
+  }
 `;
 
 export const SmallBtn = styled.button`
@@ -118,6 +187,7 @@ export const SmallBtn = styled.button`
   font-weight: 800;
   font-size: 12px;
   cursor: pointer;
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
 
   &:hover {
     border-color: rgba(255, 255, 255, 0.28);
@@ -127,6 +197,12 @@ export const SmallBtn = styled.button`
   &:disabled {
     opacity: 0.5;
     cursor: default;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 34px;
+    font-size: ${MOBILE_FONT_XS};
+    padding: 6px 8px;
   }
 `;
 
@@ -175,11 +251,19 @@ export const BoxBtn = styled.button`
   &:active {
     transform: translateY(1px);
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 8px 9px;
+  }
 `;
 
 export const Meta = styled.div`
   font-size: 12px;
   color: #bdbdbd;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+  }
 `;
 
 export const DepthStrip = styled.div`
@@ -205,8 +289,15 @@ export const GhostBtn = styled.button`
   background: #141414;
   color: #eaeaea;
   cursor: pointer;
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
 
   &:hover {
     border-color: #4ec77b;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 34px;
+    padding: 6px 9px;
+    font-size: ${MOBILE_FONT_XS};
   }
 `;

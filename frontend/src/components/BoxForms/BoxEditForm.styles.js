@@ -1,10 +1,24 @@
 import styled, { css } from 'styled-components';
+import {
+  MOBILE_BREAKPOINT,
+  MOBILE_CONTROL_MIN_HEIGHT,
+  MOBILE_FONT_SM,
+  MOBILE_FONT_XS,
+  MOBILE_PANEL_RADIUS,
+} from '../../styles/tokens';
 
 export const Card = styled.form`
   background: #171717;
   border: 1px solid #2a2a2a;
   border-radius: 10px;
   padding: 12px;
+  min-width: 0;
+  max-width: 100%;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: ${MOBILE_PANEL_RADIUS};
+    padding: 8px;
+  }
 `;
 
 export const Row = styled.div`
@@ -14,17 +28,27 @@ export const Row = styled.div`
   @media (min-width: 640px) {
     grid-template-columns: ${({ $cols2 }) => ($cols2 ? '1fr 1fr' : '1fr')};
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 8px;
+  }
 `;
 
 export const Field = styled.div`
   display: flex;
   flex-direction: column;
+  min-width: 0;
 `;
 
 export const Label = styled.label`
   font-size: 12px;
   color: #bdbdbd;
   margin-bottom: 6px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    margin-bottom: 4px;
+  }
 `;
 
 export const Input = styled.input`
@@ -34,6 +58,7 @@ export const Input = styled.input`
   background: #101010;
   color: #eaeaea;
   font-size: 14px;
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:focus {
@@ -48,6 +73,12 @@ export const Input = styled.input`
       border-color: #ff4d4f;
       box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2);
     `}
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+    padding: 8px 10px;
+    min-height: 36px;
+  }
 `;
 
 export const Select = styled.select`
@@ -57,6 +88,7 @@ export const Select = styled.select`
   background: #101010;
   color: #eaeaea;
   font-size: 14px;
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:focus {
@@ -64,13 +96,25 @@ export const Select = styled.select`
     border-color: #4ec77b;
     box-shadow: 0 0 0 2px rgba(78, 199, 123, 0.2);
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+    padding: 8px 10px;
+    min-height: 36px;
+  }
 `;
 
 export const LocationSection = styled.div`
-  border: 1px solid #2a3430;
+  border: 1px solid rgba(130, 168, 196, 0.28);
   border-radius: 10px;
-  background: linear-gradient(180deg, #151a17 0%, #101412 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 34%),
+    #171e2a;
   padding: 8px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 6px;
+    border-radius: 9px;
+  }
 `;
 
 export const LocationShell = styled.div`
@@ -82,21 +126,28 @@ export const LocationInput = styled.input`
   min-height: 40px;
   padding: 9px 12px;
   border-radius: 8px;
-  border: 1px solid #2f3a35;
-  background: #0f1211;
-  color: #eaeaea;
+  border: 1px solid rgba(122, 142, 167, 0.45);
+  background: #0b1018;
+  color: #e6edf4;
   font-size: 14px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:focus {
     outline: none;
-    border-color: #4ec77b;
-    box-shadow: 0 0 0 2px rgba(78, 199, 123, 0.18);
+    border-color: #4cc6c1;
+    box-shadow: 0 0 0 2px rgba(76, 198, 193, 0.2);
+    background: #0c121b;
   }
 
   &:disabled {
-    opacity: 0.7;
+    opacity: 0.65;
     cursor: not-allowed;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 36px;
+    padding: 8px 10px;
+    font-size: ${MOBILE_FONT_SM};
   }
 `;
 
@@ -110,8 +161,8 @@ export const LocationDropdown = styled.ul`
   margin: 0;
   padding: 6px;
   border-radius: 8px;
-  border: 1px solid #2f3a35;
-  background: #0f1211;
+  border: 1px solid rgba(122, 142, 167, 0.45);
+  background: #0b1018;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.38);
   max-height: 240px;
   overflow: auto;
@@ -125,14 +176,18 @@ export const LocationOption = styled.li`
   padding: 8px 10px;
   border-radius: 6px;
   border: 1px solid
-    ${({ $active }) => ($active ? 'rgba(78,199,123,0.45)' : 'transparent')};
-  background: ${({ $active }) => ($active ? 'rgba(78,199,123,0.12)' : 'transparent')};
-  color: ${({ $muted }) => ($muted ? '#a8b1ad' : '#e0e6e4')};
+    ${({ $active }) => ($active ? 'rgba(76, 198, 193, 0.55)' : 'transparent')};
+  background: ${({ $active }) => ($active ? 'rgba(76, 198, 193, 0.15)' : 'transparent')};
+  color: ${({ $muted }) => ($muted ? 'rgba(214, 226, 241, 0.68)' : '#e6edf4')};
   cursor: pointer;
 
   &:hover {
-    border-color: rgba(78, 199, 123, 0.36);
-    background: rgba(78, 199, 123, 0.16);
+    border-color: rgba(76, 198, 193, 0.45);
+    background: rgba(76, 198, 193, 0.18);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 7px 8px;
   }
 `;
 
@@ -145,18 +200,27 @@ export const LocationOptionName = styled.span`
 
 export const LocationOptionMeta = styled.span`
   font-size: 11px;
-  color: #a8b1ad;
+  color: rgba(214, 226, 241, 0.68);
   white-space: nowrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 10px;
+  }
 `;
 
 export const CreateBadge = styled.span`
-  border: 1px solid #3f5a4d;
+  border: 1px solid rgba(167, 182, 255, 0.52);
   border-radius: 999px;
   padding: 2px 8px;
   font-size: 11px;
-  color: #d8f3e5;
-  background: #1a2a22;
+  color: #dce4ff;
+  background: rgba(167, 182, 255, 0.16);
   white-space: nowrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
 `;
 
 export const statusColor = ($status) =>
@@ -193,7 +257,13 @@ export const ShortIdInput = styled.input`
             ? 'rgba(78,199,123,0.30)'
             : $status === 'invalid'
               ? 'rgba(255,77,79,0.30)'
-              : 'rgba(180,180,180,0.15)'};
+        : 'rgba(180,180,180,0.15)'};
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 4em;
+    padding: 8px 8px;
+    font-size: 16px;
   }
 `;
 
@@ -202,6 +272,10 @@ export const Hint = styled.div`
   font-size: 12px;
   color: ${({ $error, $success }) =>
     $error ? '#ffbdbd' : $success ? '#9BE2B5' : '#bdbdbd'};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+  }
 `;
 
 export const TagWrap = styled.div`
@@ -209,6 +283,10 @@ export const TagWrap = styled.div`
   border-radius: 8px;
   border: 1px dashed #2f2f2f;
   background: #101010;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 6px;
+  }
 `;
 
 export const TagList = styled.div`
@@ -255,6 +333,12 @@ export const TagAdder = styled.input`
     border-color: #4ec77b;
     box-shadow: 0 0 0 2px rgba(78, 199, 123, 0.2);
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    min-width: 0;
+    font-size: ${MOBILE_FONT_SM};
+  }
 `;
 
 export const FileStub = styled.div`
@@ -264,6 +348,11 @@ export const FileStub = styled.div`
   background: #101010;
   color: #bdbdbd;
   font-size: 12px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    padding: 10px;
+  }
 `;
 
 export const Actions = styled.div`
@@ -271,6 +360,12 @@ export const Actions = styled.div`
   gap: 8px;
   justify-content: flex-end;
   margin-top: 12px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 6px;
+    flex-direction: column;
+    margin-top: 8px;
+  }
 `;
 
 export const Ghost = styled.button`
@@ -280,6 +375,7 @@ export const Ghost = styled.button`
   background: #141414;
   color: #eaeaea;
   cursor: pointer;
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
 
   &:hover {
     border-color: #4ec77b;
@@ -288,6 +384,12 @@ export const Ghost = styled.button`
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    min-height: 36px;
+    font-size: ${MOBILE_FONT_SM};
   }
 `;
 
@@ -299,6 +401,7 @@ export const Primary = styled.button`
   color: #d9f2e6;
   font-weight: 700;
   cursor: pointer;
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
 
   &:hover {
     border-color: #4ec77b;
@@ -308,5 +411,11 @@ export const Primary = styled.button`
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    min-height: 36px;
+    font-size: ${MOBILE_FONT_SM};
   }
 `;

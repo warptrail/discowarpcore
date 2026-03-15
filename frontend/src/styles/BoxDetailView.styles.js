@@ -1,5 +1,10 @@
 // src/styles/BoxDetailView.styles.js
 import styled, { keyframes } from 'styled-components';
+import {
+  MOBILE_BREAKPOINT,
+  MOBILE_PAGE_GAP,
+  MOBILE_PANEL_RADIUS,
+} from './tokens';
 
 /* LCARS-ish palette (fixed) */
 const LCARS = {
@@ -31,6 +36,12 @@ export const Wrap = styled.div`
 
   /* IMPORTANT for wrapping children correctly */
   min-width: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.58rem;
+    padding: ${MOBILE_PAGE_GAP};
+    min-height: auto;
+  }
 `;
 
 /* Optional inner content area if you want a max width on big screens */
@@ -39,11 +50,16 @@ export const Content = styled.div`
   max-width: 980px;
   margin: 0 auto;
   min-width: 0; /* critical for preventing flex/grid overflow */
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    max-width: 100%;
+  }
 `;
 
 export const TabViewport = styled.div`
   position: relative;
   min-width: 0;
+  overflow-x: clip;
 `;
 
 /* Spinner */
@@ -73,4 +89,10 @@ export const ErrorBanner = styled.div`
   font-size: 0.95rem;
   max-width: 680px;
   margin: 0 auto;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: ${MOBILE_PANEL_RADIUS};
+    padding: 0.6rem 0.7rem;
+    font-size: 0.84rem;
+  }
 `;

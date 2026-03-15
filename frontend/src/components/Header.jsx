@@ -3,6 +3,13 @@ import styled from 'styled-components';
 import { Link, useLocation } from 'react-router-dom';
 import Toast from './Toast/Toast';
 import { ToastContext } from './Toast';
+import {
+  MOBILE_BREAKPOINT,
+  MOBILE_CONTROL_MIN_HEIGHT,
+  MOBILE_FONT_SM,
+  MOBILE_FONT_XS,
+  MOBILE_NARROW_BREAKPOINT,
+} from '../styles/tokens';
 
 // ===============
 // LCARS-ish Styles
@@ -29,12 +36,24 @@ const HeaderShell = styled.header`
 
   /* Prevent content behind header from peeking through around rounded corners */
   overflow: hidden;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: 10px;
+    box-shadow:
+      0 0 0 1px rgba(0, 255, 200, 0.09),
+      0 4px 14px rgba(0, 0, 0, 0.28);
+  }
 `;
 
 const Inner = styled.div`
   padding: ${({ $condensed }) =>
     $condensed ? '0.85rem 1rem' : '1.35rem 1.25rem'};
   transition: padding 180ms ease;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: ${({ $condensed }) =>
+      $condensed ? '0.42rem 0.58rem' : '0.56rem 0.64rem'};
+  }
 `;
 
 const TopRow = styled.div`
@@ -42,6 +61,11 @@ const TopRow = styled.div`
   align-items: center;
   gap: 0.9rem;
   justify-content: space-between;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.45rem;
+    align-items: flex-start;
+  }
 `;
 
 const Brand = styled(Link)`
@@ -50,12 +74,14 @@ const Brand = styled(Link)`
   display: inline-flex;
   align-items: baseline;
   gap: 0.75rem;
+  min-width: 0;
 `;
 
 const Title = styled.div`
   display: flex;
   flex-direction: column;
   line-height: 1.05;
+  min-width: 0;
 `;
 
 const Big = styled.div`
@@ -68,6 +94,12 @@ const Big = styled.div`
 
   font-size: ${({ $condensed }) => ($condensed ? '1.15rem' : '1.65rem')};
   transition: font-size 180ms ease;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${({ $condensed }) => ($condensed ? '0.92rem' : '1.02rem')};
+    letter-spacing: 0.045em;
+    line-height: 1.08;
+  }
 `;
 
 const Sub = styled.div`
@@ -81,6 +113,20 @@ const Sub = styled.div`
 
   /* neon-ish accent */
   color: rgba(0, 255, 200, 0.85);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: 0.08rem;
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.06em;
+    max-width: min(58vw, 280px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    display: none;
+  }
 `;
 
 const LcarsPips = styled.div`
@@ -88,6 +134,15 @@ const LcarsPips = styled.div`
   gap: 0.35rem;
   align-items: center;
   opacity: 0.9;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.24rem;
+    opacity: 0.75;
+  }
+
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    display: none;
+  }
 `;
 
 const Pip = styled.span`
@@ -96,6 +151,12 @@ const Pip = styled.span`
   border-radius: 999px;
   background: ${({ $c }) => $c};
   box-shadow: 0 0 12px ${({ $c }) => $c};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 8px;
+    height: 8px;
+    box-shadow: 0 0 7px ${({ $c }) => $c};
+  }
 `;
 
 const NavRow = styled.nav`
@@ -106,6 +167,17 @@ const NavRow = styled.nav`
   flex-wrap: wrap;
   gap: 0.6rem;
   align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: 0.45rem;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.38rem;
+  }
+
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 `;
 
 const NavButton = styled(Link)`
@@ -145,6 +217,16 @@ const NavButton = styled(Link)`
   &:active {
     transform: translateY(0px);
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    justify-content: center;
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+    padding: 0.36rem 0.34rem;
+    border-radius: 8px;
+    font-size: ${MOBILE_FONT_SM};
+    letter-spacing: 0.035em;
+    box-shadow: 0 0 0 1px rgba(0, 255, 200, 0.08);
+  }
 `;
 
 const FauxButton = styled.button`
@@ -168,6 +250,10 @@ const FauxButton = styled.button`
   box-shadow: 0 0 0 2px rgba(0, 255, 200, 0.04);
 
   cursor: not-allowed;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
+  }
 `;
 
 const Divider = styled.div`
@@ -182,6 +268,10 @@ const Divider = styled.div`
 
 const ToastRow = styled.div`
   padding: 0 1.25rem 1rem 1.25rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0 0.58rem 0.58rem;
+  }
 `;
 
 function routeTag(pathname) {

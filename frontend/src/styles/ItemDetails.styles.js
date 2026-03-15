@@ -1,4 +1,11 @@
 import styled, { css, keyframes } from 'styled-components';
+import {
+  MOBILE_BREAKPOINT,
+  MOBILE_FONT_SM,
+  MOBILE_FONT_XS,
+  MOBILE_NARROW_BREAKPOINT,
+  MOBILE_PANEL_RADIUS,
+} from './tokens';
 
 const LCARS = {
   panel: '#141920',
@@ -75,6 +82,28 @@ export const Panel = styled.section`
     background: linear-gradient(180deg, ${LCARS.teal}, ${LCARS.lilac} 62%, ${LCARS.coral});
     opacity: 0.34;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.62rem;
+    padding: 0.68rem;
+    border-radius: ${MOBILE_PANEL_RADIUS};
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.24), 0 5px 12px rgba(0, 0, 0, 0.2);
+
+    &::before {
+      left: 0.68rem;
+      right: 0.68rem;
+      top: 0.42rem;
+      height: 2px;
+      opacity: 0.28;
+    }
+
+    &::after {
+      top: 0.68rem;
+      bottom: 0.68rem;
+      width: 5px;
+      opacity: 0.26;
+    }
+  }
 `;
 
 export const HeaderBand = styled.header`
@@ -105,6 +134,10 @@ export const HeaderMeta = styled.div`
   align-items: center;
   flex-wrap: wrap;
   gap: 0.35rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.26rem;
+  }
 `;
 
 export const StatePill = styled.span`
@@ -120,6 +153,12 @@ export const StatePill = styled.span`
   font-weight: 760;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.15rem 0.44rem;
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.05em;
+  }
 `;
 
 export const MetaTag = styled.span`
@@ -134,6 +173,12 @@ export const MetaTag = styled.span`
   font-weight: 720;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.15rem 0.4rem;
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.05em;
+  }
 `;
 
 export const SectionGrid = styled.div`
@@ -146,6 +191,10 @@ export const SectionGrid = styled.div`
 
   @media (max-width: 860px) {
     grid-template-columns: 1fr;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.52rem;
   }
 `;
 
@@ -176,6 +225,18 @@ export const SectionCard = styled.section`
     background: ${({ $tone }) => toneColor($tone)};
     opacity: 0.6;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.52rem 0.56rem 0.52rem;
+    border-radius: 10px;
+
+    &::before {
+      top: 0.5rem;
+      bottom: 0.5rem;
+      width: 3px;
+      opacity: 0.45;
+    }
+  }
 `;
 
 export const SectionTitle = styled.h4`
@@ -186,6 +247,13 @@ export const SectionTitle = styled.h4`
   font-weight: 760;
   letter-spacing: 0.11em;
   text-transform: uppercase;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin: 0 0 0.34rem;
+    padding-left: 0.35rem;
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.08em;
+  }
 `;
 
 export const SectionBody = styled.div`
@@ -210,6 +278,12 @@ export const DetailRow = styled.div`
     gap: 0.28rem;
     padding-left: 0.28rem;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: 1fr;
+    gap: 0.24rem;
+    padding: 0.34rem 0.12rem 0.32rem 0.3rem;
+  }
 `;
 
 export const RowLabel = styled.div`
@@ -218,6 +292,11 @@ export const RowLabel = styled.div`
   font-weight: 740;
   letter-spacing: 0.09em;
   text-transform: uppercase;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.07em;
+  }
 `;
 
 export const RowValue = styled.div`
@@ -228,6 +307,11 @@ export const RowValue = styled.div`
   min-width: 0;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+    line-height: 1.32;
+  }
 `;
 
 export const MutedValue = styled.span`
@@ -250,6 +334,11 @@ export const TagChip = styled.span`
   color: #c9f2ee;
   font-size: 0.74rem;
   font-weight: 620;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.14rem 0.4rem;
+    font-size: ${MOBILE_FONT_XS};
+  }
 `;
 
 export const UsageList = styled.div`
@@ -267,6 +356,11 @@ export const UsageItem = styled.span`
   background: rgba(255, 255, 255, 0.03);
   color: ${LCARS.textDim};
   font-size: 0.74rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.12rem 0.34rem;
+    font-size: ${MOBILE_FONT_XS};
+  }
 `;
 
 export const BreadcrumbList = styled.div`
@@ -294,11 +388,21 @@ export const BreadcrumbId = styled.span`
   border: 1px solid ${LCARS.line};
   border-radius: 6px;
   padding: 0.08rem 0.3rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.06em;
+    padding: 0.06rem 0.22rem;
+  }
 `;
 
 export const BreadcrumbLabel = styled.span`
   color: ${LCARS.text};
   font-size: 0.83rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+  }
 `;
 
 export const BreadcrumbSep = styled.span`
@@ -320,6 +424,11 @@ export const UtilityDock = styled.div`
     flex-direction: column;
     align-items: stretch;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.42rem;
+    padding-top: 0.52rem;
+  }
 `;
 
 export const UtilityTitle = styled.span`
@@ -328,6 +437,11 @@ export const UtilityTitle = styled.span`
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.06em;
+  }
 `;
 
 export const TestButtons = styled.div`
@@ -349,6 +463,11 @@ export const FlashButton = styled.button`
   letter-spacing: 0.03em;
   cursor: pointer;
   transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+  min-height: 34px;
+
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    width: 100%;
+  }
 
   &:hover {
     border-color: ${({ $tone }) => ($tone === 'yellow' ? 'rgba(255, 212, 0, 0.74)' : 'rgba(255, 107, 107, 0.74)')};
@@ -375,6 +494,12 @@ export const Skeleton = styled.div`
   border-radius: 12px;
   background: ${LCARS.panelInset};
 
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.72rem;
+    border-radius: ${MOBILE_PANEL_RADIUS};
+    gap: 0.52rem;
+  }
+
   div {
     height: 0.95rem;
     border-radius: 6px;
@@ -391,4 +516,10 @@ export const ErrorMsg = styled.div`
   background: rgba(255, 107, 107, 0.11);
   color: #ff9a9a;
   font-size: 0.9rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.72rem;
+    border-radius: ${MOBILE_PANEL_RADIUS};
+    font-size: ${MOBILE_FONT_SM};
+  }
 `;

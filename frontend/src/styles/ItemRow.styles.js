@@ -1,5 +1,13 @@
 import styled, { keyframes, css } from 'styled-components';
 import { Link } from 'react-router-dom';
+import {
+  MOBILE_BREAKPOINT,
+  MOBILE_CONTROL_MIN_HEIGHT,
+  MOBILE_FONT_SM,
+  MOBILE_FONT_XS,
+  MOBILE_NARROW_BREAKPOINT,
+  MOBILE_PANEL_RADIUS,
+} from './tokens';
 
 const ROW_BG = '#111';
 
@@ -79,6 +87,11 @@ export const Wrapper = styled.div`
     border-radius: calc(var(--r) - var(--gap));
     background: ${ROW_BG};
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    --r: ${MOBILE_PANEL_RADIUS};
+    --gap: 2px;
+  }
 `;
 
 export const Row = styled.div`
@@ -97,6 +110,10 @@ export const Row = styled.div`
 
   &:active {
     background: rgba(255, 255, 255, 0.05);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.42rem 0.52rem 0.48rem;
   }
 `;
 
@@ -118,6 +135,16 @@ export const RowHeader = styled.div`
   box-shadow: ${({ $open }) =>
     $open ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.04)' : 'none'};
   transition: border-color 220ms ease, background 220ms ease, box-shadow 220ms ease;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.45rem;
+    padding: 0.36rem 0.42rem;
+  }
+
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 `;
 
 export const RowActions = styled.div`
@@ -125,6 +152,11 @@ export const RowActions = styled.div`
   align-items: center;
   gap: 0.42rem;
   flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    width: 100%;
+    justify-content: space-between;
+  }
 `;
 
 export const QuickView = styled.div`
@@ -142,6 +174,11 @@ export const QuickView = styled.div`
     opacity 220ms ease,
     transform 220ms ease;
   pointer-events: ${({ $collapsed }) => ($collapsed ? 'none' : 'auto')};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.22rem;
+    margin-top: ${({ $collapsed }) => ($collapsed ? '0' : '0.3rem')};
+  }
 `;
 
 export const Collapse = styled.div`
@@ -169,6 +206,10 @@ export const DetailsCard = styled.div`
   padding: 1rem;
   border-radius: 0 0 calc(var(--r) - var(--gap)) calc(var(--r) - var(--gap));
   background: #181818;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.58rem;
+  }
 `;
 
 export const Left = styled.div`
@@ -191,6 +232,11 @@ export const Title = styled.div`
   letter-spacing: 0.015em;
   line-height: 1.25;
   overflow-wrap: anywhere;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 0.96rem;
+    line-height: 1.2;
+  }
 `;
 
 export const TitleLink = styled(Link)`
@@ -201,6 +247,11 @@ export const TitleLink = styled(Link)`
   line-height: 1.25;
   overflow-wrap: anywhere;
   text-decoration: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 0.96rem;
+    line-height: 1.2;
+  }
 
   &:hover {
     text-decoration: underline;
@@ -215,6 +266,11 @@ export const Breadcrumb = styled.div`
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.05em;
+  }
 `;
 
 export const TagRow = styled.div`
@@ -234,6 +290,11 @@ export const Tag = styled.span`
   border: 1px solid rgba(76, 198, 193, 0.48);
   color: #d7f5f2;
   background: rgba(76, 198, 193, 0.13);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    padding: 0.12rem 0.34rem;
+  }
 `;
 
 export const Description = styled.div`
@@ -241,6 +302,11 @@ export const Description = styled.div`
   color: rgba(231, 236, 243, 0.8);
   line-height: 1.35;
   overflow-wrap: anywhere;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+    line-height: 1.28;
+  }
 `;
 
 export const Qty = styled.span`
@@ -255,6 +321,11 @@ export const Qty = styled.span`
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 0.2rem 0.5rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    padding: 0.15rem 0.36rem;
+  }
 `;
 
 export const EditButton = styled.button`
@@ -268,6 +339,7 @@ export const EditButton = styled.button`
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
   transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
 
   &:hover {
@@ -278,5 +350,12 @@ export const EditButton = styled.button`
 
   &:active {
     transform: translateY(1px);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 34px;
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.44rem;
   }
 `;

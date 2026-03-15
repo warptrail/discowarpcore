@@ -1,4 +1,5 @@
 import styled, { css, keyframes } from 'styled-components';
+import { MOBILE_BREAKPOINT, MOBILE_FONT_SM } from './tokens';
 
 const pulseGreen = keyframes`
   0%, 100% { box-shadow: 0 0 0 rgba(0,255,128,0); }
@@ -22,6 +23,7 @@ export const Chip = styled.span`
   background: rgba(255, 255, 255, 0.06);
   color: #eaeaea;
   user-select: none;
+  max-width: 100%;
 
   ${({ $status }) =>
     $status === 'unchanged' &&
@@ -43,9 +45,22 @@ export const Chip = styled.span`
       animation: ${pulseRed} 1.6s ease-in-out infinite;
       opacity: 0.75;
     `}
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.28rem;
+    padding: 0.2rem 0.46rem;
+    border-radius: 10px;
+    border-width: 1px;
+    font-size: ${MOBILE_FONT_SM};
+  }
 `;
 
 export const Text = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
   ${({ $status }) =>
     $status === 'deleted' &&
     css`
@@ -64,5 +79,9 @@ export const RemoveButton = styled.button`
 
   &:hover {
     color: #ff6b6b;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0 0.12rem;
   }
 `;

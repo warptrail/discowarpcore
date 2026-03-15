@@ -12,6 +12,7 @@ import BoxDetailView from './components/BoxDetailView';
 import BoxCreate from './components/BoxCreate';
 import ItemPage from './components/ItemPage';
 import { API_BASE } from './api/API_BASE';
+import { MOBILE_BREAKPOINT, MOBILE_PAGE_GAP } from './styles/tokens';
 
 // ! STYLES
 const AppContainer = styled.div`
@@ -19,6 +20,12 @@ const AppContainer = styled.div`
   margin: 0 auto;
   padding: 2rem;
   font-family: Arial, Helvetica, sans-serif;
+  min-width: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    max-width: 100%;
+    padding: ${MOBILE_PAGE_GAP};
+  }
 `;
 
 const Heading = styled.h1`

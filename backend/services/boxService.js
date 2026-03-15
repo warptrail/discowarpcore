@@ -449,8 +449,27 @@ async function updateBox(id, data) {
   });
 }
 
+async function collectDescendantBoxIds(rootBoxId) {
+  const descendants = [];
+  let frontier = [rootBoxId];
+
+  while (frontier.length) {
+    const children = await Box.find({ parentBox: { $in: frontier } })
+      .select('_id')
+      .lean();
+
+    if (!children.length) break;
+
+    const childIds = children.map((child) => child._id);
+    descendants.push(...childIds);
+    frontier = childIds;
+  }
+
+  return descendants;
+}
+
 // Delete a single box by its Mongo _id.
-// Orphans items first, then removes the box.
+// Orphans direct items, releases all descendants to floor, then removes the box.
 async function deleteBoxById(id, { orphanItems = true } = {}) {
   // Ensure the box exists
   const box = await Box.findById(id).select('_id items').lean();
@@ -467,10 +486,25 @@ async function deleteBoxById(id, { orphanItems = true } = {}) {
     await Item.deleteMany({ _id: { $in: box.items } });
   }
 
+  // Release all descendants to floor level so no box references a deleted parent chain.
+  const descendantIds = await collectDescendantBoxIds(box._id);
+  if (descendantIds.length) {
+    await Box.updateMany(
+      { _id: { $in: descendantIds } },
+      { $set: { parentBox: null } },
+    );
+  }
+
   // Delete the box itself
   await Box.deleteOne({ _id: box._id });
 
-  return { ok: true, deleted: 1, boxId: String(box._id) };
+  return {
+    ok: true,
+    deleted: 1,
+    boxId: String(box._id),
+    releasedDescendantCount: descendantIds.length,
+    orphanedItemCount: Array.isArray(box.items) ? box.items.length : 0,
+  };
 }
 
 async function deleteAllBoxes() {

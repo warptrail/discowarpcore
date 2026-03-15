@@ -1,4 +1,11 @@
 import styled from 'styled-components';
+import {
+  MOBILE_BREAKPOINT,
+  MOBILE_CONTROL_MIN_HEIGHT,
+  MOBILE_FONT_SM,
+  MOBILE_FONT_XS,
+  MOBILE_PANEL_RADIUS,
+} from './tokens';
 
 const LCARS = {
   panel: '#11161f',
@@ -23,6 +30,8 @@ export const Form = styled.form`
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  min-width: 0;
+  max-width: 100%;
   padding: 1rem;
   border-radius: 14px;
   border: 1px solid ${LCARS.line};
@@ -70,8 +79,28 @@ export const Form = styled.form`
     opacity: 0.48;
   }
 
-  @media (max-width: 640px) {
-    padding: 0.85rem 0.75rem 0.8rem;
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.72rem;
+    padding: 0.72rem 0.64rem 0.68rem;
+    border-radius: ${MOBILE_PANEL_RADIUS};
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.02),
+      0 7px 14px rgba(0, 0, 0, 0.2);
+
+    &::before {
+      left: 0.65rem;
+      right: 0.65rem;
+      top: 0.46rem;
+      height: 3px;
+      opacity: 0.42;
+    }
+
+    &::after {
+      top: 0.72rem;
+      bottom: 0.72rem;
+      width: 5px;
+      opacity: 0.36;
+    }
   }
 `;
 
@@ -89,6 +118,10 @@ export const Fieldset = styled.fieldset`
     opacity: 0.66;
     pointer-events: none;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.65rem;
+  }
 `;
 
 export const Field = styled.div`
@@ -100,8 +133,9 @@ export const Field = styled.div`
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 70%),
     ${LCARS.panelSoft};
 
-  @media (max-width: 640px) {
-    padding: 0.5rem 0.52rem;
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.42rem 0.44rem;
+    border-radius: 9px;
   }
 `;
 
@@ -111,6 +145,11 @@ export const Label = styled.label`
   color: ${LCARS.textDim};
   letter-spacing: 0.08em;
   text-transform: uppercase;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.06em;
+  }
 `;
 
 const fieldControlStyles = `
@@ -123,6 +162,7 @@ const fieldControlStyles = `
   font-weight: 520;
   line-height: 1.35;
   padding: 0.62rem 0.72rem;
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
   transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
 
   &::placeholder {
@@ -137,6 +177,14 @@ const fieldControlStyles = `
       inset 0 0 0 1px rgba(255, 255, 255, 0.03);
     background: #0c121b;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+    line-height: 1.3;
+    padding: 0.48rem 0.54rem;
+    border-radius: 8px;
+    min-height: 36px;
+  }
 `;
 
 export const Input = styled.input`
@@ -147,6 +195,10 @@ export const TextArea = styled.textarea`
   ${fieldControlStyles}
   min-height: 4.6rem;
   resize: vertical;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 4rem;
+  }
 `;
 
 export const Select = styled.select`
@@ -158,8 +210,9 @@ export const InlineGrid = styled.div`
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
 
-  @media (max-width: 640px) {
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
     grid-template-columns: 1fr;
+    gap: 0.6rem;
   }
 `;
 
@@ -170,6 +223,10 @@ export const CheckboxRow = styled.label`
   font-size: 0.95rem;
   color: ${LCARS.text};
   cursor: pointer;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+  }
 `;
 
 export const Checkbox = styled.input`
@@ -184,13 +241,21 @@ export const Actions = styled.div`
   gap: 0.7rem;
   margin-top: 0.35rem;
 
-  @media (max-width: 640px) {
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    flex-wrap: wrap;
     justify-content: stretch;
+    margin-top: 0.2rem;
+    padding-top: 0.42rem;
+    background: linear-gradient(180deg, rgba(17, 22, 31, 0), rgba(17, 22, 31, 0.95) 42%);
   }
 `;
 
 const actionButtonBase = `
   min-width: 6.2rem;
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
   border-radius: 999px;
   padding: 0.52rem 1.05rem;
   font-size: 0.84rem;
@@ -224,9 +289,11 @@ export const SaveButton = styled.button`
       0 0 16px rgba(51, 163, 83, 0.28);
   }
 
-  @media (max-width: 640px) {
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
     flex: 1;
     min-width: 0;
+    padding: 0.45rem 0.8rem;
+    font-size: ${MOBILE_FONT_XS};
   }
 `;
 
@@ -242,8 +309,10 @@ export const RevertButton = styled.button`
     box-shadow: 0 0 14px rgba(167, 182, 255, 0.22);
   }
 
-  @media (max-width: 640px) {
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
     flex: 1;
     min-width: 0;
+    padding: 0.45rem 0.8rem;
+    font-size: ${MOBILE_FONT_XS};
   }
 `;

@@ -295,7 +295,9 @@ async function deleteBoxByIdApi(req, res) {
       return res.status(404).json({ error: 'Box not found' });
     }
     res.json({
-      message: 'Box deleted and child boxes reparented to top level',
+      message:
+        'Box deleted; descendant boxes were released to floor level and direct items were orphaned.',
+      ...deleted,
     });
   } catch (err) {
     console.error('❌ Error deleting box:', err);

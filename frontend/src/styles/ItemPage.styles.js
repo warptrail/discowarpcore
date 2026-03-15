@@ -1,5 +1,11 @@
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import {
+  MOBILE_BREAKPOINT,
+  MOBILE_FONT_SM,
+  MOBILE_FONT_XS,
+  MOBILE_PANEL_RADIUS,
+} from './tokens';
 
 const LCARS = {
   panel: '#141920',
@@ -16,6 +22,11 @@ export const Page = styled.section`
   display: grid;
   gap: 0.8rem;
   padding: 0.2rem 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.58rem;
+    padding: 0.05rem 0;
+  }
 `;
 
 export const BreadcrumbNav = styled.nav`
@@ -28,6 +39,12 @@ export const BreadcrumbNav = styled.nav`
   border: 1px solid ${LCARS.line};
   border-radius: 10px;
   background: ${LCARS.panelSoft};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.26rem;
+    padding: 0.45rem 0.52rem;
+    border-radius: ${MOBILE_PANEL_RADIUS};
+  }
 `;
 
 const crumbBase = `
@@ -40,6 +57,13 @@ const crumbBase = `
   border: 1px solid ${LCARS.line};
   background: rgba(255, 255, 255, 0.02);
   font-size: 0.82rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.24rem;
+    padding: 0.2rem 0.34rem;
+    border-radius: 7px;
+    font-size: ${MOBILE_FONT_SM};
+  }
 `;
 
 export const BreadcrumbLink = styled(Link)`
@@ -76,6 +100,13 @@ export const CrumbId = styled.span`
   border: 1px solid ${LCARS.line};
   border-radius: 6px;
   padding: 0.08rem 0.28rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.06em;
+    padding: 0.06rem 0.2rem;
+    border-radius: 5px;
+  }
 `;
 
 export const CrumbLabel = styled.span`
@@ -84,18 +115,31 @@ export const CrumbLabel = styled.span`
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: min(38vw, 320px);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    max-width: min(50vw, 190px);
+  }
 `;
 
 export const CrumbSep = styled.span`
   color: ${LCARS.textMuted};
   font-size: 0.88rem;
   user-select: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+  }
 `;
 
 export const TitleBar = styled.header`
   display: grid;
   gap: 0.25rem;
   padding: 0.18rem 0.06rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.18rem;
+    padding: 0.06rem 0.02rem;
+  }
 `;
 
 export const Title = styled.h2`
@@ -104,6 +148,11 @@ export const Title = styled.h2`
   font-size: clamp(1.14rem, 2vw, 1.36rem);
   line-height: 1.22;
   letter-spacing: 0.02em;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 1rem;
+    line-height: 1.18;
+  }
 `;
 
 export const Meta = styled.div`
@@ -112,6 +161,11 @@ export const Meta = styled.div`
   font-weight: 640;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.05em;
+  }
 `;
 
 export const StateCard = styled.div`
@@ -121,4 +175,10 @@ export const StateCard = styled.div`
   color: ${({ $tone }) => ($tone === 'error' ? '#ffc8c8' : LCARS.text)};
   background: ${({ $tone }) =>
     $tone === 'error' ? 'rgba(240, 138, 123, 0.16)' : LCARS.panel};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: ${MOBILE_PANEL_RADIUS};
+    padding: 0.62rem 0.68rem;
+    font-size: ${MOBILE_FONT_SM};
+  }
 `;

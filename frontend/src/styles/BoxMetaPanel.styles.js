@@ -1,5 +1,12 @@
 // src/styles/BoxMetaPanel.styles.js
 import styled from 'styled-components';
+import {
+  MOBILE_BREAKPOINT,
+  MOBILE_FONT_SM,
+  MOBILE_FONT_XS,
+  MOBILE_NARROW_BREAKPOINT,
+  MOBILE_PANEL_RADIUS,
+} from './tokens';
 
 const LCARS = {
   bg: '#0E0F12',
@@ -57,6 +64,19 @@ export const Panel = styled.section`
     );
     opacity: 0.45;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 10px;
+    padding: 10px 11px;
+    border-radius: ${MOBILE_PANEL_RADIUS};
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.24), 0 6px 12px rgba(0, 0, 0, 0.18);
+
+    &:before {
+      left: 11px;
+      right: 11px;
+      opacity: 0.34;
+    }
+  }
 `;
 
 export const IdentityZone = styled.div`
@@ -69,6 +89,11 @@ export const IdentityHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
 `;
 
 export const ScopeBadge = styled.span`
@@ -94,6 +119,19 @@ export const ScopeBadge = styled.span`
     box-shadow: 0 0 8px currentColor;
     opacity: 0.75;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 6px;
+    padding: 3px 8px;
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.06em;
+
+    &:before {
+      width: 6px;
+      height: 6px;
+      box-shadow: 0 0 5px currentColor;
+    }
+  }
 `;
 
 export const DepthHint = styled.span`
@@ -101,6 +139,10 @@ export const DepthHint = styled.span`
   font-size: 0.76rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+  }
 `;
 
 export const CurrentBox = styled.div`
@@ -117,6 +159,12 @@ export const CurrentBox = styled.div`
     ${LCARS.panelSoft};
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
   cursor: default;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 6px;
+    padding: 8px 9px;
+    border-radius: 9px;
+  }
 `;
 
 export const CurrentBoxId = styled.span`
@@ -131,6 +179,12 @@ export const CurrentBoxId = styled.span`
   color: ${LCARS.teal};
   background: ${LCARS.teal}1f;
   border: 1px solid ${LCARS.teal}57;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+    letter-spacing: 0.09em;
+    padding: 4px 6px;
+  }
 `;
 
 export const CurrentBoxTitle = styled.span`
@@ -139,6 +193,10 @@ export const CurrentBoxTitle = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 0.9rem;
+  }
 `;
 
 export const Crumbs = styled.nav`
@@ -185,6 +243,12 @@ export const Crumb = styled.a`
       ${LCARS.panelSoft};
     transform: translateY(-1px);
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 6px;
+    padding: 5px 7px;
+    border-radius: 7px;
+  }
 `;
 
 export const CrumbSep = styled.span`
@@ -213,6 +277,11 @@ export const CrumbLabel = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    max-width: 130px;
+    font-size: ${MOBILE_FONT_SM};
+  }
 `;
 
 export const MetaZone = styled.div`
@@ -234,6 +303,11 @@ export const StatGroup = styled.div`
   @media (max-width: 440px) {
     grid-template-columns: 1fr;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 8px;
+    padding: 8px 0;
+  }
 `;
 
 export const StatItem = styled.div`
@@ -248,12 +322,20 @@ export const StatLabel = styled.span`
   color: ${LCARS.textDim};
   letter-spacing: 0.08em;
   text-transform: uppercase;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+  }
 `;
 
 export const StatValue = styled.span`
   font-size: 1rem;
   font-weight: 700;
   color: ${({ $tone }) => toneColor($tone)};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 0.9rem;
+  }
 `;
 
 export const ChildrenZone = styled.div`
@@ -266,6 +348,12 @@ export const SectionHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
 `;
 
 export const Label = styled.span`
@@ -274,11 +362,19 @@ export const Label = styled.span`
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: ${LCARS.textDim};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+  }
 `;
 
 export const SectionHint = styled.span`
   color: ${LCARS.textDim};
   font-size: 0.8rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+  }
 `;
 
 export const MetaCount = styled.span`
@@ -287,6 +383,11 @@ export const MetaCount = styled.span`
   color: ${LCARS.textDim};
   font-size: 0.78rem;
   letter-spacing: 0.1em;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.07em;
+  }
 `;
 
 export const ChildrenRow = styled.div`
@@ -305,6 +406,11 @@ export const DescendantRow = styled.div`
   align-items: center;
   gap: 8px;
   min-width: 0;
+
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    align-items: flex-start;
+    gap: 6px;
+  }
 `;
 
 export const DescendantConnector = styled.span`
@@ -335,6 +441,12 @@ export const BoxLink = styled.a`
       ${LCARS.panelSoft};
     transform: translateY(-1px);
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 7px;
+    padding: 7px 8px;
+    border-radius: 8px;
+  }
 `;
 
 export const DescendantLink = styled(BoxLink)`
@@ -351,6 +463,10 @@ export const DescendantMeta = styled.span`
   @media (max-width: 560px) {
     display: none;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+  }
 `;
 
 export const DescendantChildren = styled.div`
@@ -359,6 +475,12 @@ export const DescendantChildren = styled.div`
   margin-left: 14px;
   padding-left: 12px;
   border-left: 1px solid ${LCARS.line};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-left: 8px;
+    padding-left: 8px;
+    gap: 5px;
+  }
 `;
 
 export const BoxLinkLabel = styled.span`
@@ -371,4 +493,8 @@ export const Muted = styled.span`
   color: ${LCARS.textDim};
   font-size: 0.92rem;
   padding: 4px 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+  }
 `;

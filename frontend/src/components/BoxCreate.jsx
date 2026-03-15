@@ -5,85 +5,200 @@ import { useNavigate } from 'react-router-dom';
 import { createBox } from '../api/boxes';
 import useShortIdAvailability from '../hooks/useShortIdAvailability';
 import useLocationRegistry from '../hooks/useLocationRegistry';
+import BoxLocationField from './BoxForms/BoxLocationField';
+
+const LCARS = {
+  panel: '#11161f',
+  panelSoft: '#171e2a',
+  inset: '#0b1018',
+  line: 'rgba(130, 168, 196, 0.36)',
+  text: '#e6edf4',
+  textDim: 'rgba(214, 226, 241, 0.8)',
+  teal: '#4cc6c1',
+  coral: '#f08a7b',
+  amber: '#e8b15c',
+  lilac: '#a7b6ff',
+};
 
 const Container = styled.div`
+  position: relative;
   max-width: 500px;
   margin: 3rem auto;
-  padding: 2rem;
-  background: #111;
-  border-radius: 8px;
-  box-shadow: 0 0 20px #000;
-  color: #f0f0f0;
+  padding: 1rem 1rem 1.1rem;
+  border-radius: 14px;
+  border: 1px solid ${LCARS.line};
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 34%),
+    ${LCARS.panel};
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 14px 28px rgba(0, 0, 0, 0.24);
+  color: ${LCARS.text};
+  overflow: hidden;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    pointer-events: none;
+  }
+
+  &::before {
+    left: 0.9rem;
+    right: 0.9rem;
+    top: 0.65rem;
+    height: 5px;
+    border-radius: 999px;
+    background: linear-gradient(
+      90deg,
+      ${LCARS.coral} 0 17%,
+      transparent 17% 21%,
+      ${LCARS.teal} 21% 56%,
+      transparent 56% 62%,
+      ${LCARS.amber} 62% 82%,
+      transparent 82% 86%,
+      ${LCARS.lilac} 86% 100%
+    );
+    opacity: 0.62;
+  }
+
+  &::after {
+    left: 0;
+    top: 1.15rem;
+    bottom: 1.15rem;
+    width: 8px;
+    border-radius: 0 999px 999px 0;
+    background: linear-gradient(180deg, ${LCARS.teal}, ${LCARS.lilac} 58%, ${LCARS.coral});
+    opacity: 0.48;
+  }
 `;
 
 const Heading = styled.h2`
-  text-align: center;
-  margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
+  margin: 0 0 0.9rem;
+  padding-left: 0.25rem;
+  font-size: 0.98rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: ${LCARS.textDim};
 `;
 
-const Field = styled.div`
-  margin-bottom: 1.5rem;
+const Form = styled.form`
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.95rem;
 `;
 
 const Label = styled.label`
   display: block;
-  margin-bottom: 0.5rem;
-  font-weight: bold;
+  margin-bottom: 0.4rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: ${LCARS.textDim};
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+`;
+
+const Field = styled.div`
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid rgba(140, 160, 179, 0.2);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 70%),
+    ${LCARS.panelSoft};
 `;
 
 const Input = styled.input`
   width: 100%;
-  padding: 0.75rem;
-  background: #222;
-  color: #f0f0f0;
-  border: 1px solid #444;
-  border-radius: 4px;
+  border-radius: 9px;
+  border: 1px solid rgba(122, 142, 167, 0.45);
+  background: ${LCARS.inset};
+  color: ${LCARS.text};
   font-size: 1rem;
+  line-height: 1.35;
+  padding: 0.62rem 0.72rem;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+
+  &::placeholder {
+    color: rgba(214, 226, 241, 0.44);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: ${LCARS.teal};
+    box-shadow:
+      0 0 0 2px rgba(76, 198, 193, 0.25),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+    background: #0c121b;
+  }
 `;
 
-const Select = styled.select`
-  width: 100%;
-  padding: 0.75rem;
-  background: #222;
-  color: #f0f0f0;
-  border: 1px solid #444;
-  border-radius: 4px;
-  font-size: 1rem;
+const ShortIdInput = styled(Input)`
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  text-align: center;
+  letter-spacing: 0.12em;
+  width: 8.5rem;
+  max-width: 100%;
 `;
 
 const Status = styled.div`
-  font-size: 0.9rem;
-  margin-top: 0.25rem;
-  color: ${({ $available }) =>
-    $available === true
-      ? '#00cc88'
-      : $available === false
-        ? '#ff5555'
-        : '#aaa'};
+  min-height: 1.15rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: ${({ $tone }) =>
+    $tone === 'valid'
+      ? '#9be2b5'
+      : $tone === 'invalid'
+        ? '#ffbdbd'
+        : $tone === 'pending'
+          ? '#f8d799'
+          : LCARS.textDim};
 `;
 
 const Error = styled.div`
-  color: #ff4444;
-  margin-top: 1rem;
-  text-align: center;
+  border: 1px solid rgba(240, 138, 123, 0.4);
+  background: rgba(240, 138, 123, 0.12);
+  color: #ffccc6;
+  border-radius: 10px;
+  padding: 0.6rem 0.72rem;
+  font-size: 0.86rem;
 `;
 
 const Button = styled.button`
-  width: 100%;
-  padding: 0.75rem;
-  background: #00aa88;
-  color: #fff;
-  font-size: 1rem;
-  border: none;
-  border-radius: 4px;
+  justify-self: end;
+  min-width: 8rem;
+  border-radius: 999px;
+  border: 1px solid #2f8f4d;
+  color: #d6ffe4;
+  background: linear-gradient(180deg, #2d8f47, #216b36);
+  box-shadow: 0 0 0 1px rgba(17, 30, 20, 0.42);
+  padding: 0.58rem 1.08rem;
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease,
+    background 120ms ease;
 
-  &:hover {
-    background: #00cc99;
+  &:hover:enabled {
+    border-color: #42b765;
+    background: linear-gradient(180deg, #35a353, #257840);
+    box-shadow:
+      0 0 0 1px rgba(21, 35, 26, 0.45),
+      0 0 16px rgba(51, 163, 83, 0.28);
+  }
+
+  &:active:enabled {
+    transform: translateY(1px);
   }
 
   &:disabled {
-    background: #444;
+    opacity: 0.56;
     cursor: not-allowed;
   }
 `;
@@ -93,8 +208,15 @@ function BoxCreate() {
   const [boxId, setBoxId] = useState('');
   const [label, setLabel] = useState('');
   const [locationId, setLocationId] = useState('');
+  const [locationCreateBusy, setLocationCreateBusy] = useState(false);
+  const [locationError, setLocationError] = useState('');
   const [error, setError] = useState('');
-  const { locations } = useLocationRegistry();
+  const {
+    locations,
+    loading: locationsLoading,
+    error: locationsError,
+    createLocationInline,
+  } = useLocationRegistry();
 
   const {
     shortIdValid,
@@ -106,6 +228,30 @@ function BoxCreate() {
     debounceMs: 500,
   });
   const availabilityState = shortIdValid ? shortIdAvail : null;
+
+  const handleCreateLocation = async (rawValue) => {
+    const normalized = String(rawValue || '').trim().replace(/\s+/g, ' ');
+    if (!normalized) {
+      setLocationError('Location name is required');
+      throw new Error('Location name is required');
+    }
+
+    setLocationCreateBusy(true);
+    setLocationError('');
+    try {
+      const created = await createLocationInline(normalized);
+      if (!created?._id) {
+        throw new Error('Failed to create location');
+      }
+      setLocationId(String(created._id));
+      return created;
+    } catch (createErr) {
+      setLocationError(createErr?.message || 'Failed to create location');
+      throw createErr;
+    } finally {
+      setLocationCreateBusy(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -140,10 +286,10 @@ function BoxCreate() {
   return (
     <Container>
       <Heading>Create New Box</Heading>
-      <form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit}>
         <Field>
           <Label htmlFor="boxId">Box ID (3-digit)</Label>
-          <Input
+          <ShortIdInput
             id="boxId"
             value={boxId}
             onChange={(e) => setBoxId(e.target.value)}
@@ -175,7 +321,19 @@ function BoxCreate() {
             placeholder="e.g. 004"
             maxLength={3}
           />
-          <Status $available={availabilityState}>
+          <Status
+            $tone={
+              shortIdChecking
+                ? 'pending'
+                : shortIdValid && availabilityState === true
+                  ? 'valid'
+                  : shortIdValid && availabilityState === false
+                    ? 'invalid'
+                    : shortIdValid && checkError
+                      ? 'invalid'
+                      : 'default'
+            }
+          >
             {shortIdChecking && '🔄 Checking...'}
 
             {!shortIdChecking && boxId && !shortIdValid && '⚠️ Must be exactly 3 digits'}
@@ -204,30 +362,31 @@ function BoxCreate() {
         </Field>
 
         <Field>
-          <Label htmlFor="locationId">Location</Label>
-          <Select
-            id="locationId"
-            value={locationId}
-            onChange={(e) => setLocationId(e.target.value)}
-          >
-            <option value="">None / Unassigned</option>
-            {locations.map((loc) => (
-              <option key={loc._id} value={loc._id}>
-                {loc.name}
-              </option>
-            ))}
-          </Select>
+          <BoxLocationField
+            locationId={locationId}
+            setLocationId={setLocationId}
+            locationOptions={locations}
+            locationsLoading={locationsLoading}
+            onCreateLocation={handleCreateLocation}
+            createBusy={locationCreateBusy}
+            errorMessage={locationError || locationsError}
+          />
         </Field>
 
         <Button
           type="submit"
-          disabled={!boxId || !label || availabilityState === false}
+          disabled={
+            !boxId ||
+            !label ||
+            availabilityState === false ||
+            locationCreateBusy
+          }
         >
           Create Box
         </Button>
 
         {error && <Error>{error}</Error>}
-      </form>
+      </Form>
     </Container>
   );
 }

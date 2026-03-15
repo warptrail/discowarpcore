@@ -1,10 +1,25 @@
 import styled, { keyframes, css } from 'styled-components';
 import { Link } from 'react-router-dom';
+import {
+  MOBILE_BREAKPOINT,
+  MOBILE_CONTROL_MIN_HEIGHT,
+  MOBILE_FONT_SM,
+  MOBILE_FONT_XS,
+  MOBILE_NARROW_BREAKPOINT,
+  MOBILE_PANEL_RADIUS,
+} from '../../styles/tokens';
 
 export const PanelContainer = styled.div`
   background-color: #121212;
   padding: 1rem;
   border-radius: 12px;
+  min-width: 0;
+  overflow-x: clip;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.58rem;
+    border-radius: ${MOBILE_PANEL_RADIUS};
+  }
 `;
 
 const zipIn = keyframes`
@@ -211,6 +226,26 @@ export const ItemCard = styled.li`
     min-height: auto;
     padding: 0.56rem 0.62rem 0.62rem 0.78rem;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    column-gap: 0.42rem;
+    row-gap: 0.3rem;
+    border-radius: 16px 10px 10px 14px;
+    padding: 0.46rem 0.5rem 0.5rem 0.62rem;
+    border-color: #2f4039;
+
+    &::before {
+      left: 0.34rem;
+      top: 0.36rem;
+      bottom: 0.36rem;
+      width: 4px;
+      opacity: 0.48;
+    }
+
+    &:hover {
+      box-shadow: none;
+    }
+  }
 `;
 
 export const ItemMain = styled.div`
@@ -218,6 +253,10 @@ export const ItemMain = styled.div`
   display: flex;
   align-items: center;
   padding-left: 0.6rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding-left: 0.42rem;
+  }
 `;
 
 export const ItemName = styled.h3`
@@ -230,6 +269,10 @@ export const ItemName = styled.h3`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+  }
 `;
 
 export const ItemNameLink = styled(Link)`
@@ -243,6 +286,10 @@ export const ItemNameLink = styled(Link)`
   overflow: hidden;
   text-overflow: ellipsis;
   text-decoration: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+  }
 
   &:hover {
     text-decoration: underline;
@@ -270,6 +317,13 @@ export const QtyPill = styled.span`
   @media (max-width: 720px) {
     justify-self: start;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 28px;
+    padding: 0 0.44rem;
+    border-radius: 8px;
+    font-size: ${MOBILE_FONT_XS};
+  }
 `;
 
 export const ItemActions = styled.div`
@@ -286,6 +340,21 @@ export const ItemActions = styled.div`
   @media (max-width: 860px) {
     grid-column: 1 / -1;
     justify-self: start;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    justify-self: stretch;
+    grid-auto-flow: row;
+    grid-auto-columns: initial;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.26rem;
+    padding: 0.2rem;
+    border-radius: 9px;
+  }
+
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 `;
 
@@ -325,7 +394,7 @@ const toneStyles = {
 export const ActionButton = styled.button`
   border: 1px solid transparent;
   border-radius: 8px;
-  min-height: 32px;
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
   min-width: 68px;
   padding: 0 0.66rem;
   font-size: 0.78rem;
@@ -354,6 +423,16 @@ export const ActionButton = styled.button`
     opacity: 0.45;
     cursor: not-allowed;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    min-width: 0;
+    min-height: 34px;
+    padding: 0.35rem 0.24rem;
+    border-radius: 7px;
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.01em;
+  }
 `;
 
 export const ItemWorkspace = styled.section`
@@ -362,6 +441,12 @@ export const ItemWorkspace = styled.section`
   border: 1px solid #2f2f2f;
   background: #171717;
   padding: 0.8rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: 0.58rem;
+    padding: 0.58rem;
+    border-radius: ${MOBILE_PANEL_RADIUS};
+  }
 `;
 
 export const InlineItemWorkspace = styled.li`
@@ -372,6 +457,13 @@ export const InlineItemWorkspace = styled.li`
   background: #131a15;
   padding: 0.8rem;
   box-shadow: 0 0 0 1px rgba(78, 199, 123, 0.14);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: -0.12rem;
+    border-radius: ${MOBILE_PANEL_RADIUS};
+    padding: 0.58rem;
+    box-shadow: 0 0 0 1px rgba(78, 199, 123, 0.08);
+  }
 `;
 
 export const WorkspaceHeader = styled.div`
@@ -379,6 +471,12 @@ export const WorkspaceHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   margin-bottom: 0.6rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.46rem;
+  }
 `;
 
 export const WorkspaceTitle = styled.h4`
@@ -386,6 +484,10 @@ export const WorkspaceTitle = styled.h4`
   font-size: 0.9rem;
   letter-spacing: 0.02em;
   color: #d8ece0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+  }
 `;
 
 export const WorkspaceClose = styled.button`
@@ -396,10 +498,16 @@ export const WorkspaceClose = styled.button`
   padding: 0.25rem 0.5rem;
   font-size: 0.78rem;
   cursor: pointer;
+  min-height: 34px;
 
   &:hover {
     background: #2a2a2a;
     border-color: #565656;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    padding: 0.2rem 0.44rem;
   }
 `;
 
@@ -412,6 +520,12 @@ export const EmptyMessage = styled.div`
   text-align: center;
   font-size: 0.95rem;
   margin-top: 0.5rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.72rem;
+    border-radius: ${MOBILE_PANEL_RADIUS};
+    font-size: ${MOBILE_FONT_SM};
+  }
 `;
 
 export const DetailsPanel = styled.div`
@@ -434,4 +548,19 @@ export const DetailsPanel = styled.div`
       margin-bottom: 12px;
       border: 1px solid #2f2f2f;
     `}
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: ${MOBILE_PANEL_RADIUS};
+    transition:
+      margin-bottom 220ms ease,
+      border-color 220ms ease;
+
+    ${({ $open }) =>
+      $open &&
+      css`
+        max-height: none;
+        overflow: visible;
+        margin-bottom: 10px;
+      `}
+  }
 `;

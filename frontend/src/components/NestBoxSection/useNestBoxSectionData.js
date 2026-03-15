@@ -69,9 +69,7 @@ export default function useNestBoxSectionData({
     }
 
     try {
-      const res = await fetch(
-        `http://localhost:5002/api/boxes?exclude=${sourceBoxMongoId}`,
-      );
+      const res = await fetch(`/api/boxes?exclude=${sourceBoxMongoId}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || 'Failed to load boxes');
       setBoxes(Array.isArray(data) ? data : data?.boxes || []);
@@ -90,9 +88,7 @@ export default function useNestBoxSectionData({
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(
-          `http://localhost:5002/api/boxes?exclude=${sourceBoxMongoId}`,
-        );
+        const res = await fetch(`/api/boxes?exclude=${sourceBoxMongoId}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data?.message || 'Failed to load boxes');
         if (!alive) return;

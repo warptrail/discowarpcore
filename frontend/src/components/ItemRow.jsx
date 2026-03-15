@@ -75,9 +75,11 @@ export default function ItemRow({
     e?.stopPropagation?.();
     if (!isOpen) {
       onOpen?.(_id);
+      if (_id) triggerFlash?.(_id, 'yellow');
       setEditMode(true);
       return;
     }
+    if (_id) triggerFlash?.(_id, 'yellow');
     setEditMode((prev) => !prev);
   };
 
