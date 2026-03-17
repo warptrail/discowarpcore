@@ -385,13 +385,17 @@ export default function BoxActionPanel({
         onDidReleaseChildren={handleDidReleaseChildren}
       />
 
-      <DetailsPanel $open={!isDestroyConfirmMode && activePanel === 'edit'} $maxHeight={420}>
+      <DetailsPanel $open={!isDestroyConfirmMode && activePanel === 'edit'} $maxHeight={560}>
         {!isDestroyConfirmMode && activePanel === 'edit' && (
           <EditBoxDetailsForm
             boxMongoId={boxMongoId}
             initial={boxTree}
             onSaved={handleFormSaved}
-            onCancel={() => setActivePanel(null)}
+            onImageUpdated={() => refreshBox?.()}
+            onCancel={() => {
+              setActivePanel(null);
+              refreshBox?.();
+            }}
           />
         )}
       </DetailsPanel>

@@ -12,38 +12,8 @@ const {
   backfillOrphanedTimestamps,
 } = require('../services/itemService');
 const { processItemImageUpload } = require('../services/itemImageService');
-const { MEDIA_URL_BASE, toAbsoluteMediaPath } = require('../config/media');
-
-function storagePathFromMediaUrl(url) {
-  if (typeof url !== 'string' || !url.trim()) return '';
-  const marker = `${MEDIA_URL_BASE}/`;
-  const index = url.indexOf(marker);
-  if (index === -1) return '';
-  return url.slice(index + marker.length);
-}
-
-function collectItemImageStoragePaths(item) {
-  const paths = new Set();
-  const image = item?.image || {};
-
-  const push = (value) => {
-    if (typeof value !== 'string') return;
-    const trimmed = value.trim().replace(/^\/+/, '');
-    if (!trimmed) return;
-    paths.add(trimmed);
-  };
-
-  push(image?.original?.storagePath);
-  push(image?.display?.storagePath);
-  push(image?.thumb?.storagePath);
-
-  // Legacy single-image shape fallback.
-  push(image?.storagePath);
-  push(storagePathFromMediaUrl(image?.url));
-  push(storagePathFromMediaUrl(item?.imagePath));
-
-  return [...paths];
-}
+const { toAbsoluteMediaPath } = require('../config/media');
+const { collectImageStoragePaths } = require('../services/imageMetadataService');
 
 async function getAllItemsApi(req, res) {
   try {
@@ -178,7 +148,7 @@ async function deleteItemImageApi(req, res) {
       return res.status(404).json({ ok: false, error: 'Item not found' });
     }
 
-    const storagePaths = collectItemImageStoragePaths(current);
+    const storagePaths = collectImageStoragePaths(current);
     const absolutePaths = storagePaths.map((relativePath) =>
       toAbsoluteMediaPath(relativePath)
     );

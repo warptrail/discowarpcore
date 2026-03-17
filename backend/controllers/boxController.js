@@ -1,9 +1,12 @@
+const fs = require('fs/promises');
 const {
   getBoxByMongoId,
   getBoxByShortId,
   createBox,
   getBoxesByParent,
   updateBox,
+  setBoxImage,
+  clearBoxImage,
   getBoxTree,
   getBoxTreeByShortId,
   getAllBoxes,
@@ -13,6 +16,9 @@ const {
   getBoxDataStructure,
   releaseChildrenToFloor,
 } = require('../services/boxService');
+const { processBoxImageUpload } = require('../services/itemImageService');
+const { toAbsoluteMediaPath } = require('../config/media');
+const { collectImageStoragePaths } = require('../services/imageMetadataService');
 
 async function getBoxDataStructureApi(req, res, next) {
   try {
@@ -228,6 +234,93 @@ async function updateBoxApi(req, res) {
   }
 }
 
+async function postBoxImageApi(req, res) {
+  let filesToCleanup = [];
+
+  try {
+    const { id } = req.params;
+    const file = req.file;
+
+    if (!file) {
+      return res
+        .status(400)
+        .json({ ok: false, error: 'No file uploaded. Expected form field "image".' });
+    }
+
+    const processed = await processBoxImageUpload(file);
+    const image = processed.image;
+    filesToCleanup = processed.filesToCleanup;
+
+    const updated = await setBoxImage(id, image);
+    if (!updated) {
+      await Promise.all(filesToCleanup.map((target) => fs.unlink(target).catch(() => {})));
+      return res.status(404).json({ ok: false, error: 'Box not found' });
+    }
+
+    return res.status(201).json({
+      ok: true,
+      boxId: updated._id,
+      image: updated.image,
+      urls: {
+        display: updated.image?.display?.url || null,
+        thumb: updated.image?.thumb?.url || null,
+        original: updated.image?.original?.url || null,
+      },
+    });
+  } catch (err) {
+    console.error('❌ Error uploading box image:', err);
+    if (filesToCleanup.length) {
+      await Promise.all(filesToCleanup.map((target) => fs.unlink(target).catch(() => {})));
+    } else if (req?.file?.path) {
+      await fs.unlink(req.file.path).catch(() => {});
+    }
+    return res.status(400).json({ ok: false, error: 'Failed to upload box image' });
+  }
+}
+
+async function deleteBoxImageApi(req, res) {
+  try {
+    const { id } = req.params;
+    const current = await getBoxByMongoId(id);
+
+    if (!current) {
+      return res.status(404).json({ ok: false, error: 'Box not found' });
+    }
+
+    const storagePaths = collectImageStoragePaths(current);
+    const absolutePaths = storagePaths.map((relativePath) =>
+      toAbsoluteMediaPath(relativePath)
+    );
+
+    const updated = await clearBoxImage(id);
+    if (!updated) {
+      return res.status(404).json({ ok: false, error: 'Box not found' });
+    }
+
+    await Promise.all(
+      absolutePaths.map(async (target) => {
+        try {
+          await fs.unlink(target);
+        } catch (err) {
+          if (err?.code !== 'ENOENT') {
+            console.warn(`[box-image] failed to delete file: ${target}`, err);
+          }
+        }
+      })
+    );
+
+    return res.status(200).json({
+      ok: true,
+      boxId: updated._id,
+      image: updated.image,
+      deletedFileCount: absolutePaths.length,
+    });
+  } catch (err) {
+    console.error('❌ Error deleting box image:', err);
+    return res.status(400).json({ ok: false, error: 'Failed to delete box image' });
+  }
+}
+
 // POST /api/boxes/:id/release-children
 async function releaseChildrenToFloorApi(req, res) {
   try {
@@ -327,6 +420,8 @@ module.exports = {
   checkBoxIdAvailability,
   createBoxApi,
   updateBoxApi,
+  postBoxImageApi,
+  deleteBoxImageApi,
   releaseChildrenToFloorApi,
   getBoxTreeApi,
   getBoxTreeByShortIdApi,

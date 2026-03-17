@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import * as S from '../../styles/EditItemDetailsForm.styles';
+import { cropImageToSquare } from '../../util/cropImageToSquare';
+import ImageSourcePicker from '../ImageSourcePicker';
 
 function pickImageUrl(item) {
   return item?.image?.display?.url || item?.image?.url || item?.imagePath || '';
@@ -36,18 +38,18 @@ export default function EditItemImageSection({
 
   const hasImage = useMemo(() => !!previewUrl, [previewUrl]);
 
-  const handleUpload = async (event) => {
-    const file = event.target.files?.[0];
+  const handleSelectedImage = async (file) => {
     if (!file || !itemId) return;
-
-    const body = new FormData();
-    body.append('image', file);
 
     setBusy(true);
     setStatus('');
     setError('');
 
+    const body = new FormData();
     try {
+      const processedFile = await cropImageToSquare(file, { maxDimension: 1200 });
+      body.append('image', processedFile);
+
       const res = await fetch(`/api/items/${encodeURIComponent(itemId)}/image`, {
         method: 'POST',
         body,
@@ -74,7 +76,6 @@ export default function EditItemImageSection({
       setError(err?.message || 'Image upload failed.');
     } finally {
       setBusy(false);
-      event.target.value = '';
     }
   };
 
@@ -122,15 +123,21 @@ export default function EditItemImageSection({
         <S.FieldHint>No image uploaded.</S.FieldHint>
       )}
 
-      <S.FileInput
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handleUpload}
-        disabled={disabled || busy || !itemId}
-      />
-
       <S.InlineActions>
+        <ImageSourcePicker
+          disabled={disabled || busy || !itemId}
+          onFileSelected={handleSelectedImage}
+          label={hasImage ? 'Replace Photo' : 'Upload Photo'}
+          renderAction={({ label, onClick, disabled: actionDisabled }) => (
+            <S.SmallActionButton
+              type="button"
+              onClick={onClick}
+              disabled={actionDisabled}
+            >
+              {label}
+            </S.SmallActionButton>
+          )}
+        />
         <S.SmallActionButton
           type="button"
           onClick={handleRemove}

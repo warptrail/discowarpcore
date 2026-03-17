@@ -5,6 +5,7 @@ const {
   normalizeItemCategory,
   withNormalizedItemCategory,
 } = require('../utils/itemCategory');
+const { buildEmptyImageMetadata } = require('./imageMetadataService');
 
 /**
  * Get all items with breadcrumb + box info.
@@ -108,42 +109,11 @@ async function setItemImage(id, image) {
   );
 }
 
-function buildEmptyItemImage() {
-  return {
-    originalName: '',
-    uploadedAt: null,
-    original: {
-      storagePath: '',
-      url: '',
-      mimeType: '',
-      width: null,
-      height: null,
-      sizeBytes: null,
-    },
-    display: {
-      storagePath: '',
-      url: '',
-      mimeType: '',
-      width: null,
-      height: null,
-      sizeBytes: null,
-    },
-    thumb: {
-      storagePath: '',
-      url: '',
-      mimeType: '',
-      width: null,
-      height: null,
-      sizeBytes: null,
-    },
-  };
-}
-
 async function clearItemImage(id) {
   return Item.findByIdAndUpdate(
     id,
     {
-      image: buildEmptyItemImage(),
+      image: buildEmptyImageMetadata(),
       imagePath: '',
     },
     { new: true, runValidators: true }

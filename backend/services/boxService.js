@@ -9,6 +9,7 @@ const { withNormalizedItemCategory } = require('../utils/itemCategory');
 
 const { computeStats, flattenBoxes } = require('../utils/boxHelpers');
 const { wouldCreateCycle } = require('../utils/wouldCreateCycle');
+const { buildEmptyImageMetadata } = require('./imageMetadataService');
 
 function collectLocationIds(nodes = []) {
   const ids = new Set();
@@ -86,7 +87,7 @@ async function getBoxDataStructure(
 ) {
   // 1) Root box (by public short id)
   const root = await Box.findOne({ box_id: shortId })
-    .select('_id box_id label name parentBox items location locationId')
+    .select('_id box_id label name parentBox items location locationId imagePath image')
     .lean();
   if (!root) return null;
   root.label = root.label ?? root.name ?? 'Box';
@@ -98,7 +99,7 @@ async function getBoxDataStructure(
 
   while (frontier.length) {
     const children = await Box.find({ parentBox: { $in: frontier } })
-      .select('_id box_id label name parentBox items location locationId')
+      .select('_id box_id label name parentBox items location locationId imagePath image')
       .lean();
 
     for (const c of children) {
@@ -137,6 +138,8 @@ async function getBoxDataStructure(
       _id: node._id,
       box_id: node.box_id,
       label: node.label,
+      imagePath: node.imagePath ?? '',
+      image: node.image ?? null,
       parentBox: node.parentBox ? String(node.parentBox) : null,
       locationId: node.locationId ? String(node.locationId) : null,
       location: node.locationId
@@ -449,6 +452,28 @@ async function updateBox(id, data) {
   });
 }
 
+async function setBoxImage(id, image) {
+  return Box.findByIdAndUpdate(
+    id,
+    {
+      image,
+      imagePath: image?.display?.url || image?.original?.url || '',
+    },
+    { new: true, runValidators: true }
+  );
+}
+
+async function clearBoxImage(id) {
+  return Box.findByIdAndUpdate(
+    id,
+    {
+      image: buildEmptyImageMetadata(),
+      imagePath: '',
+    },
+    { new: true, runValidators: true }
+  );
+}
+
 async function collectDescendantBoxIds(rootBoxId) {
   const descendants = [];
   let frontier = [rootBoxId];
@@ -563,6 +588,8 @@ module.exports = {
   getBoxesByParent,
   createBox,
   updateBox,
+  setBoxImage,
+  clearBoxImage,
   getBoxTreeByShortId,
   getBoxTree,
   getAllBoxes,

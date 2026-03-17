@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { uploadSingleBoxImage } = require('../middleware/boxImageUpload');
 const {
   getBoxDataStructureApi,
   getBoxByMongoIdApi,
@@ -9,6 +10,8 @@ const {
   checkBoxIdAvailability,
   createBoxApi,
   updateBoxApi,
+  postBoxImageApi,
+  deleteBoxImageApi,
   releaseChildrenToFloorApi,
   getBoxTreeByShortIdApi,
   getBoxTreeApi,
@@ -27,6 +30,8 @@ router.get('/by-box-id/:shortId', getBoxDataStructureApi); // back-compat alias
 // router.get('/by-short-id/:shortId/tree', getBoxTreeByShortIdApi);
 router.get('/check-id/:short_id', checkBoxIdAvailability);
 router.post('/', createBoxApi);
+router.post('/:id/image', uploadSingleBoxImage, postBoxImageApi);
+router.delete('/:id/image', deleteBoxImageApi);
 router.patch('/:id', updateBoxApi);
 router.post('/:id/release-children', releaseChildrenToFloorApi);
 router.delete('/all', deleteAllBoxesApi);

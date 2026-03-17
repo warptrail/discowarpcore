@@ -123,6 +123,13 @@ export default function BoxMetaPanel({
   const shortId = String(box?.box_id ?? box?.shortId ?? '');
   const title = box?.label ?? box?.name ?? 'Box';
   const children = kidsOf(box);
+  const boxImageUrl =
+    box?.image?.display?.url ||
+    box?.image?.thumb?.url ||
+    box?.image?.original?.url ||
+    box?.image?.url ||
+    box?.imagePath ||
+    '';
 
   // Badge logic (uses only data we have on this node)
   const scope = useMemo(() => {
@@ -224,6 +231,12 @@ export default function BoxMetaPanel({
           <S.CurrentBoxId>{pad3(currentCrumb?.id)}</S.CurrentBoxId>
           <S.CurrentBoxTitle>{currentCrumb?.label ?? title}</S.CurrentBoxTitle>
         </S.CurrentBox>
+
+        {boxImageUrl ? (
+          <S.BoxImageWrap>
+            <S.BoxImage src={boxImageUrl} alt={`${title} image`} />
+          </S.BoxImageWrap>
+        ) : null}
       </S.IdentityZone>
 
       <S.MetaZone>

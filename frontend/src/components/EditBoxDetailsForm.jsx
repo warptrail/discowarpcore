@@ -1,19 +1,30 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 
-import { updateBoxDetails } from '../api/boxes';
+import { removeBoxImage, updateBoxDetails, uploadBoxImage } from '../api/boxes';
 import useShortIdAvailability from '../hooks/useShortIdAvailability';
 import useLocationRegistry from '../hooks/useLocationRegistry';
 import { ToastContext } from './Toast';
+import { cropImageToSquare } from '../util/cropImageToSquare';
 
 import * as S from './BoxForms/BoxEditForm.styles';
 import BoxIdentityFields from './BoxForms/BoxIdentityFields';
 import BoxTagsField from './BoxForms/BoxTagsField';
 import BoxFormActions from './BoxForms/BoxFormActions';
+import ImageSourcePicker from './ImageSourcePicker';
+
+const pickBoxImageUrl = (box) =>
+  box?.image?.display?.url ||
+  box?.image?.thumb?.url ||
+  box?.image?.original?.url ||
+  box?.image?.url ||
+  box?.imagePath ||
+  '';
 
 export default function EditBoxDetailsForm({
   boxMongoId,
   initial,
   onSaved,
+  onImageUpdated,
   onCancel,
   TagInputComponent,
 }) {
@@ -34,6 +45,10 @@ export default function EditBoxDetailsForm({
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [imageUrl, setImageUrl] = useState(() => pickBoxImageUrl(initial));
+  const [imageBusy, setImageBusy] = useState(false);
+  const [imageError, setImageError] = useState('');
+  const [imageStatus, setImageStatus] = useState('');
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
   const initialTagsKey = JSON.stringify(initial?.tags || []);
@@ -55,12 +70,17 @@ export default function EditBoxDetailsForm({
     setLocationId(nextLocationId ? String(nextLocationId) : '');
     setLocationError('');
     setTags(Array.isArray(initial?.tags) ? initial.tags : []);
+    setImageUrl(pickBoxImageUrl(initial));
+    setImageError('');
+    setImageStatus('');
   }, [
     initial?._id,
     initial?.box_id,
     initial?.label,
     initial?.locationId,
     initial?.tags,
+    initial?.image,
+    initial?.imagePath,
     initialTagsKey,
   ]);
 
@@ -155,6 +175,52 @@ export default function EditBoxDetailsForm({
     }
   };
 
+  const handleSelectedImage = async (file) => {
+    if (!file || !boxMongoId) return;
+
+    setImageBusy(true);
+    setImageError('');
+    setImageStatus('');
+
+    try {
+      const processedFile = await cropImageToSquare(file, { maxDimension: 1200 });
+      const data = await uploadBoxImage(boxMongoId, processedFile);
+      const nextUrl = data?.image?.display?.url || data?.urls?.display || '';
+      setImageUrl(nextUrl);
+      setImageStatus('Image uploaded.');
+      await Promise.resolve(onImageUpdated?.({
+        image: data?.image || null,
+        imagePath: data?.image?.display?.url || data?.image?.original?.url || '',
+      }));
+    } catch (err) {
+      setImageError(err?.message || 'Image upload failed');
+    } finally {
+      setImageBusy(false);
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    if (!boxMongoId || !imageUrl) return;
+
+    setImageBusy(true);
+    setImageError('');
+    setImageStatus('');
+
+    try {
+      const data = await removeBoxImage(boxMongoId);
+      setImageUrl('');
+      setImageStatus('Image removed.');
+      await Promise.resolve(onImageUpdated?.({
+        image: data?.image || null,
+        imagePath: '',
+      }));
+    } catch (err) {
+      setImageError(err?.message || 'Image removal failed');
+    } finally {
+      setImageBusy(false);
+    }
+  };
+
   return (
     <S.Card onSubmit={onSubmit} noValidate>
       <BoxIdentityFields
@@ -186,10 +252,41 @@ export default function EditBoxDetailsForm({
 
       <S.Field style={{ marginTop: 10 }}>
         <S.Label>Image</S.Label>
-        <S.FileStub>
-          Image upload coming soon. (This is a placeholder — file selection
-          disabled.)
-        </S.FileStub>
+        {imageUrl ? (
+          <S.ImagePreview src={imageUrl} alt={`${label || 'Box'} preview`} />
+        ) : (
+          <S.FileStub>No box image uploaded.</S.FileStub>
+        )}
+
+        <S.Actions style={{ marginTop: 8, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+          <ImageSourcePicker
+            disabled={busy || imageBusy || !boxMongoId}
+            onFileSelected={handleSelectedImage}
+            label={imageUrl ? 'Replace Photo' : 'Upload Photo'}
+            renderAction={({ label, onClick, disabled: actionDisabled }) => (
+              <S.Ghost
+                type="button"
+                onClick={onClick}
+                disabled={actionDisabled}
+              >
+                {label}
+              </S.Ghost>
+            )}
+          />
+
+          {imageUrl ? (
+            <S.Ghost
+              type="button"
+              onClick={handleRemoveImage}
+              disabled={busy || imageBusy}
+            >
+              Delete Photo
+            </S.Ghost>
+          ) : null}
+        </S.Actions>
+        {imageBusy ? <S.Hint>Working…</S.Hint> : null}
+        {imageStatus ? <S.Hint $success>{imageStatus}</S.Hint> : null}
+        {imageError ? <S.Hint $error>{imageError}</S.Hint> : null}
       </S.Field>
 
       {error && (

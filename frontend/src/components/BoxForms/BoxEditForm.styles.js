@@ -355,6 +355,17 @@ export const FileStub = styled.div`
   }
 `;
 
+export const ImagePreview = styled.img`
+  display: block;
+  width: min(220px, 100%);
+  max-height: 170px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #2f2f2f;
+  background: #0f0f0f;
+  margin-bottom: 8px;
+`;
+
 export const Actions = styled.div`
   display: flex;
   gap: 8px;

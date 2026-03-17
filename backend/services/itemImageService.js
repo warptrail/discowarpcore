@@ -3,19 +3,20 @@ const path = require('path');
 const sharp = require('sharp');
 const {
   ITEM_MEDIA_SUBDIRS,
+  BOX_MEDIA_SUBDIRS,
   DERIVATIVE_SIZES,
   DERIVATIVE_FORMAT,
   toAbsoluteMediaPath,
   toMediaUrl,
 } = require('../config/media');
 
-async function processItemImageUpload(file) {
-  const originalStoragePath = `${ITEM_MEDIA_SUBDIRS.original}/${file.filename}`;
+async function processEntityImageUpload(file, mediaSubdirs) {
+  const originalStoragePath = `${mediaSubdirs.original}/${file.filename}`;
   const originalAbsolutePath = file.path;
   const baseName = path.parse(file.filename).name;
 
-  const displayStoragePath = `${ITEM_MEDIA_SUBDIRS.display}/${baseName}${DERIVATIVE_FORMAT.extension}`;
-  const thumbStoragePath = `${ITEM_MEDIA_SUBDIRS.thumb}/${baseName}${DERIVATIVE_FORMAT.extension}`;
+  const displayStoragePath = `${mediaSubdirs.display}/${baseName}${DERIVATIVE_FORMAT.extension}`;
+  const thumbStoragePath = `${mediaSubdirs.thumb}/${baseName}${DERIVATIVE_FORMAT.extension}`;
 
   const displayAbsolutePath = toAbsoluteMediaPath(displayStoragePath);
   const thumbAbsolutePath = toAbsoluteMediaPath(thumbStoragePath);
@@ -84,6 +85,16 @@ async function processItemImageUpload(file) {
   };
 }
 
+async function processItemImageUpload(file) {
+  return processEntityImageUpload(file, ITEM_MEDIA_SUBDIRS);
+}
+
+async function processBoxImageUpload(file) {
+  return processEntityImageUpload(file, BOX_MEDIA_SUBDIRS);
+}
+
 module.exports = {
+  processEntityImageUpload,
   processItemImageUpload,
+  processBoxImageUpload,
 };

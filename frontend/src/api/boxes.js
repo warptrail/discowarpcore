@@ -134,3 +134,38 @@ export async function createBox(payload, opts = {}) {
   }
   return data?.box || data?.data || data;
 }
+
+export async function uploadBoxImage(boxMongoId, file, opts = {}) {
+  if (!boxMongoId) throw new Error('boxMongoId is required');
+  if (!file) throw new Error('file is required');
+
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const res = await fetch(`${API_BASE}/api/boxes/${boxMongoId}/image`, {
+    method: 'POST',
+    body: formData,
+    signal: opts.signal,
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error || data?.message || 'Failed to upload box image');
+  }
+  return data;
+}
+
+export async function removeBoxImage(boxMongoId, opts = {}) {
+  if (!boxMongoId) throw new Error('boxMongoId is required');
+
+  const res = await fetch(`${API_BASE}/api/boxes/${boxMongoId}/image`, {
+    method: 'DELETE',
+    signal: opts.signal,
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error || data?.message || 'Failed to remove box image');
+  }
+  return data;
+}

@@ -199,6 +199,21 @@ export const CurrentBoxTitle = styled.span`
   }
 `;
 
+export const BoxImageWrap = styled.div`
+  width: min(360px, 100%);
+  border-radius: ${NODE_RADIUS};
+  overflow: hidden;
+  border: 1px solid ${LCARS.line};
+  background: ${LCARS.panelSoft};
+`;
+
+export const BoxImage = styled.img`
+  display: block;
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+`;
+
 export const Crumbs = styled.nav`
   display: flex;
   align-items: center;
