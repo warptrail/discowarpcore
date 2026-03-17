@@ -1,13 +1,49 @@
 // controllers/itemController.js
+const fs = require('fs/promises');
 const {
   getAllItems,
   getItemById,
   getOrphanedItems,
   createItem,
   updateItem,
+  setItemImage,
+  clearItemImage,
   deleteItem,
   backfillOrphanedTimestamps,
 } = require('../services/itemService');
+const { processItemImageUpload } = require('../services/itemImageService');
+const { MEDIA_URL_BASE, toAbsoluteMediaPath } = require('../config/media');
+
+function storagePathFromMediaUrl(url) {
+  if (typeof url !== 'string' || !url.trim()) return '';
+  const marker = `${MEDIA_URL_BASE}/`;
+  const index = url.indexOf(marker);
+  if (index === -1) return '';
+  return url.slice(index + marker.length);
+}
+
+function collectItemImageStoragePaths(item) {
+  const paths = new Set();
+  const image = item?.image || {};
+
+  const push = (value) => {
+    if (typeof value !== 'string') return;
+    const trimmed = value.trim().replace(/^\/+/, '');
+    if (!trimmed) return;
+    paths.add(trimmed);
+  };
+
+  push(image?.original?.storagePath);
+  push(image?.display?.storagePath);
+  push(image?.thumb?.storagePath);
+
+  // Legacy single-image shape fallback.
+  push(image?.storagePath);
+  push(storagePathFromMediaUrl(image?.url));
+  push(storagePathFromMediaUrl(item?.imagePath));
+
+  return [...paths];
+}
 
 async function getAllItemsApi(req, res) {
   try {
@@ -89,6 +125,93 @@ async function patchItem(req, res) {
   }
 }
 
+async function postItemImageApi(req, res) {
+  let filesToCleanup = [];
+
+  try {
+    const { id } = req.params;
+    const file = req.file;
+
+    if (!file) {
+      return res
+        .status(400)
+        .json({ ok: false, error: 'No file uploaded. Expected form field "image".' });
+    }
+
+    const processed = await processItemImageUpload(file);
+    const image = processed.image;
+    filesToCleanup = processed.filesToCleanup;
+
+    const updated = await setItemImage(id, image);
+    if (!updated) {
+      await Promise.all(filesToCleanup.map((target) => fs.unlink(target).catch(() => {})));
+      return res.status(404).json({ ok: false, error: 'Item not found' });
+    }
+
+    return res.status(201).json({
+      ok: true,
+      itemId: updated._id,
+      image: updated.image,
+      urls: {
+        display: updated.image?.display?.url || null,
+        thumb: updated.image?.thumb?.url || null,
+        original: updated.image?.original?.url || null,
+      },
+    });
+  } catch (err) {
+    console.error('❌ Error uploading item image:', err);
+    if (filesToCleanup.length) {
+      await Promise.all(filesToCleanup.map((target) => fs.unlink(target).catch(() => {})));
+    } else if (req?.file?.path) {
+      await fs.unlink(req.file.path).catch(() => {});
+    }
+    return res.status(400).json({ ok: false, error: 'Failed to upload item image' });
+  }
+}
+
+async function deleteItemImageApi(req, res) {
+  try {
+    const { id } = req.params;
+    const current = await getItemById(id);
+
+    if (!current) {
+      return res.status(404).json({ ok: false, error: 'Item not found' });
+    }
+
+    const storagePaths = collectItemImageStoragePaths(current);
+    const absolutePaths = storagePaths.map((relativePath) =>
+      toAbsoluteMediaPath(relativePath)
+    );
+
+    const updated = await clearItemImage(id);
+    if (!updated) {
+      return res.status(404).json({ ok: false, error: 'Item not found' });
+    }
+
+    await Promise.all(
+      absolutePaths.map(async (target) => {
+        try {
+          await fs.unlink(target);
+        } catch (err) {
+          if (err?.code !== 'ENOENT') {
+            console.warn(`[item-image] failed to delete file: ${target}`, err);
+          }
+        }
+      })
+    );
+
+    return res.status(200).json({
+      ok: true,
+      itemId: updated._id,
+      image: updated.image,
+      deletedFileCount: absolutePaths.length,
+    });
+  } catch (err) {
+    console.error('❌ Error deleting item image:', err);
+    return res.status(400).json({ ok: false, error: 'Failed to delete item image' });
+  }
+}
+
 async function deleteItemById(req, res) {
   try {
     const deleted = await deleteItem(req.params.id);
@@ -116,6 +239,8 @@ module.exports = {
   getOrphanedItemsApi,
   postItem,
   patchItem,
+  postItemImageApi,
+  deleteItemImageApi,
   deleteItemById,
   backfillOrphanedTimestampsApi,
 };

@@ -72,3 +72,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Uploaded/generated media files
+backend/media/items/original/*
+backend/media/items/display/*
+backend/media/items/thumb/*
+backend/media/boxes/original/*
+backend/media/boxes/display/*
+backend/media/boxes/thumb/*

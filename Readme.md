@@ -49,6 +49,10 @@ npm run dev:backend   # Start Express server
 npm run dev:frontend  # Start React frontend
 ```
 
+## 🖼️ Media Dev Notes
+
+See [backend/docs/media_dev_contract.md](backend/docs/media_dev_contract.md) for the current media storage/URL contract, iPad upload test flow, and future mounted-volume mapping.
+
 # Notes and Todos
 
 ## Long term Ideas

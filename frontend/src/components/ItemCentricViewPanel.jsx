@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { formatItemCategory, normalizeItemCategory } from '../util/itemCategories';
+import { getItemOwnershipContext } from '../util/itemOwnership';
 
 /**
  * ItemCentricViewPanel
@@ -17,8 +18,8 @@ export default function ItemCentricViewPanel({
   onClose,
 }) {
   const [imgSrc, setImgSrc] = useState(item?.imagePath || fallbackSrc);
-
-  const orphaned = !item?.box;
+  const ownership = useMemo(() => getItemOwnershipContext(item), [item]);
+  const orphaned = ownership.isOrphaned;
   const tags = useMemo(
     () => (Array.isArray(item?.tags) ? item.tags : []),
     [item]
@@ -70,13 +71,17 @@ export default function ItemCentricViewPanel({
             <Fact>
               <FactLabel>Box:</FactLabel>
               <FactValue>
-                <BoxLink
-                  to={`/boxes/${item.box.box_id}`}
-                  title={`Go to box ${item.box.box_id}`}
-                >
-                  <BoxBadge>{item.box.box_id}</BoxBadge>
-                  <span>{item.box.label}</span>
-                </BoxLink>
+                {ownership.boxId ? (
+                  <BoxLink
+                    to={`/boxes/${ownership.boxId}`}
+                    title={`Go to box ${ownership.boxId}`}
+                  >
+                    <BoxBadge>{ownership.boxId}</BoxBadge>
+                    <span>{ownership.boxLabel}</span>
+                  </BoxLink>
+                ) : (
+                  <span>{ownership.boxLabel || 'Assigned'}</span>
+                )}
               </FactValue>
             </Fact>
           )}

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const FLASH_MS = 1000;
+export const ITEM_FLASH_MS = 1000;
+export const ITEM_FLASH_VARIANTS = ['blue', 'yellow', 'red'];
+const FLASH_VARIANT_SET = new Set(ITEM_FLASH_VARIANTS);
 
 export default function useItemEffects() {
   const [openItemId, setOpenItemId] = useState(null);
@@ -19,7 +21,10 @@ export default function useItemEffects() {
     setPulsing((prev) => prev.filter((id) => id !== itemId));
   }, []);
 
-  const triggerFlash = useCallback((itemId, color = 'blue', ms = FLASH_MS) => {
+  const triggerItemFlash = useCallback((itemId, color = 'blue', ms = ITEM_FLASH_MS) => {
+    if (!itemId) return;
+
+    const variant = FLASH_VARIANT_SET.has(color) ? color : 'blue';
     if (flashTimersRef.current[itemId]) {
       clearTimeout(flashTimersRef.current[itemId]);
       delete flashTimersRef.current[itemId];
@@ -34,7 +39,7 @@ export default function useItemEffects() {
       requestAnimationFrame(() => {
         setEffectsById((prev) => ({
           ...prev,
-          [itemId]: { ...prev[itemId], flash: color },
+          [itemId]: { ...prev[itemId], flash: variant },
         }));
 
         const t = setTimeout(() => {
@@ -53,20 +58,20 @@ export default function useItemEffects() {
   const handleOpen = useCallback(
     (itemId) => {
       if (openItemId === itemId) {
-        triggerFlash(itemId);
+        triggerItemFlash(itemId);
         stopPulse(itemId);
         setOpenItemId(null);
       } else {
         if (openItemId) {
-          triggerFlash(openItemId);
+          triggerItemFlash(openItemId);
           stopPulse(openItemId);
         }
-        triggerFlash(itemId);
+        triggerItemFlash(itemId);
         startPulse(itemId);
         setOpenItemId(itemId);
       }
     },
-    [openItemId, triggerFlash, startPulse, stopPulse],
+    [openItemId, triggerItemFlash, startPulse, stopPulse],
   );
 
   const handleFlash = useCallback((id, effect) => {
@@ -89,7 +94,8 @@ export default function useItemEffects() {
     setOpenItemId,
     startPulse,
     stopPulse,
-    triggerFlash,
+    triggerFlash: triggerItemFlash,
+    triggerItemFlash,
     handleOpen,
     handleFlash,
   };

@@ -97,6 +97,59 @@ async function deleteItem(id) {
   return Item.findByIdAndDelete(id);
 }
 
+async function setItemImage(id, image) {
+  return Item.findByIdAndUpdate(
+    id,
+    {
+      image,
+      imagePath: image?.display?.url || image?.original?.url || '',
+    },
+    { new: true, runValidators: true }
+  );
+}
+
+function buildEmptyItemImage() {
+  return {
+    originalName: '',
+    uploadedAt: null,
+    original: {
+      storagePath: '',
+      url: '',
+      mimeType: '',
+      width: null,
+      height: null,
+      sizeBytes: null,
+    },
+    display: {
+      storagePath: '',
+      url: '',
+      mimeType: '',
+      width: null,
+      height: null,
+      sizeBytes: null,
+    },
+    thumb: {
+      storagePath: '',
+      url: '',
+      mimeType: '',
+      width: null,
+      height: null,
+      sizeBytes: null,
+    },
+  };
+}
+
+async function clearItemImage(id) {
+  return Item.findByIdAndUpdate(
+    id,
+    {
+      image: buildEmptyItemImage(),
+      imagePath: '',
+    },
+    { new: true, runValidators: true }
+  );
+}
+
 /**
  * Maintenance helpers
  */
@@ -228,6 +281,8 @@ module.exports = {
   getOrphanedItems,
   createItem,
   updateItem,
+  setItemImage,
+  clearItemImage,
   deleteItem,
   backfillOrphanedTimestamps,
   orphanAllItemsInBox,

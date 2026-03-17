@@ -18,8 +18,6 @@ export default function ItemRow({
   flashing = false,
   flashColor = 'blue',
   triggerFlash,
-  startPulse,
-  stopPulse,
 }) {
   const navigate = useNavigate();
   const isMobile = useIsMobile(768);
@@ -34,6 +32,20 @@ export default function ItemRow({
     category,
   } = item;
   const categoryLabel = formatItemCategory(normalizeItemCategory(category));
+  const [localImage, setLocalImage] = useState(item?.image || null);
+  const [localImagePath, setLocalImagePath] = useState(item?.imagePath || '');
+  const collapsedThumbUrl =
+    localImage?.thumb?.url ||
+    localImage?.display?.url ||
+    localImage?.original?.url ||
+    localImage?.url ||
+    localImagePath ||
+    '';
+  const itemForView = {
+    ...item,
+    image: localImage,
+    imagePath: localImagePath,
+  };
 
   const [editMode, setEditMode] = useState(false);
   const [targetHeight, setTargetHeight] = useState(0);
@@ -81,6 +93,11 @@ export default function ItemRow({
     }
   }, [isMobile, editMode]);
 
+  useEffect(() => {
+    setLocalImage(item?.image || null);
+    setLocalImagePath(item?.imagePath || '');
+  }, [_id, item?.image, item?.imagePath]);
+
   const handleRowClick = () => {
     if (!_id) return;
 
@@ -119,13 +136,28 @@ export default function ItemRow({
     >
       <S.Row onClick={handleRowClick} $open={rowIsOpen}>
         <S.RowHeader $open={rowIsOpen}>
-          {itemHomeHref ? (
-            <S.TitleLink to={itemHomeHref} onClick={(e) => e.stopPropagation()}>
-              {name}
-            </S.TitleLink>
-          ) : (
-            <S.Title>{name}</S.Title>
-          )}
+          <S.RowMain>
+            {!rowIsOpen && (
+              <S.RowThumb>
+                {collapsedThumbUrl ? (
+                  <S.RowThumbImage src={collapsedThumbUrl} alt={`${name || 'Item'} thumbnail`} />
+                ) : (
+                  <S.RowThumbPlaceholder aria-hidden="true" />
+                )}
+              </S.RowThumb>
+            )}
+
+            <S.TitleGroup>
+              {itemHomeHref ? (
+                <S.TitleLink to={itemHomeHref} onClick={(e) => e.stopPropagation()}>
+                  {name}
+                </S.TitleLink>
+              ) : (
+                <S.Title>{name}</S.Title>
+              )}
+            </S.TitleGroup>
+          </S.RowMain>
+
           <S.RowActions>
             {!rowIsOpen && quantity != null && <S.Qty>qty {quantity}</S.Qty>}
             {!isMobile && (
@@ -170,6 +202,10 @@ export default function ItemRow({
                 <EditItemDetailsForm
                   item={item}
                   triggerFlash={triggerFlash}
+                  onItemImageUpdated={({ image, imagePath }) => {
+                    setLocalImage(image || null);
+                    setLocalImagePath(imagePath || '');
+                  }}
                   onSaved={(updated) => {
                     onSaved?.(updated);
                   }}
@@ -177,9 +213,7 @@ export default function ItemRow({
               ) : (
                 <ItemDetails
                   itemId={_id}
-                  triggerFlash={triggerFlash}
-                  onStartPulse={() => startPulse?.(_id)}
-                  onStopPulse={() => stopPulse?.(_id)}
+                  itemData={itemForView}
                 />
               )}
             </S.DetailsCard>

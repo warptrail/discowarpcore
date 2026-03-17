@@ -412,7 +412,10 @@ export default function ItemPage() {
       {isEditing ? (
         <EditItemDetailsForm
           item={item}
-          onCancel={() => setIsEditing(false)}
+          onCancel={() => {
+            setIsEditing(false);
+            loadItem({ preserveLoading: true });
+          }}
           onSaved={(updated) => {
             if (!updated) return;
             setItem(updated);

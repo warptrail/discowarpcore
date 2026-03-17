@@ -2,6 +2,7 @@ require('dotenv').config({ path: './backend/.env' });
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
+const { MEDIA_ROOT, MEDIA_URL_BASE, ensureMediaDirs } = require('./config/media');
 const boxRoutes = require('./routes/boxes');
 const itemRoutes = require('./routes/items');
 const boxItemRoutes = require('./routes/boxItem');
@@ -15,6 +16,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(MEDIA_URL_BASE, express.static(MEDIA_ROOT));
 
 // Connect to Mongo
 app.use('/api/boxes', boxRoutes);
@@ -44,6 +46,7 @@ app.get('/', (req, res) => {
 
 async function startServer() {
   await connectDB(process.env.MONGO_URI);
+  ensureMediaDirs();
 
   try {
     const result = await backfillBoxLocations();

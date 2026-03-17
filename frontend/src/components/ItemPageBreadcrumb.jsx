@@ -1,11 +1,13 @@
 import React, { useMemo } from 'react';
 import * as S from '../styles/ItemPage.styles';
+import { getItemOwnershipContext } from '../util/itemOwnership';
 
 function buildBreadcrumb(item, itemId) {
   const safeItemName = String(item?.name || 'Unnamed Item').trim() || 'Unnamed Item';
   const safeItemId = String(item?._id || itemId || '').trim();
   const home = { kind: 'link', to: '/', label: 'Home' };
   const nodes = Array.isArray(item?.breadcrumb) ? item.breadcrumb : [];
+  const ownership = getItemOwnershipContext(item);
 
   const breadcrumbBoxes = nodes
     .map((node, index) => {
@@ -33,10 +35,10 @@ function buildBreadcrumb(item, itemId) {
     ];
   }
 
-  const parentBoxId = String(item?.box?.box_id || '').trim();
-  const parentBoxLabel = String(item?.box?.label || 'Box').trim() || 'Box';
+  const parentBoxId = String(ownership?.boxId || '').trim();
+  const parentBoxLabel = String(ownership?.boxLabel || 'Box').trim() || 'Box';
 
-  if (parentBoxId || item?.box) {
+  if (ownership?.isBoxed) {
     return [
       home,
       {

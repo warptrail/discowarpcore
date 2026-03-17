@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import MoveItemToOtherBox from './MoveItemToOtherBox';
 import * as S from '../styles/ItemPage.styles';
+import { getItemOwnershipContext } from '../util/itemOwnership';
 
 export default function ItemContainerSection({
   item,
@@ -10,12 +11,15 @@ export default function ItemContainerSection({
   onRemoveFromBox,
 }) {
   const [showPicker, setShowPicker] = useState(false);
-
-  const box = item?.box ?? null;
-  const boxMongoId = box?._id ? String(box._id) : '';
-  const boxShortId = box?.box_id ? String(box.box_id) : '';
-  const boxLabel = box?.label || (boxShortId ? `Box ${boxShortId}` : 'Current box');
-  const isBoxed = Boolean(box);
+  const ownership = getItemOwnershipContext(item);
+  const box = ownership.box ?? null;
+  const boxMongoId = ownership.boxMongoId || (box?._id ? String(box._id) : '');
+  const boxShortId = ownership.boxId || (box?.box_id ? String(box.box_id) : '');
+  const boxLabel =
+    ownership.boxLabel ||
+    box?.label ||
+    (boxShortId ? `Box ${boxShortId}` : 'Current box');
+  const isBoxed = ownership.isBoxed;
 
   const handleSelectDestination = async ({
     destBoxId,

@@ -147,6 +147,54 @@ export const RowHeader = styled.div`
   }
 `;
 
+export const RowMain = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.62rem;
+  min-width: 0;
+  flex: 1;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.5rem;
+  }
+`;
+
+export const RowThumb = styled.div`
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  overflow: hidden;
+`;
+
+export const RowThumbImage = styled.img`
+  width: 56px;
+  height: 56px;
+  display: block;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+`;
+
+export const RowThumbPlaceholder = styled.div`
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.045),
+      rgba(255, 255, 255, 0.015)
+    ),
+    rgba(255, 255, 255, 0.025);
+`;
+
+export const TitleGroup = styled.div`
+  min-width: 0;
+  flex: 1;
+`;
+
 export const RowActions = styled.div`
   display: inline-flex;
   align-items: center;

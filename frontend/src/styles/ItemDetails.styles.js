@@ -3,7 +3,6 @@ import {
   MOBILE_BREAKPOINT,
   MOBILE_FONT_SM,
   MOBILE_FONT_XS,
-  MOBILE_NARROW_BREAKPOINT,
   MOBILE_PANEL_RADIUS,
 } from './tokens';
 
@@ -112,6 +111,27 @@ export const HeaderBand = styled.header`
   display: grid;
   gap: 0.35rem;
   min-width: 0;
+`;
+
+export const FeaturedImageWrap = styled.div`
+  position: relative;
+  z-index: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid ${LCARS.line};
+  background: ${LCARS.panelInset};
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: 10px;
+  }
+`;
+
+export const FeaturedImage = styled.img`
+  display: block;
+  width: 100%;
+  max-height: min(44vh, 420px);
+  object-fit: cover;
 `;
 
 export const TitleBlock = styled.div`
@@ -410,71 +430,71 @@ export const BreadcrumbSep = styled.span`
   margin: 0 0.05rem;
 `;
 
-export const UtilityDock = styled.div`
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.55rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 0.62rem;
-
-  @media (max-width: 560px) {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    gap: 0.42rem;
-    padding-top: 0.52rem;
-  }
-`;
-
-export const UtilityTitle = styled.span`
-  color: ${LCARS.textMuted};
-  font-size: 0.64rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.06em;
-  }
-`;
-
-export const TestButtons = styled.div`
-  display: inline-flex;
+export const UploadStack = styled.div`
+  display: grid;
   gap: 0.4rem;
-  flex-wrap: wrap;
 `;
 
-export const FlashButton = styled.button`
-  border: 1px solid
-    ${({ $tone }) => ($tone === 'yellow' ? 'rgba(255, 212, 0, 0.52)' : 'rgba(255, 107, 107, 0.55)')};
-  background: ${({ $tone }) =>
-    $tone === 'yellow' ? 'rgba(255, 212, 0, 0.12)' : 'rgba(255, 107, 107, 0.12)'};
-  color: ${({ $tone }) => ($tone === 'yellow' ? '#ffe38a' : '#ffc4c4')};
-  border-radius: 7px;
-  padding: 0.28rem 0.56rem;
-  font-size: 0.72rem;
-  font-weight: 640;
-  letter-spacing: 0.03em;
-  cursor: pointer;
-  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
-  min-height: 34px;
+export const UploadInput = styled.input`
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid ${LCARS.line};
+  background: rgba(255, 255, 255, 0.03);
+  color: ${LCARS.text};
+  padding: 0.38rem 0.42rem;
+  font-size: 0.82rem;
 
-  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
-    width: 100%;
+  &::file-selector-button {
+    border: 1px solid ${LCARS.teal}66;
+    background: ${LCARS.teal}1a;
+    color: #c9f2ee;
+    border-radius: 6px;
+    padding: 0.24rem 0.5rem;
+    margin-right: 0.5rem;
+    cursor: pointer;
+    font-size: 0.78rem;
   }
 
-  &:hover {
-    border-color: ${({ $tone }) => ($tone === 'yellow' ? 'rgba(255, 212, 0, 0.74)' : 'rgba(255, 107, 107, 0.74)')};
-    background: ${({ $tone }) =>
-      $tone === 'yellow' ? 'rgba(255, 212, 0, 0.2)' : 'rgba(255, 107, 107, 0.2)'};
-    transform: translateY(-1px);
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
+`;
+
+export const UploadHint = styled.span`
+  color: ${LCARS.textMuted};
+  font-size: 0.76rem;
+`;
+
+export const UploadSuccess = styled.span`
+  color: #9ce3b6;
+  font-size: 0.8rem;
+`;
+
+export const UploadError = styled.span`
+  color: #ff9a9a;
+  font-size: 0.8rem;
+`;
+
+export const PreviewStack = styled.div`
+  display: grid;
+  gap: 0.44rem;
+`;
+
+export const PreviewLink = styled.a`
+  color: ${LCARS.teal};
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+`;
+
+export const PreviewImage = styled.img`
+  display: block;
+  width: min(320px, 100%);
+  max-height: 240px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid ${LCARS.line};
+  background: ${LCARS.panelInset};
 `;
 
 const shimmer = keyframes`

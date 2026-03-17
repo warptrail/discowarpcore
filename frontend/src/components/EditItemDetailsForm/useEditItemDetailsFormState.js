@@ -126,6 +126,10 @@ export default function useEditItemDetailsFormState({ item, triggerFlash, onSave
         delete payload.location;
       }
 
+      // Image management is handled by dedicated upload/remove endpoints.
+      delete payload.image;
+      delete payload.imagePath;
+
       const updated = await editItem(item._id, payload);
       triggerFlash?.(item._id, 'yellow');
       onSaved?.(updated);

@@ -326,3 +326,66 @@ export const RevertButton = styled.button`
     font-size: ${MOBILE_FONT_XS};
   }
 `;
+
+export const FileInput = styled.input`
+  ${fieldControlStyles}
+  padding: 0.36rem 0.46rem;
+
+  &::file-selector-button {
+    border: 1px solid rgba(76, 198, 193, 0.56);
+    background: rgba(76, 198, 193, 0.16);
+    color: #d9fffb;
+    border-radius: 6px;
+    padding: 0.24rem 0.56rem;
+    margin-right: 0.5rem;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 620;
+  }
+`;
+
+export const ImagePreview = styled.img`
+  display: block;
+  width: min(240px, 100%);
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(140, 160, 179, 0.3);
+  background: ${LCARS.inset};
+`;
+
+export const InlineActions = styled.div`
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+`;
+
+export const SmallActionButton = styled.button`
+  ${actionButtonBase}
+  min-width: 0;
+  padding: 0.42rem 0.78rem;
+  font-size: 0.74rem;
+  border-radius: 10px;
+  border: 1px solid ${({ $tone }) =>
+    $tone === 'danger' ? 'rgba(240, 138, 123, 0.58)' : 'rgba(167, 182, 255, 0.58)'};
+  color: ${({ $tone }) => ($tone === 'danger' ? '#ffd8d3' : '#d7defd')};
+  background: ${({ $tone }) =>
+    $tone === 'danger'
+      ? 'linear-gradient(180deg, #5e2b2b, #462121)'
+      : 'linear-gradient(180deg, #2b3552, #20293f)'};
+
+  &:hover:enabled {
+    border-color: ${({ $tone }) =>
+      $tone === 'danger' ? 'rgba(240, 138, 123, 0.82)' : 'rgba(167, 182, 255, 0.82)'};
+  }
+`;
+
+export const StatusText = styled.span`
+  color: ${({ $tone }) =>
+    $tone === 'error'
+      ? '#ffb3b3'
+      : $tone === 'success'
+        ? '#b9f4cd'
+        : 'rgba(214, 226, 241, 0.75)'};
+  font-size: 0.76rem;
+`;

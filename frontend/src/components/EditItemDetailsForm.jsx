@@ -5,6 +5,7 @@ import EditItemTextFieldsSection from './EditItemDetailsForm/EditItemTextFieldsS
 import EditItemTagsSection from './EditItemDetailsForm/EditItemTagsSection';
 import EditItemQuantitySection from './EditItemDetailsForm/EditItemQuantitySection';
 import EditItemStructuredFieldsSection from './EditItemDetailsForm/EditItemStructuredFieldsSection';
+import EditItemImageSection from './EditItemDetailsForm/EditItemImageSection';
 import EditItemFormActions from './EditItemDetailsForm/EditItemFormActions';
 import useEditItemDetailsFormState from './EditItemDetailsForm/useEditItemDetailsFormState';
 
@@ -12,6 +13,7 @@ export default function EditItemDetailsForm({
   item,
   triggerFlash,
   onSaved,
+  onItemImageUpdated,
   onCancel,
 }) {
   const {
@@ -35,6 +37,12 @@ export default function EditItemDetailsForm({
   return (
     <S.Form onSubmit={handleSave}>
       <S.Fieldset disabled={saving}>
+        <EditItemImageSection
+          item={item}
+          disabled={saving}
+          onItemImageUpdated={onItemImageUpdated}
+        />
+
         <EditItemTextFieldsSection
           formData={formData}
           onTextChange={handleTextChange}

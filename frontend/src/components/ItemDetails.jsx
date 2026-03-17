@@ -3,9 +3,19 @@ import dayjs from 'dayjs';
 import * as S from '../styles/ItemDetails.styles';
 import { fetchItemDetails, createAborter } from '../api/itemDetails';
 import { formatItemCategory, normalizeItemCategory } from '../util/itemCategories';
+import { getItemOwnershipContext } from '../util/itemOwnership';
 
 function fmtDate(value) {
   return value ? dayjs(value).format('YYYY-MM-DD') : '—';
+}
+
+function formatBoxSummary(label, boxId) {
+  const safeLabel = String(label || '').trim();
+  const safeBoxId = String(boxId || '').trim();
+  if (!safeLabel && !safeBoxId) return '—';
+  if (safeLabel && safeBoxId) return `${safeLabel} (${safeBoxId})`;
+  if (safeLabel) return safeLabel;
+  return `Box ${safeBoxId}`;
 }
 
 function DetailRow({ label, value, stretch = false }) {
@@ -45,15 +55,20 @@ function BreadcrumbTrail({ breadcrumb = [] }) {
 export default function ItemDetails({
   itemId,
   itemData: providedItemData = null,
-  triggerFlash,
 }) {
   const [itemData, setItemData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const shouldFetch = !providedItemData && !!itemId;
+  const hasProvidedData =
+    !!providedItemData && typeof providedItemData === 'object';
+  const providedHasContainmentSnapshot =
+    hasProvidedData &&
+    ('box' in providedItemData || Array.isArray(providedItemData?.breadcrumb));
+  const shouldFetch = !!itemId && (!hasProvidedData || !providedHasContainmentSnapshot);
 
   useEffect(() => {
     if (!shouldFetch) {
+      setItemData(null);
       setLoading(false);
       setError(null);
       return undefined;
@@ -67,22 +82,27 @@ export default function ItemDetails({
     }
 
     const { signal, cancel } = createAborter();
-    setLoading(true);
+    setItemData(null);
+    setLoading(!hasProvidedData);
     setError(null);
 
     fetchItemDetails(itemId, { signal })
       .then((data) => setItemData(data))
       .catch((err) => {
         if (err?.name !== 'AbortError') {
-          setError(err?.message || 'Failed to load item details');
+          if (!hasProvidedData) {
+            setError(err?.message || 'Failed to load item details');
+          } else {
+            console.warn('[ItemDetails] hydration fetch failed:', err);
+          }
         }
       })
       .finally(() => setLoading(false));
 
     return () => cancel();
-  }, [itemId, shouldFetch]);
+  }, [hasProvidedData, itemId, shouldFetch]);
 
-  const resolvedItemData = providedItemData ?? itemData;
+  const resolvedItemData = itemData ?? providedItemData;
 
   if (loading) {
     return (
@@ -123,22 +143,45 @@ export default function ItemDetails({
     lastMaintainedAt,
     maintenanceIntervalDays,
     maintenanceNotes,
-    box,
+    box: apiBox,
     breadcrumb,
     depth,
     topBox,
   } = resolvedItemData;
 
-  const resolvedItemId = resolvedItemData?._id ?? itemId;
+  const resolvedImageUrl =
+    resolvedItemData?.image?.display?.url ||
+    resolvedItemData?.image?.thumb?.url ||
+    resolvedItemData?.image?.original?.url ||
+    resolvedItemData?.image?.url ||
+    imagePath ||
+    '';
 
   const tagList = Array.isArray(tags) ? tags : [];
   const usageDates = Array.isArray(usageHistory) ? usageHistory : [];
   const categoryLabel = formatItemCategory(normalizeItemCategory(category));
-
-  const isOrphaned = !box;
+  const ownership = getItemOwnershipContext(resolvedItemData);
+  const resolvedBox = ownership.box || apiBox || null;
+  const resolvedBoxId = ownership.boxId || resolvedBox?.box_id || '';
+  const resolvedBoxLabel = ownership.boxLabel || resolvedBox?.label || '';
+  const breadcrumbTrail =
+    Array.isArray(breadcrumb) && breadcrumb.length
+      ? breadcrumb
+      : ownership.isBoxed && (resolvedBoxId || resolvedBoxLabel)
+      ? [
+          {
+            _id: resolvedBox?._id || ownership.boxMongoId || `box-${resolvedBoxId || 'unknown'}`,
+            box_id: resolvedBoxId || '—',
+            label: resolvedBoxLabel || 'Box',
+          },
+        ]
+      : [];
+  const isOrphaned = ownership.isOrphaned;
   const statusLabel = isOrphaned ? 'Orphaned' : 'Assigned';
-  const primaryBox = box ? `${box.label} (${box.box_id})` : '—';
-  const topBoxSummary = topBox ? `${topBox?.label || '—'} (${topBox?.box_id || '—'})` : '—';
+  const primaryBox = formatBoxSummary(resolvedBoxLabel, resolvedBoxId);
+  const topBoxSummary = topBox
+    ? formatBoxSummary(topBox?.label, topBox?.box_id)
+    : '—';
 
   return (
     <S.Panel>
@@ -149,10 +192,19 @@ export default function ItemDetails({
               {statusLabel}
             </S.StatePill>
             {quantity != null && <S.MetaTag>qty {quantity}</S.MetaTag>}
-            {box?.box_id && <S.MetaTag>box {box.box_id}</S.MetaTag>}
+            {resolvedBoxId ? <S.MetaTag>box {resolvedBoxId}</S.MetaTag> : null}
           </S.HeaderMeta>
         </S.TitleBlock>
       </S.HeaderBand>
+
+      {resolvedImageUrl ? (
+        <S.FeaturedImageWrap>
+          <S.FeaturedImage
+            src={resolvedImageUrl}
+            alt={`${resolvedItemData?.name || 'Item'} image`}
+          />
+        </S.FeaturedImageWrap>
+      ) : null}
 
       <S.SectionGrid>
         <DetailSection title="Identity / Summary" tone="teal">
@@ -247,12 +299,12 @@ export default function ItemDetails({
         <DetailSection title="Placement / Hierarchy" tone="coral" wide>
           <DetailRow label="Location" value={location || '—'} stretch />
           <DetailRow label="Box" value={primaryBox} stretch />
-          <DetailRow label="Box Description" value={box?.description || '—'} stretch />
+          <DetailRow label="Box Description" value={resolvedBox?.description || '—'} stretch />
           <DetailRow label="Depth" value={depth ?? '—'} />
           <DetailRow label="Top Box" value={topBoxSummary} stretch />
           <DetailRow
             label="Breadcrumb"
-            value={<BreadcrumbTrail breadcrumb={breadcrumb} />}
+            value={<BreadcrumbTrail breadcrumb={breadcrumbTrail} />}
             stretch
           />
         </DetailSection>
@@ -260,29 +312,9 @@ export default function ItemDetails({
         <DetailSection title="Media Metadata" tone="lilac" wide>
           <DetailRow label="Image Path" value={imagePath || '—'} stretch />
         </DetailSection>
+
       </S.SectionGrid>
 
-      {typeof triggerFlash === 'function' ? (
-        <S.UtilityDock>
-          <S.UtilityTitle>Debug</S.UtilityTitle>
-          <S.TestButtons>
-            <S.FlashButton
-              type="button"
-              $tone="yellow"
-              onClick={() => triggerFlash?.(resolvedItemId, 'yellow')}
-            >
-              Yellow Flash
-            </S.FlashButton>
-            <S.FlashButton
-              type="button"
-              $tone="red"
-              onClick={() => triggerFlash?.(resolvedItemId, 'red')}
-            >
-              Red Flash
-            </S.FlashButton>
-          </S.TestButtons>
-        </S.UtilityDock>
-      ) : null}
     </S.Panel>
   );
 }
