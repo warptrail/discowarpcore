@@ -35,6 +35,7 @@ coverage/
 
 # MongoDB data (if dumped locally)
 dump/
+*.tar.gz
 *.lock
 
 # Custom

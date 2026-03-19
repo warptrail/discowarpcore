@@ -1,12 +1,12 @@
 import styled, { css } from 'styled-components';
 
 const LCARS = {
-  bg: '#0c0f11',
-  panel: '#14181b',
-  panelAlt: '#1a1f24',
+  bg: '#090d13',
+  panel: '#101821',
+  panelAlt: '#162330',
   text: '#e6edf3',
   textDim: 'rgba(230,237,243,0.72)',
-  line: 'rgba(255,255,255,0.08)',
+  line: 'rgba(104, 154, 186, 0.34)',
   teal: '#4CC6C1',
   lilac: '#A7B6FF',
   amber: '#E8B15C',
@@ -19,8 +19,9 @@ const panelBase = css`
   border: 1px solid ${LCARS.line};
   border-radius: 14px;
   box-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.25),
-    0 8px 24px rgba(0, 0, 0, 0.24);
+    inset 0 0 0 1px rgba(127, 215, 255, 0.08),
+    0 12px 30px rgba(2, 9, 16, 0.55),
+    0 0 16px rgba(76, 198, 193, 0.08);
 `;
 
 export const HeaderShell = styled.section`
@@ -28,9 +29,10 @@ export const HeaderShell = styled.section`
   display: grid;
   gap: 0.74rem;
   padding: 0.88rem 0.92rem 0.94rem;
+  border-color: ${toneAlpha(LCARS.root, '60')};
   background:
-    radial-gradient(circle at 95% 8%, ${toneAlpha(LCARS.root, '1e')} 0%, transparent 42%),
-    linear-gradient(180deg, #12171b 0%, #0f1317 100%);
+    radial-gradient(circle at 95% 10%, ${toneAlpha(LCARS.root, '24')} 0%, transparent 42%),
+    linear-gradient(180deg, #0f1822 0%, #0b121a 100%);
 `;
 
 export const TitleRow = styled.div`
@@ -84,17 +86,24 @@ export const Sep = styled.span`
   color: ${toneAlpha(LCARS.textDim, '9f')};
 `;
 
-export const ControlsRow = styled.div`
+export const SearchSortRow = styled.div`
   display: grid;
-  grid-template-columns:
-    minmax(220px, 1fr)
-    minmax(130px, 170px)
-    minmax(130px, 170px)
-    minmax(150px, 220px)
-    minmax(150px, 220px);
+  min-width: 0;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
   gap: 0.55rem;
 
-  @media (max-width: 780px) {
+  @media (max-width: 760px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const FilterRow = styled.div`
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+  gap: 0.55rem;
+
+  @media (max-width: 560px) {
     grid-template-columns: 1fr;
   }
 `;
@@ -102,14 +111,21 @@ export const ControlsRow = styled.div`
 export const ControlGroup = styled.label`
   ${panelBase};
   display: grid;
+  min-width: 0;
   gap: 0.28rem;
   padding: 0.44rem 0.56rem 0.5rem;
+  border-color: ${({ $tone = LCARS.root }) => toneAlpha($tone, '66')};
+  box-shadow:
+    inset 0 0 0 1px ${({ $tone = LCARS.root }) => toneAlpha($tone, '20')},
+    0 10px 24px rgba(2, 9, 16, 0.52),
+    0 0 14px ${({ $tone = LCARS.root }) => toneAlpha($tone, '18')};
   background:
     linear-gradient(
       94deg,
-      ${({ $tone = LCARS.root }) => toneAlpha($tone, '16')} 0%,
-      transparent 62%
+      ${({ $tone = LCARS.root }) => toneAlpha($tone, '1d')} 0%,
+      transparent 58%
     ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 70%),
     ${LCARS.panel};
 `;
 
@@ -118,27 +134,32 @@ export const ControlLabel = styled.span`
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: ${LCARS.textDim};
+  color: ${toneAlpha(LCARS.root, 'cc')};
 `;
 
 const controlField = css`
   width: 100%;
-  border: 1px solid ${toneAlpha(LCARS.line, 'cc')};
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid rgba(108, 156, 188, 0.5);
   border-radius: 9px;
-  background: ${LCARS.bg};
-  color: ${LCARS.text};
+  background: linear-gradient(180deg, rgba(6, 12, 19, 0.98), rgba(8, 15, 23, 0.98));
+  color: ${toneAlpha(LCARS.text, 'f3')};
   min-height: 34px;
   padding: 0.46rem 0.62rem;
   font-size: 0.86rem;
   outline: none;
+  box-shadow: inset 0 0 0 1px rgba(125, 185, 220, 0.08);
   transition:
     border-color 130ms ease,
     box-shadow 130ms ease,
     background 130ms ease;
 
   &:focus {
-    border-color: ${toneAlpha(LCARS.root, 'b6')};
-    box-shadow: 0 0 0 2px ${toneAlpha(LCARS.root, '26')};
+    border-color: ${toneAlpha(LCARS.root, 'd0')};
+    box-shadow:
+      0 0 0 2px ${toneAlpha(LCARS.root, '2f')},
+      0 0 14px ${toneAlpha(LCARS.root, '30')};
     background: ${LCARS.panelAlt};
   }
 `;
@@ -167,4 +188,55 @@ export const Select = styled.select`
   background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
   padding-right: 1.8rem;
+`;
+
+export const QuickActionsRow = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  min-width: 0;
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const QuickActionButton = styled.button`
+  min-width: 0;
+  min-height: 40px;
+  border-radius: 11px;
+  border: 1px solid
+    ${({ $active }) =>
+      $active ? toneAlpha(LCARS.teal, 'cf') : toneAlpha(LCARS.root, '6b')};
+  background: ${({ $active }) =>
+    $active
+      ? 'linear-gradient(180deg, rgba(15, 53, 58, 0.95), rgba(10, 41, 47, 0.95))'
+      : 'linear-gradient(180deg, rgba(14, 30, 44, 0.96), rgba(10, 22, 34, 0.96))'};
+  color: ${({ $active }) =>
+    $active ? toneAlpha(LCARS.teal, 'f2') : toneAlpha(LCARS.root, 'da')};
+  font-size: 0.78rem;
+  font-weight: 780;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    border-color 130ms ease,
+    background 130ms ease,
+    transform 130ms ease;
+
+  &:hover {
+    border-color: ${toneAlpha(LCARS.teal, 'aa')};
+    box-shadow: 0 0 12px ${toneAlpha(LCARS.teal, '2e')};
+    transform: translateY(-1px);
+  }
+`;
+
+export const QuickActionPanel = styled.div`
+  ${panelBase};
+  padding: 0.58rem;
+  border-color: ${toneAlpha(LCARS.root, '58')};
+  background:
+    radial-gradient(circle at 95% 8%, ${toneAlpha(LCARS.lilac, '22')} 0%, transparent 44%),
+    linear-gradient(180deg, #0f1822 0%, #0a121a 100%);
+  min-width: 0;
 `;

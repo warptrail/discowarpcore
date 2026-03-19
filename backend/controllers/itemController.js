@@ -1,5 +1,4 @@
 // controllers/itemController.js
-const fs = require('fs/promises');
 const {
   getAllItems,
   getItemsPage,
@@ -17,8 +16,11 @@ const {
   backfillOrphanedTimestamps,
 } = require('../services/itemService');
 const { processItemImageUpload } = require('../services/itemImageService');
-const { toAbsoluteMediaPath } = require('../config/media');
 const { collectImageStoragePaths } = require('../services/imageMetadataService');
+const {
+  safeDeleteMediaFile,
+  safeDeleteMediaFiles,
+} = require('../utils/mediaCleanup');
 
 function parsePositiveInt(raw, fallback) {
   const n = Number.parseInt(String(raw ?? ''), 10);
@@ -171,7 +173,9 @@ async function postItemImageApi(req, res) {
 
     const updated = await setItemImage(id, image);
     if (!updated) {
-      await Promise.all(filesToCleanup.map((target) => fs.unlink(target).catch(() => {})));
+      await safeDeleteMediaFiles(filesToCleanup, {
+        label: `item-image-upload-not-found:${id}`,
+      });
       return res.status(404).json({ ok: false, error: 'Item not found' });
     }
 
@@ -188,9 +192,13 @@ async function postItemImageApi(req, res) {
   } catch (err) {
     console.error('❌ Error uploading item image:', err);
     if (filesToCleanup.length) {
-      await Promise.all(filesToCleanup.map((target) => fs.unlink(target).catch(() => {})));
+      await safeDeleteMediaFiles(filesToCleanup, {
+        label: 'item-image-upload-failed',
+      });
     } else if (req?.file?.path) {
-      await fs.unlink(req.file.path).catch(() => {});
+      await safeDeleteMediaFile(req.file.path, {
+        label: 'item-image-upload-failed',
+      });
     }
     return res.status(400).json({ ok: false, error: 'Failed to upload item image' });
   }
@@ -206,32 +214,19 @@ async function deleteItemImageApi(req, res) {
     }
 
     const storagePaths = collectImageStoragePaths(current);
-    const absolutePaths = storagePaths.map((relativePath) =>
-      toAbsoluteMediaPath(relativePath)
-    );
 
     const updated = await clearItemImage(id);
     if (!updated) {
       return res.status(404).json({ ok: false, error: 'Item not found' });
     }
 
-    await Promise.all(
-      absolutePaths.map(async (target) => {
-        try {
-          await fs.unlink(target);
-        } catch (err) {
-          if (err?.code !== 'ENOENT') {
-            console.warn(`[item-image] failed to delete file: ${target}`, err);
-          }
-        }
-      })
-    );
+    await safeDeleteMediaFiles(storagePaths, { label: `item-image-clear:${id}` });
 
     return res.status(200).json({
       ok: true,
       itemId: updated._id,
       image: updated.image,
-      deletedFileCount: absolutePaths.length,
+      deletedFileCount: storagePaths.length,
     });
   } catch (err) {
     console.error('❌ Error deleting item image:', err);

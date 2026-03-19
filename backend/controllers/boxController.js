@@ -1,4 +1,3 @@
-const fs = require('fs/promises');
 const {
   getBoxByMongoId,
   getBoxByShortId,
@@ -17,8 +16,11 @@ const {
   releaseChildrenToFloor,
 } = require('../services/boxService');
 const { processBoxImageUpload } = require('../services/itemImageService');
-const { toAbsoluteMediaPath } = require('../config/media');
 const { collectImageStoragePaths } = require('../services/imageMetadataService');
+const {
+  safeDeleteMediaFile,
+  safeDeleteMediaFiles,
+} = require('../utils/mediaCleanup');
 
 async function getBoxDataStructureApi(req, res, next) {
   try {
@@ -254,7 +256,9 @@ async function postBoxImageApi(req, res) {
 
     const updated = await setBoxImage(id, image);
     if (!updated) {
-      await Promise.all(filesToCleanup.map((target) => fs.unlink(target).catch(() => {})));
+      await safeDeleteMediaFiles(filesToCleanup, {
+        label: `box-image-upload-not-found:${id}`,
+      });
       return res.status(404).json({ ok: false, error: 'Box not found' });
     }
 
@@ -271,9 +275,13 @@ async function postBoxImageApi(req, res) {
   } catch (err) {
     console.error('❌ Error uploading box image:', err);
     if (filesToCleanup.length) {
-      await Promise.all(filesToCleanup.map((target) => fs.unlink(target).catch(() => {})));
+      await safeDeleteMediaFiles(filesToCleanup, {
+        label: 'box-image-upload-failed',
+      });
     } else if (req?.file?.path) {
-      await fs.unlink(req.file.path).catch(() => {});
+      await safeDeleteMediaFile(req.file.path, {
+        label: 'box-image-upload-failed',
+      });
     }
     return res.status(400).json({ ok: false, error: 'Failed to upload box image' });
   }
@@ -289,32 +297,19 @@ async function deleteBoxImageApi(req, res) {
     }
 
     const storagePaths = collectImageStoragePaths(current);
-    const absolutePaths = storagePaths.map((relativePath) =>
-      toAbsoluteMediaPath(relativePath)
-    );
 
     const updated = await clearBoxImage(id);
     if (!updated) {
       return res.status(404).json({ ok: false, error: 'Box not found' });
     }
 
-    await Promise.all(
-      absolutePaths.map(async (target) => {
-        try {
-          await fs.unlink(target);
-        } catch (err) {
-          if (err?.code !== 'ENOENT') {
-            console.warn(`[box-image] failed to delete file: ${target}`, err);
-          }
-        }
-      })
-    );
+    await safeDeleteMediaFiles(storagePaths, { label: `box-image-clear:${id}` });
 
     return res.status(200).json({
       ok: true,
       boxId: updated._id,
       image: updated.image,
-      deletedFileCount: absolutePaths.length,
+      deletedFileCount: storagePaths.length,
     });
   } catch (err) {
     console.error('❌ Error deleting box image:', err);

@@ -5,7 +5,11 @@ const {
   normalizeItemCategory,
   withNormalizedItemCategory,
 } = require('../utils/itemCategory');
-const { buildEmptyImageMetadata } = require('./imageMetadataService');
+const {
+  buildEmptyImageMetadata,
+  collectImageStoragePaths,
+} = require('./imageMetadataService');
+const { safeDeleteMediaFiles } = require('../utils/mediaCleanup');
 const {
   ITEM_STATUSES,
   ITEM_DISPOSITIONS,
@@ -387,8 +391,20 @@ async function restoreItemToActive(id) {
 }
 
 async function hardDeleteItem(id) {
+  const current = await Item.findById(id).select('_id image imagePath').lean();
+  if (!current) return null;
+
+  const previousPaths = collectImageStoragePaths(current);
+
   await Box.updateMany({ items: id }, { $pull: { items: id } });
-  return Item.findByIdAndDelete(id);
+  const deleted = await Item.findByIdAndDelete(id);
+  if (!deleted) return null;
+
+  await safeDeleteMediaFiles(previousPaths, {
+    label: `item-delete:${id}`,
+  });
+
+  return deleted;
 }
 
 async function deleteItem(id) {
@@ -396,7 +412,13 @@ async function deleteItem(id) {
 }
 
 async function setItemImage(id, image) {
-  return Item.findByIdAndUpdate(
+  const current = await Item.findById(id).select('image imagePath').lean();
+  if (!current) return null;
+
+  const previousPaths = collectImageStoragePaths(current);
+  const nextPaths = new Set(collectImageStoragePaths({ image, imagePath: '' }));
+
+  const updated = await Item.findByIdAndUpdate(
     id,
     {
       image,
@@ -404,6 +426,16 @@ async function setItemImage(id, image) {
     },
     { new: true, runValidators: true }
   );
+
+  if (!updated) return null;
+
+  const stalePaths = previousPaths.filter((entry) => !nextPaths.has(entry));
+
+  await safeDeleteMediaFiles(stalePaths, {
+    label: `item-image-replace:${id}`,
+  });
+
+  return updated;
 }
 
 async function clearItemImage(id) {

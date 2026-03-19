@@ -324,17 +324,11 @@ export default function Header() {
 
         <NavRow $condensed={condensed}>
           <NavButton to="/">🚀 Operations</NavButton>
+          <NavButton to="/retrieval">🔎 Retrieval</NavButton>
           <NavButton to="/intake">📲 Intake</NavButton>
           <NavButton to="/all-items">🧾 All Items</NavButton>
-          <NavButton to="/retrieval">🔎 Retrieval</NavButton>
 
-          {/* Filler buttons (wire later) */}
-          <FauxButton type="button" disabled>
-            🧨 Orphaned
-          </FauxButton>
-          <FauxButton type="button" disabled>
-            ⚙️ Settings
-          </FauxButton>
+          {/* Placeholder button (wire later) */}
           <FauxButton type="button" disabled>
             🛰️ Logs
           </FauxButton>

@@ -9,7 +9,11 @@ const { withNormalizedItemCategory } = require('../utils/itemCategory');
 
 const { computeStats, flattenBoxes } = require('../utils/boxHelpers');
 const { wouldCreateCycle } = require('../utils/wouldCreateCycle');
-const { buildEmptyImageMetadata } = require('./imageMetadataService');
+const {
+  buildEmptyImageMetadata,
+  collectImageStoragePaths,
+} = require('./imageMetadataService');
+const { safeDeleteMediaFiles } = require('../utils/mediaCleanup');
 
 const ACTIVE_ITEM_FILTER = { item_status: { $ne: 'gone' } };
 
@@ -465,7 +469,13 @@ async function updateBox(id, data) {
 }
 
 async function setBoxImage(id, image) {
-  return Box.findByIdAndUpdate(
+  const current = await Box.findById(id).select('image imagePath').lean();
+  if (!current) return null;
+
+  const previousPaths = collectImageStoragePaths(current);
+  const nextPaths = new Set(collectImageStoragePaths({ image, imagePath: '' }));
+
+  const updated = await Box.findByIdAndUpdate(
     id,
     {
       image,
@@ -473,6 +483,16 @@ async function setBoxImage(id, image) {
     },
     { new: true, runValidators: true }
   );
+
+  if (!updated) return null;
+
+  const stalePaths = previousPaths.filter((entry) => !nextPaths.has(entry));
+
+  await safeDeleteMediaFiles(stalePaths, {
+    label: `box-image-replace:${id}`,
+  });
+
+  return updated;
 }
 
 async function clearBoxImage(id) {
@@ -509,12 +529,14 @@ async function collectDescendantBoxIds(rootBoxId) {
 // Orphans direct items, releases all descendants to floor, then removes the box.
 async function deleteBoxById(id, { orphanItems = true } = {}) {
   // Ensure the box exists
-  const box = await Box.findById(id).select('_id items').lean();
+  const box = await Box.findById(id).select('_id items image imagePath').lean();
   if (!box) {
     const err = new Error('Box not found');
     err.status = 404;
     throw err;
   }
+
+  const ownImagePaths = collectImageStoragePaths(box);
 
   // Detach (or delete) items that belonged to this box
   if (orphanItems) {
@@ -534,6 +556,11 @@ async function deleteBoxById(id, { orphanItems = true } = {}) {
 
   // Delete the box itself
   await Box.deleteOne({ _id: box._id });
+
+  // Cleanup only the deleted box's own media files.
+  await safeDeleteMediaFiles(ownImagePaths, {
+    label: `box-delete:${box._id}`,
+  });
 
   return {
     ok: true,

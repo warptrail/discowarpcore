@@ -13,31 +13,78 @@ import { normalizeItemCategory } from '../util/itemCategories';
  * }]
  */
 export default function BoxList({ boxes = [], orphanedCount = 0, locations = [] }) {
+  const [quickCreatedBoxes, setQuickCreatedBoxes] = useState([]);
+  const [quickOrphanedDelta, setQuickOrphanedDelta] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('boxId');
   const [filterBy, setFilterBy] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState('all');
+  const [ownerFilter, setOwnerFilter] = useState('all');
+
+  const mergedBoxes = useMemo(
+    () => mergeQuickCreatedBoxes(boxes, quickCreatedBoxes),
+    [boxes, quickCreatedBoxes],
+  );
+  const ownerOptions = useMemo(() => collectOwnerOptions(mergedBoxes), [mergedBoxes]);
+  const effectiveOrphanedCount = Number(orphanedCount || 0) + quickOrphanedDelta;
 
   const telemetry = useMemo(
-    () => summarizeTree(boxes, orphanedCount),
-    [boxes, orphanedCount],
+    () => summarizeTree(mergedBoxes, effectiveOrphanedCount),
+    [mergedBoxes, effectiveOrphanedCount],
   );
 
   const visibleBoxes = useMemo(
     () =>
-      applyTreeControls(boxes, {
+      applyTreeControls(mergedBoxes, {
         searchQuery,
         sortBy,
         filterBy,
         categoryFilter,
         locationFilter,
+        ownerFilter,
       }),
-    [boxes, searchQuery, sortBy, filterBy, categoryFilter, locationFilter],
+    [
+      mergedBoxes,
+      searchQuery,
+      sortBy,
+      filterBy,
+      categoryFilter,
+      locationFilter,
+      ownerFilter,
+    ],
   );
 
-  const noData = !boxes || boxes.length === 0;
+  const noData = !mergedBoxes || mergedBoxes.length === 0;
   const hasNoMatches = !noData && visibleBoxes.length === 0;
+
+  const handleQuickBoxCreated = (createdBox) => {
+    const nextId = String(createdBox?._id || '').trim();
+    if (!nextId) return;
+
+    setQuickCreatedBoxes((prev) => {
+      const byId = new Map();
+
+      for (const entry of prev) {
+        const key = String(entry?._id || '').trim();
+        if (key) byId.set(key, entry);
+      }
+
+      byId.set(nextId, {
+        ...createdBox,
+        items: Array.isArray(createdBox?.items) ? createdBox.items : [],
+        childBoxes: Array.isArray(createdBox?.childBoxes)
+          ? createdBox.childBoxes
+          : [],
+      });
+
+      return [...byId.values()];
+    });
+  };
+
+  const handleQuickOrphanCreated = () => {
+    setQuickOrphanedDelta((prev) => prev + 1);
+  };
 
   return (
     <S.Container>
@@ -55,6 +102,11 @@ export default function BoxList({ boxes = [], orphanedCount = 0, locations = [] 
         onCategoryFilterChange={setCategoryFilter}
         locationFilter={locationFilter}
         onLocationFilterChange={setLocationFilter}
+        ownerFilter={ownerFilter}
+        onOwnerFilterChange={setOwnerFilter}
+        owners={ownerOptions}
+        onQuickBoxCreated={handleQuickBoxCreated}
+        onQuickOrphanCreated={handleQuickOrphanCreated}
         locations={locations}
       />
 
@@ -219,6 +271,7 @@ function applyTreeControls(
     filterBy = 'all',
     categoryFilter = 'all',
     locationFilter = 'all',
+    ownerFilter = 'all',
   },
 ) {
   const query = normalize(searchQuery);
@@ -247,9 +300,17 @@ function applyTreeControls(
     const matchesLocation =
       locationFilter === 'all' ||
       (nodeLocationId && nodeLocationId === String(locationFilter));
+    const normalizedOwnerFilter = normalize(ownerFilter);
+    const matchesOwner =
+      normalizedOwnerFilter === 'all' ||
+      hasItemWithOwner(node.items, normalizedOwnerFilter);
 
     const include =
-      (matchesSearch && matchesFilter && matchesCategory && matchesLocation) ||
+      (matchesSearch &&
+        matchesFilter &&
+        matchesCategory &&
+        matchesLocation &&
+        matchesOwner) ||
       children.length > 0;
     if (!include) return null;
 
@@ -342,6 +403,58 @@ function hasItemWithCategory(items, categoryFilter) {
   return items.some(
     (item) => normalizeItemCategory(item?.category) === categoryFilter
   );
+}
+
+function hasItemWithOwner(items, ownerFilter) {
+  if (!ownerFilter) return true;
+  if (!Array.isArray(items) || items.length === 0) return false;
+
+  return items.some((item) => normalize(item?.primaryOwnerName) === ownerFilter);
+}
+
+function collectOwnerOptions(nodes) {
+  const byKey = new Map();
+
+  const walk = (list) => {
+    for (const node of list || []) {
+      const items = Array.isArray(node?.items) ? node.items : [];
+      for (const item of items) {
+        const label = String(item?.primaryOwnerName || '').trim();
+        if (!label) continue;
+        const key = normalize(label);
+        if (!byKey.has(key)) byKey.set(key, label);
+      }
+      walk(node?.childBoxes);
+    }
+  };
+
+  walk(nodes);
+
+  return [...byKey.entries()]
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => compareText(a.label, b.label));
+}
+
+function mergeQuickCreatedBoxes(baseNodes, quickCreatedBoxes) {
+  const base = Array.isArray(baseNodes) ? baseNodes : [];
+  const quick = Array.isArray(quickCreatedBoxes) ? quickCreatedBoxes : [];
+
+  if (quick.length === 0) return base;
+
+  const byId = new Map();
+  for (const node of base) {
+    const key = String(node?._id || '').trim();
+    if (key) byId.set(key, node);
+  }
+
+  for (const node of quick) {
+    const key = String(node?._id || '').trim();
+    if (!key) continue;
+    if (byId.has(key)) continue;
+    byId.set(key, node);
+  }
+
+  return sortNodes([...byId.values()], 'boxId');
 }
 
 function getLocationId(node) {

@@ -12,7 +12,11 @@
     "install:all": "npm install && cd frontend && npm install",
     "seed": "node backend/scripts/seed.js",
     "seed:all": "node backend/scripts/seed.js --all",
-    "test:delete-enforcement": "node backend/scripts/test_box_delete_enforcement.js"
+    "backup:full": "node backend/scripts/backup-full.js",
+    "restore:full": "node backend/scripts/restore-full.js",
+    "reset:hard": "node backend/scripts/reset-hard.js",
+    "test:delete-enforcement": "node backend/scripts/test_box_delete_enforcement.js",
+    "test:media-cleanup": "node backend/scripts/test_media_cleanup.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

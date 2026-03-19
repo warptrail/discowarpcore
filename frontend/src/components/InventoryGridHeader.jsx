@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import * as S from '../styles/InventoryGridHeader.styles';
 import { ITEM_CATEGORIES, formatItemCategory } from '../util/itemCategories';
+import BoxCreate from './BoxCreate';
+import IntakeQuickItemMaker from './Intake/IntakeQuickItemMaker';
 
 const SORT_OPTIONS = [
   { value: 'boxId', label: 'Box ID' },
@@ -33,7 +35,28 @@ export default function InventoryGridHeader({
   locationFilter = 'all',
   onLocationFilterChange,
   locations = [],
+  ownerFilter = 'all',
+  onOwnerFilterChange,
+  owners = [],
+  onQuickBoxCreated,
+  onQuickOrphanCreated,
 }) {
+  const [quickPanel, setQuickPanel] = useState('');
+
+  const toggleQuickPanel = (panel) => {
+    setQuickPanel((prev) => (prev === panel ? '' : panel));
+  };
+
+  const handleQuickBoxCreated = async (created) => {
+    await Promise.resolve(onQuickBoxCreated?.(created));
+    setQuickPanel('');
+  };
+
+  const handleQuickOrphanCreated = async (payload) => {
+    await Promise.resolve(onQuickOrphanCreated?.(payload));
+    setQuickPanel('');
+  };
+
   return (
     <S.HeaderShell>
       <S.TitleRow>
@@ -55,7 +78,7 @@ export default function InventoryGridHeader({
         </S.TelemetryValue>
       </S.TelemetryRow>
 
-      <S.ControlsRow>
+      <S.SearchSortRow>
         <S.ControlGroup $tone="#7FD7FF">
           <S.ControlLabel>Search</S.ControlLabel>
           <S.SearchInput
@@ -81,7 +104,9 @@ export default function InventoryGridHeader({
             ))}
           </S.Select>
         </S.ControlGroup>
+      </S.SearchSortRow>
 
+      <S.FilterRow>
         <S.ControlGroup $tone="#A7B6FF">
           <S.ControlLabel>Filter</S.ControlLabel>
           <S.Select
@@ -128,7 +153,58 @@ export default function InventoryGridHeader({
             ))}
           </S.Select>
         </S.ControlGroup>
-      </S.ControlsRow>
+
+        <S.ControlGroup $tone="#8ED0A8">
+          <S.ControlLabel>Owner</S.ControlLabel>
+          <S.Select
+            value={ownerFilter}
+            onChange={(e) => onOwnerFilterChange?.(e.target.value)}
+            aria-label="Filter by owner"
+          >
+            <option value="all">All Owners</option>
+            {owners.map((owner) => (
+              <option key={owner.value} value={owner.value}>
+                {owner.label}
+              </option>
+            ))}
+          </S.Select>
+        </S.ControlGroup>
+      </S.FilterRow>
+
+      <S.QuickActionsRow>
+        <S.QuickActionButton
+          type="button"
+          $active={quickPanel === 'box'}
+          onClick={() => toggleQuickPanel('box')}
+        >
+          Quick Create Box
+        </S.QuickActionButton>
+        <S.QuickActionButton
+          type="button"
+          $active={quickPanel === 'orphan'}
+          onClick={() => toggleQuickPanel('orphan')}
+        >
+          Quick Create Orphan Item
+        </S.QuickActionButton>
+      </S.QuickActionsRow>
+
+      {quickPanel === 'box' ? (
+        <S.QuickActionPanel>
+          <BoxCreate
+            embedded
+            autoNavigate={false}
+            title="Quick Create Box"
+            onCreated={handleQuickBoxCreated}
+            onCancel={() => setQuickPanel('')}
+          />
+        </S.QuickActionPanel>
+      ) : null}
+
+      {quickPanel === 'orphan' ? (
+        <S.QuickActionPanel>
+          <IntakeQuickItemMaker onItemCreated={handleQuickOrphanCreated} />
+        </S.QuickActionPanel>
+      ) : null}
     </S.HeaderShell>
   );
 }
