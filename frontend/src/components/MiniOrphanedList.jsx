@@ -227,17 +227,63 @@ const sortOrphanedItems = (items) => {
   });
 };
 
+const PAGE_SIZE = 20;
+
+function mergeUniqueById(existing, incoming) {
+  const merged = [];
+  const seen = new Set();
+
+  for (const item of [...(existing || []), ...(incoming || [])]) {
+    const key = String(item?._id || '');
+    if (!key) continue;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(item);
+  }
+
+  return merged;
+}
+
+const LoadMoreWrap = styled.div`
+  display: flex;
+  justify-content: center;
+`;
+
+const LoadMoreBtn = styled.button`
+  border: 1px solid #3f6f55;
+  border-radius: 8px;
+  min-height: 34px;
+  padding: 0 0.82rem;
+  background: #1b2c23;
+  color: #def2e7;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+`;
+
 export default function MiniOrphanedList({
   boxMongoId,
   onItemAssigned,
   orphanedItems,
   fetchOrphanedItems,
+  refreshKey = 0,
+  assignLabel = 'Assign',
 }) {
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
 
   const [localItems, setLocalItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
   const [error, setError] = useState('');
   const [assigningId, setAssigningId] = useState(null);
 
@@ -248,35 +294,73 @@ export default function MiniOrphanedList({
     [sourceItems],
   );
 
-  const fetchLocalOrphanedItems = useCallback(async () => {
-    setLoading(true);
+  const fetchLocalOrphanedItems = useCallback(async ({ offset = 0, append = false } = {}) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     setError('');
+
     try {
-      const res = await fetch(`${API_BASE}/api/items/orphaned?sort=recent&limit=10000`);
-      const body = await res.json().catch(() => []);
+      const params = new URLSearchParams({
+        sort: 'recent',
+        limit: String(PAGE_SIZE),
+        offset: String(Math.max(0, Number(offset) || 0)),
+        paginated: '1',
+      });
+      const res = await fetch(`${API_BASE}/api/items/orphaned?${params.toString()}`);
+      const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(body?.error || body?.message || 'Failed to load orphaned items');
       }
-      setLocalItems(Array.isArray(body) ? body : []);
+
+      const pageItems = Array.isArray(body)
+        ? body
+        : Array.isArray(body?.items)
+          ? body.items
+          : [];
+      const nextTotal = Number.isFinite(Number(body?.total))
+        ? Number(body.total)
+        : (append ? offset + pageItems.length : pageItems.length);
+      const nextHasMore = typeof body?.hasMore === 'boolean'
+        ? body.hasMore
+        : (offset + pageItems.length < nextTotal);
+
+      setTotalCount(nextTotal);
+      setHasMore(nextHasMore);
+      setLocalItems((prev) => (
+        append
+          ? mergeUniqueById(prev, pageItems)
+          : Array.isArray(pageItems) ? pageItems : []
+      ));
     } catch (e) {
       setError(e?.message || 'Failed to load orphaned items');
-      setLocalItems([]);
+      if (!append) {
+        setLocalItems([]);
+        setHasMore(false);
+        setTotalCount(0);
+      }
     } finally {
-      setLoading(false);
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
     if (usesParentItems) return;
-    fetchLocalOrphanedItems();
-  }, [usesParentItems, fetchLocalOrphanedItems]);
+    fetchLocalOrphanedItems({ offset: 0, append: false });
+  }, [boxMongoId, usesParentItems, fetchLocalOrphanedItems, refreshKey]);
 
   const refreshOrphaned = useCallback(async () => {
     if (typeof fetchOrphanedItems === 'function') {
       await fetchOrphanedItems();
       return;
     }
-    await fetchLocalOrphanedItems();
+    await fetchLocalOrphanedItems({ offset: 0, append: false });
   }, [fetchOrphanedItems, fetchLocalOrphanedItems]);
 
   const handleAssign = async (item) => {
@@ -300,7 +384,7 @@ export default function MiniOrphanedList({
       setLocalItems((prev) => prev.filter((it) => String(it?._id) !== String(itemId)));
 
       await Promise.all([
-        onItemAssigned?.(itemId),
+        onItemAssigned?.(itemId, { item, boxMongoId }),
         refreshOrphaned(),
       ]);
 
@@ -328,7 +412,7 @@ export default function MiniOrphanedList({
     <Panel>
       <Header>
         <Title>Orphaned Items</Title>
-        <Count>{sortedItems.length}</Count>
+        <Count>{usesParentItems ? sortedItems.length : totalCount || sortedItems.length}</Count>
       </Header>
 
       <Body>
@@ -364,10 +448,22 @@ export default function MiniOrphanedList({
                 onClick={() => handleAssign(item)}
                 disabled={!boxMongoId || assigningId === item?._id}
               >
-                {assigningId === item?._id ? 'Assigning…' : 'Assign'}
+                {assigningId === item?._id ? 'Assigning…' : assignLabel}
               </AssignBtn>
             </Row>
           ))}
+
+        {!usesParentItems && !loading && !error && hasMore ? (
+          <LoadMoreWrap>
+            <LoadMoreBtn
+              type="button"
+              onClick={() => fetchLocalOrphanedItems({ offset: sortedItems.length, append: true })}
+              disabled={loadingMore || !!assigningId}
+            >
+              {loadingMore ? 'Loading…' : 'Load More'}
+            </LoadMoreBtn>
+          </LoadMoreWrap>
+        ) : null}
       </Body>
     </Panel>
   );

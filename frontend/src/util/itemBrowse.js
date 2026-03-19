@@ -102,6 +102,16 @@ export function compareItemsByMode(a, b, sortMode = 'recentlyAdded') {
       if (diff !== 0) return diff;
       break;
     }
+    case 'ownerAsc': {
+      const diff = compareText(a?.primaryOwnerName, b?.primaryOwnerName);
+      if (diff !== 0) return diff;
+      break;
+    }
+    case 'ownerDesc': {
+      const diff = compareText(b?.primaryOwnerName, a?.primaryOwnerName);
+      if (diff !== 0) return diff;
+      break;
+    }
     case 'valueDesc': {
       const diff = compareNullableNumber(a?.valueCents, b?.valueCents, 'desc');
       if (diff !== 0) return diff;

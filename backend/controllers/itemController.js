@@ -2,23 +2,68 @@
 const fs = require('fs/promises');
 const {
   getAllItems,
+  getItemsPage,
+  toItemStatusScope,
   getItemById,
   getOrphanedItems,
+  getOrphanedItemsPage,
   createItem,
   updateItem,
   setItemImage,
   clearItemImage,
-  deleteItem,
+  hardDeleteItem,
+  markItemGone,
+  restoreItemToActive,
   backfillOrphanedTimestamps,
 } = require('../services/itemService');
 const { processItemImageUpload } = require('../services/itemImageService');
 const { toAbsoluteMediaPath } = require('../config/media');
 const { collectImageStoragePaths } = require('../services/imageMetadataService');
 
+function parsePositiveInt(raw, fallback) {
+  const n = Number.parseInt(String(raw ?? ''), 10);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return n;
+}
+
+function parseNonNegativeInt(raw, fallback) {
+  const n = Number.parseInt(String(raw ?? ''), 10);
+  if (!Number.isFinite(n) || n < 0) return fallback;
+  return n;
+}
+
 async function getAllItemsApi(req, res) {
   try {
-    const items = await getAllItems();
-    res.json(items);
+    const statusScope = toItemStatusScope(req.query.status);
+    const hasPaginationRequest =
+      req.query.limit != null || req.query.offset != null || req.query.page != null;
+    const hasFilterRequest =
+      String(req.query.q ?? req.query.search ?? '').trim() ||
+      String(req.query.category ?? '').trim() ||
+      String(req.query.tag ?? '').trim() ||
+      String(req.query.sort ?? '').trim();
+
+    if (hasPaginationRequest || hasFilterRequest) {
+      const limit = Math.min(parsePositiveInt(req.query.limit, 20), 100);
+      const page = parsePositiveInt(req.query.page, 1);
+      const offsetFromPage = (page - 1) * limit;
+      const offset = parseNonNegativeInt(req.query.offset, offsetFromPage);
+
+      const payload = await getItemsPage({
+        statusScope,
+        limit,
+        offset,
+        query: req.query.q ?? req.query.search ?? '',
+        category: req.query.category ?? '',
+        tag: req.query.tag ?? '',
+        sort: req.query.sort ?? 'alphabetical',
+      });
+
+      return res.json(payload);
+    }
+
+    const items = await getAllItems({ statusScope });
+    return res.json(items);
   } catch (err) {
     console.error('❌ Error fetching items:', err);
     res.status(500).json({ error: 'Failed to fetch items' });
@@ -51,11 +96,23 @@ async function getItemByIdApi(req, res) {
 // (others unchanged)
 async function getOrphanedItemsApi(req, res) {
   const sort = req.query.sort || 'recent';
-  const limit = parseInt(req.query.limit) || 20;
+  const limit = Math.min(parsePositiveInt(req.query.limit, 20), 100);
+  const page = parsePositiveInt(req.query.page, 1);
+  const offsetFromPage = (page - 1) * limit;
+  const offset = parseNonNegativeInt(req.query.offset, offsetFromPage);
+  const wantsPagination =
+    req.query.offset != null ||
+    req.query.page != null ||
+    String(req.query.paginated || '').trim() === '1';
 
   try {
+    if (wantsPagination) {
+      const payload = await getOrphanedItemsPage({ sort, limit, offset });
+      return res.json(payload);
+    }
+
     const items = await getOrphanedItems(sort, limit);
-    res.json(items);
+    return res.json(items);
   } catch (err) {
     console.error('❌ Error fetching orphaned items:', err);
     res.status(500).json({ error: 'Failed to fetch orphaned items' });
@@ -184,12 +241,44 @@ async function deleteItemImageApi(req, res) {
 
 async function deleteItemById(req, res) {
   try {
-    const deleted = await deleteItem(req.params.id);
+    const deleted = await hardDeleteItem(req.params.id);
     if (!deleted) return res.status(404).json({ error: 'Item not found' });
-    res.json({ message: 'Item deleted' });
+    res.json({ ok: true, message: 'Item permanently deleted' });
   } catch (err) {
     console.error('❌ Error deleting item:', err);
-    res.status(400).json({ error: 'Failed to delete item' });
+    res.status(400).json({ error: 'Failed to permanently delete item' });
+  }
+}
+
+async function markItemGoneApi(req, res) {
+  try {
+    const updated = await markItemGone(req.params.id, req.body || {});
+    if (!updated) return res.status(404).json({ ok: false, error: 'Item not found' });
+
+    const enriched = await getItemById(req.params.id);
+    return res.status(200).json({ ok: true, data: enriched || updated });
+  } catch (err) {
+    console.error('❌ Error marking item gone:', err);
+    return res.status(err?.status || 400).json({
+      ok: false,
+      error: err?.message || 'Failed to mark item gone',
+    });
+  }
+}
+
+async function restoreItemToActiveApi(req, res) {
+  try {
+    const updated = await restoreItemToActive(req.params.id);
+    if (!updated) return res.status(404).json({ ok: false, error: 'Item not found' });
+
+    const enriched = await getItemById(req.params.id);
+    return res.status(200).json({ ok: true, data: enriched || updated });
+  } catch (err) {
+    console.error('❌ Error restoring item to active:', err);
+    return res.status(err?.status || 400).json({
+      ok: false,
+      error: err?.message || 'Failed to restore item to active',
+    });
   }
 }
 
@@ -212,5 +301,7 @@ module.exports = {
   postItemImageApi,
   deleteItemImageApi,
   deleteItemById,
+  markItemGoneApi,
+  restoreItemToActiveApi,
   backfillOrphanedTimestampsApi,
 };

@@ -11,54 +11,69 @@ export const Card = styled.form`
   background: #171717;
   border: 1px solid #2a2a2a;
   border-radius: 10px;
-  padding: 12px;
+  padding: ${({ $compact }) => ($compact ? '10px' : '12px')};
   min-width: 0;
   max-width: 100%;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     border-radius: ${MOBILE_PANEL_RADIUS};
-    padding: 8px;
+    padding: ${({ $compact }) => ($compact ? '7px' : '8px')};
   }
 `;
 
 export const Row = styled.div`
   display: grid;
-  gap: 10px;
+  gap: ${({ $compact }) => ($compact ? '8px' : '10px')};
   grid-template-columns: 1fr;
   @media (min-width: 640px) {
-    grid-template-columns: ${({ $cols2 }) => ($cols2 ? '1fr 1fr' : '1fr')};
+    grid-template-columns: ${({ $cols2, $compact, $identity }) =>
+      $cols2
+        ? ($compact && $identity ? '132px minmax(0, 1fr)' : '1fr 1fr')
+        : '1fr'};
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    gap: 8px;
+    gap: ${({ $compact }) => ($compact ? '6px' : '8px')};
+  }
+`;
+
+export const IdentityCompactGrid = styled.div`
+  display: grid;
+  gap: 8px;
+  align-items: start;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: 1fr;
   }
 `;
 
 export const Field = styled.div`
   display: flex;
   flex-direction: column;
+  gap: ${({ $compact }) => ($compact ? '2px' : '0')};
   min-width: 0;
 `;
 
 export const Label = styled.label`
   font-size: 12px;
   color: #bdbdbd;
-  margin-bottom: 6px;
+  margin-bottom: ${({ $compact }) => ($compact ? '4px' : '6px')};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
-    margin-bottom: 4px;
+    margin-bottom: ${({ $compact }) => ($compact ? '3px' : '4px')};
   }
 `;
 
 export const Input = styled.input`
-  padding: 10px 12px;
+  padding: ${({ $compact }) => ($compact ? '8px 10px' : '10px 12px')};
   border-radius: 8px;
   border: 1px solid #2f2f2f;
   background: #101010;
   color: #eaeaea;
-  font-size: 14px;
-  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+  font-size: ${({ $compact }) => ($compact ? '13px' : '14px')};
+  min-height: ${({ $compact }) => ($compact ? '36px' : MOBILE_CONTROL_MIN_HEIGHT)};
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:focus {
@@ -82,13 +97,13 @@ export const Input = styled.input`
 `;
 
 export const Select = styled.select`
-  padding: 10px 12px;
+  padding: ${({ $compact }) => ($compact ? '8px 10px' : '10px 12px')};
   border-radius: 8px;
   border: 1px solid #2f2f2f;
   background: #101010;
   color: #eaeaea;
-  font-size: 14px;
-  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+  font-size: ${({ $compact }) => ($compact ? '13px' : '14px')};
+  min-height: ${({ $compact }) => ($compact ? '36px' : MOBILE_CONTROL_MIN_HEIGHT)};
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:focus {
@@ -109,10 +124,10 @@ export const LocationSection = styled.div`
   border-radius: 10px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 34%),
     #171e2a;
-  padding: 8px;
+  padding: ${({ $compact }) => ($compact ? '6px' : '8px')};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: 6px;
+    padding: ${({ $compact }) => ($compact ? '5px' : '6px')};
     border-radius: 9px;
   }
 `;
@@ -123,8 +138,8 @@ export const LocationShell = styled.div`
 
 export const LocationInput = styled.input`
   width: 100%;
-  min-height: 40px;
-  padding: 9px 12px;
+  min-height: ${({ $compact }) => ($compact ? '36px' : '40px')};
+  padding: ${({ $compact }) => ($compact ? '8px 10px' : '9px 12px')};
   border-radius: 8px;
   border: 1px solid rgba(122, 142, 167, 0.45);
   background: #0b1018;
@@ -235,14 +250,14 @@ export const statusColor = ($status) =>
 export const ShortIdInput = styled.input`
   font-family: monospace;
   text-align: center;
-  width: 4.5em;
+  width: ${({ $compact }) => ($compact ? '4em' : '4.5em')};
   margin: 0 auto;
-  padding: 10px 12px;
+  padding: ${({ $compact }) => ($compact ? '8px 8px' : '10px 12px')};
   border-radius: 8px;
   border: 2px solid ${({ $status }) => statusColor($status)};
   background: #101010;
   color: #eaeaea;
-  font-size: 18px;
+  font-size: ${({ $compact }) => ($compact ? '16px' : '18px')};
   letter-spacing: 2px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
@@ -268,7 +283,7 @@ export const ShortIdInput = styled.input`
 `;
 
 export const Hint = styled.div`
-  margin-top: 6px;
+  margin-top: ${({ $compact }) => ($compact ? '4px' : '6px')};
   font-size: 12px;
   color: ${({ $error, $success }) =>
     $error ? '#ffbdbd' : $success ? '#9BE2B5' : '#bdbdbd'};
@@ -279,7 +294,7 @@ export const Hint = styled.div`
 `;
 
 export const TagWrap = styled.div`
-  padding: 8px;
+  padding: ${({ $compact }) => ($compact ? '6px' : '8px')};
   border-radius: 8px;
   border: 1px dashed #2f2f2f;
   background: #101010;
@@ -292,18 +307,18 @@ export const TagWrap = styled.div`
 export const TagList = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: ${({ $compact }) => ($compact ? '5px' : '6px')};
 `;
 
 export const TagChip = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
+  gap: ${({ $compact }) => ($compact ? '5px' : '6px')};
+  padding: ${({ $compact }) => ($compact ? '4px 7px' : '6px 8px')};
   border-radius: 999px;
   background: #1f1f1f;
   border: 1px solid #2a2a2a;
-  font-size: 12px;
+  font-size: ${({ $compact }) => ($compact ? '11px' : '12px')};
   color: #eaeaea;
 `;
 
@@ -320,13 +335,13 @@ export const RemoveX = styled.button`
 `;
 
 export const TagAdder = styled.input`
-  padding: 6px 8px;
+  padding: ${({ $compact }) => ($compact ? '5px 8px' : '6px 8px')};
   min-width: 140px;
   border-radius: 999px;
   border: 1px dashed #2a2a2a;
   background: #0f0f0f;
   color: #eaeaea;
-  font-size: 12px;
+  font-size: ${({ $compact }) => ($compact ? '11px' : '12px')};
 
   &:focus {
     outline: none;
@@ -342,12 +357,12 @@ export const TagAdder = styled.input`
 `;
 
 export const FileStub = styled.div`
-  padding: 12px;
+  padding: ${({ $compact }) => ($compact ? '8px' : '12px')};
   border-radius: 8px;
   border: 1px dashed #2a2a2a;
   background: #101010;
   color: #bdbdbd;
-  font-size: 12px;
+  font-size: ${({ $compact }) => ($compact ? '11px' : '12px')};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
@@ -357,20 +372,21 @@ export const FileStub = styled.div`
 
 export const ImagePreview = styled.img`
   display: block;
-  width: min(220px, 100%);
-  max-height: 170px;
+  width: ${({ $compact }) => ($compact ? '96px' : 'min(220px, 100%)')};
+  height: ${({ $compact }) => ($compact ? '96px' : 'auto')};
+  max-height: ${({ $compact }) => ($compact ? '96px' : '170px')};
   object-fit: cover;
   border-radius: 10px;
   border: 1px solid #2f2f2f;
   background: #0f0f0f;
-  margin-bottom: 8px;
+  margin-bottom: ${({ $compact }) => ($compact ? '0' : '8px')};
 `;
 
 export const Actions = styled.div`
   display: flex;
-  gap: 8px;
+  gap: ${({ $compact }) => ($compact ? '6px' : '8px')};
   justify-content: flex-end;
-  margin-top: 12px;
+  margin-top: ${({ $compact }) => ($compact ? '8px' : '12px')};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 6px;
@@ -380,13 +396,14 @@ export const Actions = styled.div`
 `;
 
 export const Ghost = styled.button`
-  padding: 10px 12px;
+  padding: ${({ $compact }) => ($compact ? '8px 10px' : '10px 12px')};
+  width: auto;
   border-radius: 8px;
   border: 1px solid #2f2f2f;
   background: #141414;
   color: #eaeaea;
   cursor: pointer;
-  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+  min-height: ${({ $compact }) => ($compact ? '36px' : MOBILE_CONTROL_MIN_HEIGHT)};
 
   &:hover {
     border-color: #4ec77b;
@@ -405,14 +422,15 @@ export const Ghost = styled.button`
 `;
 
 export const Primary = styled.button`
-  padding: 10px 12px;
+  padding: ${({ $compact }) => ($compact ? '8px 10px' : '10px 12px')};
+  width: auto;
   border-radius: 8px;
   border: 1px solid #2a3e30;
   background: #1b2a1f;
   color: #d9f2e6;
   font-weight: 700;
   cursor: pointer;
-  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+  min-height: ${({ $compact }) => ($compact ? '36px' : MOBILE_CONTROL_MIN_HEIGHT)};
 
   &:hover {
     border-color: #4ec77b;
@@ -429,4 +447,47 @@ export const Primary = styled.button`
     min-height: 36px;
     font-size: ${MOBILE_FONT_SM};
   }
+`;
+
+export const DangerGhost = styled(Ghost)`
+  border-color: rgba(201, 103, 103, 0.68);
+  background: rgba(57, 20, 20, 0.92);
+  color: #ffd9d9;
+
+  &:hover {
+    border-color: rgba(232, 129, 129, 0.92);
+  }
+`;
+
+export const ImageCompactGrid = styled.div`
+  display: grid;
+  grid-template-columns: minmax(92px, 104px) minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+`;
+
+export const ImageActionStack = styled.div`
+  display: grid;
+  gap: 5px;
+  align-content: start;
+  min-width: 0;
+`;
+
+export const CompactPhotoActions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+`;
+
+export const CompactPhotoButton = styled(Ghost)`
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: 12px;
+  align-self: start;
 `;

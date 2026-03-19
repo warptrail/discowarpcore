@@ -8,6 +8,7 @@ const normalize = (value) =>
     .toLowerCase();
 
 export default function BoxLocationField({
+  compact = false,
   locationId,
   setLocationId,
   locationOptions = [],
@@ -79,8 +80,8 @@ export default function BoxLocationField({
   };
 
   return (
-    <S.LocationSection>
-      <S.Label htmlFor="box-location-combobox">Location</S.Label>
+    <S.LocationSection $compact={compact}>
+      <S.Label htmlFor="box-location-combobox" $compact={compact}>Location</S.Label>
       <S.LocationShell>
         <S.LocationInput
           id="box-location-combobox"
@@ -119,6 +120,7 @@ export default function BoxLocationField({
           placeholder="Search or create a location..."
           autoComplete="off"
           disabled={locationsLoading || createBusy}
+          $compact={compact}
         />
 
         {open && (
@@ -155,8 +157,8 @@ export default function BoxLocationField({
           </S.LocationDropdown>
         )}
       </S.LocationShell>
-      {locationsLoading && <S.Hint>Loading locations…</S.Hint>}
-      {!!errorMessage && <S.Hint $error>{errorMessage}</S.Hint>}
+      {locationsLoading && <S.Hint $compact={compact}>Loading locations…</S.Hint>}
+      {!!errorMessage && <S.Hint $error $compact={compact}>{errorMessage}</S.Hint>}
     </S.LocationSection>
   );
 }

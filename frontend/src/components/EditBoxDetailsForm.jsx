@@ -25,8 +25,10 @@ export default function EditBoxDetailsForm({
   initial,
   onSaved,
   onImageUpdated,
+  onDestroy,
   onCancel,
   TagInputComponent,
+  compact = false,
 }) {
   const initialLocationId =
     initial?.locationId?._id ??
@@ -44,6 +46,7 @@ export default function EditBoxDetailsForm({
     Array.isArray(initial?.tags) ? initial.tags : [],
   );
   const [busy, setBusy] = useState(false);
+  const [destroyBusy, setDestroyBusy] = useState(false);
   const [error, setError] = useState(null);
   const [imageUrl, setImageUrl] = useState(() => pickBoxImageUrl(initial));
   const [imageBusy, setImageBusy] = useState(false);
@@ -111,6 +114,7 @@ export default function EditBoxDetailsForm({
 
   const canSave =
     !busy &&
+    !destroyBusy &&
     changed &&
     shortIdValid &&
     shortIdAvail &&
@@ -221,9 +225,23 @@ export default function EditBoxDetailsForm({
     }
   };
 
+  const handleDestroy = async () => {
+    if (typeof onDestroy !== 'function' || destroyBusy || busy) return;
+    setError(null);
+    setDestroyBusy(true);
+    try {
+      await Promise.resolve(onDestroy());
+    } catch (destroyError) {
+      setError(destroyError?.message || 'Destroy failed');
+    } finally {
+      setDestroyBusy(false);
+    }
+  };
+
   return (
-    <S.Card onSubmit={onSubmit} noValidate>
+    <S.Card onSubmit={onSubmit} noValidate $compact={compact}>
       <BoxIdentityFields
+        compact={compact}
         shortId={shortId}
         setShortId={setShortId}
         shortIdChecking={shortIdChecking}
@@ -242,60 +260,119 @@ export default function EditBoxDetailsForm({
         onCreateLocation={handleCreateLocation}
         locationCreateBusy={locationCreateBusy}
         locationError={locationError || locationsError}
-      />
-
-      <BoxTagsField
         tags={tags}
         setTags={setTags}
         TagInputComponent={TagInputComponent}
       />
 
-      <S.Field style={{ marginTop: 10 }}>
-        <S.Label>Image</S.Label>
-        {imageUrl ? (
-          <S.ImagePreview src={imageUrl} alt={`${label || 'Box'} preview`} />
-        ) : (
-          <S.FileStub>No box image uploaded.</S.FileStub>
-        )}
+      {!compact ? (
+        <BoxTagsField
+          compact={compact}
+          tags={tags}
+          setTags={setTags}
+          TagInputComponent={TagInputComponent}
+        />
+      ) : null}
 
-        <S.Actions style={{ marginTop: 8, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
-          <ImageSourcePicker
-            disabled={busy || imageBusy || !boxMongoId}
-            onFileSelected={handleSelectedImage}
-            label={imageUrl ? 'Replace Photo' : 'Upload Photo'}
-            renderAction={({ label, onClick, disabled: actionDisabled }) => (
-              <S.Ghost
-                type="button"
-                onClick={onClick}
-                disabled={actionDisabled}
-              >
-                {label}
-              </S.Ghost>
+      <S.Field style={{ marginTop: compact ? 6 : 10 }} $compact={compact}>
+        <S.Label $compact={compact}>Image</S.Label>
+        {compact ? (
+          <S.ImageCompactGrid>
+            {imageUrl ? (
+              <S.ImagePreview
+                src={imageUrl}
+                alt={`${label || 'Box'} preview`}
+                $compact
+              />
+            ) : (
+              <S.FileStub $compact>No photo</S.FileStub>
             )}
-          />
+            <S.ImageActionStack>
+              <S.CompactPhotoActions>
+                <ImageSourcePicker
+                  disabled={busy || destroyBusy || imageBusy || !boxMongoId}
+                  onFileSelected={handleSelectedImage}
+                  label={imageUrl ? 'Replace Photo' : 'Upload Photo'}
+                  renderAction={({ label: actionLabel, onClick, disabled: actionDisabled }) => (
+                    <S.CompactPhotoButton
+                      type="button"
+                      onClick={onClick}
+                      disabled={actionDisabled}
+                    >
+                      {actionLabel}
+                    </S.CompactPhotoButton>
+                  )}
+                />
+                {imageUrl ? (
+                  <S.CompactPhotoButton
+                    type="button"
+                    onClick={handleRemoveImage}
+                    disabled={busy || destroyBusy || imageBusy}
+                  >
+                    Delete Photo
+                  </S.CompactPhotoButton>
+                ) : null}
+              </S.CompactPhotoActions>
+              {imageBusy ? <S.Hint $compact>Working…</S.Hint> : null}
+              {imageStatus ? <S.Hint $success $compact>{imageStatus}</S.Hint> : null}
+              {imageError ? <S.Hint $error $compact>{imageError}</S.Hint> : null}
+            </S.ImageActionStack>
+          </S.ImageCompactGrid>
+        ) : (
+          <>
+            {imageUrl ? (
+              <S.ImagePreview src={imageUrl} alt={`${label || 'Box'} preview`} />
+            ) : (
+              <S.FileStub>No box image uploaded.</S.FileStub>
+            )}
 
-          {imageUrl ? (
-            <S.Ghost
-              type="button"
-              onClick={handleRemoveImage}
-              disabled={busy || imageBusy}
-            >
-              Delete Photo
-            </S.Ghost>
-          ) : null}
-        </S.Actions>
-        {imageBusy ? <S.Hint>Working…</S.Hint> : null}
-        {imageStatus ? <S.Hint $success>{imageStatus}</S.Hint> : null}
-        {imageError ? <S.Hint $error>{imageError}</S.Hint> : null}
+            <S.Actions style={{ marginTop: 8, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+              <ImageSourcePicker
+                disabled={busy || destroyBusy || imageBusy || !boxMongoId}
+                onFileSelected={handleSelectedImage}
+                label={imageUrl ? 'Replace Photo' : 'Upload Photo'}
+                renderAction={({ label: actionLabel, onClick, disabled: actionDisabled }) => (
+                  <S.Ghost
+                    type="button"
+                    onClick={onClick}
+                    disabled={actionDisabled}
+                  >
+                    {actionLabel}
+                  </S.Ghost>
+                )}
+              />
+
+              {imageUrl ? (
+                <S.Ghost
+                  type="button"
+                  onClick={handleRemoveImage}
+                  disabled={busy || destroyBusy || imageBusy}
+                >
+                  Delete Photo
+                </S.Ghost>
+              ) : null}
+            </S.Actions>
+            {imageBusy ? <S.Hint>Working…</S.Hint> : null}
+            {imageStatus ? <S.Hint $success>{imageStatus}</S.Hint> : null}
+            {imageError ? <S.Hint $error>{imageError}</S.Hint> : null}
+          </>
+        )}
       </S.Field>
 
       {error && (
-        <S.Hint $error style={{ marginTop: 8 }}>
+        <S.Hint $error $compact={compact} style={{ marginTop: compact ? 6 : 8 }}>
           {error}
         </S.Hint>
       )}
 
-      <BoxFormActions onCancel={onCancel} busy={busy} canSave={canSave} />
+      <BoxFormActions
+        onCancel={onCancel}
+        busy={busy}
+        canSave={canSave}
+        onDestroy={onDestroy ? handleDestroy : null}
+        destroyBusy={destroyBusy}
+        compact={compact}
+      />
     </S.Card>
   );
 }

@@ -5,8 +5,10 @@ import EditItemTextFieldsSection from './EditItemDetailsForm/EditItemTextFieldsS
 import EditItemTagsSection from './EditItemDetailsForm/EditItemTagsSection';
 import EditItemQuantitySection from './EditItemDetailsForm/EditItemQuantitySection';
 import EditItemStructuredFieldsSection from './EditItemDetailsForm/EditItemStructuredFieldsSection';
+import EditItemExternalLinksSection from './EditItemDetailsForm/EditItemExternalLinksSection';
 import EditItemImageSection from './EditItemDetailsForm/EditItemImageSection';
 import EditItemFormActions from './EditItemDetailsForm/EditItemFormActions';
+import EditItemLifecycleSection from './EditItemDetailsForm/EditItemLifecycleSection';
 import useEditItemDetailsFormState from './EditItemDetailsForm/useEditItemDetailsFormState';
 
 export default function EditItemDetailsForm({
@@ -15,9 +17,14 @@ export default function EditItemDetailsForm({
   onSaved,
   onItemImageUpdated,
   onCancel,
+  lifecycleBusy = false,
+  onMarkGoneRequest,
+  onDeletePermanentlyRequest,
+  onReclaimRequest,
 }) {
   const {
     formData,
+    derivedDates,
     ownership,
     saving,
     isDirty,
@@ -26,6 +33,12 @@ export default function EditItemDetailsForm({
     handleQuantityChange,
     handleMetadataChange,
     handleMetadataNumberChange,
+    handleHistoryDateChange,
+    handleAddHistoryDate,
+    handleRemoveHistoryDate,
+    handleLinkChange,
+    handleAddLink,
+    handleRemoveLink,
     handleSave,
     handleRevert,
   } = useEditItemDetailsFormState({
@@ -36,7 +49,7 @@ export default function EditItemDetailsForm({
 
   return (
     <S.Form onSubmit={handleSave}>
-      <S.Fieldset disabled={saving}>
+      <S.Fieldset disabled={saving || lifecycleBusy}>
         <EditItemImageSection
           item={item}
           disabled={saving}
@@ -58,8 +71,27 @@ export default function EditItemDetailsForm({
 
         <EditItemStructuredFieldsSection
           formData={formData}
+          derivedDates={derivedDates}
           onMetadataChange={handleMetadataChange}
           onMetadataNumberChange={handleMetadataNumberChange}
+          onHistoryDateChange={handleHistoryDateChange}
+          onAddHistoryDate={handleAddHistoryDate}
+          onRemoveHistoryDate={handleRemoveHistoryDate}
+        />
+
+        <EditItemExternalLinksSection
+          links={formData.links}
+          onLinkChange={handleLinkChange}
+          onAddLink={handleAddLink}
+          onRemoveLink={handleRemoveLink}
+        />
+
+        <EditItemLifecycleSection
+          item={item}
+          disabled={saving || lifecycleBusy}
+          onMarkGoneRequest={onMarkGoneRequest}
+          onDeletePermanentlyRequest={onDeletePermanentlyRequest}
+          onReclaimRequest={onReclaimRequest}
         />
 
         <EditItemFormActions

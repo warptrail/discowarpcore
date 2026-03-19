@@ -8,6 +8,7 @@ const itemRoutes = require('./routes/items');
 const boxItemRoutes = require('./routes/boxItem');
 const devRoutes = require('./routes/devRoutes');
 const locationRoutes = require('./routes/locations');
+const retrievalRoutes = require('./routes/retrieval');
 const { backfillBoxLocations } = require('./services/locationService');
 
 const PORT = process.env.PORT || 5002;
@@ -24,6 +25,7 @@ app.use('/api/boxed-items', boxItemRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/dev', devRoutes);
+app.use('/api/retrieval', retrievalRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true });

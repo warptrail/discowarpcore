@@ -3,6 +3,17 @@ import { editItem } from '../../api/editItem';
 import { normalizeTags } from '../../util/normalizeTags';
 import { normalizeItemCategory } from '../../util/itemCategories';
 import { getItemOwnershipContext } from '../../util/itemOwnership';
+import {
+  buildEditableDateHistory,
+  getIntervalDaysFromHistory,
+  getLatestDateFromHistory,
+  normalizeDateHistoryForSave,
+  normalizeDateInputValue,
+} from '../../util/itemHistory';
+import {
+  formatCentsToUsdInput,
+  parseUsdInputToCents,
+} from '../../util/usdMoney';
 
 const toNullableNonNegativeInteger = (value) => {
   if (value === '' || value === null || value === undefined) return null;
@@ -17,8 +28,59 @@ const toNullableTrimmedString = (value) => {
   return s ? s : null;
 };
 
+const normalizeLinksForForm = (links) => {
+  if (!Array.isArray(links)) return [];
+  return links
+    .map((row) => ({
+      label: String(row?.label || '').trim(),
+      url: String(row?.url || '').trim(),
+    }))
+    .filter((row) => row.label || row.url);
+};
+
+const isValidExternalUrl = (value) => {
+  try {
+    const parsed = new URL(String(value || '').trim());
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+const sanitizeLinksForSave = (links) => {
+  if (!Array.isArray(links)) return [];
+
+  const normalized = [];
+  for (let i = 0; i < links.length; i += 1) {
+    const row = links[i];
+    const label = String(row?.label || '').trim();
+    const url = String(row?.url || '').trim();
+
+    if (!label && !url) continue;
+    if (!label) throw new Error(`Link ${i + 1}: label is required.`);
+    if (label.length > 80) {
+      throw new Error(`Link ${i + 1}: label must be 80 characters or fewer.`);
+    }
+    if (!url) throw new Error(`Link ${i + 1}: url is required.`);
+    if (!isValidExternalUrl(url)) {
+      throw new Error(`Link ${i + 1}: url must be a valid http/https URL.`);
+    }
+
+    normalized.push({ label, url });
+  }
+
+  return normalized;
+};
+
 const buildFormState = (item) => ({
   ...item,
+  dateAcquired: item?.dateAcquired ? String(item.dateAcquired).slice(0, 10) : '',
+  usageHistory: buildEditableDateHistory(item?.usageHistory, item?.dateLastUsed),
+  checkHistory: buildEditableDateHistory(item?.checkHistory, item?.lastCheckedAt),
+  maintenanceHistory: buildEditableDateHistory(
+    item?.maintenanceHistory,
+    item?.lastMaintainedAt
+  ),
   keepPriority: item?.keepPriority || '',
   primaryOwnerName: item?.primaryOwnerName || '',
   condition: item?.condition || 'unknown',
@@ -27,18 +89,11 @@ const buildFormState = (item) => ({
   minimumDesiredQuantity: toNullableNonNegativeInteger(
     item?.minimumDesiredQuantity
   ),
-  lastCheckedAt: item?.lastCheckedAt
-    ? String(item.lastCheckedAt).slice(0, 10)
-    : '',
   acquisitionType: item?.acquisitionType || 'unknown',
-  purchasePriceCents: toNullableNonNegativeInteger(item?.purchasePriceCents),
-  lastMaintainedAt: item?.lastMaintainedAt
-    ? String(item.lastMaintainedAt).slice(0, 10)
-    : '',
-  maintenanceIntervalDays: toNullableNonNegativeInteger(
-    item?.maintenanceIntervalDays
-  ),
+  valueUsd: formatCentsToUsdInput(item?.valueCents),
+  purchasePriceUsd: formatCentsToUsdInput(item?.purchasePriceCents),
   maintenanceNotes: item?.maintenanceNotes || '',
+  links: normalizeLinksForForm(item?.links),
   location: item?.location || '',
   tags: normalizeTags(item?.tags),
 });
@@ -48,6 +103,28 @@ export default function useEditItemDetailsFormState({ item, triggerFlash, onSave
   const [formData, setFormData] = useState(() => buildFormState(item));
   const [initialData, setInitialData] = useState(() => buildFormState(item));
   const [saving, setSaving] = useState(false);
+
+  const derivedDates = useMemo(() => {
+    const lastUsedAt = getLatestDateFromHistory(formData.usageHistory);
+    const lastCheckedAt = getLatestDateFromHistory(formData.checkHistory);
+    const lastMaintainedAt = getLatestDateFromHistory(
+      formData.maintenanceHistory
+    );
+    const maintenanceIntervalDays = getIntervalDaysFromHistory(
+      formData.maintenanceHistory
+    );
+
+    return {
+      lastUsedAt,
+      lastCheckedAt,
+      lastMaintainedAt,
+      maintenanceIntervalDays,
+    };
+  }, [
+    formData.checkHistory,
+    formData.maintenanceHistory,
+    formData.usageHistory,
+  ]);
 
   useEffect(() => {
     setFormData(buildFormState(item));
@@ -93,27 +170,95 @@ export default function useEditItemDetailsFormState({ item, triggerFlash, onSave
     }));
   };
 
+  const handleHistoryDateChange = (field, index, value) => {
+    setFormData((prev) => {
+      const current = Array.isArray(prev[field]) ? [...prev[field]] : [];
+      current[index] = normalizeDateInputValue(value);
+      return {
+        ...prev,
+        [field]: current,
+      };
+    });
+  };
+
+  const handleAddHistoryDate = (field) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: [...(Array.isArray(prev[field]) ? prev[field] : []), ''],
+    }));
+  };
+
+  const handleRemoveHistoryDate = (field, index) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: (Array.isArray(prev[field]) ? prev[field] : []).filter(
+        (_, i) => i !== index
+      ),
+    }));
+  };
+
+  const handleLinkChange = (index, field, value) => {
+    setFormData((prev) => {
+      const nextLinks = Array.isArray(prev.links) ? [...prev.links] : [];
+      const row = nextLinks[index] || { label: '', url: '' };
+      nextLinks[index] = {
+        ...row,
+        [field]: value,
+      };
+      return {
+        ...prev,
+        links: nextLinks,
+      };
+    });
+  };
+
+  const handleAddLink = () => {
+    setFormData((prev) => ({
+      ...prev,
+      links: [...(Array.isArray(prev.links) ? prev.links : []), { label: '', url: '' }],
+    }));
+  };
+
+  const handleRemoveLink = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      links: (Array.isArray(prev.links) ? prev.links : []).filter((_, i) => i !== index),
+    }));
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
 
     try {
+      const purchasePriceCents = parseUsdInputToCents(formData.purchasePriceUsd, {
+        fieldLabel: 'Purchase price',
+      });
+      const explicitValueCents = parseUsdInputToCents(formData.valueUsd, {
+        fieldLabel: 'Value',
+      });
+      const valueCents =
+        explicitValueCents ??
+        purchasePriceCents ??
+        (Number.isFinite(item?.valueCents) ? item.valueCents : 0);
+
       const payload = {
         ...formData,
         minimumDesiredQuantity: toNullableNonNegativeInteger(
           formData.minimumDesiredQuantity
         ),
-        purchasePriceCents: toNullableNonNegativeInteger(
-          formData.purchasePriceCents
+        valueCents,
+        purchasePriceCents,
+        dateAcquired: formData.dateAcquired || null,
+        usageHistory: normalizeDateHistoryForSave(formData.usageHistory),
+        checkHistory: normalizeDateHistoryForSave(formData.checkHistory),
+        maintenanceHistory: normalizeDateHistoryForSave(
+          formData.maintenanceHistory
         ),
-        maintenanceIntervalDays: toNullableNonNegativeInteger(
-          formData.maintenanceIntervalDays
-        ),
-        lastCheckedAt: formData.lastCheckedAt || null,
-        lastMaintainedAt: formData.lastMaintainedAt || null,
         keepPriority: formData.keepPriority || null,
         primaryOwnerName: toNullableTrimmedString(formData.primaryOwnerName),
         maintenanceNotes: String(formData.maintenanceNotes || '').trim(),
+        links: sanitizeLinksForSave(formData.links),
         category: normalizeItemCategory(formData.category),
         isConsumable: !!formData.isConsumable,
         location: String(formData.location || '').trim(),
@@ -152,6 +297,7 @@ export default function useEditItemDetailsFormState({ item, triggerFlash, onSave
 
   return {
     formData,
+    derivedDates,
     ownership,
     saving,
     isDirty,
@@ -160,6 +306,12 @@ export default function useEditItemDetailsFormState({ item, triggerFlash, onSave
     handleQuantityChange,
     handleMetadataChange,
     handleMetadataNumberChange,
+    handleHistoryDateChange,
+    handleAddHistoryDate,
+    handleRemoveHistoryDate,
+    handleLinkChange,
+    handleAddLink,
+    handleRemoveLink,
     handleSave,
     handleRevert,
   };

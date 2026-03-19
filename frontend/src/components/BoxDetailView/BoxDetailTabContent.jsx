@@ -20,6 +20,8 @@ const FLAT_SORT_OPTIONS = [
   { value: 'nameDesc', label: 'Name Z-A' },
   { value: 'categoryAsc', label: 'Category A-Z' },
   { value: 'categoryDesc', label: 'Category Z-A' },
+  { value: 'ownerAsc', label: 'Owner A-Z' },
+  { value: 'ownerDesc', label: 'Owner Z-A' },
   { value: 'valueDesc', label: 'Value High-Low' },
   { value: 'valueAsc', label: 'Value Low-High' },
 ];

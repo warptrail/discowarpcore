@@ -226,6 +226,128 @@ export const InlineGrid = styled.div`
   }
 `;
 
+export const ReadOnlyValue = styled.div`
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+  border-radius: 9px;
+  border: 1px solid rgba(122, 142, 167, 0.4);
+  background: rgba(12, 18, 27, 0.76);
+  color: ${LCARS.text};
+  font-size: 0.96rem;
+  font-weight: 560;
+  line-height: 1.3;
+  padding: 0.58rem 0.72rem;
+  display: flex;
+  align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 36px;
+    border-radius: 8px;
+    font-size: ${MOBILE_FONT_SM};
+    padding: 0.45rem 0.54rem;
+  }
+`;
+
+export const LinkRows = styled.div`
+  display: grid;
+  gap: 0.52rem;
+`;
+
+export const LinkRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr) auto;
+  gap: 0.42rem;
+  align-items: end;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: 1fr;
+    gap: 0.36rem;
+  }
+`;
+
+export const HistoryRows = styled.div`
+  display: grid;
+  gap: 0.42rem;
+`;
+
+export const HistoryRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.42rem;
+  align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: 1fr;
+    gap: 0.34rem;
+  }
+`;
+
+export const LinkRemoveButton = styled.button`
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+  border-radius: 8px;
+  border: 1px solid rgba(240, 138, 123, 0.58);
+  background: rgba(78, 28, 28, 0.78);
+  color: #ffd6d1;
+  font-size: 0.75rem;
+  font-weight: 680;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.34rem 0.62rem;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+
+  &:hover:enabled {
+    border-color: rgba(240, 138, 123, 0.84);
+    background: rgba(95, 35, 35, 0.88);
+  }
+
+  &:disabled {
+    ${disabledStyles}
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 36px;
+    font-size: ${MOBILE_FONT_XS};
+  }
+`;
+
+export const HistoryRemoveButton = styled(LinkRemoveButton)`
+  margin: 0;
+`;
+
+export const AddInlineButton = styled.button`
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+  align-self: start;
+  border-radius: 8px;
+  border: 1px solid rgba(76, 198, 193, 0.52);
+  background: rgba(24, 66, 63, 0.58);
+  color: #d6fffc;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.38rem 0.7rem;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+
+  &:hover:enabled {
+    border-color: rgba(76, 198, 193, 0.82);
+    background: rgba(34, 88, 84, 0.66);
+  }
+
+  &:disabled {
+    ${disabledStyles}
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 36px;
+    font-size: ${MOBILE_FONT_XS};
+  }
+`;
+
+export const HistoryAddButton = styled(AddInlineButton)`
+  margin-top: 0.1rem;
+`;
+
 export const CheckboxRow = styled.label`
   display: inline-flex;
   align-items: center;
@@ -358,6 +480,77 @@ export const InlineActions = styled.div`
   display: flex;
   gap: 0.55rem;
   flex-wrap: wrap;
+`;
+
+export const LifecycleSection = styled.section`
+  display: grid;
+  gap: 0.58rem;
+  padding: 0.62rem 0.68rem;
+  border-radius: 10px;
+  border: 1px solid rgba(140, 160, 179, 0.26);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 70%),
+    ${LCARS.panelSoft};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.44rem;
+    padding: 0.5rem 0.52rem;
+    border-radius: 9px;
+  }
+`;
+
+export const LifecycleHeader = styled.h3`
+  margin: 0;
+  color: ${LCARS.text};
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.06em;
+  }
+`;
+
+export const LifecycleMetaGrid = styled.div`
+  display: grid;
+  gap: 0.4rem;
+`;
+
+export const LifecycleMetaRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(90px, 120px) minmax(0, 1fr);
+  gap: 0.54rem;
+  align-items: start;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: 1fr;
+    gap: 0.18rem;
+  }
+`;
+
+export const LifecycleMetaLabel = styled.span`
+  color: rgba(214, 226, 241, 0.72);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.05em;
+  }
+`;
+
+export const LifecycleMetaValue = styled.span`
+  color: ${LCARS.text};
+  font-size: 0.84rem;
+  line-height: 1.35;
+  word-break: break-word;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+  }
 `;
 
 export const SmallActionButton = styled.button`

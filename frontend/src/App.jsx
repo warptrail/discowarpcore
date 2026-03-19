@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import { Link, useLocation } from 'react-router-dom';
 
 import GlobalStyles from './styles/globalStyles';
 
@@ -11,6 +10,8 @@ import AllItemsList from './components/AllItemsList';
 import BoxDetailView from './components/BoxDetailView';
 import BoxCreate from './components/BoxCreate';
 import ItemPage from './components/ItemPage';
+import IntakePage from './components/Intake/IntakePage';
+import RetrievalPage from './components/Retrieval/RetrievalPage';
 import { API_BASE } from './api/API_BASE';
 import { MOBILE_BREAKPOINT, MOBILE_PAGE_GAP } from './styles/tokens';
 
@@ -26,12 +27,6 @@ const AppContainer = styled.div`
     max-width: 100%;
     padding: ${MOBILE_PAGE_GAP};
   }
-`;
-
-const Heading = styled.h1`
-  text-align: center;
-  color: #0077cc;
-  margin-bottom: 2rem;
 `;
 
 // ! End STYLES
@@ -56,14 +51,17 @@ function App() {
         ]);
 
         const boxesData = await boxesRes.json();
-        const orphanedData = orphanedRes.ok ? await orphanedRes.json() : [];
+        const orphanedBody = orphanedRes.ok ? await orphanedRes.json() : [];
+        const orphanedData = Array.isArray(orphanedBody)
+          ? orphanedBody
+          : Array.isArray(orphanedBody?.items)
+            ? orphanedBody.items
+            : [];
         const locationsData = locationsRes.ok ? await locationsRes.json() : {};
 
         if (!isAlive) return;
         setBoxes(Array.isArray(boxesData) ? boxesData : []);
-        setOrphanedCount(
-          Array.isArray(orphanedData) ? orphanedData.length : 0,
-        );
+        setOrphanedCount(orphanedData.length);
         setLocations(
           Array.isArray(locationsData?.locations) ? locationsData.locations : [],
         );
@@ -100,7 +98,9 @@ function App() {
         />
         <Route path="/boxes/:shortId" element={<BoxDetailView />} />
         <Route path="/create-box" element={<BoxCreate />} />
+        <Route path="/intake" element={<IntakePage boxes={boxes} />} />
         <Route path="/all-items" element={<AllItemsList />} />
+        <Route path="/retrieval" element={<RetrievalPage />} />
         <Route path="/items/:itemId" element={<ItemPage />} />
       </Routes>
     </AppContainer>

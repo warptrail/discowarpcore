@@ -1,5 +1,5 @@
 // src/components/ItemCentricViewPanel.jsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { formatItemCategory, normalizeItemCategory } from '../util/itemCategories';
@@ -17,7 +17,17 @@ export default function ItemCentricViewPanel({
   fallbackSrc = '/assets/filler-item.png',
   onClose,
 }) {
-  const [imgSrc, setImgSrc] = useState(item?.imagePath || fallbackSrc);
+  const resolvedItemImage =
+    item?.image?.display?.url ||
+    item?.image?.thumb?.url ||
+    item?.image?.original?.url ||
+    item?.image?.url ||
+    item?.imagePath ||
+    fallbackSrc;
+  const [imgSrc, setImgSrc] = useState(resolvedItemImage);
+  useEffect(() => {
+    setImgSrc(resolvedItemImage);
+  }, [resolvedItemImage]);
   const ownership = useMemo(() => getItemOwnershipContext(item), [item]);
   const orphaned = ownership.isOrphaned;
   const tags = useMemo(

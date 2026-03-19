@@ -383,6 +383,24 @@ export const UsageItem = styled.span`
   }
 `;
 
+export const ExternalLinkList = styled.div`
+  display: grid;
+  gap: 0.34rem;
+`;
+
+export const ExternalLinkAnchor = styled.a`
+  color: ${LCARS.teal};
+  text-decoration: underline;
+  text-decoration-color: rgba(76, 198, 193, 0.52);
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+
+  &:hover {
+    color: #9ff0eb;
+    text-decoration-color: rgba(159, 240, 235, 0.84);
+  }
+`;
+
 export const BreadcrumbList = styled.div`
   display: flex;
   flex-wrap: wrap;

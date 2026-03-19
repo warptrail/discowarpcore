@@ -8,6 +8,7 @@ export async function editItem(itemId, payload) {
     description,
     notes,
     tags,
+    links,
     imagePath,
     location,
     orphanedAt,
@@ -15,6 +16,7 @@ export async function editItem(itemId, payload) {
     dateAcquired,
     dateLastUsed,
     usageHistory,
+    checkHistory,
     keepPriority,
     condition,
     category,
@@ -25,7 +27,7 @@ export async function editItem(itemId, payload) {
     purchasePriceCents,
     primaryOwnerName,
     lastMaintainedAt,
-    maintenanceIntervalDays,
+    maintenanceHistory,
     maintenanceNotes,
   } = payload;
 
@@ -35,6 +37,7 @@ export async function editItem(itemId, payload) {
     description,
     notes,
     tags,
+    links,
     imagePath,
     location,
     orphanedAt,
@@ -42,6 +45,7 @@ export async function editItem(itemId, payload) {
     dateAcquired,
     dateLastUsed,
     usageHistory,
+    checkHistory,
     keepPriority,
     condition,
     category,
@@ -52,7 +56,7 @@ export async function editItem(itemId, payload) {
     purchasePriceCents,
     primaryOwnerName,
     lastMaintainedAt,
-    maintenanceIntervalDays,
+    maintenanceHistory,
     maintenanceNotes,
   };
 

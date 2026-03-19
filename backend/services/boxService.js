@@ -11,6 +11,8 @@ const { computeStats, flattenBoxes } = require('../utils/boxHelpers');
 const { wouldCreateCycle } = require('../utils/wouldCreateCycle');
 const { buildEmptyImageMetadata } = require('./imageMetadataService');
 
+const ACTIVE_ITEM_FILTER = { item_status: { $ne: 'gone' } };
+
 function collectLocationIds(nodes = []) {
   const ids = new Set();
   for (const node of nodes) {
@@ -57,11 +59,11 @@ async function getBoxByShortId(shortId) {
 
   const box =
     (await Box.findOne({ box_id: raw })
-      .populate('items')
+      .populate({ path: 'items', match: ACTIVE_ITEM_FILTER })
       .populate('locationId', 'name')
       .lean()) ||
     (await Box.findOne({ box_id: normalized })
-      .populate('items')
+      .populate({ path: 'items', match: ACTIVE_ITEM_FILTER })
       .populate('locationId', 'name')
       .lean());
 
@@ -122,7 +124,10 @@ async function getBoxDataStructure(
 
   let itemsById = new Map();
   if (allItemIds.length) {
-    const allItems = await Item.find({ _id: { $in: allItemIds } }).lean();
+    const allItems = await Item.find({
+      ...ACTIVE_ITEM_FILTER,
+      _id: { $in: allItemIds },
+    }).lean();
     allItems.forEach((item) => withNormalizedItemCategory(item));
     itemsById = new Map(allItems.map((i) => [String(i._id), i]));
   }
@@ -237,6 +242,7 @@ async function getBoxTreeByShortId(shortId) {
   let itemsById = new Map();
   if (allItemIdCandidates.length) {
     const allItems = await Item.find({
+      ...ACTIVE_ITEM_FILTER,
       _id: { $in: allItemIdCandidates },
     }).lean();
     allItems.forEach((item) => withNormalizedItemCategory(item));
@@ -288,7 +294,7 @@ async function getAllBoxes() {
       select: '_id box_id description', // 👈 Only these fields
     })
     .populate('locationId', 'name')
-    .populate('items') // Leave items fully populated (or adjust as needed)
+    .populate({ path: 'items', match: ACTIVE_ITEM_FILTER })
     .lean();
   return boxes.map((box) => ({
     ...box,
@@ -318,7 +324,10 @@ async function populateChildren(box) {
     let child = children[i];
     // Populate items inside the child box
     child = withLocation(child, locationNameMap);
-    child.items = await Item.find({ _id: { $in: child.items } }).lean();
+    child.items = await Item.find({
+      ...ACTIVE_ITEM_FILTER,
+      _id: { $in: child.items },
+    }).lean();
     child.items = child.items.map((item) => withNormalizedItemCategory(item));
 
     child.childBoxes = await populateChildren(child);
@@ -339,7 +348,10 @@ async function getBoxTree() {
   for (let i = 0; i < topLevelBoxes.length; i += 1) {
     let box = topLevelBoxes[i];
     box = withLocation(box, locationNameMap);
-    box.items = await Item.find({ _id: { $in: box.items } }).lean();
+    box.items = await Item.find({
+      ...ACTIVE_ITEM_FILTER,
+      _id: { $in: box.items },
+    }).lean();
     box.items = box.items.map((item) => withNormalizedItemCategory(item));
     box.childBoxes = await populateChildren(box);
     topLevelBoxes[i] = box;
@@ -546,7 +558,7 @@ async function deleteAllBoxes() {
   const itemIdList = Array.from(itemIds);
   if (itemIdList.length) {
     await Item.updateMany(
-      { _id: { $in: itemIdList } },
+      { ...ACTIVE_ITEM_FILTER, _id: { $in: itemIdList } },
       { $set: { orphanedAt: new Date(), location: '' } }
     );
   }

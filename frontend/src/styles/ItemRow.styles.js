@@ -118,9 +118,9 @@ export const Row = styled.div`
 `;
 
 export const RowHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
   gap: 0.8rem;
   min-width: 0;
   border-radius: 10px;
@@ -142,14 +142,14 @@ export const RowHeader = styled.div`
   }
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
-    flex-direction: column;
-    align-items: flex-start;
+    grid-template-columns: 1fr;
   }
 `;
 
 export const RowMain = styled.div`
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
   gap: 0.62rem;
   min-width: 0;
   flex: 1;
@@ -165,6 +165,7 @@ export const RowThumb = styled.div`
   flex-shrink: 0;
   border-radius: 10px;
   overflow: hidden;
+  align-self: start;
 `;
 
 export const RowThumbImage = styled.img`
@@ -191,19 +192,45 @@ export const RowThumbPlaceholder = styled.div`
 `;
 
 export const TitleGroup = styled.div`
+  display: grid;
+  gap: 0.34rem;
+  align-content: start;
+  min-height: 28px;
   min-width: 0;
-  flex: 1;
+  padding-top: 0.02rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.24rem;
+    min-height: 24px;
+  }
 `;
 
 export const RowActions = styled.div`
   display: inline-flex;
-  align-items: center;
+  align-items: flex-end;
+  align-self: end;
   gap: 0.42rem;
   flex-shrink: 0;
 
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.3rem;
+  }
+
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+`;
+
+export const RowActionCluster = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.34rem;
+  flex-wrap: wrap;
+
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    justify-content: flex-end;
   }
 `;
 
@@ -360,6 +387,8 @@ export const Description = styled.div`
 export const Qty = styled.span`
   display: inline-flex;
   align-items: center;
+  justify-self: start;
+  width: fit-content;
   border-radius: 999px;
   border: 1px solid rgba(167, 182, 255, 0.48);
   background: rgba(167, 182, 255, 0.12);
@@ -373,6 +402,48 @@ export const Qty = styled.span`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
     padding: 0.15rem 0.36rem;
+  }
+`;
+
+export const QuickActionButton = styled.button`
+  border: 1px solid
+    ${({ $tone }) =>
+      $tone === 'maintained'
+        ? 'rgba(84, 208, 151, 0.72)'
+        : $tone === 'checked'
+          ? 'rgba(160, 151, 255, 0.72)'
+          : 'rgba(76, 198, 193, 0.72)'};
+  background: ${({ $tone }) =>
+    $tone === 'maintained'
+      ? 'linear-gradient(180deg, rgba(25, 71, 50, 0.92), rgba(19, 56, 40, 0.9))'
+      : $tone === 'checked'
+        ? 'linear-gradient(180deg, rgba(45, 43, 93, 0.92), rgba(34, 33, 70, 0.9))'
+        : 'linear-gradient(180deg, rgba(31, 72, 88, 0.92), rgba(24, 56, 69, 0.9))'};
+  color: #eff7ff;
+  border-radius: 8px;
+  padding: 0.24rem 0.52rem;
+  font-size: 0.66rem;
+  font-weight: 730;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+  transition: filter 120ms ease, box-shadow 120ms ease;
+
+  &:hover {
+    filter: brightness(1.08);
+    box-shadow: 0 0 10px rgba(127, 215, 255, 0.18);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 34px;
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.4rem;
   }
 `;
 

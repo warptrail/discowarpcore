@@ -7,10 +7,110 @@ const {
   normalizeItemCategory,
   withNormalizedItemCategory,
 } = require('../utils/itemCategory');
+const {
+  ITEM_STATUSES,
+  ITEM_DISPOSITIONS,
+} = require('../utils/itemDisposition');
 
 function isNonNegativeIntegerOrNull(v) {
   return v == null || (Number.isInteger(v) && v >= 0);
 }
+
+function isValidExternalUrl(value) {
+  try {
+    const parsed = new URL(String(value || '').trim());
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function normalizeItemLinks(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((link) => {
+      const label = String(link?.label || '').trim();
+      const url = String(link?.url || '').trim();
+      return { label, url };
+    })
+    .filter((link) => link.label || link.url);
+}
+
+const DAY_MS = 1000 * 60 * 60 * 24;
+
+function normalizeDateArray(values) {
+  if (!Array.isArray(values)) return [];
+  const deduped = new Set();
+
+  values.forEach((value) => {
+    if (value == null || value === '') return;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return;
+    deduped.add(date.toISOString());
+  });
+
+  return Array.from(deduped)
+    .sort()
+    .map((value) => new Date(value));
+}
+
+function getLatestDate(values) {
+  if (!Array.isArray(values) || values.length === 0) return null;
+  return values[values.length - 1];
+}
+
+function getIntervalDays(values) {
+  if (!Array.isArray(values) || values.length < 2) return null;
+  const previous = values[values.length - 2];
+  const latest = values[values.length - 1];
+  const days = Math.round((latest.getTime() - previous.getTime()) / DAY_MS);
+  return Number.isFinite(days) && days >= 0 ? days : null;
+}
+
+const itemLinkSchema = new mongoose.Schema(
+  {
+    label: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: [80, 'link label must be 80 characters or fewer'],
+      validate: {
+        validator(value) {
+          const label = String(value || '').trim();
+          const url = String(this?.url || '').trim();
+          if (!label && !url) return true;
+          return !!label;
+        },
+        message: 'link label is required when link url is provided',
+      },
+    },
+    url: {
+      type: String,
+      default: '',
+      trim: true,
+      validate: [
+        {
+          validator(value) {
+            const label = String(this?.label || '').trim();
+            const url = String(value || '').trim();
+            if (!label && !url) return true;
+            return !!url;
+          },
+          message: 'link url is required when link label is provided',
+        },
+        {
+          validator(value) {
+            const url = String(value || '').trim();
+            if (!url) return true;
+            return isValidExternalUrl(url);
+          },
+          message: 'link url must be a valid http/https URL',
+        },
+      ],
+    },
+  },
+  { _id: false }
+);
 
 const itemSchema = new mongoose.Schema(
   {
@@ -19,6 +119,7 @@ const itemSchema = new mongoose.Schema(
     description: { type: String, default: '' },
     notes: { type: String, default: '' },
     tags: { type: [String], default: [] },
+    links: { type: [itemLinkSchema], default: [], set: normalizeItemLinks },
     imagePath: { type: String, default: '' },
     image: {
       originalName: { type: String, default: '' },
@@ -51,9 +152,28 @@ const itemSchema = new mongoose.Schema(
     location: { type: String, default: '' },
     source: { type: String, default: '' },
     orphanedAt: { type: Date, default: null },
+    item_status: {
+      type: String,
+      enum: ITEM_STATUSES,
+      default: 'active',
+      index: true,
+    },
+    disposition: {
+      type: String,
+      enum: ITEM_DISPOSITIONS,
+      default: null,
+    },
+    disposition_at: { type: Date, default: null },
+    disposition_notes: { type: String, default: '' },
+    last_active_box: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Box',
+      default: null,
+    },
     dateAcquired: { type: Date, default: null },
     dateLastUsed: { type: Date, default: null },
     usageHistory: { type: [Date], default: [] }, // tracks all uses
+    checkHistory: { type: [Date], default: [] },
     valueCents: {
       type: Number,
       default: 0,
@@ -106,6 +226,7 @@ const itemSchema = new mongoose.Schema(
       },
     },
     lastMaintainedAt: { type: Date, default: null },
+    maintenanceHistory: { type: [Date], default: [] },
     maintenanceIntervalDays: {
       type: Number,
       default: null,
@@ -123,9 +244,54 @@ const itemSchema = new mongoose.Schema(
   }
 );
 
+itemSchema.pre('validate', function normalizeDispositionFields(next) {
+  const status = this.item_status || 'active';
+  if (status === 'gone') {
+    if (!this.disposition) {
+      this.invalidate(
+        'disposition',
+        'disposition is required when item_status is "gone"'
+      );
+    }
+    if (!this.disposition_at) {
+      this.disposition_at = new Date();
+    }
+    if (this.disposition_notes == null) {
+      this.disposition_notes = '';
+    }
+    return next();
+  }
+
+  this.disposition = null;
+  this.disposition_at = null;
+  if (this.disposition_notes == null) {
+    this.disposition_notes = '';
+  }
+  return next();
+});
+
+itemSchema.pre('validate', function syncLifecycleHistory(next) {
+  this.usageHistory = normalizeDateArray(this.usageHistory);
+  this.dateLastUsed = getLatestDate(this.usageHistory);
+
+  this.checkHistory = normalizeDateArray(this.checkHistory);
+  this.lastCheckedAt = getLatestDate(this.checkHistory);
+
+  this.maintenanceHistory = normalizeDateArray(this.maintenanceHistory);
+  this.lastMaintainedAt = getLatestDate(this.maintenanceHistory);
+  this.maintenanceIntervalDays = getIntervalDays(this.maintenanceHistory);
+
+  return next();
+});
+
 // Read-only virtual for convenience (dollars). No setter.
 itemSchema.virtual('value').get(function () {
   return (this.valueCents ?? 0) / 100;
+});
+
+// Compatibility alias used by intake activity feeds.
+itemSchema.virtual('created_at').get(function () {
+  return this.createdAt || null;
 });
 
 // Virtual to get parent box
@@ -146,11 +312,14 @@ itemSchema.statics.findItemById = async function (id, { select } = {}) {
 
   // Convert to plain object with virtuals included
   const item = withNormalizedItemCategory(itemDoc.toObject({ virtuals: true }));
+  const isGone = String(item?.item_status || '').toLowerCase() === 'gone';
 
   const Box = mongoose.model('Box');
-  const leaf = await Box.findOne({ items: item._id })
-    .select('_id box_id label description parentBox')
-    .lean();
+  const leaf = isGone
+    ? null
+    : await Box.findOne({ items: item._id })
+        .select('_id box_id label description parentBox')
+        .lean();
 
   if (!leaf) {
     return withNormalizedItemCategory({

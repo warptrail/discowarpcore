@@ -1,0 +1,530 @@
+import { getItemHomeHref } from '../../api/itemDetails';
+import { formatItemCategory, normalizeItemCategory } from '../../util/itemCategories';
+import { getItemOwnershipContext } from '../../util/itemOwnership';
+
+const UNKNOWN_LOCATION_LABEL = 'Unknown Location';
+const UNKNOWN_BOX_NAME = 'Unknown Box';
+
+const toTrimmed = (value) => (value == null ? '' : String(value).trim());
+
+const firstNonEmpty = (...values) => {
+  for (const value of values) {
+    const next = toTrimmed(value);
+    if (next) return next;
+  }
+  return '';
+};
+
+const normalizeText = (value) =>
+  toTrimmed(value)
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+
+const normalizeFacetKey = (value) => normalizeText(value);
+
+const compareLabel = (a, b) =>
+  String(a || '').localeCompare(String(b || ''), undefined, {
+    sensitivity: 'base',
+  });
+
+function uniqueTrimmedValues(values) {
+  const seen = new Set();
+  const next = [];
+
+  for (const rawValue of Array.isArray(values) ? values : []) {
+    const value = toTrimmed(rawValue);
+    if (!value) continue;
+    const key = normalizeFacetKey(value);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    next.push(value);
+  }
+
+  return next;
+}
+
+function readTreeNodes(rawTree) {
+  if (Array.isArray(rawTree)) return rawTree;
+  if (Array.isArray(rawTree?.boxes)) return rawTree.boxes;
+  if (Array.isArray(rawTree?.tree)) return rawTree.tree;
+  return [];
+}
+
+function buildBoxLookup(rawTree) {
+  const byMongoId = new Map();
+  const byShortId = new Map();
+  const nodes = readTreeNodes(rawTree);
+
+  const visit = (node, ancestorLabels = []) => {
+    if (!node || typeof node !== 'object') return;
+
+    const boxNumber = firstNonEmpty(node.box_id, node.boxId, node.shortId);
+    const boxMongoId = firstNonEmpty(node._id, node.id);
+    const boxName = firstNonEmpty(
+      node.label,
+      node.name,
+      boxNumber ? `Box ${boxNumber}` : '',
+      UNKNOWN_BOX_NAME,
+    );
+
+    const pathLabels = [...ancestorLabels, boxName].filter(Boolean);
+    const boxPath = pathLabels.join(' > ');
+    const locationLabel = firstNonEmpty(
+      node.location,
+      node.locationName,
+      node.locationLabel,
+    );
+
+    const locationPath =
+      locationLabel && boxPath
+        ? `${locationLabel} > ${boxPath}`
+        : locationLabel || boxPath;
+
+    const entry = {
+      boxNumber,
+      boxName,
+      boxMongoId,
+      boxPath,
+      locationLabel,
+      locationPath,
+    };
+
+    if (boxMongoId) byMongoId.set(boxMongoId, entry);
+    if (boxNumber) byShortId.set(boxNumber, entry);
+
+    const children = Array.isArray(node.childBoxes) ? node.childBoxes : [];
+    for (const child of children) {
+      visit(child, pathLabels);
+    }
+  };
+
+  for (const node of nodes) {
+    visit(node);
+  }
+
+  return { byMongoId, byShortId };
+}
+
+function getBreadcrumbPath(item) {
+  const breadcrumb = Array.isArray(item?.breadcrumb) ? item.breadcrumb : [];
+  const labels = breadcrumb
+    .map((node) =>
+      firstNonEmpty(node?.label, node?.name, node?.box_id, node?.boxId),
+    )
+    .filter(Boolean);
+
+  return labels.join(' > ');
+}
+
+function buildLocationPath(locationLabel, boxPath) {
+  const normalizedLocation = normalizeText(locationLabel);
+  const normalizedPath = normalizeText(boxPath);
+
+  if (locationLabel && boxPath) {
+    if (normalizedPath && normalizedLocation && normalizedPath.startsWith(normalizedLocation)) {
+      return boxPath;
+    }
+    return `${locationLabel} > ${boxPath}`;
+  }
+
+  return locationLabel || boxPath || '';
+}
+
+function buildSearchText(parts) {
+  return normalizeText(parts.filter(Boolean).join(' '));
+}
+
+function getItemHref(itemId) {
+  if (!itemId) return '';
+
+  try {
+    return getItemHomeHref(itemId);
+  } catch {
+    return '';
+  }
+}
+
+function getItemImageUrl(item) {
+  return firstNonEmpty(
+    item?.image?.thumb?.url,
+    item?.image?.display?.url,
+    item?.image?.original?.url,
+    item?.image?.url,
+    item?.imagePath,
+  );
+}
+
+function getBoxHref(boxNumber) {
+  const shortId = firstNonEmpty(boxNumber);
+  if (!shortId) return '';
+
+  return `/boxes/${encodeURIComponent(shortId)}`;
+}
+
+function getItemBoxContext(item, boxLookup) {
+  const ownership = getItemOwnershipContext(item);
+
+  const boxMongoId = firstNonEmpty(
+    ownership.boxMongoId,
+    item?.box?._id,
+    item?.box?.id,
+    item?.parentBox,
+  );
+
+  const boxNumber = firstNonEmpty(
+    ownership.boxId,
+    item?.box?.box_id,
+    item?.box?.boxId,
+    item?.box_id,
+    item?.boxId,
+    item?.parentBoxId,
+  );
+
+  const lookupEntry =
+    (boxMongoId ? boxLookup.byMongoId.get(boxMongoId) : null) ||
+    (boxNumber ? boxLookup.byShortId.get(boxNumber) : null) ||
+    null;
+
+  const breadcrumbPath = getBreadcrumbPath(item);
+  const boxPath = firstNonEmpty(lookupEntry?.boxPath, breadcrumbPath);
+
+  const locationLabel = firstNonEmpty(
+    lookupEntry?.locationLabel,
+    ownership.inheritedLocation,
+    item?.location,
+  );
+
+  const locationPath = firstNonEmpty(
+    lookupEntry?.locationPath,
+    buildLocationPath(locationLabel, boxPath),
+    locationLabel,
+    boxPath,
+  );
+
+  const boxName = firstNonEmpty(
+    lookupEntry?.boxName,
+    ownership.boxLabel,
+    item?.box?.label,
+    item?.box?.name,
+    boxNumber ? `Box ${boxNumber}` : '',
+    UNKNOWN_BOX_NAME,
+  );
+
+  const boxKey = boxMongoId
+    ? `mongo:${boxMongoId}`
+    : boxNumber
+      ? `short:${boxNumber}`
+      : '';
+
+  return {
+    boxMongoId,
+    boxNumber,
+    boxName,
+    boxPath,
+    boxKey,
+    locationLabel: locationLabel || UNKNOWN_LOCATION_LABEL,
+    locationPath: locationPath || locationLabel || UNKNOWN_LOCATION_LABEL,
+    locationKey: normalizeFacetKey(locationLabel || UNKNOWN_LOCATION_LABEL),
+  };
+}
+
+function compareBoxNumber(a, b) {
+  const aNumber = Number(a);
+  const bNumber = Number(b);
+  const aIsNumeric = Number.isFinite(aNumber);
+  const bIsNumeric = Number.isFinite(bNumber);
+
+  if (aIsNumeric && bIsNumeric && aNumber !== bNumber) {
+    return aNumber - bNumber;
+  }
+
+  return compareLabel(a, b);
+}
+
+export function buildRetrievalItems(rawItems, rawTree) {
+  const safeItems = Array.isArray(rawItems) ? rawItems : [];
+  const boxLookup = buildBoxLookup(rawTree);
+
+  const base = [];
+
+  for (const item of safeItems) {
+    const id = firstNonEmpty(item?._id, item?.id);
+    if (!id) continue;
+
+    const name = firstNonEmpty(item?.name, 'Unnamed item');
+    const description = firstNonEmpty(item?.description);
+    const notes = firstNonEmpty(item?.notes, item?.maintenanceNotes);
+    const categoryKey = normalizeItemCategory(item?.category);
+    const categoryLabel = formatItemCategory(categoryKey);
+    const tags = uniqueTrimmedValues(item?.tags);
+    const tagKeys = tags.map((tag) => normalizeFacetKey(tag));
+
+    const context = getItemBoxContext(item, boxLookup);
+
+    const searchText = buildSearchText([
+      name,
+      description,
+      notes,
+      categoryLabel,
+      item?.category,
+      tags.join(' '),
+      context.boxName,
+      context.boxNumber,
+      context.locationLabel,
+      context.locationPath,
+      context.boxPath,
+      getBreadcrumbPath(item),
+    ]);
+
+    base.push({
+      id,
+      name,
+      description,
+      notes,
+      categoryKey,
+      categoryLabel,
+      tags,
+      tagKeys,
+      boxId: context.boxMongoId,
+      boxNumber: context.boxNumber,
+      boxName: context.boxName,
+      boxPath: context.boxPath,
+      boxKey: context.boxKey,
+      locationLabel: context.locationLabel,
+      locationPath: context.locationPath,
+      locationKey: context.locationKey,
+      searchText,
+      imageUrl: getItemImageUrl(item),
+      boxHref: getBoxHref(context.boxNumber),
+      itemHref: getItemHref(id),
+    });
+  }
+
+  const siblingMap = new Map();
+
+  for (const item of base) {
+    if (!item.boxKey) continue;
+    if (!siblingMap.has(item.boxKey)) siblingMap.set(item.boxKey, []);
+    siblingMap.get(item.boxKey).push({ id: item.id, name: item.name });
+  }
+
+  return base
+    .map((item) => {
+      const siblings = siblingMap.get(item.boxKey) || [];
+      const siblingItems = siblings
+        .filter((sibling) => sibling.id !== item.id)
+        .map((sibling) => sibling.name)
+        .sort(compareLabel);
+
+      return {
+        ...item,
+        siblingItems,
+      };
+    })
+    .sort((a, b) => {
+      const byLocation = compareLabel(a.locationLabel, b.locationLabel);
+      if (byLocation !== 0) return byLocation;
+
+      const byBox = compareBoxNumber(a.boxNumber, b.boxNumber);
+      if (byBox !== 0) return byBox;
+
+      return compareLabel(a.name, b.name);
+    });
+}
+
+function mapToSortedOptions(optionMap) {
+  return Array.from(optionMap.entries())
+    .map(([key, label]) => ({ key, label }))
+    .sort((a, b) => compareLabel(a.label, b.label));
+}
+
+export function collectRetrievalFilterOptions(items) {
+  const safeItems = Array.isArray(items) ? items : [];
+
+  const categoryLabelByKey = new Map();
+  const tagLabelByKey = new Map();
+  const locationLabelByKey = new Map();
+
+  for (const item of safeItems) {
+    if (item.categoryKey) {
+      categoryLabelByKey.set(
+        item.categoryKey,
+        firstNonEmpty(item.categoryLabel, formatItemCategory(item.categoryKey)),
+      );
+    }
+
+    if (item.locationKey) {
+      locationLabelByKey.set(
+        item.locationKey,
+        firstNonEmpty(item.locationLabel, UNKNOWN_LOCATION_LABEL),
+      );
+    }
+
+    const tags = Array.isArray(item.tags) ? item.tags : [];
+    for (const tag of tags) {
+      const key = normalizeFacetKey(tag);
+      if (!key) continue;
+      if (!tagLabelByKey.has(key)) {
+        tagLabelByKey.set(key, tag);
+      }
+    }
+  }
+
+  return {
+    categories: mapToSortedOptions(categoryLabelByKey),
+    tags: mapToSortedOptions(tagLabelByKey),
+    locations: mapToSortedOptions(locationLabelByKey),
+    categoryLabelByKey,
+    tagLabelByKey,
+    locationLabelByKey,
+  };
+}
+
+function normalizeFilterList(list) {
+  const seen = new Set();
+  const values = [];
+
+  for (const value of Array.isArray(list) ? list : []) {
+    const key = normalizeFacetKey(value);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    values.push(key);
+  }
+
+  return values;
+}
+
+export function filterRetrievalItems(items, { query, filters }) {
+  const safeItems = Array.isArray(items) ? items : [];
+  const normalizedQuery = normalizeText(query);
+  const categoryFilters = normalizeFilterList(filters?.categories);
+  const tagFilters = normalizeFilterList(filters?.tags);
+  const locationFilters = normalizeFilterList(filters?.locations);
+
+  return safeItems.filter((item) => {
+    if (normalizedQuery && !String(item.searchText || '').includes(normalizedQuery)) {
+      return false;
+    }
+
+    if (categoryFilters.length && !categoryFilters.includes(item.categoryKey)) {
+      return false;
+    }
+
+    if (locationFilters.length && !locationFilters.includes(item.locationKey)) {
+      return false;
+    }
+
+    if (tagFilters.length) {
+      const tagKeys = Array.isArray(item.tagKeys) ? item.tagKeys : [];
+      const hasTag = tagKeys.some((tagKey) => tagFilters.includes(tagKey));
+      if (!hasTag) return false;
+    }
+
+    return true;
+  });
+}
+
+export function buildActiveFilterChips(filters, options) {
+  const chips = [];
+
+  const categories = normalizeFilterList(filters?.categories);
+  const tags = normalizeFilterList(filters?.tags);
+  const locations = normalizeFilterList(filters?.locations);
+  const owners = normalizeFilterList(filters?.owners);
+
+  for (const key of categories) {
+    const label = options?.categoryLabelByKey?.get(key) || key;
+    chips.push({ type: 'categories', key, label: `Category: ${label}` });
+  }
+
+  for (const key of locations) {
+    const label = options?.locationLabelByKey?.get(key) || key;
+    chips.push({ type: 'locations', key, label: `Location: ${label}` });
+  }
+
+  for (const key of tags) {
+    const label = options?.tagLabelByKey?.get(key) || key;
+    chips.push({ type: 'tags', key, label: `Tag: ${label}` });
+  }
+
+  for (const key of owners) {
+    const label = options?.ownerLabelByKey?.get(key) || key;
+    chips.push({ type: 'owners', key, label: `Owner: ${label}` });
+  }
+
+  return chips;
+}
+
+function normalizeOptionRows(rows) {
+  return (Array.isArray(rows) ? rows : [])
+    .map((row) => {
+      const key = normalizeFacetKey(row?.key);
+      const label = firstNonEmpty(row?.label, row?.key);
+      if (!key || !label) return null;
+      return { key, label };
+    })
+    .filter(Boolean)
+    .sort((a, b) => compareLabel(a.label, b.label));
+}
+
+export function normalizeRetrievalFilterOptions(rawFilters) {
+  const categories = normalizeOptionRows(rawFilters?.categories);
+  const tags = normalizeOptionRows(rawFilters?.tags);
+  const locations = normalizeOptionRows(rawFilters?.locations);
+  const owners = normalizeOptionRows(rawFilters?.owners);
+
+  const categoryLabelByKey = new Map(categories.map((option) => [option.key, option.label]));
+  const tagLabelByKey = new Map(tags.map((option) => [option.key, option.label]));
+  const locationLabelByKey = new Map(locations.map((option) => [option.key, option.label]));
+  const ownerLabelByKey = new Map(owners.map((option) => [option.key, option.label]));
+
+  return {
+    categories,
+    tags,
+    locations,
+    owners,
+    categoryLabelByKey,
+    tagLabelByKey,
+    locationLabelByKey,
+    ownerLabelByKey,
+  };
+}
+
+export function normalizeRetrievalItemsPage(rawItems) {
+  const safeItems = Array.isArray(rawItems) ? rawItems : [];
+
+  return safeItems
+    .map((rawItem) => {
+      const id = firstNonEmpty(rawItem?.id, rawItem?._id);
+      if (!id) return null;
+
+      const categoryKey = normalizeItemCategory(rawItem?.categoryKey || rawItem?.category);
+      const tags = uniqueTrimmedValues(rawItem?.tags);
+
+      return {
+        id,
+        name: firstNonEmpty(rawItem?.name, 'Unnamed item'),
+        description: firstNonEmpty(rawItem?.description),
+        notes: firstNonEmpty(rawItem?.notes),
+        categoryKey,
+        categoryLabel: firstNonEmpty(
+          rawItem?.categoryLabel,
+          formatItemCategory(categoryKey)
+        ),
+        tags,
+        boxId: firstNonEmpty(rawItem?.boxId, rawItem?.boxMongoId),
+        boxNumber: firstNonEmpty(rawItem?.boxNumber),
+        boxName: firstNonEmpty(rawItem?.boxName, UNKNOWN_BOX_NAME),
+        boxPath: firstNonEmpty(rawItem?.boxPath),
+        locationLabel: firstNonEmpty(rawItem?.locationLabel, UNKNOWN_LOCATION_LABEL),
+        locationPath: firstNonEmpty(rawItem?.locationPath, UNKNOWN_LOCATION_LABEL),
+        primaryOwnerName: firstNonEmpty(rawItem?.primaryOwnerName),
+        imageUrl: firstNonEmpty(rawItem?.imageUrl),
+        previewImageUrl: firstNonEmpty(rawItem?.previewImageUrl, rawItem?.imageUrl),
+        siblingItems: uniqueTrimmedValues(rawItem?.siblingItems),
+        itemHref: getItemHref(id),
+        boxHref: getBoxHref(rawItem?.boxNumber),
+      };
+    })
+    .filter(Boolean);
+}

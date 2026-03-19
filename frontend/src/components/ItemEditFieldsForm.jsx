@@ -8,8 +8,52 @@ import {
   formatItemCategory,
   normalizeItemCategory,
 } from '../util/itemCategories';
+import { USD_DECIMAL_PATTERN } from '../util/usdMoney';
 
 const asInputValue = (v) => (v == null ? '' : String(v));
+
+function DateHistoryField({
+  label,
+  field,
+  values,
+  onHistoryDateChange,
+  onAddHistoryDate,
+  onRemoveHistoryDate,
+}) {
+  const rows = Array.isArray(values) ? values : [];
+
+  return (
+    <S.HistoryFieldWrap>
+      <S.Label>{label}:</S.Label>
+      <S.DateHistoryRows>
+        {rows.length ? (
+          rows.map((value, index) => (
+            <S.DateHistoryRow key={`${field}-${index}`}>
+              <S.Input
+                type="date"
+                value={value || ''}
+                onChange={(event) =>
+                  onHistoryDateChange(field, index, event.target.value)
+                }
+              />
+              <S.DateHistoryRemoveButton
+                type="button"
+                onClick={() => onRemoveHistoryDate(field, index)}
+              >
+                Remove
+              </S.DateHistoryRemoveButton>
+            </S.DateHistoryRow>
+          ))
+        ) : (
+          <S.FieldHint>No dates yet.</S.FieldHint>
+        )}
+      </S.DateHistoryRows>
+      <S.DateHistoryAddButton type="button" onClick={() => onAddHistoryDate(field)}>
+        + Add Date
+      </S.DateHistoryAddButton>
+    </S.HistoryFieldWrap>
+  );
+}
 
 export default function ItemEditFieldsForm({
   formData,
@@ -18,6 +62,13 @@ export default function ItemEditFieldsForm({
   onNumberFieldChange,
   onQuantityChange,
   onTagsChange,
+  onLinkChange,
+  onAddLink,
+  onRemoveLink,
+  onHistoryDateChange,
+  onAddHistoryDate,
+  onRemoveHistoryDate,
+  derivedDates,
   saveSuccess,
   savedTags,
   flashTagSet,
@@ -59,6 +110,44 @@ export default function ItemEditFieldsForm({
           onChange={onFieldChange}
         />
       </S.Label>
+
+      <S.SectionTitle>External Links</S.SectionTitle>
+      <S.LinksWrap>
+        {(Array.isArray(formData.links) ? formData.links : []).map((row, index) => (
+          <S.LinkRow key={`legacy-link-row-${index}`}>
+            <S.LinkInput
+              type="text"
+              value={row?.label || ''}
+              onChange={(event) =>
+                onLinkChange(index, 'label', event.target.value)
+              }
+              placeholder="Label"
+              maxLength={80}
+              aria-label={`Link ${index + 1} label`}
+            />
+            <S.LinkInput
+              type="url"
+              value={row?.url || ''}
+              onChange={(event) =>
+                onLinkChange(index, 'url', event.target.value)
+              }
+              placeholder="https://example.com"
+              inputMode="url"
+              aria-label={`Link ${index + 1} URL`}
+            />
+            <S.LinkRemoveButton
+              type="button"
+              onClick={() => onRemoveLink(index)}
+            >
+              Remove
+            </S.LinkRemoveButton>
+          </S.LinkRow>
+        ))}
+
+        <S.LinkAddButton type="button" onClick={onAddLink}>
+          + Add Link
+        </S.LinkAddButton>
+      </S.LinksWrap>
 
       <S.Label>
         Location:
@@ -170,16 +259,33 @@ export default function ItemEditFieldsForm({
 
       <S.FieldGrid>
         <S.Label>
-          Purchase Price (cents):
+          Value (USD):
           <S.Input
-            type="number"
-            min="0"
-            step="1"
-            value={asInputValue(formData.purchasePriceCents)}
-            onChange={(e) =>
-              onNumberFieldChange('purchasePriceCents', e.target.value)
-            }
+            type="text"
+            inputMode="decimal"
+            name="valueUsd"
+            pattern={USD_DECIMAL_PATTERN.source}
+            placeholder="0.00"
+            value={formData.valueUsd || ''}
+            onChange={onFieldChange}
           />
+          <S.FieldHint>Non-negative USD, max 2 decimals.</S.FieldHint>
+        </S.Label>
+
+        <S.Label>
+          Purchase Price (USD):
+          <S.Input
+            type="text"
+            inputMode="decimal"
+            name="purchasePriceUsd"
+            pattern={USD_DECIMAL_PATTERN.source}
+            placeholder="0.00"
+            value={formData.purchasePriceUsd || ''}
+            onChange={onFieldChange}
+          />
+          <S.FieldHint>
+            If value is blank, it defaults to purchase amount on save.
+          </S.FieldHint>
         </S.Label>
 
         <S.Label>
@@ -196,17 +302,48 @@ export default function ItemEditFieldsForm({
         </S.Label>
       </S.FieldGrid>
 
+      <S.SectionTitle>Dates / Usage</S.SectionTitle>
       <S.FieldGrid>
         <S.Label>
-          Last Checked:
+          Date Acquired:
           <S.Input
             type="date"
-            name="lastCheckedAt"
-            value={formData.lastCheckedAt || ''}
+            name="dateAcquired"
+            value={formData.dateAcquired || ''}
             onChange={onFieldChange}
           />
         </S.Label>
+
+        <S.Label>
+          Last Used (derived):
+          <S.StaticValue>{derivedDates?.lastUsedAt || '—'}</S.StaticValue>
+        </S.Label>
       </S.FieldGrid>
+
+      <DateHistoryField
+        label="Usage History"
+        field="usageHistory"
+        values={formData.usageHistory}
+        onHistoryDateChange={onHistoryDateChange}
+        onAddHistoryDate={onAddHistoryDate}
+        onRemoveHistoryDate={onRemoveHistoryDate}
+      />
+
+      <S.FieldGrid>
+        <S.Label>
+          Last Checked (derived):
+          <S.StaticValue>{derivedDates?.lastCheckedAt || '—'}</S.StaticValue>
+        </S.Label>
+      </S.FieldGrid>
+
+      <DateHistoryField
+        label="Check History"
+        field="checkHistory"
+        values={formData.checkHistory}
+        onHistoryDateChange={onHistoryDateChange}
+        onAddHistoryDate={onAddHistoryDate}
+        onRemoveHistoryDate={onRemoveHistoryDate}
+      />
 
       <S.CheckboxRow>
         <S.Checkbox
@@ -221,28 +358,26 @@ export default function ItemEditFieldsForm({
       <S.SectionTitle>Maintenance</S.SectionTitle>
       <S.FieldGrid>
         <S.Label>
-          Last Maintained:
-          <S.Input
-            type="date"
-            name="lastMaintainedAt"
-            value={formData.lastMaintainedAt || ''}
-            onChange={onFieldChange}
-          />
+          Last Maintained (derived):
+          <S.StaticValue>{derivedDates?.lastMaintainedAt || '—'}</S.StaticValue>
         </S.Label>
 
         <S.Label>
           Maintenance Interval (days):
-          <S.Input
-            type="number"
-            min="0"
-            step="1"
-            value={asInputValue(formData.maintenanceIntervalDays)}
-            onChange={(e) =>
-              onNumberFieldChange('maintenanceIntervalDays', e.target.value)
-            }
-          />
+          <S.StaticValue>
+            {derivedDates?.maintenanceIntervalDays ?? '—'}
+          </S.StaticValue>
         </S.Label>
       </S.FieldGrid>
+
+      <DateHistoryField
+        label="Maintenance History"
+        field="maintenanceHistory"
+        values={formData.maintenanceHistory}
+        onHistoryDateChange={onHistoryDateChange}
+        onAddHistoryDate={onAddHistoryDate}
+        onRemoveHistoryDate={onRemoveHistoryDate}
+      />
 
       <S.Label>
         Maintenance Notes:

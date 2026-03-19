@@ -84,7 +84,6 @@ export default function ItemLifecycleActionsBar({
   navigate,
   handleUndo,
   handleOrphan,
-  handleDestroy,
   showMovePanel,
   setShowMovePanel,
   sourceBoxId,
@@ -110,7 +109,6 @@ export default function ItemLifecycleActionsBar({
               Move to Another Box
             </Button>
             <Button onClick={handleOrphan}>Orphan</Button>
-            <Button onClick={handleDestroy}>Destroy</Button>
           </ButtonRow>
 
           {showMovePanel && (

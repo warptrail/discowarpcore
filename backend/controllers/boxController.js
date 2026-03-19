@@ -140,7 +140,7 @@ async function checkBoxIdAvailability(req, res) {
 }
 
 async function createBoxApi(req, res) {
-  const { box_id, label, parentBox, items, location, locationId } = req.body;
+  const { box_id, label, parentBox, items, location, locationId, tags } = req.body;
 
   // 👇 you can now safely use box_id
   const isValidFormat = /^\d{3}$/.test(box_id);
@@ -158,6 +158,7 @@ async function createBoxApi(req, res) {
       items,
       location,
       locationId,
+      tags,
     });
     res.status(201).json(newBox);
   } catch (err) {

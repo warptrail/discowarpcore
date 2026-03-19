@@ -379,6 +379,16 @@ const toneStyles = {
       border-color: #5a5a5a;
     }
   `,
+  warning: css`
+    background: #3e3014;
+    border-color: #8d6b30;
+    color: #ffe8b8;
+
+    &:hover:not(:disabled) {
+      background: #4f3d19;
+      border-color: #b38b3f;
+    }
+  `,
   danger: css`
     background: #3b1c1f;
     border-color: #7a353d;

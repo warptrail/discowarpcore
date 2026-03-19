@@ -3,6 +3,8 @@ const Box = require('../models/Box');
 const Item = require('../models/Item');
 const { withNormalizedItemCategory } = require('../utils/itemCategory');
 
+const ACTIVE_ITEM_FILTER = { item_status: { $ne: 'gone' } };
+
 /**
  * Primitive A:
  * Attach item to exactly one box (single-parent).
@@ -11,6 +13,16 @@ const { withNormalizedItemCategory } = require('../utils/itemCategory');
  * - Clear orphaning flags + location (box owns location)
  */
 async function attachItemToBox({ itemId, boxId }) {
+  const item = await Item.findById(itemId).select('_id item_status').lean();
+  if (!item) {
+    throw new Error('Item not found');
+  }
+  if (item.item_status === 'gone') {
+    throw new Error(
+      'This item is marked gone. Restore it to active inventory before assigning it to a box.'
+    );
+  }
+
   // 1) remove from any other box
   await Box.updateMany({ items: itemId }, { $pull: { items: itemId } });
 
@@ -23,7 +35,7 @@ async function attachItemToBox({ itemId, boxId }) {
 
   // 3) clear orphan state and wipe ad-hoc item location
   await Item.updateOne(
-    { _id: itemId },
+    { _id: itemId, ...ACTIVE_ITEM_FILTER },
     { $unset: { orphanedAt: 1 }, $set: { location: '' } }
   );
 
@@ -43,7 +55,7 @@ async function removeItemFromBox(boxId, itemId) {
   const stillInABox = await Box.exists({ items: itemId });
   if (!stillInABox) {
     await Item.updateOne(
-      { _id: itemId },
+      { _id: itemId, ...ACTIVE_ITEM_FILTER },
       { $set: { orphanedAt: new Date(), location: '' } }
     );
   }
@@ -101,7 +113,7 @@ async function moveItemBetweenBoxes(sourceBoxId, destBoxId, itemId) {
 async function detachItem({ itemId }) {
   await Box.updateMany({ items: itemId }, { $pull: { items: itemId } });
   await Item.updateOne(
-    { _id: itemId },
+    { _id: itemId, ...ACTIVE_ITEM_FILTER },
     { $set: { orphanedAt: new Date(), location: '' } }
   );
   return { itemId, orphaned: true };
@@ -127,7 +139,7 @@ async function emptyBoxItems(boxId) {
   const itemIds = box.items || [];
   if (itemIds.length) {
     await Item.updateMany(
-      { _id: { $in: itemIds } },
+      { ...ACTIVE_ITEM_FILTER, _id: { $in: itemIds } },
       { $set: { orphanedAt: new Date(), location: '' } }
     );
   }
@@ -141,6 +153,7 @@ async function emptyBoxItems(boxId) {
  */
 async function getOrphanItems({ since } = {}) {
   const q = { orphanedAt: { $ne: null } };
+  q.item_status = { $ne: 'gone' };
   if (since) q.orphanedAt = { $gte: new Date(since) };
   const items = await Item.find(q).lean();
   return items.map((item) => withNormalizedItemCategory(item));

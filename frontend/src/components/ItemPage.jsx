@@ -1,11 +1,22 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { API_BASE } from '../api/API_BASE';
 import { ToastContext } from './Toast';
+import {
+  deleteItemPermanently,
+  markItemGone,
+  restoreItemToActive,
+} from '../api/itemLifecycle';
 import ItemDetails from './ItemDetails';
 import ItemPageBreadcrumb from './ItemPageBreadcrumb';
 import EditItemDetailsForm from './EditItemDetailsForm';
 import ItemContainerSection from './ItemContainerSection';
+import {
+  ItemHardDeleteConsolePanel,
+  ItemMarkGoneConsolePanel,
+  ItemReclaimConsolePanel,
+} from './ItemLifecycleConsolePanels';
+import { getItemOwnershipContext } from '../util/itemOwnership';
 import * as S from '../styles/ItemPage.styles';
 
 const getBoxName = (box, fallback = 'Box') => {
@@ -19,6 +30,7 @@ export default function ItemPage() {
   const { itemId } = useParams();
   const [searchParams] = useSearchParams();
   const urlWantsEdit = searchParams.get('mode') === 'edit';
+  const navigate = useNavigate();
 
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
@@ -31,6 +43,8 @@ export default function ItemPage() {
   const [isEditing, setIsEditing] = useState(urlWantsEdit);
   const [containerPending, setContainerPending] = useState(false);
   const [containerError, setContainerError] = useState('');
+  const [lifecycleDialog, setLifecycleDialog] = useState(null);
+  const [lifecycleBusy, setLifecycleBusy] = useState(false);
 
   const undoInFlightRef = useRef(new Set());
 
@@ -232,6 +246,15 @@ export default function ItemPage() {
   const handleMoveItem = useCallback(
     async ({ destBoxId, destLabel, destShortId, sourceBoxId }) => {
       if (!item?._id || !destBoxId) return false;
+      if (String(item?.item_status || '').toLowerCase() === 'gone') {
+        showToast?.({
+          variant: 'warning',
+          title: 'Item is marked gone',
+          message: 'Restore this item to active inventory before placing it in a box.',
+          timeoutMs: 4200,
+        });
+        return false;
+      }
 
       const beforeItem = item;
       const beforeBox = beforeItem?.box ?? null;
@@ -305,6 +328,15 @@ export default function ItemPage() {
   const handleRemoveFromBox = useCallback(
     async ({ boxMongoId }) => {
       if (!item?._id || !boxMongoId) return false;
+      if (String(item?.item_status || '').toLowerCase() === 'gone') {
+        showToast?.({
+          variant: 'warning',
+          title: 'Item is marked gone',
+          message: 'This item is already outside active inventory.',
+          timeoutMs: 3600,
+        });
+        return false;
+      }
 
       const beforeItem = item;
       const sourceBox = beforeItem?.box ?? null;
@@ -353,6 +385,206 @@ export default function ItemPage() {
     },
     [item, loadItem, requestRemoveFromBoxMutation, showToast, showUndoToast]
   );
+
+  const dismissLifecycleDialog = useCallback(() => {
+    setLifecycleDialog(null);
+    hideToast?.();
+  }, [hideToast]);
+
+  const handleConfirmMarkGone = useCallback(
+    async ({ disposition, dispositionNotes }) => {
+      if (!item?._id || lifecycleBusy) return false;
+
+      try {
+        setLifecycleBusy(true);
+        await markItemGone(item._id, {
+          disposition,
+          dispositionNotes,
+        });
+        await loadItem({ preserveLoading: true });
+
+        setLifecycleDialog(null);
+        hideToast?.();
+
+        const readableDisposition = String(disposition || '').trim().toLowerCase();
+        showToast?.({
+          variant: 'success',
+          title: 'Item marked gone',
+          message: `"${getItemName(item)}" moved to No Longer Have (${readableDisposition}).`,
+          timeoutMs: 4600,
+        });
+        return true;
+      } catch (err) {
+        showToast?.({
+          variant: 'danger',
+          title: 'Mark Gone failed',
+          message: err?.message || 'Could not mark this item as gone.',
+          timeoutMs: 5200,
+        });
+        return false;
+      } finally {
+        setLifecycleBusy(false);
+      }
+    },
+    [hideToast, item, lifecycleBusy, loadItem, showToast]
+  );
+
+  const handleConfirmReclaim = useCallback(async () => {
+    if (!item?._id || lifecycleBusy) return false;
+
+    try {
+      setLifecycleBusy(true);
+      await restoreItemToActive(item._id);
+      const refreshed = await loadItem({ preserveLoading: true });
+
+      setLifecycleDialog(null);
+      hideToast?.();
+
+      const restoredBox = refreshed?.box ?? null;
+      const restoredLabel = getBoxName(restoredBox, '');
+      showToast?.({
+        variant: 'success',
+        title: 'Item reclaimed',
+        message: restoredLabel
+          ? `Item is active again and restored to "${restoredLabel}".`
+          : 'Item is active again and currently orphaned.',
+        timeoutMs: 4600,
+      });
+      return true;
+    } catch (err) {
+      showToast?.({
+        variant: 'danger',
+        title: 'Reclaim failed',
+        message: err?.message || 'Could not reclaim this item.',
+        timeoutMs: 5200,
+      });
+      return false;
+    } finally {
+      setLifecycleBusy(false);
+    }
+  }, [hideToast, item, lifecycleBusy, loadItem, showToast]);
+
+  const handleConfirmDeletePermanently = useCallback(async () => {
+    if (!item?._id || lifecycleBusy) return false;
+
+    const ownership = getItemOwnershipContext(item);
+    const fallbackHref = ownership?.boxId
+      ? `/boxes/${encodeURIComponent(ownership.boxId)}`
+      : '/all-items';
+
+    try {
+      setLifecycleBusy(true);
+      await deleteItemPermanently(item._id);
+
+      setLifecycleDialog(null);
+      hideToast?.();
+      showToast?.({
+        variant: 'success',
+        title: 'Item permanently deleted',
+        message: `"${getItemName(item)}" was removed from the database.`,
+        timeoutMs: 2200,
+      });
+
+      setTimeout(() => {
+        navigate(fallbackHref, { replace: true });
+      }, 220);
+
+      return true;
+    } catch (err) {
+      showToast?.({
+        variant: 'danger',
+        title: 'Delete failed',
+        message: err?.message || 'Could not permanently delete this item.',
+        timeoutMs: 5200,
+      });
+      return false;
+    } finally {
+      setLifecycleBusy(false);
+    }
+  }, [hideToast, item, lifecycleBusy, navigate, showToast]);
+
+  useEffect(() => {
+    if (!lifecycleDialog || !item?._id) return;
+
+    const ownership = getItemOwnershipContext(item);
+    const previousBoxLabel = ownership?.boxLabel
+      ? ownership.boxLabel
+      : ownership?.boxId
+        ? `Box #${ownership.boxId}`
+        : '';
+
+    if (lifecycleDialog === 'delete') {
+      showToast?.({
+        variant: 'danger',
+        title: `Delete ${getItemName(item)}`,
+        message: 'Permanent action. Confirm carefully.',
+        sticky: true,
+        content: (
+          <ItemHardDeleteConsolePanel
+            busy={lifecycleBusy}
+            itemName={item?.name}
+            onCancel={dismissLifecycleDialog}
+            onConfirm={handleConfirmDeletePermanently}
+          />
+        ),
+        onClose: dismissLifecycleDialog,
+      });
+      return;
+    }
+
+    if (lifecycleDialog === 'markGone') {
+      showToast?.({
+        variant: 'warning',
+        title: `Mark ${getItemName(item)} Gone`,
+        message: 'Provide lifecycle details before confirming.',
+        sticky: true,
+        content: (
+          <ItemMarkGoneConsolePanel
+            busy={lifecycleBusy}
+            itemName={item?.name}
+            onCancel={dismissLifecycleDialog}
+            onConfirm={handleConfirmMarkGone}
+          />
+        ),
+        onClose: dismissLifecycleDialog,
+      });
+      return;
+    }
+
+    if (lifecycleDialog === 'reclaim') {
+      showToast?.({
+        variant: 'info',
+        title: `Reclaim ${getItemName(item)}`,
+        message: 'Return this item to active inventory.',
+        sticky: true,
+        content: (
+          <ItemReclaimConsolePanel
+            busy={lifecycleBusy}
+            itemName={item?.name}
+            previousBoxLabel={previousBoxLabel}
+            onCancel={dismissLifecycleDialog}
+            onConfirm={handleConfirmReclaim}
+          />
+        ),
+        onClose: dismissLifecycleDialog,
+      });
+    }
+  }, [
+    dismissLifecycleDialog,
+    handleConfirmDeletePermanently,
+    handleConfirmMarkGone,
+    handleConfirmReclaim,
+    item,
+    lifecycleBusy,
+    lifecycleDialog,
+    showToast,
+  ]);
+
+  useEffect(() => {
+    if (isEditing) return;
+    if (!lifecycleDialog) return;
+    dismissLifecycleDialog();
+  }, [dismissLifecycleDialog, isEditing, lifecycleDialog]);
 
   if (loading) {
     return (
@@ -412,6 +644,20 @@ export default function ItemPage() {
       {isEditing ? (
         <EditItemDetailsForm
           item={item}
+          lifecycleBusy={lifecycleBusy}
+          onMarkGoneRequest={() => setLifecycleDialog('markGone')}
+          onDeletePermanentlyRequest={() => setLifecycleDialog('delete')}
+          onReclaimRequest={() => setLifecycleDialog('reclaim')}
+          onItemImageUpdated={({ image, imagePath }) => {
+            setItem((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                image: image || null,
+                imagePath: imagePath || '',
+              };
+            });
+          }}
           onCancel={() => {
             setIsEditing(false);
             loadItem({ preserveLoading: true });

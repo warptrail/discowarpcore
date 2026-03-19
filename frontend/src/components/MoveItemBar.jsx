@@ -39,11 +39,6 @@ function MoveItemBar({
     refreshBox();
   };
 
-  const handleDestroy = () => {
-    console.log(`💥 Destroying item ${itemId}`);
-    refreshBox();
-  };
-
   return (
     <ItemLifecycleActionsBar
       moveResult={moveResult}
@@ -51,7 +46,6 @@ function MoveItemBar({
       navigate={navigate}
       handleUndo={handleUndo}
       handleOrphan={handleOrphan}
-      handleDestroy={handleDestroy}
       showMovePanel={showMovePanel}
       setShowMovePanel={setShowMovePanel}
       sourceBoxId={sourceBoxId}

@@ -6,6 +6,7 @@ import { createBox } from '../api/boxes';
 import useShortIdAvailability from '../hooks/useShortIdAvailability';
 import useLocationRegistry from '../hooks/useLocationRegistry';
 import BoxLocationField from './BoxForms/BoxLocationField';
+import BoxTagsField from './BoxForms/BoxTagsField';
 
 const LCARS = {
   panel: '#11161f',
@@ -15,16 +16,13 @@ const LCARS = {
   text: '#e6edf4',
   textDim: 'rgba(214, 226, 241, 0.8)',
   teal: '#4cc6c1',
-  coral: '#f08a7b',
-  amber: '#e8b15c',
-  lilac: '#a7b6ff',
 };
 
 const Container = styled.div`
   position: relative;
   max-width: 500px;
-  margin: 3rem auto;
-  padding: 1rem 1rem 1.1rem;
+  margin: ${({ $embedded }) => ($embedded ? '0' : '3rem auto')};
+  padding: ${({ $embedded }) => ($embedded ? '0.86rem 0.86rem 0.96rem' : '1rem 1rem 1.1rem')};
   border-radius: 14px;
   border: 1px solid ${LCARS.line};
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 34%),
@@ -35,41 +33,12 @@ const Container = styled.div`
   color: ${LCARS.text};
   overflow: hidden;
 
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    pointer-events: none;
-  }
-
-  &::before {
-    left: 0.9rem;
-    right: 0.9rem;
-    top: 0.65rem;
-    height: 5px;
-    border-radius: 999px;
-    background: linear-gradient(
-      90deg,
-      ${LCARS.coral} 0 17%,
-      transparent 17% 21%,
-      ${LCARS.teal} 21% 56%,
-      transparent 56% 62%,
-      ${LCARS.amber} 62% 82%,
-      transparent 82% 86%,
-      ${LCARS.lilac} 86% 100%
-    );
-    opacity: 0.62;
-  }
-
-  &::after {
-    left: 0;
-    top: 1.15rem;
-    bottom: 1.15rem;
-    width: 8px;
-    border-radius: 0 999px 999px 0;
-    background: linear-gradient(180deg, ${LCARS.teal}, ${LCARS.lilac} 58%, ${LCARS.coral});
-    opacity: 0.48;
-  }
+  ${({ $embedded }) =>
+    $embedded
+      ? `
+    max-width: 100%;
+  `
+      : ''}
 `;
 
 const Heading = styled.h2`
@@ -169,12 +138,14 @@ const Error = styled.div`
 `;
 
 const Button = styled.button`
-  justify-self: end;
   min-width: 8rem;
   border-radius: 999px;
-  border: 1px solid #2f8f4d;
-  color: #d6ffe4;
-  background: linear-gradient(180deg, #2d8f47, #216b36);
+  border: 1px solid ${({ $secondary }) => ($secondary ? '#6f7c8f' : '#2f8f4d')};
+  color: ${({ $secondary }) => ($secondary ? '#dce8ff' : '#d6ffe4')};
+  background: ${({ $secondary }) =>
+    $secondary
+      ? 'linear-gradient(180deg, #2a3344, #202739)'
+      : 'linear-gradient(180deg, #2d8f47, #216b36)'};
   box-shadow: 0 0 0 1px rgba(17, 30, 20, 0.42);
   padding: 0.58rem 1.08rem;
   font-size: 0.84rem;
@@ -186,11 +157,14 @@ const Button = styled.button`
     background 120ms ease;
 
   &:hover:enabled {
-    border-color: #42b765;
-    background: linear-gradient(180deg, #35a353, #257840);
+    border-color: ${({ $secondary }) => ($secondary ? '#8898b5' : '#42b765')};
+    background: ${({ $secondary }) =>
+      $secondary
+        ? 'linear-gradient(180deg, #33405a, #27324b)'
+        : 'linear-gradient(180deg, #35a353, #257840)'};
     box-shadow:
       0 0 0 1px rgba(21, 35, 26, 0.45),
-      0 0 16px rgba(51, 163, 83, 0.28);
+      0 0 16px ${({ $secondary }) => ($secondary ? 'rgba(77, 108, 168, 0.28)' : 'rgba(51, 163, 83, 0.28)')};
   }
 
   &:active:enabled {
@@ -203,11 +177,38 @@ const Button = styled.button`
   }
 `;
 
-function BoxCreate() {
+const ButtonRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+`;
+
+function normalizeTags(tags) {
+  const values = Array.isArray(tags) ? tags : [];
+  const deduped = new Set();
+
+  for (const rawTag of values) {
+    const next = String(rawTag || '').trim();
+    if (!next) continue;
+    deduped.add(next);
+  }
+
+  return [...deduped];
+}
+
+function BoxCreate({
+  embedded = false,
+  autoNavigate = true,
+  onCreated,
+  onCancel,
+  title = 'Create New Box',
+}) {
   const navigate = useNavigate();
   const [boxId, setBoxId] = useState('');
   const [label, setLabel] = useState('');
   const [locationId, setLocationId] = useState('');
+  const [tags, setTags] = useState([]);
   const [locationCreateBusy, setLocationCreateBusy] = useState(false);
   const [locationError, setLocationError] = useState('');
   const [error, setError] = useState('');
@@ -271,12 +272,16 @@ function BoxCreate() {
     }
 
     try {
-      await createBox({
+      const created = await createBox({
         box_id: boxId,
-        label,
+        label: label.trim(),
         locationId: locationId || null,
+        tags: normalizeTags(tags),
       });
-      navigate(`/boxes/${boxId}`);
+      await Promise.resolve(onCreated?.(created));
+      if (autoNavigate) {
+        navigate(`/boxes/${created?.box_id || boxId}`);
+      }
     } catch (err) {
       console.error(err);
       setError(err.message);
@@ -284,8 +289,8 @@ function BoxCreate() {
   };
 
   return (
-    <Container>
-      <Heading>Create New Box</Heading>
+    <Container $embedded={embedded}>
+      <Heading>{title}</Heading>
       <Form onSubmit={handleSubmit}>
         <Field>
           <Label htmlFor="boxId">Box ID (3-digit)</Label>
@@ -373,17 +378,26 @@ function BoxCreate() {
           />
         </Field>
 
-        <Button
-          type="submit"
-          disabled={
-            !boxId ||
-            !label ||
-            availabilityState === false ||
-            locationCreateBusy
-          }
-        >
-          Create Box
-        </Button>
+        <BoxTagsField tags={tags} setTags={setTags} />
+
+        <ButtonRow>
+          {onCancel ? (
+            <Button type="button" $secondary onClick={onCancel} disabled={locationCreateBusy}>
+              Cancel
+            </Button>
+          ) : null}
+          <Button
+            type="submit"
+            disabled={
+              !boxId ||
+              !label ||
+              availabilityState === false ||
+              locationCreateBusy
+            }
+          >
+            Create Box
+          </Button>
+        </ButtonRow>
 
         {error && <Error>{error}</Error>}
       </Form>

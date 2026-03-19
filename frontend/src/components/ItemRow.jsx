@@ -1,4 +1,11 @@
-import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
+import React, {
+  useState,
+  useRef,
+  useLayoutEffect,
+  useEffect,
+  useCallback,
+  useContext,
+} from 'react';
 import * as S from '../styles/ItemRow.styles';
 import ItemDetails from './ItemDetails';
 import EditItemDetailsForm from './EditItemDetailsForm';
@@ -6,6 +13,8 @@ import { getItemHomeHref } from '../api/itemDetails';
 import { formatItemCategory, normalizeItemCategory } from '../util/itemCategories';
 import useIsMobile from '../hooks/useIsMobile';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE } from '../api/API_BASE';
+import { ToastContext } from './Toast';
 
 export default function ItemRow({
   item,
@@ -21,6 +30,8 @@ export default function ItemRow({
 }) {
   const navigate = useNavigate();
   const isMobile = useIsMobile(768);
+  const toastCtx = useContext(ToastContext);
+  const showToast = toastCtx?.showToast;
   const {
     _id,
     name,
@@ -94,9 +105,77 @@ export default function ItemRow({
   }, [isMobile, editMode]);
 
   useEffect(() => {
+    if (!rowIsOpen && editMode) {
+      setEditMode(false);
+    }
+  }, [rowIsOpen, editMode]);
+
+  useEffect(() => {
     setLocalImage(item?.image || null);
     setLocalImagePath(item?.imagePath || '');
   }, [_id, item?.image, item?.imagePath]);
+
+  const parseErrorMessage = useCallback(async (response, fallback) => {
+    const raw = await response.text().catch(() => '');
+    if (!raw) return fallback;
+
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed?.message || parsed?.error || fallback;
+    } catch {
+      return raw;
+    }
+  }, []);
+
+  const appendNowToHistory = useCallback(
+    async (field, successTitle) => {
+      if (!_id) return;
+
+      const existing = Array.isArray(item?.[field]) ? item[field] : [];
+      const nowIso = new Date().toISOString();
+      const payload = {
+        [field]: [...existing, nowIso],
+      };
+
+      try {
+        const response = await fetch(`${API_BASE}/api/items/${encodeURIComponent(_id)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const message = await parseErrorMessage(
+            response,
+            'Failed to update item lifecycle.'
+          );
+          throw new Error(message);
+        }
+
+        const json = await response.json().catch(() => ({}));
+        const updated = json?.data ?? json;
+
+        if (updated && typeof updated === 'object') {
+          onSaved?.(updated);
+        }
+
+        showToast?.({
+          variant: 'success',
+          title: successTitle,
+          message: 'Timestamp saved.',
+          timeoutMs: 1800,
+        });
+      } catch (err) {
+        showToast?.({
+          variant: 'danger',
+          title: 'Lifecycle update failed',
+          message: err?.message || 'Could not save timestamp.',
+          timeoutMs: 3600,
+        });
+      }
+    },
+    [_id, item, onSaved, parseErrorMessage, showToast]
+  );
 
   const handleRowClick = () => {
     if (!_id) return;
@@ -123,6 +202,30 @@ export default function ItemRow({
     if (_id) triggerFlash?.(_id, 'yellow');
     setEditMode((prev) => !prev);
   };
+
+  const handleMarkUsed = useCallback(
+    (event) => {
+      event?.stopPropagation?.();
+      appendNowToHistory('usageHistory', 'Used now');
+    },
+    [appendNowToHistory]
+  );
+
+  const handleMarkChecked = useCallback(
+    (event) => {
+      event?.stopPropagation?.();
+      appendNowToHistory('checkHistory', 'Checked now');
+    },
+    [appendNowToHistory]
+  );
+
+  const handleMarkMaintained = useCallback(
+    (event) => {
+      event?.stopPropagation?.();
+      appendNowToHistory('maintenanceHistory', 'Maintained now');
+    },
+    [appendNowToHistory]
+  );
 
   return (
     <S.Wrapper
@@ -155,11 +258,35 @@ export default function ItemRow({
               ) : (
                 <S.Title>{name}</S.Title>
               )}
+
+              {quantity != null ? <S.Qty>qty {quantity}</S.Qty> : null}
             </S.TitleGroup>
           </S.RowMain>
 
           <S.RowActions>
-            {!rowIsOpen && quantity != null && <S.Qty>qty {quantity}</S.Qty>}
+            <S.RowActionCluster>
+              <S.QuickActionButton
+                type="button"
+                $tone="used"
+                onClick={handleMarkUsed}
+              >
+                Used
+              </S.QuickActionButton>
+              <S.QuickActionButton
+                type="button"
+                $tone="checked"
+                onClick={handleMarkChecked}
+              >
+                Checked
+              </S.QuickActionButton>
+              <S.QuickActionButton
+                type="button"
+                $tone="maintained"
+                onClick={handleMarkMaintained}
+              >
+                Maintained
+              </S.QuickActionButton>
+            </S.RowActionCluster>
             {!isMobile && (
               <S.EditButton onClick={handleToggleEdit}>
                 {rowIsOpen && editMode ? 'Close Edit' : 'Edit'}
@@ -203,8 +330,14 @@ export default function ItemRow({
                   item={item}
                   triggerFlash={triggerFlash}
                   onItemImageUpdated={({ image, imagePath }) => {
+                    const updatedWithImage = {
+                      ...item,
+                      image: image || null,
+                      imagePath: imagePath || '',
+                    };
                     setLocalImage(image || null);
                     setLocalImagePath(imagePath || '');
+                    onSaved?.(updatedWithImage);
                   }}
                   onSaved={(updated) => {
                     onSaved?.(updated);

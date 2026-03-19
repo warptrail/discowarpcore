@@ -20,6 +20,7 @@ export default function ItemContainerSection({
     box?.label ||
     (boxShortId ? `Box ${boxShortId}` : 'Current box');
   const isBoxed = ownership.isBoxed;
+  const isGone = String(item?.item_status || '').toLowerCase() === 'gone';
 
   const handleSelectDestination = async ({
     destBoxId,
@@ -50,7 +51,9 @@ export default function ItemContainerSection({
         <S.ContainerRow>
           <S.ContainerLabel>Current box</S.ContainerLabel>
           <S.ContainerValue>
-            {isBoxed ? (
+            {isGone ? (
+              <S.ContainerMuted>No Longer Have</S.ContainerMuted>
+            ) : isBoxed ? (
               boxShortId ? (
                 <S.ContainerLink to={`/boxes/${encodeURIComponent(boxShortId)}`}>
                   {boxLabel}
@@ -69,13 +72,19 @@ export default function ItemContainerSection({
           <S.ContainerValue>
             {isBoxed
               ? 'Inherited from parent box'
-              : 'Uses item-level location'}
+              : isGone
+                ? 'Historical state'
+                : 'Uses item-level location'}
           </S.ContainerValue>
         </S.ContainerRow>
       </S.ContainerBody>
 
       <S.ContainerActions>
-        {isBoxed ? (
+        {isGone ? (
+          <S.ContainerMuted>
+            Lifecycle actions for gone items are available in Edit mode.
+          </S.ContainerMuted>
+        ) : isBoxed ? (
           <>
             <S.ContainerButton
               type="button"

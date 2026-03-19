@@ -9,6 +9,21 @@ function fmtDate(value) {
   return value ? dayjs(value).format('YYYY-MM-DD') : '—';
 }
 
+const usdFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+});
+
+function fmtUsdFromCents(valueCents) {
+  if (!Number.isFinite(valueCents)) return '—';
+  return usdFormatter.format(valueCents / 100);
+}
+
+function fmtUsdValue(value, valueCents) {
+  if (Number.isFinite(value)) return usdFormatter.format(value);
+  return fmtUsdFromCents(valueCents);
+}
+
 function formatBoxSummary(label, boxId) {
   const safeLabel = String(label || '').trim();
   const safeBoxId = String(boxId || '').trim();
@@ -16,6 +31,22 @@ function formatBoxSummary(label, boxId) {
   if (safeLabel && safeBoxId) return `${safeLabel} (${safeBoxId})`;
   if (safeLabel) return safeLabel;
   return `Box ${safeBoxId}`;
+}
+
+function formatDispositionLabel(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '—';
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+function normalizeExternalLinks(links) {
+  if (!Array.isArray(links)) return [];
+  return links
+    .map((link) => ({
+      label: String(link?.label || '').trim(),
+      url: String(link?.url || '').trim(),
+    }))
+    .filter((link) => link.label && link.url);
 }
 
 function DetailRow({ label, value, stretch = false }) {
@@ -49,6 +80,25 @@ function BreadcrumbTrail({ breadcrumb = [] }) {
         </S.BreadcrumbNode>
       ))}
     </S.BreadcrumbList>
+  );
+}
+
+function ExternalLinksList({ links = [] }) {
+  if (!links.length) return <S.MutedValue>—</S.MutedValue>;
+
+  return (
+    <S.ExternalLinkList>
+      {links.map((link, index) => (
+        <S.ExternalLinkAnchor
+          key={`${link.url}-${index}`}
+          href={link.url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {link.label}
+        </S.ExternalLinkAnchor>
+      ))}
+    </S.ExternalLinkList>
   );
 }
 
@@ -120,6 +170,7 @@ export default function ItemDetails({
   const {
     description,
     notes,
+    links,
     location,
     dateAcquired,
     dateLastUsed,
@@ -131,6 +182,10 @@ export default function ItemDetails({
     tags,
     imagePath,
     orphanedAt,
+    item_status,
+    disposition,
+    disposition_at,
+    disposition_notes,
     keepPriority,
     primaryOwnerName,
     condition,
@@ -160,6 +215,7 @@ export default function ItemDetails({
   const tagList = Array.isArray(tags) ? tags : [];
   const usageDates = Array.isArray(usageHistory) ? usageHistory : [];
   const categoryLabel = formatItemCategory(normalizeItemCategory(category));
+  const externalLinks = normalizeExternalLinks(links);
   const ownership = getItemOwnershipContext(resolvedItemData);
   const resolvedBox = ownership.box || apiBox || null;
   const resolvedBoxId = ownership.boxId || resolvedBox?.box_id || '';
@@ -177,7 +233,8 @@ export default function ItemDetails({
         ]
       : [];
   const isOrphaned = ownership.isOrphaned;
-  const statusLabel = isOrphaned ? 'Orphaned' : 'Assigned';
+  const isGone = String(item_status || '').toLowerCase() === 'gone';
+  const statusLabel = isGone ? 'No Longer Have' : isOrphaned ? 'Orphaned' : 'Assigned';
   const primaryBox = formatBoxSummary(resolvedBoxLabel, resolvedBoxId);
   const topBoxSummary = topBox
     ? formatBoxSummary(topBox?.label, topBox?.box_id)
@@ -188,7 +245,7 @@ export default function ItemDetails({
       <S.HeaderBand>
         <S.TitleBlock>
           <S.HeaderMeta $compact>
-            <S.StatePill $tone={isOrphaned ? 'coral' : 'teal'}>
+            <S.StatePill $tone={isGone || isOrphaned ? 'coral' : 'teal'}>
               {statusLabel}
             </S.StatePill>
             {quantity != null && <S.MetaTag>qty {quantity}</S.MetaTag>}
@@ -209,6 +266,7 @@ export default function ItemDetails({
       <S.SectionGrid>
         <DetailSection title="Identity / Summary" tone="teal">
           <DetailRow label="Status" value={statusLabel} />
+          <DetailRow label="Inventory Status" value={isGone ? 'gone' : 'active'} />
           <DetailRow label="Primary Box" value={primaryBox} />
           <DetailRow label="Category" value={categoryLabel} />
           <DetailRow
@@ -230,9 +288,8 @@ export default function ItemDetails({
 
         <DetailSection title="Inventory / Value" tone="amber">
           <DetailRow label="Quantity" value={quantity ?? '—'} />
-          <DetailRow label="Value ($)" value={value ?? '—'} />
-          <DetailRow label="Value (cents)" value={valueCents ?? '—'} />
-          <DetailRow label="Purchase Price (cents)" value={purchasePriceCents ?? '—'} />
+          <DetailRow label="Value" value={fmtUsdValue(value, valueCents)} />
+          <DetailRow label="Purchase Price" value={fmtUsdFromCents(purchasePriceCents)} />
         </DetailSection>
 
         <DetailSection title="Description / Notes" tone="lilac" wide>
@@ -240,10 +297,21 @@ export default function ItemDetails({
           <DetailRow label="Notes" value={notes || '—'} stretch />
         </DetailSection>
 
+        <DetailSection title="External Links" tone="lilac" wide>
+          <DetailRow
+            label="References"
+            value={<ExternalLinksList links={externalLinks} />}
+            stretch
+          />
+        </DetailSection>
+
         <DetailSection title="Lifecycle" tone="teal" wide>
           <DetailRow label="Date Acquired" value={fmtDate(dateAcquired)} />
           <DetailRow label="Last Used" value={fmtDate(dateLastUsed)} />
           <DetailRow label="Last Checked" value={fmtDate(lastCheckedAt)} />
+          <DetailRow label="Disposition" value={formatDispositionLabel(disposition)} />
+          <DetailRow label="Disposition At" value={fmtDate(disposition_at)} />
+          <DetailRow label="Disposition Notes" value={disposition_notes || '—'} stretch />
           <DetailRow
             label="Usage History"
             value={

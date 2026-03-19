@@ -5,13 +5,61 @@ import {
   formatItemCategory,
   normalizeItemCategory,
 } from '../../util/itemCategories';
+import { USD_DECIMAL_PATTERN } from '../../util/usdMoney';
 
 const asInputValue = (value) => (value == null ? '' : String(value));
 
+function DateHistoryField({
+  label,
+  field,
+  values,
+  onHistoryDateChange,
+  onAddHistoryDate,
+  onRemoveHistoryDate,
+}) {
+  const rows = Array.isArray(values) ? values : [];
+
+  return (
+    <S.Field>
+      <S.Label>{label}</S.Label>
+      <S.HistoryRows>
+        {rows.length ? (
+          rows.map((value, index) => (
+            <S.HistoryRow key={`${field}-${index}`}>
+              <S.Input
+                type="date"
+                value={value || ''}
+                onChange={(event) =>
+                  onHistoryDateChange(field, index, event.target.value)
+                }
+              />
+              <S.HistoryRemoveButton
+                type="button"
+                onClick={() => onRemoveHistoryDate(field, index)}
+              >
+                Remove
+              </S.HistoryRemoveButton>
+            </S.HistoryRow>
+          ))
+        ) : (
+          <S.FieldHint>No entries yet.</S.FieldHint>
+        )}
+      </S.HistoryRows>
+      <S.HistoryAddButton type="button" onClick={() => onAddHistoryDate(field)}>
+        + Add Date
+      </S.HistoryAddButton>
+    </S.Field>
+  );
+}
+
 export default function EditItemStructuredFieldsSection({
   formData,
+  derivedDates,
   onMetadataChange,
   onMetadataNumberChange,
+  onHistoryDateChange,
+  onAddHistoryDate,
+  onRemoveHistoryDate,
 }) {
   return (
     <>
@@ -60,28 +108,74 @@ export default function EditItemStructuredFieldsSection({
 
       <S.InlineGrid>
         <S.Field>
-          <S.Label>Last Maintained</S.Label>
+          <S.Label>Date Acquired</S.Label>
           <S.Input
             type="date"
-            name="lastMaintainedAt"
-            value={formData.lastMaintainedAt || ''}
+            name="dateAcquired"
+            value={formData.dateAcquired || ''}
             onChange={onMetadataChange}
           />
         </S.Field>
 
         <S.Field>
-          <S.Label>Maintenance Interval (days)</S.Label>
-          <S.Input
-            type="number"
-            min="0"
-            step="1"
-            value={asInputValue(formData.maintenanceIntervalDays)}
-            onChange={(e) =>
-              onMetadataNumberChange('maintenanceIntervalDays', e.target.value)
-            }
-          />
+          <S.Label>Last Used (derived)</S.Label>
+          <S.ReadOnlyValue>{derivedDates.lastUsedAt || '—'}</S.ReadOnlyValue>
+          <S.FieldHint>Calculated from usage history.</S.FieldHint>
         </S.Field>
       </S.InlineGrid>
+
+      <DateHistoryField
+        label="Usage History"
+        field="usageHistory"
+        values={formData.usageHistory}
+        onHistoryDateChange={onHistoryDateChange}
+        onAddHistoryDate={onAddHistoryDate}
+        onRemoveHistoryDate={onRemoveHistoryDate}
+      />
+
+      <S.InlineGrid>
+        <S.Field>
+          <S.Label>Last Checked (derived)</S.Label>
+          <S.ReadOnlyValue>{derivedDates.lastCheckedAt || '—'}</S.ReadOnlyValue>
+          <S.FieldHint>Calculated from check history.</S.FieldHint>
+        </S.Field>
+      </S.InlineGrid>
+
+      <DateHistoryField
+        label="Check History"
+        field="checkHistory"
+        values={formData.checkHistory}
+        onHistoryDateChange={onHistoryDateChange}
+        onAddHistoryDate={onAddHistoryDate}
+        onRemoveHistoryDate={onRemoveHistoryDate}
+      />
+
+      <S.InlineGrid>
+        <S.Field>
+          <S.Label>Last Maintained (derived)</S.Label>
+          <S.ReadOnlyValue>{derivedDates.lastMaintainedAt || '—'}</S.ReadOnlyValue>
+          <S.FieldHint>Calculated from maintenance history.</S.FieldHint>
+        </S.Field>
+
+        <S.Field>
+          <S.Label>Maintenance Interval (days)</S.Label>
+          <S.ReadOnlyValue>
+            {derivedDates.maintenanceIntervalDays ?? '—'}
+          </S.ReadOnlyValue>
+          <S.FieldHint>
+            Calculated from the two most recent maintenance dates.
+          </S.FieldHint>
+        </S.Field>
+      </S.InlineGrid>
+
+      <DateHistoryField
+        label="Maintenance History"
+        field="maintenanceHistory"
+        values={formData.maintenanceHistory}
+        onHistoryDateChange={onHistoryDateChange}
+        onAddHistoryDate={onAddHistoryDate}
+        onRemoveHistoryDate={onRemoveHistoryDate}
+      />
 
       <S.Field>
         <S.Label>Maintenance Notes</S.Label>
@@ -128,26 +222,33 @@ export default function EditItemStructuredFieldsSection({
 
       <S.InlineGrid>
         <S.Field>
-          <S.Label>Purchase Price (cents)</S.Label>
+          <S.Label>Value (USD)</S.Label>
           <S.Input
-            type="number"
-            min="0"
-            step="1"
-            value={asInputValue(formData.purchasePriceCents)}
-            onChange={(e) =>
-              onMetadataNumberChange('purchasePriceCents', e.target.value)
-            }
+            type="text"
+            inputMode="decimal"
+            name="valueUsd"
+            pattern={USD_DECIMAL_PATTERN.source}
+            placeholder="0.00"
+            value={formData.valueUsd || ''}
+            onChange={onMetadataChange}
           />
+          <S.FieldHint>Non-negative USD, max 2 decimals.</S.FieldHint>
         </S.Field>
 
         <S.Field>
-          <S.Label>Last Checked</S.Label>
+          <S.Label>Purchase Price (USD)</S.Label>
           <S.Input
-            type="date"
-            name="lastCheckedAt"
-            value={formData.lastCheckedAt || ''}
+            type="text"
+            inputMode="decimal"
+            name="purchasePriceUsd"
+            pattern={USD_DECIMAL_PATTERN.source}
+            placeholder="0.00"
+            value={formData.purchasePriceUsd || ''}
             onChange={onMetadataChange}
           />
+          <S.FieldHint>
+            If value is blank, it will default to purchase amount on save.
+          </S.FieldHint>
         </S.Field>
       </S.InlineGrid>
 

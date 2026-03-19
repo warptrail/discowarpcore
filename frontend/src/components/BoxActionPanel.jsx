@@ -41,12 +41,17 @@ export default function BoxActionPanel({
 
   const fetchPanelOrphanedItems = useCallback(async () => {
     const res = await fetch(`${API_BASE}/api/items/orphaned?sort=recent&limit=10000`);
-    const body = await res.json().catch(() => []);
+    const body = await res.json().catch(() => ({}));
     if (!res.ok) {
       throw new Error(body?.error || body?.message || 'Failed to fetch orphaned items');
     }
-    setLocalOrphanedItems(Array.isArray(body) ? body : []);
-    return body;
+    const items = Array.isArray(body)
+      ? body
+      : Array.isArray(body?.items)
+        ? body.items
+        : [];
+    setLocalOrphanedItems(items);
+    return items;
   }, []);
 
   const resolvedFetchOrphanedItems =

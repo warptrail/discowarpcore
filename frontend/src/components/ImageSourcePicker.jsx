@@ -6,6 +6,9 @@ export default function ImageSourcePicker({
   onFileSelected,
   renderAction,
   className,
+  accept = 'image/*',
+  capture,
+  source = 'default',
 }) {
   const inputRef = useRef(null);
 
@@ -18,7 +21,7 @@ export default function ImageSourcePicker({
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
-    onFileSelected?.(file, { source: 'default' });
+    onFileSelected?.(file, { source });
   };
 
   const action = {
@@ -44,7 +47,8 @@ export default function ImageSourcePicker({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept={accept}
+        capture={capture}
         onChange={handlePickedFile}
         disabled={disabled}
         style={{ display: 'none' }}

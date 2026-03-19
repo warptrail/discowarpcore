@@ -274,18 +274,10 @@ const ToastRow = styled.div`
   }
 `;
 
-function routeTag(pathname) {
-  if (pathname === '/') return 'HOME';
-  if (pathname.startsWith('/boxes/')) return 'BOX DETAIL';
-  if (pathname === '/create-box') return 'CREATE BOX';
-  if (pathname === '/all-items') return 'ALL ITEMS';
-  if (pathname.startsWith('/items/')) return 'ITEM DETAIL';
-  return 'NAV';
-}
-
 export default function Header() {
   const [condensed, setCondensed] = useState(false);
   const location = useLocation();
+  const isRetrievalRoute = location.pathname === '/retrieval';
 
   const toastCtx = useContext(ToastContext);
   const toast = toastCtx?.toast ?? null;
@@ -317,7 +309,7 @@ export default function Header() {
             <Title>
               <Big $condensed={condensed}>DISCO WARP CORE</Big>
               <Sub>
-                LCARS // INVENTORY CONSOLE // {routeTag(location.pathname)}
+                CARGO NETWORK // INVENTORY MATRIX // ONLINE
               </Sub>
             </Title>
           </Brand>
@@ -331,9 +323,10 @@ export default function Header() {
         </TopRow>
 
         <NavRow $condensed={condensed}>
-          <NavButton to="/">🗂️ Boxes</NavButton>
-          <NavButton to="/create-box">📦 New Box</NavButton>
+          <NavButton to="/">🚀 Operations</NavButton>
+          <NavButton to="/intake">📲 Intake</NavButton>
           <NavButton to="/all-items">🧾 All Items</NavButton>
+          <NavButton to="/retrieval">🔎 Retrieval</NavButton>
 
           {/* Filler buttons (wire later) */}
           <FauxButton type="button" disabled>
@@ -350,21 +343,22 @@ export default function Header() {
 
       <Divider />
 
-      {/* Inline “Toast” (status strip) lives here permanently */}
-      <ToastRow>
-        <Toast
-          open={!!toast}
-          title={toast?.title}
-          message={toast?.message}
-          content={toast?.content}
-          variant={toast?.variant ?? 'info'}
-          actions={toast?.actions ?? []}
-          onClose={toast ? handleToastClose : undefined}
-          showIdle
-          idleIcon="📦"
-          idleText="Console ready. Awaiting orders…"
-        />
-      </ToastRow>
+      {!isRetrievalRoute ? (
+        <ToastRow>
+          <Toast
+            open={!!toast}
+            title={toast?.title}
+            message={toast?.message}
+            content={toast?.content}
+            variant={toast?.variant ?? 'info'}
+            actions={toast?.actions ?? []}
+            onClose={toast ? handleToastClose : undefined}
+            showIdle
+            idleIcon="📦"
+            idleText="Console ready. Awaiting orders…"
+          />
+        </ToastRow>
+      ) : null}
     </HeaderShell>
   );
 }

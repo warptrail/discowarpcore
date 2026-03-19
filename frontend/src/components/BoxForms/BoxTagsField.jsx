@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import * as S from './BoxEditForm.styles';
 
-export default function BoxTagsField({ tags, setTags, TagInputComponent }) {
+export default function BoxTagsField({
+  tags,
+  setTags,
+  TagInputComponent,
+  compact = false,
+  inline = false,
+}) {
   const [tagDraft, setTagDraft] = useState('');
 
   const addTag = () => {
@@ -23,15 +29,15 @@ export default function BoxTagsField({ tags, setTags, TagInputComponent }) {
   };
 
   return (
-    <S.Field style={{ marginTop: 10 }}>
-      <S.Label>Tags</S.Label>
+    <S.Field style={{ marginTop: inline ? 0 : (compact ? 6 : 10) }} $compact={compact}>
+      <S.Label $compact={compact}>Tags</S.Label>
       {TagInputComponent ? (
         <TagInputComponent value={tags} onChange={setTags} />
       ) : (
-        <S.TagWrap>
-          <S.TagList>
+        <S.TagWrap $compact={compact}>
+          <S.TagList $compact={compact}>
             {tags.map((t) => (
-              <S.TagChip key={t}>
+              <S.TagChip key={t} $compact={compact}>
                 {t}
                 <S.RemoveX
                   type="button"
@@ -47,6 +53,7 @@ export default function BoxTagsField({ tags, setTags, TagInputComponent }) {
               value={tagDraft}
               onChange={(e) => setTagDraft(e.target.value)}
               onKeyDown={onTagKeyDown}
+              $compact={compact}
             />
           </S.TagList>
         </S.TagWrap>

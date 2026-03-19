@@ -62,6 +62,10 @@ export const Input = styled.input`
   }
 `;
 
+export const LinkInput = styled(Input)`
+  margin-bottom: 0;
+`;
+
 export const TextArea = styled.textarea`
   width: 100%;
   background-color: #2a2a2a;
@@ -122,6 +126,126 @@ export const FieldGrid = styled.div`
     grid-template-columns: 1fr;
     gap: 0.42rem;
   }
+`;
+
+export const StaticValue = styled.div`
+  width: 100%;
+  background-color: #252a33;
+  color: #f1f4f8;
+  border: 1px solid #425067;
+  border-radius: 6px;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+  display: flex;
+  align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-bottom: 0.72rem;
+    padding: 0.42rem;
+    min-height: 36px;
+    font-size: ${MOBILE_FONT_SM};
+  }
+`;
+
+export const HistoryFieldWrap = styled.div`
+  margin-bottom: 0.75rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-bottom: 0.56rem;
+  }
+`;
+
+export const DateHistoryRows = styled.div`
+  display: grid;
+  gap: 0.42rem;
+`;
+
+export const DateHistoryRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.42rem;
+  align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: 1fr;
+    gap: 0.3rem;
+  }
+`;
+
+export const LinksWrap = styled.div`
+  display: grid;
+  gap: 0.55rem;
+  margin-bottom: 0.85rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.42rem;
+    margin-bottom: 0.62rem;
+  }
+`;
+
+export const LinkRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.2fr) auto;
+  gap: 0.45rem;
+  align-items: end;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: 1fr;
+    gap: 0.3rem;
+  }
+`;
+
+const linkButtonBase = `
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+  border-radius: 6px;
+  cursor: pointer;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 36px;
+    font-size: ${MOBILE_FONT_XS};
+  }
+`;
+
+export const LinkRemoveButton = styled.button`
+  ${linkButtonBase}
+  border: 1px solid rgba(242, 132, 132, 0.55);
+  background: rgba(88, 34, 34, 0.82);
+  color: #ffd5d5;
+  padding: 0.45rem 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 650;
+
+  &:hover {
+    border-color: rgba(242, 132, 132, 0.82);
+    background: rgba(110, 40, 40, 0.88);
+  }
+`;
+
+export const LinkAddButton = styled.button`
+  ${linkButtonBase}
+  justify-self: start;
+  border: 1px solid rgba(111, 201, 188, 0.62);
+  background: rgba(26, 76, 69, 0.72);
+  color: #d5fff8;
+  padding: 0.45rem 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+
+  &:hover {
+    border-color: rgba(111, 201, 188, 0.85);
+    background: rgba(32, 95, 85, 0.82);
+  }
+`;
+
+export const DateHistoryAddButton = styled(LinkAddButton)`
+  margin-top: 0.36rem;
+`;
+
+export const DateHistoryRemoveButton = styled(LinkRemoveButton)`
+  margin: 0;
 `;
 
 export const CheckboxRow = styled.label`
