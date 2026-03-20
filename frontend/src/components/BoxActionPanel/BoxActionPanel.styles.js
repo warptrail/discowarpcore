@@ -574,3 +574,112 @@ export const DetailsPanel = styled.div`
       `}
   }
 `;
+
+export const ExportPanelContainer = styled.section`
+  padding: 0.9rem;
+  border-radius: 10px;
+  border: 1px solid #2d3a34;
+  background: #151b18;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.62rem;
+    border-radius: ${MOBILE_PANEL_RADIUS};
+  }
+`;
+
+export const ExportPanelHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.52rem;
+`;
+
+export const ExportPanelTitle = styled.h4`
+  margin: 0;
+  color: #dbefe3;
+  font-size: 0.92rem;
+  letter-spacing: 0.02em;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+  }
+`;
+
+export const ExportPanelBody = styled.p`
+  margin: 0;
+  color: #c8d7d0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+`;
+
+export const ExportPanelActions = styled.div`
+  margin-top: 0.7rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+`;
+
+export const ExportDownloadButton = styled.button`
+  border: 1px solid #3a8f64;
+  background: #214734;
+  color: #dcf4e7;
+  border-radius: 8px;
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+  min-width: 132px;
+  padding: 0 0.72rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: #2c6047;
+    border-color: #4ec77b;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-width: 0;
+    width: 100%;
+    min-height: 34px;
+    border-radius: 7px;
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.01em;
+  }
+`;
+
+export const ExportPanelError = styled.p`
+  margin: 0.48rem 0 0;
+  color: #ffb4bc;
+  font-size: 0.8rem;
+  line-height: 1.35;
+`;
+
+export const ExportPanelClose = styled.button`
+  border: 1px solid #3d3d3d;
+  background: #202020;
+  color: #ddd;
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+  min-height: 34px;
+
+  &:hover {
+    background: #2a2a2a;
+    border-color: #565656;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    padding: 0.2rem 0.44rem;
+  }
+`;

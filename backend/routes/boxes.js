@@ -5,6 +5,7 @@ const {
   getBoxDataStructureApi,
   getBoxByMongoIdApi,
   getBoxByShortIdApi,
+  getBoxByShortIdSummaryApi,
   getAllBoxesApi,
   getBoxesByParentApi,
   checkBoxIdAvailability,
@@ -15,6 +16,12 @@ const {
   releaseChildrenToFloorApi,
   getBoxTreeByShortIdApi,
   getBoxTreeApi,
+  exportBoxJsonApi,
+  exportBoxCsvApi,
+  exportBoxHtmlApi,
+  exportBoxPdfApi,
+  exportBoxQrCodeApi,
+  exportBoxLabelHtmlApi,
   deleteBoxByIdApi,
   deleteAllBoxesApi,
   getBoxesExcludingApi,
@@ -25,8 +32,15 @@ router.get('/exclude/:id', getBoxesExcludingApi);
 router.get('/byparent', getBoxesByParentApi);
 router.get('/tree', getBoxTreeApi);
 router.get('/by-mongo-id/:id', getBoxByMongoIdApi);
+router.get('/resolve-short-id/:shortId', getBoxByShortIdSummaryApi);
 router.get('/by-short-id/:shortId', getBoxDataStructureApi); // yeah?
 router.get('/by-box-id/:shortId', getBoxDataStructureApi); // back-compat alias
+router.get('/:id/export.json', exportBoxJsonApi);
+router.get('/:id/export.csv', exportBoxCsvApi);
+router.get('/:id/export.html', exportBoxHtmlApi);
+router.get('/:id/export.pdf', exportBoxPdfApi);
+router.get('/:id/qrcode', exportBoxQrCodeApi);
+router.get('/:id/export-label.html', exportBoxLabelHtmlApi);
 // router.get('/by-short-id/:shortId/tree', getBoxTreeByShortIdApi);
 router.get('/check-id/:short_id', checkBoxIdAvailability);
 router.post('/', createBoxApi);

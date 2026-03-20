@@ -15,10 +15,46 @@ const {
   ITEM_DISPOSITIONS,
   normalizeDisposition,
 } = require('../utils/itemDisposition');
+const {
+  ORPHANED_LABEL,
+  computeChangedFields,
+  formatBoxLabel,
+  formatItemLabel,
+  logEventBestEffort,
+  quoteLabel,
+  toIdString,
+} = require('./eventLogService');
 
 const ACTIVE_ITEM_FILTER = { item_status: { $ne: 'gone' } };
 const LINK_LABEL_MAX_LENGTH = 80;
+const BULK_IMPORT_ITEM_NAME_MAX_LENGTH = 160;
+const BULK_IMPORT_SOURCE_FILENAME_MAX_LENGTH = 180;
 const DAY_MS = 1000 * 60 * 60 * 24;
+
+function toPlain(source) {
+  if (!source) return null;
+  if (typeof source.toObject === 'function') {
+    return source.toObject({ virtuals: false });
+  }
+  return source;
+}
+
+function toItemRef(item) {
+  if (!item) return { id: null, label: 'Item' };
+  return {
+    id: toIdString(item._id || item.id),
+    label: formatItemLabel(item),
+  };
+}
+
+function toBoxRef(box, fallback = ORPHANED_LABEL) {
+  if (!box) return { id: null, label: fallback, box_id: null };
+  return {
+    id: toIdString(box._id || box.id),
+    label: formatBoxLabel(box, fallback),
+    box_id: box.box_id || null,
+  };
+}
 
 function escapeRegex(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -305,12 +341,284 @@ async function getOrphanedItemsPage({
  */
 async function createItem(data) {
   assertValidCentsPayload(data);
-  return Item.create(data);
+  const created = await Item.create(data);
+  const createdPlain = toPlain(created);
+  const itemRef = toItemRef(createdPlain);
+
+  await logEventBestEffort(
+    {
+      event_type: 'item_created',
+      entity_type: 'item',
+      entity_id: itemRef.id,
+      entity_label: itemRef.label,
+      summary: `Created item ${quoteLabel(itemRef.label)}`,
+      details: {
+        to_box_id: null,
+        to_box_label: ORPHANED_LABEL,
+      },
+    },
+    { label: `item_created:${itemRef.id}` }
+  );
+
+  return created;
+}
+
+function normalizeBulkImportNames(names = []) {
+  if (!Array.isArray(names)) {
+    const err = new Error('itemNames must be an array of strings.');
+    err.status = 400;
+    throw err;
+  }
+
+  const cleanedNames = [];
+  let ignoredCount = 0;
+  let truncatedCount = 0;
+
+  for (const rawName of names) {
+    const trimmed = String(rawName ?? '').trim();
+    if (!trimmed) {
+      ignoredCount += 1;
+      continue;
+    }
+
+    let normalizedName = trimmed;
+    if (normalizedName.length > BULK_IMPORT_ITEM_NAME_MAX_LENGTH) {
+      normalizedName = normalizedName
+        .slice(0, BULK_IMPORT_ITEM_NAME_MAX_LENGTH)
+        .trim();
+      truncatedCount += 1;
+    }
+
+    if (!normalizedName) {
+      ignoredCount += 1;
+      continue;
+    }
+
+    cleanedNames.push(normalizedName);
+  }
+
+  return {
+    cleanedNames,
+    ignoredCount,
+    truncatedCount,
+  };
+}
+
+function sanitizeSourceFileName(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+
+  const baseName = raw.split(/[\\/]/).pop() || '';
+  const withoutControlChars = baseName.replace(/[\u0000-\u001f\u007f]/g, '');
+  const collapsedWhitespace = withoutControlChars.replace(/\s+/g, ' ').trim();
+  if (!collapsedWhitespace) return '';
+
+  return collapsedWhitespace.slice(0, BULK_IMPORT_SOURCE_FILENAME_MAX_LENGTH);
+}
+
+async function bulkCreateItems({
+  itemNames = undefined,
+  names = undefined,
+  boxShortId = '',
+  boxId = '',
+  sourceFileName = '',
+} = {}) {
+  const normalizedBoxShortId = String(boxShortId || '').trim();
+  const normalizedBoxId = String(boxId || '').trim();
+  const itemNamesInput = Array.isArray(itemNames)
+    ? itemNames
+    : Array.isArray(names)
+      ? names
+      : [];
+  const safeSourceFileName = sanitizeSourceFileName(sourceFileName);
+  let destinationBox = null;
+
+  if (normalizedBoxShortId || normalizedBoxId) {
+    const shortIdCandidate =
+      normalizedBoxShortId ||
+      (/^\d{3}$/.test(normalizedBoxId) ? normalizedBoxId : '');
+
+    if (shortIdCandidate) {
+      if (!/^\d{3}$/.test(shortIdCandidate)) {
+        const err = new Error('boxShortId must be exactly 3 digits.');
+        err.status = 400;
+        throw err;
+      }
+
+      destinationBox = await Box.findOne({ box_id: shortIdCandidate })
+        .select('_id box_id label')
+        .lean();
+
+      if (!destinationBox) {
+        const err = new Error(`Box #${shortIdCandidate} was not found.`);
+        err.status = 400;
+        throw err;
+      }
+    } else {
+      if (!Box.isValidId(normalizedBoxId)) {
+        const err = new Error('boxId must be a valid Mongo ObjectId.');
+        err.status = 400;
+        throw err;
+      }
+
+      destinationBox = await Box.findById(normalizedBoxId)
+        .select('_id box_id label')
+        .lean();
+
+      if (!destinationBox) {
+        const err = new Error('boxId does not match an existing box.');
+        err.status = 400;
+        throw err;
+      }
+    }
+  }
+
+  const { cleanedNames, ignoredCount, truncatedCount } =
+    normalizeBulkImportNames(itemNamesInput);
+
+  if (!cleanedNames.length) {
+    const err = new Error('No valid item names found to import.');
+    err.status = 400;
+    throw err;
+  }
+
+  const orphanedAt = destinationBox ? null : new Date();
+  const payload = cleanedNames.map((name) => ({
+    name,
+    quantity: 1,
+    location: '',
+    orphanedAt,
+  }));
+
+  const createdItems = await Item.insertMany(payload, { ordered: true });
+  const createdItemIds = createdItems.map((item) => item._id);
+
+  if (destinationBox && createdItemIds.length) {
+    await Box.updateOne(
+      { _id: destinationBox._id },
+      { $addToSet: { items: { $each: createdItemIds } } }
+    );
+  }
+
+  const toBoxRefForEvents = toBoxRef(destinationBox, ORPHANED_LABEL);
+
+  // Keep item_created events consistent with single-item creation paths.
+  await Promise.allSettled(
+    createdItems.map((item) => {
+      const itemRef = toItemRef(item);
+      return logEventBestEffort(
+        {
+          event_type: 'item_created',
+          entity_type: 'item',
+          entity_id: itemRef.id,
+          entity_label: itemRef.label,
+          summary: `Created item ${quoteLabel(itemRef.label)}`,
+          details: {
+            to_box_id: toBoxRefForEvents.id,
+            to_box_label: toBoxRefForEvents.label,
+            import_event_type: 'items_bulk_imported',
+            ...(safeSourceFileName ? { source_file_name: safeSourceFileName } : {}),
+          },
+        },
+        { label: `item_created:${itemRef.id}` }
+      );
+    })
+  );
+
+  if (createdItems.length > 0) {
+    const destinationDetails = destinationBox
+      ? {
+          type: 'box',
+          box_id: String(destinationBox._id),
+          box_label: toBoxRefForEvents.label,
+        }
+      : {
+          type: 'orphaned',
+          box_id: null,
+          box_label: ORPHANED_LABEL,
+        };
+
+    const importSummary = destinationBox
+      ? `Imported ${createdItems.length} items into ${quoteLabel(
+          toBoxRefForEvents.label
+        )}`
+      : `Imported ${createdItems.length} orphaned items`;
+    const summary = safeSourceFileName
+      ? `${importSummary} from ${safeSourceFileName}`
+      : importSummary;
+    const bulkEntityId =
+      createdItemIds.length > 0 ? String(createdItemIds[0]) : 'items-bulk-import';
+
+    await logEventBestEffort(
+      {
+        event_type: 'items_bulk_imported',
+        entity_type: 'item',
+        entity_id: bulkEntityId,
+        entity_label: 'Bulk Import',
+        summary,
+        details: {
+          count: createdItems.length,
+          destination: destinationDetails,
+          ...(safeSourceFileName ? { source_file_name: safeSourceFileName } : {}),
+          ...(truncatedCount > 0 ? { truncated_count: truncatedCount } : {}),
+          ...(ignoredCount > 0 ? { skipped_count: ignoredCount } : {}),
+        },
+      },
+      { label: `items_bulk_imported:${bulkEntityId}` }
+    );
+  }
+
+  return {
+    createdCount: createdItems.length,
+    createdItemIds: createdItemIds.map((id) => String(id)),
+    ignoredCount,
+    truncatedCount,
+    maxNameLength: BULK_IMPORT_ITEM_NAME_MAX_LENGTH,
+    sourceFileName: safeSourceFileName || undefined,
+    destination: destinationBox
+      ? {
+          _id: String(destinationBox._id),
+          box_id: destinationBox.box_id,
+          label: destinationBox.label || 'Box',
+        }
+      : null,
+  };
 }
 
 async function updateItem(id, data) {
+  const existing = await Item.findById(id).lean();
+  if (!existing) return null;
+
   assertValidCentsPayload(data);
-  return Item.findByIdAndUpdate(id, data, { new: true, runValidators: true });
+  const updated = await Item.findByIdAndUpdate(id, data, {
+    new: true,
+    runValidators: true,
+  });
+  if (!updated) return null;
+
+  const updatedPlain = toPlain(updated);
+  const changedFields = computeChangedFields(existing, updatedPlain, Object.keys(data));
+
+  if (changedFields.length) {
+    const itemRef = toItemRef(updatedPlain);
+    await logEventBestEffort(
+      {
+        event_type: 'item_updated',
+        entity_type: 'item',
+        entity_id: itemRef.id,
+        entity_label: itemRef.label,
+        summary: `Updated item ${quoteLabel(itemRef.label)} fields: ${changedFields.join(
+          ', '
+        )}`,
+        details: {
+          changed_fields: changedFields,
+        },
+      },
+      { label: `item_updated:${itemRef.id}` }
+    );
+  }
+
+  return updated;
 }
 
 async function markItemGone(id, payload = {}) {
@@ -331,11 +639,16 @@ async function markItemGone(id, payload = {}) {
   const dispositionNotes = normalizeLifecycleNotes(
     payload.disposition_notes ?? payload.dispositionNotes
   );
-  const previousBox = await Box.findOne({ items: id }).select('_id').lean();
+  const existingItem = await Item.findById(id).select('_id name').lean();
+  if (!existingItem) return null;
+
+  const previousBox = await Box.findOne({ items: id })
+    .select('_id box_id label')
+    .lean();
 
   await Box.updateMany({ items: id }, { $pull: { items: id } });
 
-  return Item.findByIdAndUpdate(
+  const updated = await Item.findByIdAndUpdate(
     id,
     {
       $set: {
@@ -349,18 +662,46 @@ async function markItemGone(id, payload = {}) {
     },
     { new: true, runValidators: true }
   );
+  if (!updated) return null;
+
+  const updatedPlain = toPlain(updated);
+  const itemRef = toItemRef(updatedPlain);
+  const fromBoxRef = toBoxRef(previousBox, ORPHANED_LABEL);
+
+  await logEventBestEffort(
+    {
+      event_type: 'item_marked_gone',
+      entity_type: 'item',
+      entity_id: itemRef.id,
+      entity_label: itemRef.label,
+      summary: `Marked item ${quoteLabel(itemRef.label)} as ${updatedPlain.disposition}`,
+      details: {
+        from_box_id: fromBoxRef.id,
+        from_box_label: fromBoxRef.label,
+        disposition: updatedPlain.disposition,
+        disposition_at: updatedPlain.disposition_at,
+        disposition_notes: updatedPlain.disposition_notes,
+      },
+    },
+    { label: `item_marked_gone:${itemRef.id}` }
+  );
+
+  return updated;
 }
 
 async function restoreItemToActive(id) {
-  const item = await Item.findById(id).select('_id last_active_box').lean();
+  const item = await Item.findById(id).select('_id name last_active_box').lean();
   if (!item) return null;
 
   await Box.updateMany({ items: id }, { $pull: { items: id } });
 
   let restoredToBoxId = null;
+  let restoredToBox = null;
   if (item.last_active_box) {
-    const targetExists = await Box.exists({ _id: item.last_active_box });
-    if (targetExists) {
+    restoredToBox = await Box.findById(item.last_active_box)
+      .select('_id box_id label')
+      .lean();
+    if (restoredToBox) {
       await Box.updateOne(
         { _id: item.last_active_box },
         { $addToSet: { items: id } }
@@ -381,18 +722,49 @@ async function restoreItemToActive(id) {
     lifecycleUpdate.location = '';
   }
 
-  return Item.findByIdAndUpdate(
+  const updated = await Item.findByIdAndUpdate(
     id,
     {
       $set: lifecycleUpdate,
     },
     { new: true, runValidators: true }
   );
+  if (!updated) return null;
+
+  const updatedPlain = toPlain(updated);
+  const itemRef = toItemRef(updatedPlain);
+  const destinationBoxRef = restoredToBoxId
+    ? toBoxRef(restoredToBox || { _id: restoredToBoxId }, 'Box')
+    : { id: null, label: ORPHANED_LABEL, box_id: null };
+
+  await logEventBestEffort(
+    {
+      event_type: 'item_reclaimed',
+      entity_type: 'item',
+      entity_id: itemRef.id,
+      entity_label: itemRef.label,
+      summary: `Reclaimed item ${quoteLabel(itemRef.label)} to ${quoteLabel(
+        destinationBoxRef.label
+      )}`,
+      details: {
+        to_box_id: destinationBoxRef.id,
+        to_box_label: destinationBoxRef.label,
+      },
+    },
+    { label: `item_reclaimed:${itemRef.id}` }
+  );
+
+  return updated;
 }
 
 async function hardDeleteItem(id) {
-  const current = await Item.findById(id).select('_id image imagePath').lean();
+  const current = await Item.findById(id)
+    .select('_id name image imagePath')
+    .lean();
   if (!current) return null;
+  const currentRef = toItemRef(current);
+  const fromBox = await Box.findOne({ items: id }).select('_id box_id label').lean();
+  const fromBoxRef = toBoxRef(fromBox, ORPHANED_LABEL);
 
   const previousPaths = collectImageStoragePaths(current);
 
@@ -404,6 +776,21 @@ async function hardDeleteItem(id) {
     label: `item-delete:${id}`,
   });
 
+  await logEventBestEffort(
+    {
+      event_type: 'item_deleted',
+      entity_type: 'item',
+      entity_id: currentRef.id,
+      entity_label: currentRef.label,
+      summary: `Deleted item ${quoteLabel(currentRef.label)}`,
+      details: {
+        from_box_id: fromBoxRef.id,
+        from_box_label: fromBoxRef.label,
+      },
+    },
+    { label: `item_deleted:${currentRef.id}` }
+  );
+
   return deleted;
 }
 
@@ -412,7 +799,9 @@ async function deleteItem(id) {
 }
 
 async function setItemImage(id, image) {
-  const current = await Item.findById(id).select('image imagePath').lean();
+  const current = await Item.findById(id)
+    .select('_id name image imagePath')
+    .lean();
   if (!current) return null;
 
   const previousPaths = collectImageStoragePaths(current);
@@ -429,17 +818,44 @@ async function setItemImage(id, image) {
 
   if (!updated) return null;
 
+  const updatedPlain = toPlain(updated);
   const stalePaths = previousPaths.filter((entry) => !nextPaths.has(entry));
 
   await safeDeleteMediaFiles(stalePaths, {
     label: `item-image-replace:${id}`,
   });
 
+  const changedFields = computeChangedFields(current, updatedPlain, [
+    'image',
+    'imagePath',
+  ]);
+  if (changedFields.length) {
+    const itemRef = toItemRef(updatedPlain);
+    await logEventBestEffort(
+      {
+        event_type: 'item_photo_updated',
+        entity_type: 'item',
+        entity_id: itemRef.id,
+        entity_label: itemRef.label,
+        summary: `Updated photo for item ${quoteLabel(itemRef.label)}`,
+        details: {
+          changed_fields: changedFields,
+        },
+      },
+      { label: `item_photo_updated:${itemRef.id}` }
+    );
+  }
+
   return updated;
 }
 
 async function clearItemImage(id) {
-  return Item.findByIdAndUpdate(
+  const current = await Item.findById(id)
+    .select('_id name image imagePath')
+    .lean();
+  if (!current) return null;
+
+  const updated = await Item.findByIdAndUpdate(
     id,
     {
       image: buildEmptyImageMetadata(),
@@ -447,6 +863,31 @@ async function clearItemImage(id) {
     },
     { new: true, runValidators: true }
   );
+  if (!updated) return null;
+
+  const updatedPlain = toPlain(updated);
+  const changedFields = computeChangedFields(current, updatedPlain, [
+    'image',
+    'imagePath',
+  ]);
+  if (changedFields.length) {
+    const itemRef = toItemRef(updatedPlain);
+    await logEventBestEffort(
+      {
+        event_type: 'item_photo_updated',
+        entity_type: 'item',
+        entity_id: itemRef.id,
+        entity_label: itemRef.label,
+        summary: `Updated photo for item ${quoteLabel(itemRef.label)}`,
+        details: {
+          changed_fields: changedFields,
+        },
+      },
+      { label: `item_photo_updated:${itemRef.id}` }
+    );
+  }
+
+  return updated;
 }
 
 /**
@@ -816,6 +1257,7 @@ module.exports = {
   getOrphanedItems,
   getOrphanedItemsPage,
   createItem,
+  bulkCreateItems,
   updateItem,
   setItemImage,
   clearItemImage,
@@ -825,4 +1267,5 @@ module.exports = {
   restoreItemToActive,
   backfillOrphanedTimestamps,
   orphanAllItemsInBox,
+  BULK_IMPORT_ITEM_NAME_MAX_LENGTH,
 };

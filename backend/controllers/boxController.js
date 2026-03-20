@@ -1,6 +1,7 @@
 const {
   getBoxByMongoId,
   getBoxByShortId,
+  resolveBoxByShortId,
   createBox,
   getBoxesByParent,
   updateBox,
@@ -15,6 +16,16 @@ const {
   getBoxDataStructure,
   releaseChildrenToFloor,
 } = require('../services/boxService');
+const {
+  buildBoxJsonExport,
+  buildBoxCsvExport,
+  buildBoxHtmlExport,
+  buildBoxPdfExport,
+  buildBoxQrCodeExport,
+  buildBoxLabelHtmlExport,
+  PDF_ENGINE_MISSING_CODE,
+  QR_ENGINE_MISSING_CODE,
+} = require('../services/boxExportService');
 const { processBoxImageUpload } = require('../services/itemImageService');
 const { collectImageStoragePaths } = require('../services/imageMetadataService');
 const {
@@ -71,6 +82,30 @@ async function getBoxByShortIdApi(req, res) {
     res.json({ ok: true, box });
   } catch (e) {
     res.status(400).json({ ok: false, error: e.message });
+  }
+}
+
+async function getBoxByShortIdSummaryApi(req, res) {
+  try {
+    const shortId = String(req.params.shortId || '').trim();
+    if (!/^\d{3}$/.test(shortId)) {
+      return res.status(400).json({
+        ok: false,
+        error: 'shortId must be exactly 3 digits.',
+      });
+    }
+
+    const box = await resolveBoxByShortId(shortId);
+    if (!box) {
+      return res.status(404).json({
+        ok: false,
+        error: 'Box not found',
+      });
+    }
+
+    return res.status(200).json({ ok: true, box });
+  } catch (err) {
+    return res.status(400).json({ ok: false, error: err.message });
   }
 }
 
@@ -356,7 +391,9 @@ async function releaseChildrenToFloorApi(req, res) {
 
 async function getBoxTreeApi(req, res) {
   try {
-    const tree = await getBoxTree();
+    const page = req.query?.page;
+    const limit = req.query?.limit;
+    const tree = await getBoxTree({ page, limit });
     return res.status(200).json(tree);
   } catch (err) {
     console.error('❌ Error in getBoxTreeController:', err);
@@ -374,6 +411,238 @@ async function getBoxTreeByShortIdApi(req, res) {
   } catch (err) {
     console.error('❌ Failed to fetch box tree:', err);
     res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+async function exportBoxJsonApi(req, res) {
+  try {
+    const exportResult = await buildBoxJsonExport(req.params.id);
+
+    if (!exportResult) {
+      return res.status(404).json({
+        ok: false,
+        error: 'Box not found',
+      });
+    }
+
+    const { payload, filename } = exportResult;
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(200).send(`${JSON.stringify(payload, null, 2)}\n`);
+  } catch (err) {
+    if (err.code === 'INVALID_OBJECT_ID') {
+      return res.status(err.status || 400).json({
+        ok: false,
+        error: err.message || 'Invalid box id',
+        code: err.code,
+      });
+    }
+
+    console.error('❌ Error exporting box JSON:', err);
+    return res.status(500).json({
+      ok: false,
+      error: 'Failed to export box JSON',
+    });
+  }
+}
+
+async function exportBoxCsvApi(req, res) {
+  try {
+    const exportResult = await buildBoxCsvExport(req.params.id);
+
+    if (!exportResult) {
+      return res.status(404).json({
+        ok: false,
+        error: 'Box not found',
+      });
+    }
+
+    const { csv, filename } = exportResult;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(200).send(csv);
+  } catch (err) {
+    if (err.code === 'INVALID_OBJECT_ID') {
+      return res.status(err.status || 400).json({
+        ok: false,
+        error: err.message || 'Invalid box id',
+        code: err.code,
+      });
+    }
+
+    console.error('❌ Error exporting box CSV:', err);
+    return res.status(500).json({
+      ok: false,
+      error: 'Failed to export box CSV',
+    });
+  }
+}
+
+async function exportBoxHtmlApi(req, res) {
+  try {
+    const exportResult = await buildBoxHtmlExport(req.params.id);
+
+    if (!exportResult) {
+      return res.status(404).json({
+        ok: false,
+        error: 'Box not found',
+      });
+    }
+
+    const { html, filename } = exportResult;
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(200).send(html);
+  } catch (err) {
+    if (err.code === 'INVALID_OBJECT_ID') {
+      return res.status(err.status || 400).json({
+        ok: false,
+        error: err.message || 'Invalid box id',
+        code: err.code,
+      });
+    }
+
+    if (err.code === QR_ENGINE_MISSING_CODE) {
+      return res.status(err.status || 500).json({
+        ok: false,
+        error: err.message,
+        code: err.code,
+      });
+    }
+
+    console.error('❌ Error exporting box HTML:', err);
+    return res.status(500).json({
+      ok: false,
+      error: 'Failed to export box HTML',
+    });
+  }
+}
+
+async function exportBoxPdfApi(req, res) {
+  try {
+    const exportResult = await buildBoxPdfExport(req.params.id);
+
+    if (!exportResult) {
+      return res.status(404).json({
+        ok: false,
+        error: 'Box not found',
+      });
+    }
+
+    const { pdf, filename } = exportResult;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(200).send(pdf);
+  } catch (err) {
+    if (err.code === 'INVALID_OBJECT_ID') {
+      return res.status(err.status || 400).json({
+        ok: false,
+        error: err.message || 'Invalid box id',
+        code: err.code,
+      });
+    }
+
+    if (err.code === QR_ENGINE_MISSING_CODE) {
+      return res.status(err.status || 500).json({
+        ok: false,
+        error: err.message,
+        code: err.code,
+      });
+    }
+
+    if (err.code === PDF_ENGINE_MISSING_CODE) {
+      return res.status(err.status || 500).json({
+        ok: false,
+        error: err.message,
+        code: err.code,
+      });
+    }
+
+    console.error('❌ Error exporting box PDF:', err);
+    return res.status(500).json({
+      ok: false,
+      error: 'Failed to export box PDF',
+    });
+  }
+}
+
+async function exportBoxQrCodeApi(req, res) {
+  try {
+    const exportResult = await buildBoxQrCodeExport(req.params.id);
+
+    if (!exportResult) {
+      return res.status(404).json({
+        ok: false,
+        error: 'Box not found',
+      });
+    }
+
+    const { png, filename } = exportResult;
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(200).send(png);
+  } catch (err) {
+    if (err.code === 'INVALID_OBJECT_ID') {
+      return res.status(err.status || 400).json({
+        ok: false,
+        error: err.message || 'Invalid box id',
+        code: err.code,
+      });
+    }
+
+    if (err.code === QR_ENGINE_MISSING_CODE) {
+      return res.status(err.status || 500).json({
+        ok: false,
+        error: err.message,
+        code: err.code,
+      });
+    }
+
+    console.error('❌ Error exporting box QR code:', err);
+    return res.status(500).json({
+      ok: false,
+      error: 'Failed to export box QR code',
+    });
+  }
+}
+
+async function exportBoxLabelHtmlApi(req, res) {
+  try {
+    const exportResult = await buildBoxLabelHtmlExport(req.params.id);
+
+    if (!exportResult) {
+      return res.status(404).json({
+        ok: false,
+        error: 'Box not found',
+      });
+    }
+
+    const { html, filename } = exportResult;
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(200).send(html);
+  } catch (err) {
+    if (err.code === 'INVALID_OBJECT_ID') {
+      return res.status(err.status || 400).json({
+        ok: false,
+        error: err.message || 'Invalid box id',
+        code: err.code,
+      });
+    }
+
+    if (err.code === QR_ENGINE_MISSING_CODE) {
+      return res.status(err.status || 500).json({
+        ok: false,
+        error: err.message,
+        code: err.code,
+      });
+    }
+
+    console.error('❌ Error exporting box label HTML:', err);
+    return res.status(500).json({
+      ok: false,
+      error: 'Failed to export box label HTML',
+    });
   }
 }
 
@@ -410,6 +679,7 @@ module.exports = {
   getBoxDataStructureApi,
   getBoxByMongoIdApi,
   getBoxByShortIdApi,
+  getBoxByShortIdSummaryApi,
   getAllBoxesApi,
   getBoxesExcludingApi,
   getBoxesByParentApi,
@@ -421,6 +691,12 @@ module.exports = {
   releaseChildrenToFloorApi,
   getBoxTreeApi,
   getBoxTreeByShortIdApi,
+  exportBoxJsonApi,
+  exportBoxCsvApi,
+  exportBoxHtmlApi,
+  exportBoxPdfApi,
+  exportBoxQrCodeApi,
+  exportBoxLabelHtmlApi,
   deleteBoxByIdApi,
   deleteAllBoxesApi,
 };

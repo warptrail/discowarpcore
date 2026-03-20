@@ -1,4 +1,5 @@
 import styled, { css } from 'styled-components';
+import { Link } from 'react-router-dom';
 
 const LCARS = {
   bg: '#090d13',
@@ -10,6 +11,7 @@ const LCARS = {
   teal: '#4CC6C1',
   lilac: '#A7B6FF',
   amber: '#E8B15C',
+  lime: '#9BE564',
   root: '#7FD7FF',
 };
 
@@ -89,10 +91,14 @@ export const Sep = styled.span`
 export const SearchSortRow = styled.div`
   display: grid;
   min-width: 0;
-  grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
+  grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) minmax(0, 3fr);
   gap: 0.55rem;
 
   @media (max-width: 760px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 560px) {
     grid-template-columns: 1fr;
   }
 `;
@@ -166,6 +172,250 @@ const controlField = css`
 
 export const SearchInput = styled.input`
   ${controlField};
+`;
+
+export const LocatorWrap = styled.div`
+  position: relative;
+`;
+
+export const LocatorDropdown = styled.div`
+  position: absolute;
+  top: calc(100% + 0.34rem);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.36rem;
+  border-radius: 11px;
+  border: 1px solid ${toneAlpha(LCARS.lime, '7a')};
+  background: linear-gradient(180deg, rgba(9, 16, 24, 0.99), rgba(8, 14, 20, 0.99));
+  box-shadow:
+    0 18px 30px rgba(2, 9, 16, 0.7),
+    0 0 0 1px ${toneAlpha(LCARS.lime, '1f')} inset;
+  max-height: min(280px, 46vh);
+  overflow-y: auto;
+`;
+
+export const LocatorOption = styled.button`
+  width: 100%;
+  border: 1px solid
+    ${({ $active }) =>
+      $active ? toneAlpha(LCARS.lime, '8f') : toneAlpha(LCARS.root, '6e')};
+  border-radius: 9px;
+  background: ${({ $active }) =>
+    $active
+      ? 'linear-gradient(180deg, rgba(88, 132, 44, 0.24), rgba(57, 91, 27, 0.2))'
+      : 'linear-gradient(180deg, rgba(15, 30, 45, 0.94), rgba(9, 18, 29, 0.96))'};
+  color: ${toneAlpha(LCARS.text, 'f0')};
+  display: grid;
+  gap: 0.12rem;
+  text-align: left;
+  padding: 0.44rem 0.52rem;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
+
+  &:hover {
+    border-color: ${toneAlpha(LCARS.lime, '92')};
+    background: linear-gradient(
+      180deg,
+      rgba(106, 157, 54, 0.24),
+      rgba(65, 102, 34, 0.22)
+    );
+    box-shadow:
+      0 0 0 1px ${toneAlpha(LCARS.lime, '2f')} inset,
+      0 0 14px ${toneAlpha(LCARS.lime, '24')};
+  }
+`;
+
+export const LocatorOptionMain = styled.span`
+  font-size: 0.8rem;
+  font-weight: 760;
+  letter-spacing: 0.02em;
+  color: ${toneAlpha(LCARS.text, 'ec')};
+`;
+
+export const LocatorOptionMeta = styled.span`
+  font-size: 0.7rem;
+  color: ${toneAlpha(LCARS.textDim, 'd0')};
+`;
+
+export const LocatorEmpty = styled.div`
+  padding: 0.48rem 0.52rem;
+  border-radius: 9px;
+  border: 1px dashed ${toneAlpha(LCARS.line, 'cc')};
+  color: ${toneAlpha(LCARS.textDim, 'd0')};
+  font-size: 0.76rem;
+`;
+
+export const LocatorInspector = styled.section`
+  margin-top: 0;
+  border: 1px solid ${toneAlpha(LCARS.lime, '72')};
+  border-radius: 11px;
+  background:
+    linear-gradient(
+      100deg,
+      ${toneAlpha(LCARS.lime, '17')} 0%,
+      transparent 52%
+    ),
+    linear-gradient(180deg, rgba(8, 16, 23, 0.98), rgba(8, 14, 21, 0.98));
+  box-shadow:
+    inset 0 0 0 1px ${toneAlpha(LCARS.lime, '1f')},
+    0 12px 22px rgba(2, 9, 16, 0.6);
+  overflow: hidden;
+`;
+
+export const LocatorInspectorHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.46rem 0.55rem;
+  border-bottom: 1px solid ${toneAlpha(LCARS.line, 'cc')};
+`;
+
+export const LocatorInspectorTitle = styled.div`
+  min-width: 0;
+`;
+
+export const LocatorInspectorTitleLink = styled(Link)`
+  color: ${toneAlpha(LCARS.lime, 'ef')};
+  font-size: 0.8rem;
+  font-weight: 780;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+
+  &:hover {
+    color: ${toneAlpha(LCARS.text, 'f2')};
+    text-decoration: underline;
+  }
+`;
+
+export const LocatorInspectorClear = styled.button`
+  border: 1px solid ${toneAlpha(LCARS.root, '72')};
+  border-radius: 8px;
+  min-height: 24px;
+  padding: 0.16rem 0.42rem;
+  font-size: 0.66rem;
+  font-weight: 740;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: ${toneAlpha(LCARS.root, 'd8')};
+  background: linear-gradient(180deg, rgba(11, 25, 37, 0.95), rgba(8, 17, 27, 0.95));
+  box-shadow: inset 0 0 0 1px ${toneAlpha(LCARS.root, '22')};
+  cursor: pointer;
+
+  &:hover {
+    border-color: ${toneAlpha(LCARS.lime, '7a')};
+    color: ${toneAlpha(LCARS.lime, 'e8')};
+    box-shadow:
+      inset 0 0 0 1px ${toneAlpha(LCARS.lime, '26')},
+      0 0 12px ${toneAlpha(LCARS.lime, '28')};
+  }
+`;
+
+export const LocatorBreadcrumb = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+  align-items: center;
+  padding: 0.32rem 0.55rem 0.4rem;
+  border-bottom: 1px dashed ${toneAlpha(LCARS.line, 'b8')};
+  font-size: 0.7rem;
+`;
+
+export const LocatorBreadcrumbLink = styled(Link)`
+  color: ${toneAlpha(LCARS.textDim, 'dd')};
+  text-decoration: none;
+
+  &:hover {
+    color: ${toneAlpha(LCARS.text, 'ef')};
+    text-decoration: underline;
+  }
+`;
+
+export const LocatorBreadcrumbCurrent = styled.span`
+  color: ${toneAlpha(LCARS.lime, 'e8')};
+  font-weight: 720;
+`;
+
+export const LocatorBreadcrumbSep = styled.span`
+  color: ${toneAlpha(LCARS.textDim, 'a0')};
+`;
+
+export const LocatorInspectorBody = styled.div`
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.5rem 0.55rem 0.55rem;
+  max-height: min(320px, 42vh);
+  overflow-y: auto;
+`;
+
+export const LocatorSection = styled.section`
+  display: grid;
+  gap: 0.26rem;
+`;
+
+export const LocatorSectionTitle = styled.h4`
+  margin: 0;
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: ${toneAlpha(LCARS.textDim, 'd3')};
+`;
+
+export const LocatorList = styled.div`
+  display: grid;
+  gap: 0.2rem;
+`;
+
+export const LocatorRow = styled.div`
+  border: 1px solid
+    ${({ $kind = 'item' }) =>
+      $kind === 'box'
+        ? toneAlpha(LCARS.root, '68')
+        : toneAlpha(LCARS.lime, '65')};
+  border-radius: 8px;
+  background: ${({ $kind = 'item' }) =>
+    $kind === 'box'
+      ? 'linear-gradient(180deg, rgba(16, 33, 48, 0.92), rgba(10, 19, 27, 0.92))'
+      : 'linear-gradient(180deg, rgba(15, 30, 17, 0.92), rgba(10, 19, 12, 0.92))'};
+`;
+
+export const LocatorRowLink = styled(Link)`
+  display: grid;
+  gap: 0.1rem;
+  text-decoration: none;
+  padding: 0.34rem 0.45rem;
+`;
+
+export const LocatorRowTitle = styled.span`
+  color: ${toneAlpha(LCARS.text, 'ef')};
+  font-size: 0.78rem;
+  font-weight: 710;
+  line-height: 1.2;
+`;
+
+export const LocatorRowMeta = styled.span`
+  color: ${toneAlpha(LCARS.textDim, 'cd')};
+  font-size: 0.67rem;
+  line-height: 1.2;
+`;
+
+export const LocatorEmptyBlock = styled.div`
+  border: 1px dashed ${toneAlpha(LCARS.line, 'c6')};
+  border-radius: 8px;
+  color: ${toneAlpha(LCARS.textDim, 'd2')};
+  font-size: 0.74rem;
+  padding: 0.38rem 0.45rem;
+`;
+
+export const LocatorStatusText = styled.div`
+  color: ${toneAlpha(LCARS.textDim, 'dc')};
+  font-size: 0.74rem;
+  padding: 0.24rem 0.1rem;
 `;
 
 export const Select = styled.select`

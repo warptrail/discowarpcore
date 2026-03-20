@@ -10,9 +10,14 @@ import {
 const Bar = styled.div`
   display: grid;
   gap: 8px;
-  grid-template-columns: 1fr 1fr; /* mobile: 2x2 */
+  grid-template-columns: 1fr 1fr;
+  @media (max-width: 639px) {
+    & > *:last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+    }
+  }
   @media (min-width: 640px) {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 10px;
   }
   margin: 12px 0;
@@ -108,8 +113,8 @@ const DangerBtn = styled(Btn)`
 
 /*
  * Props:
- * - active: null | 'empty' | 'nest' | 'edit' | 'destroy'
- * - onClickEmpty, onClickNest, onClickEdit, onClickDestroy
+ * - active: null | 'empty' | 'nest' | 'edit' | 'export' | 'destroy'
+ * - onClickEmpty, onClickNest, onClickEdit, onClickExport, onClickDestroy
  * - busy?: boolean
  */
 
@@ -118,6 +123,7 @@ export default function BoxControlBar({
   onClickEmpty,
   onClickNest,
   onClickEdit,
+  onClickExport,
   onClickDestroy,
   busy = false,
 }) {
@@ -157,6 +163,18 @@ export default function BoxControlBar({
         title="Edit box details"
       >
         Edit details
+      </Btn>
+
+      <Btn
+        type="button"
+        disabled={busy || !onClickExport}
+        onClick={onClickExport}
+        $active={active === 'export'}
+        aria-pressed={active === 'export'}
+        aria-label="Export this box"
+        title="Export this box"
+      >
+        Export
       </Btn>
 
       <DangerBtn

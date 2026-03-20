@@ -1,9 +1,11 @@
 // src/views/BoxList.jsx
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { styledComponents as S } from '../styles/BoxList.styles';
 import InventoryGridHeader from './InventoryGridHeader';
+import BoxLocatorInspectorPanel from './BoxLocatorInspectorPanel';
 import { normalizeItemCategory } from '../util/itemCategories';
+import { fetchBoxTreeByShortId } from '../api/boxes';
 
 /**
  * boxes: [{
@@ -12,15 +14,31 @@ import { normalizeItemCategory } from '../util/itemCategories';
  *   childBoxes: same[]
  * }]
  */
-export default function BoxList({ boxes = [], orphanedCount = 0, locations = [] }) {
+export default function BoxList({
+  boxes = [],
+  orphanedCount = 0,
+  locations = [],
+  pagination = {},
+  onPageChange,
+}) {
   const [quickCreatedBoxes, setQuickCreatedBoxes] = useState([]);
   const [quickOrphanedDelta, setQuickOrphanedDelta] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [boxLocatorQuery, setBoxLocatorQuery] = useState('');
+  const [boxLocatorSelection, setBoxLocatorSelection] = useState(null);
+  const [boxLocatorDetails, setBoxLocatorDetails] = useState(null);
+  const [boxLocatorLoading, setBoxLocatorLoading] = useState(false);
+  const [boxLocatorError, setBoxLocatorError] = useState('');
   const [sortBy, setSortBy] = useState('boxId');
   const [filterBy, setFilterBy] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState('all');
   const [ownerFilter, setOwnerFilter] = useState('all');
+  const currentPage = Math.max(1, Number(pagination?.page) || 1);
+  const totalPages = Math.max(1, Number(pagination?.totalPages) || 1);
+  const totalCount = Number.isFinite(Number(pagination?.total))
+    ? Number(pagination.total)
+    : 0;
 
   const mergedBoxes = useMemo(
     () => mergeQuickCreatedBoxes(boxes, quickCreatedBoxes),
@@ -32,6 +50,16 @@ export default function BoxList({ boxes = [], orphanedCount = 0, locations = [] 
   const telemetry = useMemo(
     () => summarizeTree(mergedBoxes, effectiveOrphanedCount),
     [mergedBoxes, effectiveOrphanedCount],
+  );
+
+  const boxLocatorIndex = useMemo(
+    () => buildBoxLocatorIndex(mergedBoxes),
+    [mergedBoxes],
+  );
+
+  const boxLocatorMatches = useMemo(
+    () => findBoxLocatorMatches(boxLocatorIndex, boxLocatorQuery),
+    [boxLocatorIndex, boxLocatorQuery],
   );
 
   const visibleBoxes = useMemo(
@@ -55,7 +83,7 @@ export default function BoxList({ boxes = [], orphanedCount = 0, locations = [] 
     ],
   );
 
-  const noData = !mergedBoxes || mergedBoxes.length === 0;
+  const noData = totalCount === 0;
   const hasNoMatches = !noData && visibleBoxes.length === 0;
 
   const handleQuickBoxCreated = (createdBox) => {
@@ -86,6 +114,103 @@ export default function BoxList({ boxes = [], orphanedCount = 0, locations = [] 
     setQuickOrphanedDelta((prev) => prev + 1);
   };
 
+  const handleBoxLocatorSelect = (entry) => {
+    const nextBoxId = normalizeBoxId(entry?.boxId);
+    if (!nextBoxId) return;
+
+    setBoxLocatorQuery(String(entry?.boxId || ''));
+    setBoxLocatorSelection({
+      boxId: nextBoxId,
+      label: String(entry?.label || '').trim(),
+    });
+    setBoxLocatorLoading(true);
+    setBoxLocatorDetails(null);
+    setBoxLocatorError('');
+  };
+
+  useEffect(() => {
+    const selectedId = normalizeBoxId(boxLocatorSelection?.boxId);
+    if (!selectedId) return;
+
+    const stillExists = boxLocatorIndex.some((entry) => {
+      return normalizeBoxId(entry?.boxId) === selectedId;
+    });
+
+    if (!stillExists) {
+      setBoxLocatorSelection(null);
+      setBoxLocatorDetails(null);
+      setBoxLocatorError('');
+    }
+  }, [boxLocatorIndex, boxLocatorSelection]);
+
+  useEffect(() => {
+    const selectedId = normalizeBoxId(boxLocatorSelection?.boxId);
+    if (!selectedId || !boxLocatorQuery) return;
+
+    const queryId = normalizeBoxId(boxLocatorQuery);
+    if (queryId && selectedId === queryId) return;
+
+    setBoxLocatorSelection(null);
+    setBoxLocatorDetails(null);
+    setBoxLocatorError('');
+  }, [boxLocatorQuery, boxLocatorSelection]);
+
+  useEffect(() => {
+    const selectedId = normalizeBoxId(boxLocatorSelection?.boxId);
+    if (!selectedId) {
+      setBoxLocatorLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    let active = true;
+
+    const loadInspector = async () => {
+      try {
+        setBoxLocatorLoading(true);
+        setBoxLocatorError('');
+        const detail = await fetchBoxTreeByShortId(selectedId, {
+          signal: controller.signal,
+        });
+        if (!active) return;
+        setBoxLocatorDetails(detail || null);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        if (!active) return;
+        setBoxLocatorDetails(null);
+        setBoxLocatorError(error?.message || 'Failed to load box contents.');
+      } finally {
+        if (active) {
+          setBoxLocatorLoading(false);
+        }
+      }
+    };
+
+    loadInspector();
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [boxLocatorSelection]);
+
+  useEffect(() => {
+    onPageChange?.(1);
+  }, [
+    searchQuery,
+    filterBy,
+    categoryFilter,
+    locationFilter,
+    ownerFilter,
+    onPageChange,
+  ]);
+
+  const handleClearBoxLocatorResult = () => {
+    setBoxLocatorSelection(null);
+    setBoxLocatorDetails(null);
+    setBoxLocatorError('');
+  };
+
   return (
     <S.Container>
       <InventoryGridHeader
@@ -94,6 +219,10 @@ export default function BoxList({ boxes = [], orphanedCount = 0, locations = [] 
         orphanedCount={telemetry.orphanedCount}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        boxLocatorQuery={boxLocatorQuery}
+        onBoxLocatorQueryChange={setBoxLocatorQuery}
+        boxLocatorMatches={boxLocatorMatches}
+        onBoxLocatorSelect={handleBoxLocatorSelect}
         sortBy={sortBy}
         onSortChange={setSortBy}
         filterBy={filterBy}
@@ -110,15 +239,46 @@ export default function BoxList({ boxes = [], orphanedCount = 0, locations = [] 
         locations={locations}
       />
 
+      <BoxLocatorInspectorPanel
+        selection={boxLocatorSelection}
+        details={boxLocatorDetails}
+        loading={boxLocatorLoading}
+        error={boxLocatorError}
+        onClearSelection={handleClearBoxLocatorResult}
+      />
+
       {noData ? (
         <S.EmptyMessage>No boxes yet.</S.EmptyMessage>
       ) : hasNoMatches ? (
         <S.EmptyMessage>No boxes match the current search/filter.</S.EmptyMessage>
       ) : (
-        visibleBoxes.map((node) => (
-          <Branch key={node._id || node.box_id} node={node} depth={0} />
-        ))
+        visibleBoxes.map((node) => <Branch key={node._id || node.box_id} node={node} depth={0} />)
       )}
+
+      {!noData ? (
+        <S.PaginationBar>
+          <S.PaginationButton
+            type="button"
+            onClick={() => onPageChange?.(currentPage - 1)}
+            disabled={currentPage <= 1}
+          >
+            Previous
+          </S.PaginationButton>
+
+          <S.PaginationInfo>
+            Page {currentPage} of {totalPages}
+            {Number.isFinite(totalCount) ? ` // ${totalCount} total boxes` : ''}
+          </S.PaginationInfo>
+
+          <S.PaginationButton
+            type="button"
+            onClick={() => onPageChange?.(currentPage + 1)}
+            disabled={currentPage >= totalPages}
+          >
+            Next
+          </S.PaginationButton>
+        </S.PaginationBar>
+      ) : null}
     </S.Container>
   );
 }
@@ -227,11 +387,7 @@ function Branch({ node, depth = 0 }) {
         {childBoxes.length > 0 && (
           <S.NodeChildren $depth={depth + 1}>
             {childBoxes.map((child) => (
-              <Branch
-                key={child._id || child.box_id}
-                node={child}
-                depth={depth + 1}
-              />
+              <Branch key={child._id || child.box_id} node={child} depth={depth + 1} />
             ))}
           </S.NodeChildren>
         )}
@@ -364,7 +520,6 @@ function matchesQuery(node, query) {
     [
       node?.label,
       node?.name,
-      node?.box_id,
       node?.location,
       node?.description,
       node?.notes,
@@ -464,4 +619,59 @@ function getLocationId(node) {
 function truncate(str, n) {
   if (!str) return '';
   return str.length > n ? `${str.slice(0, n - 1)}...` : str;
+}
+
+function buildBoxLocatorIndex(nodes) {
+  const found = [];
+  const seen = new Set();
+
+  const walk = (list) => {
+    for (const node of list || []) {
+      const boxId = normalizeBoxId(node?.box_id);
+      if (boxId && !seen.has(boxId)) {
+        seen.add(boxId);
+        found.push({
+          boxId,
+          label: String(node?.label || node?.name || '').trim(),
+          location: String(node?.location || '').trim(),
+        });
+      }
+      walk(node?.childBoxes);
+    }
+  };
+
+  walk(nodes);
+
+  found.sort((a, b) => {
+    const numericDiff = compareNumericBoxIds(a.boxId, b.boxId);
+    if (numericDiff !== 0) return numericDiff;
+    return compareText(a.label, b.label);
+  });
+
+  return found;
+}
+
+function findBoxLocatorMatches(index, prefix) {
+  const normalizedPrefix = normalizeBoxId(prefix);
+  if (!normalizedPrefix) return [];
+
+  return (index || []).filter((entry) =>
+    normalizeBoxId(entry?.boxId).startsWith(normalizedPrefix),
+  );
+}
+
+function compareNumericBoxIds(a, b) {
+  const aNum = Number(a);
+  const bNum = Number(b);
+  const aValid = Number.isFinite(aNum);
+  const bValid = Number.isFinite(bNum);
+
+  if (aValid && bValid && aNum !== bNum) return aNum - bNum;
+  return compareText(String(a || ''), String(b || ''));
+}
+
+function normalizeBoxId(value) {
+  return String(value || '')
+    .replace(/\D/g, '')
+    .trim();
 }

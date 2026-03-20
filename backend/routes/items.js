@@ -8,6 +8,7 @@ const {
   getItemByIdApi,
   getOrphanedItemsApi,
   postItem,
+  postBulkCreateItemsApi,
   patchItem,
   postItemImageApi,
   deleteItemImageApi,
@@ -19,6 +20,7 @@ const {
 
 router.get('/', getAllItemsApi);
 router.get('/orphaned', getOrphanedItemsApi);
+router.post('/bulk-create', postBulkCreateItemsApi);
 router.patch('/:id/mark-gone', validateObjectIdParam('id'), markItemGoneApi);
 router.patch('/:id/restore-active', validateObjectIdParam('id'), restoreItemToActiveApi);
 router.get('/:id', validateObjectIdParam('id'), getItemByIdApi);

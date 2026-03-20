@@ -11,7 +11,7 @@ import useItemEffects from './BoxDetailView/useItemEffects';
 import BoxDetailTabContent from './BoxDetailView/BoxDetailTabContent';
 
 const VALID_TABS = new Set(['tree', 'flat', 'edit']);
-const VALID_PANELS = new Set(['empty', 'nest', 'edit', 'destroy']);
+const VALID_PANELS = new Set(['empty', 'nest', 'edit', 'export', 'destroy']);
 
 export default function BoxDetailView({ parentPath, onNavigateBox }) {
   const { shortId } = useParams();

@@ -394,6 +394,53 @@ const EmptyMessage = styled.div`
   border-radius: ${radiusL};
 `;
 
+const PaginationBar = styled.div`
+  ${panelBase};
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.56rem 0.62rem;
+  border-color: ${toneAlpha(LCARS.ice, '58')};
+  background:
+    linear-gradient(90deg, ${toneAlpha(LCARS.ice, '18')}, transparent 55%),
+    ${LCARS.panel};
+`;
+
+const PaginationButton = styled.button`
+  min-height: 34px;
+  min-width: 92px;
+  border-radius: 9px;
+  border: 1px solid ${toneAlpha(LCARS.ice, '78')};
+  background: linear-gradient(180deg, rgba(13, 31, 45, 0.95), rgba(10, 24, 36, 0.95));
+  color: ${toneAlpha(LCARS.ice, 'ea')};
+  font-size: 0.78rem;
+  font-weight: 740;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition:
+    border-color 130ms ease,
+    background 130ms ease,
+    opacity 130ms ease;
+
+  &:hover:enabled {
+    border-color: ${toneAlpha(LCARS.lime, '86')};
+    background: linear-gradient(180deg, rgba(23, 53, 39, 0.95), rgba(14, 34, 25, 0.95));
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+`;
+
+const PaginationInfo = styled.div`
+  text-align: center;
+  color: ${toneAlpha(LCARS.textDim, 'df')};
+  font-size: 0.77rem;
+  letter-spacing: 0.04em;
+`;
+
 export const styledComponents = {
   Container,
   Heading,
@@ -420,4 +467,7 @@ export const styledComponents = {
 
   NodeChildren,
   EmptyMessage,
+  PaginationBar,
+  PaginationButton,
+  PaginationInfo,
 };

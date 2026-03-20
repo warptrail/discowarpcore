@@ -12,11 +12,14 @@
     "install:all": "npm install && cd frontend && npm install",
     "seed": "node backend/scripts/seed.js",
     "seed:all": "node backend/scripts/seed.js --all",
+    "seed:boxes:range": "node backend/scripts/seed_boxes_range.js",
+    "seed:boxes:700": "node backend/scripts/seed_boxes_range.js --start=700 --count=75",
     "backup:full": "node backend/scripts/backup-full.js",
     "restore:full": "node backend/scripts/restore-full.js",
     "reset:hard": "node backend/scripts/reset-hard.js",
     "test:delete-enforcement": "node backend/scripts/test_box_delete_enforcement.js",
-    "test:media-cleanup": "node backend/scripts/test_media_cleanup.js"
+    "test:media-cleanup": "node backend/scripts/test_media_cleanup.js",
+    "test:event-logging": "node backend/scripts/test_event_logging.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -25,6 +28,8 @@
     "express": "^5.1.0",
     "mongoose": "^8.16.0",
     "multer": "^1.4.5-lts.1",
+    "puppeteer": "^24.31.0",
+    "qrcode": "^1.5.4",
     "sharp": "^0.33.5"
   },
   "devDependencies": {

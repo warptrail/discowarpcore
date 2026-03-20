@@ -229,33 +229,6 @@ const NavButton = styled(Link)`
   }
 `;
 
-const FauxButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.55rem 0.85rem;
-
-  border-radius: 10px;
-
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-  letter-spacing: 0.06em;
-  font-weight: 700;
-  font-size: 0.88rem;
-
-  color: rgba(240, 240, 240, 0.55);
-  background: rgba(20, 34, 46, 0.55);
-  border: 1px dashed rgba(0, 255, 200, 0.18);
-  box-shadow: 0 0 0 2px rgba(0, 255, 200, 0.04);
-
-  cursor: not-allowed;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    display: none;
-  }
-`;
-
 const Divider = styled.div`
   height: 1px;
   background: linear-gradient(
@@ -326,12 +299,9 @@ export default function Header() {
           <NavButton to="/">🚀 Operations</NavButton>
           <NavButton to="/retrieval">🔎 Retrieval</NavButton>
           <NavButton to="/intake">📲 Intake</NavButton>
+          <NavButton to="/import">📥 Import</NavButton>
           <NavButton to="/all-items">🧾 All Items</NavButton>
-
-          {/* Placeholder button (wire later) */}
-          <FauxButton type="button" disabled>
-            🛰️ Logs
-          </FauxButton>
+          <NavButton to="/logs">🛰️ Logs</NavButton>
         </NavRow>
       </Inner>
 

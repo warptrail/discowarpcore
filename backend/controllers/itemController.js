@@ -7,6 +7,7 @@ const {
   getOrphanedItems,
   getOrphanedItemsPage,
   createItem,
+  bulkCreateItems,
   updateItem,
   setItemImage,
   clearItemImage,
@@ -128,6 +129,27 @@ async function postItem(req, res) {
   } catch (err) {
     console.error('❌ Error creating item:', err);
     res.status(400).json({ error: 'Failed to create item' });
+  }
+}
+
+async function postBulkCreateItemsApi(req, res) {
+  try {
+    const body = req.body || {};
+    const result = await bulkCreateItems({
+      itemNames: body.itemNames,
+      names: body.names,
+      boxShortId: body.boxShortId,
+      boxId: body.boxId,
+      sourceFileName: body.sourceFileName,
+    });
+
+    return res.status(201).json({ ok: true, ...result });
+  } catch (err) {
+    console.error('❌ Error bulk creating items:', err);
+    return res.status(err?.status || 400).json({
+      ok: false,
+      error: err?.message || 'Failed to bulk create items',
+    });
   }
 }
 
@@ -292,6 +314,7 @@ module.exports = {
   getItemByIdApi,
   getOrphanedItemsApi,
   postItem,
+  postBulkCreateItemsApi,
   patchItem,
   postItemImageApi,
   deleteItemImageApi,

@@ -1,5 +1,82 @@
 import { API_BASE } from './API_BASE';
 
+function getDownloadFilenameFromContentDisposition(headerValue) {
+  if (!headerValue) return null;
+
+  const utf8Match = headerValue.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    return decodeURIComponent(utf8Match[1]).trim();
+  }
+
+  const quotedMatch = headerValue.match(/filename="([^"]+)"/i);
+  if (quotedMatch?.[1]) {
+    return quotedMatch[1].trim();
+  }
+
+  const basicMatch = headerValue.match(/filename=([^;]+)/i);
+  if (basicMatch?.[1]) {
+    return basicMatch[1].trim();
+  }
+
+  return null;
+}
+
+function triggerFileDownload(blob, filename) {
+  const blobUrl = window.URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = blobUrl;
+  anchor.download = filename;
+  anchor.rel = 'noopener';
+
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+
+  setTimeout(() => {
+    window.URL.revokeObjectURL(blobUrl);
+  }, 0);
+}
+
+async function downloadBoxExportFile(
+  boxMongoId,
+  extension,
+  {
+    signal,
+    defaultErrorMessage = 'Failed to download box export',
+    fallbackFilename = 'discowarpcore-box-export.dat',
+  } = {},
+) {
+  if (!boxMongoId) throw new Error('boxMongoId is required');
+
+  const res = await fetch(
+    `${API_BASE}/api/boxes/${encodeURIComponent(boxMongoId)}/export.${extension}`,
+    {
+      method: 'GET',
+      signal,
+    },
+  );
+
+  if (!res.ok) {
+    let errorMessage = defaultErrorMessage;
+    try {
+      const json = await res.json();
+      errorMessage = json?.error || json?.message || errorMessage;
+    } catch {
+      const text = await res.text().catch(() => '');
+      if (text) errorMessage = text;
+    }
+    throw new Error(errorMessage);
+  }
+
+  const blob = await res.blob();
+  const filename =
+    getDownloadFilenameFromContentDisposition(res.headers.get('content-disposition')) ||
+    fallbackFilename;
+  triggerFileDownload(blob, filename);
+
+  return { filename };
+}
+
 // frontend/src/api/boxes.js
 export async function fetchBoxTreeByShortId(shortId, { signal } = {}) {
   if (!shortId) throw new Error('shortId is required');
@@ -168,4 +245,103 @@ export async function removeBoxImage(boxMongoId, opts = {}) {
     throw new Error(data?.error || data?.message || 'Failed to remove box image');
   }
   return data;
+}
+
+export async function downloadBoxJsonExport(boxMongoId, opts = {}) {
+  return downloadBoxExportFile(boxMongoId, 'json', {
+    signal: opts.signal,
+    defaultErrorMessage: 'Failed to export box as JSON',
+    fallbackFilename: 'discowarpcore-box-export.json',
+  });
+}
+
+export async function downloadBoxCsvExport(boxMongoId, opts = {}) {
+  return downloadBoxExportFile(boxMongoId, 'csv', {
+    signal: opts.signal,
+    defaultErrorMessage: 'Failed to export box as CSV',
+    fallbackFilename: 'discowarpcore-box-export.csv',
+  });
+}
+
+export async function downloadBoxHtmlExport(boxMongoId, opts = {}) {
+  return downloadBoxExportFile(boxMongoId, 'html', {
+    signal: opts.signal,
+    defaultErrorMessage: 'Failed to export box as HTML',
+    fallbackFilename: 'discowarpcore-box-export.html',
+  });
+}
+
+export async function downloadBoxPdfExport(boxMongoId, opts = {}) {
+  return downloadBoxExportFile(boxMongoId, 'pdf', {
+    signal: opts.signal,
+    defaultErrorMessage: 'Failed to export box as PDF',
+    fallbackFilename: 'discowarpcore-box-export.pdf',
+  });
+}
+
+export async function downloadBoxQrExport(
+  boxMongoId,
+  { signal, fallbackFilename = 'discowarpcore-box-export-qr.png' } = {},
+) {
+  if (!boxMongoId) throw new Error('boxMongoId is required');
+
+  const res = await fetch(`${API_BASE}/api/boxes/${encodeURIComponent(boxMongoId)}/qrcode`, {
+    method: 'GET',
+    signal,
+  });
+
+  if (!res.ok) {
+    let errorMessage = 'Failed to export box QR code';
+    try {
+      const json = await res.json();
+      errorMessage = json?.error || json?.message || errorMessage;
+    } catch {
+      const text = await res.text().catch(() => '');
+      if (text) errorMessage = text;
+    }
+    throw new Error(errorMessage);
+  }
+
+  const blob = await res.blob();
+  const filename =
+    getDownloadFilenameFromContentDisposition(res.headers.get('content-disposition')) ||
+    fallbackFilename;
+  triggerFileDownload(blob, filename);
+
+  return { filename };
+}
+
+export async function downloadBoxLabelHtmlExport(
+  boxMongoId,
+  { signal, fallbackFilename = 'discowarpcore-box-export-label.html' } = {},
+) {
+  if (!boxMongoId) throw new Error('boxMongoId is required');
+
+  const res = await fetch(
+    `${API_BASE}/api/boxes/${encodeURIComponent(boxMongoId)}/export-label.html`,
+    {
+      method: 'GET',
+      signal,
+    },
+  );
+
+  if (!res.ok) {
+    let errorMessage = 'Failed to export printable box label';
+    try {
+      const json = await res.json();
+      errorMessage = json?.error || json?.message || errorMessage;
+    } catch {
+      const text = await res.text().catch(() => '');
+      if (text) errorMessage = text;
+    }
+    throw new Error(errorMessage);
+  }
+
+  const blob = await res.blob();
+  const filename =
+    getDownloadFilenameFromContentDisposition(res.headers.get('content-disposition')) ||
+    fallbackFilename;
+  triggerFileDownload(blob, filename);
+
+  return { filename };
 }

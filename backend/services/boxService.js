@@ -14,8 +14,38 @@ const {
   collectImageStoragePaths,
 } = require('./imageMetadataService');
 const { safeDeleteMediaFiles } = require('../utils/mediaCleanup');
+const {
+  FLOOR_LABEL,
+  computeChangedFields,
+  formatBoxLabel,
+  hasMeaningfulValueChange,
+  logEventBestEffort,
+  quoteLabel,
+  toIdString,
+} = require('./eventLogService');
 
 const ACTIVE_ITEM_FILTER = { item_status: { $ne: 'gone' } };
+const DEFAULT_BOX_TREE_LIMIT = 50;
+const MAX_BOX_TREE_LIMIT = 50;
+
+function toPlain(source) {
+  if (!source) return null;
+  if (typeof source.toObject === 'function') {
+    return source.toObject({ virtuals: false });
+  }
+  return source;
+}
+
+function toBoxRef(box, fallback = FLOOR_LABEL) {
+  if (!box) {
+    return { id: null, label: fallback, box_id: null };
+  }
+  return {
+    id: toIdString(box._id || box.id),
+    label: formatBoxLabel(box, fallback),
+    box_id: box.box_id || null,
+  };
+}
 
 function collectLocationIds(nodes = []) {
   const ids = new Set();
@@ -42,6 +72,15 @@ function withLocation(box, locationNameMap) {
     locationId: id,
     location: resolvedName ?? box?.location ?? '',
   };
+}
+
+function toBoundedPositiveInteger(value, fallback, { min = 1, max = Number.MAX_SAFE_INTEGER } = {}) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  const normalized = Math.floor(parsed);
+  if (normalized < min) return min;
+  if (normalized > max) return max;
+  return normalized;
 }
 
 async function getBoxByMongoId(id) {
@@ -79,6 +118,34 @@ async function getBoxByShortId(shortId) {
       : [],
     locationId: box.locationId?._id ? String(box.locationId._id) : null,
     location: box.locationId?.name ?? box.location ?? '',
+  };
+}
+
+async function resolveBoxByShortId(shortId) {
+  const raw = String(shortId || '').trim();
+  if (!raw) throw new Error('shortId required');
+
+  const normalized = raw.replace(/^0+/, '') || '0';
+  const box =
+    (await Box.findOne({ box_id: raw })
+      .select('_id box_id label name location locationId imagePath image')
+      .populate('locationId', 'name')
+      .lean()) ||
+    (await Box.findOne({ box_id: normalized })
+      .select('_id box_id label name location locationId imagePath image')
+      .populate('locationId', 'name')
+      .lean());
+
+  if (!box) return null;
+
+  return {
+    _id: String(box._id),
+    box_id: box.box_id,
+    label: box.label ?? box.name ?? 'Box',
+    locationId: box.locationId?._id ? String(box.locationId._id) : null,
+    location: box.locationId?.name ?? box.location ?? '',
+    imagePath: box.imagePath ?? '',
+    image: box.image ?? null,
   };
 }
 
@@ -320,7 +387,9 @@ async function getBoxesExcludingId(id) {
 
 async function populateChildren(box) {
   // Find all child boxes where this box is the parent
-  const children = await Box.find({ parentBox: box._id }).lean();
+  const children = await Box.find({ parentBox: box._id })
+    .sort({ box_id: 1, _id: 1 })
+    .lean();
   const locationNameMap = await buildLocationNameMap(children);
 
   // For each child box, recursively fetch its own children
@@ -345,8 +414,24 @@ async function populateChildren(box) {
  * Get all top-level boxes and build their full tree recursively.
  */
 
-async function getBoxTree() {
-  const topLevelBoxes = await Box.find({ parentBox: null }).lean();
+async function getBoxTree({ page = 1, limit = DEFAULT_BOX_TREE_LIMIT } = {}) {
+  const safeRequestedPage = toBoundedPositiveInteger(page, 1, { min: 1 });
+  const safeLimit = toBoundedPositiveInteger(limit, DEFAULT_BOX_TREE_LIMIT, {
+    min: 1,
+    max: MAX_BOX_TREE_LIMIT,
+  });
+
+  const topLevelQuery = { parentBox: null };
+  const total = await Box.countDocuments(topLevelQuery);
+  const totalPages = total > 0 ? Math.ceil(total / safeLimit) : 1;
+  const safePage = Math.min(safeRequestedPage, totalPages);
+  const skip = (safePage - 1) * safeLimit;
+
+  const topLevelBoxes = await Box.find(topLevelQuery)
+    .sort({ box_id: 1, _id: 1 })
+    .skip(skip)
+    .limit(safeLimit)
+    .lean();
   const locationNameMap = await buildLocationNameMap(topLevelBoxes);
 
   for (let i = 0; i < topLevelBoxes.length; i += 1) {
@@ -361,7 +446,14 @@ async function getBoxTree() {
     topLevelBoxes[i] = box;
   }
 
-  return topLevelBoxes;
+  return {
+    items: topLevelBoxes,
+    tree: topLevelBoxes,
+    page: safePage,
+    limit: safeLimit,
+    total,
+    totalPages,
+  };
 }
 
 async function getBoxesByParent(parentId) {
@@ -395,11 +487,40 @@ async function createBox(data) {
     payload.locationId = resolvedLocation.locationId;
     payload.location = resolvedLocation.location;
   }
-  return Box.create(payload);
+  const created = await Box.create(payload);
+  const createdPlain = toPlain(created);
+  const createdRef = toBoxRef(createdPlain, 'Box');
+
+  let parentRef = { id: null, label: FLOOR_LABEL, box_id: null };
+  if (createdPlain?.parentBox) {
+    const parent = await Box.findById(createdPlain.parentBox)
+      .select('_id box_id label')
+      .lean();
+    parentRef = toBoxRef(parent || { _id: createdPlain.parentBox }, 'Box');
+  }
+
+  await logEventBestEffort(
+    {
+      event_type: 'box_created',
+      entity_type: 'box',
+      entity_id: createdRef.id,
+      entity_label: createdRef.label,
+      summary: `Created box ${quoteLabel(createdRef.label)}`,
+      details: {
+        box_id: createdRef.box_id,
+        parent_box_id: parentRef.id,
+        parent_box_label: parentRef.label,
+      },
+    },
+    { label: `box_created:${createdRef.id}` }
+  );
+
+  return created;
 }
 
 async function updateBox(id, data) {
   const patch = { ...data };
+  const existing = await Box.findById(id).lean();
 
   const resolvedLocation = await resolveBoxLocationFields({
     locationId:
@@ -427,7 +548,6 @@ async function updateBox(id, data) {
     const destId = patch.parentBox; // may be null
 
     // Load the existing box so we can compare current state
-    const existing = await Box.findById(id).lean();
     if (!existing) {
       const err = new Error('Box not found');
       err.status = 404;
@@ -461,15 +581,110 @@ async function updateBox(id, data) {
     }
   }
 
+  if (!existing) {
+    return null;
+  }
+
   // Perform the update
-  return Box.findByIdAndUpdate(id, patch, {
+  const updated = await Box.findByIdAndUpdate(id, patch, {
     new: true,
     runValidators: true,
   });
+  if (!updated) return null;
+
+  const updatedPlain = toPlain(updated);
+  const boxRef = toBoxRef(updatedPlain, 'Box');
+
+  const parentChanged = hasMeaningfulValueChange(
+    existing.parentBox ?? null,
+    updatedPlain.parentBox ?? null
+  );
+  if (parentChanged) {
+    const fromParentId = toIdString(existing.parentBox);
+    const toParentId = toIdString(updatedPlain.parentBox);
+    const parentIds = [fromParentId, toParentId].filter(Boolean);
+
+    const parentMap = new Map();
+    if (parentIds.length) {
+      const parentDocs = await Box.find({ _id: { $in: parentIds } })
+        .select('_id box_id label')
+        .lean();
+      parentDocs.forEach((entry) => parentMap.set(String(entry._id), entry));
+    }
+
+    const fromParentRef = fromParentId
+      ? toBoxRef(parentMap.get(fromParentId) || { _id: fromParentId }, 'Box')
+      : { id: null, label: FLOOR_LABEL, box_id: null };
+    const toParentRef = toParentId
+      ? toBoxRef(parentMap.get(toParentId) || { _id: toParentId }, 'Box')
+      : { id: null, label: FLOOR_LABEL, box_id: null };
+
+    let parentEventType = 'box_moved';
+    let parentSummary = `Moved box ${quoteLabel(boxRef.label)} from ${quoteLabel(
+      fromParentRef.label
+    )} to ${quoteLabel(toParentRef.label)}`;
+
+    if (!fromParentId && toParentId) {
+      parentEventType = 'box_nested';
+      parentSummary = `Nested box ${quoteLabel(boxRef.label)} into ${quoteLabel(
+        toParentRef.label
+      )}`;
+    } else if (fromParentId && !toParentId) {
+      parentEventType = 'box_unnested';
+      parentSummary = `Unnested box ${quoteLabel(boxRef.label)} to ${toParentRef.label}`;
+    }
+
+    await logEventBestEffort(
+      {
+        event_type: parentEventType,
+        entity_type: 'box',
+        entity_id: boxRef.id,
+        entity_label: boxRef.label,
+        summary: parentSummary,
+        details: {
+          from_box_id: fromParentRef.id,
+          from_box_label: fromParentRef.label,
+          to_box_id: toParentRef.id,
+          to_box_label: toParentRef.label,
+        },
+      },
+      { label: `${parentEventType}:${boxRef.id}` }
+    );
+  }
+
+  const nonParentCandidates = Object.keys(patch).filter(
+    (field) => field !== 'parentBox'
+  );
+  const changedNonParentFields = computeChangedFields(
+    existing,
+    updatedPlain,
+    nonParentCandidates
+  );
+  if (changedNonParentFields.length) {
+    await logEventBestEffort(
+      {
+        event_type: 'box_updated',
+        entity_type: 'box',
+        entity_id: boxRef.id,
+        entity_label: boxRef.label,
+        summary: `Updated box ${quoteLabel(boxRef.label)} fields: ${changedNonParentFields.join(
+          ', '
+        )}`,
+        details: {
+          changed_fields: changedNonParentFields,
+        },
+      },
+      { label: `box_updated:${boxRef.id}` }
+    );
+  }
+
+  return updated;
 }
 
 async function setBoxImage(id, image) {
-  const current = await Box.findById(id).select('image imagePath').lean();
+  const current = await Box.findById(id)
+    .select('_id box_id label image imagePath')
+    .lean();
   if (!current) return null;
 
   const previousPaths = collectImageStoragePaths(current);
@@ -486,17 +701,44 @@ async function setBoxImage(id, image) {
 
   if (!updated) return null;
 
+  const updatedPlain = toPlain(updated);
   const stalePaths = previousPaths.filter((entry) => !nextPaths.has(entry));
 
   await safeDeleteMediaFiles(stalePaths, {
     label: `box-image-replace:${id}`,
   });
 
+  const changedFields = computeChangedFields(current, updatedPlain, [
+    'image',
+    'imagePath',
+  ]);
+  if (changedFields.length) {
+    const boxRef = toBoxRef(updatedPlain, 'Box');
+    await logEventBestEffort(
+      {
+        event_type: 'box_photo_updated',
+        entity_type: 'box',
+        entity_id: boxRef.id,
+        entity_label: boxRef.label,
+        summary: `Updated photo for box ${quoteLabel(boxRef.label)}`,
+        details: {
+          changed_fields: changedFields,
+        },
+      },
+      { label: `box_photo_updated:${boxRef.id}` }
+    );
+  }
+
   return updated;
 }
 
 async function clearBoxImage(id) {
-  return Box.findByIdAndUpdate(
+  const current = await Box.findById(id)
+    .select('_id box_id label image imagePath')
+    .lean();
+  if (!current) return null;
+
+  const updated = await Box.findByIdAndUpdate(
     id,
     {
       image: buildEmptyImageMetadata(),
@@ -504,6 +746,31 @@ async function clearBoxImage(id) {
     },
     { new: true, runValidators: true }
   );
+  if (!updated) return null;
+
+  const updatedPlain = toPlain(updated);
+  const changedFields = computeChangedFields(current, updatedPlain, [
+    'image',
+    'imagePath',
+  ]);
+  if (changedFields.length) {
+    const boxRef = toBoxRef(updatedPlain, 'Box');
+    await logEventBestEffort(
+      {
+        event_type: 'box_photo_updated',
+        entity_type: 'box',
+        entity_id: boxRef.id,
+        entity_label: boxRef.label,
+        summary: `Updated photo for box ${quoteLabel(boxRef.label)}`,
+        details: {
+          changed_fields: changedFields,
+        },
+      },
+      { label: `box_photo_updated:${boxRef.id}` }
+    );
+  }
+
+  return updated;
 }
 
 async function collectDescendantBoxIds(rootBoxId) {
@@ -529,12 +796,15 @@ async function collectDescendantBoxIds(rootBoxId) {
 // Orphans direct items, releases all descendants to floor, then removes the box.
 async function deleteBoxById(id, { orphanItems = true } = {}) {
   // Ensure the box exists
-  const box = await Box.findById(id).select('_id items image imagePath').lean();
+  const box = await Box.findById(id)
+    .select('_id box_id label parentBox items image imagePath')
+    .lean();
   if (!box) {
     const err = new Error('Box not found');
     err.status = 404;
     throw err;
   }
+  const boxRef = toBoxRef(box, 'Box');
 
   const ownImagePaths = collectImageStoragePaths(box);
 
@@ -547,15 +817,66 @@ async function deleteBoxById(id, { orphanItems = true } = {}) {
 
   // Release all descendants to floor level so no box references a deleted parent chain.
   const descendantIds = await collectDescendantBoxIds(box._id);
+  let descendants = [];
   if (descendantIds.length) {
+    descendants = await Box.find({ _id: { $in: descendantIds } })
+      .select('_id box_id label parentBox')
+      .lean();
+
     await Box.updateMany(
       { _id: { $in: descendantIds } },
       { $set: { parentBox: null } },
     );
+
+    const parentMap = new Map([[String(box._id), box]]);
+    descendants.forEach((entry) => parentMap.set(String(entry._id), entry));
+
+    for (const child of descendants) {
+      const childRef = toBoxRef(child, 'Box');
+      const fromParentId = toIdString(child.parentBox);
+      const fromParentRef = fromParentId
+        ? toBoxRef(parentMap.get(fromParentId) || { _id: fromParentId }, 'Box')
+        : { id: null, label: FLOOR_LABEL, box_id: null };
+
+      await logEventBestEffort(
+        {
+          event_type: 'box_unnested',
+          entity_type: 'box',
+          entity_id: childRef.id,
+          entity_label: childRef.label,
+          summary: `Unnested box ${quoteLabel(childRef.label)} to ${FLOOR_LABEL}`,
+          details: {
+            from_box_id: fromParentRef.id,
+            from_box_label: fromParentRef.label,
+            to_box_id: null,
+            to_box_label: FLOOR_LABEL,
+            reason: 'ancestor_box_destroyed',
+            destroyed_box_id: boxRef.id,
+            destroyed_box_label: boxRef.label,
+          },
+        },
+        { label: `box_unnested:${childRef.id}` }
+      );
+    }
   }
 
   // Delete the box itself
   await Box.deleteOne({ _id: box._id });
+
+  await logEventBestEffort(
+    {
+      event_type: 'box_destroyed',
+      entity_type: 'box',
+      entity_id: boxRef.id,
+      entity_label: boxRef.label,
+      summary: `Destroyed box ${quoteLabel(boxRef.label)}`,
+      details: {
+        orphaned_item_count: Array.isArray(box.items) ? box.items.length : 0,
+        released_descendant_count: descendantIds.length,
+      },
+    },
+    { label: `box_destroyed:${boxRef.id}` }
+  );
 
   // Cleanup only the deleted box's own media files.
   await safeDeleteMediaFiles(ownImagePaths, {
@@ -605,18 +926,48 @@ async function releaseChildrenToFloor(boxId) {
   }
 
   // Ensure parent exists (optional but nice UX)
-  const parentExists = await Box.existsById(boxId);
-  if (!parentExists) {
+  const parent = await Box.findById(boxId).select('_id box_id label').lean();
+  if (!parent) {
     const err = new Error('Box not found');
     err.status = 404;
     err.code = 'BOX_NOT_FOUND';
     throw err;
   }
 
+  const children = await Box.find({ parentBox: boxId })
+    .select('_id box_id label parentBox')
+    .lean();
+
   // Perform the one-level flatten (direct children only)
   const result = await Box.releaseChildrenToFloor(boxId);
 
   const modifiedCount = result.modifiedCount ?? result.nModified ?? 0;
+
+  if (modifiedCount > 0 && children.length) {
+    const parentRef = toBoxRef(parent, 'Box');
+
+    for (const child of children) {
+      const childRef = toBoxRef(child, 'Box');
+      await logEventBestEffort(
+        {
+          event_type: 'box_unnested',
+          entity_type: 'box',
+          entity_id: childRef.id,
+          entity_label: childRef.label,
+          summary: `Unnested box ${quoteLabel(childRef.label)} to ${FLOOR_LABEL}`,
+          details: {
+            from_box_id: parentRef.id,
+            from_box_label: parentRef.label,
+            to_box_id: null,
+            to_box_label: FLOOR_LABEL,
+            reason: 'release_children_to_floor',
+          },
+        },
+        { label: `box_unnested:${childRef.id}` }
+      );
+    }
+  }
+
   return { modifiedCount };
 }
 
@@ -624,6 +975,7 @@ module.exports = {
   getBoxDataStructure,
   getBoxByMongoId,
   getBoxByShortId,
+  resolveBoxByShortId,
   getBoxesByParent,
   createBox,
   updateBox,

@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import BoxControlBar from './BoxControlBar';
 import NestBoxSection from './NestBoxSection';
 import EditBoxDetailsForm from './EditBoxDetailsForm';
+import ExportBoxPanel from './BoxActionPanel/ExportBoxPanel';
 import DestroyBoxSection from './DestroyBoxSection';
 import MiniOrphanedList from './MiniOrphanedList';
 import AddItemToThisBoxForm from './AddItemToThisBoxForm';
@@ -206,6 +207,11 @@ export default function BoxActionPanel({
     togglePanel('edit');
   };
 
+  const handleExportClick = () => {
+    if (isDestroyConfirmMode) resetDestroyConfirmState();
+    togglePanel('export');
+  };
+
   const refreshAfterNestMutation = useCallback(async () => {
     try {
       await refreshBox?.();
@@ -372,6 +378,7 @@ export default function BoxActionPanel({
         onClickEmpty={handleEmptyTabClick}
         onClickNest={handleNestClick}
         onClickEdit={handleEditClick}
+        onClickExport={handleExportClick}
         onClickDestroy={handleEnterDestroyConfirm}
         busy={isDestroyBusy}
       />
@@ -401,6 +408,16 @@ export default function BoxActionPanel({
               setActivePanel(null);
               refreshBox?.();
             }}
+          />
+        )}
+      </DetailsPanel>
+
+      <DetailsPanel $open={!isDestroyConfirmMode && activePanel === 'export'} $maxHeight={220}>
+        {!isDestroyConfirmMode && activePanel === 'export' && (
+          <ExportBoxPanel
+            boxShortId={routeShortId}
+            boxMongoId={boxMongoId}
+            onClose={() => setActivePanel(null)}
           />
         )}
       </DetailsPanel>

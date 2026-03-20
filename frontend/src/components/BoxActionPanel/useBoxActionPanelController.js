@@ -2,7 +2,7 @@ import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ToastContext } from '../Toast';
 
-const VALID_PANELS = new Set(['empty', 'nest', 'edit', 'destroy']);
+const VALID_PANELS = new Set(['empty', 'nest', 'edit', 'export', 'destroy']);
 const normalizePanelState = (value) => (VALID_PANELS.has(value) ? value : null);
 
 export default function useBoxActionPanelController({

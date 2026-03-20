@@ -3,6 +3,7 @@ import * as S from '../styles/InventoryGridHeader.styles';
 import { ITEM_CATEGORIES, formatItemCategory } from '../util/itemCategories';
 import BoxCreate from './BoxCreate';
 import IntakeQuickItemMaker from './Intake/IntakeQuickItemMaker';
+import BoxLocatorControl from './BoxLocatorControl';
 
 const SORT_OPTIONS = [
   { value: 'boxId', label: 'Box ID' },
@@ -26,6 +27,10 @@ export default function InventoryGridHeader({
   orphanedCount = 0,
   searchQuery = '',
   onSearchChange,
+  boxLocatorQuery = '',
+  onBoxLocatorQueryChange,
+  boxLocatorMatches = [],
+  onBoxLocatorSelect,
   sortBy = 'boxId',
   onSortChange,
   filterBy = 'all',
@@ -85,10 +90,17 @@ export default function InventoryGridHeader({
             type="search"
             value={searchQuery}
             onChange={(e) => onSearchChange?.(e.target.value)}
-            placeholder="Search inventory..."
+            placeholder="Search labels, notes, tags..."
             aria-label="Search inventory"
           />
         </S.ControlGroup>
+
+        <BoxLocatorControl
+          query={boxLocatorQuery}
+          onQueryChange={onBoxLocatorQueryChange}
+          matches={boxLocatorMatches}
+          onSelect={onBoxLocatorSelect}
+        />
 
         <S.ControlGroup $tone="#E8B15C">
           <S.ControlLabel>Sort</S.ControlLabel>
