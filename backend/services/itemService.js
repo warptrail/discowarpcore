@@ -336,6 +336,76 @@ async function getOrphanedItemsPage({
   };
 }
 
+function summarizeRandomItem(item) {
+  if (!item) return null;
+
+  const itemId = toIdString(item._id || item.id);
+  if (!itemId) return null;
+
+  const breadcrumb = Array.isArray(item.breadcrumb) ? item.breadcrumb : [];
+  const breadcrumbSummary = breadcrumb
+    .map((node) => ({
+      _id: toIdString(node?._id || node?.id),
+      box_id: node?.box_id || null,
+      label: String(node?.label || '').trim(),
+    }))
+    .filter((node) => node.label);
+
+  const box = item.box
+    ? {
+        _id: toIdString(item.box._id || item.box.id),
+        box_id: item.box.box_id || null,
+        label: String(item.box.label || '').trim() || 'Box',
+      }
+    : null;
+
+  const locationLabel =
+    breadcrumbSummary.length > 0
+      ? breadcrumbSummary.map((node) => node.label).join(' > ')
+      : box?.label || ORPHANED_LABEL;
+
+  return {
+    _id: itemId,
+    name: String(item.name || '').trim() || 'Unnamed item',
+    item_status: String(item.item_status || 'active').trim().toLowerCase() || 'active',
+    locationLabel,
+    box,
+    breadcrumb: breadcrumbSummary,
+    image: {
+      thumbUrl:
+        item?.image?.thumb?.url ||
+        item?.image?.display?.url ||
+        item?.image?.original?.url ||
+        item?.imagePath ||
+        '',
+    },
+  };
+}
+
+async function getRandomActiveItem() {
+  const filter = { ...ACTIVE_ITEM_FILTER };
+
+  const total = await Item.countDocuments(filter);
+  if (total <= 0) return null;
+
+  // Retry a few times in case a selected row disappears between queries.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const offset = Math.floor(Math.random() * total);
+    const randomRow = await Item.findOne(filter)
+      .sort({ _id: 1 })
+      .skip(offset)
+      .select('_id')
+      .lean();
+    if (!randomRow?._id) continue;
+
+    const item = await getItemById(randomRow._id);
+    const summary = summarizeRandomItem(item);
+    if (summary) return summary;
+  }
+
+  return null;
+}
+
 /**
  * CRUD operations
  */
@@ -1254,6 +1324,7 @@ module.exports = {
   getItemsPage,
   toItemStatusScope,
   getItemById,
+  getRandomActiveItem,
   getOrphanedItems,
   getOrphanedItemsPage,
   createItem,

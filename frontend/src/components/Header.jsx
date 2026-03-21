@@ -1,8 +1,9 @@
 import { useContext, useEffect, useState } from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { Link, useLocation } from 'react-router-dom';
 import Toast from './Toast/Toast';
 import { ToastContext } from './Toast';
+import useRandomItemFlow from '../hooks/useRandomItemFlow';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_CONTROL_MIN_HEIGHT,
@@ -180,7 +181,7 @@ const NavRow = styled.nav`
   }
 `;
 
-const NavButton = styled(Link)`
+const navControlStyles = css`
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
@@ -229,6 +230,16 @@ const NavButton = styled(Link)`
   }
 `;
 
+const NavButton = styled(Link)`
+  ${navControlStyles}
+`;
+
+const NavActionButton = styled.button`
+  ${navControlStyles}
+  appearance: none;
+  cursor: pointer;
+`;
+
 const Divider = styled.div`
   height: 1px;
   background: linear-gradient(
@@ -255,6 +266,8 @@ export default function Header() {
   const toastCtx = useContext(ToastContext);
   const toast = toastCtx?.toast ?? null;
   const hideToast = toastCtx?.hideToast;
+  const { runRandomItem } = useRandomItemFlow();
+  const shouldRenderToastRow = !isRetrievalRoute || !!toast;
 
   const handleToastClose = () => {
     if (typeof toast?.onClose === 'function') {
@@ -302,12 +315,15 @@ export default function Header() {
           <NavButton to="/import">📥 Import</NavButton>
           <NavButton to="/all-items">🧾 All Items</NavButton>
           <NavButton to="/logs">🛰️ Logs</NavButton>
+          <NavActionButton type="button" onClick={runRandomItem}>
+            🎲 Random
+          </NavActionButton>
         </NavRow>
       </Inner>
 
       <Divider />
 
-      {!isRetrievalRoute ? (
+      {shouldRenderToastRow ? (
         <ToastRow>
           <Toast
             open={!!toast}
@@ -317,7 +333,7 @@ export default function Header() {
             variant={toast?.variant ?? 'info'}
             actions={toast?.actions ?? []}
             onClose={toast ? handleToastClose : undefined}
-            showIdle
+            showIdle={!isRetrievalRoute}
             idleIcon="📦"
             idleText="Console ready. Awaiting orders…"
           />

@@ -6,6 +6,7 @@ const { uploadSingleItemImage } = require('../middleware/itemImageUpload');
 const {
   getAllItemsApi,
   getItemByIdApi,
+  getRandomItemApi,
   getOrphanedItemsApi,
   postItem,
   postBulkCreateItemsApi,
@@ -20,6 +21,7 @@ const {
 
 router.get('/', getAllItemsApi);
 router.get('/orphaned', getOrphanedItemsApi);
+router.get('/random', getRandomItemApi);
 router.post('/bulk-create', postBulkCreateItemsApi);
 router.patch('/:id/mark-gone', validateObjectIdParam('id'), markItemGoneApi);
 router.patch('/:id/restore-active', validateObjectIdParam('id'), restoreItemToActiveApi);

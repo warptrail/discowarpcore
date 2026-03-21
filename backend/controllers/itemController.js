@@ -4,6 +4,7 @@ const {
   getItemsPage,
   toItemStatusScope,
   getItemById,
+  getRandomActiveItem,
   getOrphanedItems,
   getOrphanedItemsPage,
   createItem,
@@ -93,6 +94,28 @@ async function getItemByIdApi(req, res) {
   } catch (err) {
     console.error('❌ getItemByIdApi:', err);
     return res.status(400).json({ ok: false, error: 'Bad request' });
+  }
+}
+
+async function getRandomItemApi(req, res) {
+  try {
+    const item = await getRandomActiveItem();
+
+    if (!item) {
+      return res.status(404).json({
+        ok: false,
+        code: 'NO_ACTIVE_ITEMS',
+        error: 'No active items available for random selection',
+      });
+    }
+
+    return res.status(200).json({ ok: true, data: item });
+  } catch (err) {
+    console.error('❌ Error selecting random item:', err);
+    return res.status(500).json({
+      ok: false,
+      error: 'Failed to select random item',
+    });
   }
 }
 
@@ -312,6 +335,7 @@ async function backfillOrphanedTimestampsApi(req, res) {
 module.exports = {
   getAllItemsApi,
   getItemByIdApi,
+  getRandomItemApi,
   getOrphanedItemsApi,
   postItem,
   postBulkCreateItemsApi,
