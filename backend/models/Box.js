@@ -59,7 +59,9 @@ boxSchema.statics.newId = function () {
 
 // 🔎 New helper: fetch slim set for breadcrumb maps
 boxSchema.statics.findAllBoxesForMaps = async function () {
-  return this.find().select('_id box_id label description parentBox').lean();
+  return this.find()
+    .select('_id box_id label description parentBox location locationId')
+    .lean();
 };
 
 // ✅ Validate Mongo ObjectId without importing mongoose in services

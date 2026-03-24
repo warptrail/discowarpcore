@@ -13,6 +13,7 @@ export default function ItemsFlatList({
   pulsing,
   onTogglePulse,
   collapseDurMs,
+  refreshBox,
 }) {
   const list = Array.isArray(items) ? items : [];
   return (
@@ -37,10 +38,12 @@ export default function ItemsFlatList({
               item={it}
               isOpen={isOpen}
               onOpen={() => onOpenItem?.(id)}
+              showFlatBoxContext
               accent={accent}
               pulsing={isPulsing}
               onTogglePulse={() => onTogglePulse?.(it._id)}
               collapseDurMs={collapseDurMs}
+              refreshBox={refreshBox}
             />
           );
         })}

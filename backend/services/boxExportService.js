@@ -6,7 +6,7 @@ const ACTIVE_ITEM_FILTER = { item_status: { $ne: 'gone' } };
 const EXPORT_FORMAT = 'discowarpcore.box-export.v1';
 const DEFAULT_BOX_LABEL = 'Box';
 const DEFAULT_SHORT_ID = '000';
-const DEFAULT_FRONTEND_BASE_ORIGIN = 'http://localhost:5173';
+const DEFAULT_FRONTEND_BASE_ORIGIN = '';
 const BOX_EXPORT_CSV_COLUMNS = [
   'box_id',
   'box_label',

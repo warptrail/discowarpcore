@@ -16,6 +16,11 @@ const {
   normalizeDisposition,
 } = require('../utils/itemDisposition');
 const {
+  KEEP_PRIORITY_VALUES,
+  isValidKeepPriority,
+  normalizeKeepPriorityValue,
+} = require('../utils/keepPriority');
+const {
   ORPHANED_LABEL,
   computeChangedFields,
   formatBoxLabel,
@@ -697,7 +702,7 @@ async function markItemGone(id, payload = {}) {
   );
   if (!disposition) {
     const err = new Error(
-      'A valid disposition is required: lost, stolen, trashed, recycled, gifted, or donated.'
+      'A valid disposition is required: consumed, lost, stolen, trashed, recycled, gifted, or donated.'
     );
     err.status = 400;
     throw err;
@@ -1139,12 +1144,19 @@ function normalizeStringField(data, field) {
 
 function normalizeKeepPriority(data) {
   if (!('keepPriority' in data)) return;
-  if (data.keepPriority == null || data.keepPriority === '') {
+  const normalized = normalizeKeepPriorityValue(data.keepPriority);
+  if (!normalized) {
     data.keepPriority = null;
     return;
   }
-  const mapped = String(data.keepPriority).trim().toLowerCase();
-  data.keepPriority = mapped === 'normal' ? 'medium' : mapped;
+  if (!isValidKeepPriority(normalized)) {
+    const err = new Error(
+      `keepPriority must be one of: unspecified, ${KEEP_PRIORITY_VALUES.join(', ')}`
+    );
+    err.status = 400;
+    throw err;
+  }
+  data.keepPriority = normalized;
 }
 
 function normalizeItemCategoryField(data) {

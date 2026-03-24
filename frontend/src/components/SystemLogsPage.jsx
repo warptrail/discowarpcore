@@ -7,6 +7,77 @@ const TIMESTAMP_FORMATTER = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
   timeStyle: 'short',
 });
+const EXPORT_PAGE_LIMIT = 100;
+
+function formatFileTimestamp(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+  ].join('') + `-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+}
+
+function triggerFileDownload(filename, text, mimeType) {
+  const blob = new Blob([text], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+function sanitizeExportEntry(entry) {
+  return {
+    id: entry.id,
+    created_at: entry.created_at || null,
+    event_type: entry.event_type || '',
+    entity_type: entry.entity_type || '',
+    entity_id: entry.entity_id || '',
+    entity_label: entry.entity_label || '',
+    summary: entry.summary || '',
+    details: entry.details || {},
+  };
+}
+
+function toMarkdownExport(entries = []) {
+  const lines = [];
+  lines.push('# System Logs Export');
+  lines.push('');
+  lines.push(`Exported at: ${new Date().toISOString()}`);
+  lines.push(`Total entries: ${entries.length}`);
+  lines.push('');
+
+  for (const entry of entries) {
+    lines.push(`## ${entry.summary || 'Log Entry'}`);
+    lines.push(`- Created at: ${entry.created_at || 'Unknown time'}`);
+    lines.push(`- Event type: ${entry.event_type || ''}`);
+    lines.push(`- Entity type: ${entry.entity_type || ''}`);
+    lines.push(`- Entity id: ${entry.entity_id || ''}`);
+    lines.push(`- Entity label: ${entry.entity_label || ''}`);
+
+    const details =
+      entry.details && typeof entry.details === 'object' && !Array.isArray(entry.details)
+        ? entry.details
+        : null;
+
+    if (details && Object.keys(details).length) {
+      lines.push('- Details:');
+      lines.push('```json');
+      lines.push(JSON.stringify(details, null, 2));
+      lines.push('```');
+    } else {
+      lines.push('- Details: {}');
+    }
+
+    lines.push('');
+  }
+
+  return `${lines.join('\n').trim()}\n`;
+}
 
 function normalizeLogEntry(raw) {
   if (!raw || typeof raw !== 'object') return null;
@@ -124,7 +195,33 @@ function buildMetaChips(entry, importedContext) {
   ];
 }
 
-function buildPrimaryParts(entry, importedContext) {
+function getBoxPrimaryChipParts(entry, boxShortIdMap) {
+  const rawLabel = String(entry?.entity_label || '').trim();
+  const canonicalBoxId =
+    resolveBoxShortId(entry?.entity_id, boxShortIdMap) ||
+    resolveBoxShortId(entry?.details?.box_id, boxShortIdMap);
+
+  let boxId = canonicalBoxId;
+  let boxLabel = rawLabel;
+
+  const trailingIdMatch = rawLabel.match(/\s+(\d{3,})$/);
+  if (trailingIdMatch) {
+    const [, parsedId] = trailingIdMatch;
+    boxId = boxId || parsedId;
+    boxLabel = rawLabel.slice(0, trailingIdMatch.index).trim();
+  }
+
+  if (!boxLabel && rawLabel) boxLabel = rawLabel;
+  if (!boxLabel && boxId) boxLabel = 'Box';
+  if (!boxLabel && !boxId) boxLabel = 'Box';
+
+  return {
+    boxId,
+    boxLabel,
+  };
+}
+
+function buildPrimaryParts(entry, importedContext, boxShortIdMap) {
   const label = String(entry?.entity_label || '').trim();
 
   if (entry?.event_type === 'item_created') {
@@ -143,10 +240,15 @@ function buildPrimaryParts(entry, importedContext) {
   }
 
   if (entry?.event_type === 'box_created') {
+    const { boxId, boxLabel } = getBoxPrimaryChipParts(entry, boxShortIdMap);
+    const chips = [];
+
+    if (boxId) chips.push({ kind: 'boxId', label: boxId });
+    if (boxLabel) chips.push({ kind: 'boxLabel', label: boxLabel });
+
     return {
       prefix: 'Created box:',
-      chipLabel: label,
-      chipTone: 'boxName',
+      chips,
     };
   }
 
@@ -260,6 +362,8 @@ export default function LogsPage() {
   const [total, setTotal] = useState(0);
   const [nextOffset, setNextOffset] = useState(0);
   const [boxShortIdMap, setBoxShortIdMap] = useState(() => new Map());
+  const [exportingFormat, setExportingFormat] = useState('');
+  const [exportError, setExportError] = useState('');
 
   const initialRequestRef = useRef(null);
   const loadMoreRequestRef = useRef(null);
@@ -379,6 +483,90 @@ export default function LogsPage() {
     fetchPage({ offset: nextOffset, append: true });
   }, [fetchPage, hasMore, loading, loadingMore, nextOffset]);
 
+  const fetchAllLogsForExport = useCallback(async () => {
+    const collected = [];
+    const seen = new Set();
+    let offset = 0;
+    let hasMorePages = true;
+    let lastTotal = 0;
+
+    while (hasMorePages) {
+      const payload = await fetchLogsPage({
+        limit: EXPORT_PAGE_LIMIT,
+        offset,
+      });
+      const pageEntries = Array.isArray(payload?.entries)
+        ? payload.entries.map(normalizeLogEntry).filter(Boolean)
+        : [];
+
+      for (const entry of pageEntries) {
+        if (!entry?.id || seen.has(entry.id)) continue;
+        seen.add(entry.id);
+        collected.push(entry);
+      }
+
+      lastTotal = Number(payload?.total) || lastTotal;
+      hasMorePages = Boolean(payload?.hasMore);
+
+      if (!pageEntries.length) break;
+      offset += pageEntries.length;
+    }
+
+    return {
+      entries: collected,
+      total: lastTotal || collected.length,
+    };
+  }, []);
+
+  const runExport = useCallback(
+    async (format) => {
+      if (exportingFormat) return;
+      setExportError('');
+      setExportingFormat(format);
+
+      try {
+        const result = await fetchAllLogsForExport();
+        const serialized = result.entries.map(sanitizeExportEntry);
+        const timestamp = formatFileTimestamp(new Date());
+
+        if (format === 'json') {
+          const payload = {
+            exported_at: new Date().toISOString(),
+            total: result.total,
+            entries: serialized,
+          };
+          triggerFileDownload(
+            `system-logs-${timestamp}.json`,
+            `${JSON.stringify(payload, null, 2)}\n`,
+            'application/json'
+          );
+          return;
+        }
+
+        if (format === 'markdown') {
+          triggerFileDownload(
+            `system-logs-${timestamp}.md`,
+            toMarkdownExport(serialized),
+            'text/markdown'
+          );
+        }
+      } catch (err) {
+        setExportError(err?.message || 'Failed to export logs');
+      } finally {
+        setExportingFormat('');
+      }
+    },
+    [exportingFormat, fetchAllLogsForExport]
+  );
+
+  const handleExportJson = useCallback(() => {
+    runExport('json');
+  }, [runExport]);
+
+  const handleExportMarkdown = useCallback(() => {
+    runExport('markdown');
+  }, [runExport]);
+
   const renderedEntries = useMemo(
     () => {
       const inferredImportMap = buildInferredBulkImportMap(entries);
@@ -387,7 +575,7 @@ export default function LogsPage() {
         const bulkSecondary = getBulkSecondaryText(entry);
         const importedContext = getBulkImportedItemContext(entry, inferredImportMap);
         const chips = buildMetaChips(entry, importedContext);
-        const primaryParts = buildPrimaryParts(entry, importedContext);
+        const primaryParts = buildPrimaryParts(entry, importedContext, boxShortIdMap);
 
         return (
           <S.EntryRow key={entry.id}>
@@ -395,7 +583,29 @@ export default function LogsPage() {
               {primaryParts ? (
                 <S.EntryPrimaryStructured>
                   {primaryParts.prefix ? <S.EntryPrefix>{primaryParts.prefix}</S.EntryPrefix> : null}
-                  {href ? (
+                  {primaryParts.chips?.length ? (
+                    href ? (
+                      <S.BoxChipLink to={href}>
+                        {primaryParts.chips.map((chip) =>
+                          chip.kind === 'boxId' ? (
+                            <S.BoxIdChip key={`${entry.id}-${chip.kind}`}>{chip.label}</S.BoxIdChip>
+                          ) : (
+                            <S.BoxLabelChip key={`${entry.id}-${chip.kind}`}>{chip.label}</S.BoxLabelChip>
+                          )
+                        )}
+                      </S.BoxChipLink>
+                    ) : (
+                      <S.BoxChipGroup>
+                        {primaryParts.chips.map((chip) =>
+                          chip.kind === 'boxId' ? (
+                            <S.BoxIdChip key={`${entry.id}-${chip.kind}`}>{chip.label}</S.BoxIdChip>
+                          ) : (
+                            <S.BoxLabelChip key={`${entry.id}-${chip.kind}`}>{chip.label}</S.BoxLabelChip>
+                          )
+                        )}
+                      </S.BoxChipGroup>
+                    )
+                  ) : href ? (
                     <S.NameChipLink to={href} $tone={primaryParts.chipTone}>
                       {primaryParts.chipLabel}
                     </S.NameChipLink>
@@ -444,8 +654,25 @@ export default function LogsPage() {
             </S.TitleRow>
             <S.Subtitle>Newest first • append-only activity console</S.Subtitle>
           </S.HeadingGroup>
-          <S.CountPill>{total}</S.CountPill>
+          <S.HeaderActions>
+            <S.CountPill>{total}</S.CountPill>
+            <S.ExportButton
+              type="button"
+              onClick={handleExportJson}
+              disabled={Boolean(exportingFormat)}
+            >
+              {exportingFormat === 'json' ? 'Exporting JSON…' : 'Export JSON'}
+            </S.ExportButton>
+            <S.ExportButton
+              type="button"
+              onClick={handleExportMarkdown}
+              disabled={Boolean(exportingFormat)}
+            >
+              {exportingFormat === 'markdown' ? 'Exporting Markdown…' : 'Export Markdown'}
+            </S.ExportButton>
+          </S.HeaderActions>
         </S.HeadingRow>
+        {exportError ? <S.ExportError role="alert">{exportError}</S.ExportError> : null}
       </S.IntroPanel>
 
       {loading ? <S.StatePanel>Loading activity…</S.StatePanel> : null}

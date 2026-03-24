@@ -62,10 +62,27 @@ export default function BoxActionItemList({
     setMovingItemId((curr) => (curr === itemId ? null : itemId));
   };
 
-  const handleMoveToSelectedBox = (item, { destBoxId, destLabel, destShortId }) => {
+  const handleMoveToSelectedBox = (
+    item,
+    {
+      destBoxId,
+      destLabel,
+      destShortId,
+      isOrphanedDestination = false,
+    }
+  ) => {
     if (isBusy || !item) return;
     const itemId = getItemId(item);
     if (!itemId) return;
+
+    if (isOrphanedDestination) {
+      setMovingItemId(null);
+      handleOrphanRequest({
+        boxMongoId,
+        itemId,
+      });
+      return;
+    }
 
     setMovingItemId(null);
     handleMoveRequest({
@@ -153,6 +170,7 @@ export default function BoxActionItemList({
                   </WorkspaceHeader>
 
                   <MoveItemToOtherBox
+                    itemId={id}
                     currentBoxId={boxMongoId}
                     onBoxSelected={(payload) =>
                       handleMoveToSelectedBox(item, payload)

@@ -122,6 +122,9 @@ export default function BoxMetaPanel({
 }) {
   const shortId = String(box?.box_id ?? box?.shortId ?? '');
   const title = box?.label ?? box?.name ?? 'Box';
+  const location = String(
+    box?.location ?? box?.locationName ?? box?.locationId?.name ?? ''
+  ).trim();
   const children = kidsOf(box);
   const boxImageUrl =
     box?.image?.display?.url ||
@@ -229,7 +232,15 @@ export default function BoxMetaPanel({
           title={`${title}${shortId ? ` (${shortId})` : ''}`}
         >
           <S.CurrentBoxId>{pad3(currentCrumb?.id)}</S.CurrentBoxId>
-          <S.CurrentBoxTitle>{currentCrumb?.label ?? title}</S.CurrentBoxTitle>
+          <S.CurrentBoxMain>
+            <S.CurrentBoxTitle>{currentCrumb?.label ?? title}</S.CurrentBoxTitle>
+            <S.CurrentBoxLocationChip $empty={!location}>
+              <S.CurrentBoxLocationLabel $empty={!location}>
+                Location
+              </S.CurrentBoxLocationLabel>
+              <S.CurrentBoxLocationValue>{location || 'Unassigned'}</S.CurrentBoxLocationValue>
+            </S.CurrentBoxLocationChip>
+          </S.CurrentBoxMain>
         </S.CurrentBox>
 
         {boxImageUrl ? (

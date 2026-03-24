@@ -33,6 +33,27 @@ const {
   safeDeleteMediaFiles,
 } = require('../utils/mediaCleanup');
 
+function resolveFrontendBaseOrigin(req) {
+  const explicit =
+    String(req?.query?.frontendBaseOrigin || req?.query?.frontendBaseUrl || '').trim();
+  if (explicit) return explicit;
+
+  const originHeader = String(req.get('origin') || '').trim();
+  if (originHeader) return originHeader;
+
+  const forwardedProto = String(req.get('x-forwarded-proto') || '')
+    .split(',')[0]
+    .trim();
+  const forwardedHost = String(req.get('x-forwarded-host') || '')
+    .split(',')[0]
+    .trim();
+  const host = forwardedHost || String(req.get('host') || '').trim();
+  const protocol = forwardedProto || req.protocol;
+
+  if (!host || !protocol) return '';
+  return `${protocol}://${host}`;
+}
+
 async function getBoxDataStructureApi(req, res, next) {
   try {
     const { shortId } = req.params;
@@ -416,7 +437,10 @@ async function getBoxTreeByShortIdApi(req, res) {
 
 async function exportBoxJsonApi(req, res) {
   try {
-    const exportResult = await buildBoxJsonExport(req.params.id);
+    const frontendBaseOrigin = resolveFrontendBaseOrigin(req);
+    const exportResult = await buildBoxJsonExport(req.params.id, {
+      frontendBaseOrigin,
+    });
 
     if (!exportResult) {
       return res.status(404).json({
@@ -448,7 +472,10 @@ async function exportBoxJsonApi(req, res) {
 
 async function exportBoxCsvApi(req, res) {
   try {
-    const exportResult = await buildBoxCsvExport(req.params.id);
+    const frontendBaseOrigin = resolveFrontendBaseOrigin(req);
+    const exportResult = await buildBoxCsvExport(req.params.id, {
+      frontendBaseOrigin,
+    });
 
     if (!exportResult) {
       return res.status(404).json({
@@ -480,7 +507,10 @@ async function exportBoxCsvApi(req, res) {
 
 async function exportBoxHtmlApi(req, res) {
   try {
-    const exportResult = await buildBoxHtmlExport(req.params.id);
+    const frontendBaseOrigin = resolveFrontendBaseOrigin(req);
+    const exportResult = await buildBoxHtmlExport(req.params.id, {
+      frontendBaseOrigin,
+    });
 
     if (!exportResult) {
       return res.status(404).json({
@@ -520,7 +550,10 @@ async function exportBoxHtmlApi(req, res) {
 
 async function exportBoxPdfApi(req, res) {
   try {
-    const exportResult = await buildBoxPdfExport(req.params.id);
+    const frontendBaseOrigin = resolveFrontendBaseOrigin(req);
+    const exportResult = await buildBoxPdfExport(req.params.id, {
+      frontendBaseOrigin,
+    });
 
     if (!exportResult) {
       return res.status(404).json({
@@ -568,7 +601,10 @@ async function exportBoxPdfApi(req, res) {
 
 async function exportBoxQrCodeApi(req, res) {
   try {
-    const exportResult = await buildBoxQrCodeExport(req.params.id);
+    const frontendBaseOrigin = resolveFrontendBaseOrigin(req);
+    const exportResult = await buildBoxQrCodeExport(req.params.id, {
+      frontendBaseOrigin,
+    });
 
     if (!exportResult) {
       return res.status(404).json({
@@ -608,7 +644,10 @@ async function exportBoxQrCodeApi(req, res) {
 
 async function exportBoxLabelHtmlApi(req, res) {
   try {
-    const exportResult = await buildBoxLabelHtmlExport(req.params.id);
+    const frontendBaseOrigin = resolveFrontendBaseOrigin(req);
+    const exportResult = await buildBoxLabelHtmlExport(req.params.id, {
+      frontendBaseOrigin,
+    });
 
     if (!exportResult) {
       return res.status(404).json({

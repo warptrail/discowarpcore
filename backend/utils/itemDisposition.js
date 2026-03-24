@@ -1,6 +1,7 @@
 const ITEM_STATUSES = Object.freeze(['active', 'gone']);
 
 const ITEM_DISPOSITIONS = Object.freeze([
+  'consumed',
   'lost',
   'stolen',
   'trashed',

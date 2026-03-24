@@ -119,7 +119,7 @@ export default function AllItemsDesktopTable({ items = [] }) {
             const itemHref = getItemHref(itemId);
             const { visible, overflow } = getVisibleTags(meta?.tags, 4);
             const owner = meta?.ownerLabel || '';
-            const keepPriority = String(item?.keepPriority || '').trim();
+            const keepPriorityLabel = meta?.keepPriorityLabel || '';
             const itemName = String(item?.name || 'Unnamed item');
 
             return (
@@ -139,12 +139,13 @@ export default function AllItemsDesktopTable({ items = [] }) {
                     <S.NameText>{itemName}</S.NameText>
                   )}
 
-                  {owner || keepPriority ? (
-                    <S.NameMeta>
-                      {owner ? `Owner: ${owner}` : ''}
-                      {owner && keepPriority ? ' // ' : ''}
-                      {keepPriority ? `Keep: ${keepPriority}` : ''}
-                    </S.NameMeta>
+                  {owner ? <S.NameMeta>{`Owner: ${owner}`}</S.NameMeta> : null}
+                  {keepPriorityLabel ? (
+                    <S.KeepPriorityBadge
+                      $tone={meta?.keepPriorityTone}
+                    >
+                      Keep: {keepPriorityLabel}
+                    </S.KeepPriorityBadge>
                   ) : null}
                 </S.TD>
 

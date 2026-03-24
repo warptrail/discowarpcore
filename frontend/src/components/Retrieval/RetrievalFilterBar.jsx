@@ -1,45 +1,43 @@
 import * as S from './Retrieval.styles';
-
-function renderOptions(options) {
-  const safeOptions = Array.isArray(options) ? options : [];
-
-  return safeOptions.map((option) => (
-    <option key={option.key} value={option.key}>
-      {option.label}
-    </option>
-  ));
-}
+import FilterCombobox from './FilterCombobox';
 
 export default function RetrievalFilterBar({
   categoryOptions = [],
   tagOptions = [],
   locationOptions = [],
   ownerOptions = [],
+  keepPriorityOptions = [],
   selectedCategory = '',
   selectedTag = '',
   selectedLocation = '',
   selectedOwner = '',
+  selectedKeepPriority = '',
   onCategoryChange,
   onTagChange,
   onLocationChange,
   onOwnerChange,
+  onKeepPriorityChange,
   onAddCategory,
   onAddTag,
   onAddLocation,
   onAddOwner,
+  onAddKeepPriority,
 }) {
   return (
     <S.FilterGrid>
       <S.FilterControl>
         <S.FilterLabel>Category</S.FilterLabel>
         <S.FilterRow>
-          <S.FilterSelect
-            value={selectedCategory}
-            onChange={(event) => onCategoryChange(event.target.value)}
-          >
-            <option value="">Select category…</option>
-            {renderOptions(categoryOptions)}
-          </S.FilterSelect>
+          <FilterCombobox
+            id="retrieval-filter-category"
+            name="retrieval_filter_category"
+            ariaLabel="Category filter options"
+            placeholder="Select category..."
+            options={categoryOptions}
+            selectedKey={selectedCategory}
+            onSelectedKeyChange={onCategoryChange}
+            emptyMessage="No categories match"
+          />
           <S.AddFilterButton
             type="button"
             onClick={onAddCategory}
@@ -53,13 +51,16 @@ export default function RetrievalFilterBar({
       <S.FilterControl>
         <S.FilterLabel>Tag</S.FilterLabel>
         <S.FilterRow>
-          <S.FilterSelect
-            value={selectedTag}
-            onChange={(event) => onTagChange(event.target.value)}
-          >
-            <option value="">Select tag…</option>
-            {renderOptions(tagOptions)}
-          </S.FilterSelect>
+          <FilterCombobox
+            id="retrieval-filter-tag"
+            name="retrieval_filter_tag"
+            ariaLabel="Tag filter options"
+            placeholder="Select tag..."
+            options={tagOptions}
+            selectedKey={selectedTag}
+            onSelectedKeyChange={onTagChange}
+            emptyMessage="No tags match"
+          />
           <S.AddFilterButton
             type="button"
             onClick={onAddTag}
@@ -73,13 +74,16 @@ export default function RetrievalFilterBar({
       <S.FilterControl>
         <S.FilterLabel>Location</S.FilterLabel>
         <S.FilterRow>
-          <S.FilterSelect
-            value={selectedLocation}
-            onChange={(event) => onLocationChange(event.target.value)}
-          >
-            <option value="">Select location…</option>
-            {renderOptions(locationOptions)}
-          </S.FilterSelect>
+          <FilterCombobox
+            id="retrieval-filter-location"
+            name="retrieval_filter_location"
+            ariaLabel="Location filter options"
+            placeholder="Select location..."
+            options={locationOptions}
+            selectedKey={selectedLocation}
+            onSelectedKeyChange={onLocationChange}
+            emptyMessage="No locations match"
+          />
           <S.AddFilterButton
             type="button"
             onClick={onAddLocation}
@@ -93,17 +97,43 @@ export default function RetrievalFilterBar({
       <S.FilterControl>
         <S.FilterLabel>Primary Owner</S.FilterLabel>
         <S.FilterRow>
-          <S.FilterSelect
-            value={selectedOwner}
-            onChange={(event) => onOwnerChange(event.target.value)}
-          >
-            <option value="">Select owner…</option>
-            {renderOptions(ownerOptions)}
-          </S.FilterSelect>
+          <FilterCombobox
+            id="retrieval-filter-owner"
+            name="retrieval_filter_owner"
+            ariaLabel="Primary owner filter options"
+            placeholder="Select owner..."
+            options={ownerOptions}
+            selectedKey={selectedOwner}
+            onSelectedKeyChange={onOwnerChange}
+            emptyMessage="No owners match"
+          />
           <S.AddFilterButton
             type="button"
             onClick={onAddOwner}
             disabled={!selectedOwner}
+          >
+            Add
+          </S.AddFilterButton>
+        </S.FilterRow>
+      </S.FilterControl>
+
+      <S.FilterControl>
+        <S.FilterLabel>Keep Priority</S.FilterLabel>
+        <S.FilterRow>
+          <FilterCombobox
+            id="retrieval-filter-keep-priority"
+            name="retrieval_filter_keep_priority"
+            ariaLabel="Keep priority filter options"
+            placeholder="Select keep priority..."
+            options={keepPriorityOptions}
+            selectedKey={selectedKeepPriority}
+            onSelectedKeyChange={onKeepPriorityChange}
+            emptyMessage="No keep priorities match"
+          />
+          <S.AddFilterButton
+            type="button"
+            onClick={onAddKeepPriority}
+            disabled={!selectedKeepPriority}
           >
             Add
           </S.AddFilterButton>

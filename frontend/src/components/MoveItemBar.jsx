@@ -13,7 +13,18 @@ function MoveItemBar({
   const [showMovePanel, setShowMovePanel] = useState(false);
   const [moveResult, setMoveResult] = useState(null);
 
-  const handleBoxSelected = ({ destBoxId, destLabel, destShortId }) => {
+  const handleBoxSelected = ({
+    destBoxId,
+    destLabel,
+    destShortId,
+    isOrphanedDestination = false,
+  }) => {
+    if (isOrphanedDestination) {
+      handleOrphan();
+      setShowMovePanel(false);
+      return;
+    }
+
     onMoveRequest({
       itemId,
       itemName: initialItem?.name,

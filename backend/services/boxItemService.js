@@ -54,6 +54,7 @@ async function logItemMovedEvent({
     from_box_label: fromRef.label,
     to_box_id: toRef.id,
     to_box_label: toRef.label,
+    to_state: toRef.id ? 'boxed' : 'orphaned',
     ...(reason ? { reason } : {}),
     ...(extraDetails || {}),
   };

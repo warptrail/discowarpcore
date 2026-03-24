@@ -1,9 +1,11 @@
 import { getItemHomeHref } from '../../api/itemDetails';
 import { formatItemCategory, normalizeItemCategory } from '../../util/itemCategories';
+import { formatKeepPriorityLabel, normalizeKeepPriority } from '../../util/keepPriority';
 import { getItemOwnershipContext } from '../../util/itemOwnership';
 
 const UNKNOWN_LOCATION_LABEL = 'Unknown Location';
 const UNKNOWN_BOX_NAME = 'Unknown Box';
+const ORPHANED_BOX_NAME = 'ORPHANED';
 
 const toTrimmed = (value) => (value == null ? '' : String(value).trim());
 
@@ -154,6 +156,10 @@ function getItemImageUrl(item) {
   );
 }
 
+function isItemOrphaned(item) {
+  return Boolean(item?.orphanedAt || item?.isOrphaned || item?.orphaned);
+}
+
 function getBoxHref(boxNumber) {
   const shortId = firstNonEmpty(boxNumber);
   if (!shortId) return '';
@@ -163,6 +169,7 @@ function getBoxHref(boxNumber) {
 
 function getItemBoxContext(item, boxLookup) {
   const ownership = getItemOwnershipContext(item);
+  const orphaned = isItemOrphaned(item);
 
   const boxMongoId = firstNonEmpty(
     ownership.boxMongoId,
@@ -207,6 +214,7 @@ function getItemBoxContext(item, boxLookup) {
     item?.box?.label,
     item?.box?.name,
     boxNumber ? `Box ${boxNumber}` : '',
+    orphaned ? ORPHANED_BOX_NAME : '',
     UNKNOWN_BOX_NAME,
   );
 
@@ -256,6 +264,9 @@ export function buildRetrievalItems(rawItems, rawTree) {
     const notes = firstNonEmpty(item?.notes, item?.maintenanceNotes);
     const categoryKey = normalizeItemCategory(item?.category);
     const categoryLabel = formatItemCategory(categoryKey);
+    const keepPriority = normalizeKeepPriority(item?.keepPriority);
+    const keepPriorityLabel = formatKeepPriorityLabel(keepPriority);
+    const keepPriorityKey = normalizeFacetKey(keepPriority);
     const tags = uniqueTrimmedValues(item?.tags);
     const tagKeys = tags.map((tag) => normalizeFacetKey(tag));
 
@@ -265,6 +276,8 @@ export function buildRetrievalItems(rawItems, rawTree) {
       name,
       description,
       notes,
+      keepPriority,
+      keepPriorityLabel,
       categoryLabel,
       item?.category,
       tags.join(' '),
@@ -283,6 +296,9 @@ export function buildRetrievalItems(rawItems, rawTree) {
       notes,
       categoryKey,
       categoryLabel,
+      keepPriority,
+      keepPriorityLabel,
+      keepPriorityKey,
       tags,
       tagKeys,
       boxId: context.boxMongoId,
@@ -344,6 +360,7 @@ export function collectRetrievalFilterOptions(items) {
   const categoryLabelByKey = new Map();
   const tagLabelByKey = new Map();
   const locationLabelByKey = new Map();
+  const keepPriorityLabelByKey = new Map();
 
   for (const item of safeItems) {
     if (item.categoryKey) {
@@ -360,6 +377,10 @@ export function collectRetrievalFilterOptions(items) {
       );
     }
 
+    if (item.keepPriorityKey) {
+      keepPriorityLabelByKey.set(item.keepPriorityKey, item.keepPriorityLabel);
+    }
+
     const tags = Array.isArray(item.tags) ? item.tags : [];
     for (const tag of tags) {
       const key = normalizeFacetKey(tag);
@@ -374,9 +395,11 @@ export function collectRetrievalFilterOptions(items) {
     categories: mapToSortedOptions(categoryLabelByKey),
     tags: mapToSortedOptions(tagLabelByKey),
     locations: mapToSortedOptions(locationLabelByKey),
+    keepPriorities: mapToSortedOptions(keepPriorityLabelByKey),
     categoryLabelByKey,
     tagLabelByKey,
     locationLabelByKey,
+    keepPriorityLabelByKey,
   };
 }
 
@@ -400,6 +423,7 @@ export function filterRetrievalItems(items, { query, filters }) {
   const categoryFilters = normalizeFilterList(filters?.categories);
   const tagFilters = normalizeFilterList(filters?.tags);
   const locationFilters = normalizeFilterList(filters?.locations);
+  const keepPriorityFilters = normalizeFilterList(filters?.keepPriorities);
 
   return safeItems.filter((item) => {
     if (normalizedQuery && !String(item.searchText || '').includes(normalizedQuery)) {
@@ -420,6 +444,10 @@ export function filterRetrievalItems(items, { query, filters }) {
       if (!hasTag) return false;
     }
 
+    if (keepPriorityFilters.length && !keepPriorityFilters.includes(item.keepPriorityKey)) {
+      return false;
+    }
+
     return true;
   });
 }
@@ -431,6 +459,7 @@ export function buildActiveFilterChips(filters, options) {
   const tags = normalizeFilterList(filters?.tags);
   const locations = normalizeFilterList(filters?.locations);
   const owners = normalizeFilterList(filters?.owners);
+  const keepPriorities = normalizeFilterList(filters?.keepPriorities);
 
   for (const key of categories) {
     const label = options?.categoryLabelByKey?.get(key) || key;
@@ -450,6 +479,11 @@ export function buildActiveFilterChips(filters, options) {
   for (const key of owners) {
     const label = options?.ownerLabelByKey?.get(key) || key;
     chips.push({ type: 'owners', key, label: `Owner: ${label}` });
+  }
+
+  for (const key of keepPriorities) {
+    const label = options?.keepPriorityLabelByKey?.get(key) || key;
+    chips.push({ type: 'keepPriorities', key, label: `Keep: ${label}` });
   }
 
   return chips;
@@ -472,21 +506,27 @@ export function normalizeRetrievalFilterOptions(rawFilters) {
   const tags = normalizeOptionRows(rawFilters?.tags);
   const locations = normalizeOptionRows(rawFilters?.locations);
   const owners = normalizeOptionRows(rawFilters?.owners);
+  const keepPriorities = normalizeOptionRows(rawFilters?.keepPriorities);
 
   const categoryLabelByKey = new Map(categories.map((option) => [option.key, option.label]));
   const tagLabelByKey = new Map(tags.map((option) => [option.key, option.label]));
   const locationLabelByKey = new Map(locations.map((option) => [option.key, option.label]));
   const ownerLabelByKey = new Map(owners.map((option) => [option.key, option.label]));
+  const keepPriorityLabelByKey = new Map(
+    keepPriorities.map((option) => [option.key, option.label]),
+  );
 
   return {
     categories,
     tags,
     locations,
     owners,
+    keepPriorities,
     categoryLabelByKey,
     tagLabelByKey,
     locationLabelByKey,
     ownerLabelByKey,
+    keepPriorityLabelByKey,
   };
 }
 
@@ -500,6 +540,8 @@ export function normalizeRetrievalItemsPage(rawItems) {
 
       const categoryKey = normalizeItemCategory(rawItem?.categoryKey || rawItem?.category);
       const tags = uniqueTrimmedValues(rawItem?.tags);
+      const keepPriority = normalizeKeepPriority(rawItem?.keepPriority);
+      const orphaned = isItemOrphaned(rawItem);
 
       return {
         id,
@@ -511,10 +553,19 @@ export function normalizeRetrievalItemsPage(rawItems) {
           rawItem?.categoryLabel,
           formatItemCategory(categoryKey)
         ),
+        keepPriority,
+        keepPriorityLabel: firstNonEmpty(
+          rawItem?.keepPriorityLabel,
+          formatKeepPriorityLabel(keepPriority),
+        ),
         tags,
         boxId: firstNonEmpty(rawItem?.boxId, rawItem?.boxMongoId),
         boxNumber: firstNonEmpty(rawItem?.boxNumber),
-        boxName: firstNonEmpty(rawItem?.boxName, UNKNOWN_BOX_NAME),
+        boxName: firstNonEmpty(
+          rawItem?.boxName,
+          orphaned ? ORPHANED_BOX_NAME : '',
+          UNKNOWN_BOX_NAME,
+        ),
         boxPath: firstNonEmpty(rawItem?.boxPath),
         locationLabel: firstNonEmpty(rawItem?.locationLabel, UNKNOWN_LOCATION_LABEL),
         locationPath: firstNonEmpty(rawItem?.locationPath, UNKNOWN_LOCATION_LABEL),
@@ -524,6 +575,40 @@ export function normalizeRetrievalItemsPage(rawItems) {
         siblingItems: uniqueTrimmedValues(rawItem?.siblingItems),
         itemHref: getItemHref(id),
         boxHref: getBoxHref(rawItem?.boxNumber),
+      };
+    })
+    .filter(Boolean);
+}
+
+export function normalizeRetrievalBoxesPage(rawBoxes) {
+  const safeBoxes = Array.isArray(rawBoxes) ? rawBoxes : [];
+
+  return safeBoxes
+    .map((rawBox) => {
+      const id = firstNonEmpty(rawBox?.id, rawBox?._id);
+      if (!id) return null;
+
+      const boxId = firstNonEmpty(rawBox?.boxId, rawBox?.box_id);
+      const boxLabel = firstNonEmpty(rawBox?.boxLabel, rawBox?.label, UNKNOWN_BOX_NAME);
+      const locationLabel = firstNonEmpty(rawBox?.locationLabel, rawBox?.location, UNKNOWN_LOCATION_LABEL);
+      const boxPath = firstNonEmpty(rawBox?.boxPath);
+      const directItemCount = Number.isFinite(Number(rawBox?.directItemCount))
+        ? Number(rawBox.directItemCount)
+        : 0;
+      const childBoxCount = Number.isFinite(Number(rawBox?.childBoxCount))
+        ? Number(rawBox.childBoxCount)
+        : 0;
+
+      return {
+        id,
+        boxId,
+        boxLabel,
+        locationLabel,
+        locationKey: normalizeFacetKey(locationLabel),
+        boxPath,
+        directItemCount,
+        childBoxCount,
+        boxHref: boxId ? getBoxHref(boxId) : '',
       };
     })
     .filter(Boolean);

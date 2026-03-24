@@ -13,6 +13,7 @@ export default function flattenBoxes(box, parentLabel = null) {
       ...item, // copy all original item properties
       parentBoxLabel: box.label || parentLabel || 'Unlabeled Box', // fallback if label is missing
       parentBoxId: box.box_id || '???', // fallback ID if missing
+      parentBoxMongoId: box._id || box.id || '', // source mongo id for move actions
     }));
 
     // Add the labeled items to our flatItems array

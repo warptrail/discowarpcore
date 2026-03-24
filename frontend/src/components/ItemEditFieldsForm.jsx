@@ -8,14 +8,17 @@ import {
   formatItemCategory,
   normalizeItemCategory,
 } from '../util/itemCategories';
+import {
+  KEEP_PRIORITY_REMOVAL_OPTIONS,
+  KEEP_PRIORITY_SCALE_OPTIONS,
+} from '../util/keepPriority';
 import { USD_DECIMAL_PATTERN } from '../util/usdMoney';
-
-const asInputValue = (v) => (v == null ? '' : String(v));
 
 function DateHistoryField({
   label,
   field,
   values,
+  disabled = false,
   onHistoryDateChange,
   onAddHistoryDate,
   onRemoveHistoryDate,
@@ -32,12 +35,14 @@ function DateHistoryField({
               <S.Input
                 type="date"
                 value={value || ''}
+                disabled={disabled}
                 onChange={(event) =>
                   onHistoryDateChange(field, index, event.target.value)
                 }
               />
               <S.DateHistoryRemoveButton
                 type="button"
+                disabled={disabled}
                 onClick={() => onRemoveHistoryDate(field, index)}
               >
                 Remove
@@ -48,7 +53,11 @@ function DateHistoryField({
           <S.FieldHint>No dates yet.</S.FieldHint>
         )}
       </S.DateHistoryRows>
-      <S.DateHistoryAddButton type="button" onClick={() => onAddHistoryDate(field)}>
+      <S.DateHistoryAddButton
+        type="button"
+        disabled={disabled}
+        onClick={() => onAddHistoryDate(field)}
+      >
         + Add Date
       </S.DateHistoryAddButton>
     </S.HistoryFieldWrap>
@@ -59,7 +68,6 @@ export default function ItemEditFieldsForm({
   formData,
   ownership,
   onFieldChange,
-  onNumberFieldChange,
   onQuantityChange,
   onTagsChange,
   onLinkChange,
@@ -80,6 +88,7 @@ export default function ItemEditFieldsForm({
   const isBoxed = !!ownership?.isBoxed;
   const parentBoxLabel = ownership?.parentBoxLabel || '';
   const inheritedLocation = ownership?.inheritedLocation || formData.location || '';
+  const maintenanceDisabled = !!formData.isConsumable;
 
   return (
     <>
@@ -205,10 +214,20 @@ export default function ItemEditFieldsForm({
             onChange={onFieldChange}
           >
             <option value="">Unspecified</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="essential">Essential</option>
+            <optgroup label="Priority Scale">
+              {KEEP_PRIORITY_SCALE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Removal Planning">
+              {KEEP_PRIORITY_REMOVAL_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </optgroup>
           </S.Select>
         </S.Label>
 
@@ -287,19 +306,6 @@ export default function ItemEditFieldsForm({
             If value is blank, it defaults to purchase amount on save.
           </S.FieldHint>
         </S.Label>
-
-        <S.Label>
-          Minimum Desired Quantity:
-          <S.Input
-            type="number"
-            min="0"
-            step="1"
-            value={asInputValue(formData.minimumDesiredQuantity)}
-            onChange={(e) =>
-              onNumberFieldChange('minimumDesiredQuantity', e.target.value)
-            }
-          />
-        </S.Label>
       </S.FieldGrid>
 
       <S.SectionTitle>Dates / Usage</S.SectionTitle>
@@ -374,6 +380,7 @@ export default function ItemEditFieldsForm({
         label="Maintenance History"
         field="maintenanceHistory"
         values={formData.maintenanceHistory}
+        disabled={maintenanceDisabled}
         onHistoryDateChange={onHistoryDateChange}
         onAddHistoryDate={onAddHistoryDate}
         onRemoveHistoryDate={onRemoveHistoryDate}
@@ -384,8 +391,12 @@ export default function ItemEditFieldsForm({
         <S.TextArea
           name="maintenanceNotes"
           value={formData.maintenanceNotes || ''}
+          disabled={maintenanceDisabled}
           onChange={onFieldChange}
         />
+        {maintenanceDisabled ? (
+          <S.FieldHint>Maintenance tracking is disabled for consumables.</S.FieldHint>
+        ) : null}
       </S.Label>
 
       <S.ButtonRow>

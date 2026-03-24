@@ -13,9 +13,11 @@ export default function AllItemsToolbar({
   statusFilter = 'active',
   filter = 'all',
   sortBy = 'alpha',
+  searchQuery = '',
   onStatusChange,
   onFilterChange,
   onSortChange,
+  onSearchChange,
   categoryOptions = [],
   visibleCount = 0,
   totalCount = 0,
@@ -47,6 +49,18 @@ export default function AllItemsToolbar({
       </S.TelemetryRow>
 
       <S.ControlsRow>
+        <S.ControlGroup $tone="#4cc6c1">
+          <S.ControlLabel>Search</S.ControlLabel>
+          <S.SearchInput
+            type="search"
+            value={searchQuery}
+            onChange={(event) => onSearchChange?.(event.target.value)}
+            placeholder="Search items..."
+            aria-label="Search items"
+            autoComplete="off"
+          />
+        </S.ControlGroup>
+
         <S.ControlGroup $tone="#7fd7ff">
           <S.ControlLabel>View</S.ControlLabel>
           <S.Select

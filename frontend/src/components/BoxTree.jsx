@@ -29,6 +29,13 @@ const SORT_OPTIONS = [
 
 const DEFAULT_SORT = 'recentlyAdded';
 
+function formatBoxChipId(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '#???';
+  if (/^\d+$/.test(raw)) return `#${raw.padStart(3, '0')}`;
+  return `#${raw}`;
+}
+
 function BoxSection({
   node,
   depth,
@@ -40,11 +47,13 @@ function BoxSection({
   effectsById,
   triggerFlash,
   onItemSaved,
+  refreshBox,
 }) {
   if (!node) return null;
 
   const parentBoxLabel = node.label ?? node.name ?? 'Box';
   const parentBoxId = node.box_id ?? node.shortId ?? '';
+  const parentBoxMongoId = node._id ?? node.id ?? '';
   const items = Array.isArray(node.items) ? node.items : [];
   const kids = Array.isArray(node.childBoxes) ? node.childBoxes : [];
   const isRootSection = depth === 0;
@@ -54,16 +63,22 @@ function BoxSection({
       <S.RailBack aria-hidden="true" $isRoot={isRootSection} $depth={depth} />
 
       <S.RailFront $isRoot={isRootSection} $depth={depth}>
-        <S.SectionTitle $isRoot={isRootSection} $depth={depth}>
-          {parentBoxLabel} <S.ShortId>({parentBoxId || '?'})</S.ShortId>
-        </S.SectionTitle>
+        <S.TreeSectionTitle $isRoot={isRootSection} $depth={depth}>
+          <S.TreeBoxIdChip>{formatBoxChipId(parentBoxId)}</S.TreeBoxIdChip>
+          <S.TreeBoxLabel>{parentBoxLabel}</S.TreeBoxLabel>
+        </S.TreeSectionTitle>
 
         {items.length > 0 && (
           <S.List>
             {items.map((it, idx) => {
               const id = String(it?._id ?? it?.id ?? '');
               const key = id || `noid-${depth}-${idx}`;
-              const annotated = { ...it, parentBoxLabel, parentBoxId };
+              const annotated = {
+                ...it,
+                parentBoxLabel,
+                parentBoxId,
+                parentBoxMongoId,
+              };
               const isOpen = id && openItemId === id;
               const isPulsing = Array.isArray(pulsing) && pulsing.includes(id);
               const flashColor = effectsById?.[id]?.flash || 'blue';
@@ -82,6 +97,7 @@ function BoxSection({
                   flashColor={flashColor}
                   triggerFlash={triggerFlash}
                   onSaved={(updated) => onItemSaved?.(updated)}
+                  refreshBox={refreshBox}
                 />
               );
             })}
@@ -111,6 +127,7 @@ function BoxSection({
               effectsById={effectsById}
               triggerFlash={triggerFlash}
               onItemSaved={onItemSaved}
+              refreshBox={refreshBox}
             />
           </S.Nest>
         ))}
@@ -129,6 +146,7 @@ export default function BoxTree({
   collapseDurMs,
   triggerFlash,
   onItemSaved,
+  refreshBox,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortMode, setSortMode] = useState(DEFAULT_SORT);
@@ -186,6 +204,7 @@ export default function BoxTree({
         collapseDurMs={collapseDurMs}
         triggerFlash={triggerFlash}
         onItemSaved={onItemSaved}
+        refreshBox={refreshBox}
       />
     </S.TreeRoot>
   );

@@ -194,13 +194,35 @@ async function logEventBestEffort(payload = {}, { label = '' } = {}) {
   }
 }
 
-async function getEventLogsPage({ limit, offset } = {}) {
+async function getEventLogsPage({
+  limit,
+  offset,
+  eventType,
+  entityType,
+  entityId,
+} = {}) {
   const safeLimit = sanitizeLimit(limit);
   const safeOffset = sanitizeOffset(offset);
+  const safeEventType = String(eventType || '').trim().toLowerCase();
+  const safeEntityType = String(entityType || '').trim().toLowerCase();
+  const safeEntityId = String(entityId || '').trim();
+
+  if (safeEventType && !EVENT_TYPES.includes(safeEventType)) {
+    throw new Error('Invalid eventType filter.');
+  }
+
+  if (safeEntityType && safeEntityType !== 'box' && safeEntityType !== 'item') {
+    throw new Error('Invalid entityType filter.');
+  }
+
+  const query = {};
+  if (safeEventType) query.event_type = safeEventType;
+  if (safeEntityType) query.entity_type = safeEntityType;
+  if (safeEntityId) query.entity_id = safeEntityId;
 
   const [total, entries] = await Promise.all([
-    EventLog.countDocuments({}),
-    EventLog.find({})
+    EventLog.countDocuments(query),
+    EventLog.find(query)
       .sort({ created_at: -1, _id: -1 })
       .skip(safeOffset)
       .limit(safeLimit)

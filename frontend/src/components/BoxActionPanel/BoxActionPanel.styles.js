@@ -276,6 +276,9 @@ export const ItemName = styled.h3`
 `;
 
 export const ItemNameLink = styled(Link)`
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
   margin: 0;
   font-size: 1rem;
   font-weight: 700;

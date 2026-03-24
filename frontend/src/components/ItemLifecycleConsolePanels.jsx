@@ -94,6 +94,7 @@ const Button = styled.button`
 `;
 
 const dispositionLabelMap = {
+  consumed: 'Consumed',
   lost: 'Lost',
   stolen: 'Stolen',
   trashed: 'Trashed',

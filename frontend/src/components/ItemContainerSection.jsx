@@ -21,12 +21,30 @@ export default function ItemContainerSection({
     (boxShortId ? `Box ${boxShortId}` : 'Current box');
   const isBoxed = ownership.isBoxed;
   const isGone = String(item?.item_status || '').toLowerCase() === 'gone';
+  const boxHref = boxShortId ? `/boxes/${encodeURIComponent(boxShortId)}` : '';
+  const resolvedLocation = String(ownership.effectiveLocation || '').trim();
+  const locationSource = isGone
+    ? 'Historical state'
+    : ownership.effectiveLocationSource === 'box'
+      ? 'Set on current box'
+      : ownership.effectiveLocationSource === 'inherited'
+        ? 'Inherited from parent box'
+        : ownership.effectiveLocationSource === 'item'
+          ? 'Item-level location'
+          : 'No location metadata set';
 
   const handleSelectDestination = async ({
     destBoxId,
     destLabel,
     destShortId,
+    isOrphanedDestination = false,
   }) => {
+    if (isOrphanedDestination) {
+      if (!boxMongoId || typeof onRemoveFromBox !== 'function') return;
+      const ok = await onRemoveFromBox({ boxMongoId });
+      if (ok) setShowPicker(false);
+      return;
+    }
     if (!destBoxId || typeof onMoveItem !== 'function') return;
     const ok = await onMoveItem({
       destBoxId,
@@ -44,25 +62,47 @@ export default function ItemContainerSection({
   };
 
   return (
-    <S.ContainerCard aria-label="Container section">
-      <S.ContainerTitle>Container</S.ContainerTitle>
+    <S.ContainerCard aria-label="Box section">
+      <S.ContainerTitle>Box</S.ContainerTitle>
 
       <S.ContainerBody>
-        <S.ContainerRow>
+        <S.ContainerRow $prominent>
           <S.ContainerLabel>Current box</S.ContainerLabel>
           <S.ContainerValue>
             {isGone ? (
               <S.ContainerMuted>No Longer Have</S.ContainerMuted>
             ) : isBoxed ? (
-              boxShortId ? (
-                <S.ContainerLink to={`/boxes/${encodeURIComponent(boxShortId)}`}>
-                  {boxLabel}
-                </S.ContainerLink>
-              ) : (
-                boxLabel
-              )
+              <S.ContainerBoxValueGroup>
+                {boxHref ? (
+                  <S.ContainerPrimaryLink to={boxHref}>
+                    {boxLabel}
+                  </S.ContainerPrimaryLink>
+                ) : (
+                  <S.ContainerPrimaryValue>{boxLabel}</S.ContainerPrimaryValue>
+                )}
+                {boxShortId
+                  ? (boxHref ? (
+                      <S.ContainerChipLink to={boxHref}>
+                        <S.ContainerBoxIdChip>BOX {boxShortId}</S.ContainerBoxIdChip>
+                      </S.ContainerChipLink>
+                    ) : (
+                      <S.ContainerBoxIdChip>BOX {boxShortId}</S.ContainerBoxIdChip>
+                    ))
+                  : null}
+              </S.ContainerBoxValueGroup>
             ) : (
               <S.ContainerMuted>None (orphaned)</S.ContainerMuted>
+            )}
+          </S.ContainerValue>
+        </S.ContainerRow>
+
+        <S.ContainerRow $prominent>
+          <S.ContainerLabel>Location</S.ContainerLabel>
+          <S.ContainerValue>
+            {resolvedLocation ? (
+              <S.ContainerPrimaryValue>{resolvedLocation}</S.ContainerPrimaryValue>
+            ) : (
+              <S.ContainerMuted>—</S.ContainerMuted>
             )}
           </S.ContainerValue>
         </S.ContainerRow>
@@ -70,11 +110,7 @@ export default function ItemContainerSection({
         <S.ContainerRow>
           <S.ContainerLabel>Location source</S.ContainerLabel>
           <S.ContainerValue>
-            {isBoxed
-              ? 'Inherited from parent box'
-              : isGone
-                ? 'Historical state'
-                : 'Uses item-level location'}
+            <S.ContainerSecondaryValue>{locationSource}</S.ContainerSecondaryValue>
           </S.ContainerValue>
         </S.ContainerRow>
       </S.ContainerBody>
@@ -116,6 +152,7 @@ export default function ItemContainerSection({
       {showPicker ? (
         <S.ContainerPickerWrap>
           <MoveItemToOtherBox
+            itemId={item?._id}
             currentBoxId={boxMongoId || null}
             onBoxSelected={handleSelectDestination}
           />

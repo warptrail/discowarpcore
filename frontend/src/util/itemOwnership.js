@@ -39,6 +39,7 @@ function readFallbackBoxMongoId(item) {
   const leaf = readBreadcrumbLeaf(item);
   const parent = item?.parent && typeof item.parent === 'object' ? item.parent : null;
   const ids = [
+    item?.parentBoxMongoId,
     item?.parentBox,
     item?.sourceBoxId,
     item?.primaryBox,
@@ -107,19 +108,39 @@ export function getItemOwnershipContext(item) {
 
   const hasFallbackBoxRef = Boolean(boxId || boxMongoId || fallbackBoxLabel);
   const isBoxed = !isGone && (hasCanonicalBox || hasFallbackBoxRef);
-  const inheritedLocation = firstNonEmpty(
+  const boxLocation = firstNonEmpty(
     rawBox?.location,
     rawBox?.locationName,
+    rawBox?.resolvedLocation,
     rawBox?.locationId?.name,
-    item?.inheritedLocation
   );
+  const inheritedBoxLocation = firstNonEmpty(
+    item?.inheritedLocation,
+    item?.resolvedLocation,
+    item?.resolvedBoxLocation
+  );
+  const inheritedLocation = firstNonEmpty(boxLocation, inheritedBoxLocation);
+  const itemLevelLocation = firstNonEmpty(item?.location);
+  const effectiveLocation = isBoxed ? inheritedLocation : itemLevelLocation;
+  const effectiveLocationSource = isBoxed
+    ? boxLocation
+      ? 'box'
+      : inheritedBoxLocation
+        ? 'inherited'
+        : ''
+    : itemLevelLocation
+      ? 'item'
+      : '';
 
   return {
     isGone,
     isBoxed,
     isOrphaned: !isGone && !isBoxed,
     parentBoxLabel: boxLabel,
+    boxLocation,
     inheritedLocation,
+    effectiveLocation,
+    effectiveLocationSource,
     hasCanonicalBox,
     box: isBoxed
       ? {

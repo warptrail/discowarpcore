@@ -33,6 +33,8 @@ export const Form = styled.form`
   min-width: 0;
   max-width: 100%;
   padding: 1rem;
+  padding-bottom: ${({ $actionDocked }) =>
+    $actionDocked ? 'calc(7.2rem + env(safe-area-inset-bottom))' : '1rem'};
   border-radius: 14px;
   border: 1px solid ${LCARS.line};
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 34%),
@@ -82,6 +84,8 @@ export const Form = styled.form`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.72rem;
     padding: 0.72rem 0.64rem 0.68rem;
+    padding-bottom: ${({ $actionDocked }) =>
+      $actionDocked ? 'calc(7.8rem + env(safe-area-inset-bottom))' : '0.68rem'};
     border-radius: ${MOBILE_PANEL_RADIUS};
     box-shadow:
       inset 0 0 0 1px rgba(255, 255, 255, 0.02),
@@ -370,10 +374,46 @@ export const Checkbox = styled.input`
 export const Actions = styled.div`
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 0.7rem;
   margin-top: 0.35rem;
 
+  ${({ $docked }) =>
+    $docked
+      ? `
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: max(0.62rem, env(safe-area-inset-bottom));
+    z-index: 60;
+    width: min(960px, calc(100vw - 4rem));
+    margin: 0;
+    padding: 0.58rem 0.62rem;
+    border: 1px solid rgba(140, 160, 179, 0.44);
+    border-radius: 13px;
+    background:
+      linear-gradient(180deg, rgba(23, 30, 42, 0.96), rgba(17, 22, 31, 0.96)),
+      ${LCARS.panel};
+    box-shadow:
+      0 12px 28px rgba(0, 0, 0, 0.42),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(8px);
+  `
+      : ''}
+
   @media (max-width: ${MOBILE_BREAKPOINT}) {
+    ${({ $docked }) =>
+      $docked
+        ? `
+      width: calc(100vw - (var(--mobile-gap) * 2));
+      bottom: max(0.46rem, env(safe-area-inset-bottom));
+      padding: 0.5rem 0.46rem;
+      border-radius: 11px;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: stretch;
+    `
+        : `
     position: sticky;
     bottom: 0;
     z-index: 2;
@@ -382,6 +422,36 @@ export const Actions = styled.div`
     margin-top: 0.2rem;
     padding-top: 0.42rem;
     background: linear-gradient(180deg, rgba(17, 22, 31, 0), rgba(17, 22, 31, 0.95) 42%);
+    `}
+  }
+`;
+
+export const UnsavedStatus = styled.span`
+  margin-right: auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0.16rem 0.52rem;
+  border-radius: 999px;
+  border: 1px solid
+    ${({ $dirty }) =>
+      $dirty ? 'rgba(240, 138, 123, 0.58)' : 'rgba(167, 182, 255, 0.52)'};
+  background: ${({ $dirty }) =>
+    $dirty ? 'rgba(240, 138, 123, 0.18)' : 'rgba(167, 182, 255, 0.16)'};
+  color: ${({ $dirty }) => ($dirty ? '#ffd7d2' : '#d7defd')};
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    order: 5;
+    width: 100%;
+    justify-content: center;
+    min-height: 32px;
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.04em;
   }
 `;
 
@@ -412,6 +482,14 @@ export const SaveButton = styled.button`
   color: #d6ffe4;
   background: linear-gradient(180deg, #2d8f47, #216b36);
   box-shadow: 0 0 0 1px rgba(17, 30, 20, 0.42);
+  ${({ $dirty }) =>
+    $dirty
+      ? `
+    box-shadow:
+      0 0 0 1px rgba(17, 30, 20, 0.42),
+      0 0 20px rgba(51, 163, 83, 0.32);
+  `
+      : ''}
 
   &:hover:enabled {
     border-color: #42b765;

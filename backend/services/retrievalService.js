@@ -2,6 +2,10 @@ const Item = require('../models/Item');
 const Box = require('../models/Box');
 const { normalizeItemCategory } = require('../utils/itemCategory');
 const { buildBoxMaps, makeBreadcrumb } = require('../utils/boxHelpers');
+const {
+  formatKeepPriorityLabel,
+  normalizeKeepPriorityValue,
+} = require('../utils/keepPriority');
 
 const ACTIVE_ITEM_FILTER = { item_status: { $ne: 'gone' } };
 
@@ -10,6 +14,7 @@ const MAX_LIMIT = 100;
 
 const UNKNOWN_LOCATION_LABEL = 'Unknown Location';
 const UNKNOWN_BOX_NAME = 'Unknown Box';
+const ORPHANED_BOX_NAME = 'ORPHANED';
 
 function toTrimmed(value) {
   return value == null ? '' : String(value).trim();
@@ -155,6 +160,7 @@ function getBoxContext(item, maps, itemToLeafBoxId) {
   const itemId = String(item?._id || '');
   const leafId = itemToLeafBoxId.get(itemId);
   const leafBox = leafId ? maps.byId.get(leafId) : null;
+  const isOrphaned = Boolean(item?.orphanedAt);
 
   const breadcrumbData = leafId ? makeBreadcrumb(leafId, maps) : null;
   const breadcrumb = Array.isArray(breadcrumbData?.breadcrumb)
@@ -169,6 +175,7 @@ function getBoxContext(item, maps, itemToLeafBoxId) {
   const boxName = firstNonEmpty(
     leafBox?.label,
     boxNumber ? `Box ${boxNumber}` : '',
+    isOrphaned ? ORPHANED_BOX_NAME : '',
     UNKNOWN_BOX_NAME
   );
   const locationLabel = firstNonEmpty(
@@ -209,6 +216,7 @@ function collectFilterOptions(items) {
   const tagLabelByKey = new Map();
   const locationLabelByKey = new Map();
   const ownerLabelByKey = new Map();
+  const keepPriorityLabelByKey = new Map();
 
   for (const item of items) {
     if (item.categoryKey) {
@@ -226,6 +234,10 @@ function collectFilterOptions(items) {
       ownerLabelByKey.set(item.ownerKey, item.primaryOwnerName);
     }
 
+    if (item.keepPriorityKey) {
+      keepPriorityLabelByKey.set(item.keepPriorityKey, item.keepPriorityLabel);
+    }
+
     const tags = Array.isArray(item.tags) ? item.tags : [];
     for (const tag of tags) {
       const key = normalizeFacetKey(tag);
@@ -239,6 +251,7 @@ function collectFilterOptions(items) {
     tags: mapToSortedOptions(tagLabelByKey),
     locations: mapToSortedOptions(locationLabelByKey),
     owners: mapToSortedOptions(ownerLabelByKey),
+    keepPriorities: mapToSortedOptions(keepPriorityLabelByKey),
   };
 }
 
@@ -268,6 +281,9 @@ function buildRetrievalItems(itemDocs, boxDocs) {
     const notes = firstNonEmpty(item?.notes, item?.maintenanceNotes);
     const primaryOwnerName = firstNonEmpty(item?.primaryOwnerName);
     const ownerKey = normalizeFacetKey(primaryOwnerName);
+    const keepPriority = normalizeKeepPriorityValue(item?.keepPriority);
+    const keepPriorityKey = normalizeFacetKey(keepPriority);
+    const keepPriorityLabel = formatKeepPriorityLabel(keepPriority);
     const categoryKey = normalizeItemCategory(item?.category);
     const categoryLabel = toCategoryLabel(categoryKey);
     const tags = uniqueTrimmedValues(item?.tags);
@@ -278,6 +294,8 @@ function buildRetrievalItems(itemDocs, boxDocs) {
       name,
       description,
       notes,
+      keepPriority,
+      keepPriorityLabel,
       categoryLabel,
       item?.category,
       tags.join(' '),
@@ -308,6 +326,9 @@ function buildRetrievalItems(itemDocs, boxDocs) {
       locationPath: boxContext.locationPath,
       locationKey: boxContext.locationKey,
       primaryOwnerName,
+      keepPriority: keepPriority || '',
+      keepPriorityKey,
+      keepPriorityLabel,
       ownerKey,
       searchText,
       imageUrl: getItemImageUrl(item),
@@ -348,7 +369,14 @@ function buildRetrievalItems(itemDocs, boxDocs) {
 
 function filterRetrievalItems(
   items,
-  { query, categoryFilters, tagFilters, locationFilters, ownerFilters }
+  {
+    query,
+    categoryFilters,
+    tagFilters,
+    locationFilters,
+    ownerFilters,
+    keepPriorityFilters,
+  }
 ) {
   const normalizedQuery = normalizeText(query);
 
@@ -366,6 +394,13 @@ function filterRetrievalItems(
     }
 
     if (ownerFilters.length && !ownerFilters.includes(item.ownerKey)) {
+      return false;
+    }
+
+    if (
+      keepPriorityFilters.length &&
+      !keepPriorityFilters.includes(item.keepPriorityKey)
+    ) {
       return false;
     }
 
@@ -395,9 +430,122 @@ function toClientItem(item) {
     locationLabel: item.locationLabel,
     locationPath: item.locationPath,
     primaryOwnerName: item.primaryOwnerName,
+    keepPriority: item.keepPriority,
+    keepPriorityLabel: item.keepPriorityLabel,
     imageUrl: item.imageUrl,
     previewImageUrl: item.previewImageUrl,
     siblingItems: item.siblingItems,
+  };
+}
+
+function buildRetrievalBoxes(boxDocs = []) {
+  const safeBoxes = Array.isArray(boxDocs) ? boxDocs : [];
+  const maps = buildBoxMaps(safeBoxes);
+  const childCountByParentId = new Map();
+
+  for (const box of safeBoxes) {
+    const parentId = firstNonEmpty(box?.parentBox);
+    if (!parentId) continue;
+    const current = childCountByParentId.get(parentId) || 0;
+    childCountByParentId.set(parentId, current + 1);
+  }
+
+  return safeBoxes
+    .map((box) => {
+      const mongoId = firstNonEmpty(box?._id);
+      if (!mongoId) return null;
+
+      const boxId = firstNonEmpty(box?.box_id);
+      const boxLabel = firstNonEmpty(
+        box?.label,
+        box?.name,
+        boxId ? `Box ${boxId}` : '',
+        UNKNOWN_BOX_NAME
+      );
+      const locationLabel = firstNonEmpty(box?.location, UNKNOWN_LOCATION_LABEL);
+      const locationKey = normalizeFacetKey(locationLabel);
+      const breadcrumbData = makeBreadcrumb(mongoId, maps);
+      const pathLabels = Array.isArray(breadcrumbData?.breadcrumb)
+        ? breadcrumbData.breadcrumb
+            .map((segment) => firstNonEmpty(segment?.label, segment?.box_id))
+            .filter(Boolean)
+        : [];
+      const boxPath = pathLabels.join(' > ');
+      const directItemCount = Array.isArray(box?.items) ? box.items.length : 0;
+      const childBoxCount = childCountByParentId.get(mongoId) || 0;
+      const searchText = buildSearchText([boxId, boxLabel, locationLabel, boxPath]);
+
+      return {
+        id: mongoId,
+        boxId,
+        boxLabel,
+        locationLabel,
+        locationKey,
+        boxPath,
+        directItemCount,
+        childBoxCount,
+        searchText,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      const byLocation = compareLabel(a.locationLabel, b.locationLabel);
+      if (byLocation !== 0) return byLocation;
+
+      const byBox = compareBoxNumber(a.boxId, b.boxId);
+      if (byBox !== 0) return byBox;
+
+      return compareLabel(a.boxLabel, b.boxLabel);
+    });
+}
+
+function collectBoxFilterOptions(boxes) {
+  const locationLabelByKey = new Map();
+
+  for (const box of boxes) {
+    if (!box.locationKey) continue;
+    if (!locationLabelByKey.has(box.locationKey)) {
+      locationLabelByKey.set(box.locationKey, firstNonEmpty(box.locationLabel, UNKNOWN_LOCATION_LABEL));
+    }
+  }
+
+  return {
+    locations: mapToSortedOptions(locationLabelByKey),
+  };
+}
+
+function filterRetrievalBoxes(items, { query, locationFilters }) {
+  const normalizedQuery = normalizeText(query);
+  const rawQuery = toTrimmed(query);
+  const numericPrefix = /^\d+$/.test(rawQuery) ? rawQuery : '';
+
+  return items.filter((item) => {
+    if (locationFilters.length && !locationFilters.includes(item.locationKey)) {
+      return false;
+    }
+
+    if (!normalizedQuery) return true;
+
+    const textMatch = String(item.searchText || '').includes(normalizedQuery);
+    if (textMatch) return true;
+
+    if (numericPrefix && String(item.boxId || '').startsWith(numericPrefix)) {
+      return true;
+    }
+
+    return false;
+  });
+}
+
+function toClientBox(item) {
+  return {
+    id: item.id,
+    boxId: item.boxId,
+    boxLabel: item.boxLabel,
+    locationLabel: item.locationLabel,
+    boxPath: item.boxPath,
+    directItemCount: item.directItemCount,
+    childBoxCount: item.childBoxCount,
   };
 }
 
@@ -407,13 +555,14 @@ async function getRetrievalItemsPage(params = {}) {
   const tagFilters = normalizeFilterValues(params.tag);
   const locationFilters = normalizeFilterValues(params.location);
   const ownerFilters = normalizeFilterValues(params.owner);
+  const keepPriorityFilters = normalizeFilterValues(params.keepPriority);
   const limit = parseLimit(params.limit);
   const offset = parseOffset(params.offset);
 
   const [itemDocs, boxDocs] = await Promise.all([
     Item.find(ACTIVE_ITEM_FILTER)
       .select(
-        '_id name description notes maintenanceNotes category tags location image imagePath primaryOwnerName'
+        '_id name description notes maintenanceNotes category tags location image imagePath primaryOwnerName keepPriority orphanedAt'
       )
       .lean(),
     Box.find().select('_id box_id label location parentBox items').lean(),
@@ -426,6 +575,7 @@ async function getRetrievalItemsPage(params = {}) {
     tagFilters,
     locationFilters,
     ownerFilters,
+    keepPriorityFilters,
   });
 
   const total = filteredItems.length;
@@ -441,6 +591,36 @@ async function getRetrievalItemsPage(params = {}) {
   };
 }
 
+async function getRetrievalBoxesPage(params = {}) {
+  const query = toTrimmed(params.q);
+  const locationFilters = normalizeFilterValues(params.location);
+  const limit = parseLimit(params.limit);
+  const offset = parseOffset(params.offset);
+
+  const boxDocs = await Box.find()
+    .select('_id box_id label name location parentBox items')
+    .lean();
+
+  const retrievalBoxes = buildRetrievalBoxes(boxDocs);
+  const filteredBoxes = filterRetrievalBoxes(retrievalBoxes, {
+    query,
+    locationFilters,
+  });
+
+  const total = filteredBoxes.length;
+  const pagedBoxes = filteredBoxes.slice(offset, offset + limit).map(toClientBox);
+
+  return {
+    boxes: pagedBoxes,
+    total,
+    limit,
+    offset,
+    hasMore: offset + pagedBoxes.length < total,
+    filters: collectBoxFilterOptions(retrievalBoxes),
+  };
+}
+
 module.exports = {
   getRetrievalItemsPage,
+  getRetrievalBoxesPage,
 };

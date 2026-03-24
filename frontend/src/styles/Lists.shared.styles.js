@@ -103,6 +103,14 @@ export const TreeRoot = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.62rem;
+  }
+
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    gap: 0.5rem;
+  }
 `;
 
 export const HeaderRow = styled.div`
@@ -217,6 +225,10 @@ export const List = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.36rem;
+  }
 `;
 
 export const Count = styled.span`
@@ -251,8 +263,16 @@ export const Nest = styled.div`
     $depth % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent'};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    margin-left: ${({ $depth = 0 }) => Math.min($depth * 7, 26)}px;
-    padding-left: 0.16rem;
+    margin-left: ${({ $depth = 0 }) => Math.min($depth * 5, 18)}px;
+    padding-left: 0.1rem;
+    border-left: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 0;
+    background: transparent;
+  }
+
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    margin-left: ${({ $depth = 0 }) => Math.min($depth * 4, 14)}px;
+    padding-left: 0.08rem;
   }
 `;
 
@@ -267,7 +287,7 @@ export const SectionGroup = styled.div`
   isolation: isolate;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    margin-top: 0.34rem;
+    margin-top: 0.24rem;
   }
 `;
 
@@ -289,8 +309,15 @@ export const RailBack = styled.div`
   z-index: 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    margin-left: -0.5rem;
+    margin-left: -0.36rem;
     margin-top: ${({ $isRoot }) => ($isRoot ? '0.18rem' : '0.24rem')};
+    opacity: ${({ $isRoot }) => ($isRoot ? 0.74 : 0.62)};
+    filter: none;
+  }
+
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    margin-left: -0.28rem;
+    opacity: ${({ $isRoot }) => ($isRoot ? 0.66 : 0.56)};
   }
 `;
 
@@ -321,14 +348,27 @@ export const RailFront = styled.div`
   );
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    margin-left: calc(${RAIL_W} + 0.02rem);
-    margin-right: ${RAIL_W};
-    margin-top: ${({ $isRoot }) => ($isRoot ? '0.24rem' : '0.28rem')};
-    padding-top: 0.22rem;
-    padding-right: 0.25rem;
-    padding-left: ${({ $isRoot }) => ($isRoot ? '1.18rem' : '1.04rem')};
-    padding-bottom: 0.16rem;
-    border-radius: 10px 8px 7px 9px / 9px 7px 6px 9px;
+    margin-left: calc(${RAIL_W} + 0.01rem);
+    margin-right: 0;
+    margin-top: ${({ $isRoot }) => ($isRoot ? '0.2rem' : '0.24rem')};
+    padding-top: 0.2rem;
+    padding-right: 0.14rem;
+    padding-left: ${({ $isRoot }) => ($isRoot ? '0.96rem' : '0.86rem')};
+    padding-bottom: 0.12rem;
+    border-radius: 9px 7px 7px 8px / 8px 7px 6px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    background: linear-gradient(
+      140deg,
+      rgba(12, 15, 17, 0.96) 42%,
+      rgba(12, 15, 17, 0.92) 100%
+    );
+  }
+
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    margin-top: ${({ $isRoot }) => ($isRoot ? '0.18rem' : '0.22rem')};
+    padding-right: 0.1rem;
+    padding-left: ${({ $isRoot }) => ($isRoot ? '0.84rem' : '0.74rem')};
+    padding-bottom: 0.1rem;
   }
 `;
 

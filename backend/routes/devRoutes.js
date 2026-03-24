@@ -4,6 +4,7 @@ const router = express.Router();
 const Item = require('../models/Item');
 const mockData = require('../mock_data.json');
 const { DEFAULT_ITEM_CATEGORY } = require('../utils/itemCategory');
+const { KEEP_PRIORITY_VALUES } = require('../utils/keepPriority');
 
 const { orphanAllItemsSequentialApi } = require('../controllers/devController');
 
@@ -20,7 +21,7 @@ function randSubset(arr, max = 3) {
   return shuffled.slice(0, Math.floor(Math.random() * max) + 1);
 }
 
-const KEEP_PRIORITIES = ['low', 'medium', 'high', 'essential'];
+const KEEP_PRIORITIES = KEEP_PRIORITY_VALUES;
 const CONDITIONS = ['unknown', 'new', 'good', 'fair', 'poor', 'needs_repair'];
 const ACQUISITION_TYPES = [
   'unknown',
@@ -95,11 +96,6 @@ router.patch('/backfill-items', async (req, res) => {
       }
       if (item.isConsumable === undefined || item.isConsumable === null) {
         item.isConsumable = !!item.tags?.includes('consumable');
-      }
-      if (item.minimumDesiredQuantity === undefined) {
-        item.minimumDesiredQuantity = item.isConsumable
-          ? Math.floor(Math.random() * 4) + 1
-          : null;
       }
       if (
         item.purchasePriceCents === undefined &&

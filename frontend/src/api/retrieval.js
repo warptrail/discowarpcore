@@ -20,6 +20,7 @@ export async function fetchRetrievalItemsPage(
     tags = [],
     locations = [],
     owners = [],
+    keepPriorities = [],
     limit = DEFAULT_RETRIEVAL_LIMIT,
     offset = 0,
   },
@@ -33,6 +34,7 @@ export async function fetchRetrievalItemsPage(
   appendCsvParam(params, 'tag', tags);
   appendCsvParam(params, 'location', locations);
   appendCsvParam(params, 'owner', owners);
+  appendCsvParam(params, 'keepPriority', keepPriorities);
 
   params.set('limit', String(limit));
   params.set('offset', String(offset));
@@ -43,6 +45,34 @@ export async function fetchRetrievalItemsPage(
 
   if (!response.ok) {
     throw new Error(`Failed to fetch retrieval items (${response.status})`);
+  }
+
+  return response.json();
+}
+
+export async function fetchRetrievalBoxesPage(
+  {
+    q = '',
+    locations = [],
+    limit = DEFAULT_RETRIEVAL_LIMIT,
+    offset = 0,
+  },
+  { signal } = {}
+) {
+  const params = new URLSearchParams();
+  const query = String(q || '').trim();
+  if (query) params.set('q', query);
+
+  appendCsvParam(params, 'location', locations);
+  params.set('limit', String(limit));
+  params.set('offset', String(offset));
+
+  const response = await fetch(`${API_BASE}/api/retrieval/boxes?${params.toString()}`, {
+    signal,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch retrieval boxes (${response.status})`);
   }
 
   return response.json();

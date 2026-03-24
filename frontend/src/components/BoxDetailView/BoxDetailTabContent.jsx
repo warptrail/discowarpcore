@@ -93,6 +93,7 @@ export default function BoxDetailTabContent({
           startPulse={startPulse}
           stopPulse={stopPulse}
           onItemSaved={handleItemSaved}
+          refreshBox={refreshBox}
         />
       </S.TreeTabScope>
     );
@@ -131,6 +132,7 @@ export default function BoxDetailTabContent({
           effectsById={effectsById}
           onFlash={handleFlash}
           showHeader={false}
+          refreshBox={refreshBox}
         />
       </S.FlatTabScope>
     );

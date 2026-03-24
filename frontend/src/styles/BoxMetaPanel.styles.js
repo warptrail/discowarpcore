@@ -149,7 +149,7 @@ export const CurrentBox = styled.div`
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   min-width: 0;
   padding: 10px 12px;
   border: 1px solid ${LCARS.teal}52;
@@ -161,7 +161,7 @@ export const CurrentBox = styled.div`
   cursor: default;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    gap: 6px;
+    gap: 9px;
     padding: 8px 9px;
     border-radius: 9px;
   }
@@ -187,6 +187,17 @@ export const CurrentBoxId = styled.span`
   }
 `;
 
+export const CurrentBoxMain = styled.div`
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  padding-left: 2px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding-left: 1px;
+  }
+`;
+
 export const CurrentBoxTitle = styled.span`
   font-size: 1.02rem;
   font-weight: 700;
@@ -196,6 +207,62 @@ export const CurrentBoxTitle = styled.span`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 0.9rem;
+  }
+`;
+
+export const CurrentBoxLocationChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 26px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid
+    ${({ $empty }) => ($empty ? 'rgba(167, 182, 255, 0.4)' : 'rgba(232, 177, 92, 0.62)')};
+  background: ${({ $empty }) =>
+    $empty ? 'rgba(167, 182, 255, 0.14)' : 'rgba(232, 177, 92, 0.2)'};
+  color: ${({ $empty }) => ($empty ? LCARS.textDim : '#ffe5af')};
+  box-shadow: ${({ $empty }) =>
+    $empty ? 'none' : '0 0 0 1px rgba(232, 177, 92, 0.12) inset'};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 6px;
+    min-height: 24px;
+    padding: 3px 8px;
+  }
+`;
+
+export const CurrentBoxLocationLabel = styled.span`
+  color: ${({ $empty }) => ($empty ? LCARS.textDim : 'rgba(255, 232, 181, 0.86)')};
+  font-size: 0.64rem;
+  font-weight: 760;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  line-height: 1;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.07em;
+  }
+`;
+
+export const CurrentBoxLocationValue = styled.span`
+  color: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1.1;
+  min-width: 0;
+  max-width: min(44vw, 340px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+    max-width: min(60vw, 240px);
   }
 `;
 

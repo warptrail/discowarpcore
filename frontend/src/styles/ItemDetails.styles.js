@@ -29,10 +29,75 @@ const toneColor = (tone) =>
         ? LCARS.lilac
         : LCARS.teal;
 
+const KEEP_PRIORITY_ACCENT = {
+  decommissioned: {
+    base: '#e56f67',
+    soft: '#c75751',
+    bright: '#f4aaa2',
+    deep: '#9f3e39',
+  },
+  low: {
+    base: '#ef9d47',
+    soft: '#d58230',
+    bright: '#f8c178',
+    deep: '#ac6220',
+  },
+  medium: {
+    base: '#e8c75f',
+    soft: '#cfaa43',
+    bright: '#f5df8a',
+    deep: '#a78524',
+  },
+  high: {
+    base: '#62cd88',
+    soft: '#4aad6f',
+    bright: '#92e6b0',
+    deep: '#368a55',
+  },
+  essential: {
+    base: '#a58dff',
+    soft: '#8a73dd',
+    bright: '#c8bcff',
+    deep: '#6452af',
+  },
+  muted: {
+    base: '#8993a3',
+    soft: '#717c8d',
+    bright: '#adb5c2',
+    deep: '#535d6b',
+  },
+};
+
+const keepPriorityAccent = (tone) =>
+  KEEP_PRIORITY_ACCENT[tone] || KEEP_PRIORITY_ACCENT.muted;
+
+const metaChipBase = css`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0.26rem 0.72rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 760;
+  letter-spacing: 0.09em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 27px;
+    padding: 0.2rem 0.54rem;
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.06em;
+  }
+`;
+
 const rowGridColumns = 'minmax(104px, 160px) minmax(0, 1fr)';
 
 export const Panel = styled.section`
   position: relative;
+  z-index: ${({ $lightboxOpen }) => ($lightboxOpen ? 1700 : 1)};
   display: grid;
   gap: 0.95rem;
   padding: 1rem;
@@ -57,19 +122,17 @@ export const Panel = styled.section`
     left: 0.92rem;
     right: 0.92rem;
     top: 0.58rem;
-    height: 3px;
+    height: 4px;
     border-radius: 999px;
     background: linear-gradient(
       90deg,
-      ${LCARS.coral} 0 14%,
-      transparent 14% 19%,
-      ${LCARS.teal} 19% 54%,
-      transparent 54% 58%,
-      ${LCARS.amber} 58% 79%,
-      transparent 79% 83%,
-      ${LCARS.lilac} 83% 100%
+      ${({ $priorityTone }) => keepPriorityAccent($priorityTone).soft} 0 16%,
+      transparent 16% 20%,
+      ${({ $priorityTone }) => keepPriorityAccent($priorityTone).base} 20% 72%,
+      transparent 72% 76%,
+      ${({ $priorityTone }) => keepPriorityAccent($priorityTone).bright} 76% 100%
     );
-    opacity: 0.45;
+    opacity: 0.62;
   }
 
   &::after {
@@ -78,8 +141,13 @@ export const Panel = styled.section`
     bottom: 1rem;
     width: 7px;
     border-radius: 0 999px 999px 0;
-    background: linear-gradient(180deg, ${LCARS.teal}, ${LCARS.lilac} 62%, ${LCARS.coral});
-    opacity: 0.34;
+    background: linear-gradient(
+      180deg,
+      ${({ $priorityTone }) => keepPriorityAccent($priorityTone).deep},
+      ${({ $priorityTone }) => keepPriorityAccent($priorityTone).base} 58%,
+      ${({ $priorityTone }) => keepPriorityAccent($priorityTone).bright}
+    );
+    opacity: 0.4;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -92,15 +160,15 @@ export const Panel = styled.section`
       left: 0.68rem;
       right: 0.68rem;
       top: 0.42rem;
-      height: 2px;
-      opacity: 0.28;
+      height: 3px;
+      opacity: 0.46;
     }
 
     &::after {
       top: 0.68rem;
       bottom: 0.68rem;
       width: 5px;
-      opacity: 0.26;
+      opacity: 0.34;
     }
   }
 `;
@@ -121,6 +189,35 @@ export const FeaturedImageWrap = styled.div`
   border: 1px solid ${LCARS.line};
   background: ${LCARS.panelInset};
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  transition:
+    border-color 160ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+
+  ${({ $interactive }) =>
+    $interactive &&
+    css`
+      cursor: zoom-in;
+
+      &:hover {
+        border-color: rgba(76, 198, 193, 0.58);
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+          0 0 0 1px rgba(76, 198, 193, 0.14);
+      }
+
+      &:focus-visible {
+        outline: none;
+        border-color: rgba(76, 198, 193, 0.86);
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+          0 0 0 2px rgba(76, 198, 193, 0.3);
+      }
+
+      &:active {
+        transform: scale(0.997);
+      }
+    `}
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     border-radius: 10px;
@@ -153,52 +250,37 @@ export const HeaderMeta = styled.div`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: 0.48rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    gap: 0.26rem;
+    gap: 0.32rem;
   }
 `;
 
 export const StatePill = styled.span`
-  display: inline-flex;
-  align-items: center;
+  ${metaChipBase};
   gap: 0.35rem;
-  padding: 0.18rem 0.56rem;
-  border-radius: 999px;
   border: 1px solid ${({ $tone }) => `${toneColor($tone)}70`};
   background: ${({ $tone }) => `${toneColor($tone)}1e`};
   color: ${({ $tone }) => toneColor($tone)};
-  font-size: 0.68rem;
-  font-weight: 760;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: 0.15rem 0.44rem;
-    font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.05em;
-  }
 `;
 
 export const MetaTag = styled.span`
-  display: inline-flex;
-  align-items: center;
-  padding: 0.18rem 0.52rem;
-  border-radius: 999px;
+  ${metaChipBase};
   border: 1px solid ${LCARS.line};
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.045);
   color: ${LCARS.textDim};
-  font-size: 0.68rem;
-  font-weight: 720;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 740;
+`;
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: 0.15rem 0.4rem;
-    font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.05em;
-  }
+export const KeepPriorityPill = styled.span`
+  ${metaChipBase};
+  border: 1px solid ${({ $tone }) => `${keepPriorityAccent($tone).base}88`};
+  background: ${({ $tone }) =>
+    `linear-gradient(180deg, ${keepPriorityAccent($tone).soft}2e, ${keepPriorityAccent(
+      $tone
+    ).base}22)`};
+  color: ${({ $tone }) => keepPriorityAccent($tone).bright};
 `;
 
 export const SectionGrid = styled.div`
@@ -336,6 +418,29 @@ export const RowValue = styled.div`
 
 export const MutedValue = styled.span`
   color: ${LCARS.textMuted};
+`;
+
+export const KeepPriorityBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.56rem;
+  border: 1px solid ${({ $tone }) => `${keepPriorityAccent($tone).base}80`};
+  background: ${({ $tone }) =>
+    `linear-gradient(180deg, ${keepPriorityAccent($tone).soft}20, ${keepPriorityAccent(
+      $tone
+    ).base}26)`};
+  color: ${({ $tone }) => keepPriorityAccent($tone).bright};
+  font-size: 0.74rem;
+  font-weight: 720;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.14rem 0.42rem;
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.05em;
+  }
 `;
 
 export const TagList = styled.div`
@@ -513,6 +618,81 @@ export const PreviewImage = styled.img`
   border-radius: 10px;
   border: 1px solid ${LCARS.line};
   background: ${LCARS.panelInset};
+`;
+
+export const LightboxOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 1800;
+  display: grid;
+  place-items: center;
+  padding: clamp(0.9rem, 3.6vw, 2rem);
+  background: rgba(4, 8, 14, 0.82);
+  backdrop-filter: blur(3px);
+`;
+
+export const LightboxFrame = styled.div`
+  position: relative;
+  max-width: min(94vw, 1320px);
+  max-height: 92vh;
+  width: fit-content;
+  border-radius: 14px;
+  border: 1px solid rgba(137, 181, 220, 0.3);
+  background: #080e16;
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.62),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  padding: clamp(0.45rem, 1.5vw, 0.8rem);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: 12px;
+    padding: 0.46rem;
+  }
+`;
+
+export const LightboxCloseButton = styled.button`
+  position: absolute;
+  top: clamp(0.34rem, 1vw, 0.5rem);
+  right: clamp(0.34rem, 1vw, 0.5rem);
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(233, 240, 247, 0.34);
+  background: rgba(9, 14, 22, 0.82);
+  color: ${LCARS.text};
+  font-size: 1.25rem;
+  line-height: 1;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+
+  &:hover {
+    background: rgba(28, 39, 56, 0.9);
+    border-color: rgba(76, 198, 193, 0.58);
+    color: #eaf8f7;
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: rgba(76, 198, 193, 0.9);
+    box-shadow: 0 0 0 2px rgba(76, 198, 193, 0.32);
+  }
+`;
+
+export const LightboxImage = styled.img`
+  display: block;
+  max-width: min(92vw, 1280px);
+  max-height: calc(92vh - 1.6rem);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 10px;
 `;
 
 const shimmer = keyframes`

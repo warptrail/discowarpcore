@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as S from '../styles/InventoryGridHeader.styles';
+import BoxIdPrefixInput from './BoxIdPrefixInput';
 
 const MAX_PREFIX_LENGTH = 3;
 
@@ -13,9 +14,6 @@ export default function BoxLocatorControl({
   const [isInputLocked, setIsInputLocked] = useState(true);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const wrapperRef = useRef(null);
-  const hardenedInputNameRef = useRef(
-    `box_lookup_${Math.random().toString(36).slice(2, 10)}`,
-  );
 
   const hasQuery = query.length > 0;
   const safeMatches = useMemo(
@@ -153,13 +151,10 @@ export default function BoxLocatorControl({
         Box Locator
       </S.ControlLabel>
       <S.LocatorWrap>
-        <S.SearchInput
+        <BoxIdPrefixInput
+          inputAs={S.SearchInput}
           id="bx-locator"
-          type="search"
-          name={hardenedInputNameRef.current}
-          inputMode="numeric"
-          enterKeyHint="search"
-          pattern="[0-9]*"
+          namePrefix="box_lookup"
           maxLength={MAX_PREFIX_LENGTH}
           value={query}
           onChange={handleInputChange}
@@ -167,14 +162,7 @@ export default function BoxLocatorControl({
           onKeyDown={handleInputKeyDown}
           onPaste={handleInputPaste}
           placeholder="Box ID prefix"
-          aria-label="Box ID prefix search"
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="none"
-          spellCheck={false}
-          data-lpignore="true"
-          data-1p-ignore="true"
-          data-bwignore="true"
+          ariaLabel="Box ID prefix search"
         />
 
         {showDropdown ? (

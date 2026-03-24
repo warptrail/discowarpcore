@@ -3,7 +3,12 @@ import dayjs from 'dayjs';
 import * as S from '../styles/ItemDetails.styles';
 import { fetchItemDetails, createAborter } from '../api/itemDetails';
 import { formatItemCategory, normalizeItemCategory } from '../util/itemCategories';
+import {
+  formatKeepPriorityLabel,
+  keepPriorityTone,
+} from '../util/keepPriority';
 import { getItemOwnershipContext } from '../util/itemOwnership';
+import OperationsItemOverview from './OperationsItemOverview';
 
 function fmtDate(value) {
   return value ? dayjs(value).format('YYYY-MM-DD') : '—';
@@ -105,10 +110,13 @@ function ExternalLinksList({ links = [] }) {
 export default function ItemDetails({
   itemId,
   itemData: providedItemData = null,
+  enableImageLightbox = false,
+  variant = 'full',
 }) {
   const [itemData, setItemData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const hasProvidedData =
     !!providedItemData && typeof providedItemData === 'object';
   const providedHasContainmentSnapshot =
@@ -154,6 +162,17 @@ export default function ItemDetails({
 
   const resolvedItemData = itemData ?? providedItemData;
 
+  useEffect(() => {
+    if (!lightboxOpen) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setLightboxOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxOpen]);
+
   if (loading) {
     return (
       <S.Skeleton>
@@ -191,7 +210,6 @@ export default function ItemDetails({
     condition,
     category,
     isConsumable,
-    minimumDesiredQuantity,
     lastCheckedAt,
     acquisitionType,
     purchasePriceCents,
@@ -211,6 +229,9 @@ export default function ItemDetails({
     resolvedItemData?.image?.url ||
     imagePath ||
     '';
+  const isOperationsOverview = variant === 'operationsOverview';
+  const canOpenLightbox =
+    !isOperationsOverview && enableImageLightbox && Boolean(resolvedImageUrl);
 
   const tagList = Array.isArray(tags) ? tags : [];
   const usageDates = Array.isArray(usageHistory) ? usageHistory : [];
@@ -239,9 +260,17 @@ export default function ItemDetails({
   const topBoxSummary = topBox
     ? formatBoxSummary(topBox?.label, topBox?.box_id)
     : '—';
+  const keepPriorityLabel = formatKeepPriorityLabel(keepPriority);
+  const keepPriorityToneValue = keepPriorityTone(keepPriority);
+  const keepPriorityHeaderLabel = (keepPriorityLabel || 'Unspecified').toUpperCase();
+  const valueLabel = fmtUsdValue(value, valueCents);
+  const purchasePriceLabel = fmtUsdFromCents(purchasePriceCents);
 
   return (
-    <S.Panel>
+    <S.Panel
+      $lightboxOpen={lightboxOpen}
+      $priorityTone={keepPriorityToneValue}
+    >
       <S.HeaderBand>
         <S.TitleBlock>
           <S.HeaderMeta $compact>
@@ -250,12 +279,34 @@ export default function ItemDetails({
             </S.StatePill>
             {quantity != null && <S.MetaTag>qty {quantity}</S.MetaTag>}
             {resolvedBoxId ? <S.MetaTag>box {resolvedBoxId}</S.MetaTag> : null}
+            <S.KeepPriorityPill $tone={keepPriorityToneValue}>
+              {keepPriorityHeaderLabel}
+            </S.KeepPriorityPill>
           </S.HeaderMeta>
         </S.TitleBlock>
       </S.HeaderBand>
 
-      {resolvedImageUrl ? (
-        <S.FeaturedImageWrap>
+      {!isOperationsOverview && resolvedImageUrl ? (
+        <S.FeaturedImageWrap
+          $interactive={canOpenLightbox}
+          role={canOpenLightbox ? 'button' : undefined}
+          tabIndex={canOpenLightbox ? 0 : undefined}
+          onClick={canOpenLightbox ? () => setLightboxOpen(true) : undefined}
+          onKeyDown={
+            canOpenLightbox
+              ? (event) => {
+                  if (event.key !== 'Enter' && event.key !== ' ') return;
+                  event.preventDefault();
+                  setLightboxOpen(true);
+                }
+              : undefined
+          }
+          aria-label={
+            canOpenLightbox
+              ? `Open full-size image for ${resolvedItemData?.name || 'item'}`
+              : undefined
+          }
+        >
           <S.FeaturedImage
             src={resolvedImageUrl}
             alt={`${resolvedItemData?.name || 'Item'} image`}
@@ -263,125 +314,181 @@ export default function ItemDetails({
         </S.FeaturedImageWrap>
       ) : null}
 
-      <S.SectionGrid>
-        <DetailSection title="Identity / Summary" tone="teal">
-          <DetailRow label="Status" value={statusLabel} />
-          <DetailRow label="Inventory Status" value={isGone ? 'gone' : 'active'} />
-          <DetailRow label="Primary Box" value={primaryBox} />
-          <DetailRow label="Category" value={categoryLabel} />
-          <DetailRow
-            label="Tags"
-            value={
-              tagList.length ? (
-                <S.TagList>
-                  {tagList.map((tag, idx) => (
-                    <S.TagChip key={`${tag}-${idx}`}>{tag}</S.TagChip>
-                  ))}
-                </S.TagList>
-              ) : (
-                <S.MutedValue>—</S.MutedValue>
-              )
-            }
-            stretch
-          />
-        </DetailSection>
+      {isOperationsOverview ? (
+        <OperationsItemOverview
+          itemName={resolvedItemData?.name}
+          thumbnailUrl={resolvedImageUrl}
+          quantity={quantity}
+          statusLabel={statusLabel}
+          categoryLabel={categoryLabel}
+          tags={tagList}
+          primaryBox={primaryBox}
+          location={location}
+          breadcrumbTrail={breadcrumbTrail}
+          keepPriorityLabel={keepPriorityLabel}
+          keepPriorityTone={keepPriorityToneValue}
+          primaryOwnerName={primaryOwnerName}
+          condition={condition}
+          isConsumable={isConsumable}
+          valueLabel={valueLabel}
+          purchasePriceLabel={purchasePriceLabel}
+          description={description}
+          notes={notes}
+          externalLinks={externalLinks}
+        />
+      ) : (
+        <S.SectionGrid>
+          <DetailSection title="Identity / Summary" tone="teal">
+            <DetailRow label="Status" value={statusLabel} />
+            <DetailRow label="Inventory Status" value={isGone ? 'gone' : 'active'} />
+            <DetailRow label="Primary Box" value={primaryBox} />
+            <DetailRow label="Category" value={categoryLabel} />
+            <DetailRow
+              label="Tags"
+              value={
+                tagList.length ? (
+                  <S.TagList>
+                    {tagList.map((tag, idx) => (
+                      <S.TagChip key={`${tag}-${idx}`}>{tag}</S.TagChip>
+                    ))}
+                  </S.TagList>
+                ) : (
+                  <S.MutedValue>—</S.MutedValue>
+                )
+              }
+              stretch
+            />
+          </DetailSection>
 
-        <DetailSection title="Inventory / Value" tone="amber">
-          <DetailRow label="Quantity" value={quantity ?? '—'} />
-          <DetailRow label="Value" value={fmtUsdValue(value, valueCents)} />
-          <DetailRow label="Purchase Price" value={fmtUsdFromCents(purchasePriceCents)} />
-        </DetailSection>
+          <DetailSection title="Inventory / Value" tone="amber">
+            <DetailRow label="Quantity" value={quantity ?? '—'} />
+            <DetailRow label="Value" value={valueLabel} />
+            <DetailRow label="Purchase Price" value={purchasePriceLabel} />
+          </DetailSection>
 
-        <DetailSection title="Description / Notes" tone="lilac" wide>
-          <DetailRow label="Description" value={description || '—'} stretch />
-          <DetailRow label="Notes" value={notes || '—'} stretch />
-        </DetailSection>
+          <DetailSection title="Description / Notes" tone="lilac" wide>
+            <DetailRow label="Description" value={description || '—'} stretch />
+            <DetailRow label="Notes" value={notes || '—'} stretch />
+          </DetailSection>
 
-        <DetailSection title="External Links" tone="lilac" wide>
-          <DetailRow
-            label="References"
-            value={<ExternalLinksList links={externalLinks} />}
-            stretch
-          />
-        </DetailSection>
+          <DetailSection title="External Links" tone="lilac" wide>
+            <DetailRow
+              label="References"
+              value={<ExternalLinksList links={externalLinks} />}
+              stretch
+            />
+          </DetailSection>
 
-        <DetailSection title="Lifecycle" tone="teal" wide>
-          <DetailRow label="Date Acquired" value={fmtDate(dateAcquired)} />
-          <DetailRow label="Last Used" value={fmtDate(dateLastUsed)} />
-          <DetailRow label="Last Checked" value={fmtDate(lastCheckedAt)} />
-          <DetailRow label="Disposition" value={formatDispositionLabel(disposition)} />
-          <DetailRow label="Disposition At" value={fmtDate(disposition_at)} />
-          <DetailRow label="Disposition Notes" value={disposition_notes || '—'} stretch />
-          <DetailRow
-            label="Usage History"
-            value={
-              usageDates.length ? (
-                <S.UsageList>
-                  {usageDates.map((dateValue, index) => (
-                    <S.UsageItem key={`${dateValue}-${index}`}>
-                      {fmtDate(dateValue)}
-                    </S.UsageItem>
-                  ))}
-                </S.UsageList>
-              ) : (
-                <S.MutedValue>—</S.MutedValue>
-              )
-            }
-            stretch
-          />
-          <DetailRow label="Avg Interval (days)" value={avgUseIntervalDays ?? '—'} />
-          <DetailRow label="Orphaned At" value={fmtDate(orphanedAt)} />
-        </DetailSection>
+          <DetailSection title="Lifecycle" tone="teal" wide>
+            <DetailRow label="Date Acquired" value={fmtDate(dateAcquired)} />
+            <DetailRow label="Last Used" value={fmtDate(dateLastUsed)} />
+            <DetailRow label="Last Checked" value={fmtDate(lastCheckedAt)} />
+            <DetailRow label="Disposition" value={formatDispositionLabel(disposition)} />
+            <DetailRow label="Disposition At" value={fmtDate(disposition_at)} />
+            <DetailRow label="Disposition Notes" value={disposition_notes || '—'} stretch />
+            <DetailRow
+              label="Usage History"
+              value={
+                usageDates.length ? (
+                  <S.UsageList>
+                    {usageDates.map((dateValue, index) => (
+                      <S.UsageItem key={`${dateValue}-${index}`}>
+                        {fmtDate(dateValue)}
+                      </S.UsageItem>
+                    ))}
+                  </S.UsageList>
+                ) : (
+                  <S.MutedValue>—</S.MutedValue>
+                )
+              }
+              stretch
+            />
+            <DetailRow label="Avg Interval (days)" value={avgUseIntervalDays ?? '—'} />
+            <DetailRow label="Orphaned At" value={fmtDate(orphanedAt)} />
+          </DetailSection>
 
-        <DetailSection title="Ownership / Retention" tone="amber" wide>
-          <DetailRow label="Keep Priority" value={keepPriority || '—'} />
-          <DetailRow label="Primary Owner" value={primaryOwnerName || '—'} />
-          <DetailRow label="Condition" value={condition || '—'} />
-          <DetailRow
-            label="Consumable"
-            value={isConsumable ? 'Yes' : 'No'}
-          />
-          <DetailRow
-            label="Min Desired Qty"
-            value={minimumDesiredQuantity ?? '—'}
-          />
-          <DetailRow label="Acquisition Type" value={acquisitionType || '—'} />
-        </DetailSection>
+          <DetailSection title="Ownership / Retention" tone="amber" wide>
+            <DetailRow
+              label="Keep Priority"
+              value={
+                keepPriorityLabel ? (
+                  <S.KeepPriorityBadge
+                    $tone={keepPriorityToneValue}
+                  >
+                    {keepPriorityLabel}
+                  </S.KeepPriorityBadge>
+                ) : (
+                  '—'
+                )
+              }
+            />
+            <DetailRow label="Primary Owner" value={primaryOwnerName || '—'} />
+            <DetailRow label="Condition" value={condition || '—'} />
+            <DetailRow
+              label="Consumable"
+              value={isConsumable ? 'Yes' : 'No'}
+            />
+            <DetailRow label="Acquisition Type" value={acquisitionType || '—'} />
+          </DetailSection>
 
-        <DetailSection title="Maintenance" tone="teal" wide>
-          <DetailRow
-            label="Last Maintained"
-            value={fmtDate(lastMaintainedAt)}
-          />
-          <DetailRow
-            label="Interval (days)"
-            value={maintenanceIntervalDays ?? '—'}
-          />
-          <DetailRow
-            label="Maintenance Notes"
-            value={maintenanceNotes || '—'}
-            stretch
-          />
-        </DetailSection>
+          <DetailSection title="Maintenance" tone="teal" wide>
+            <DetailRow
+              label="Last Maintained"
+              value={fmtDate(lastMaintainedAt)}
+            />
+            <DetailRow
+              label="Interval (days)"
+              value={maintenanceIntervalDays ?? '—'}
+            />
+            <DetailRow
+              label="Maintenance Notes"
+              value={maintenanceNotes || '—'}
+              stretch
+            />
+          </DetailSection>
 
-        <DetailSection title="Placement / Hierarchy" tone="coral" wide>
-          <DetailRow label="Location" value={location || '—'} stretch />
-          <DetailRow label="Box" value={primaryBox} stretch />
-          <DetailRow label="Box Description" value={resolvedBox?.description || '—'} stretch />
-          <DetailRow label="Depth" value={depth ?? '—'} />
-          <DetailRow label="Top Box" value={topBoxSummary} stretch />
-          <DetailRow
-            label="Breadcrumb"
-            value={<BreadcrumbTrail breadcrumb={breadcrumbTrail} />}
-            stretch
-          />
-        </DetailSection>
+          <DetailSection title="Placement / Hierarchy" tone="coral" wide>
+            <DetailRow label="Location" value={location || '—'} stretch />
+            <DetailRow label="Box" value={primaryBox} stretch />
+            <DetailRow label="Box Description" value={resolvedBox?.description || '—'} stretch />
+            <DetailRow label="Depth" value={depth ?? '—'} />
+            <DetailRow label="Top Box" value={topBoxSummary} stretch />
+            <DetailRow
+              label="Breadcrumb"
+              value={<BreadcrumbTrail breadcrumb={breadcrumbTrail} />}
+              stretch
+            />
+          </DetailSection>
 
-        <DetailSection title="Media Metadata" tone="lilac" wide>
-          <DetailRow label="Image Path" value={imagePath || '—'} stretch />
-        </DetailSection>
+          <DetailSection title="Media Metadata" tone="lilac" wide>
+            <DetailRow label="Image Path" value={imagePath || '—'} stretch />
+          </DetailSection>
 
-      </S.SectionGrid>
+        </S.SectionGrid>
+      )}
+
+      {canOpenLightbox && lightboxOpen ? (
+        <S.LightboxOverlay
+          onClick={() => setLightboxOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Image preview for ${resolvedItemData?.name || 'item'}`}
+        >
+          <S.LightboxFrame onClick={(event) => event.stopPropagation()}>
+            <S.LightboxCloseButton
+              type="button"
+              onClick={() => setLightboxOpen(false)}
+              aria-label="Close image preview"
+            >
+              ×
+            </S.LightboxCloseButton>
+            <S.LightboxImage
+              src={resolvedImageUrl}
+              alt={`${resolvedItemData?.name || 'Item'} image enlarged`}
+            />
+          </S.LightboxFrame>
+        </S.LightboxOverlay>
+      ) : null}
 
     </S.Panel>
   );

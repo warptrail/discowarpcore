@@ -1,14 +1,18 @@
-import { formatItemCategory, normalizeItemCategory } from '../../util/itemCategories';
+import {
+  ITEM_CATEGORIES,
+  formatItemCategory,
+  normalizeItemCategory,
+} from '../../util/itemCategories';
+import {
+  formatKeepPriorityLabel,
+  KEEP_PRIORITY_ORDER,
+  keepPriorityTone,
+  normalizeKeepPriority,
+} from '../../util/keepPriority';
 import { getItemOwnershipContext } from '../../util/itemOwnership';
 
-const PRIORITY_ORDER = {
-  essential: 0,
-  high: 1,
-  medium: 2,
-  low: 3,
-};
-
 const DISPOSITION_LABELS = {
+  consumed: 'Consumed',
   lost: 'Lost',
   stolen: 'Stolen',
   trashed: 'Trashed',
@@ -35,6 +39,7 @@ export const BASE_FILTER_OPTIONS = [
   { value: 'orphaned', label: 'Orphaned' },
   { value: 'consumable', label: 'Consumable' },
   { value: 'nonConsumable', label: 'Non-Consumable' },
+  { value: 'decommissioned', label: 'Decommissioned' },
 ];
 
 export const SORT_OPTIONS = [
@@ -48,6 +53,9 @@ export const SORT_OPTIONS = [
   { value: 'category', label: 'Category' },
   { value: 'dispositionAt', label: 'Disposition Date' },
 ];
+
+const BASE_FILTER_VALUES = new Set(BASE_FILTER_OPTIONS.map((option) => option.value));
+const SORT_VALUES = new Set(SORT_OPTIONS.map((option) => option.value));
 
 function isFiniteDate(date) {
   return date instanceof Date && Number.isFinite(date.getTime());
@@ -77,6 +85,74 @@ function compareByName(a, b) {
   return compareText(a?.name, b?.name);
 }
 
+function normalizeSearchFragment(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function pushSearchFragment(parts, value) {
+  const fragment = normalizeSearchFragment(value);
+  if (fragment) parts.push(fragment);
+}
+
+function pushTagFragments(parts, tags) {
+  const safeTags = Array.isArray(tags) ? tags : [];
+  for (const tag of safeTags) {
+    if (typeof tag === 'string') {
+      pushSearchFragment(parts, tag);
+      continue;
+    }
+    pushSearchFragment(parts, tag?.value || tag?.label || '');
+  }
+}
+
+function pushLinkFragments(parts, links) {
+  const safeLinks = Array.isArray(links) ? links : [];
+  for (const link of safeLinks) {
+    pushSearchFragment(parts, link?.label);
+    pushSearchFragment(parts, link?.url);
+  }
+}
+
+function buildItemSearchText(item, {
+  categoryLabel,
+  keepPriorityKey,
+  keepPriorityLabel,
+  ownerLabel,
+  statusLabel,
+  dispositionLabel,
+  quantityLabel,
+  tags,
+}) {
+  const parts = [];
+
+  // Item-owned fields only; intentionally excludes all box context.
+  pushSearchFragment(parts, item?.name);
+  pushSearchFragment(parts, item?.description);
+  pushSearchFragment(parts, item?.notes);
+  pushSearchFragment(parts, item?.disposition_notes);
+  pushSearchFragment(parts, item?.maintenanceNotes);
+  pushSearchFragment(parts, item?.category);
+  pushSearchFragment(parts, categoryLabel);
+  pushSearchFragment(parts, item?.primaryOwnerName);
+  pushSearchFragment(parts, ownerLabel);
+  pushSearchFragment(parts, item?.keepPriority);
+  pushSearchFragment(parts, keepPriorityKey);
+  pushSearchFragment(parts, keepPriorityLabel);
+  pushSearchFragment(parts, item?.condition);
+  pushSearchFragment(parts, item?.acquisitionType);
+  pushSearchFragment(parts, item?.item_status);
+  pushSearchFragment(parts, statusLabel);
+  pushSearchFragment(parts, item?.disposition);
+  pushSearchFragment(parts, dispositionLabel);
+  pushSearchFragment(parts, quantityLabel);
+  pushSearchFragment(parts, item?.quantity);
+  pushSearchFragment(parts, item?.isConsumable ? 'consumable' : 'non-consumable');
+  pushTagFragments(parts, tags);
+  pushLinkFragments(parts, item?.links);
+
+  return parts.join(' ');
+}
+
 function getStatusTone({ isGone, isOrphaned }) {
   if (isGone) return 'coral';
   if (isOrphaned) return 'amber';
@@ -85,6 +161,7 @@ function getStatusTone({ isGone, isOrphaned }) {
 
 function getDispositionTone(value) {
   const key = String(value || '').trim().toLowerCase();
+  if (key === 'consumed') return 'teal';
   if (key === 'lost' || key === 'stolen') return 'coral';
   if (key === 'gifted' || key === 'donated') return 'lilac';
   if (key === 'recycled') return 'teal';
@@ -96,6 +173,25 @@ export function normalizeStatusFilter(value) {
   const next = String(value || '').trim().toLowerCase();
   if (next === 'active' || next === 'gone' || next === 'all') return next;
   return 'active';
+}
+
+export function normalizeItemFilter(value) {
+  const next = String(value || '').trim();
+  if (!next) return 'all';
+  if (BASE_FILTER_VALUES.has(next)) return next;
+  if (next.startsWith('category:')) {
+    const category = normalizeItemCategory(next.slice('category:'.length));
+    if (ITEM_CATEGORIES.includes(category)) {
+      return `category:${category}`;
+    }
+  }
+  return 'all';
+}
+
+export function normalizeSortBy(value) {
+  const next = String(value || '').trim();
+  if (SORT_VALUES.has(next)) return next;
+  return 'alpha';
 }
 
 export function isGoneItem(item) {
@@ -141,9 +237,28 @@ export function prepareItemForList(item) {
   const dispositionLabel = formatDispositionLabel(disposition);
   const dispositionNotes = String(item?.disposition_notes || '').trim();
   const dispositionNotesPreview = summarizeText(dispositionNotes, 100);
+  const keepPriorityKey = normalizeKeepPriority(item?.keepPriority);
+  const keepPriorityLabel = formatKeepPriorityLabel(keepPriorityKey);
   const boxId = ownership.boxId || '';
   const boxLabel = ownership.boxLabel || '';
   const boxDescription = ownership.boxDescription || '';
+  const tags = Array.isArray(item?.tags) ? item.tags.filter(Boolean) : [];
+  const ownerLabel = String(item?.primaryOwnerName || '').trim();
+  const statusLabel = isGone ? 'No Longer Have' : isOrphaned ? 'Orphaned' : 'Active';
+  const quantityLabel =
+    item?.quantity == null || item?.quantity === ''
+      ? '—'
+      : String(item.quantity);
+  const searchText = buildItemSearchText(item, {
+    categoryLabel,
+    keepPriorityKey,
+    keepPriorityLabel,
+    ownerLabel,
+    statusLabel,
+    dispositionLabel,
+    quantityLabel,
+    tags,
+  });
 
   return {
     ...item,
@@ -153,11 +268,11 @@ export function prepareItemForList(item) {
       isOrphaned,
       isUnassigned: !isGone && !isBoxed && !isOrphaned,
       isBoxed,
-      statusLabel: isGone ? 'No Longer Have' : isOrphaned ? 'Orphaned' : 'Active',
+      statusLabel,
       statusTone: getStatusTone({ isGone, isOrphaned }),
       normalizedCategory,
       categoryLabel,
-      tags: Array.isArray(item?.tags) ? item.tags.filter(Boolean) : [],
+      tags,
       disposition,
       dispositionLabel,
       dispositionTone: getDispositionTone(disposition),
@@ -177,25 +292,34 @@ export function prepareItemForList(item) {
       createdAtMs: parseObjectIdMs(item?._id),
       lastMaintainedAtMs: parseDateMs(item?.lastMaintainedAt),
       keepPriorityRank:
-        PRIORITY_ORDER[String(item?.keepPriority || '').trim().toLowerCase()] ?? 4,
-      ownerLabel: String(item?.primaryOwnerName || '').trim(),
+        KEEP_PRIORITY_ORDER[keepPriorityKey] ?? 5,
+      keepPriorityKey,
+      keepPriorityLabel,
+      keepPriorityTone: keepPriorityTone(keepPriorityKey),
+      ownerLabel,
       purchasePriceCents: Number.isFinite(item?.purchasePriceCents)
         ? item.purchasePriceCents
         : -1,
-      quantityLabel:
-        item?.quantity == null || item?.quantity === ''
-          ? '—'
-          : String(item.quantity),
+      quantityLabel,
+      searchText,
     },
   };
 }
 
-export function filterAndSortItems(items, { statusFilter, filter, sortBy }) {
+export function filterAndSortItems(items, { statusFilter, filter, sortBy, searchQuery }) {
   const next = Array.isArray(items) ? [...items] : [];
+  const normalizedSearchQuery = normalizeSearchFragment(searchQuery);
 
   const filtered = next.filter((item) => {
     const meta = item?._allItems;
     if (!meta) return false;
+
+    if (
+      normalizedSearchQuery &&
+      !String(meta.searchText || '').includes(normalizedSearchQuery)
+    ) {
+      return false;
+    }
 
     if (statusFilter === 'active' && meta.isGone) return false;
     if (statusFilter === 'gone' && !meta.isGone) return false;
@@ -204,6 +328,7 @@ export function filterAndSortItems(items, { statusFilter, filter, sortBy }) {
     if (filter === 'orphaned') return meta.isOrphaned;
     if (filter === 'consumable') return Boolean(item?.isConsumable);
     if (filter === 'nonConsumable') return !item?.isConsumable;
+    if (filter === 'decommissioned') return meta.keepPriorityKey === 'decommissioned';
     if (String(filter || '').startsWith('category:')) {
       const selectedCategory = String(filter).slice('category:'.length);
       return meta.normalizedCategory === selectedCategory;

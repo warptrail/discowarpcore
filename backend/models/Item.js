@@ -11,6 +11,19 @@ const {
   ITEM_STATUSES,
   ITEM_DISPOSITIONS,
 } = require('../utils/itemDisposition');
+const { KEEP_PRIORITY_VALUES } = require('../utils/keepPriority');
+
+function toTrimmed(value) {
+  return value == null ? '' : String(value).trim();
+}
+
+function firstNonEmpty(...values) {
+  for (const value of values) {
+    const next = toTrimmed(value);
+    if (next) return next;
+  }
+  return '';
+}
 
 function isNonNegativeIntegerOrNull(v) {
   return v == null || (Number.isInteger(v) && v >= 0);
@@ -185,7 +198,7 @@ const itemSchema = new mongoose.Schema(
     },
     keepPriority: {
       type: String,
-      enum: ['low', 'medium', 'high', 'essential'],
+      enum: KEEP_PRIORITY_VALUES,
       default: null,
     },
     primaryOwnerName: { type: String, default: null },
@@ -202,15 +215,6 @@ const itemSchema = new mongoose.Schema(
       set: normalizeItemCategory,
     },
     isConsumable: { type: Boolean, default: false },
-    minimumDesiredQuantity: {
-      type: Number,
-      default: null,
-      validate: {
-        validator: isNonNegativeIntegerOrNull,
-        message:
-          'minimumDesiredQuantity must be null or a non-negative integer',
-      },
-    },
     lastCheckedAt: { type: Date, default: null },
     acquisitionType: {
       type: String,
@@ -318,7 +322,8 @@ itemSchema.statics.findItemById = async function (id, { select } = {}) {
   const leaf = isGone
     ? null
     : await Box.findOne({ items: item._id })
-        .select('_id box_id label description parentBox')
+        .select('_id box_id label description parentBox location locationId')
+        .populate('locationId', 'name')
         .lean();
 
   if (!leaf) {
@@ -334,14 +339,40 @@ itemSchema.statics.findItemById = async function (id, { select } = {}) {
   const allBoxes = await Box.findAllBoxesForMaps();
   const maps = buildBoxMaps(allBoxes);
   const { breadcrumb, depth, rootBox } = makeBreadcrumb(leaf._id, maps);
+  const leafLocation = firstNonEmpty(leaf?.locationId?.name, leaf?.location);
+
+  // Effective location is the first non-empty location from leaf -> ancestors.
+  let resolvedLocation = '';
+  let locationCursor = String(leaf._id);
+  while (locationCursor) {
+    const node = maps.byId.get(locationCursor);
+    if (!node) break;
+    const locationValue = firstNonEmpty(node?.location);
+    if (locationValue) {
+      resolvedLocation = locationValue;
+      break;
+    }
+    locationCursor = maps.parentOf.get(locationCursor);
+  }
+  const inheritedLocation = firstNonEmpty(leafLocation, resolvedLocation);
 
   return withNormalizedItemCategory({
     ...item,
+    inheritedLocation,
     box: {
       _id: leaf._id,
       box_id: leaf.box_id,
       label: leaf.label,
       description: leaf.description,
+      location: leafLocation,
+      locationName: leafLocation,
+      locationId:
+        leaf?.locationId && typeof leaf.locationId === 'object'
+          ? {
+              _id: leaf.locationId._id,
+              name: firstNonEmpty(leaf.locationId.name),
+            }
+          : null,
     },
     breadcrumb,
     depth,

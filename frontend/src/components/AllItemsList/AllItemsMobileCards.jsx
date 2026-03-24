@@ -68,6 +68,11 @@ export default function AllItemsMobileCards({ items = [] }) {
                   {meta?.isGone && meta?.disposition ? (
                     <S.Pill $tone={meta?.dispositionTone}>{meta?.dispositionLabel}</S.Pill>
                   ) : null}
+                  {meta?.keepPriorityLabel ? (
+                    <S.Pill $tone={meta?.keepPriorityTone}>
+                      Keep: {meta.keepPriorityLabel}
+                    </S.Pill>
+                  ) : null}
                   {meta?.hasDispositionNotes ? <S.NotesFlag>Notes</S.NotesFlag> : null}
                 </S.MobileLine>
 

@@ -23,6 +23,19 @@ const RETRIEVAL = {
   teal: '#4cc6c1',
   mint: '#67efc8',
   amber: '#e8b15c',
+  decommissioned: '#e56f67',
+};
+
+const keepPriorityToneColor = (tone) => {
+  if (tone === 'decommissioned') return RETRIEVAL.decommissioned;
+  if (tone === 'low') return '#ef9d47';
+  if (tone === 'medium') return '#e8c75f';
+  if (tone === 'high') return '#62cd88';
+  if (tone === 'essential') return '#a58dff';
+  if (tone === 'teal') return '#62cd88';
+  if (tone === 'lilac') return '#a58dff';
+  if (tone === 'amber') return '#e8c75f';
+  return RETRIEVAL.textDim;
 };
 
 const panelChrome = css`
@@ -80,6 +93,53 @@ export const ControlsPanel = styled.section`
     padding: 0.54rem;
     border-radius: ${MOBILE_PANEL_RADIUS};
     gap: 0.52rem;
+  }
+`;
+
+export const ModeToggleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+`;
+
+export const ModeToggleGroup = styled.div`
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.22rem;
+  padding: 0.2rem;
+  border-radius: 12px;
+  border: 1px solid rgba(127, 215, 255, 0.28);
+  background: rgba(10, 16, 24, 0.62);
+`;
+
+export const ModeToggleButton = styled.button`
+  min-height: 34px;
+  padding: 0.22rem 0.76rem;
+  border-radius: 9px;
+  border: 1px solid
+    ${({ $active }) =>
+      $active ? 'rgba(119, 213, 255, 0.58)' : 'rgba(255, 255, 255, 0.16)'};
+  background: ${({ $active }) =>
+    $active
+      ? 'linear-gradient(180deg, rgba(119, 213, 255, 0.26), rgba(119, 213, 255, 0.14))'
+      : 'rgba(255, 255, 255, 0.06)'};
+  color: ${({ $active }) => ($active ? '#e8f7ff' : RETRIEVAL.textDim)};
+  font-size: 0.76rem;
+  font-weight: 760;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+
+  &:hover {
+    border-color: ${({ $active }) =>
+      $active ? 'rgba(119, 213, 255, 0.72)' : 'rgba(119, 213, 255, 0.46)'};
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+    font-size: ${MOBILE_FONT_SM};
+    padding: 0.2rem 0.6rem;
   }
 `;
 
@@ -192,14 +252,28 @@ export const SearchHint = styled.p`
 
 export const FilterGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.52rem;
 
-  @media (max-width: 1100px) {
+  @media (max-width: 1320px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (max-width: 980px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  @media (max-width: 860px) {
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const BoxFilterGrid = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 420px);
+  gap: 0.52rem;
+
+  @media (max-width: 640px) {
     grid-template-columns: 1fr;
   }
 `;
@@ -224,11 +298,98 @@ export const FilterLabel = styled.span`
 export const FilterRow = styled.div`
   display: flex;
   gap: 0.4rem;
+  align-items: stretch;
 `;
 
-export const FilterSelect = styled.select`
+export const FilterComboboxShell = styled.div`
+  position: relative;
+  flex: 1;
+  min-width: 0;
+`;
+
+export const FilterComboboxInput = styled.input`
   ${controlField};
   min-height: 36px;
+  padding-right: 2rem;
+  font-size: 0.84rem;
+`;
+
+export const FilterComboboxCaret = styled.span`
+  position: absolute;
+  right: 0.68rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: ${RETRIEVAL.textMuted};
+  font-size: 0.8rem;
+`;
+
+export const FilterComboboxDropdown = styled.ul`
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 25;
+  list-style: none;
+  margin: 0;
+  padding: 0.32rem;
+  border: 1px solid ${RETRIEVAL.borderStrong};
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(17, 24, 34, 0.96), rgba(12, 18, 26, 0.98)),
+    ${RETRIEVAL.bg};
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(10, 16, 24, 0.38) inset;
+  max-height: min(280px, 45vh);
+  overflow: auto;
+`;
+
+export const FilterComboboxOption = styled.li`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 34px;
+  padding: 0.44rem 0.58rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: ${({ $selected, $active }) =>
+    $selected
+      ? 'rgba(76, 198, 193, 0.24)'
+      : $active
+        ? 'rgba(119, 213, 255, 0.14)'
+        : 'transparent'};
+  border-color: ${({ $selected, $active }) =>
+    $selected
+      ? 'rgba(76, 198, 193, 0.48)'
+      : $active
+        ? 'rgba(119, 213, 255, 0.35)'
+        : 'transparent'};
+  color: ${({ $selected }) => ($selected ? '#e5fffb' : RETRIEVAL.text)};
+  cursor: pointer;
+  transition: background 100ms ease, border-color 100ms ease;
+
+  &:hover {
+    background: ${({ $selected }) =>
+      $selected ? 'rgba(76, 198, 193, 0.28)' : 'rgba(119, 213, 255, 0.16)'};
+    border-color: ${({ $selected }) =>
+      $selected ? 'rgba(76, 198, 193, 0.54)' : 'rgba(119, 213, 255, 0.42)'};
+  }
+`;
+
+export const FilterComboboxOptionLabel = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+`;
+
+export const FilterComboboxEmptyState = styled.li`
+  padding: 0.56rem 0.58rem;
+  color: ${RETRIEVAL.textMuted};
+  font-size: 0.76rem;
+  text-align: left;
 `;
 
 export const AddFilterButton = styled.button`
@@ -336,6 +497,243 @@ export const ResultsList = styled.div`
   gap: 0;
 `;
 
+export const BoxCentricLayout = styled.div`
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.64rem 0.68rem 0.68rem;
+
+  @media (min-width: 980px) {
+    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 1fr);
+    align-items: start;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.52rem 0.54rem 0.56rem;
+    gap: 0.5rem;
+  }
+`;
+
+export const BoxMapPanel = styled.section`
+  border-radius: 11px;
+  border: 1px solid rgba(127, 215, 255, 0.18);
+  background:
+    linear-gradient(180deg, rgba(15, 22, 30, 0.86), rgba(11, 18, 26, 0.84)),
+    rgba(10, 16, 24, 0.8);
+  display: grid;
+  gap: 0.42rem;
+  padding: 0.5rem;
+`;
+
+export const BoxGroup = styled.section`
+  display: grid;
+  gap: 0.24rem;
+`;
+
+export const BoxGroupLabel = styled.p`
+  margin: 0;
+  color: ${RETRIEVAL.textMuted};
+  font-size: 0.67rem;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+`;
+
+export const BoxList = styled.div`
+  display: grid;
+  gap: 0.22rem;
+`;
+
+export const BoxListItem = styled.div`
+  display: grid;
+  gap: 0.22rem;
+`;
+
+export const BoxListRow = styled.button`
+  width: 100%;
+  border: 1px solid
+    ${({ $active }) =>
+      $active ? 'rgba(119, 213, 255, 0.54)' : 'rgba(255, 255, 255, 0.1)'};
+  border-radius: 10px;
+  background: ${({ $active }) =>
+    $active
+      ? 'linear-gradient(180deg, rgba(119, 213, 255, 0.16), rgba(119, 213, 255, 0.09))'
+      : 'rgba(255, 255, 255, 0.04)'};
+  color: ${RETRIEVAL.text};
+  text-align: left;
+  padding: 0.34rem 0.42rem;
+  display: grid;
+  gap: 0.18rem;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+
+  &:hover {
+    border-color: rgba(119, 213, 255, 0.4);
+    background: rgba(119, 213, 255, 0.1);
+  }
+`;
+
+export const MobileInlineInspectPanel = styled.section`
+  border-radius: 10px;
+  border: 1px solid rgba(127, 215, 255, 0.24);
+  background:
+    radial-gradient(circle at 94% 8%, rgba(76, 198, 193, 0.1), transparent 42%),
+    linear-gradient(180deg, rgba(16, 24, 35, 0.9), rgba(11, 18, 27, 0.92));
+  display: grid;
+  gap: 0.34rem;
+  padding: 0.44rem 0.48rem;
+
+  @media (min-width: 980px) {
+    display: none;
+  }
+`;
+
+export const BoxRowMain = styled.div`
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.32rem;
+`;
+
+export const BoxRowId = styled.span`
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  color: ${RETRIEVAL.cyan};
+  font-size: 0.8rem;
+  font-weight: 780;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+`;
+
+export const BoxRowLabel = styled.span`
+  min-width: 0;
+  color: #ebf3fb;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+export const BoxRowMeta = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  font-size: 0.67rem;
+  color: ${RETRIEVAL.textMuted};
+`;
+
+export const BoxMetaPill = styled.span`
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 215, 255, 0.2);
+  background: rgba(127, 215, 255, 0.08);
+  color: ${RETRIEVAL.textDim};
+  line-height: 1;
+  padding: 0.14rem 0.4rem;
+`;
+
+export const BoxInspectPanel = styled.section`
+  border-radius: 11px;
+  border: 1px solid rgba(127, 215, 255, 0.22);
+  background:
+    radial-gradient(circle at 94% 8%, rgba(76, 198, 193, 0.12), transparent 42%),
+    linear-gradient(180deg, rgba(18, 26, 37, 0.9), rgba(12, 19, 28, 0.92));
+  display: grid;
+  gap: 0.38rem;
+  padding: 0.54rem 0.6rem;
+`;
+
+export const BoxInspectHeader = styled.div`
+  display: grid;
+  gap: 0.18rem;
+`;
+
+export const BoxInspectTitle = styled.h3`
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.25;
+  font-weight: 760;
+  color: #eaf3fc;
+`;
+
+export const BoxInspectTitleLink = styled(Link)`
+  color: inherit;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+    text-decoration-color: rgba(119, 213, 255, 0.84);
+    text-underline-offset: 2px;
+  }
+`;
+
+export const BoxInspectSubtitle = styled.p`
+  margin: 0;
+  font-size: 0.72rem;
+  color: ${RETRIEVAL.textMuted};
+`;
+
+export const BoxInspectPath = styled.p`
+  margin: 0;
+  font-size: 0.7rem;
+  color: rgba(232, 238, 244, 0.64);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+`;
+
+export const BoxInspectSection = styled.section`
+  display: grid;
+  gap: 0.24rem;
+`;
+
+export const BoxInspectSectionTitle = styled.p`
+  margin: 0;
+  color: ${RETRIEVAL.textDim};
+  font-size: 0.69rem;
+  font-weight: 740;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+`;
+
+export const BoxInspectList = styled.div`
+  display: grid;
+  gap: 0.2rem;
+`;
+
+export const BoxInspectRow = styled.div`
+  display: grid;
+  gap: 0.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.26rem 0.34rem;
+`;
+
+export const BoxInspectRowLink = styled(Link)`
+  color: #e4f2ff;
+  font-size: 0.77rem;
+  font-weight: 680;
+  text-decoration: none;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &:hover {
+    text-decoration: underline;
+    text-decoration-color: rgba(119, 213, 255, 0.84);
+    text-underline-offset: 2px;
+  }
+`;
+
+export const BoxInspectRowMeta = styled.span`
+  color: ${RETRIEVAL.textMuted};
+  font-size: 0.66rem;
+`;
+
 export const ResultsFooter = styled.div`
   display: flex;
   justify-content: center;
@@ -409,9 +807,9 @@ export const SummaryButton = styled.div`
   color: inherit;
   text-align: left;
   cursor: pointer;
-  padding: 0.66rem 0.72rem 0.56rem;
+  padding: 0.34rem 0.52rem;
   display: grid;
-  gap: 0.4rem;
+  gap: 0.16rem;
   transition: background 140ms ease;
 
   &:hover {
@@ -428,40 +826,44 @@ export const SummaryButton = styled.div`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: 0.58rem;
-    gap: 0.3rem;
+    padding: 0.3rem 0.42rem;
   }
 `;
 
 export const SummaryTop = styled.div`
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 0.4rem;
+  align-items: center;
+  gap: 0.34rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    align-items: flex-start;
+  }
 `;
 
 export const RowMain = styled.div`
   display: grid;
-  grid-template-columns: clamp(72px, 8vw, 92px) minmax(0, 1fr);
-  align-items: start;
-  gap: 0.7rem;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem;
   min-width: 0;
+  flex: 1 1 auto;
 
   @media (max-width: 980px) {
-    grid-template-columns: 68px minmax(0, 1fr);
-    gap: 0.56rem;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 0.44rem;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: 56px minmax(0, 1fr);
-    gap: 0.48rem;
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 0.4rem;
   }
 `;
 
 const thumbFrameBase = css`
-  width: clamp(72px, 8vw, 92px);
+  width: 44px;
   aspect-ratio: 1 / 1;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.16);
   background:
@@ -471,12 +873,12 @@ const thumbFrameBase = css`
   place-items: center;
 
   @media (max-width: 980px) {
-    width: 68px;
+    width: 42px;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    width: 56px;
-    border-radius: 10px;
+    width: 40px;
+    border-radius: 7px;
   }
 `;
 
@@ -513,24 +915,47 @@ export const ThumbImage = styled.img`
 
 export const ThumbPlaceholder = styled.span`
   color: rgba(232, 238, 244, 0.45);
-  font-size: 0.52rem;
+  font-size: 0.46rem;
   text-transform: uppercase;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.07em;
 `;
 
 export const BadgeStack = styled.div`
   display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, clamp(290px, 44%, 560px));
+  align-items: center;
+  gap: 0.36rem;
+  min-width: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: grid;
+    gap: 0.22rem;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+`;
+
+export const CompactMetaLine = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: 0.34rem;
   min-width: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.3rem;
+  }
 `;
 
 export const ExpandControl = styled.span`
-  align-self: start;
+  align-self: center;
   display: inline-grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   border: 1px solid
     ${({ $expanded }) =>
       $expanded ? 'rgba(119, 213, 255, 0.5)' : 'rgba(255, 255, 255, 0.22)'};
@@ -538,11 +963,74 @@ export const ExpandControl = styled.span`
     $expanded ? 'rgba(119, 213, 255, 0.18)' : 'rgba(255, 255, 255, 0.07)'};
   color: ${({ $expanded }) => ($expanded ? '#d6f0ff' : RETRIEVAL.textDim)};
   flex: 0 0 auto;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: 0.02rem;
+  }
 `;
 
 export const ExpandCaret = styled.span`
-  font-size: 1rem;
+  font-size: 0.9rem;
   line-height: 1;
+`;
+
+export const ItemLineSlot = styled.span`
+  min-width: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+  }
+`;
+
+export const ItemLine = styled.span`
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  color: #ebf4ff;
+  font-size: 0.98rem;
+  font-weight: 760;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 0.9rem;
+  }
+`;
+
+export const ItemLineLink = styled(Link)`
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  color: #ebf4ff;
+  font-size: 0.98rem;
+  font-weight: 760;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 0.9rem;
+  }
+
+  &:hover {
+    text-decoration: underline;
+    text-decoration-color: rgba(119, 213, 255, 0.75);
+    text-underline-offset: 2px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(119, 213, 255, 0.65);
+    outline-offset: 1px;
+    border-radius: 4px;
+  }
 `;
 
 export const MetaBlock = styled.div`
@@ -568,6 +1056,22 @@ export const CategoryValue = styled.span`
   color: #dde4ff;
   font-size: 0.74rem;
   padding: 0.14rem 0.44rem;
+`;
+
+export const KeepPriorityChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  border: 1px solid ${({ $tone }) => `${keepPriorityToneColor($tone)}7a`};
+  background: ${({ $tone }) => `${keepPriorityToneColor($tone)}2b`};
+  color: ${({ $tone }) => keepPriorityToneColor($tone)};
+  font-size: 0.68rem;
+  font-weight: 780;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1;
+  padding: 0.16rem 0.46rem;
 `;
 
 export const TagRow = styled.div`
@@ -706,42 +1210,87 @@ export const LocationPath = styled.p`
   color: ${RETRIEVAL.textMuted};
 `;
 
+export const CompactLocation = styled.span`
+  flex: 0 1 auto;
+  max-width: clamp(74px, 10vw, 124px);
+  min-width: 0;
+  color: rgba(232, 238, 244, 0.62);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex: 0 1 42%;
+    font-size: ${MOBILE_FONT_XS};
+  }
+`;
+
 export const BoxBadge = styled.span`
   display: inline-grid;
   align-items: center;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.36rem;
-  width: fit-content;
-  max-width: 100%;
+  grid-template-columns: ${({ $compact }) =>
+    $compact ? '5.4ch minmax(0, 1fr)' : '5.9ch minmax(0, 1fr)'};
+  gap: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  max-width: none;
   border-radius: 10px;
-  border: 1px solid rgba(232, 177, 92, 0.42);
+  border: 1px solid rgba(var(--box-color-rgb, 244, 196, 48), 0.4);
   background:
-    linear-gradient(180deg, rgba(232, 177, 92, 0.18), rgba(232, 177, 92, 0.09)),
+    linear-gradient(
+      135deg,
+      rgba(var(--box-color-rgb, 244, 196, 48), 0.18),
+      rgba(var(--box-color-rgb, 244, 196, 48), 0.08)
+    ),
     rgba(22, 17, 10, 0.7);
+  box-shadow:
+    0 0 0 1px rgba(var(--box-color-rgb, 244, 196, 48), 0.15),
+    0 0 8px rgba(var(--box-color-rgb, 244, 196, 48), 0.2);
   padding: ${({ $compact }) => ($compact ? '0.2rem 0.42rem' : '0.24rem 0.5rem')};
   line-height: 1.2;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    max-width: none;
+  }
+`;
+
+export const BoxIdCell = styled.span`
+  display: inline-flex;
+  justify-content: flex-start;
+  align-items: center;
+  width: 100%;
 `;
 
 export const BoxId = styled.span`
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
     'Courier New', monospace;
-  color: #ffe8c5;
-  font-size: 0.82rem;
+  color: #fff4da;
+  font-size: ${({ $compact }) => ($compact ? '0.92rem' : '0.82rem')};
   font-weight: 800;
   letter-spacing: 0.06em;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
 `;
 
 export const BoxName = styled.span`
-  color: #f3ddba;
-  font-size: 0.74rem;
+  color: #f6e6c9;
+  font-size: ${({ $compact }) => ($compact ? '0.7rem' : '0.74rem')};
   font-weight: 620;
   letter-spacing: 0.02em;
-  border-left: 1px solid rgba(255, 231, 188, 0.28);
-  padding-left: 0.36rem;
+  border-left: 1px solid rgba(var(--box-color-rgb, 244, 196, 48), 0.3);
+  padding-left: ${({ $compact }) => ($compact ? '0.32rem' : '0.36rem')};
   min-width: 0;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export const ExpandedPanel = styled.section`
@@ -753,6 +1302,25 @@ export const ExpandedPanel = styled.section`
   padding: 0.42rem 0.48rem 0.5rem;
   display: grid;
   gap: 0.42rem;
+  align-items: start;
+
+  @media (min-width: 980px) {
+    grid-template-columns: minmax(0, 1.25fr) minmax(340px, 1fr);
+    column-gap: 0.62rem;
+    row-gap: 0.48rem;
+    align-items: stretch;
+  }
+
+  @media (min-width: 980px) {
+    ${({ $hasPrimaryPanel }) =>
+      !$hasPrimaryPanel
+        ? `
+      & > :only-child {
+        grid-column: 1 / -1;
+      }
+    `
+        : ''}
+  }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     margin: 0 0.58rem 0.58rem;
@@ -769,6 +1337,7 @@ export const ExpandedItemPanel = styled.section`
   padding: 0.44rem 0.48rem;
   display: grid;
   gap: 0.34rem;
+  align-content: start;
 `;
 
 export const ExpandedBoxPanel = styled.section`
@@ -780,6 +1349,49 @@ export const ExpandedBoxPanel = styled.section`
   padding: 0.42rem 0.46rem 0.46rem;
   display: grid;
   gap: 0.38rem;
+  align-content: start;
+
+  @media (min-width: 980px) {
+    height: 100%;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+  }
+`;
+
+export const ExpandedMetadataGrid = styled.div`
+  display: grid;
+  gap: 0.34rem;
+
+  @media (min-width: 980px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 0.44rem;
+    align-items: stretch;
+  }
+`;
+
+export const ExpandedMetaCard = styled.div`
+  display: grid;
+  gap: 0.18rem;
+  border: 1px solid rgba(127, 215, 255, 0.16);
+  border-radius: 9px;
+  background:
+    linear-gradient(180deg, rgba(16, 24, 34, 0.82), rgba(11, 18, 26, 0.8)),
+    rgba(10, 16, 24, 0.72);
+  padding: 0.32rem 0.38rem;
+
+  @media (min-width: 980px) {
+    ${({ $fullWidth }) => ($fullWidth ? 'grid-column: 1 / -1;' : '')}
+  }
+`;
+
+export const ExpandedContextValue = styled.p`
+  margin: 0;
+  color: rgba(215, 255, 242, 0.9);
+  font-size: 0.74rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 `;
 
 export const ExpandedPanelTitle = styled.p`
@@ -794,6 +1406,10 @@ export const ExpandedPanelTitle = styled.p`
 export const ExpandedDetailBlock = styled.div`
   display: grid;
   gap: 0.18rem;
+
+  @media (min-width: 980px) {
+    ${({ $fullWidth }) => ($fullWidth ? 'grid-column: 1 / -1;' : '')}
+  }
 `;
 
 export const ExpandedDetailLabel = styled.p`
@@ -814,6 +1430,11 @@ export const ExpandedDetailText = styled.p`
   font-size: 0.76rem;
   line-height: 1.45;
   overflow-wrap: anywhere;
+`;
+
+export const ExpandedPathText = styled(ExpandedDetailText)`
+  color: rgba(215, 248, 236, 0.72);
+  font-size: 0.72rem;
 `;
 
 export const ExpandedBoxLink = styled(Link)`

@@ -57,6 +57,11 @@ export const HeadingRow = styled.div`
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.55rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 `;
 
 export const HeadingGroup = styled.div`
@@ -120,6 +125,50 @@ export const CountPill = styled.span`
     'Courier New', monospace;
   font-size: 0.79rem;
   font-variant-numeric: tabular-nums;
+`;
+
+export const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.46rem;
+  flex-wrap: wrap;
+`;
+
+export const ExportButton = styled.button`
+  min-height: 34px;
+  border-radius: 9px;
+  border: 1px solid rgba(116, 212, 255, 0.46);
+  background: rgba(116, 212, 255, 0.14);
+  color: #c9efff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0 0.72rem;
+  cursor: pointer;
+  transition: background 120ms ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(116, 212, 255, 0.2);
+  }
+
+  &:disabled {
+    opacity: 0.58;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+    font-size: ${MOBILE_FONT_SM};
+  }
+`;
+
+export const ExportError = styled.div`
+  margin-top: 0.28rem;
+  color: ${LOGS.rose};
+  font-size: 0.74rem;
+  letter-spacing: 0.01em;
 `;
 
 export const StatePanel = styled.section`
@@ -253,6 +302,56 @@ export const Timestamp = styled.span`
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
     'Courier New', monospace;
+`;
+
+export const BoxChipGroup = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.34rem;
+  flex-wrap: wrap;
+`;
+
+const boxChipBase = css`
+  display: inline-flex;
+  align-items: center;
+  border-radius: 8px;
+  line-height: 1.2;
+`;
+
+export const BoxIdChip = styled.span`
+  ${boxChipBase};
+  border: 1px solid rgba(116, 212, 255, 0.6);
+  background: linear-gradient(180deg, rgba(116, 212, 255, 0.2) 0%, rgba(116, 212, 255, 0.1) 100%);
+  color: #8ce2ff;
+  padding: 0.14rem 0.52rem;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+`;
+
+export const BoxLabelChip = styled.span`
+  ${boxChipBase};
+  border: 1px solid rgba(120, 245, 200, 0.38);
+  background: rgba(120, 245, 200, 0.11);
+  color: #d5f6ea;
+  padding: 0.14rem 0.45rem;
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+`;
+
+export const BoxChipLink = styled(Link)`
+  ${BoxChipGroup};
+  text-decoration: none;
+
+  &:hover ${BoxIdChip},
+  &:hover ${BoxLabelChip} {
+    filter: brightness(1.09);
+  }
 `;
 
 const nameChipBase = css`

@@ -5,14 +5,17 @@ import {
   formatItemCategory,
   normalizeItemCategory,
 } from '../../util/itemCategories';
+import {
+  KEEP_PRIORITY_REMOVAL_OPTIONS,
+  KEEP_PRIORITY_SCALE_OPTIONS,
+} from '../../util/keepPriority';
 import { USD_DECIMAL_PATTERN } from '../../util/usdMoney';
-
-const asInputValue = (value) => (value == null ? '' : String(value));
 
 function DateHistoryField({
   label,
   field,
   values,
+  disabled = false,
   onHistoryDateChange,
   onAddHistoryDate,
   onRemoveHistoryDate,
@@ -29,12 +32,14 @@ function DateHistoryField({
               <S.Input
                 type="date"
                 value={value || ''}
+                disabled={disabled}
                 onChange={(event) =>
                   onHistoryDateChange(field, index, event.target.value)
                 }
               />
               <S.HistoryRemoveButton
                 type="button"
+                disabled={disabled}
                 onClick={() => onRemoveHistoryDate(field, index)}
               >
                 Remove
@@ -45,7 +50,11 @@ function DateHistoryField({
           <S.FieldHint>No entries yet.</S.FieldHint>
         )}
       </S.HistoryRows>
-      <S.HistoryAddButton type="button" onClick={() => onAddHistoryDate(field)}>
+      <S.HistoryAddButton
+        type="button"
+        disabled={disabled}
+        onClick={() => onAddHistoryDate(field)}
+      >
         + Add Date
       </S.HistoryAddButton>
     </S.Field>
@@ -56,11 +65,12 @@ export default function EditItemStructuredFieldsSection({
   formData,
   derivedDates,
   onMetadataChange,
-  onMetadataNumberChange,
   onHistoryDateChange,
   onAddHistoryDate,
   onRemoveHistoryDate,
 }) {
+  const maintenanceDisabled = !!formData.isConsumable;
+
   return (
     <>
       <S.InlineGrid>
@@ -87,10 +97,20 @@ export default function EditItemStructuredFieldsSection({
             onChange={onMetadataChange}
           >
             <option value="">Unspecified</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="essential">Essential</option>
+            <optgroup label="Priority Scale">
+              {KEEP_PRIORITY_SCALE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Removal Planning">
+              {KEEP_PRIORITY_REMOVAL_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </optgroup>
           </S.Select>
         </S.Field>
 
@@ -172,6 +192,7 @@ export default function EditItemStructuredFieldsSection({
         label="Maintenance History"
         field="maintenanceHistory"
         values={formData.maintenanceHistory}
+        disabled={maintenanceDisabled}
         onHistoryDateChange={onHistoryDateChange}
         onAddHistoryDate={onAddHistoryDate}
         onRemoveHistoryDate={onRemoveHistoryDate}
@@ -182,8 +203,12 @@ export default function EditItemStructuredFieldsSection({
         <S.TextArea
           name="maintenanceNotes"
           value={formData.maintenanceNotes || ''}
+          disabled={maintenanceDisabled}
           onChange={onMetadataChange}
         />
+        {maintenanceDisabled ? (
+          <S.FieldHint>Maintenance tracking is disabled for consumables.</S.FieldHint>
+        ) : null}
       </S.Field>
 
       <S.InlineGrid>
@@ -253,19 +278,6 @@ export default function EditItemStructuredFieldsSection({
       </S.InlineGrid>
 
       <S.InlineGrid>
-        <S.Field>
-          <S.Label>Minimum Desired Quantity</S.Label>
-          <S.Input
-            type="number"
-            min="0"
-            step="1"
-            value={asInputValue(formData.minimumDesiredQuantity)}
-            onChange={(e) =>
-              onMetadataNumberChange('minimumDesiredQuantity', e.target.value)
-            }
-          />
-        </S.Field>
-
         <S.Field>
           <S.Label>Consumable</S.Label>
           <S.CheckboxRow>

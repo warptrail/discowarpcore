@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { editItem } from '../../api/editItem';
 import { normalizeTags } from '../../util/normalizeTags';
 import { normalizeItemCategory } from '../../util/itemCategories';
+import { normalizeKeepPriority } from '../../util/keepPriority';
 import { getItemOwnershipContext } from '../../util/itemOwnership';
 import {
   buildEditableDateHistory,
@@ -14,13 +15,6 @@ import {
   formatCentsToUsdInput,
   parseUsdInputToCents,
 } from '../../util/usdMoney';
-
-const toNullableNonNegativeInteger = (value) => {
-  if (value === '' || value === null || value === undefined) return null;
-  const n = Number(value);
-  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) return null;
-  return n;
-};
 
 const toNullableTrimmedString = (value) => {
   if (value == null) return null;
@@ -81,14 +75,11 @@ const buildFormState = (item) => ({
     item?.maintenanceHistory,
     item?.lastMaintainedAt
   ),
-  keepPriority: item?.keepPriority || '',
+  keepPriority: normalizeKeepPriority(item?.keepPriority),
   primaryOwnerName: item?.primaryOwnerName || '',
   condition: item?.condition || 'unknown',
   category: normalizeItemCategory(item?.category),
   isConsumable: !!item?.isConsumable,
-  minimumDesiredQuantity: toNullableNonNegativeInteger(
-    item?.minimumDesiredQuantity
-  ),
   acquisitionType: item?.acquisitionType || 'unknown',
   valueUsd: formatCentsToUsdInput(item?.valueCents),
   purchasePriceUsd: formatCentsToUsdInput(item?.purchasePriceCents),
@@ -160,13 +151,6 @@ export default function useEditItemDetailsFormState({ item, triggerFlash, onSave
     setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
-    }));
-  };
-
-  const handleMetadataNumberChange = (name, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: toNullableNonNegativeInteger(value),
     }));
   };
 
@@ -244,9 +228,6 @@ export default function useEditItemDetailsFormState({ item, triggerFlash, onSave
 
       const payload = {
         ...formData,
-        minimumDesiredQuantity: toNullableNonNegativeInteger(
-          formData.minimumDesiredQuantity
-        ),
         valueCents,
         purchasePriceCents,
         dateAcquired: formData.dateAcquired || null,
@@ -305,7 +286,6 @@ export default function useEditItemDetailsFormState({ item, triggerFlash, onSave
     handleTagsChange,
     handleQuantityChange,
     handleMetadataChange,
-    handleMetadataNumberChange,
     handleHistoryDateChange,
     handleAddHistoryDate,
     handleRemoveHistoryDate,

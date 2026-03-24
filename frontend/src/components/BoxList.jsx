@@ -6,6 +6,11 @@ import InventoryGridHeader from './InventoryGridHeader';
 import BoxLocatorInspectorPanel from './BoxLocatorInspectorPanel';
 import { normalizeItemCategory } from '../util/itemCategories';
 import { fetchBoxTreeByShortId } from '../api/boxes';
+import {
+  compareNumericBoxIds,
+  matchesBoxIdPrefix,
+  normalizeBoxId,
+} from '../util/boxLocator';
 
 /**
  * boxes: [{
@@ -656,22 +661,6 @@ function findBoxLocatorMatches(index, prefix) {
   if (!normalizedPrefix) return [];
 
   return (index || []).filter((entry) =>
-    normalizeBoxId(entry?.boxId).startsWith(normalizedPrefix),
+    matchesBoxIdPrefix(entry?.boxId, normalizedPrefix),
   );
-}
-
-function compareNumericBoxIds(a, b) {
-  const aNum = Number(a);
-  const bNum = Number(b);
-  const aValid = Number.isFinite(aNum);
-  const bValid = Number.isFinite(bNum);
-
-  if (aValid && bValid && aNum !== bNum) return aNum - bNum;
-  return compareText(String(a || ''), String(b || ''));
-}
-
-function normalizeBoxId(value) {
-  return String(value || '')
-    .replace(/\D/g, '')
-    .trim();
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigationType } from 'react-router-dom';
 import {
   DEFAULT_RETRIEVAL_LIMIT,
   fetchRetrievalItemsPage,
@@ -9,6 +10,8 @@ import RetrievalFilterBar from './RetrievalFilterBar';
 import ActiveFilterChips from './ActiveFilterChips';
 import RetrievalResultsList from './RetrievalResultsList';
 import RetrievalImageLightbox from './RetrievalImageLightbox';
+import RetrievalModeToggle from './RetrievalModeToggle';
+import RetrievalBoxCentricView from './RetrievalBoxCentricView';
 import {
   buildActiveFilterChips,
   normalizeRetrievalFilterOptions,
@@ -20,6 +23,7 @@ const EMPTY_FILTERS = {
   tags: [],
   locations: [],
   owners: [],
+  keepPriorities: [],
 };
 
 const EMPTY_FILTER_OPTIONS = {
@@ -27,11 +31,16 @@ const EMPTY_FILTER_OPTIONS = {
   tags: [],
   locations: [],
   owners: [],
+  keepPriorities: [],
   categoryLabelByKey: new Map(),
   tagLabelByKey: new Map(),
   locationLabelByKey: new Map(),
   ownerLabelByKey: new Map(),
+  keepPriorityLabelByKey: new Map(),
 };
+
+const RETRIEVAL_STATE_STORAGE_PREFIX = 'retrieval:state:';
+const SCROLL_RESTORE_MAX_FRAMES = 240;
 
 function toKey(value) {
   return String(value || '')
@@ -49,17 +58,22 @@ function pruneFilters(current, options) {
   const tagKeys = new Set(options.tags.map((option) => option.key));
   const locationKeys = new Set(options.locations.map((option) => option.key));
   const ownerKeys = new Set(options.owners.map((option) => option.key));
+  const keepPriorityKeys = new Set(options.keepPriorities.map((option) => option.key));
 
   const nextCategories = current.categories.filter((value) => categoryKeys.has(value));
   const nextTags = current.tags.filter((value) => tagKeys.has(value));
   const nextLocations = current.locations.filter((value) => locationKeys.has(value));
   const nextOwners = current.owners.filter((value) => ownerKeys.has(value));
+  const nextKeepPriorities = current.keepPriorities.filter((value) =>
+    keepPriorityKeys.has(value),
+  );
 
   if (
     sameValues(nextCategories, current.categories) &&
     sameValues(nextTags, current.tags) &&
     sameValues(nextLocations, current.locations) &&
-    sameValues(nextOwners, current.owners)
+    sameValues(nextOwners, current.owners) &&
+    sameValues(nextKeepPriorities, current.keepPriorities)
   ) {
     return current;
   }
@@ -69,6 +83,7 @@ function pruneFilters(current, options) {
     tags: nextTags,
     locations: nextLocations,
     owners: nextOwners,
+    keepPriorities: nextKeepPriorities,
   };
 }
 
@@ -88,7 +103,96 @@ function useDebouncedValue(value, delayMs) {
   return debounced;
 }
 
+function sanitizeFilterValues(values) {
+  return Array.isArray(values)
+    ? values
+        .map((value) => toKey(value))
+        .filter(Boolean)
+    : [];
+}
+
+function sanitizeFilters(rawFilters) {
+  const source = rawFilters && typeof rawFilters === 'object' ? rawFilters : EMPTY_FILTERS;
+
+  return {
+    categories: sanitizeFilterValues(source.categories),
+    tags: sanitizeFilterValues(source.tags),
+    locations: sanitizeFilterValues(source.locations),
+    owners: sanitizeFilterValues(source.owners),
+    keepPriorities: sanitizeFilterValues(source.keepPriorities),
+  };
+}
+
+function sanitizeExpandedIds(rawIds) {
+  const values = Array.isArray(rawIds) ? rawIds : [];
+  return values
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
+}
+
+function sanitizeBoxModeState(rawState) {
+  const source = rawState && typeof rawState === 'object' ? rawState : {};
+  return {
+    searchValue: String(source.searchValue || ''),
+    selectedLocation: String(source.selectedLocation || ''),
+    selectedBoxId: String(source.selectedBoxId || ''),
+  };
+}
+
+function sanitizeMode(rawMode) {
+  return rawMode === 'boxes' ? 'boxes' : 'items';
+}
+
+function readPersistedRetrievalState({ key, navigationType }) {
+  if (typeof window === 'undefined') return null;
+  if (!key || key === 'default') return null;
+  if (navigationType !== 'POP') return null;
+
+  try {
+    const raw = window.sessionStorage.getItem(`${RETRIEVAL_STATE_STORAGE_PREFIX}${key}`);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writePersistedRetrievalState({ key, snapshot }) {
+  if (typeof window === 'undefined') return;
+  if (!key || !snapshot) return;
+
+  try {
+    window.sessionStorage.setItem(
+      `${RETRIEVAL_STATE_STORAGE_PREFIX}${key}`,
+      JSON.stringify(snapshot),
+    );
+  } catch {
+    // best-effort persistence only
+  }
+}
+
 export default function RetrievalPage() {
+  const location = useLocation();
+  const navigationType = useNavigationType();
+  const initialSnapshotRef = useRef();
+  if (initialSnapshotRef.current === undefined) {
+    initialSnapshotRef.current = readPersistedRetrievalState({
+      key: location.key,
+      navigationType,
+    });
+  }
+  const initialSnapshot = initialSnapshotRef.current || null;
+  const initialItemState =
+    initialSnapshot?.items && typeof initialSnapshot.items === 'object'
+      ? initialSnapshot.items
+      : null;
+
+  const [retrievalMode, setRetrievalMode] = useState(() =>
+    sanitizeMode(initialSnapshot?.mode),
+  );
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [limit, setLimit] = useState(DEFAULT_RETRIEVAL_LIMIT);
@@ -97,19 +201,37 @@ export default function RetrievalPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
-  const [searchValue, setSearchValue] = useState('');
-  const [activeFilters, setActiveFilters] = useState(EMPTY_FILTERS);
+  const [searchValue, setSearchValue] = useState(() =>
+    String(initialItemState?.searchValue || ''),
+  );
+  const [activeFilters, setActiveFilters] = useState(() =>
+    sanitizeFilters(initialItemState?.activeFilters),
+  );
   const [filterOptions, setFilterOptions] = useState(EMPTY_FILTER_OPTIONS);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedTag, setSelectedTag] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
   const [selectedOwner, setSelectedOwner] = useState('');
-  const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const [selectedKeepPriority, setSelectedKeepPriority] = useState('');
+  const [expandedIds, setExpandedIds] = useState(
+    () => new Set(sanitizeExpandedIds(initialItemState?.expandedIds)),
+  );
+  const [boxModeState, setBoxModeState] = useState(() =>
+    sanitizeBoxModeState(initialSnapshot?.boxes),
+  );
   const [lightboxImage, setLightboxImage] = useState(null);
+  const isItemsMode = retrievalMode === 'items';
 
   const debouncedSearchValue = useDebouncedValue(searchValue, 220);
   const loadMoreControllerRef = useRef(null);
   const queryKeyRef = useRef('');
+  const hasLoadedItemsRef = useRef(false);
+  const pendingScrollRestoreRef = useRef(
+    Number.isFinite(Number(initialSnapshot?.scrollY))
+      ? Number(initialSnapshot.scrollY)
+      : null,
+  );
+  const latestSnapshotRef = useRef(null);
 
   const queryState = useMemo(
     () => ({
@@ -118,6 +240,7 @@ export default function RetrievalPage() {
       tags: activeFilters.tags,
       locations: activeFilters.locations,
       owners: activeFilters.owners,
+      keepPriorities: activeFilters.keepPriorities,
     }),
     [debouncedSearchValue, activeFilters],
   );
@@ -127,6 +250,86 @@ export default function RetrievalPage() {
   useEffect(() => {
     queryKeyRef.current = queryKey;
   }, [queryKey]);
+
+  useEffect(() => {
+    latestSnapshotRef.current = {
+      mode: sanitizeMode(retrievalMode),
+      items: {
+        searchValue: String(searchValue || ''),
+        activeFilters: sanitizeFilters(activeFilters),
+        expandedIds: Array.from(expandedIds),
+      },
+      boxes: sanitizeBoxModeState(boxModeState),
+      scrollY: typeof window === 'undefined' ? 0 : window.scrollY,
+      savedAt: Date.now(),
+    };
+  }, [activeFilters, boxModeState, expandedIds, retrievalMode, searchValue]);
+
+  useEffect(() => {
+    const persist = () => {
+      const baseSnapshot =
+        latestSnapshotRef.current && typeof latestSnapshotRef.current === 'object'
+          ? latestSnapshotRef.current
+          : {};
+      const snapshot = {
+        ...baseSnapshot,
+        scrollY: typeof window === 'undefined' ? 0 : window.scrollY,
+        savedAt: Date.now(),
+      };
+      latestSnapshotRef.current = snapshot;
+
+      writePersistedRetrievalState({
+        key: location.key,
+        snapshot,
+      });
+    };
+
+    const onPageHide = () => {
+      persist();
+    };
+
+    window.addEventListener('pagehide', onPageHide);
+    return () => {
+      window.removeEventListener('pagehide', onPageHide);
+      persist();
+    };
+  }, [location.key]);
+
+  useEffect(() => {
+    const targetScrollY = pendingScrollRestoreRef.current;
+    if (!Number.isFinite(targetScrollY)) return;
+
+    if (isItemsMode && loading) return;
+
+    let frame = 0;
+    let cancelled = false;
+
+    const restore = () => {
+      if (cancelled) return;
+
+      window.scrollTo(0, targetScrollY);
+      const maxScrollY = Math.max(
+        0,
+        document.documentElement.scrollHeight - window.innerHeight,
+      );
+      const reachableTarget = Math.min(targetScrollY, maxScrollY);
+      const reached = Math.abs(window.scrollY - reachableTarget) <= 2;
+
+      if (reached || frame >= SCROLL_RESTORE_MAX_FRAMES) {
+        pendingScrollRestoreRef.current = null;
+        return;
+      }
+
+      frame += 1;
+      window.requestAnimationFrame(restore);
+    };
+
+    const startFrame = window.requestAnimationFrame(restore);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(startFrame);
+    };
+  }, [isItemsMode, loading, retrievalMode, items.length]);
 
   useEffect(
     () => () => {
@@ -142,6 +345,7 @@ export default function RetrievalPage() {
   }, [filterOptions]);
 
   useEffect(() => {
+    if (!isItemsMode) return;
     const validIds = new Set(items.map((item) => item.id));
 
     setExpandedIds((current) => {
@@ -153,9 +357,10 @@ export default function RetrievalPage() {
       if (next.size === current.size) return current;
       return next;
     });
-  }, [items]);
+  }, [isItemsMode, items]);
 
   useEffect(() => {
+    if (!isItemsMode) return;
     const controller = new AbortController();
     const currentQueryKey = queryKey;
 
@@ -172,7 +377,9 @@ export default function RetrievalPage() {
       setTotal(0);
       setOffset(0);
       setHasMore(false);
-      setExpandedIds(new Set());
+      if (hasLoadedItemsRef.current) {
+        setExpandedIds(new Set());
+      }
       setLightboxImage(null);
 
       try {
@@ -202,6 +409,7 @@ export default function RetrievalPage() {
         setHasMore(false);
       } finally {
         if (!controller.signal.aborted && queryKeyRef.current === currentQueryKey) {
+          hasLoadedItemsRef.current = true;
           setLoading(false);
         }
       }
@@ -212,7 +420,7 @@ export default function RetrievalPage() {
     return () => {
       controller.abort();
     };
-  }, [queryKey, queryState]);
+  }, [isItemsMode, queryKey, queryState]);
 
   const activeChips = useMemo(
     () => buildActiveFilterChips(activeFilters, filterOptions),
@@ -274,6 +482,11 @@ export default function RetrievalPage() {
     setSelectedOwner('');
   }, [addFilter, selectedOwner]);
 
+  const handleAddKeepPriority = useCallback(() => {
+    addFilter('keepPriorities', selectedKeepPriority);
+    setSelectedKeepPriority('');
+  }, [addFilter, selectedKeepPriority]);
+
   const toggleExpanded = useCallback((itemId) => {
     setExpandedIds((current) => {
       const next = new Set(current);
@@ -287,7 +500,7 @@ export default function RetrievalPage() {
   }, []);
 
   const handleLoadMore = useCallback(async () => {
-    if (loading || loadingMore || !hasMore) return;
+    if (!isItemsMode || loading || loadingMore || !hasMore) return;
 
     const currentQueryKey = queryKeyRef.current;
     const nextOffset = offset + limit;
@@ -344,7 +557,7 @@ export default function RetrievalPage() {
         setLoadingMore(false);
       }
     }
-  }, [hasMore, limit, loading, loadingMore, offset, queryState]);
+  }, [hasMore, isItemsMode, limit, loading, loadingMore, offset, queryState]);
 
   const handlePreviewImage = useCallback((payload) => {
     const src = String(payload?.src || '').trim();
@@ -359,6 +572,17 @@ export default function RetrievalPage() {
   const handleCloseLightbox = useCallback(() => {
     setLightboxImage(null);
   }, []);
+
+  if (!isItemsMode) {
+    return (
+      <RetrievalBoxCentricView
+        mode={retrievalMode}
+        onModeChange={setRetrievalMode}
+        persistedState={boxModeState}
+        onStateSnapshotChange={setBoxModeState}
+      />
+    );
+  }
 
   return (
     <S.PageShell>
@@ -376,6 +600,8 @@ export default function RetrievalPage() {
           <S.CountPill>{total}</S.CountPill>
         </S.HeadingRow>
 
+        <RetrievalModeToggle mode={retrievalMode} onChange={setRetrievalMode} />
+
         <RetrievalSearchBar value={searchValue} onChange={setSearchValue} />
 
         <RetrievalFilterBar
@@ -383,18 +609,22 @@ export default function RetrievalPage() {
           tagOptions={filterOptions.tags}
           locationOptions={filterOptions.locations}
           ownerOptions={filterOptions.owners}
+          keepPriorityOptions={filterOptions.keepPriorities}
           selectedCategory={selectedCategory}
           selectedTag={selectedTag}
           selectedLocation={selectedLocation}
           selectedOwner={selectedOwner}
+          selectedKeepPriority={selectedKeepPriority}
           onCategoryChange={setSelectedCategory}
           onTagChange={setSelectedTag}
           onLocationChange={setSelectedLocation}
           onOwnerChange={setSelectedOwner}
+          onKeepPriorityChange={setSelectedKeepPriority}
           onAddCategory={handleAddCategory}
           onAddTag={handleAddTag}
           onAddLocation={handleAddLocation}
           onAddOwner={handleAddOwner}
+          onAddKeepPriority={handleAddKeepPriority}
         />
 
         <ActiveFilterChips

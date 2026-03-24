@@ -47,6 +47,7 @@ export default function ItemPage() {
   const [lifecycleBusy, setLifecycleBusy] = useState(false);
 
   const undoInFlightRef = useRef(new Set());
+  const activeLoadIdRef = useRef(0);
 
   useEffect(() => {
     setIsEditing(urlWantsEdit);
@@ -65,11 +66,17 @@ export default function ItemPage() {
   }, []);
 
   const loadItem = useCallback(async ({ signal, preserveLoading = false } = {}) => {
+    const loadId = activeLoadIdRef.current + 1;
+    activeLoadIdRef.current = loadId;
+    const isCurrentLoad = () => activeLoadIdRef.current === loadId;
+
     if (!itemId) {
-      setLoading(false);
-      setNotFound(false);
-      setItem(null);
-      setError('Missing item id.');
+      if (isCurrentLoad()) {
+        setLoading(false);
+        setNotFound(false);
+        setItem(null);
+        setError('Missing item id.');
+      }
       return null;
     }
 
@@ -85,6 +92,7 @@ export default function ItemPage() {
       });
 
       if (res.status === 404) {
+        if (!isCurrentLoad()) return null;
         setItem(null);
         setNotFound(true);
         return null;
@@ -98,22 +106,26 @@ export default function ItemPage() {
       const json = await res.json().catch(() => ({}));
       const nextItem = json?.data ?? null;
       if (!nextItem) {
+        if (!isCurrentLoad()) return null;
         setItem(null);
         setNotFound(true);
         return null;
       }
 
+      if (!isCurrentLoad()) return null;
       setItem(nextItem);
       return nextItem;
     } catch (err) {
       if (err?.name !== 'AbortError') {
+        if (!isCurrentLoad()) return null;
         console.error('fetch item failed:', err);
         setItem(null);
+        setNotFound(false);
         setError(err?.message || 'Failed to load item.');
       }
       return null;
     } finally {
-      if (!preserveLoading) setLoading(false);
+      if (!preserveLoading && isCurrentLoad()) setLoading(false);
     }
   }, [itemId, parseErrorMessage]);
 
@@ -590,7 +602,7 @@ export default function ItemPage() {
     return (
       <S.Page>
         <ItemPageBreadcrumb itemId={itemId} />
-        <S.StateCard>Loading item details…</S.StateCard>
+        <S.StateCard>Loading item...</S.StateCard>
       </S.Page>
     );
   }
@@ -604,7 +616,7 @@ export default function ItemPage() {
     );
   }
 
-  if (notFound || !item) {
+  if (notFound) {
     return (
       <S.Page>
         <ItemPageBreadcrumb itemId={itemId} />
@@ -613,8 +625,17 @@ export default function ItemPage() {
     );
   }
 
+  if (!item) {
+    return (
+      <S.Page>
+        <ItemPageBreadcrumb itemId={itemId} />
+        <S.StateCard>Loading item...</S.StateCard>
+      </S.Page>
+    );
+  }
+
   return (
-    <S.Page>
+    <S.Page $reserveBottomDock={!isEditing}>
       <ItemPageBreadcrumb item={item} itemId={itemId} />
 
       <S.TitleBar>
@@ -623,13 +644,6 @@ export default function ItemPage() {
             <S.Title>{item?.name || 'Unnamed Item'}</S.Title>
             <S.Meta>Item ID {item?._id || itemId}</S.Meta>
           </S.TitleInfo>
-
-          <S.ModeToggle
-            type="button"
-            onClick={() => setIsEditing((prev) => !prev)}
-          >
-            {isEditing ? 'View' : 'Edit'}
-          </S.ModeToggle>
         </S.TitleRow>
       </S.TitleBar>
 
@@ -644,6 +658,7 @@ export default function ItemPage() {
       {isEditing ? (
         <EditItemDetailsForm
           item={item}
+          actionDocked
           lifecycleBusy={lifecycleBusy}
           onMarkGoneRequest={() => setLifecycleDialog('markGone')}
           onDeletePermanentlyRequest={() => setLifecycleDialog('delete')}
@@ -669,8 +684,24 @@ export default function ItemPage() {
           }}
         />
       ) : (
-        <ItemDetails itemId={itemId} itemData={item} />
+        <ItemDetails itemId={itemId} itemData={item} enableImageLightbox />
       )}
+
+      {!isEditing ? (
+        <S.StickyActionBar>
+          <S.StickyActionInner>
+            <S.StickyActionMeta>
+              View mode
+            </S.StickyActionMeta>
+            <S.StickyPrimaryButton
+              type="button"
+              onClick={() => setIsEditing(true)}
+            >
+              Edit
+            </S.StickyPrimaryButton>
+          </S.StickyActionInner>
+        </S.StickyActionBar>
+      ) : null}
     </S.Page>
   );
 }

@@ -12,89 +12,41 @@ import NestBoxSection from './NestBoxSection';
 import EditBoxDetailsForm from './EditBoxDetailsForm';
 import ExportBoxPanel from './BoxActionPanel/ExportBoxPanel';
 import DestroyBoxSection from './DestroyBoxSection';
-import MiniOrphanedList from './MiniOrphanedList';
-import AddItemToThisBoxForm from './AddItemToThisBoxForm';
 
 import useBoxActionPanelController from './BoxActionPanel/useBoxActionPanelController';
-import BoxActionItemList from './BoxActionPanel/BoxActionItemList';
 import { DetailsPanel, PanelContainer } from './BoxActionPanel/BoxActionPanel.styles';
 import { ToastContext } from './Toast';
 import { destroyBoxById, releaseChildrenToFloor, updateBoxById } from '../api/boxes';
-import { API_BASE } from '../api/API_BASE';
 
 const DESTROY_CONFIRM_PHRASE = 'DESTROY';
 
 export default function BoxActionPanel({
   boxTree,
   boxMongoId,
-  onItemUpdated,
   refreshBox,
-  orphanedItems,
-  fetchOrphanedItems,
-  onItemAssigned,
   onBoxSaved,
   busy,
   onRequestDelete,
   activePanelState = null,
   onActivePanelStateChange,
 }) {
-  const [localOrphanedItems, setLocalOrphanedItems] = useState([]);
-
-  const fetchPanelOrphanedItems = useCallback(async () => {
-    const res = await fetch(`${API_BASE}/api/items/orphaned?sort=recent&limit=10000`);
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(body?.error || body?.message || 'Failed to fetch orphaned items');
-    }
-    const items = Array.isArray(body)
-      ? body
-      : Array.isArray(body?.items)
-        ? body.items
-        : [];
-    setLocalOrphanedItems(items);
-    return items;
-  }, []);
-
-  const resolvedFetchOrphanedItems =
-    typeof fetchOrphanedItems === 'function'
-      ? fetchOrphanedItems
-      : fetchPanelOrphanedItems;
-
-  const resolvedOrphanedItems = Array.isArray(orphanedItems)
-    ? orphanedItems
-    : localOrphanedItems;
-
   const controller = useBoxActionPanelController({
     boxTree,
     boxMongoId,
     onBoxSaved,
     refreshBox,
-    fetchOrphanedItems: resolvedFetchOrphanedItems,
-    onItemAssigned,
     initialActivePanel: activePanelState,
   });
 
   const {
     activePanel,
-    isEmptyMode,
     isMoving,
     routeShortId,
-    itemsUI,
-    zippingIds,
-    zippingItemId,
-    justReturnedIds,
-    justReturnedItemId,
-    isUndoing,
-    enteringIdsRef,
     setActivePanel,
     clearActivePanel,
     togglePanel,
     handleEmptyTab,
     handleFormSaved,
-    handleMoveRequest,
-    handleOrphanRequest,
-    handleItemAdded,
-    handleItemAssigned,
   } = controller;
 
   const [mode, setMode] = useState('default');
@@ -310,15 +262,6 @@ export default function BoxActionPanel({
   );
 
   useEffect(() => {
-    if (Array.isArray(orphanedItems) && typeof fetchOrphanedItems !== 'function') {
-      return;
-    }
-    resolvedFetchOrphanedItems?.().catch((err) => {
-      console.error('[BoxActionPanel] orphaned fetch failed:', err);
-    });
-  }, [orphanedItems, fetchOrphanedItems, resolvedFetchOrphanedItems]);
-
-  useEffect(() => {
     if (!isDestroyConfirmMode) return;
 
     destroyToastActiveRef.current = true;
@@ -421,43 +364,6 @@ export default function BoxActionPanel({
           />
         )}
       </DetailsPanel>
-
-      {!isDestroyConfirmMode && (
-        <BoxActionItemList
-          itemsUI={itemsUI}
-          isBusy={isMoving}
-          zippingIds={zippingIds}
-          zippingItemId={zippingItemId}
-          justReturnedIds={justReturnedIds}
-          justReturnedItemId={justReturnedItemId}
-          isUndoing={isUndoing}
-          enteringIdsRef={enteringIdsRef}
-          routeShortId={routeShortId}
-          boxMongoId={boxMongoId}
-          boxTree={boxTree}
-          onItemUpdated={onItemUpdated}
-          handleMoveRequest={handleMoveRequest}
-          handleOrphanRequest={handleOrphanRequest}
-          refreshBox={refreshBox}
-        />
-      )}
-
-      {!isDestroyConfirmMode && (
-        <MiniOrphanedList
-          boxMongoId={boxMongoId}
-          onItemAssigned={handleItemAssigned}
-          orphanedItems={resolvedOrphanedItems}
-          fetchOrphanedItems={resolvedFetchOrphanedItems}
-        />
-      )}
-
-      {!isDestroyConfirmMode && !isEmptyMode && (
-        <AddItemToThisBoxForm
-          boxMongoId={boxMongoId}
-          onAdded={handleItemAdded}
-          boxShortId={routeShortId}
-        />
-      )}
     </PanelContainer>
   );
 }

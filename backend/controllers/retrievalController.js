@@ -1,4 +1,7 @@
-const { getRetrievalItemsPage } = require('../services/retrievalService');
+const {
+  getRetrievalItemsPage,
+  getRetrievalBoxesPage,
+} = require('../services/retrievalService');
 
 async function getRetrievalItemsApi(req, res) {
   try {
@@ -8,6 +11,7 @@ async function getRetrievalItemsApi(req, res) {
       tag: req.query.tag,
       location: req.query.location,
       owner: req.query.owner,
+      keepPriority: req.query.keepPriority,
       limit: req.query.limit,
       offset: req.query.offset,
     });
@@ -21,4 +25,21 @@ async function getRetrievalItemsApi(req, res) {
 
 module.exports = {
   getRetrievalItemsApi,
+  getRetrievalBoxesApi,
 };
+
+async function getRetrievalBoxesApi(req, res) {
+  try {
+    const payload = await getRetrievalBoxesPage({
+      q: req.query.q,
+      location: req.query.location,
+      limit: req.query.limit,
+      offset: req.query.offset,
+    });
+
+    return res.status(200).json(payload);
+  } catch (err) {
+    console.error('❌ Error fetching retrieval boxes page:', err);
+    return res.status(500).json({ error: 'Failed to fetch retrieval boxes' });
+  }
+}

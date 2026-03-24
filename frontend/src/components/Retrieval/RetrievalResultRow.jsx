@@ -1,16 +1,10 @@
 import * as S from './Retrieval.styles';
-import LocationBadge from './LocationBadge';
 import BoxBadge from './BoxBadge';
 import RetrievalExpandedPanel from './RetrievalExpandedPanel';
 
 function shouldSkipRowToggle(target) {
   if (!(target instanceof Element)) return false;
   return Boolean(target.closest('a, button, [data-thumb-surface="true"]'));
-}
-
-function getVisibleTags(item, max = 6) {
-  const tags = Array.isArray(item?.tags) ? item.tags : [];
-  return tags.filter(Boolean).slice(0, max);
 }
 
 export default function RetrievalResultRow({
@@ -40,11 +34,9 @@ export default function RetrievalResultRow({
     handleToggle();
   };
 
-  const categoryLabel = String(item?.categoryLabel || '').trim();
-  const visibleTags = getVisibleTags(item, 6);
-  const pathLine = String(item?.locationPath || '').trim();
   const imageUrl = String(item?.imageUrl || '').trim();
   const previewImageUrl = String(item?.previewImageUrl || imageUrl).trim();
+  const locationLabel = String(item?.locationLabel || '').trim();
   const hasImage = Boolean(imageUrl);
 
   const handleThumbClick = (event) => {
@@ -85,39 +77,25 @@ export default function RetrievalResultRow({
             )}
 
             <S.BadgeStack>
-              {item.itemHref ? (
-                <S.ItemPillLink
-                  to={item.itemHref}
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  {item.name}
-                </S.ItemPillLink>
-              ) : (
-                <S.ItemPill>{item.name}</S.ItemPill>
-              )}
+              <S.ItemLineSlot>
+                {item.itemHref ? (
+                  <S.ItemLineLink
+                    to={item.itemHref}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {item.name}
+                  </S.ItemLineLink>
+                ) : (
+                  <S.ItemLine>{item.name}</S.ItemLine>
+                )}
+              </S.ItemLineSlot>
 
-              <LocationBadge label={item.locationLabel} />
-              <BoxBadge boxNumber={item.boxNumber} boxName={item.boxName} />
-
-              {categoryLabel ? (
-                <S.MetaBlock>
-                  <S.MetaLabel>Category</S.MetaLabel>
-                  <S.CategoryValue>{categoryLabel}</S.CategoryValue>
-                </S.MetaBlock>
-              ) : null}
-
-              {visibleTags.length ? (
-                <S.MetaBlock>
-                  <S.MetaLabel>Tags</S.MetaLabel>
-                  <S.TagRow>
-                    {visibleTags.map((tag) => (
-                      <S.ItemTagChip key={`${item.id}-${tag}`}>{tag}</S.ItemTagChip>
-                    ))}
-                  </S.TagRow>
-                </S.MetaBlock>
-              ) : null}
-
-              {pathLine ? <S.PathLine>{pathLine}</S.PathLine> : null}
+              <S.CompactMetaLine>
+                <BoxBadge boxNumber={item.boxNumber} boxName={item.boxName} compact />
+                {locationLabel ? (
+                  <S.CompactLocation title={locationLabel}>{locationLabel}</S.CompactLocation>
+                ) : null}
+              </S.CompactMetaLine>
             </S.BadgeStack>
           </S.RowMain>
 

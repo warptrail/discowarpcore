@@ -5,6 +5,7 @@ import MoveItemBar from './MoveItemBar';
 import ItemEditFieldsForm from './ItemEditFieldsForm';
 import * as S from './ItemEditForm.styles';
 import { normalizeItemCategory } from '../util/itemCategories';
+import { normalizeKeepPriority } from '../util/keepPriority';
 import { getItemOwnershipContext } from '../util/itemOwnership';
 import {
   buildEditableDateHistory,
@@ -18,23 +19,10 @@ import {
   parseUsdInputToCents,
 } from '../util/usdMoney';
 
-const toNullableNonNegativeInteger = (value) => {
-  if (value === '' || value === null || value === undefined) return null;
-  const n = Number(value);
-  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) return null;
-  return n;
-};
-
 const toNullableTrimmedString = (value) => {
   if (value == null) return null;
   const s = String(value).trim();
   return s ? s : null;
-};
-
-const normalizeKeepPriority = (value) => {
-  if (value == null || value === '') return '';
-  const v = String(value).trim().toLowerCase();
-  return v === 'normal' ? 'medium' : v;
 };
 
 const normalizeLinksForForm = (links) => {
@@ -99,9 +87,6 @@ const buildFormData = (item) => ({
     item?.lastMaintainedAt
   ),
   isConsumable: !!item?.isConsumable,
-  minimumDesiredQuantity: toNullableNonNegativeInteger(
-    item?.minimumDesiredQuantity
-  ),
   acquisitionType: item?.acquisitionType || 'unknown',
   valueUsd: formatCentsToUsdInput(item?.valueCents),
   purchasePriceUsd: formatCentsToUsdInput(item?.purchasePriceCents),
@@ -178,14 +163,6 @@ export default function ItemEditForm({
     setFormData((prev) => ({
       ...prev,
       tags: newTags,
-    }));
-    markDirty();
-  };
-
-  const handleNumberFieldChange = (name, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: toNullableNonNegativeInteger(value),
     }));
     markDirty();
   };
@@ -273,9 +250,6 @@ export default function ItemEditForm({
         ...formData,
         keepPriority: formData.keepPriority || null,
         primaryOwnerName: toNullableTrimmedString(formData.primaryOwnerName),
-        minimumDesiredQuantity: toNullableNonNegativeInteger(
-          formData.minimumDesiredQuantity
-        ),
         valueCents,
         purchasePriceCents,
         dateAcquired: formData.dateAcquired || null,
@@ -371,7 +345,6 @@ export default function ItemEditForm({
         formData={formData}
         ownership={ownership}
         onFieldChange={handleChange}
-        onNumberFieldChange={handleNumberFieldChange}
         onQuantityChange={handleQuantityChange}
         onTagsChange={handleTagsChange}
         onLinkChange={handleLinkChange}

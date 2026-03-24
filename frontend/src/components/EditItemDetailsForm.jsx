@@ -17,6 +17,7 @@ export default function EditItemDetailsForm({
   onSaved,
   onItemImageUpdated,
   onCancel,
+  actionDocked = false,
   lifecycleBusy = false,
   onMarkGoneRequest,
   onDeletePermanentlyRequest,
@@ -32,7 +33,6 @@ export default function EditItemDetailsForm({
     handleTagsChange,
     handleQuantityChange,
     handleMetadataChange,
-    handleMetadataNumberChange,
     handleHistoryDateChange,
     handleAddHistoryDate,
     handleRemoveHistoryDate,
@@ -48,7 +48,7 @@ export default function EditItemDetailsForm({
   });
 
   return (
-    <S.Form onSubmit={handleSave}>
+    <S.Form onSubmit={handleSave} $actionDocked={actionDocked}>
       <S.Fieldset disabled={saving || lifecycleBusy}>
         <EditItemImageSection
           item={item}
@@ -73,7 +73,6 @@ export default function EditItemDetailsForm({
           formData={formData}
           derivedDates={derivedDates}
           onMetadataChange={handleMetadataChange}
-          onMetadataNumberChange={handleMetadataNumberChange}
           onHistoryDateChange={handleHistoryDateChange}
           onAddHistoryDate={handleAddHistoryDate}
           onRemoveHistoryDate={handleRemoveHistoryDate}
@@ -97,6 +96,7 @@ export default function EditItemDetailsForm({
         <EditItemFormActions
           saving={saving}
           isDirty={isDirty}
+          docked={actionDocked}
           onRevert={handleRevert}
           onCancel={onCancel}
         />

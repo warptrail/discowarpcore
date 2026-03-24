@@ -23,6 +23,7 @@ const LCARS = {
   amber: '#e8b15c',
   coral: '#f08a7b',
   lilac: '#a7b6ff',
+  decommissioned: '#e56f67',
 };
 
 const toneColor = (tone) => {
@@ -30,6 +31,11 @@ const toneColor = (tone) => {
   if (tone === 'amber') return LCARS.amber;
   if (tone === 'lilac') return LCARS.lilac;
   if (tone === 'teal') return LCARS.teal;
+  if (tone === 'low') return '#ef9d47';
+  if (tone === 'medium') return '#e8c75f';
+  if (tone === 'high') return '#62cd88';
+  if (tone === 'essential') return '#a58dff';
+  if (tone === 'decommissioned') return LCARS.decommissioned;
   return LCARS.textDim;
 };
 
@@ -149,6 +155,7 @@ export const Sep = styled.span`
 export const ControlsRow = styled.div`
   display: grid;
   grid-template-columns:
+    minmax(190px, 1.3fr)
     minmax(170px, 1fr)
     minmax(170px, 1fr)
     minmax(170px, 1fr);
@@ -210,6 +217,10 @@ export const Select = styled.select`
     font-size: ${MOBILE_FONT_SM};
     padding: 0.35rem 1.6rem 0.35rem 0.5rem;
   }
+`;
+
+export const SearchInput = styled.input`
+  ${controlField};
 `;
 
 export const ContentPanel = styled.section`
@@ -303,6 +314,21 @@ export const NameMeta = styled.div`
   margin-top: 0.22rem;
   font-size: 0.72rem;
   color: ${LCARS.textMuted};
+`;
+
+export const KeepPriorityBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.3rem;
+  border-radius: 999px;
+  padding: 0.12rem 0.48rem;
+  border: 1px solid ${({ $tone }) => `${toneColor($tone)}88`};
+  background: ${({ $tone }) => `${toneColor($tone)}2a`};
+  color: ${({ $tone }) => toneColor($tone)};
+  font-size: 0.66rem;
+  font-weight: 760;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 `;
 
 export const QtyPill = styled.span`
