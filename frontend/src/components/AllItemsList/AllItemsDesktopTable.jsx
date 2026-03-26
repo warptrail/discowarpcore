@@ -35,9 +35,7 @@ function renderBoxCell(meta) {
   if (meta.isOrphaned) {
     return (
       <>
-        <S.PillRow>
-          <S.Pill $tone="amber">Orphaned</S.Pill>
-        </S.PillRow>
+        <S.Subtle>No box assigned</S.Subtle>
         {meta.orphanedAtLabel && meta.orphanedAtLabel !== '—' ? (
           <S.ContextLine>Orphaned at: {meta.orphanedAtLabel}</S.ContextLine>
         ) : null}

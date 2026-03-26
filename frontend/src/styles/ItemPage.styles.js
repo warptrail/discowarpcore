@@ -16,6 +16,9 @@ const LCARS = {
   textMuted: 'rgba(231, 236, 243, 0.56)',
   teal: '#4cc6c1',
   coral: '#f08a7b',
+  amber: '#e8b15c',
+  green: '#54d097',
+  lilac: '#a097ff',
 };
 
 export const Page = styled.section`
@@ -443,6 +446,40 @@ export const ContainerActions = styled.div`
   padding-top: 0.08rem;
 `;
 
+export const ContainerTimestampSection = styled.section`
+  display: grid;
+  gap: 0.34rem;
+  padding: 0.34rem 0.42rem 0.28rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.02);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.26rem 0.3rem 0.24rem;
+    border-radius: 8px;
+    gap: 0.26rem;
+  }
+`;
+
+export const ContainerTimestampLabel = styled.span`
+  color: ${LCARS.textMuted};
+  font-size: 0.62rem;
+  font-weight: 760;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.07em;
+  }
+`;
+
+export const ContainerTimestampActions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.38rem;
+`;
+
 export const ContainerBoxValueGroup = styled.div`
   display: flex;
   align-items: center;
@@ -533,6 +570,71 @@ export const ContainerButton = styled.button`
     min-height: 32px;
     font-size: ${MOBILE_FONT_XS};
     padding: 0.26rem 0.46rem;
+  }
+`;
+
+const timestampToneBorder = (tone) =>
+  tone === 'consumed'
+    ? 'rgba(242, 98, 98, 0.76)'
+    : tone === 'maintained'
+      ? 'rgba(84, 208, 151, 0.72)'
+      : tone === 'checked'
+        ? 'rgba(160, 151, 255, 0.72)'
+        : 'rgba(76, 198, 193, 0.72)';
+
+const timestampToneBg = (tone) =>
+  tone === 'consumed'
+    ? 'linear-gradient(180deg, rgba(92, 29, 29, 0.94), rgba(67, 22, 22, 0.92))'
+    : tone === 'maintained'
+      ? 'linear-gradient(180deg, rgba(25, 71, 50, 0.92), rgba(19, 56, 40, 0.9))'
+      : tone === 'checked'
+        ? 'linear-gradient(180deg, rgba(45, 43, 93, 0.92), rgba(34, 33, 70, 0.9))'
+        : 'linear-gradient(180deg, rgba(31, 72, 88, 0.92), rgba(24, 56, 69, 0.9))';
+
+const timestampToneGlow = (tone) =>
+  tone === 'consumed'
+    ? 'rgba(242, 98, 98, 0.26)'
+    : tone === 'maintained'
+      ? 'rgba(84, 208, 151, 0.24)'
+      : tone === 'checked'
+        ? 'rgba(160, 151, 255, 0.24)'
+        : 'rgba(127, 215, 255, 0.2)';
+
+export const ContainerTimestampButton = styled.button`
+  border: 1px solid ${({ $tone }) => timestampToneBorder($tone)};
+  background: ${({ $tone }) => timestampToneBg($tone)};
+  color: #eff7ff;
+  border-radius: 8px;
+  padding: 0.24rem 0.52rem;
+  min-height: 32px;
+  font-size: 0.66rem;
+  font-weight: 730;
+  letter-spacing: 0.07em;
+  line-height: 1;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: filter 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+
+  &:hover:enabled {
+    filter: brightness(1.08);
+    box-shadow: 0 0 10px ${({ $tone }) => timestampToneGlow($tone)};
+  }
+
+  &:active:enabled {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 30px;
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.04em;
+    padding: 0.16rem 0.34rem;
+    border-radius: 7px;
   }
 `;
 

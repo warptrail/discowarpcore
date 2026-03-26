@@ -11,6 +11,7 @@ import ItemDetails from './ItemDetails';
 import ItemPageBreadcrumb from './ItemPageBreadcrumb';
 import EditItemDetailsForm from './EditItemDetailsForm';
 import ItemContainerSection from './ItemContainerSection';
+import useItemTimestampActions from '../hooks/useItemTimestampActions';
 import {
   ItemHardDeleteConsolePanel,
   ItemMarkGoneConsolePanel,
@@ -403,6 +404,27 @@ export default function ItemPage() {
     hideToast?.();
   }, [hideToast]);
 
+  const handleTimestampSaved = useCallback(
+    async (updated) => {
+      if (updated && typeof updated === 'object') {
+        setItem((prev) => ({
+          ...(prev || {}),
+          ...updated,
+        }));
+      }
+      await loadItem({ preserveLoading: true });
+    },
+    [loadItem]
+  );
+
+  const isGoneItem = String(item?.item_status || '').toLowerCase() === 'gone';
+  const { actions: timestampActions } = useItemTimestampActions({
+    item,
+    onSaved: handleTimestampSaved,
+    showToast,
+    hideToast,
+  });
+
   const handleConfirmMarkGone = useCallback(
     async ({ disposition, dispositionNotes }) => {
       if (!item?._id || lifecycleBusy) return false;
@@ -653,6 +675,7 @@ export default function ItemPage() {
         error={containerError}
         onMoveItem={handleMoveItem}
         onRemoveFromBox={handleRemoveFromBox}
+        timestampActions={isGoneItem ? [] : timestampActions}
       />
 
       {isEditing ? (

@@ -14,8 +14,8 @@ import { moveBoxedItem, orphanBoxedItem } from '../api/boxedItems';
 import useIsMobile from '../hooks/useIsMobile';
 import { API_BASE } from '../api/API_BASE';
 import { ToastContext } from './Toast';
-import { markItemGone } from '../api/itemLifecycle';
 import { getItemOwnershipContext } from '../util/itemOwnership';
+import useItemTimestampActions from '../hooks/useItemTimestampActions';
 
 export default function ItemRow({
   item,
@@ -64,7 +64,6 @@ export default function ItemRow({
   const showCollapsedFallback = !hasCollapsedTags && !hasCollapsedDescription;
   const [localImage, setLocalImage] = useState(item?.image || null);
   const [localImagePath, setLocalImagePath] = useState(item?.imagePath || '');
-  const [consumedConfirmOpen, setConsumedConfirmOpen] = useState(false);
   const [expandedMode, setExpandedMode] = useState('overview');
   const [movePending, setMovePending] = useState(false);
   const collapsedThumbUrl =
@@ -84,6 +83,12 @@ export default function ItemRow({
   const contentRef = useRef(null);
   const itemHomeHref = _id ? getItemHomeHref(_id) : null;
   const rowIsOpen = isOpen;
+  const { actions: timestampActions } = useItemTimestampActions({
+    item,
+    onSaved,
+    showToast,
+    hideToast,
+  });
 
   // ---- measure helpers
   const measureNow = () => {
@@ -134,68 +139,6 @@ export default function ItemRow({
     setExpandedMode('overview');
   }, [_id]);
 
-  const parseErrorMessage = useCallback(async (response, fallback) => {
-    const raw = await response.text().catch(() => '');
-    if (!raw) return fallback;
-
-    try {
-      const parsed = JSON.parse(raw);
-      return parsed?.message || parsed?.error || fallback;
-    } catch {
-      return raw;
-    }
-  }, []);
-
-  const appendNowToHistory = useCallback(
-    async (field, successTitle) => {
-      if (!_id) return;
-
-      const existing = Array.isArray(item?.[field]) ? item[field] : [];
-      const nowIso = new Date().toISOString();
-      const payload = {
-        [field]: [...existing, nowIso],
-      };
-
-      try {
-        const response = await fetch(`${API_BASE}/api/items/${encodeURIComponent(_id)}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          const message = await parseErrorMessage(
-            response,
-            'Failed to update item lifecycle.'
-          );
-          throw new Error(message);
-        }
-
-        const json = await response.json().catch(() => ({}));
-        const updated = json?.data ?? json;
-
-        if (updated && typeof updated === 'object') {
-          onSaved?.(updated);
-        }
-
-        showToast?.({
-          variant: 'success',
-          title: successTitle,
-          message: 'Timestamp saved.',
-          timeoutMs: 1800,
-        });
-      } catch (err) {
-        showToast?.({
-          variant: 'danger',
-          title: 'Lifecycle update failed',
-          message: err?.message || 'Could not save timestamp.',
-          timeoutMs: 3600,
-        });
-      }
-    },
-    [_id, item, onSaved, parseErrorMessage, showToast]
-  );
-
   const handleRowClick = () => {
     if (!_id) return;
     if (!rowIsOpen) {
@@ -237,95 +180,6 @@ export default function ItemRow({
     event?.stopPropagation?.();
     setExpandedMode('overview');
   }, []);
-
-  const handleMarkUsed = useCallback(
-    (event) => {
-      event?.stopPropagation?.();
-      appendNowToHistory('usageHistory', 'Used now');
-    },
-    [appendNowToHistory]
-  );
-
-  const handleMarkChecked = useCallback(
-    (event) => {
-      event?.stopPropagation?.();
-      appendNowToHistory('checkHistory', 'Checked now');
-    },
-    [appendNowToHistory]
-  );
-
-  const handleMarkMaintained = useCallback(
-    (event) => {
-      event?.stopPropagation?.();
-      appendNowToHistory('maintenanceHistory', 'Maintained now');
-    },
-    [appendNowToHistory]
-  );
-
-  const handleMarkConsumed = useCallback(
-    (event) => {
-      event?.stopPropagation?.();
-      if (!_id) return;
-
-      if (consumedConfirmOpen) {
-        hideToast?.();
-        setConsumedConfirmOpen(false);
-        return;
-      }
-
-      setConsumedConfirmOpen(true);
-      showToast?.({
-        variant: 'warning',
-        sticky: true,
-        title: 'Mark this consumable as consumed?',
-        message: 'Are you sure you want to mark this item as consumed?',
-        actions: [
-          {
-            id: `confirm-consumed-${_id}`,
-            label: 'Yes',
-            kind: 'danger',
-            onClick: async () => {
-              try {
-                const updated = await markItemGone(_id, {
-                  disposition: 'consumed',
-                });
-                setConsumedConfirmOpen(false);
-                onSaved?.(updated);
-                showToast?.({
-                  variant: 'warning',
-                  title: 'Item marked consumed',
-                  message:
-                    'To unconsume this item, open the edit pane and click Reclaim Item.',
-                  timeoutMs: 5600,
-                });
-              } catch (err) {
-                setConsumedConfirmOpen(false);
-                showToast?.({
-                  variant: 'danger',
-                  title: 'Consume action failed',
-                  message: err?.message || 'Could not mark this item as consumed.',
-                  timeoutMs: 4200,
-                });
-              }
-            },
-          },
-          {
-            id: `cancel-consumed-${_id}`,
-            label: 'No',
-            onClick: () => {
-              hideToast?.();
-              setConsumedConfirmOpen(false);
-            },
-          },
-        ],
-        onClose: () => {
-          hideToast?.();
-          setConsumedConfirmOpen(false);
-        },
-      });
-    },
-    [_id, consumedConfirmOpen, hideToast, onSaved, showToast]
-  );
 
   const handleMoveToSelectedBox = useCallback(
     async ({
@@ -501,37 +355,17 @@ export default function ItemRow({
             {expandedMode !== 'move' && (
               <S.ExpandedActionStrip>
                 <S.ExpandedActionCluster>
-                  <S.QuickActionButton
-                    type="button"
-                    $tone="used"
-                    onClick={handleMarkUsed}
-                  >
-                    Used
-                  </S.QuickActionButton>
-                  <S.QuickActionButton
-                    type="button"
-                    $tone="checked"
-                    onClick={handleMarkChecked}
-                  >
-                    Checked
-                  </S.QuickActionButton>
-                  {item?.isConsumable ? (
+                  {timestampActions.map((action) => (
                     <S.QuickActionButton
+                      key={action.id}
                       type="button"
-                      $tone="consumed"
-                      onClick={handleMarkConsumed}
+                      $tone={action.tone}
+                      disabled={action.disabled}
+                      onClick={action.onClick}
                     >
-                      Consumed
+                      {action.label}
                     </S.QuickActionButton>
-                  ) : (
-                    <S.QuickActionButton
-                      type="button"
-                      $tone="maintained"
-                      onClick={handleMarkMaintained}
-                    >
-                      Maintained
-                    </S.QuickActionButton>
-                  )}
+                  ))}
                 </S.ExpandedActionCluster>
               </S.ExpandedActionStrip>
             )}

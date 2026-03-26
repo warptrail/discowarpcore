@@ -95,7 +95,7 @@ export default function AllItemsMobileCards({ items = [] }) {
                       <S.BoxLabel>{[meta?.boxId, meta?.boxLabel].filter(Boolean).join(' • ')}</S.BoxLabel>
                     )
                   ) : meta?.isOrphaned ? (
-                    <S.Pill $tone="amber">Orphaned</S.Pill>
+                    <S.Subtle>No box assigned</S.Subtle>
                   ) : meta?.hasHistoricalBox ? (
                     <S.BoxLabel>
                       Last box: {[meta.boxId, meta.boxLabel].filter(Boolean).join(' • ')}

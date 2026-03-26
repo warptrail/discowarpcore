@@ -274,7 +274,7 @@ export default function ItemDetails({
       <S.HeaderBand>
         <S.TitleBlock>
           <S.HeaderMeta $compact>
-            <S.StatePill $tone={isGone || isOrphaned ? 'coral' : 'teal'}>
+            <S.StatePill $tone={isGone ? 'coral' : isOrphaned ? 'amber' : 'teal'}>
               {statusLabel}
             </S.StatePill>
             {quantity != null && <S.MetaTag>qty {quantity}</S.MetaTag>}

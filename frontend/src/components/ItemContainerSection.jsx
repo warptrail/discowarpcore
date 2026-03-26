@@ -9,6 +9,7 @@ export default function ItemContainerSection({
   error = '',
   onMoveItem,
   onRemoveFromBox,
+  timestampActions = [],
 }) {
   const [showPicker, setShowPicker] = useState(false);
   const ownership = getItemOwnershipContext(item);
@@ -60,6 +61,9 @@ export default function ItemContainerSection({
     const ok = await onRemoveFromBox({ boxMongoId });
     if (ok) setShowPicker(false);
   };
+  const resolvedTimestampActions = Array.isArray(timestampActions)
+    ? timestampActions
+    : [];
 
   return (
     <S.ContainerCard aria-label="Box section">
@@ -148,6 +152,25 @@ export default function ItemContainerSection({
           </S.ContainerButton>
         )}
       </S.ContainerActions>
+
+      {resolvedTimestampActions.length ? (
+        <S.ContainerTimestampSection>
+          <S.ContainerTimestampLabel>Item timestamps</S.ContainerTimestampLabel>
+          <S.ContainerTimestampActions>
+            {resolvedTimestampActions.map((action) => (
+              <S.ContainerTimestampButton
+                key={action.id}
+                type="button"
+                $tone={action.tone}
+                onClick={action.onClick}
+                disabled={pending || action.disabled}
+              >
+                {action.label}
+              </S.ContainerTimestampButton>
+            ))}
+          </S.ContainerTimestampActions>
+        </S.ContainerTimestampSection>
+      ) : null}
 
       {showPicker ? (
         <S.ContainerPickerWrap>
