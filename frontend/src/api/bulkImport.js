@@ -4,6 +4,20 @@ async function readJson(response) {
   return response.json().catch(() => ({}));
 }
 
+function buildApiError({
+  fallbackMessage,
+  body,
+  status,
+}) {
+  const err = new Error(body?.error || body?.message || fallbackMessage);
+  err.status = status;
+  err.code = String(body?.code || '').trim() || undefined;
+  err.responseBody = body;
+  err.validationErrors = Array.isArray(body?.validationErrors) ? body.validationErrors : [];
+  err.warnings = Array.isArray(body?.warnings) ? body.warnings : [];
+  return err;
+}
+
 export async function resolveBoxByShortId(shortId, opts = {}) {
   const normalizedShortId = String(shortId || '').trim();
   if (!/^\d{3}$/.test(normalizedShortId)) {
@@ -21,7 +35,11 @@ export async function resolveBoxByShortId(shortId, opts = {}) {
 
   const body = await readJson(res);
   if (!res.ok) {
-    throw new Error(body?.error || body?.message || 'Failed to resolve box ID');
+    throw buildApiError({
+      fallbackMessage: 'Failed to resolve box ID',
+      body,
+      status: res.status,
+    });
   }
 
   return body?.box || null;
@@ -54,7 +72,65 @@ export async function bulkCreateItems(
 
   const body = await readJson(res);
   if (!res.ok) {
-    throw new Error(body?.error || body?.message || 'Failed to import items');
+    throw buildApiError({
+      fallbackMessage: 'Failed to import items',
+      body,
+      status: res.status,
+    });
+  }
+
+  return body;
+}
+
+export async function validateAiJsonImport(
+  { jsonText = '' } = {},
+  opts = {}
+) {
+  const payload = {
+    jsonText: String(jsonText ?? ''),
+  };
+
+  const res = await fetch(`${API_BASE}/api/items/ai-json/validate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal: opts.signal,
+  });
+
+  const body = await readJson(res);
+  if (!res.ok) {
+    throw buildApiError({
+      fallbackMessage: 'Failed to validate AI JSON import',
+      body,
+      status: res.status,
+    });
+  }
+
+  return body;
+}
+
+export async function importAiJsonItems(
+  { jsonText = '' } = {},
+  opts = {}
+) {
+  const payload = {
+    jsonText: String(jsonText ?? ''),
+  };
+
+  const res = await fetch(`${API_BASE}/api/items/ai-json/import`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal: opts.signal,
+  });
+
+  const body = await readJson(res);
+  if (!res.ok) {
+    throw buildApiError({
+      fallbackMessage: 'Failed to import AI JSON items',
+      body,
+      status: res.status,
+    });
   }
 
   return body;

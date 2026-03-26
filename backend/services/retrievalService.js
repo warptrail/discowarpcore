@@ -178,6 +178,7 @@ function getBoxContext(item, maps, itemToLeafBoxId) {
     isOrphaned ? ORPHANED_BOX_NAME : '',
     UNKNOWN_BOX_NAME
   );
+  const groupLabel = firstNonEmpty(leafBox?.group);
   const locationLabel = firstNonEmpty(
     leafBox?.location,
     item?.location,
@@ -199,6 +200,7 @@ function getBoxContext(item, maps, itemToLeafBoxId) {
     boxName,
     boxPath,
     boxKey,
+    groupLabel,
     locationLabel,
     locationPath,
     locationKey: normalizeFacetKey(locationLabel || UNKNOWN_LOCATION_LABEL),
@@ -288,6 +290,18 @@ function buildRetrievalItems(itemDocs, boxDocs) {
     const categoryLabel = toCategoryLabel(categoryKey);
     const tags = uniqueTrimmedValues(item?.tags);
     const tagKeys = tags.map((tag) => normalizeFacetKey(tag));
+    const usageHistory = Array.isArray(item?.usageHistory)
+      ? item.usageHistory.filter(Boolean)
+      : [];
+    const checkHistory = Array.isArray(item?.checkHistory)
+      ? item.checkHistory.filter(Boolean)
+      : [];
+    const maintenanceHistory = Array.isArray(item?.maintenanceHistory)
+      ? item.maintenanceHistory.filter(Boolean)
+      : [];
+    const isConsumable =
+      Boolean(item?.isConsumable) ||
+      tags.some((tag) => normalizeFacetKey(tag) === 'consumable');
 
     const boxContext = getBoxContext(item, maps, itemToLeafBoxId);
     const searchText = buildSearchText([
@@ -301,11 +315,13 @@ function buildRetrievalItems(itemDocs, boxDocs) {
       tags.join(' '),
       boxContext.boxName,
       boxContext.boxNumber,
+      boxContext.groupLabel,
       boxContext.locationLabel,
       boxContext.locationPath,
       boxContext.boxPath,
       item?.location,
       primaryOwnerName,
+      isConsumable ? 'consumable' : 'non consumable',
     ]);
 
     const retrievalItem = {
@@ -322,6 +338,7 @@ function buildRetrievalItems(itemDocs, boxDocs) {
       boxName: boxContext.boxName,
       boxPath: boxContext.boxPath,
       boxKey: boxContext.boxKey,
+      groupLabel: boxContext.groupLabel,
       locationLabel: boxContext.locationLabel,
       locationPath: boxContext.locationPath,
       locationKey: boxContext.locationKey,
@@ -330,6 +347,10 @@ function buildRetrievalItems(itemDocs, boxDocs) {
       keepPriorityKey,
       keepPriorityLabel,
       ownerKey,
+      isConsumable,
+      usageHistory,
+      checkHistory,
+      maintenanceHistory,
       searchText,
       imageUrl: getItemImageUrl(item),
       previewImageUrl: getItemPreviewImageUrl(item),
@@ -427,11 +448,16 @@ function toClientItem(item) {
     boxNumber: item.boxNumber,
     boxName: item.boxName,
     boxPath: item.boxPath,
+    groupLabel: item.groupLabel,
     locationLabel: item.locationLabel,
     locationPath: item.locationPath,
     primaryOwnerName: item.primaryOwnerName,
     keepPriority: item.keepPriority,
     keepPriorityLabel: item.keepPriorityLabel,
+    isConsumable: item.isConsumable,
+    usageHistory: item.usageHistory,
+    checkHistory: item.checkHistory,
+    maintenanceHistory: item.maintenanceHistory,
     imageUrl: item.imageUrl,
     previewImageUrl: item.previewImageUrl,
     siblingItems: item.siblingItems,
@@ -462,6 +488,8 @@ function buildRetrievalBoxes(boxDocs = []) {
         boxId ? `Box ${boxId}` : '',
         UNKNOWN_BOX_NAME
       );
+      const groupLabel = firstNonEmpty(box?.group);
+      const groupKey = normalizeFacetKey(groupLabel);
       const locationLabel = firstNonEmpty(box?.location, UNKNOWN_LOCATION_LABEL);
       const locationKey = normalizeFacetKey(locationLabel);
       const breadcrumbData = makeBreadcrumb(mongoId, maps);
@@ -473,12 +501,20 @@ function buildRetrievalBoxes(boxDocs = []) {
       const boxPath = pathLabels.join(' > ');
       const directItemCount = Array.isArray(box?.items) ? box.items.length : 0;
       const childBoxCount = childCountByParentId.get(mongoId) || 0;
-      const searchText = buildSearchText([boxId, boxLabel, locationLabel, boxPath]);
+      const searchText = buildSearchText([
+        boxId,
+        boxLabel,
+        groupLabel,
+        locationLabel,
+        boxPath,
+      ]);
 
       return {
         id: mongoId,
         boxId,
         boxLabel,
+        groupLabel,
+        groupKey,
         locationLabel,
         locationKey,
         boxPath,
@@ -500,9 +536,16 @@ function buildRetrievalBoxes(boxDocs = []) {
 }
 
 function collectBoxFilterOptions(boxes) {
+  const groupLabelByKey = new Map();
   const locationLabelByKey = new Map();
 
   for (const box of boxes) {
+    if (box.groupKey && box.groupLabel) {
+      if (!groupLabelByKey.has(box.groupKey)) {
+        groupLabelByKey.set(box.groupKey, box.groupLabel);
+      }
+    }
+
     if (!box.locationKey) continue;
     if (!locationLabelByKey.has(box.locationKey)) {
       locationLabelByKey.set(box.locationKey, firstNonEmpty(box.locationLabel, UNKNOWN_LOCATION_LABEL));
@@ -510,16 +553,21 @@ function collectBoxFilterOptions(boxes) {
   }
 
   return {
+    groups: mapToSortedOptions(groupLabelByKey),
     locations: mapToSortedOptions(locationLabelByKey),
   };
 }
 
-function filterRetrievalBoxes(items, { query, locationFilters }) {
+function filterRetrievalBoxes(items, { query, locationFilters, groupFilters }) {
   const normalizedQuery = normalizeText(query);
   const rawQuery = toTrimmed(query);
   const numericPrefix = /^\d+$/.test(rawQuery) ? rawQuery : '';
 
   return items.filter((item) => {
+    if (groupFilters.length && !groupFilters.includes(item.groupKey)) {
+      return false;
+    }
+
     if (locationFilters.length && !locationFilters.includes(item.locationKey)) {
       return false;
     }
@@ -542,6 +590,7 @@ function toClientBox(item) {
     id: item.id,
     boxId: item.boxId,
     boxLabel: item.boxLabel,
+    groupLabel: item.groupLabel,
     locationLabel: item.locationLabel,
     boxPath: item.boxPath,
     directItemCount: item.directItemCount,
@@ -562,10 +611,10 @@ async function getRetrievalItemsPage(params = {}) {
   const [itemDocs, boxDocs] = await Promise.all([
     Item.find(ACTIVE_ITEM_FILTER)
       .select(
-        '_id name description notes maintenanceNotes category tags location image imagePath primaryOwnerName keepPriority orphanedAt'
+        '_id name description notes maintenanceNotes category tags location image imagePath primaryOwnerName keepPriority orphanedAt isConsumable usageHistory checkHistory maintenanceHistory'
       )
       .lean(),
-    Box.find().select('_id box_id label location parentBox items').lean(),
+    Box.find().select('_id box_id label group location parentBox items').lean(),
   ]);
 
   const retrievalItems = buildRetrievalItems(itemDocs, boxDocs);
@@ -593,17 +642,19 @@ async function getRetrievalItemsPage(params = {}) {
 
 async function getRetrievalBoxesPage(params = {}) {
   const query = toTrimmed(params.q);
+  const groupFilters = normalizeFilterValues(params.group);
   const locationFilters = normalizeFilterValues(params.location);
   const limit = parseLimit(params.limit);
   const offset = parseOffset(params.offset);
 
   const boxDocs = await Box.find()
-    .select('_id box_id label name location parentBox items')
+    .select('_id box_id label name group location parentBox items')
     .lean();
 
   const retrievalBoxes = buildRetrievalBoxes(boxDocs);
   const filteredBoxes = filterRetrievalBoxes(retrievalBoxes, {
     query,
+    groupFilters,
     locationFilters,
   });
 

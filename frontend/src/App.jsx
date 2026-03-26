@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -18,6 +18,13 @@ import { API_BASE } from './api/API_BASE';
 import { MOBILE_BREAKPOINT, MOBILE_PAGE_GAP } from './styles/tokens';
 
 const OPERATIONS_PAGE_LIMIT = 50;
+const INVENTORY_SORT_OPTIONS = new Set([
+  'boxId',
+  'name',
+  'group',
+  'location',
+  'itemCount',
+]);
 
 // ! STYLES
 const AppContainer = styled.div`
@@ -83,16 +90,70 @@ function disableAutofillWithin(root) {
   }
 }
 
+function normalizeGroupLabel(value) {
+  return String(value || '').trim();
+}
+
+function collectGroupOptionsFromTree(nodes) {
+  const byKey = new Map();
+
+  const walk = (list) => {
+    for (const node of list || []) {
+      const label = normalizeGroupLabel(node?.group);
+      if (label) {
+        const key = label.toLowerCase();
+        if (!byKey.has(key)) byKey.set(key, label);
+      }
+      walk(node?.childBoxes);
+    }
+  };
+
+  walk(nodes);
+
+  return [...byKey.values()].sort((left, right) =>
+    String(left).localeCompare(String(right), undefined, {
+      sensitivity: 'base',
+      numeric: true,
+    }),
+  );
+}
+
+function normalizeInventoryQuery(input = {}) {
+  const q = String(input?.q || '').trim();
+  const rawGroup = String(input?.group || '').trim();
+  const group = rawGroup || 'all';
+  const rawSort = String(input?.sortBy || '').trim();
+  const sortBy = INVENTORY_SORT_OPTIONS.has(rawSort) ? rawSort : 'boxId';
+
+  return { q, group, sortBy };
+}
+
 function App() {
   const [boxes, setBoxes] = useState([]);
+  const [boxGroups, setBoxGroups] = useState([]);
   const [boxesPage, setBoxesPage] = useState(1);
   const [boxesTotal, setBoxesTotal] = useState(0);
   const [boxesTotalPages, setBoxesTotalPages] = useState(1);
   const [orphanedCount, setOrphanedCount] = useState(0);
+  const [orphanedItems, setOrphanedItems] = useState([]);
   const [locations, setLocations] = useState([]);
+  const [inventoryQuery, setInventoryQuery] = useState(() =>
+    normalizeInventoryQuery()
+  );
 
   // for refreshing the home page on location change
   const location = useLocation();
+
+  const handleInventoryQueryChange = useCallback((next) => {
+    const normalized = normalizeInventoryQuery(next);
+    setInventoryQuery((prev) =>
+      prev.q === normalized.q &&
+      prev.group === normalized.group &&
+      prev.sortBy === normalized.sortBy
+        ? prev
+        : normalized
+    );
+  }, []);
 
   useEffect(() => {
     let isAlive = true;
@@ -103,6 +164,15 @@ function App() {
           page: String(boxesPage),
           limit: String(OPERATIONS_PAGE_LIMIT),
         });
+        if (inventoryQuery.q) {
+          boxesQuery.set('q', inventoryQuery.q);
+        }
+        if (inventoryQuery.group && inventoryQuery.group !== 'all') {
+          boxesQuery.set('group', inventoryQuery.group);
+        }
+        if (inventoryQuery.sortBy) {
+          boxesQuery.set('sortBy', inventoryQuery.sortBy);
+        }
 
         const [boxesRes, orphanedRes, locationsRes] = await Promise.all([
           fetch(`${API_BASE}/api/boxes/tree?${boxesQuery}`),
@@ -126,6 +196,12 @@ function App() {
         const currentPage = Number.isFinite(apiPage)
           ? Math.max(1, Math.min(apiPage, totalPages))
           : boxesPage;
+        const apiGroups = Array.isArray(boxesBody?.filters?.groups)
+          ? boxesBody.filters.groups
+          : null;
+        const groups = (Array.isArray(apiGroups) ? apiGroups : collectGroupOptionsFromTree(boxesData))
+          .map((entry) => normalizeGroupLabel(entry))
+          .filter(Boolean);
         const orphanedBody = orphanedRes.ok ? await orphanedRes.json() : [];
         const orphanedData = Array.isArray(orphanedBody)
           ? orphanedBody
@@ -136,10 +212,12 @@ function App() {
 
         if (!isAlive) return;
         setBoxes(Array.isArray(boxesData) ? boxesData : []);
+        setBoxGroups(groups);
         setBoxesTotal(total);
         setBoxesTotalPages(totalPages);
         if (currentPage !== boxesPage) setBoxesPage(currentPage);
         setOrphanedCount(orphanedData.length);
+        setOrphanedItems(orphanedData);
         setLocations(
           Array.isArray(locationsData?.locations) ? locationsData.locations : [],
         );
@@ -147,9 +225,11 @@ function App() {
         if (!isAlive) return;
         console.error('Error fetching home data:', err);
         setBoxes([]);
+        setBoxGroups([]);
         setBoxesTotal(0);
         setBoxesTotalPages(1);
         setOrphanedCount(0);
+        setOrphanedItems([]);
         setLocations([]);
       }
     };
@@ -158,7 +238,7 @@ function App() {
     return () => {
       isAlive = false;
     };
-  }, [location, boxesPage]);
+  }, [location, boxesPage, inventoryQuery.q, inventoryQuery.group, inventoryQuery.sortBy]);
 
   useEffect(() => {
     disableAutofillWithin(document.body);
@@ -191,7 +271,9 @@ function App() {
           element={
             <BoxList
               boxes={boxes}
+              groups={boxGroups}
               orphanedCount={orphanedCount}
+              orphanedItems={orphanedItems}
               locations={locations}
               pagination={{
                 page: boxesPage,
@@ -200,6 +282,7 @@ function App() {
                 totalPages: boxesTotalPages,
               }}
               onPageChange={setBoxesPage}
+              onInventoryQueryChange={handleInventoryQueryChange}
             />
           }
         />

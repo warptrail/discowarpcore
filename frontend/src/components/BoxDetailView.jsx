@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import * as S from '../styles/BoxDetailView.styles';
@@ -53,6 +53,11 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
     handleOpen,
     handleFlash,
   } = useItemEffects();
+
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [shortId]);
 
   useEffect(() => {
     const tab = searchParams.get('tab');

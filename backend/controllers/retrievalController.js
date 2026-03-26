@@ -32,6 +32,7 @@ async function getRetrievalBoxesApi(req, res) {
   try {
     const payload = await getRetrievalBoxesPage({
       q: req.query.q,
+      group: req.query.group,
       location: req.query.location,
       limit: req.query.limit,
       offset: req.query.offset,

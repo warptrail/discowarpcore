@@ -17,6 +17,10 @@ const {
   restoreItemToActive,
   backfillOrphanedTimestamps,
 } = require('../services/itemService');
+const {
+  validateAiJsonImport,
+  importAiJsonItems,
+} = require('../services/aiJsonImportService');
 const { processItemImageUpload } = require('../services/itemImageService');
 const { collectImageStoragePaths } = require('../services/imageMetadataService');
 const {
@@ -122,6 +126,7 @@ async function getRandomItemApi(req, res) {
 // (others unchanged)
 async function getOrphanedItemsApi(req, res) {
   const sort = req.query.sort || 'recent';
+  const query = String(req.query.q ?? req.query.search ?? '').trim();
   const limit = Math.min(parsePositiveInt(req.query.limit, 20), 100);
   const page = parsePositiveInt(req.query.page, 1);
   const offsetFromPage = (page - 1) * limit;
@@ -133,11 +138,11 @@ async function getOrphanedItemsApi(req, res) {
 
   try {
     if (wantsPagination) {
-      const payload = await getOrphanedItemsPage({ sort, limit, offset });
+      const payload = await getOrphanedItemsPage({ sort, limit, offset, query });
       return res.json(payload);
     }
 
-    const items = await getOrphanedItems(sort, limit);
+    const items = await getOrphanedItems(sort, limit, query);
     return res.json(items);
   } catch (err) {
     console.error('❌ Error fetching orphaned items:', err);
@@ -172,6 +177,46 @@ async function postBulkCreateItemsApi(req, res) {
     return res.status(err?.status || 400).json({
       ok: false,
       error: err?.message || 'Failed to bulk create items',
+    });
+  }
+}
+
+async function postValidateAiJsonImportApi(req, res) {
+  try {
+    const result = await validateAiJsonImport(req.body || {});
+    return res.status(200).json({ ok: true, ...result });
+  } catch (err) {
+    console.error('❌ Error validating AI JSON import:', err);
+    return res.status(err?.status || 400).json({
+      ok: false,
+      code: err?.code || 'AI_IMPORT_VALIDATE_FAILED',
+      error: err?.message || 'Failed to validate AI JSON import',
+      validationErrors: Array.isArray(err?.validationErrors)
+        ? err.validationErrors
+        : [],
+      warnings: Array.isArray(err?.warnings) ? err.warnings : [],
+      ...(err?.metrics && typeof err.metrics === 'object' ? err.metrics : {}),
+    });
+  }
+}
+
+async function postAiJsonImportApi(req, res) {
+  try {
+    const result = await importAiJsonItems(req.body || {});
+    const statusCode =
+      result.status === 'success' ? 201 : result.status === 'partial_success' ? 207 : 400;
+    return res.status(statusCode).json({ ok: statusCode < 400, ...result });
+  } catch (err) {
+    console.error('❌ Error importing AI JSON items:', err);
+    return res.status(err?.status || 400).json({
+      ok: false,
+      code: err?.code || 'AI_IMPORT_FAILED',
+      error: err?.message || 'Failed to import AI JSON items',
+      validationErrors: Array.isArray(err?.validationErrors)
+        ? err.validationErrors
+        : [],
+      warnings: Array.isArray(err?.warnings) ? err.warnings : [],
+      ...(err?.metrics && typeof err.metrics === 'object' ? err.metrics : {}),
     });
   }
 }
@@ -339,6 +384,8 @@ module.exports = {
   getOrphanedItemsApi,
   postItem,
   postBulkCreateItemsApi,
+  postValidateAiJsonImportApi,
+  postAiJsonImportApi,
   patchItem,
   postItemImageApi,
   deleteItemImageApi,

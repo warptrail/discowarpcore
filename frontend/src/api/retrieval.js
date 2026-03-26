@@ -53,6 +53,7 @@ export async function fetchRetrievalItemsPage(
 export async function fetchRetrievalBoxesPage(
   {
     q = '',
+    groups = [],
     locations = [],
     limit = DEFAULT_RETRIEVAL_LIMIT,
     offset = 0,
@@ -63,6 +64,7 @@ export async function fetchRetrievalBoxesPage(
   const query = String(q || '').trim();
   if (query) params.set('q', query);
 
+  appendCsvParam(params, 'group', groups);
   appendCsvParam(params, 'location', locations);
   params.set('limit', String(limit));
   params.set('offset', String(offset));

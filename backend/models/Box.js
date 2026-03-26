@@ -1,9 +1,17 @@
 // models/Box.js
 const mongoose = require('mongoose');
 
+function normalizeOptionalString(value) {
+  if (value == null) return undefined;
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  return trimmed || undefined;
+}
+
 const boxSchema = new mongoose.Schema({
   box_id: { type: String, required: true, unique: true },
   label: { type: String, required: true },
+  group: { type: String, trim: true, set: normalizeOptionalString },
   location: String,
   locationId: {
     type: mongoose.Schema.Types.ObjectId,

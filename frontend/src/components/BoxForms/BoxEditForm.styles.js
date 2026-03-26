@@ -7,18 +7,209 @@ import {
   MOBILE_PANEL_RADIUS,
 } from '../../styles/tokens';
 
+const LCARS = {
+  panel: '#11161f',
+  panelSoft: '#171f2c',
+  inset: '#0b1018',
+  line: 'rgba(130, 168, 196, 0.34)',
+  text: '#e6edf4',
+  textDim: 'rgba(214, 226, 241, 0.78)',
+  teal: '#4cc6c1',
+  amber: '#e8b15c',
+  lilac: '#a7b6ff',
+  coral: '#f08a7b',
+};
+
 export const Card = styled.form`
-  background: #171717;
-  border: 1px solid #2a2a2a;
-  border-radius: 10px;
-  padding: ${({ $compact }) => ($compact ? '10px' : '12px')};
+  position: relative;
+  display: grid;
+  gap: ${({ $compact }) => ($compact ? '8px' : '12px')};
+  background:
+    radial-gradient(circle at 92% 8%, rgba(127, 215, 255, 0.14), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 36%),
+    ${LCARS.panel};
+  border: 1px solid ${LCARS.line};
+  border-radius: 12px;
+  padding: ${({ $compact }) => ($compact ? '10px' : '13px')};
   min-width: 0;
   max-width: 100%;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 12px 24px rgba(0, 0, 0, 0.24);
+  isolation: isolate;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0.72rem;
+    right: 0.72rem;
+    top: 0.52rem;
+    height: 4px;
+    border-radius: 999px;
+    background: linear-gradient(
+      90deg,
+      ${LCARS.coral} 0 14%,
+      transparent 14% 18%,
+      ${LCARS.teal} 18% 55%,
+      transparent 55% 60%,
+      ${LCARS.amber} 60% 80%,
+      transparent 80% 84%,
+      ${LCARS.lilac} 84% 100%
+    );
+    opacity: ${({ $compact }) => ($compact ? 0 : 0.56)};
+    pointer-events: none;
+  }
+
+  & > * {
+    position: relative;
+    z-index: 1;
+  }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     border-radius: ${MOBILE_PANEL_RADIUS};
     padding: ${({ $compact }) => ($compact ? '7px' : '8px')};
+    gap: ${({ $compact }) => ($compact ? '7px' : '8px')};
+
+    &::before {
+      left: 0.54rem;
+      right: 0.54rem;
+      top: 0.4rem;
+      height: 3px;
+      opacity: ${({ $compact }) => ($compact ? 0 : 0.42)};
+    }
   }
+`;
+
+export const ConsoleHeader = styled.div`
+  display: grid;
+  gap: 3px;
+  margin-bottom: 1px;
+`;
+
+export const ConsoleKicker = styled.span`
+  font-size: 11px;
+  font-weight: 760;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: ${LCARS.textDim};
+`;
+
+export const ConsoleTitle = styled.h4`
+  margin: 0;
+  color: ${LCARS.text};
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+`;
+
+export const ConsoleHint = styled.p`
+  margin: 0;
+  color: rgba(214, 226, 241, 0.62);
+  font-size: 12px;
+  line-height: 1.38;
+`;
+
+export const ConsoleGrid = styled.div`
+  display: grid;
+  gap: 10px;
+
+  @media (min-width: 900px) {
+    grid-template-columns: minmax(0, 1.35fr) minmax(250px, 0.95fr);
+    align-items: start;
+  }
+`;
+
+export const ConsoleMain = styled.div`
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+`;
+
+export const ConsoleSide = styled.div`
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+`;
+
+export const SectionCard = styled.section`
+  border: 1px solid
+    ${({ $tone = 'teal' }) =>
+      $tone === 'amber'
+        ? 'rgba(232, 177, 92, 0.36)'
+        : $tone === 'lilac'
+          ? 'rgba(167, 182, 255, 0.36)'
+          : 'rgba(76, 198, 193, 0.36)'};
+  border-radius: 11px;
+  padding: 9px;
+  background:
+    linear-gradient(
+      110deg,
+      ${({ $tone = 'teal' }) =>
+          $tone === 'amber'
+            ? 'rgba(232, 177, 92, 0.1)'
+            : $tone === 'lilac'
+              ? 'rgba(167, 182, 255, 0.12)'
+              : 'rgba(76, 198, 193, 0.1)'}
+        0%,
+      transparent 52%
+    ),
+    ${LCARS.panelSoft};
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: 9px;
+    padding: 7px;
+  }
+`;
+
+export const SectionHeader = styled.div`
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 7px;
+`;
+
+export const SectionLabel = styled.span`
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(214, 226, 241, 0.66);
+`;
+
+export const SectionTitle = styled.h5`
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: ${LCARS.text};
+`;
+
+export const SectionHint = styled.span`
+  font-size: 10px;
+  color: rgba(214, 226, 241, 0.62);
+`;
+
+export const SectionBody = styled.div`
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+`;
+
+export const MediaFrame = styled.div`
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(130, 168, 196, 0.24);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(11, 16, 24, 0.92), rgba(10, 15, 22, 0.9));
+  padding: 8px;
+`;
+
+export const MediaStatusStack = styled.div`
+  display: grid;
+  gap: 5px;
 `;
 
 export const Row = styled.div`
@@ -56,8 +247,11 @@ export const Field = styled.div`
 `;
 
 export const Label = styled.label`
-  font-size: 12px;
-  color: #bdbdbd;
+  font-size: 11px;
+  font-weight: 740;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: ${LCARS.textDim};
   margin-bottom: ${({ $compact }) => ($compact ? '4px' : '6px')};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -69,17 +263,17 @@ export const Label = styled.label`
 export const Input = styled.input`
   padding: ${({ $compact }) => ($compact ? '8px 10px' : '10px 12px')};
   border-radius: 8px;
-  border: 1px solid #2f2f2f;
-  background: #101010;
-  color: #eaeaea;
+  border: 1px solid rgba(122, 142, 167, 0.44);
+  background: ${LCARS.inset};
+  color: ${LCARS.text};
   font-size: ${({ $compact }) => ($compact ? '13px' : '14px')};
   min-height: ${({ $compact }) => ($compact ? '36px' : MOBILE_CONTROL_MIN_HEIGHT)};
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:focus {
     outline: none;
-    border-color: #4ec77b;
-    box-shadow: 0 0 0 2px rgba(78, 199, 123, 0.2);
+    border-color: ${LCARS.teal};
+    box-shadow: 0 0 0 2px rgba(76, 198, 193, 0.2);
   }
 
   ${({ $invalid }) =>
@@ -99,17 +293,17 @@ export const Input = styled.input`
 export const Select = styled.select`
   padding: ${({ $compact }) => ($compact ? '8px 10px' : '10px 12px')};
   border-radius: 8px;
-  border: 1px solid #2f2f2f;
-  background: #101010;
-  color: #eaeaea;
+  border: 1px solid rgba(122, 142, 167, 0.44);
+  background: ${LCARS.inset};
+  color: ${LCARS.text};
   font-size: ${({ $compact }) => ($compact ? '13px' : '14px')};
   min-height: ${({ $compact }) => ($compact ? '36px' : MOBILE_CONTROL_MIN_HEIGHT)};
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:focus {
     outline: none;
-    border-color: #4ec77b;
-    box-shadow: 0 0 0 2px rgba(78, 199, 123, 0.2);
+    border-color: ${LCARS.teal};
+    box-shadow: 0 0 0 2px rgba(76, 198, 193, 0.2);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -385,13 +579,41 @@ export const ImagePreview = styled.img`
 export const Actions = styled.div`
   display: flex;
   gap: ${({ $compact }) => ($compact ? '6px' : '8px')};
-  justify-content: flex-end;
+  justify-content: ${({ $alignStart }) => ($alignStart ? 'flex-start' : 'flex-end')};
+  flex-wrap: ${({ $wrap }) => ($wrap ? 'wrap' : 'nowrap')};
   margin-top: ${({ $compact }) => ($compact ? '8px' : '12px')};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 6px;
     flex-direction: column;
     margin-top: 8px;
+  }
+`;
+
+export const FormActionDock = styled.div`
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  gap: ${({ $compact }) => ($compact ? '6px' : '8px')};
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: ${({ $compact }) => ($compact ? '8px' : '10px')};
+  padding-top: ${({ $compact }) => ($compact ? '8px' : '10px')};
+  background: linear-gradient(
+    180deg,
+    rgba(17, 22, 31, 0),
+    rgba(17, 22, 31, 0.94) 44%,
+    rgba(17, 22, 31, 0.99)
+  );
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    position: static;
+    justify-content: stretch;
+    margin-top: 6px;
+    padding-top: 6px;
+    background: none;
   }
 `;
 

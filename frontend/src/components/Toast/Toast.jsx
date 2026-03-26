@@ -7,6 +7,7 @@ import {
 } from '../../styles/tokens';
 
 const Wrap = styled.div`
+  position: relative;
   display: flex;
   gap: 0.75rem;
   align-items: ${({ $hasContent }) => ($hasContent ? 'flex-start' : 'center')};
@@ -36,6 +37,7 @@ const Wrap = styled.div`
               : '#228be6'};
   color: ${({ $idle }) => ($idle ? 'rgba(234,234,234,0.82)' : '#eaeaea')};
   padding: 0.75rem 1rem;
+  padding-right: ${({ $hasClose }) => ($hasClose ? '3rem' : '1rem')};
   border-radius: 10px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
 
@@ -44,6 +46,7 @@ const Wrap = styled.div`
     margin: 6px 0;
     min-height: 44px;
     padding: 0.5rem 0.6rem;
+    padding-right: ${({ $hasClose }) => ($hasClose ? '2.7rem' : '0.6rem')};
     border-radius: 8px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.24);
   }
@@ -53,6 +56,7 @@ const Wrap = styled.div`
     align-items: stretch;
   }
 `;
+
 const Body = styled.div`
   flex: 1;
   min-width: 0;
@@ -125,6 +129,29 @@ const Btn = styled.button`
   }
 `;
 
+const CloseBtn = styled(Btn)`
+  position: absolute;
+  top: 0.5rem;
+  right: 0.55rem;
+  min-height: 30px;
+  min-width: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  line-height: 1;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    top: 0.38rem;
+    right: 0.42rem;
+    min-height: 28px;
+    min-width: 28px;
+    border-radius: 7px;
+  }
+`;
+
 export default function Toast({
   open,
   title,
@@ -145,6 +172,7 @@ export default function Toast({
       $variant={variant}
       $idle={isIdle}
       $hasContent={hasContent}
+      $hasClose={!isIdle && !!onClose}
       role={variant === 'danger' ? 'alert' : 'status'}
       aria-live={variant === 'danger' ? 'assertive' : 'polite'}
     >
@@ -187,9 +215,9 @@ export default function Toast({
               {a.label}
             </Btn>
           ))}
-          {onClose && <Btn onClick={onClose}>✕</Btn>}
         </Controls>
       )}
+      {!isIdle && onClose ? <CloseBtn onClick={onClose}>✕</CloseBtn> : null}
     </Wrap>
   );
 }

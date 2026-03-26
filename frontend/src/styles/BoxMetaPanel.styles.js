@@ -198,6 +198,69 @@ export const CurrentBoxMain = styled.div`
   }
 `;
 
+export const CurrentBoxInfoRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-width: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 6px;
+  }
+`;
+
+export const CurrentBoxTagsSection = styled.div`
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+`;
+
+export const CurrentBoxTagsLabel = styled.span`
+  color: ${LCARS.textDim};
+  font-size: 0.62rem;
+  font-weight: 760;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  line-height: 1;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.07em;
+  }
+`;
+
+export const CurrentBoxTagsRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+`;
+
+export const CurrentBoxTag = styled.span`
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  max-width: 100%;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid ${LCARS.lilac}66;
+  background: ${LCARS.lilac}1f;
+  color: ${LCARS.text};
+  font-size: 0.69rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 20px;
+    padding: 3px 8px;
+    font-size: ${MOBILE_FONT_SM};
+  }
+`;
+
 export const CurrentBoxTitle = styled.span`
   font-size: 1.02rem;
   font-weight: 700;
@@ -220,12 +283,26 @@ export const CurrentBoxLocationChip = styled.span`
   padding: 4px 10px;
   border-radius: 999px;
   border: 1px solid
-    ${({ $empty }) => ($empty ? 'rgba(167, 182, 255, 0.4)' : 'rgba(232, 177, 92, 0.62)')};
-  background: ${({ $empty }) =>
-    $empty ? 'rgba(167, 182, 255, 0.14)' : 'rgba(232, 177, 92, 0.2)'};
-  color: ${({ $empty }) => ($empty ? LCARS.textDim : '#ffe5af')};
-  box-shadow: ${({ $empty }) =>
-    $empty ? 'none' : '0 0 0 1px rgba(232, 177, 92, 0.12) inset'};
+    ${({ $empty, $variant }) =>
+      $empty
+        ? 'rgba(167, 182, 255, 0.4)'
+        : $variant === 'group'
+        ? 'rgba(76, 198, 193, 0.66)'
+        : 'rgba(232, 177, 92, 0.62)'};
+  background: ${({ $empty, $variant }) =>
+    $empty
+      ? 'rgba(167, 182, 255, 0.14)'
+      : $variant === 'group'
+      ? 'rgba(76, 198, 193, 0.21)'
+      : 'rgba(232, 177, 92, 0.2)'};
+  color: ${({ $empty, $variant }) =>
+    $empty ? LCARS.textDim : $variant === 'group' ? '#d6fff8' : '#ffe5af'};
+  box-shadow: ${({ $empty, $variant }) =>
+    $empty
+      ? 'none'
+      : $variant === 'group'
+      ? '0 0 0 1px rgba(76, 198, 193, 0.18) inset'
+      : '0 0 0 1px rgba(232, 177, 92, 0.12) inset'};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 6px;
@@ -235,7 +312,12 @@ export const CurrentBoxLocationChip = styled.span`
 `;
 
 export const CurrentBoxLocationLabel = styled.span`
-  color: ${({ $empty }) => ($empty ? LCARS.textDim : 'rgba(255, 232, 181, 0.86)')};
+  color: ${({ $empty, $variant }) =>
+    $empty
+      ? LCARS.textDim
+      : $variant === 'group'
+      ? 'rgba(207, 255, 246, 0.9)'
+      : 'rgba(255, 232, 181, 0.86)'};
   font-size: 0.64rem;
   font-weight: 760;
   letter-spacing: 0.09em;

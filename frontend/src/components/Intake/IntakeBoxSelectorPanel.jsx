@@ -278,11 +278,12 @@ export default function IntakeBoxSelectorPanel({
     return boxes.filter((box) => {
       const name = normalize(box?.label);
       const boxId = normalize(box?.box_id);
+      const boxGroup = normalize(box?.group);
       const boxLocation = normalize(box?.location);
       const tags = Array.isArray(box?.tags) ? box.tags.map(normalize) : [];
 
       if (search) {
-        const haystack = [name, boxId, boxLocation, ...tags].join(' ');
+        const haystack = [name, boxId, boxGroup, boxLocation, ...tags].join(' ');
         if (!haystack.includes(search)) return false;
       }
 
@@ -310,7 +311,7 @@ export default function IntakeBoxSelectorPanel({
             type="text"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Name, box #, location, tag"
+            placeholder="Name, box #, group, location, tag"
           />
         </Field>
 
@@ -370,6 +371,7 @@ export default function IntakeBoxSelectorPanel({
                 <Identity>
                   <Name>{box?.label || 'Unnamed Box'}</Name>
                   <Meta>Box #{box?.box_id || '---'}</Meta>
+                  {box?.group ? <Meta>Group: {box.group}</Meta> : null}
                   {box?.location ? <Meta>Location: {box.location}</Meta> : null}
                   {tags.length ? (
                     <TagRow>

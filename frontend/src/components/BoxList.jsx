@@ -12,6 +12,11 @@ import {
   normalizeBoxId,
 } from '../util/boxLocator';
 
+const ORPHANED_CONTAINER_ID = '__system-orphaned-items__';
+const ORPHANED_CONTAINER_ROUTE = '/all-items?filter=orphaned';
+const ITEM_CHIP_LIMIT = 25;
+const ITEM_CHIP_OVERFLOW_LABEL = 'more items';
+
 /**
  * boxes: [{
  *   _id, box_id, label, location, description, notes,
@@ -21,13 +26,17 @@ import {
  */
 export default function BoxList({
   boxes = [],
+  groups = [],
   orphanedCount = 0,
+  orphanedItems = [],
   locations = [],
   pagination = {},
   onPageChange,
+  onInventoryQueryChange,
 }) {
   const [quickCreatedBoxes, setQuickCreatedBoxes] = useState([]);
   const [quickOrphanedDelta, setQuickOrphanedDelta] = useState(0);
+  const [showOrphanedVirtual, setShowOrphanedVirtual] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [boxLocatorQuery, setBoxLocatorQuery] = useState('');
   const [boxLocatorSelection, setBoxLocatorSelection] = useState(null);
@@ -38,6 +47,7 @@ export default function BoxList({
   const [filterBy, setFilterBy] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState('all');
+  const [groupFilter, setGroupFilter] = useState('all');
   const [ownerFilter, setOwnerFilter] = useState('all');
   const currentPage = Math.max(1, Number(pagination?.page) || 1);
   const totalPages = Math.max(1, Number(pagination?.totalPages) || 1);
@@ -50,11 +60,24 @@ export default function BoxList({
     [boxes, quickCreatedBoxes],
   );
   const ownerOptions = useMemo(() => collectOwnerOptions(mergedBoxes), [mergedBoxes]);
+  const groupOptions = useMemo(
+    () => collectGroupOptions(mergedBoxes, groups),
+    [mergedBoxes, groups],
+  );
   const effectiveOrphanedCount = Number(orphanedCount || 0) + quickOrphanedDelta;
 
   const telemetry = useMemo(
     () => summarizeTree(mergedBoxes, effectiveOrphanedCount),
     [mergedBoxes, effectiveOrphanedCount],
+  );
+
+  const orphanedContainer = useMemo(
+    () =>
+      buildOrphanedContainerNode({
+        orphanedItems,
+        orphanedCount: effectiveOrphanedCount,
+      }),
+    [orphanedItems, effectiveOrphanedCount],
   );
 
   const boxLocatorIndex = useMemo(
@@ -75,6 +98,7 @@ export default function BoxList({
         filterBy,
         categoryFilter,
         locationFilter,
+        groupFilter,
         ownerFilter,
       }),
     [
@@ -84,12 +108,59 @@ export default function BoxList({
       filterBy,
       categoryFilter,
       locationFilter,
+      groupFilter,
       ownerFilter,
     ],
   );
 
-  const noData = totalCount === 0;
-  const hasNoMatches = !noData && visibleBoxes.length === 0;
+  const orphanedMatchesControls = useMemo(
+    () =>
+      matchesNodeControls(orphanedContainer, {
+        query: normalize(searchQuery),
+        filterBy,
+        categoryFilter,
+        locationFilter,
+        groupFilter,
+        ownerFilter,
+      }),
+    [
+      orphanedContainer,
+      searchQuery,
+      filterBy,
+      categoryFilter,
+      locationFilter,
+      groupFilter,
+      ownerFilter,
+    ],
+  );
+
+  useEffect(() => {
+    if (groupFilter === 'all') return;
+
+    const hasActiveGroup = groupOptions.some(
+      (option) => normalize(option?.value) === normalize(groupFilter),
+    );
+    if (!hasActiveGroup) {
+      setGroupFilter('all');
+    }
+  }, [groupFilter, groupOptions]);
+
+  useEffect(() => {
+    onInventoryQueryChange?.({
+      q: searchQuery,
+      group: groupFilter,
+      sortBy,
+    });
+  }, [searchQuery, groupFilter, sortBy, onInventoryQueryChange]);
+
+  const showOrphanedContainer = showOrphanedVirtual && orphanedMatchesControls;
+  const hasAnyData = totalCount > 0 || effectiveOrphanedCount > 0;
+  const noData = !hasAnyData;
+  const hasNoMatches =
+    hasAnyData &&
+    visibleBoxes.length === 0 &&
+    !showOrphanedContainer &&
+    !orphanedMatchesControls;
 
   const handleQuickBoxCreated = (createdBox) => {
     const nextId = String(createdBox?._id || '').trim();
@@ -203,9 +274,11 @@ export default function BoxList({
     onPageChange?.(1);
   }, [
     searchQuery,
+    sortBy,
     filterBy,
     categoryFilter,
     locationFilter,
+    groupFilter,
     ownerFilter,
     onPageChange,
   ]);
@@ -236,9 +309,16 @@ export default function BoxList({
         onCategoryFilterChange={setCategoryFilter}
         locationFilter={locationFilter}
         onLocationFilterChange={setLocationFilter}
+        groupFilter={groupFilter}
+        onGroupFilterChange={setGroupFilter}
+        groups={groupOptions}
         ownerFilter={ownerFilter}
         onOwnerFilterChange={setOwnerFilter}
         owners={ownerOptions}
+        showOrphanedVirtual={showOrphanedVirtual}
+        onToggleOrphanedVirtual={() =>
+          setShowOrphanedVirtual((prev) => !prev)
+        }
         onQuickBoxCreated={handleQuickBoxCreated}
         onQuickOrphanCreated={handleQuickOrphanCreated}
         locations={locations}
@@ -257,10 +337,19 @@ export default function BoxList({
       ) : hasNoMatches ? (
         <S.EmptyMessage>No boxes match the current search/filter.</S.EmptyMessage>
       ) : (
-        visibleBoxes.map((node) => <Branch key={node._id || node.box_id} node={node} depth={0} />)
+        <>
+          {orphanedMatchesControls ? (
+            <S.OrphanedRevealShell $open={showOrphanedContainer}>
+              <Branch key={orphanedContainer._id} node={orphanedContainer} depth={0} />
+            </S.OrphanedRevealShell>
+          ) : null}
+          {visibleBoxes.map((node) => (
+            <Branch key={node._id || node.box_id} node={node} depth={0} />
+          ))}
+        </>
       )}
 
-      {!noData ? (
+      {totalCount > 0 ? (
         <S.PaginationBar>
           <S.PaginationButton
             type="button"
@@ -291,28 +380,52 @@ export default function BoxList({
 function Branch({ node, depth = 0 }) {
   const navigate = useNavigate();
   const childBoxes = Array.isArray(node.childBoxes) ? node.childBoxes : [];
-  const tags = Array.isArray(node.tags) ? node.tags : [];
+  const tags = getRenderableBoxTags(node);
   const items = Array.isArray(node.items) ? node.items : [];
+  const group = String(node?.group || '').trim();
+  const isSystemContainer = !!node?.isSystemContainer;
+  const isOrphanedContainer = node?.systemType === 'orphaned';
   const isRoot = depth === 0;
 
-  const itemQtyTotal = sumItemQty(items);
-  const itemChips = items.slice(0, 8).map((it) => it.name || 'Untitled');
+  const itemQtyTotal = getNodeItemCount(node);
+  const itemChips = buildItemPreviewChips(items, {
+    limit: ITEM_CHIP_LIMIT,
+    totalCount: node?.itemCountOverride,
+  });
 
-  const go = () => navigate(`/boxes/${node.box_id}`);
+  const go = () => {
+    if (isOrphanedContainer) {
+      navigate(ORPHANED_CONTAINER_ROUTE);
+      return;
+    }
+    navigate(`/boxes/${node.box_id}`);
+  };
 
   return (
     <S.NodeSection $isRoot={isRoot} $depth={depth}>
       <S.RailBack aria-hidden="true" $isRoot={isRoot} $depth={depth} />
       <S.RailFront $isRoot={isRoot} $depth={depth}>
-        <S.BoxCard onClick={go} $isRoot={isRoot} $depth={depth}>
+        <S.BoxCard
+          onClick={go}
+          $isRoot={isRoot}
+          $depth={depth}
+          $isSystem={isSystemContainer}
+        >
           <S.BoxHeader>
-            <S.ShortId $isRoot={isRoot} $depth={depth}>
-              #{node.box_id}
+            <S.ShortId $isRoot={isRoot} $depth={depth} $isSystem={isSystemContainer}>
+              {isSystemContainer ? 'SYS' : `#${node.box_id}`}
             </S.ShortId>
-            <S.BoxTitle $isRoot={isRoot} $depth={depth}>
+            <S.BoxTitle $isRoot={isRoot} $depth={depth} $isSystem={isSystemContainer}>
               {node.label || node.name || 'Untitled'}
             </S.BoxTitle>
           </S.BoxHeader>
+
+          {group && (
+            <S.FieldGroup>
+              <S.FieldLabel>Group</S.FieldLabel>
+              <S.FieldValue>{group}</S.FieldValue>
+            </S.FieldGroup>
+          )}
 
           {node.location && (
             <S.FieldGroup>
@@ -327,6 +440,13 @@ function Branch({ node, depth = 0 }) {
               <S.FieldValue>{node.description}</S.FieldValue>
             </S.FieldGroup>
           )}
+
+          {isSystemContainer ? (
+            <S.FieldGroup>
+              <S.FieldLabel>Container Type</S.FieldLabel>
+              <S.FieldValue>Virtual system container</S.FieldValue>
+            </S.FieldGroup>
+          ) : null}
 
           {node.notes && (
             <S.FieldGroup>
@@ -357,14 +477,18 @@ function Branch({ node, depth = 0 }) {
 
           <S.BoxFooter>
             <S.StatPill $variant="boxes" $isRoot={isRoot} $depth={depth}>
-              {childBoxes.length} {childBoxes.length === 1 ? 'box' : 'boxes'}
+              {isOrphanedContainer
+                ? 'virtual'
+                : `${childBoxes.length} ${childBoxes.length === 1 ? 'box' : 'boxes'}`}
             </S.StatPill>
             <S.StatPill $variant="items" $isRoot={isRoot} $depth={depth}>
               {itemQtyTotal} {itemQtyTotal === 1 ? 'item' : 'items'}
             </S.StatPill>
-            <S.StatPill $isRoot={isRoot} $depth={depth}>
-              {node.location ? truncate(node.location, 24) : '—'}
-            </S.StatPill>
+            {isOrphanedContainer ? (
+              <S.StatPill $isRoot={isRoot} $depth={depth}>
+                unassigned
+              </S.StatPill>
+            ) : null}
           </S.BoxFooter>
 
           {itemChips.length > 0 && (
@@ -379,6 +503,7 @@ function Branch({ node, depth = 0 }) {
                     $tiny
                     $isRoot={isRoot}
                     $depth={depth}
+                    $isSystem={isSystemContainer}
                     key={`${node._id || node.box_id}-chip-${i}`}
                   >
                     {name}
@@ -432,6 +557,7 @@ function applyTreeControls(
     filterBy = 'all',
     categoryFilter = 'all',
     locationFilter = 'all',
+    groupFilter = 'all',
     ownerFilter = 'all',
   },
 ) {
@@ -444,35 +570,15 @@ function applyTreeControls(
       .map(processNode)
       .filter(Boolean);
 
-    const matchesSearch = !query || matchesQuery(node, query);
-    const qty = sumItemQty(node.items);
-    const normalizedCategoryFilter =
-      categoryFilter === 'all'
-        ? 'all'
-        : normalizeItemCategory(categoryFilter);
-    const matchesFilter =
-      filterBy === 'all' ||
-      (filterBy === 'withItems' && qty > 0) ||
-      (filterBy === 'empty' && qty === 0);
-    const matchesCategory =
-      normalizedCategoryFilter === 'all' ||
-      hasItemWithCategory(node.items, normalizedCategoryFilter);
-    const nodeLocationId = String(getLocationId(node) || '');
-    const matchesLocation =
-      locationFilter === 'all' ||
-      (nodeLocationId && nodeLocationId === String(locationFilter));
-    const normalizedOwnerFilter = normalize(ownerFilter);
-    const matchesOwner =
-      normalizedOwnerFilter === 'all' ||
-      hasItemWithOwner(node.items, normalizedOwnerFilter);
-
     const include =
-      (matchesSearch &&
-        matchesFilter &&
-        matchesCategory &&
-        matchesLocation &&
-        matchesOwner) ||
-      children.length > 0;
+      matchesNodeControls(node, {
+        query,
+        filterBy,
+        categoryFilter,
+        locationFilter,
+        groupFilter,
+        ownerFilter,
+      }) || children.length > 0;
     if (!include) return null;
 
     return {
@@ -485,6 +591,54 @@ function applyTreeControls(
   return sortNodes(mapped, sortBy);
 }
 
+function matchesNodeControls(
+  node,
+  {
+    query = '',
+    filterBy = 'all',
+    categoryFilter = 'all',
+    locationFilter = 'all',
+    groupFilter = 'all',
+    ownerFilter = 'all',
+  } = {},
+) {
+  const matchesSearch = !query || matchesQuery(node, query);
+  const qty = getNodeItemCount(node);
+  const normalizedCategoryFilter =
+    categoryFilter === 'all'
+      ? 'all'
+      : normalizeItemCategory(categoryFilter);
+  const matchesFilter =
+    filterBy === 'all' ||
+    (filterBy === 'withItems' && qty > 0) ||
+    (filterBy === 'empty' && qty === 0) ||
+    (filterBy === 'inGroups' && normalize(node?.group) !== '');
+  const matchesCategory =
+    normalizedCategoryFilter === 'all' ||
+    hasItemWithCategory(node?.items, normalizedCategoryFilter);
+  const nodeLocationId = String(getLocationId(node) || '');
+  const matchesLocation =
+    locationFilter === 'all' ||
+    (nodeLocationId && nodeLocationId === String(locationFilter));
+  const normalizedGroupFilter = normalize(groupFilter);
+  const matchesGroup =
+    normalizedGroupFilter === 'all' ||
+    normalize(node?.group) === normalizedGroupFilter;
+  const normalizedOwnerFilter = normalize(ownerFilter);
+  const matchesOwner =
+    normalizedOwnerFilter === 'all' ||
+    hasItemWithOwner(node?.items, normalizedOwnerFilter);
+
+  return (
+    matchesSearch &&
+    matchesFilter &&
+    matchesCategory &&
+    matchesLocation &&
+    matchesGroup &&
+    matchesOwner
+  );
+}
+
 function sortNodes(nodes, sortBy) {
   const list = [...(nodes || [])];
 
@@ -492,28 +646,45 @@ function sortNodes(nodes, sortBy) {
     const aName = normalize(a?.label || a?.name || '');
     const bName = normalize(b?.label || b?.name || '');
 
+    if (sortBy === 'group') {
+      const aGroup = normalize(a?.group || '');
+      const bGroup = normalize(b?.group || '');
+      const aEmpty = !aGroup;
+      const bEmpty = !bGroup;
+      if (aEmpty !== bEmpty) return aEmpty ? 1 : -1;
+
+      const diff = compareText(aGroup, bGroup);
+      if (diff !== 0) return diff;
+      const nameDiff = compareText(aName, bName);
+      if (nameDiff !== 0) return nameDiff;
+      return compareNodeBoxId(a, b);
+    }
+
     if (sortBy === 'location') {
       const diff = compareText(normalize(a?.location || ''), normalize(b?.location || ''));
       if (diff !== 0) return diff;
-      return compareText(aName, bName);
+      const nameDiff = compareText(aName, bName);
+      if (nameDiff !== 0) return nameDiff;
+      return compareNodeBoxId(a, b);
     }
 
     if (sortBy === 'itemCount') {
       const diff = sumItemQty(b?.items) - sumItemQty(a?.items);
       if (diff !== 0) return diff;
-      return compareText(aName, bName);
+      const nameDiff = compareText(aName, bName);
+      if (nameDiff !== 0) return nameDiff;
+      return compareNodeBoxId(a, b);
     }
 
     if (sortBy === 'boxId') {
-      const aNum = Number(a?.box_id);
-      const bNum = Number(b?.box_id);
-      const aValid = Number.isFinite(aNum);
-      const bValid = Number.isFinite(bNum);
-      if (aValid && bValid && aNum !== bNum) return aNum - bNum;
-      return compareText(String(a?.box_id || ''), String(b?.box_id || ''));
+      const diff = compareNodeBoxId(a, b);
+      if (diff !== 0) return diff;
+      return compareText(aName, bName);
     }
 
-    return compareText(aName, bName);
+    const diff = compareText(aName, bName);
+    if (diff !== 0) return diff;
+    return compareNodeBoxId(a, b);
   });
 
   return list;
@@ -523,8 +694,10 @@ function matchesQuery(node, query) {
   const tags = Array.isArray(node?.tags) ? node.tags.join(' ') : '';
   const haystack = normalize(
     [
+      node?.box_id,
       node?.label,
       node?.name,
+      node?.group,
       node?.location,
       node?.description,
       node?.notes,
@@ -545,11 +718,27 @@ function sumItemQty(items) {
   }, 0);
 }
 
+function getNodeItemCount(node) {
+  if (Number.isFinite(Number(node?.itemCountOverride))) {
+    return Math.max(0, Number(node.itemCountOverride));
+  }
+  return sumItemQty(node?.items);
+}
+
 function compareText(a, b) {
   return String(a || '').localeCompare(String(b || ''), undefined, {
     sensitivity: 'base',
     numeric: true,
   });
+}
+
+function compareNodeBoxId(a, b) {
+  const aNum = Number(a?.box_id);
+  const bNum = Number(b?.box_id);
+  const aValid = Number.isFinite(aNum);
+  const bValid = Number.isFinite(bNum);
+  if (aValid && bValid && aNum !== bNum) return aNum - bNum;
+  return compareText(String(a?.box_id || ''), String(b?.box_id || ''));
 }
 
 function normalize(value) {
@@ -595,6 +784,65 @@ function collectOwnerOptions(nodes) {
     .sort((a, b) => compareText(a.label, b.label));
 }
 
+function collectGroupOptions(nodes, providedGroups = []) {
+  const byKey = new Map();
+
+  const addLabel = (rawLabel) => {
+    const label = String(rawLabel || '').trim();
+    if (!label) return;
+    const key = normalize(label);
+    if (!key) return;
+    if (!byKey.has(key)) byKey.set(key, label);
+  };
+
+  for (const option of Array.isArray(providedGroups) ? providedGroups : []) {
+    if (typeof option === 'string') {
+      addLabel(option);
+      continue;
+    }
+
+    addLabel(option?.label || option?.value);
+  }
+
+  const walk = (list) => {
+    for (const node of list || []) {
+      addLabel(node?.group);
+      walk(node?.childBoxes);
+    }
+  };
+
+  walk(nodes);
+
+  return [...byKey.values()]
+    .sort((a, b) => compareText(a, b))
+    .map((label) => ({ value: label, label }));
+}
+
+function getRenderableBoxTags(node) {
+  const sourceTags = Array.isArray(node?.tags) ? node.tags : [];
+  if (!sourceTags.length) return [];
+
+  const blockedValues = new Set(
+    [normalize(node?.location), normalize(node?.group)].filter(Boolean),
+  );
+  const seen = new Set();
+  const tags = [];
+
+  for (const entry of sourceTags) {
+    const label = String(entry || '').trim();
+    if (!label) continue;
+
+    const key = normalize(label);
+    if (!key) continue;
+    if (blockedValues.has(key)) continue;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    tags.push(label);
+  }
+
+  return tags;
+}
+
 function mergeQuickCreatedBoxes(baseNodes, quickCreatedBoxes) {
   const base = Array.isArray(baseNodes) ? baseNodes : [];
   const quick = Array.isArray(quickCreatedBoxes) ? quickCreatedBoxes : [];
@@ -619,6 +867,46 @@ function mergeQuickCreatedBoxes(baseNodes, quickCreatedBoxes) {
 
 function getLocationId(node) {
   return node?.locationId?._id ?? node?.locationId ?? null;
+}
+
+function buildItemPreviewChips(items, { limit = ITEM_CHIP_LIMIT, totalCount } = {}) {
+  const maxVisible = Math.max(1, Number(limit) || ITEM_CHIP_LIMIT);
+  const names = (Array.isArray(items) ? items : [])
+    .map((item) => String(item?.name || 'Untitled').trim() || 'Untitled')
+    .filter(Boolean);
+  const knownCount = names.length;
+  const resolvedTotal = Number.isFinite(Number(totalCount))
+    ? Math.max(Number(totalCount), knownCount)
+    : knownCount;
+
+  if (resolvedTotal <= maxVisible) {
+    return names.slice(0, maxVisible);
+  }
+
+  const visibleCount = Math.max(0, maxVisible - 1);
+  return [...names.slice(0, visibleCount), ITEM_CHIP_OVERFLOW_LABEL];
+}
+
+function buildOrphanedContainerNode({ orphanedItems = [], orphanedCount = 0 } = {}) {
+  const items = Array.isArray(orphanedItems) ? orphanedItems : [];
+  const resolvedCount = Number.isFinite(Number(orphanedCount))
+    ? Math.max(0, Number(orphanedCount))
+    : items.length;
+
+  return {
+    _id: ORPHANED_CONTAINER_ID,
+    box_id: 'SYS',
+    label: 'Orphaned Items',
+    location: 'System',
+    description: 'Virtual container for unassigned items.',
+    notes: 'Items remain orphaned in the data model.',
+    tags: ['system', 'virtual'],
+    items,
+    childBoxes: [],
+    isSystemContainer: true,
+    systemType: 'orphaned',
+    itemCountOverride: resolvedCount,
+  };
 }
 
 function truncate(str, n) {

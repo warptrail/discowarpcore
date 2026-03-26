@@ -6,6 +6,7 @@ export default function RetrievalResultsList({
   expandedIds = new Set(),
   onToggleRow,
   onPreviewImage,
+  onLifecycleAction,
   loading = false,
 }) {
   if (loading) {
@@ -25,6 +26,7 @@ export default function RetrievalResultsList({
           isExpanded={expandedIds.has(item.id)}
           onToggle={onToggleRow}
           onPreviewImage={onPreviewImage}
+          onLifecycleAction={onLifecycleAction}
         />
       ))}
     </S.ResultsList>

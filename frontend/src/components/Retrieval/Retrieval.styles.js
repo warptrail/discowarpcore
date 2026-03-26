@@ -38,6 +38,39 @@ const keepPriorityToneColor = (tone) => {
   return RETRIEVAL.textDim;
 };
 
+const expandedActionTone = (tone) => {
+  if (tone === 'used') {
+    return {
+      border: 'rgba(111, 196, 255, 0.52)',
+      background: 'rgba(111, 196, 255, 0.2)',
+      color: '#e0f4ff',
+      hover: 'rgba(111, 196, 255, 0.3)',
+    };
+  }
+  if (tone === 'checked') {
+    return {
+      border: 'rgba(156, 160, 255, 0.52)',
+      background: 'rgba(156, 160, 255, 0.2)',
+      color: '#ecebff',
+      hover: 'rgba(156, 160, 255, 0.3)',
+    };
+  }
+  if (tone === 'consumed') {
+    return {
+      border: 'rgba(100, 220, 181, 0.52)',
+      background: 'rgba(100, 220, 181, 0.2)',
+      color: '#dffcf4',
+      hover: 'rgba(100, 220, 181, 0.3)',
+    };
+  }
+  return {
+    border: 'rgba(111, 226, 173, 0.52)',
+    background: 'rgba(111, 226, 173, 0.2)',
+    color: '#e8fff3',
+    hover: 'rgba(111, 226, 173, 0.3)',
+  };
+};
+
 const panelChrome = css`
   border: 1px solid ${RETRIEVAL.border};
   border-radius: 14px;
@@ -270,8 +303,12 @@ export const FilterGrid = styled.div`
 
 export const BoxFilterGrid = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 420px);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.52rem;
+
+  @media (max-width: 960px) {
+    grid-template-columns: 1fr;
+  }
 
   @media (max-width: 640px) {
     grid-template-columns: 1fr;
@@ -610,6 +647,16 @@ export const BoxRowLabel = styled.span`
   color: #ebf3fb;
   font-size: 0.8rem;
   font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+export const BoxRowSubline = styled.span`
+  min-width: 0;
+  color: rgba(207, 224, 238, 0.76);
+  font-size: 0.68rem;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
@@ -1210,22 +1257,40 @@ export const LocationPath = styled.p`
   color: ${RETRIEVAL.textMuted};
 `;
 
-export const CompactLocation = styled.span`
+export const CompactLocation = styled(ItemTagChip)`
+  display: inline-flex;
+  align-items: center;
   flex: 0 1 auto;
   max-width: clamp(74px, 10vw, 124px);
+  min-height: 24px;
   min-width: 0;
-  color: rgba(232, 238, 244, 0.62);
+  border-radius: 10px;
+  border-color: ${({ $boxMutedRgb }) =>
+    `rgba(${$boxMutedRgb || '152, 160, 176'}, 0.42)`};
+  background:
+    linear-gradient(
+      135deg,
+      ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '152, 160, 176'}, 0.2)`},
+      ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '152, 160, 176'}, 0.12)`}
+    ),
+    rgba(10, 16, 24, 0.64);
+  color: ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '216, 222, 232'}, 1)`};
   font-size: 0.66rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
+  font-weight: 650;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: right;
+  line-height: 1;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.22);
+  padding: 0.28rem 0.48rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     flex: 0 1 42%;
+    min-height: 23px;
+    padding: 0.24rem 0.44rem;
     font-size: ${MOBILE_FONT_XS};
   }
 `;
@@ -1241,17 +1306,18 @@ export const BoxBadge = styled.span`
   width: 100%;
   max-width: none;
   border-radius: 10px;
-  border: 1px solid rgba(var(--box-color-rgb, 244, 196, 48), 0.4);
+  border: 1px solid
+    ${({ $boxColorRgb }) => `rgba(${$boxColorRgb || '244, 196, 48'}, 0.4)`};
   background:
     linear-gradient(
       135deg,
-      rgba(var(--box-color-rgb, 244, 196, 48), 0.18),
-      rgba(var(--box-color-rgb, 244, 196, 48), 0.08)
+      ${({ $boxColorRgb }) => `rgba(${$boxColorRgb || '244, 196, 48'}, 0.18)`},
+      ${({ $boxColorRgb }) => `rgba(${$boxColorRgb || '244, 196, 48'}, 0.08)`}
     ),
     rgba(22, 17, 10, 0.7);
   box-shadow:
-    0 0 0 1px rgba(var(--box-color-rgb, 244, 196, 48), 0.15),
-    0 0 8px rgba(var(--box-color-rgb, 244, 196, 48), 0.2);
+    ${({ $boxColorRgb }) => `0 0 0 1px rgba(${$boxColorRgb || '244, 196, 48'}, 0.15)`},
+    ${({ $boxColorRgb }) => `0 0 8px rgba(${$boxColorRgb || '244, 196, 48'}, 0.2)`};
   padding: ${({ $compact }) => ($compact ? '0.2rem 0.42rem' : '0.24rem 0.5rem')};
   line-height: 1.2;
 
@@ -1271,21 +1337,23 @@ export const BoxId = styled.span`
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
     'Courier New', monospace;
-  color: #fff4da;
+  color: ${({ $boxNeonRgb }) => `rgba(${$boxNeonRgb || '255, 244, 218'}, 0.98)`};
   font-size: ${({ $compact }) => ($compact ? '0.92rem' : '0.82rem')};
   font-weight: 800;
   letter-spacing: 0.06em;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   text-align: left;
+  text-shadow: ${({ $boxNeonRgb }) => `0 0 6px rgba(${$boxNeonRgb || '255, 244, 218'}, 0.32)`};
 `;
 
 export const BoxName = styled.span`
-  color: #f6e6c9;
+  color: ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '246, 230, 201'}, 0.88)`};
   font-size: ${({ $compact }) => ($compact ? '0.7rem' : '0.74rem')};
-  font-weight: 620;
+  font-weight: 580;
   letter-spacing: 0.02em;
-  border-left: 1px solid rgba(var(--box-color-rgb, 244, 196, 48), 0.3);
+  border-left: 1px solid
+    ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '246, 230, 201'}, 0.34)`};
   padding-left: ${({ $compact }) => ($compact ? '0.32rem' : '0.36rem')};
   min-width: 0;
   white-space: nowrap;
@@ -1355,6 +1423,50 @@ export const ExpandedBoxPanel = styled.section`
     height: 100%;
     grid-template-rows: auto auto minmax(0, 1fr) auto;
   }
+`;
+
+export const ExpandedActionRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.34rem;
+`;
+
+export const ExpandedActionButton = styled.button`
+  border: 1px solid ${({ $tone }) => expandedActionTone($tone).border};
+  background: ${({ $tone }) => expandedActionTone($tone).background};
+  color: ${({ $tone }) => expandedActionTone($tone).color};
+  border-radius: 8px;
+  min-height: 31px;
+  padding: 0.24rem 0.58rem;
+  font-size: 0.72rem;
+  font-weight: 760;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+
+  &:hover:not(:disabled) {
+    background: ${({ $tone }) => expandedActionTone($tone).hover};
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.7;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+    font-size: ${MOBILE_FONT_SM};
+  }
+`;
+
+export const ExpandedActionLink = styled(Link)`
+  ${linkButton};
+  min-height: 31px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
 `;
 
 export const ExpandedMetadataGrid = styled.div`

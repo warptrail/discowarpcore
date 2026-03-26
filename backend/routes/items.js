@@ -10,6 +10,8 @@ const {
   getOrphanedItemsApi,
   postItem,
   postBulkCreateItemsApi,
+  postValidateAiJsonImportApi,
+  postAiJsonImportApi,
   patchItem,
   postItemImageApi,
   deleteItemImageApi,
@@ -23,6 +25,8 @@ router.get('/', getAllItemsApi);
 router.get('/orphaned', getOrphanedItemsApi);
 router.get('/random', getRandomItemApi);
 router.post('/bulk-create', postBulkCreateItemsApi);
+router.post('/ai-json/validate', postValidateAiJsonImportApi);
+router.post('/ai-json/import', postAiJsonImportApi);
 router.patch('/:id/mark-gone', validateObjectIdParam('id'), markItemGoneApi);
 router.patch('/:id/restore-active', validateObjectIdParam('id'), restoreItemToActiveApi);
 router.get('/:id', validateObjectIdParam('id'), getItemByIdApi);

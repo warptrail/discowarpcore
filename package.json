@@ -19,7 +19,11 @@
     "reset:hard": "node backend/scripts/reset-hard.js",
     "test:delete-enforcement": "node backend/scripts/test_box_delete_enforcement.js",
     "test:media-cleanup": "node backend/scripts/test_media_cleanup.js",
-    "test:event-logging": "node backend/scripts/test_event_logging.js"
+    "test:event-logging": "node backend/scripts/test_event_logging.js",
+    "test:ai-json-import-validation": "node backend/scripts/test_ai_json_import_validation.js",
+    "deploy:neonazoth": "rsync -avz --delete --exclude 'node_modules/' --exclude 'dist/' --exclude '.git/' --exclude '.vite/' --exclude 'frontend/node_modules/' --exclude 'frontend/dist/' --exclude 'backend/media/' ./ warptrail@neonazoth:~/discowarpcore/",
+    "deploy:neonazoth:dry": "rsync -avzn --delete --exclude 'node_modules/' --exclude 'dist/' --exclude '.git/' --exclude '.vite/' --exclude 'frontend/node_modules/' --exclude 'frontend/dist/' --exclude 'backend/media/' ./ warptrail@neonazoth:~/discowarpcore/",
+    "install:neonazoth": "ssh warptrail@neonazoth 'cd ~/discowarpcore && npm install && cd frontend && npm install'"
   },
   "dependencies": {
     "cors": "^2.8.5",

@@ -56,6 +56,12 @@ const GlobalStyles = createGlobalStyle`
     body {
       font-size: 15px;
     }
+
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
   }
 
   /* You can add more universal rules here */

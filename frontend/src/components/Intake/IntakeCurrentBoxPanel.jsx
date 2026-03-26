@@ -441,6 +441,7 @@ export default function IntakeCurrentBoxPanel({
     selectedBox?.locationName ||
     selectedBox?.location ||
     '';
+  const groupName = String(selectedBox?.group || '').trim();
   const tags = Array.isArray(selectedBox?.tags) ? selectedBox.tags : [];
   const stats = currentBoxInsight?.stats || {
     directUnique: Array.isArray(selectedBox?.items) ? selectedBox.items.length : 0,
@@ -604,6 +605,12 @@ export default function IntakeCurrentBoxPanel({
                 <BoxMeta>
                   <BoxCode>#{selectedBox?.box_id || '---'}</BoxCode>
                 </BoxMeta>
+                {groupName ? (
+                  <MetaRow>
+                    <MetaLabel>Group</MetaLabel>
+                    <MetaValue>{groupName}</MetaValue>
+                  </MetaRow>
+                ) : null}
                 {locationName ? (
                   <MetaRow>
                     <MetaLabel>Location</MetaLabel>

@@ -114,6 +114,62 @@ export const FilterRow = styled.div`
   }
 `;
 
+export const UtilityRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  min-height: 30px;
+  margin-top: -0.08rem;
+`;
+
+export const OrphanToggleButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid
+    ${({ $active }) =>
+      $active ? toneAlpha(LCARS.teal, '9e') : toneAlpha(LCARS.root, '6e')};
+  border-radius: 9px;
+  min-height: 28px;
+  padding: 0 0.72rem;
+  font-size: 0.68rem;
+  font-weight: 760;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: ${({ $active }) => ($active ? '#d9fffa' : '#d7e4f1')};
+  background: ${({ $active }) =>
+    $active
+      ? 'linear-gradient(180deg, rgba(23, 63, 59, 0.92), rgba(15, 43, 40, 0.95))'
+      : 'linear-gradient(180deg, rgba(11, 22, 34, 0.92), rgba(8, 17, 28, 0.95))'};
+  box-shadow: inset 0 0 0 1px
+    ${({ $active }) =>
+      $active ? toneAlpha(LCARS.teal, '28') : toneAlpha(LCARS.root, '1d')};
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease,
+    transform 90ms ease;
+
+  &:hover {
+    border-color: ${({ $active }) =>
+      $active ? toneAlpha(LCARS.lime, '88') : toneAlpha(LCARS.root, '9a')};
+    color: ${({ $active }) => ($active ? '#edffd5' : '#eef5fc')};
+    box-shadow:
+      inset 0 0 0 1px
+        ${({ $active }) =>
+          $active ? toneAlpha(LCARS.lime, '2d') : toneAlpha(LCARS.root, '28')},
+      0 0 12px
+        ${({ $active }) =>
+          $active ? toneAlpha(LCARS.lime, '1e') : toneAlpha(LCARS.root, '1b')};
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+`;
+
 export const ControlGroup = styled.label`
   ${panelBase};
   display: grid;

@@ -199,6 +199,16 @@ const BoxCard = styled.div`
     border-color 160ms ease,
     background 160ms ease;
 
+  ${({ $isSystem }) =>
+    $isSystem &&
+    css`
+      border-style: dashed;
+      border-color: ${toneAlpha(LCARS.teal, '9a')};
+      background:
+        linear-gradient(92deg, ${toneAlpha(LCARS.teal, '24')} 0%, transparent 42%),
+        ${LCARS.panel};
+    `}
+
   &::before {
     content: '';
     position: absolute;
@@ -206,6 +216,12 @@ const BoxCard = styled.div`
     width: 5px;
     background: ${({ $isRoot, $depth = 0 }) => railTone({ $isRoot, $depth })};
     opacity: 0.28;
+    ${({ $isSystem }) =>
+      $isSystem &&
+      css`
+        background: ${LCARS.teal};
+        opacity: 0.42;
+      `}
   }
 
   &:hover {
@@ -220,6 +236,15 @@ const BoxCard = styled.div`
         transparent 42%
       ),
       ${LCARS.panelAlt};
+
+    ${({ $isSystem }) =>
+      $isSystem &&
+      css`
+        border-color: ${toneAlpha(LCARS.cyan, 'b4')};
+        background:
+          linear-gradient(92deg, ${toneAlpha(LCARS.cyan, '2b')} 0%, transparent 46%),
+          ${LCARS.panelAlt};
+      `}
   }
 `;
 
@@ -239,6 +264,12 @@ const BoxTitle = styled.div`
     toneAlpha(railTone({ $isRoot, $depth }), 'ee')};
   text-shadow: 0 0 10px
     ${({ $isRoot, $depth = 0 }) => toneAlpha(railTone({ $isRoot, $depth }), '1f')};
+  ${({ $isSystem }) =>
+    $isSystem &&
+    css`
+      color: ${toneAlpha(LCARS.teal, 'ef')};
+      text-shadow: 0 0 10px ${toneAlpha(LCARS.teal, '2f')};
+    `}
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -257,6 +288,17 @@ const ShortId = styled.span`
   background: transparent;
   border: 2px solid
     ${({ $isRoot, $depth = 0 }) => toneAlpha(railTone({ $isRoot, $depth }), 'bd')};
+  ${({ $isSystem }) =>
+    $isSystem &&
+    css`
+      color: ${toneAlpha(LCARS.teal, 'ef')};
+      border-color: ${toneAlpha(LCARS.teal, 'bd')};
+      background: linear-gradient(
+        180deg,
+        ${toneAlpha(LCARS.teal, '14')},
+        transparent 90%
+      );
+    `}
 `;
 
 const Meta = styled.span`
@@ -333,6 +375,16 @@ const TagBubble = styled.span`
       font-weight: 700;
       border-color: ${toneAlpha(railTone({ $isRoot, $depth }), '49')};
       color: ${toneAlpha(LCARS.text, 'b8')};
+
+      ${({ $isSystem }) =>
+        $isSystem &&
+        css`
+          border-color: ${toneAlpha(LCARS.teal, '70')};
+          color: ${toneAlpha(LCARS.teal, 'ea')};
+          background:
+            linear-gradient(90deg, ${toneAlpha(LCARS.teal, '20')} 0%, transparent 74%),
+            #121518;
+        `}
     `}
 `;
 
@@ -380,6 +432,20 @@ const NodeChildren = styled.div`
   flex-direction: column;
   gap: 0.72rem;
   padding-left: 0.24rem;
+`;
+
+const OrphanedRevealShell = styled.div`
+  display: grid;
+  overflow: hidden;
+  max-height: ${({ $open }) => ($open ? '2400px' : '0')};
+  opacity: ${({ $open }) => ($open ? 1 : 0)};
+  transform: translateY(${({ $open }) => ($open ? '0' : '-8px')});
+  pointer-events: ${({ $open }) => ($open ? 'auto' : 'none')};
+  transition:
+    max-height 340ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    opacity 240ms ease,
+    transform 240ms ease;
+  will-change: max-height, opacity, transform;
 `;
 
 const EmptyMessage = styled.div`
@@ -466,6 +532,7 @@ export const styledComponents = {
   StatPill,
 
   NodeChildren,
+  OrphanedRevealShell,
   EmptyMessage,
   PaginationBar,
   PaginationButton,

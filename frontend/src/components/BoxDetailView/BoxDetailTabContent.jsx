@@ -4,6 +4,7 @@ import BoxTree from '../BoxTree';
 import ItemsFlatList from '../ItemsFlatList';
 import BoxActionPanel from '../BoxActionPanel';
 import ItemBrowseControlPanel from '../ItemBrowseControlPanel';
+import BoxInlineItemActions from './BoxInlineItemActions';
 import {
   compareItemsByMode,
   matchesItemQuery,
@@ -95,6 +96,7 @@ export default function BoxDetailTabContent({
           onItemSaved={handleItemSaved}
           refreshBox={refreshBox}
         />
+        <BoxInlineItemActions box={tree} onItemsChanged={refreshBox} />
       </S.TreeTabScope>
     );
   }
@@ -134,6 +136,8 @@ export default function BoxDetailTabContent({
           showHeader={false}
           refreshBox={refreshBox}
         />
+
+        <BoxInlineItemActions box={tree} onItemsChanged={refreshBox} />
       </S.FlatTabScope>
     );
   }

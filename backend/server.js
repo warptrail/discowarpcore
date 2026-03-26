@@ -1,8 +1,13 @@
 require('dotenv').config({ path: './backend/.env' });
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
-const { MEDIA_ROOT, MEDIA_URL_BASE, ensureMediaDirs } = require('./config/media');
+const {
+  MEDIA_ROOT,
+  MEDIA_URL_BASE,
+  ensureMediaDirs,
+} = require('./config/media');
 const boxRoutes = require('./routes/boxes');
 const itemRoutes = require('./routes/items');
 const boxItemRoutes = require('./routes/boxItem');
@@ -15,6 +20,8 @@ const { backfillBoxLocations } = require('./services/locationService');
 const PORT = process.env.PORT || 5002;
 const HOST = process.env.HOST || '0.0.0.0';
 const app = express();
+const FRONTEND_DIST = path.join(__dirname, '../frontend/dist');
+const FRONTEND_INDEX = path.join(FRONTEND_DIST, 'index.html');
 
 app.use(cors());
 app.use(express.json());
@@ -33,10 +40,10 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
 });
 
-app.get('/', (req, res) => {
-  res.send(
-    "🏡 Welcome to the Disco Warp Core. This is the house website [under_construction 🚧🦺🏗️]. You have mail: 'Love you boo 💙' "
-  );
+app.use(express.static(FRONTEND_DIST));
+
+app.get(/^\/(?!api|media).*/, (_req, res) => {
+  res.sendFile(FRONTEND_INDEX);
 });
 
 // Centralized error handler (ensure last)

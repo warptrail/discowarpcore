@@ -340,7 +340,7 @@ export default function BoxActionPanel({
         onDidReleaseChildren={handleDidReleaseChildren}
       />
 
-      <DetailsPanel $open={!isDestroyConfirmMode && activePanel === 'edit'} $maxHeight={560}>
+      <DetailsPanel $open={!isDestroyConfirmMode && activePanel === 'edit'} $maxHeight={760}>
         {!isDestroyConfirmMode && activePanel === 'edit' && (
           <EditBoxDetailsForm
             boxMongoId={boxMongoId}

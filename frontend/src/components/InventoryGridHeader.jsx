@@ -8,6 +8,7 @@ import BoxLocatorControl from './BoxLocatorControl';
 const SORT_OPTIONS = [
   { value: 'boxId', label: 'Box ID' },
   { value: 'name', label: 'Name' },
+  { value: 'group', label: 'Group' },
   { value: 'location', label: 'Location' },
   { value: 'itemCount', label: 'Item Count' },
 ];
@@ -16,6 +17,7 @@ const FILTER_OPTIONS = [
   { value: 'all', label: 'All Boxes' },
   { value: 'withItems', label: 'Boxes With Items' },
   { value: 'empty', label: 'Empty Boxes' },
+  { value: 'inGroups', label: 'Boxes In Groups' },
 ];
 
 const plural = (count, singular, pluralWord) =>
@@ -40,9 +42,14 @@ export default function InventoryGridHeader({
   locationFilter = 'all',
   onLocationFilterChange,
   locations = [],
+  groupFilter = 'all',
+  onGroupFilterChange,
+  groups = [],
   ownerFilter = 'all',
   onOwnerFilterChange,
   owners = [],
+  showOrphanedVirtual = false,
+  onToggleOrphanedVirtual,
   onQuickBoxCreated,
   onQuickOrphanCreated,
 }) {
@@ -83,6 +90,17 @@ export default function InventoryGridHeader({
         </S.TelemetryValue>
       </S.TelemetryRow>
 
+      <S.UtilityRow>
+        <S.OrphanToggleButton
+          type="button"
+          $active={showOrphanedVirtual}
+          aria-pressed={showOrphanedVirtual}
+          onClick={() => onToggleOrphanedVirtual?.()}
+        >
+          {showOrphanedVirtual ? 'Hide Orphaned' : 'Show Orphaned'}
+        </S.OrphanToggleButton>
+      </S.UtilityRow>
+
       <S.SearchSortRow>
         <S.ControlGroup $tone="#7FD7FF">
           <S.ControlLabel>Search</S.ControlLabel>
@@ -90,7 +108,7 @@ export default function InventoryGridHeader({
             type="search"
             value={searchQuery}
             onChange={(e) => onSearchChange?.(e.target.value)}
-            placeholder="Search labels, notes, tags..."
+            placeholder="Search labels, groups, notes, tags..."
             aria-label="Search inventory"
           />
         </S.ControlGroup>
@@ -161,6 +179,22 @@ export default function InventoryGridHeader({
             {locations.map((loc) => (
               <option key={loc._id} value={loc._id}>
                 {loc.name}
+              </option>
+            ))}
+          </S.Select>
+        </S.ControlGroup>
+
+        <S.ControlGroup $tone="#E58FBB">
+          <S.ControlLabel>Group</S.ControlLabel>
+          <S.Select
+            value={groupFilter}
+            onChange={(e) => onGroupFilterChange?.(e.target.value)}
+            aria-label="Filter by group"
+          >
+            <option value="all">All Groups</option>
+            {groups.map((group) => (
+              <option key={group.value} value={group.value}>
+                {group.label}
               </option>
             ))}
           </S.Select>

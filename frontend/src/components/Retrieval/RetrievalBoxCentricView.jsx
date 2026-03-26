@@ -18,11 +18,13 @@ import {
 const EMPTY_FILTER_OPTIONS = {
   categories: [],
   tags: [],
+  groups: [],
   locations: [],
   owners: [],
   keepPriorities: [],
   categoryLabelByKey: new Map(),
   tagLabelByKey: new Map(),
+  groupLabelByKey: new Map(),
   locationLabelByKey: new Map(),
   ownerLabelByKey: new Map(),
   keepPriorityLabelByKey: new Map(),
@@ -97,6 +99,7 @@ function formatCount(count, singular, plural) {
 function BoxInspectContent({
   selectedBoxId,
   selectedLabel,
+  selectedGroupLabel,
   selectedLocationLabel,
   selectedPath,
   boxDetailsLoading,
@@ -113,7 +116,10 @@ function BoxInspectContent({
             #{selectedBoxId} · {selectedLabel}
           </S.BoxInspectTitleLink>
         </S.BoxInspectTitle>
-        <S.BoxInspectSubtitle>{selectedLocationLabel}</S.BoxInspectSubtitle>
+        {selectedGroupLabel ? (
+          <S.BoxInspectSubtitle>Group: {selectedGroupLabel}</S.BoxInspectSubtitle>
+        ) : null}
+        <S.BoxInspectSubtitle>Location: {selectedLocationLabel}</S.BoxInspectSubtitle>
         {selectedPath ? <S.BoxInspectPath>{selectedPath}</S.BoxInspectPath> : null}
       </S.BoxInspectHeader>
 
@@ -216,6 +222,9 @@ export default function RetrievalBoxCentricView({
   const [searchValue, setSearchValue] = useState(() =>
     String(initialPersistedState?.searchValue || ''),
   );
+  const [selectedGroup, setSelectedGroup] = useState(() =>
+    String(initialPersistedState?.selectedGroup || ''),
+  );
   const [selectedLocation, setSelectedLocation] = useState(() =>
     String(initialPersistedState?.selectedLocation || ''),
   );
@@ -234,9 +243,10 @@ export default function RetrievalBoxCentricView({
   const queryState = useMemo(
     () => ({
       q: debouncedSearchValue,
+      groups: selectedGroup ? [selectedGroup] : [],
       locations: selectedLocation ? [selectedLocation] : [],
     }),
-    [debouncedSearchValue, selectedLocation],
+    [debouncedSearchValue, selectedGroup, selectedLocation],
   );
 
   const queryKey = useMemo(() => JSON.stringify(queryState), [queryState]);
@@ -244,10 +254,11 @@ export default function RetrievalBoxCentricView({
   useEffect(() => {
     onStateSnapshotChange?.({
       searchValue,
+      selectedGroup,
       selectedLocation,
       selectedBoxId,
     });
-  }, [onStateSnapshotChange, searchValue, selectedLocation, selectedBoxId]);
+  }, [onStateSnapshotChange, searchValue, selectedGroup, selectedLocation, selectedBoxId]);
 
   useEffect(() => {
     queryKeyRef.current = queryKey;
@@ -261,6 +272,18 @@ export default function RetrievalBoxCentricView({
     },
     [],
   );
+
+  useEffect(() => {
+    if (!selectedGroup) return;
+
+    const hasOption = filterOptions.groups.some(
+      (option) => String(option?.key || '') === String(selectedGroup),
+    );
+
+    if (!hasOption) {
+      setSelectedGroup('');
+    }
+  }, [filterOptions.groups, selectedGroup]);
 
   useEffect(() => {
     if (!selectedLocation) return;
@@ -516,6 +539,9 @@ export default function RetrievalBoxCentricView({
   }, [hasMore, limit, loading, loadingMore, offset, queryState]);
 
   const selectedTree = selectedBoxDetails?.tree || null;
+  const selectedGroupLabel = String(
+    selectedTree?.group || selectedBoxSummary?.groupLabel || '',
+  ).trim();
   const selectedLocationLabel = String(
     selectedTree?.location || selectedBoxSummary?.locationLabel || 'Unknown Location',
   ).trim();
@@ -551,11 +577,34 @@ export default function RetrievalBoxCentricView({
           value={searchValue}
           onChange={setSearchValue}
           label="Find Boxes"
-          placeholder="Search by box ID prefix, box label, or location"
-          hint="Use ID prefix (e.g. 1, 10, 107) for fast lookup, or search label/location text."
+          placeholder="Search by box ID prefix, label, group, or location"
+          hint="Use ID prefix (e.g. 1, 10, 107) for fast lookup, or search label/group/location text."
         />
 
         <S.BoxFilterGrid>
+          <S.FilterControl>
+            <S.FilterLabel>Group</S.FilterLabel>
+            <S.FilterRow>
+              <FilterCombobox
+                id="retrieval-box-group"
+                name="retrieval_box_group"
+                ariaLabel="Box group filter options"
+                placeholder="All Groups"
+                options={filterOptions.groups}
+                selectedKey={selectedGroup}
+                onSelectedKeyChange={setSelectedGroup}
+                emptyMessage="No groups match"
+              />
+              <S.AddFilterButton
+                type="button"
+                onClick={() => setSelectedGroup('')}
+                disabled={!selectedGroup}
+              >
+                Clear
+              </S.AddFilterButton>
+            </S.FilterRow>
+          </S.FilterControl>
+
           <S.FilterControl>
             <S.FilterLabel>Location</S.FilterLabel>
             <S.FilterRow>
@@ -618,6 +667,9 @@ export default function RetrievalBoxCentricView({
                               <S.BoxRowId>#{box.boxId || '—'}</S.BoxRowId>
                               <S.BoxRowLabel>{box.boxLabel}</S.BoxRowLabel>
                             </S.BoxRowMain>
+                            {box.groupLabel ? (
+                              <S.BoxRowSubline>{box.groupLabel}</S.BoxRowSubline>
+                            ) : null}
                             <S.BoxRowMeta>
                               <S.BoxMetaPill>
                                 {formatCount(box.directItemCount, 'item', 'items')}
@@ -633,6 +685,7 @@ export default function RetrievalBoxCentricView({
                               <BoxInspectContent
                                 selectedBoxId={selectedBoxId}
                                 selectedLabel={selectedLabel}
+                                selectedGroupLabel={selectedGroupLabel}
                                 selectedLocationLabel={selectedLocationLabel}
                                 selectedPath={selectedPath}
                                 boxDetailsLoading={boxDetailsLoading}
@@ -659,6 +712,7 @@ export default function RetrievalBoxCentricView({
                   <BoxInspectContent
                     selectedBoxId={selectedBoxId}
                     selectedLabel={selectedLabel}
+                    selectedGroupLabel={selectedGroupLabel}
                     selectedLocationLabel={selectedLocationLabel}
                     selectedPath={selectedPath}
                     boxDetailsLoading={boxDetailsLoading}

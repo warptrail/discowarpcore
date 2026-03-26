@@ -1,3 +1,5 @@
+import { getMutedVariant, getNeonVariant } from '../../styles/tokens';
+
 export const BOX_COLOR_PALETTE = [
   '#F4C430', // amber (baseline)
   '#FF9F1C', // orange
@@ -38,4 +40,19 @@ export function hexToRgbString(hex) {
   const b = parsed & 255;
 
   return `${r}, ${g}, ${b}`;
+}
+
+export function getBoxColorTones(boxId) {
+  const base = getBoxColor(boxId);
+  const neon = getNeonVariant(base);
+  const muted = getMutedVariant(base);
+
+  return {
+    base,
+    neon,
+    muted,
+    baseRgb: hexToRgbString(base),
+    neonRgb: hexToRgbString(neon),
+    mutedRgb: hexToRgbString(muted),
+  };
 }

@@ -1,6 +1,7 @@
 import * as S from './Retrieval.styles';
 import BoxBadge from './BoxBadge';
 import RetrievalExpandedPanel from './RetrievalExpandedPanel';
+import { getBoxColorTones } from './boxColors';
 
 function shouldSkipRowToggle(target) {
   if (!(target instanceof Element)) return false;
@@ -12,6 +13,7 @@ export default function RetrievalResultRow({
   isExpanded = false,
   onToggle,
   onPreviewImage,
+  onLifecycleAction,
 }) {
   if (!item) return null;
   const panelId = `retrieval-row-panel-${item.id}`;
@@ -37,6 +39,7 @@ export default function RetrievalResultRow({
   const imageUrl = String(item?.imageUrl || '').trim();
   const previewImageUrl = String(item?.previewImageUrl || imageUrl).trim();
   const locationLabel = String(item?.locationLabel || '').trim();
+  const boxTones = getBoxColorTones(item?.boxNumber || item?.boxId || 0);
   const hasImage = Boolean(imageUrl);
 
   const handleThumbClick = (event) => {
@@ -93,7 +96,12 @@ export default function RetrievalResultRow({
               <S.CompactMetaLine>
                 <BoxBadge boxNumber={item.boxNumber} boxName={item.boxName} compact />
                 {locationLabel ? (
-                  <S.CompactLocation title={locationLabel}>{locationLabel}</S.CompactLocation>
+                  <S.CompactLocation
+                    title={locationLabel}
+                    $boxMutedRgb={boxTones.mutedRgb}
+                  >
+                    {locationLabel}
+                  </S.CompactLocation>
                 ) : null}
               </S.CompactMetaLine>
             </S.BadgeStack>
@@ -105,7 +113,13 @@ export default function RetrievalResultRow({
         </S.SummaryTop>
       </S.SummaryButton>
 
-      {isExpanded ? <RetrievalExpandedPanel item={item} panelId={panelId} /> : null}
+      {isExpanded ? (
+        <RetrievalExpandedPanel
+          item={item}
+          panelId={panelId}
+          onLifecycleAction={onLifecycleAction}
+        />
+      ) : null}
     </S.ResultCard>
   );
 }

@@ -79,6 +79,13 @@ const Field = styled.div`
     ${LCARS.panelSoft};
 `;
 
+const Hint = styled.div`
+  font-size: 0.72rem;
+  color: rgba(214, 226, 241, 0.7);
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+`;
+
 const Input = styled.input`
   width: 100%;
   border-radius: 9px;
@@ -207,6 +214,7 @@ function BoxCreate({
   const navigate = useNavigate();
   const [boxId, setBoxId] = useState('');
   const [label, setLabel] = useState('');
+  const [group, setGroup] = useState('');
   const [locationId, setLocationId] = useState('');
   const [tags, setTags] = useState([]);
   const [locationCreateBusy, setLocationCreateBusy] = useState(false);
@@ -275,6 +283,7 @@ function BoxCreate({
       const created = await createBox({
         box_id: boxId,
         label: label.trim(),
+        group: group.trim() || undefined,
         locationId: locationId || null,
         tags: normalizeTags(tags),
       });
@@ -364,6 +373,21 @@ function BoxCreate({
             onChange={(e) => setLabel(e.target.value)}
             placeholder="e.g. Winter Decorations"
           />
+        </Field>
+
+        <Field>
+          <Label htmlFor="group">Group</Label>
+          <Input
+            id="group"
+            value={group}
+            type="text"
+            onChange={(e) => setGroup(e.target.value)}
+            placeholder="e.g. Entertainment Center"
+          />
+          <Hint>
+            Optional larger furniture/unit grouping, e.g. Entertainment Center
+            or Tool Chest.
+          </Hint>
         </Field>
 
         <Field>

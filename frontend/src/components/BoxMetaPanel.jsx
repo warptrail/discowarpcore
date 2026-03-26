@@ -29,6 +29,34 @@ function kidsOf(n) {
   return Array.isArray(a) ? a : [];
 }
 
+function normalizeToken(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function getRenderableBoxTags(tags, { blockedValues = [] } = {}) {
+  const source = Array.isArray(tags) ? tags : [];
+  if (!source.length) return [];
+
+  const blocked = new Set(
+    (Array.isArray(blockedValues) ? blockedValues : [])
+      .map((entry) => normalizeToken(entry))
+      .filter(Boolean)
+  );
+  const seen = new Set();
+  const result = [];
+
+  for (const rawTag of source) {
+    const label = String(rawTag || '').trim();
+    if (!label) continue;
+    const key = normalizeToken(label);
+    if (!key || seen.has(key) || blocked.has(key)) continue;
+    seen.add(key);
+    result.push(label);
+  }
+
+  return result;
+}
+
 function walk(root, visit) {
   if (!root) return;
   const stack = [root];
@@ -122,9 +150,17 @@ export default function BoxMetaPanel({
 }) {
   const shortId = String(box?.box_id ?? box?.shortId ?? '');
   const title = box?.label ?? box?.name ?? 'Box';
+  const group = String(box?.group ?? '').trim();
   const location = String(
     box?.location ?? box?.locationName ?? box?.locationId?.name ?? ''
   ).trim();
+  const tags = useMemo(
+    () =>
+      getRenderableBoxTags(box?.tags, {
+        blockedValues: [group, location],
+      }),
+    [box?.tags, group, location]
+  );
   const children = kidsOf(box);
   const boxImageUrl =
     box?.image?.display?.url ||
@@ -234,12 +270,34 @@ export default function BoxMetaPanel({
           <S.CurrentBoxId>{pad3(currentCrumb?.id)}</S.CurrentBoxId>
           <S.CurrentBoxMain>
             <S.CurrentBoxTitle>{currentCrumb?.label ?? title}</S.CurrentBoxTitle>
-            <S.CurrentBoxLocationChip $empty={!location}>
-              <S.CurrentBoxLocationLabel $empty={!location}>
-                Location
-              </S.CurrentBoxLocationLabel>
-              <S.CurrentBoxLocationValue>{location || 'Unassigned'}</S.CurrentBoxLocationValue>
-            </S.CurrentBoxLocationChip>
+            <S.CurrentBoxInfoRow>
+              {group ? (
+                <S.CurrentBoxLocationChip $variant="group">
+                  <S.CurrentBoxLocationLabel $variant="group">
+                    Group
+                  </S.CurrentBoxLocationLabel>
+                  <S.CurrentBoxLocationValue>{group}</S.CurrentBoxLocationValue>
+                </S.CurrentBoxLocationChip>
+              ) : null}
+              <S.CurrentBoxLocationChip $variant="location" $empty={!location}>
+                <S.CurrentBoxLocationLabel $variant="location" $empty={!location}>
+                  Location
+                </S.CurrentBoxLocationLabel>
+                <S.CurrentBoxLocationValue>{location || 'Unassigned'}</S.CurrentBoxLocationValue>
+              </S.CurrentBoxLocationChip>
+            </S.CurrentBoxInfoRow>
+            {tags.length ? (
+              <S.CurrentBoxTagsSection>
+                <S.CurrentBoxTagsLabel>Tags</S.CurrentBoxTagsLabel>
+                <S.CurrentBoxTagsRow>
+                  {tags.map((tag, index) => (
+                    <S.CurrentBoxTag key={`${shortId || 'box'}-tag-${index}-${tag}`}>
+                      {tag}
+                    </S.CurrentBoxTag>
+                  ))}
+                </S.CurrentBoxTagsRow>
+              </S.CurrentBoxTagsSection>
+            ) : null}
           </S.CurrentBoxMain>
         </S.CurrentBox>
 

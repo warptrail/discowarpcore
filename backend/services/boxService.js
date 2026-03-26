@@ -27,6 +27,47 @@ const {
 const ACTIVE_ITEM_FILTER = { item_status: { $ne: 'gone' } };
 const DEFAULT_BOX_TREE_LIMIT = 50;
 const MAX_BOX_TREE_LIMIT = 50;
+const INVALID_BOX_GROUP_CODE = 'INVALID_BOX_GROUP';
+const BOX_SORT_KEYS = new Set(['boxId', 'name', 'location', 'itemCount', 'group']);
+
+function makeHttpError(status, code, message, extra = {}) {
+  const err = new Error(message);
+  err.status = status;
+  err.code = code;
+  Object.assign(err, extra);
+  return err;
+}
+
+function toTrimmedOrNull(value) {
+  if (value == null) return null;
+  const trimmed = String(value).trim();
+  return trimmed || null;
+}
+
+function normalizeOptionalBoxGroupInput(rawValue) {
+  if (rawValue === undefined) {
+    return { provided: false, value: undefined, clear: false };
+  }
+
+  if (rawValue === null) {
+    return { provided: true, value: undefined, clear: true };
+  }
+
+  if (typeof rawValue !== 'string') {
+    throw makeHttpError(
+      400,
+      INVALID_BOX_GROUP_CODE,
+      'group must be a string when provided'
+    );
+  }
+
+  const trimmed = rawValue.trim();
+  if (!trimmed) {
+    return { provided: true, value: undefined, clear: true };
+  }
+
+  return { provided: true, value: trimmed, clear: false };
+}
 
 function toPlain(source) {
   if (!source) return null;
@@ -83,6 +124,199 @@ function toBoundedPositiveInteger(value, fallback, { min = 1, max = Number.MAX_S
   return normalized;
 }
 
+function toSearchToken(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function normalizeSearchQuery(value) {
+  return toSearchToken(value).replace(/\s+/g, ' ');
+}
+
+function normalizeGroupFilter(value) {
+  return toSearchToken(value);
+}
+
+function normalizeBoxSortBy(value, { fallback = 'boxId', allowEmpty = false } = {}) {
+  const normalized = String(value || '').trim();
+  if (!normalized) return allowEmpty ? '' : fallback;
+  if (BOX_SORT_KEYS.has(normalized)) return normalized;
+  return allowEmpty ? '' : fallback;
+}
+
+function compareText(left, right) {
+  return String(left || '').localeCompare(String(right || ''), undefined, {
+    sensitivity: 'base',
+    numeric: true,
+  });
+}
+
+function sumItemQty(items) {
+  return (items || []).reduce((sum, item) => {
+    const quantity = Number(item?.quantity);
+    if (Number.isFinite(quantity)) return sum + quantity;
+    return sum + 1;
+  }, 0);
+}
+
+function getNodeItemCount(node) {
+  return sumItemQty(node?.items);
+}
+
+function compareBoxIds(left, right) {
+  const leftNum = Number(left?.box_id);
+  const rightNum = Number(right?.box_id);
+  const leftValid = Number.isFinite(leftNum);
+  const rightValid = Number.isFinite(rightNum);
+  if (leftValid && rightValid && leftNum !== rightNum) {
+    return leftNum - rightNum;
+  }
+  return compareText(String(left?.box_id || ''), String(right?.box_id || ''));
+}
+
+function compareBoxes(left, right, sortBy = 'boxId') {
+  const normalizedSortBy = normalizeBoxSortBy(sortBy);
+  const leftName = normalizeSearchQuery(left?.label || left?.name || '');
+  const rightName = normalizeSearchQuery(right?.label || right?.name || '');
+
+  if (normalizedSortBy === 'location') {
+    const diff = compareText(
+      normalizeSearchQuery(left?.location || ''),
+      normalizeSearchQuery(right?.location || '')
+    );
+    if (diff !== 0) return diff;
+    const nameDiff = compareText(leftName, rightName);
+    if (nameDiff !== 0) return nameDiff;
+    return compareBoxIds(left, right);
+  }
+
+  if (normalizedSortBy === 'group') {
+    const leftGroup = normalizeGroupFilter(left?.group);
+    const rightGroup = normalizeGroupFilter(right?.group);
+    const leftEmpty = !leftGroup;
+    const rightEmpty = !rightGroup;
+    if (leftEmpty !== rightEmpty) return leftEmpty ? 1 : -1;
+
+    const diff = compareText(leftGroup, rightGroup);
+    if (diff !== 0) return diff;
+    const nameDiff = compareText(leftName, rightName);
+    if (nameDiff !== 0) return nameDiff;
+    return compareBoxIds(left, right);
+  }
+
+  if (normalizedSortBy === 'itemCount') {
+    const diff = getNodeItemCount(right) - getNodeItemCount(left);
+    if (diff !== 0) return diff;
+    const nameDiff = compareText(leftName, rightName);
+    if (nameDiff !== 0) return nameDiff;
+    return compareBoxIds(left, right);
+  }
+
+  if (normalizedSortBy === 'name') {
+    const diff = compareText(leftName, rightName);
+    if (diff !== 0) return diff;
+    return compareBoxIds(left, right);
+  }
+
+  const diff = compareBoxIds(left, right);
+  if (diff !== 0) return diff;
+  return compareText(leftName, rightName);
+}
+
+function sortBoxTree(nodes = [], sortBy = 'boxId') {
+  const normalizedSortBy = normalizeBoxSortBy(sortBy);
+
+  return [...nodes]
+    .map((node) => ({
+      ...node,
+      childBoxes: sortBoxTree(
+        Array.isArray(node?.childBoxes) ? node.childBoxes : [],
+        normalizedSortBy
+      ),
+    }))
+    .sort((left, right) => compareBoxes(left, right, normalizedSortBy));
+}
+
+function buildBoxSearchText(node) {
+  const tags = Array.isArray(node?.tags) ? node.tags.join(' ') : '';
+  return normalizeSearchQuery(
+    [
+      node?.box_id,
+      node?.label,
+      node?.name,
+      node?.group,
+      node?.location,
+      node?.description,
+      node?.notes,
+      tags,
+    ]
+      .filter(Boolean)
+      .join(' ')
+  );
+}
+
+function boxMatchesFilters(node, { normalizedQuery = '', normalizedGroup = '' } = {}) {
+  if (normalizedGroup) {
+    const boxGroup = normalizeGroupFilter(node?.group);
+    if (!boxGroup || boxGroup !== normalizedGroup) {
+      return false;
+    }
+  }
+
+  if (normalizedQuery) {
+    const searchText = buildBoxSearchText(node);
+    if (!searchText.includes(normalizedQuery)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function filterBoxTreeNode(node, { normalizedQuery = '', normalizedGroup = '' } = {}) {
+  if (!node || typeof node !== 'object') return null;
+
+  const children = Array.isArray(node.childBoxes)
+    ? node.childBoxes
+        .map((child) => filterBoxTreeNode(child, { normalizedQuery, normalizedGroup }))
+        .filter(Boolean)
+    : [];
+
+  const selfMatches = boxMatchesFilters(node, { normalizedQuery, normalizedGroup });
+  if (!selfMatches && !children.length) return null;
+
+  return {
+    ...node,
+    childBoxes: children,
+  };
+}
+
+function sortDistinctLabels(values = []) {
+  return [...values].sort((left, right) =>
+    String(left || '').localeCompare(String(right || ''), undefined, {
+      sensitivity: 'base',
+      numeric: true,
+    })
+  );
+}
+
+async function getDistinctBoxGroups() {
+  const raw = await Box.distinct('group', {
+    group: { $exists: true, $nin: [null, ''] },
+  });
+
+  const byKey = new Map();
+  for (const entry of raw || []) {
+    const label = String(entry || '').trim();
+    if (!label) continue;
+    const key = label.toLowerCase();
+    if (!byKey.has(key)) {
+      byKey.set(key, label);
+    }
+  }
+
+  return sortDistinctLabels([...byKey.values()]);
+}
+
 async function getBoxByMongoId(id) {
   const box = await Box.findById(id).populate('locationId', 'name').lean();
   if (!box) return null;
@@ -128,11 +362,11 @@ async function resolveBoxByShortId(shortId) {
   const normalized = raw.replace(/^0+/, '') || '0';
   const box =
     (await Box.findOne({ box_id: raw })
-      .select('_id box_id label name location locationId imagePath image')
+      .select('_id box_id label name group location locationId imagePath image')
       .populate('locationId', 'name')
       .lean()) ||
     (await Box.findOne({ box_id: normalized })
-      .select('_id box_id label name location locationId imagePath image')
+      .select('_id box_id label name group location locationId imagePath image')
       .populate('locationId', 'name')
       .lean());
 
@@ -142,6 +376,7 @@ async function resolveBoxByShortId(shortId) {
     _id: String(box._id),
     box_id: box.box_id,
     label: box.label ?? box.name ?? 'Box',
+    group: box.group ?? null,
     locationId: box.locationId?._id ? String(box.locationId._id) : null,
     location: box.locationId?.name ?? box.location ?? '',
     imagePath: box.imagePath ?? '',
@@ -160,7 +395,9 @@ async function getBoxDataStructure(
 ) {
   // 1) Root box (by public short id)
   const root = await Box.findOne({ box_id: shortId })
-    .select('_id box_id label name parentBox items location locationId imagePath image')
+    .select(
+      '_id box_id label name group tags parentBox items location locationId imagePath image'
+    )
     .lean();
   if (!root) return null;
   root.label = root.label ?? root.name ?? 'Box';
@@ -172,7 +409,9 @@ async function getBoxDataStructure(
 
   while (frontier.length) {
     const children = await Box.find({ parentBox: { $in: frontier } })
-      .select('_id box_id label name parentBox items location locationId imagePath image')
+      .select(
+        '_id box_id label name group tags parentBox items location locationId imagePath image'
+      )
       .lean();
 
     for (const c of children) {
@@ -214,6 +453,12 @@ async function getBoxDataStructure(
       _id: node._id,
       box_id: node.box_id,
       label: node.label,
+      group: node.group ?? null,
+      tags: Array.isArray(node.tags)
+        ? node.tags
+            .map((tag) => String(tag || '').trim())
+            .filter(Boolean)
+        : [],
       imagePath: node.imagePath ?? '',
       image: node.image ?? null,
       parentBox: node.parentBox ? String(node.parentBox) : null,
@@ -264,6 +509,7 @@ async function getBoxDataStructure(
     _id: root._id,
     box_id: root.box_id,
     label: root.label,
+    group: root.group ?? null,
     tree,
     ...(includeAncestors ? { ancestors } : {}),
     ...(includeStats ? { stats } : {}),
@@ -358,7 +604,10 @@ async function getBoxTreeByShortId(shortId) {
   return tree;
 }
 
-async function getAllBoxes() {
+async function getAllBoxes({ q = '', group = '', sortBy = '' } = {}) {
+  const normalizedQuery = normalizeSearchQuery(q);
+  const normalizedGroup = normalizeGroupFilter(group);
+  const normalizedSortBy = normalizeBoxSortBy(sortBy, { allowEmpty: true });
   const boxes = await Box.find()
     .populate({
       path: 'parentBox',
@@ -367,14 +616,21 @@ async function getAllBoxes() {
     .populate('locationId', 'name')
     .populate({ path: 'items', match: ACTIVE_ITEM_FILTER })
     .lean();
-  return boxes.map((box) => ({
-    ...box,
-    items: Array.isArray(box.items)
-      ? box.items.map((item) => withNormalizedItemCategory(item))
-      : [],
-    locationId: box.locationId?._id ? String(box.locationId._id) : null,
-    location: box.locationId?.name ?? box.location ?? '',
-  }));
+  const filtered = boxes
+    .map((box) => ({
+      ...box,
+      items: Array.isArray(box.items)
+        ? box.items.map((item) => withNormalizedItemCategory(item))
+        : [],
+      locationId: box.locationId?._id ? String(box.locationId._id) : null,
+      location: box.locationId?.name ?? box.location ?? '',
+    }))
+    .filter((box) => boxMatchesFilters(box, { normalizedQuery, normalizedGroup }));
+
+  if (!normalizedSortBy) return filtered;
+  return [...filtered].sort((left, right) =>
+    compareBoxes(left, right, normalizedSortBy)
+  );
 }
 
 async function getBoxesExcludingId(id) {
@@ -414,24 +670,47 @@ async function populateChildren(box) {
  * Get all top-level boxes and build their full tree recursively.
  */
 
-async function getBoxTree({ page = 1, limit = DEFAULT_BOX_TREE_LIMIT } = {}) {
+async function getBoxTree({
+  page = 1,
+  limit = DEFAULT_BOX_TREE_LIMIT,
+  q = '',
+  group = '',
+  sortBy = 'boxId',
+} = {}) {
   const safeRequestedPage = toBoundedPositiveInteger(page, 1, { min: 1 });
   const safeLimit = toBoundedPositiveInteger(limit, DEFAULT_BOX_TREE_LIMIT, {
     min: 1,
     max: MAX_BOX_TREE_LIMIT,
   });
+  const normalizedQuery = normalizeSearchQuery(q);
+  const normalizedGroup = normalizeGroupFilter(group);
+  const normalizedSortBy = normalizeBoxSortBy(sortBy);
+  const hasFilters = Boolean(normalizedQuery || normalizedGroup);
+  const needsInMemorySort = normalizedSortBy !== 'boxId';
+  const needsInMemoryPaging = hasFilters || needsInMemorySort;
 
   const topLevelQuery = { parentBox: null };
-  const total = await Box.countDocuments(topLevelQuery);
-  const totalPages = total > 0 ? Math.ceil(total / safeLimit) : 1;
-  const safePage = Math.min(safeRequestedPage, totalPages);
-  const skip = (safePage - 1) * safeLimit;
+  let total = 0;
+  let totalPages = 1;
+  let safePage = safeRequestedPage;
+  let topLevelBoxes = [];
 
-  const topLevelBoxes = await Box.find(topLevelQuery)
-    .sort({ box_id: 1, _id: 1 })
-    .skip(skip)
-    .limit(safeLimit)
-    .lean();
+  if (needsInMemoryPaging) {
+    topLevelBoxes = await Box.find(topLevelQuery)
+      .sort({ box_id: 1, _id: 1 })
+      .lean();
+  } else {
+    total = await Box.countDocuments(topLevelQuery);
+    totalPages = total > 0 ? Math.ceil(total / safeLimit) : 1;
+    safePage = Math.min(safeRequestedPage, totalPages);
+    const skip = (safePage - 1) * safeLimit;
+
+    topLevelBoxes = await Box.find(topLevelQuery)
+      .sort({ box_id: 1, _id: 1 })
+      .skip(skip)
+      .limit(safeLimit)
+      .lean();
+  }
   const locationNameMap = await buildLocationNameMap(topLevelBoxes);
 
   for (let i = 0; i < topLevelBoxes.length; i += 1) {
@@ -446,13 +725,37 @@ async function getBoxTree({ page = 1, limit = DEFAULT_BOX_TREE_LIMIT } = {}) {
     topLevelBoxes[i] = box;
   }
 
+  let items = topLevelBoxes;
+  if (hasFilters) {
+    items = topLevelBoxes
+      .map((node) => filterBoxTreeNode(node, { normalizedQuery, normalizedGroup }))
+      .filter(Boolean);
+  }
+
+  if (needsInMemorySort) {
+    items = sortBoxTree(items, normalizedSortBy);
+  }
+
+  if (needsInMemoryPaging) {
+    total = items.length;
+    totalPages = total > 0 ? Math.ceil(total / safeLimit) : 1;
+    safePage = Math.min(safeRequestedPage, totalPages);
+    const start = (safePage - 1) * safeLimit;
+    items = items.slice(start, start + safeLimit);
+  }
+
+  const groups = await getDistinctBoxGroups();
+
   return {
-    items: topLevelBoxes,
-    tree: topLevelBoxes,
+    items,
+    tree: items,
     page: safePage,
     limit: safeLimit,
     total,
     totalPages,
+    filters: {
+      groups,
+    },
   };
 }
 
@@ -473,6 +776,18 @@ async function getBoxesByParent(parentId) {
 
 async function createBox(data) {
   const payload = { ...data };
+  const groupInput = normalizeOptionalBoxGroupInput(
+    data && Object.prototype.hasOwnProperty.call(data, 'group')
+      ? data.group
+      : undefined
+  );
+  if (groupInput.provided) {
+    if (groupInput.clear) {
+      delete payload.group;
+    } else {
+      payload.group = groupInput.value;
+    }
+  }
   const resolvedLocation = await resolveBoxLocationFields({
     locationId:
       data && Object.prototype.hasOwnProperty.call(data, 'locationId')
@@ -508,6 +823,7 @@ async function createBox(data) {
       summary: `Created box ${quoteLabel(createdRef.label)}`,
       details: {
         box_id: createdRef.box_id,
+        group: toTrimmedOrNull(createdPlain?.group),
         parent_box_id: parentRef.id,
         parent_box_label: parentRef.label,
       },
@@ -520,6 +836,22 @@ async function createBox(data) {
 
 async function updateBox(id, data) {
   const patch = { ...data };
+  const patchFields = new Set(Object.keys(patch));
+  const groupInput = normalizeOptionalBoxGroupInput(
+    data && Object.prototype.hasOwnProperty.call(data, 'group')
+      ? data.group
+      : undefined
+  );
+  let unsetGroup = false;
+  if (groupInput.provided) {
+    patchFields.add('group');
+    if (groupInput.clear) {
+      unsetGroup = true;
+      delete patch.group;
+    } else {
+      patch.group = groupInput.value;
+    }
+  }
   const existing = await Box.findById(id).lean();
 
   const resolvedLocation = await resolveBoxLocationFields({
@@ -586,7 +918,15 @@ async function updateBox(id, data) {
   }
 
   // Perform the update
-  const updated = await Box.findByIdAndUpdate(id, patch, {
+  const setDoc = { ...patch };
+  const updateDoc = unsetGroup
+    ? {
+        ...(Object.keys(setDoc).length ? { $set: setDoc } : {}),
+        $unset: { group: 1 },
+      }
+    : setDoc;
+
+  const updated = await Box.findByIdAndUpdate(id, updateDoc, {
     new: true,
     runValidators: true,
   });
@@ -652,7 +992,7 @@ async function updateBox(id, data) {
     );
   }
 
-  const nonParentCandidates = Object.keys(patch).filter(
+  const nonParentCandidates = Array.from(patchFields).filter(
     (field) => field !== 'parentBox'
   );
   const changedNonParentFields = computeChangedFields(
@@ -661,6 +1001,7 @@ async function updateBox(id, data) {
     nonParentCandidates
   );
   if (changedNonParentFields.length) {
+    const groupChanged = changedNonParentFields.includes('group');
     await logEventBestEffort(
       {
         event_type: 'box_updated',
@@ -672,6 +1013,12 @@ async function updateBox(id, data) {
         )}`,
         details: {
           changed_fields: changedNonParentFields,
+          ...(groupChanged
+            ? {
+                previous_group: toTrimmedOrNull(existing?.group),
+                group: toTrimmedOrNull(updatedPlain?.group),
+              }
+            : {}),
         },
       },
       { label: `box_updated:${boxRef.id}` }

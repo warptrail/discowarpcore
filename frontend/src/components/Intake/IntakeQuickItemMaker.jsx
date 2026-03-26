@@ -212,7 +212,32 @@ function tagsToPayload(tags = []) {
     .filter(Boolean);
 }
 
-export default function IntakeQuickItemMaker({ onItemCreated }) {
+export default function IntakeQuickItemMaker({
+  onItemCreated,
+  mode = 'orphan',
+  targetBox = null,
+  title = 'Quick Item Maker',
+  hint,
+  submitLabel,
+}) {
+  const normalizedMode = mode === 'inBox' ? 'inBox' : 'orphan';
+  const isInBoxMode = normalizedMode === 'inBox';
+  const targetBoxId = String(targetBox?._id || targetBox?.id || '').trim();
+  const targetBoxShortId = String(
+    targetBox?.box_id || targetBox?.shortId || '',
+  ).trim();
+  const targetBoxLabel = String(targetBox?.label || targetBox?.name || '').trim();
+  const hasTargetBox = !isInBoxMode || !!targetBoxId;
+  const fieldIdPrefix = isInBoxMode ? 'quick-maker-inbox' : 'quick-maker';
+
+  const defaultHint = isInBoxMode
+    ? hasTargetBox
+      ? `Create directly inside ${targetBoxLabel || `box #${targetBoxShortId || '???'}`}.`
+      : 'Select a box first to create an item inside it.'
+    : 'Fast orphan capture. Items created here are unassigned and can be organized into boxes later.';
+  const resolvedHint = String(hint || defaultHint).trim();
+  const resolvedSubmitLabel = submitLabel || (isInBoxMode ? 'Create Item In Box' : 'Create Orphan Item');
+
   const nameRef = useRef(null);
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -227,11 +252,12 @@ export default function IntakeQuickItemMaker({ onItemCreated }) {
   const [error, setError] = useState('');
 
   const canSubmit = useMemo(() => {
+    if (!hasTargetBox) return false;
     if (!name.trim()) return false;
     const qty = Number(quantity);
     if (!Number.isFinite(qty) || qty <= 0) return false;
     return !busy;
-  }, [busy, name, quantity]);
+  }, [busy, hasTargetBox, name, quantity]);
 
   useEffect(() => {
     if (!photoFile) {
@@ -261,20 +287,38 @@ export default function IntakeQuickItemMaker({ onItemCreated }) {
 
     let createdItem = null;
     const orphanedAt = new Date().toISOString();
+    const trimmedName = name.trim();
+    const normalizedQuantity = Number(quantity);
+    const normalizedDescription = description.trim();
+    const normalizedNotes = notes.trim();
+    const normalizedTags = tagsToPayload(tags);
 
     try {
-      const res = await fetch(`${API_BASE}/api/items`, {
+      const endpoint = isInBoxMode
+        ? `${API_BASE}/api/boxed-items/boxes/${encodeURIComponent(targetBoxId)}/items`
+        : `${API_BASE}/api/items`;
+      const requestBody = isInBoxMode
+        ? {
+            name: trimmedName,
+            quantity: normalizedQuantity,
+            description: normalizedDescription,
+            notes: normalizedNotes,
+            tags: normalizedTags,
+          }
+        : {
+            name: trimmedName,
+            quantity: normalizedQuantity,
+            description: normalizedDescription,
+            notes: normalizedNotes,
+            tags: normalizedTags,
+            orphanedAt,
+            location: '',
+          };
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          quantity: Number(quantity),
-          description: description.trim(),
-          notes: notes.trim(),
-          tags: tagsToPayload(tags),
-          orphanedAt,
-          location: '',
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const body = await res.json().catch(() => ({}));
@@ -284,7 +328,7 @@ export default function IntakeQuickItemMaker({ onItemCreated }) {
         );
       }
 
-      createdItem = body;
+      createdItem = isInBoxMode ? body?.item || body : body;
       if (!createdItem?._id) {
         throw new Error('Item created but no item id returned.');
       }
@@ -296,30 +340,56 @@ export default function IntakeQuickItemMaker({ onItemCreated }) {
       }
 
       const sourceSuffix = photoSource ? ` via ${photoSource}` : '';
-      const message = photoFile
-        ? `Created orphan item "${name.trim()}" with photo${sourceSuffix}.`
-        : `Created orphan item "${name.trim()}".`;
+      const boxLabelForMessage = targetBoxLabel || `box #${targetBoxShortId || '???'}`;
+      const message = isInBoxMode
+        ? (photoFile
+          ? `Created item "${trimmedName}" in ${boxLabelForMessage} with photo${sourceSuffix}.`
+          : `Created item "${trimmedName}" in ${boxLabelForMessage}.`)
+        : (photoFile
+          ? `Created orphan item "${trimmedName}" with photo${sourceSuffix}.`
+          : `Created orphan item "${trimmedName}".`);
       const createdAt =
         createdItem?.createdAt || createdItem?.created_at || new Date().toISOString();
 
+      const normalizedItem = isInBoxMode
+        ? {
+            ...createdItem,
+            createdAt,
+            created_at: createdItem?.created_at || createdAt,
+            box: {
+              _id: targetBoxId,
+              box_id: targetBoxShortId || null,
+              label: targetBoxLabel || '',
+            },
+            boxId: targetBoxId,
+            orphanedAt: null,
+            image: uploadedImage || createdItem?.image || null,
+            imagePath:
+              uploadedImage?.display?.url ||
+              uploadedImage?.original?.url ||
+              createdItem?.imagePath ||
+              '',
+          }
+        : {
+            ...createdItem,
+            createdAt,
+            created_at: createdItem?.created_at || createdAt,
+            orphanedAt: createdItem?.orphanedAt || orphanedAt,
+            box: null,
+            boxId: '',
+            image: uploadedImage || createdItem?.image || null,
+            imagePath:
+              uploadedImage?.display?.url ||
+              uploadedImage?.original?.url ||
+              createdItem?.imagePath ||
+              '',
+          };
+
       onItemCreated?.({
         itemId: createdItem._id,
-        item: {
-          ...createdItem,
-          createdAt,
-          created_at: createdItem?.created_at || createdAt,
-          orphanedAt: createdItem?.orphanedAt || orphanedAt,
-          box: null,
-          boxId: '',
-          image: uploadedImage || createdItem?.image || null,
-          imagePath:
-            uploadedImage?.display?.url ||
-            uploadedImage?.original?.url ||
-            createdItem?.imagePath ||
-            '',
-        },
+        item: normalizedItem,
         message,
-        refreshOrphaned: true,
+        ...(isInBoxMode ? {} : { refreshOrphaned: true }),
       });
 
       setStatus(message);
@@ -337,19 +407,37 @@ export default function IntakeQuickItemMaker({ onItemCreated }) {
       if (createdItem?._id && photoFile) {
         const partial = submitError?.message || 'Item created but photo upload failed.';
         setError(partial);
+        const createdAt =
+          createdItem?.createdAt || createdItem?.created_at || new Date().toISOString();
         onItemCreated?.({
           itemId: createdItem._id,
-          item: {
-            ...createdItem,
-            orphanedAt: createdItem?.orphanedAt || orphanedAt,
-            box: null,
-            boxId: '',
+          item: isInBoxMode
+            ? {
+                ...createdItem,
+                createdAt,
+                created_at: createdItem?.created_at || createdAt,
+                box: {
+                  _id: targetBoxId,
+                  box_id: targetBoxShortId || null,
+                  label: targetBoxLabel || '',
+                },
+                boxId: targetBoxId,
+                orphanedAt: null,
+              }
+            : {
+                ...createdItem,
+                orphanedAt: createdItem?.orphanedAt || orphanedAt,
+                box: null,
+                boxId: '',
           },
           message: partial,
-          refreshOrphaned: true,
+          ...(isInBoxMode ? {} : { refreshOrphaned: true }),
         });
       } else {
-        setError(submitError?.message || 'Failed to create orphan item.');
+        setError(
+          submitError?.message ||
+            (isInBoxMode ? 'Failed to create item in box.' : 'Failed to create orphan item.'),
+        );
       }
     } finally {
       setBusy(false);
@@ -358,17 +446,15 @@ export default function IntakeQuickItemMaker({ onItemCreated }) {
 
   return (
     <Panel>
-      <Heading>Quick Item Maker</Heading>
-      <Hint>
-        Fast orphan capture. Items created here are unassigned and can be organized into boxes later.
-      </Hint>
+      <Heading>{title}</Heading>
+      <Hint>{resolvedHint}</Hint>
 
       <Form onSubmit={handleSubmit}>
         <TopRow>
           <Field>
-            <Label htmlFor="quick-maker-name">Item name</Label>
+            <Label htmlFor={`${fieldIdPrefix}-name`}>Item name</Label>
             <Input
-              id="quick-maker-name"
+              id={`${fieldIdPrefix}-name`}
               ref={nameRef}
               type="text"
               autoCapitalize="sentences"
@@ -382,9 +468,9 @@ export default function IntakeQuickItemMaker({ onItemCreated }) {
           </Field>
 
           <Field>
-            <Label htmlFor="quick-maker-qty">Quantity</Label>
+            <Label htmlFor={`${fieldIdPrefix}-qty`}>Quantity</Label>
             <Input
-              id="quick-maker-qty"
+              id={`${fieldIdPrefix}-qty`}
               type="number"
               inputMode="numeric"
               min="1"
@@ -400,9 +486,9 @@ export default function IntakeQuickItemMaker({ onItemCreated }) {
         </TopRow>
 
         <Field>
-          <Label htmlFor="quick-maker-description">Description</Label>
+          <Label htmlFor={`${fieldIdPrefix}-description`}>Description</Label>
           <TextArea
-            id="quick-maker-description"
+            id={`${fieldIdPrefix}-description`}
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             placeholder="Short identifying details"
@@ -411,9 +497,9 @@ export default function IntakeQuickItemMaker({ onItemCreated }) {
         </Field>
 
         <Field>
-          <Label htmlFor="quick-maker-notes">Notes</Label>
+          <Label htmlFor={`${fieldIdPrefix}-notes`}>Notes</Label>
           <TextArea
-            id="quick-maker-notes"
+            id={`${fieldIdPrefix}-notes`}
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             placeholder="Optional context"
@@ -467,7 +553,7 @@ export default function IntakeQuickItemMaker({ onItemCreated }) {
         </Field>
 
         <SubmitButton type="submit" disabled={!canSubmit}>
-          {busy ? 'Creating…' : 'Create Orphan Item'}
+          {busy ? 'Creating…' : resolvedSubmitLabel}
         </SubmitButton>
       </Form>
 

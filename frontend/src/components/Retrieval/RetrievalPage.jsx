@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigationType } from 'react-router-dom';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 import {
   DEFAULT_RETRIEVAL_LIMIT,
   fetchRetrievalItemsPage,
 } from '../../api/retrieval';
+import { API_BASE } from '../../api/API_BASE';
+import { markItemGone, restoreItemToActive } from '../../api/itemLifecycle';
 import * as S from './Retrieval.styles';
 import RetrievalSearchBar from './RetrievalSearchBar';
 import RetrievalFilterBar from './RetrievalFilterBar';
@@ -12,6 +14,7 @@ import RetrievalResultsList from './RetrievalResultsList';
 import RetrievalImageLightbox from './RetrievalImageLightbox';
 import RetrievalModeToggle from './RetrievalModeToggle';
 import RetrievalBoxCentricView from './RetrievalBoxCentricView';
+import { ToastContext } from '../Toast';
 import {
   buildActiveFilterChips,
   normalizeRetrievalFilterOptions,
@@ -46,6 +49,87 @@ function toKey(value) {
   return String(value || '')
     .trim()
     .toLowerCase();
+}
+
+function buildItemSearchText(item) {
+  const tags = Array.isArray(item?.tags) ? item.tags.join(' ') : '';
+  return toKey(
+    [
+      item?.name,
+      item?.description,
+      item?.notes,
+      item?.categoryLabel,
+      tags,
+      item?.boxName,
+      item?.boxNumber,
+      item?.locationLabel,
+      item?.locationPath,
+      item?.primaryOwnerName,
+      item?.keepPriorityLabel,
+      item?.isConsumable ? 'consumable' : '',
+    ]
+      .filter(Boolean)
+      .join(' '),
+  );
+}
+
+function itemMatchesQuery(item, queryState) {
+  const source = item && typeof item === 'object' ? item : null;
+  if (!source) return false;
+
+  const normalizedQuery = toKey(queryState?.q || '');
+  if (normalizedQuery) {
+    const searchText = buildItemSearchText(source);
+    if (!searchText.includes(normalizedQuery)) {
+      return false;
+    }
+  }
+
+  const categories = Array.isArray(queryState?.categories) ? queryState.categories : [];
+  if (categories.length && !categories.includes(toKey(source?.categoryKey))) {
+    return false;
+  }
+
+  const locations = Array.isArray(queryState?.locations) ? queryState.locations : [];
+  if (locations.length && !locations.includes(toKey(source?.locationLabel))) {
+    return false;
+  }
+
+  const owners = Array.isArray(queryState?.owners) ? queryState.owners : [];
+  if (owners.length && !owners.includes(toKey(source?.primaryOwnerName))) {
+    return false;
+  }
+
+  const keepPriorities = Array.isArray(queryState?.keepPriorities)
+    ? queryState.keepPriorities
+    : [];
+  if (keepPriorities.length && !keepPriorities.includes(toKey(source?.keepPriority))) {
+    return false;
+  }
+
+  const tags = Array.isArray(queryState?.tags) ? queryState.tags : [];
+  if (tags.length) {
+    const itemTagKeys = Array.isArray(source?.tags)
+      ? source.tags.map((tag) => toKey(tag))
+      : [];
+    const hasMatch = itemTagKeys.some((tagKey) => tags.includes(tagKey));
+    if (!hasMatch) return false;
+  }
+
+  return true;
+}
+
+function formatLifecycleTimestamp(isoValue) {
+  const date = new Date(isoValue);
+  if (Number.isNaN(date.getTime())) return String(isoValue || '');
+
+  return new Intl.DateTimeFormat(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date);
 }
 
 function sameValues(a, b) {
@@ -134,6 +218,7 @@ function sanitizeBoxModeState(rawState) {
   const source = rawState && typeof rawState === 'object' ? rawState : {};
   return {
     searchValue: String(source.searchValue || ''),
+    selectedGroup: String(source.selectedGroup || ''),
     selectedLocation: String(source.selectedLocation || ''),
     selectedBoxId: String(source.selectedBoxId || ''),
   };
@@ -175,6 +260,10 @@ function writePersistedRetrievalState({ key, snapshot }) {
 }
 
 export default function RetrievalPage() {
+  const toastCtx = useContext(ToastContext);
+  const showToast = toastCtx?.showToast;
+  const hideToast = toastCtx?.hideToast;
+  const navigate = useNavigate();
   const location = useLocation();
   const navigationType = useNavigationType();
   const initialSnapshotRef = useRef();
@@ -225,6 +314,7 @@ export default function RetrievalPage() {
   const debouncedSearchValue = useDebouncedValue(searchValue, 220);
   const loadMoreControllerRef = useRef(null);
   const queryKeyRef = useRef('');
+  const queryStateRef = useRef(null);
   const hasLoadedItemsRef = useRef(false);
   const pendingScrollRestoreRef = useRef(
     Number.isFinite(Number(initialSnapshot?.scrollY))
@@ -250,6 +340,10 @@ export default function RetrievalPage() {
   useEffect(() => {
     queryKeyRef.current = queryKey;
   }, [queryKey]);
+
+  useEffect(() => {
+    queryStateRef.current = queryState;
+  }, [queryState]);
 
   useEffect(() => {
     latestSnapshotRef.current = {
@@ -499,6 +593,312 @@ export default function RetrievalPage() {
     });
   }, []);
 
+  const parseApiError = useCallback(async (response, fallbackMessage) => {
+    const raw = await response.text().catch(() => '');
+    if (!raw) return fallbackMessage;
+
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed?.message || parsed?.error || fallbackMessage;
+    } catch {
+      return raw;
+    }
+  }, []);
+
+  const handleLifecycleAction = useCallback(
+    async (rawItem, action) => {
+      const itemId = String(rawItem?.id || '').trim();
+      if (!itemId || !action) return;
+
+      const currentItem =
+        items.find((entry) => entry.id === itemId) || rawItem;
+      const itemName = String(currentItem?.name || 'item').trim();
+      const itemHref = String(currentItem?.itemHref || `/items/${itemId}`).trim();
+
+      if (action === 'consumed') {
+        hideToast?.();
+
+        showToast?.({
+          variant: 'warning',
+          sticky: true,
+          title: `Mark "${itemName}" as consumed?`,
+          message:
+            'This will mark the item gone (consumed) and remove it from active Retrieval results.',
+          actions: [
+            {
+              id: `retrieval-consume-confirm-${itemId}`,
+              label: 'Confirm Consumed',
+              kind: 'danger',
+              onClick: async () => {
+                try {
+                  const updated = await markItemGone(itemId, {
+                    disposition: 'consumed',
+                  });
+
+                  const mergedUpdated = normalizeRetrievalItemsPage([
+                    {
+                      ...currentItem,
+                      ...(updated && typeof updated === 'object' ? updated : {}),
+                    },
+                  ])[0] || currentItem;
+
+                  setItems((current) =>
+                    current.filter((entry) => entry.id !== itemId),
+                  );
+                  setExpandedIds((current) => {
+                    const next = new Set(current);
+                    next.delete(itemId);
+                    return next;
+                  });
+                  setTotal((current) => Math.max(0, current - 1));
+
+                  showToast?.({
+                    variant: 'warning',
+                    sticky: true,
+                    title: `Marked "${itemName}" as consumed`,
+                    message: 'Removed from active retrieval inventory.',
+                    actions: [
+                      {
+                        id: `retrieval-consume-undo-${itemId}`,
+                        label: 'Undo',
+                        kind: 'primary',
+                        onClick: async () => {
+                          try {
+                            const restored = await restoreItemToActive(itemId);
+                            const restoredItem = normalizeRetrievalItemsPage([
+                              {
+                                ...mergedUpdated,
+                                ...(restored && typeof restored === 'object' ? restored : {}),
+                              },
+                            ])[0] || mergedUpdated;
+
+                            const shouldShow = itemMatchesQuery(
+                              restoredItem,
+                              queryStateRef.current,
+                            );
+                            if (shouldShow) {
+                              setItems((current) => {
+                                if (current.some((entry) => entry.id === itemId)) {
+                                  return current;
+                                }
+                                return [restoredItem, ...current];
+                              });
+                              setTotal((current) => current + 1);
+                            }
+
+                            showToast?.({
+                              variant: 'success',
+                              title: `Restored "${itemName}"`,
+                              message: shouldShow
+                                ? 'Item returned to active Retrieval results.'
+                                : 'Item restored to active inventory.',
+                              timeoutMs: 2200,
+                            });
+                          } catch (undoError) {
+                            showToast?.({
+                              variant: 'danger',
+                              title: 'Undo failed',
+                              message:
+                                undoError?.message ||
+                                'Could not restore the consumed item.',
+                              timeoutMs: 3600,
+                            });
+                          }
+                        },
+                      },
+                      {
+                        id: `retrieval-consume-open-${itemId}`,
+                        label: 'Open Item',
+                        onClick: () => {
+                          hideToast?.();
+                          navigate(itemHref);
+                        },
+                      },
+                    ],
+                    onClose: () => hideToast?.(),
+                  });
+                } catch (consumeError) {
+                  showToast?.({
+                    variant: 'danger',
+                    title: 'Consume action failed',
+                    message:
+                      consumeError?.message || 'Could not mark this item as consumed.',
+                    timeoutMs: 3600,
+                  });
+                }
+              },
+            },
+            {
+              id: `retrieval-consume-cancel-${itemId}`,
+              label: 'Cancel',
+              onClick: () => hideToast?.(),
+            },
+          ],
+          onClose: () => hideToast?.(),
+        });
+
+        return;
+      }
+
+      const fieldByAction = {
+        used: 'usageHistory',
+        checked: 'checkHistory',
+        maintained: 'maintenanceHistory',
+      };
+      const successTitleByAction = {
+        used: 'Used now',
+        checked: 'Checked now',
+        maintained: 'Maintained now',
+      };
+      const actionLabelByAction = {
+        used: 'used',
+        checked: 'checked',
+        maintained: 'maintained',
+      };
+
+      const targetField = fieldByAction[action];
+      if (!targetField) return;
+
+      const currentHistory = Array.isArray(currentItem?.[targetField])
+        ? currentItem[targetField]
+        : [];
+      const nowIso = new Date().toISOString();
+      const payload = {
+        [targetField]: [...currentHistory, nowIso],
+      };
+
+      try {
+        const response = await fetch(
+          `${API_BASE}/api/items/${encodeURIComponent(itemId)}`,
+          {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          },
+        );
+
+        if (!response.ok) {
+          const message = await parseApiError(
+            response,
+            'Failed to update item lifecycle.',
+          );
+          throw new Error(message);
+        }
+
+        const json = await response.json().catch(() => ({}));
+        const updated = json?.data ?? json;
+        const normalizedUpdated = normalizeRetrievalItemsPage([
+          {
+            ...currentItem,
+            ...(updated && typeof updated === 'object' ? updated : {}),
+          },
+        ])[0];
+
+        setItems((current) =>
+          current.map((entry) => {
+            if (entry.id !== itemId) return entry;
+            if (normalizedUpdated) return normalizedUpdated;
+            return {
+              ...entry,
+              [targetField]: [...currentHistory, nowIso],
+            };
+          }),
+        );
+
+        const savedAtLabel = formatLifecycleTimestamp(nowIso);
+        const actionLabel = actionLabelByAction[action] || 'updated';
+        showToast?.({
+          variant: 'success',
+          sticky: true,
+          title: `${successTitleByAction[action] || 'Saved'} · ${itemName}`,
+          message: `Saved at ${savedAtLabel}.`,
+          actions: [
+            {
+              id: `retrieval-${action}-undo-${itemId}`,
+              label: 'Undo',
+              kind: 'primary',
+              onClick: async () => {
+                try {
+                  const undoResponse = await fetch(
+                    `${API_BASE}/api/items/${encodeURIComponent(itemId)}`,
+                    {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ [targetField]: currentHistory }),
+                    },
+                  );
+
+                  if (!undoResponse.ok) {
+                    const undoMessage = await parseApiError(
+                      undoResponse,
+                      'Failed to undo lifecycle update.',
+                    );
+                    throw new Error(undoMessage);
+                  }
+
+                  const undoJson = await undoResponse.json().catch(() => ({}));
+                  const undoUpdated = undoJson?.data ?? undoJson;
+                  const normalizedUndo = normalizeRetrievalItemsPage([
+                    {
+                      ...currentItem,
+                      ...(undoUpdated && typeof undoUpdated === 'object'
+                        ? undoUpdated
+                        : {}),
+                    },
+                  ])[0];
+
+                  setItems((current) =>
+                    current.map((entry) => {
+                      if (entry.id !== itemId) return entry;
+                      if (normalizedUndo) return normalizedUndo;
+                      return {
+                        ...entry,
+                        [targetField]: currentHistory,
+                      };
+                    }),
+                  );
+
+                  showToast?.({
+                    variant: 'success',
+                    title: `Undid ${actionLabel} · ${itemName}`,
+                    message: 'Lifecycle timestamp removed.',
+                    timeoutMs: 2200,
+                  });
+                } catch (undoError) {
+                  showToast?.({
+                    variant: 'danger',
+                    title: 'Undo failed',
+                    message:
+                      undoError?.message || 'Could not undo lifecycle update.',
+                    timeoutMs: 3600,
+                  });
+                }
+              },
+            },
+            {
+              id: `retrieval-${action}-open-${itemId}`,
+              label: 'Open Item',
+              onClick: () => {
+                hideToast?.();
+                navigate(itemHref);
+              },
+            },
+          ],
+          onClose: () => hideToast?.(),
+        });
+      } catch (err) {
+        showToast?.({
+          variant: 'danger',
+          title: 'Lifecycle update failed',
+          message: err?.message || 'Could not save timestamp.',
+          timeoutMs: 3600,
+        });
+        throw err;
+      }
+    },
+    [hideToast, items, navigate, parseApiError, showToast],
+  );
+
   const handleLoadMore = useCallback(async () => {
     if (!isItemsMode || loading || loadingMore || !hasMore) return;
 
@@ -648,6 +1048,7 @@ export default function RetrievalPage() {
           expandedIds={expandedIds}
           onToggleRow={toggleExpanded}
           onPreviewImage={handlePreviewImage}
+          onLifecycleAction={handleLifecycleAction}
           loading={loading}
         />
 

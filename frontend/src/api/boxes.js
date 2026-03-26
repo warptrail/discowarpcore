@@ -97,6 +97,46 @@ export async function fetchBoxTreeByShortId(shortId, { signal } = {}) {
   return json.box ?? json.data ?? json;
 }
 
+export async function listBoxGroups({ signal } = {}) {
+  const params = new URLSearchParams({
+    page: '1',
+    limit: '1',
+  });
+
+  const res = await fetch(`${API_BASE}/api/boxes/tree?${params.toString()}`, {
+    signal,
+  });
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw new Error(data?.error || data?.message || 'Failed to load box groups');
+  }
+
+  const rawGroups = Array.isArray(data?.filters?.groups) ? data.filters.groups : [];
+  const byKey = new Map();
+
+  for (const entry of rawGroups) {
+    const label = String(
+      typeof entry === 'string'
+        ? entry
+        : entry?.label || entry?.value || '',
+    ).trim();
+    if (!label) continue;
+
+    const key = label.toLowerCase();
+    if (!byKey.has(key)) {
+      byKey.set(key, label);
+    }
+  }
+
+  return [...byKey.values()].sort((left, right) =>
+    String(left).localeCompare(String(right), undefined, {
+      sensitivity: 'base',
+      numeric: true,
+    }),
+  );
+}
+
 export async function releaseChildrenToFloor(boxMongoId, opts = {}) {
   const res = await fetch(
     `${API_BASE}/api/boxes/${boxMongoId}/release-children`,

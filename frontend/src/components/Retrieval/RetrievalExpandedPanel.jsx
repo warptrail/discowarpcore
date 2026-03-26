@@ -1,3 +1,4 @@
+import { useCallback, useMemo, useState } from 'react';
 import * as S from './Retrieval.styles';
 import SiblingItemsChips from './SiblingItemsChips';
 import {
@@ -6,30 +7,62 @@ import {
   normalizeKeepPriority,
 } from '../../util/keepPriority';
 
-export default function RetrievalExpandedPanel({ item, panelId }) {
-  if (!item) return null;
+export default function RetrievalExpandedPanel({
+  item,
+  panelId,
+  onLifecycleAction,
+}) {
+  const resolvedItem = item && typeof item === 'object' ? item : null;
+  const [pendingAction, setPendingAction] = useState('');
 
-  const description = String(item?.description || '').trim();
-  const notes = String(item?.notes || '').trim();
-  const categoryLabel = String(item?.categoryLabel || '').trim();
-  const tags = Array.isArray(item?.tags) ? item.tags.filter(Boolean) : [];
-  const pathLine = String(item?.locationPath || '').trim();
-  const locationLabel = String(item?.locationLabel || '').trim();
-  const keepPriority = normalizeKeepPriority(item?.keepPriority);
+  const description = String(resolvedItem?.description || '').trim();
+  const notes = String(resolvedItem?.notes || '').trim();
+  const categoryLabel = String(resolvedItem?.categoryLabel || '').trim();
+  const tags = Array.isArray(resolvedItem?.tags) ? resolvedItem.tags.filter(Boolean) : [];
+  const pathLine = String(resolvedItem?.locationPath || '').trim();
+  const locationLabel = String(resolvedItem?.locationLabel || '').trim();
+  const keepPriority = normalizeKeepPriority(resolvedItem?.keepPriority);
   const keepPriorityLabel = formatKeepPriorityLabel(
-    item?.keepPriorityLabel || keepPriority,
+    resolvedItem?.keepPriorityLabel || keepPriority,
   );
   const keepPriorityToneValue = keepPriorityTone(keepPriority);
   const hasPrimaryDetails = Boolean(description || notes || pathLine);
   const hasMetadata = Boolean(categoryLabel || keepPriorityLabel || tags.length || locationLabel);
-  const hasSiblings = Array.isArray(item.siblingItems) && item.siblingItems.length > 0;
-  const hasContext = Boolean(hasMetadata || hasSiblings || item?.boxHref);
+  const hasSiblings = Array.isArray(resolvedItem?.siblingItems) && resolvedItem.siblingItems.length > 0;
+  const hasContext = Boolean(hasMetadata || hasSiblings || resolvedItem?.boxHref);
+  const isConsumable = Boolean(resolvedItem?.isConsumable);
+  const maintenanceActionType = isConsumable ? 'consumed' : 'maintained';
+  const maintenanceActionLabel = isConsumable ? 'Consumed' : 'Maintained';
+  const editHref = useMemo(() => {
+    const href = String(resolvedItem?.itemHref || '').trim();
+    if (!href) return '';
+    return `${href}${href.includes('?') ? '&' : '?'}mode=edit`;
+  }, [resolvedItem?.itemHref]);
+  const canRunActions = typeof onLifecycleAction === 'function' && Boolean(resolvedItem?.id);
+  const actionBusy = Boolean(pendingAction);
+
+  const runAction = useCallback(
+    async (action) => {
+      if (!canRunActions || !action || actionBusy) return;
+      try {
+        setPendingAction(action);
+        await onLifecycleAction(resolvedItem, action);
+      } catch {
+        // errors are handled by the action callback (toast/message)
+      } finally {
+        setPendingAction('');
+      }
+    },
+    [actionBusy, canRunActions, onLifecycleAction, resolvedItem],
+  );
+
+  if (!resolvedItem) return null;
 
   return (
     <S.ExpandedPanel
       id={panelId}
       role="region"
-      aria-label={`Retrieval details for ${item.name}`}
+      aria-label={`Retrieval details for ${resolvedItem.name}`}
       $hasPrimaryPanel={hasPrimaryDetails}
     >
       {hasPrimaryDetails ? (
@@ -63,6 +96,36 @@ export default function RetrievalExpandedPanel({ item, panelId }) {
         <S.ExpandedBoxPanel>
           <S.ExpandedPanelTitle>Related context</S.ExpandedPanelTitle>
 
+          <S.ExpandedActionRow role="group" aria-label={`Quick actions for ${resolvedItem.name}`}>
+            <S.ExpandedActionButton
+              type="button"
+              onClick={() => runAction('used')}
+              disabled={!canRunActions || actionBusy}
+              $tone="used"
+            >
+              {pendingAction === 'used' ? 'Saving…' : 'Used'}
+            </S.ExpandedActionButton>
+            <S.ExpandedActionButton
+              type="button"
+              onClick={() => runAction('checked')}
+              disabled={!canRunActions || actionBusy}
+              $tone="checked"
+            >
+              {pendingAction === 'checked' ? 'Saving…' : 'Checked'}
+            </S.ExpandedActionButton>
+            <S.ExpandedActionButton
+              type="button"
+              onClick={() => runAction(maintenanceActionType)}
+              disabled={!canRunActions || actionBusy}
+              $tone={maintenanceActionType}
+            >
+              {pendingAction === maintenanceActionType ? 'Saving…' : maintenanceActionLabel}
+            </S.ExpandedActionButton>
+            {editHref ? (
+              <S.ExpandedActionLink to={editHref}>Edit</S.ExpandedActionLink>
+            ) : null}
+          </S.ExpandedActionRow>
+
           {hasMetadata ? (
             <S.ExpandedMetadataGrid>
               {categoryLabel ? (
@@ -93,7 +156,7 @@ export default function RetrievalExpandedPanel({ item, panelId }) {
                   <S.ExpandedDetailLabel>Tags</S.ExpandedDetailLabel>
                   <S.TagRow>
                     {tags.map((tag) => (
-                      <S.ItemTagChip key={`${item.id}-${tag}`}>{tag}</S.ItemTagChip>
+                      <S.ItemTagChip key={`${resolvedItem.id}-${tag}`}>{tag}</S.ItemTagChip>
                     ))}
                   </S.TagRow>
                 </S.ExpandedMetaCard>
@@ -102,7 +165,7 @@ export default function RetrievalExpandedPanel({ item, panelId }) {
           ) : null}
 
           {hasSiblings ? (
-            <SiblingItemsChips siblingItems={item.siblingItems} limit={8} />
+            <SiblingItemsChips siblingItems={resolvedItem.siblingItems} limit={8} />
           ) : (
             <S.SiblingSection>
               <S.SiblingLabel>Other items in this box:</S.SiblingLabel>
@@ -110,8 +173,8 @@ export default function RetrievalExpandedPanel({ item, panelId }) {
             </S.SiblingSection>
           )}
 
-          {item.boxHref ? (
-            <S.ExpandedBoxLink to={item.boxHref}>Open box page</S.ExpandedBoxLink>
+          {resolvedItem.boxHref ? (
+            <S.ExpandedBoxLink to={resolvedItem.boxHref}>Open box page</S.ExpandedBoxLink>
           ) : (
             <S.ExpandedMuted>Box page unavailable for this item.</S.ExpandedMuted>
           )}

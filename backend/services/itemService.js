@@ -300,32 +300,58 @@ async function getItemById(id, { select } = {}) {
 /**
  * Orphaned items
  */
-async function getOrphanedItems(sort, limit) {
+async function getOrphanedItems(sort, limit, query = '') {
   const page = await getOrphanedItemsPage({
     sort,
     limit,
     offset: 0,
+    query,
   });
   return page.items;
+}
+
+function buildOrphanedSort(sort = 'recent') {
+  const value = String(sort || '').trim().toLowerCase();
+  if (value === 'alpha' || value === 'alphabetical' || value === 'name:asc') {
+    return { name: 1, _id: 1 };
+  }
+  if (value === 'name:desc') {
+    return { name: -1, _id: -1 };
+  }
+  if (value === 'oldest' || value === 'orphaned:asc') {
+    return { orphanedAt: 1, _id: 1 };
+  }
+  if (value === 'orphaned:desc' || value === 'recent') {
+    return { orphanedAt: -1, _id: -1 };
+  }
+  return { orphanedAt: -1, _id: -1 };
 }
 
 async function getOrphanedItemsPage({
   sort = 'recent',
   limit = 20,
   offset = 0,
+  query = '',
 } = {}) {
   const safeLimit = Math.max(1, Math.min(100, Number(limit) || 20));
   const safeOffset = Math.max(0, Number(offset) || 0);
-  const order =
-    sort === 'alpha'
-      ? { name: 1, _id: 1 }
-      : sort === 'oldest'
-      ? { orphanedAt: 1, _id: 1 }
-      : { orphanedAt: -1, _id: -1 };
+  const order = buildOrphanedSort(sort);
   const filter = {
     ...ACTIVE_ITEM_FILTER,
     orphanedAt: { $ne: null },
   };
+  const textQuery = String(query || '').trim();
+  if (textQuery) {
+    const regex = new RegExp(escapeRegex(textQuery), 'i');
+    filter.$or = [
+      { name: regex },
+      { description: regex },
+      { notes: regex },
+      { tags: regex },
+      { category: regex },
+      { location: regex },
+    ];
+  }
   const total = await Item.countDocuments(filter);
   const items = await Item.find(filter)
     .sort(order)

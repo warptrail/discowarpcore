@@ -12,7 +12,7 @@ export default function BoxFormActions({
   const isBusy = busy || destroyBusy;
 
   return (
-    <S.Actions $compact={compact}>
+    <S.FormActionDock $compact={compact}>
       {typeof onDestroy === 'function' ? (
         <S.DangerGhost
           type="button"
@@ -29,6 +29,6 @@ export default function BoxFormActions({
       <S.Primary type="submit" disabled={!canSave || isBusy} $compact={compact}>
         {busy ? 'Saving…' : 'Save changes'}
       </S.Primary>
-    </S.Actions>
+    </S.FormActionDock>
   );
 }

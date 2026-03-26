@@ -242,6 +242,16 @@ export default function ItemEditFieldsForm({
         </S.Label>
       </S.FieldGrid>
 
+      <S.CheckboxRow>
+        <S.Checkbox
+          type="checkbox"
+          name="isConsumable"
+          checked={!!formData.isConsumable}
+          onChange={onFieldChange}
+        />
+        Track as consumable
+      </S.CheckboxRow>
+
       <S.FieldGrid>
         <S.Label>
           Condition:
@@ -350,16 +360,6 @@ export default function ItemEditFieldsForm({
         onAddHistoryDate={onAddHistoryDate}
         onRemoveHistoryDate={onRemoveHistoryDate}
       />
-
-      <S.CheckboxRow>
-        <S.Checkbox
-          type="checkbox"
-          name="isConsumable"
-          checked={!!formData.isConsumable}
-          onChange={onFieldChange}
-        />
-        Track as consumable
-      </S.CheckboxRow>
 
       <S.SectionTitle>Maintenance</S.SectionTitle>
       <S.FieldGrid>

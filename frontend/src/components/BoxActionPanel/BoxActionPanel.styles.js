@@ -557,7 +557,9 @@ export const DetailsPanel = styled.div`
   ${({ $open, $maxHeight = 400 }) =>
     $open &&
     css`
-      max-height: ${$maxHeight}px;
+      max-height: min(${$maxHeight}px, calc(100vh - 170px));
+      overflow-y: auto;
+      overscroll-behavior: contain;
       margin-bottom: 12px;
       border: 1px solid #2f2f2f;
     `}

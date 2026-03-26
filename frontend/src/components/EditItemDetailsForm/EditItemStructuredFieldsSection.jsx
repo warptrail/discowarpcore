@@ -124,6 +124,19 @@ export default function EditItemStructuredFieldsSection({
             placeholder="Shared, Mom, Erelas..."
           />
         </S.Field>
+
+        <S.Field>
+          <S.Label>Consumable</S.Label>
+          <S.CheckboxRow>
+            <S.Checkbox
+              type="checkbox"
+              name="isConsumable"
+              checked={!!formData.isConsumable}
+              onChange={onMetadataChange}
+            />
+            Track as consumable inventory
+          </S.CheckboxRow>
+        </S.Field>
       </S.InlineGrid>
 
       <S.InlineGrid>
@@ -277,20 +290,6 @@ export default function EditItemStructuredFieldsSection({
         </S.Field>
       </S.InlineGrid>
 
-      <S.InlineGrid>
-        <S.Field>
-          <S.Label>Consumable</S.Label>
-          <S.CheckboxRow>
-            <S.Checkbox
-              type="checkbox"
-              name="isConsumable"
-              checked={!!formData.isConsumable}
-              onChange={onMetadataChange}
-            />
-            Track as consumable inventory
-          </S.CheckboxRow>
-        </S.Field>
-      </S.InlineGrid>
     </>
   );
 }

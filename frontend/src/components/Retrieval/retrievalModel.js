@@ -45,6 +45,18 @@ function uniqueTrimmedValues(values) {
   return next;
 }
 
+function normalizeDateHistory(values) {
+  return (Array.isArray(values) ? values : [])
+    .map((value) => {
+      if (value == null) return '';
+      if (value instanceof Date) return value.toISOString();
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+      return toTrimmed(value);
+    })
+    .filter(Boolean);
+}
+
 function readTreeNodes(rawTree) {
   if (Array.isArray(rawTree)) return rawTree;
   if (Array.isArray(rawTree?.boxes)) return rawTree.boxes;
@@ -504,12 +516,14 @@ function normalizeOptionRows(rows) {
 export function normalizeRetrievalFilterOptions(rawFilters) {
   const categories = normalizeOptionRows(rawFilters?.categories);
   const tags = normalizeOptionRows(rawFilters?.tags);
+  const groups = normalizeOptionRows(rawFilters?.groups);
   const locations = normalizeOptionRows(rawFilters?.locations);
   const owners = normalizeOptionRows(rawFilters?.owners);
   const keepPriorities = normalizeOptionRows(rawFilters?.keepPriorities);
 
   const categoryLabelByKey = new Map(categories.map((option) => [option.key, option.label]));
   const tagLabelByKey = new Map(tags.map((option) => [option.key, option.label]));
+  const groupLabelByKey = new Map(groups.map((option) => [option.key, option.label]));
   const locationLabelByKey = new Map(locations.map((option) => [option.key, option.label]));
   const ownerLabelByKey = new Map(owners.map((option) => [option.key, option.label]));
   const keepPriorityLabelByKey = new Map(
@@ -519,11 +533,13 @@ export function normalizeRetrievalFilterOptions(rawFilters) {
   return {
     categories,
     tags,
+    groups,
     locations,
     owners,
     keepPriorities,
     categoryLabelByKey,
     tagLabelByKey,
+    groupLabelByKey,
     locationLabelByKey,
     ownerLabelByKey,
     keepPriorityLabelByKey,
@@ -542,6 +558,13 @@ export function normalizeRetrievalItemsPage(rawItems) {
       const tags = uniqueTrimmedValues(rawItem?.tags);
       const keepPriority = normalizeKeepPriority(rawItem?.keepPriority);
       const orphaned = isItemOrphaned(rawItem);
+      const explicitConsumable = rawItem?.isConsumable;
+      const hasConsumableTag = tags.some(
+        (tag) => normalizeFacetKey(tag) === 'consumable',
+      );
+      const isConsumable = explicitConsumable == null
+        ? hasConsumableTag
+        : Boolean(explicitConsumable);
 
       return {
         id,
@@ -570,6 +593,10 @@ export function normalizeRetrievalItemsPage(rawItems) {
         locationLabel: firstNonEmpty(rawItem?.locationLabel, UNKNOWN_LOCATION_LABEL),
         locationPath: firstNonEmpty(rawItem?.locationPath, UNKNOWN_LOCATION_LABEL),
         primaryOwnerName: firstNonEmpty(rawItem?.primaryOwnerName),
+        isConsumable,
+        usageHistory: normalizeDateHistory(rawItem?.usageHistory),
+        checkHistory: normalizeDateHistory(rawItem?.checkHistory),
+        maintenanceHistory: normalizeDateHistory(rawItem?.maintenanceHistory),
         imageUrl: firstNonEmpty(rawItem?.imageUrl),
         previewImageUrl: firstNonEmpty(rawItem?.previewImageUrl, rawItem?.imageUrl),
         siblingItems: uniqueTrimmedValues(rawItem?.siblingItems),
@@ -590,6 +617,7 @@ export function normalizeRetrievalBoxesPage(rawBoxes) {
 
       const boxId = firstNonEmpty(rawBox?.boxId, rawBox?.box_id);
       const boxLabel = firstNonEmpty(rawBox?.boxLabel, rawBox?.label, UNKNOWN_BOX_NAME);
+      const groupLabel = firstNonEmpty(rawBox?.groupLabel, rawBox?.group);
       const locationLabel = firstNonEmpty(rawBox?.locationLabel, rawBox?.location, UNKNOWN_LOCATION_LABEL);
       const boxPath = firstNonEmpty(rawBox?.boxPath);
       const directItemCount = Number.isFinite(Number(rawBox?.directItemCount))
@@ -603,6 +631,7 @@ export function normalizeRetrievalBoxesPage(rawBoxes) {
         id,
         boxId,
         boxLabel,
+        groupLabel,
         locationLabel,
         locationKey: normalizeFacetKey(locationLabel),
         boxPath,

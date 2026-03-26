@@ -1,5 +1,5 @@
 import * as S from './Retrieval.styles';
-import { getBoxColor, hexToRgbString } from './boxColors';
+import { getBoxColorTones } from './boxColors';
 
 export default function BoxBadge({ boxNumber, boxName, compact = false }) {
   const safeNumber = String(boxNumber || '').trim();
@@ -8,22 +8,22 @@ export default function BoxBadge({ boxNumber, boxName, compact = false }) {
   const idLabel = safeNumber ? `#${safeNumber}` : '#—';
   const nameLabel = safeName || 'Unnamed Box';
   const titleLabel = `Box ${safeNumber || '—'} · ${nameLabel}`;
-  const boxColor = getBoxColor(safeNumber || 0);
-  const boxColorRgb = hexToRgbString(boxColor);
+  const tones = getBoxColorTones(safeNumber || 0);
 
   return (
     <S.BoxBadge
       $compact={compact}
       title={titleLabel}
-      style={{
-        '--box-color': boxColor,
-        '--box-color-rgb': boxColorRgb,
-      }}
+      $boxColorRgb={tones.baseRgb}
     >
       <S.BoxIdCell>
-        <S.BoxId $compact={compact}>{idLabel}</S.BoxId>
+        <S.BoxId $compact={compact} $boxNeonRgb={tones.neonRgb}>
+          {idLabel}
+        </S.BoxId>
       </S.BoxIdCell>
-      <S.BoxName $compact={compact}>{nameLabel}</S.BoxName>
+      <S.BoxName $compact={compact} $boxMutedRgb={tones.mutedRgb}>
+        {nameLabel}
+      </S.BoxName>
     </S.BoxBadge>
   );
 }
