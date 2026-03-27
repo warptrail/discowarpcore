@@ -290,6 +290,33 @@ export const Input = styled.input`
   }
 `;
 
+export const Textarea = styled.textarea`
+  width: 100%;
+  padding: ${({ $compact }) => ($compact ? '8px 10px' : '10px 12px')};
+  border-radius: 8px;
+  border: 1px solid rgba(122, 142, 167, 0.44);
+  background: ${LCARS.inset};
+  color: ${LCARS.text};
+  font-size: ${({ $compact }) => ($compact ? '13px' : '14px')};
+  min-height: ${({ $compact }) => ($compact ? '88px' : '110px')};
+  line-height: 1.45;
+  resize: vertical;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  white-space: pre-wrap;
+
+  &:focus {
+    outline: none;
+    border-color: ${LCARS.teal};
+    box-shadow: 0 0 0 2px rgba(76, 198, 193, 0.2);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+    padding: 8px 10px;
+    min-height: ${({ $compact }) => ($compact ? '80px' : '96px')};
+  }
+`;
+
 export const Select = styled.select`
   padding: ${({ $compact }) => ($compact ? '8px 10px' : '10px 12px')};
   border-radius: 8px;

@@ -14,8 +14,6 @@ import {
 
 const ORPHANED_CONTAINER_ID = '__system-orphaned-items__';
 const ORPHANED_CONTAINER_ROUTE = '/all-items?filter=orphaned';
-const ITEM_CHIP_LIMIT = 25;
-const ITEM_CHIP_OVERFLOW_LABEL = 'more items';
 
 /**
  * boxes: [{
@@ -396,17 +394,14 @@ function Branch({ node, depth = 0 }) {
   const navigate = useNavigate();
   const childBoxes = Array.isArray(node.childBoxes) ? node.childBoxes : [];
   const tags = getRenderableBoxTags(node);
-  const items = Array.isArray(node.items) ? node.items : [];
   const group = String(node?.group || '').trim();
+  const description = String(node?.description || '').trim();
+  const notes = String(node?.notes || '').trim();
   const isSystemContainer = !!node?.isSystemContainer;
   const isOrphanedContainer = node?.systemType === 'orphaned';
   const isRoot = depth === 0;
 
   const itemQtyTotal = getNodeItemCount(node);
-  const itemChips = buildItemPreviewChips(items, {
-    limit: ITEM_CHIP_LIMIT,
-    totalCount: node?.itemCountOverride,
-  });
 
   const go = () => {
     if (isOrphanedContainer) {
@@ -449,10 +444,13 @@ function Branch({ node, depth = 0 }) {
             </S.FieldGroup>
           )}
 
-          {node.description && (
+          {description && (
             <S.FieldGroup>
               <S.FieldLabel>Description</S.FieldLabel>
-              <S.FieldValue>{node.description}</S.FieldValue>
+              <S.DescriptionValue $depth={depth}>{description}</S.DescriptionValue>
+              <S.MobileDescriptionHint $depth={depth}>
+                Has description
+              </S.MobileDescriptionHint>
             </S.FieldGroup>
           )}
 
@@ -462,13 +460,6 @@ function Branch({ node, depth = 0 }) {
               <S.FieldValue>Virtual system container</S.FieldValue>
             </S.FieldGroup>
           ) : null}
-
-          {node.notes && (
-            <S.FieldGroup>
-              <S.FieldLabel>Notes</S.FieldLabel>
-              <S.FieldValue>{node.notes}</S.FieldValue>
-            </S.FieldGroup>
-          )}
 
           {tags.length > 0 && (
             <>
@@ -506,27 +497,14 @@ function Branch({ node, depth = 0 }) {
             ) : null}
           </S.BoxFooter>
 
-          {itemChips.length > 0 && (
-            <>
-              <S.FieldGroup>
-                <S.FieldLabel>Items</S.FieldLabel>
-                <S.FieldValue />
-              </S.FieldGroup>
-              <S.TagRow>
-                {itemChips.map((name, i) => (
-                  <S.TagBubble
-                    $tiny
-                    $isRoot={isRoot}
-                    $depth={depth}
-                    $isSystem={isSystemContainer}
-                    key={`${node._id || node.box_id}-chip-${i}`}
-                  >
-                    {name}
-                  </S.TagBubble>
-                ))}
-              </S.TagRow>
-            </>
-          )}
+          <S.NotesPreviewArea>
+            <S.NotesPreviewLabel>Notes</S.NotesPreviewLabel>
+            {notes ? (
+              <S.NotesPreviewText>{notes}</S.NotesPreviewText>
+            ) : (
+              <S.NotesPreviewEmpty>No notes</S.NotesPreviewEmpty>
+            )}
+          </S.NotesPreviewArea>
         </S.BoxCard>
 
         {childBoxes.length > 0 && (
@@ -905,24 +883,6 @@ function countMissingQuickCreatedBoxes(baseNodes, quickCreatedBoxes) {
 
 function getLocationId(node) {
   return node?.locationId?._id ?? node?.locationId ?? null;
-}
-
-function buildItemPreviewChips(items, { limit = ITEM_CHIP_LIMIT, totalCount } = {}) {
-  const maxVisible = Math.max(1, Number(limit) || ITEM_CHIP_LIMIT);
-  const names = (Array.isArray(items) ? items : [])
-    .map((item) => String(item?.name || 'Untitled').trim() || 'Untitled')
-    .filter(Boolean);
-  const knownCount = names.length;
-  const resolvedTotal = Number.isFinite(Number(totalCount))
-    ? Math.max(Number(totalCount), knownCount)
-    : knownCount;
-
-  if (resolvedTotal <= maxVisible) {
-    return names.slice(0, maxVisible);
-  }
-
-  const visibleCount = Math.max(0, maxVisible - 1);
-  return [...names.slice(0, visibleCount), ITEM_CHIP_OVERFLOW_LABEL];
 }
 
 function buildOrphanedContainerNode({ orphanedItems = [], orphanedCount = 0 } = {}) {

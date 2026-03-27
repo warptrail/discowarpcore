@@ -637,6 +637,7 @@ export function normalizeRetrievalBoxesPage(rawBoxes) {
 
       const boxId = firstNonEmpty(rawBox?.boxId, rawBox?.box_id);
       const boxLabel = firstNonEmpty(rawBox?.boxLabel, rawBox?.label, UNKNOWN_BOX_NAME);
+      const notes = firstNonEmpty(rawBox?.notes);
       const groupLabel = firstNonEmpty(rawBox?.groupLabel, rawBox?.group);
       const locationLabel = firstNonEmpty(rawBox?.locationLabel, rawBox?.location, UNKNOWN_LOCATION_LABEL);
       const boxPath = firstNonEmpty(rawBox?.boxPath);
@@ -651,6 +652,7 @@ export function normalizeRetrievalBoxesPage(rawBoxes) {
         id,
         boxId,
         boxLabel,
+        notes,
         groupLabel,
         locationLabel,
         locationKey: normalizeFacetKey(locationLabel),

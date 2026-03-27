@@ -313,6 +313,38 @@ const TagChip = styled.span`
   background: rgba(20, 41, 49, 0.82);
 `;
 
+const NotesCard = styled.div`
+  border: 1px solid rgba(122, 175, 191, 0.44);
+  border-radius: 9px;
+  background: linear-gradient(180deg, rgba(13, 30, 37, 0.9), rgba(9, 21, 27, 0.9));
+  padding: 0.38rem 0.45rem;
+  display: grid;
+  gap: 0.22rem;
+`;
+
+const NotesLabel = styled.div`
+  color: #8fb0bc;
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+`;
+
+const NotesText = styled.div`
+  color: #e2f1f6;
+  font-size: 0.73rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: min(132px, 26vh);
+  overflow-y: auto;
+`;
+
+const NotesEmpty = styled.div`
+  color: #9db4bd;
+  font-size: 0.72rem;
+  font-style: italic;
+`;
+
 const BoxHint = styled.p`
   margin: 0;
   color: #b8c7cf;
@@ -442,6 +474,7 @@ export default function IntakeCurrentBoxPanel({
     selectedBox?.location ||
     '';
   const groupName = String(selectedBox?.group || '').trim();
+  const notes = String(selectedBox?.notes || '').trim();
   const tags = Array.isArray(selectedBox?.tags) ? selectedBox.tags : [];
   const stats = currentBoxInsight?.stats || {
     directUnique: Array.isArray(selectedBox?.items) ? selectedBox.items.length : 0,
@@ -668,9 +701,15 @@ export default function IntakeCurrentBoxPanel({
                   <StatValue>{stats.directChildBoxes} child / {stats.descendantBoxes} descendants</StatValue>
                 </StatCard>
               </StatsGrid>
+
+              <NotesCard>
+                <NotesLabel>Notes</NotesLabel>
+                {notes ? <NotesText>{notes}</NotesText> : <NotesEmpty>No notes.</NotesEmpty>}
+              </NotesCard>
+
               {tags.length ? (
                 <TagRow>
-                  {tags.slice(0, 6).map((tag) => (
+                  {tags.slice(0, 4).map((tag) => (
                     <TagChip key={tag}>{tag}</TagChip>
                   ))}
                 </TagRow>

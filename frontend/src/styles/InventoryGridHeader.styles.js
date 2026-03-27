@@ -474,6 +474,20 @@ export const LocatorStatusText = styled.div`
   padding: 0.24rem 0.1rem;
 `;
 
+export const LocatorNotes = styled.div`
+  border: 1px solid ${toneAlpha(LCARS.line, 'cc')};
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(12, 25, 34, 0.94), rgba(8, 18, 24, 0.94));
+  color: ${toneAlpha(LCARS.text, 'e8')};
+  font-size: 0.73rem;
+  line-height: 1.45;
+  padding: 0.36rem 0.45rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: min(120px, 24vh);
+  overflow-y: auto;
+`;
+
 export const Select = styled.select`
   ${controlField};
   appearance: none;

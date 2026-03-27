@@ -28,6 +28,7 @@ const ACTIVE_ITEM_FILTER = { item_status: { $ne: 'gone' } };
 const DEFAULT_BOX_TREE_LIMIT = 50;
 const MAX_BOX_TREE_LIMIT = 50;
 const INVALID_BOX_GROUP_CODE = 'INVALID_BOX_GROUP';
+const INVALID_BOX_NOTES_CODE = 'INVALID_BOX_NOTES';
 const BOX_SORT_KEYS = new Set(['boxId', 'name', 'location', 'itemCount', 'group']);
 
 function makeHttpError(status, code, message, extra = {}) {
@@ -58,6 +59,31 @@ function normalizeOptionalBoxGroupInput(rawValue) {
       400,
       INVALID_BOX_GROUP_CODE,
       'group must be a string when provided'
+    );
+  }
+
+  const trimmed = rawValue.trim();
+  if (!trimmed) {
+    return { provided: true, value: undefined, clear: true };
+  }
+
+  return { provided: true, value: trimmed, clear: false };
+}
+
+function normalizeOptionalBoxNotesInput(rawValue) {
+  if (rawValue === undefined) {
+    return { provided: false, value: undefined, clear: false };
+  }
+
+  if (rawValue === null) {
+    return { provided: true, value: undefined, clear: true };
+  }
+
+  if (typeof rawValue !== 'string') {
+    throw makeHttpError(
+      400,
+      INVALID_BOX_NOTES_CODE,
+      'notes must be a string when provided'
     );
   }
 
@@ -362,11 +388,11 @@ async function resolveBoxByShortId(shortId) {
   const normalized = raw.replace(/^0+/, '') || '0';
   const box =
     (await Box.findOne({ box_id: raw })
-      .select('_id box_id label name group location locationId imagePath image')
+      .select('_id box_id label name group notes location locationId imagePath image')
       .populate('locationId', 'name')
       .lean()) ||
     (await Box.findOne({ box_id: normalized })
-      .select('_id box_id label name group location locationId imagePath image')
+      .select('_id box_id label name group notes location locationId imagePath image')
       .populate('locationId', 'name')
       .lean());
 
@@ -377,6 +403,7 @@ async function resolveBoxByShortId(shortId) {
     box_id: box.box_id,
     label: box.label ?? box.name ?? 'Box',
     group: box.group ?? null,
+    notes: box.notes ?? null,
     locationId: box.locationId?._id ? String(box.locationId._id) : null,
     location: box.locationId?.name ?? box.location ?? '',
     imagePath: box.imagePath ?? '',
@@ -396,7 +423,7 @@ async function getBoxDataStructure(
   // 1) Root box (by public short id)
   const root = await Box.findOne({ box_id: shortId })
     .select(
-      '_id box_id label name group tags parentBox items location locationId imagePath image'
+      '_id box_id label name group notes tags parentBox items location locationId imagePath image'
     )
     .lean();
   if (!root) return null;
@@ -410,7 +437,7 @@ async function getBoxDataStructure(
   while (frontier.length) {
     const children = await Box.find({ parentBox: { $in: frontier } })
       .select(
-        '_id box_id label name group tags parentBox items location locationId imagePath image'
+        '_id box_id label name group notes tags parentBox items location locationId imagePath image'
       )
       .lean();
 
@@ -454,6 +481,7 @@ async function getBoxDataStructure(
       box_id: node.box_id,
       label: node.label,
       group: node.group ?? null,
+      notes: node.notes ?? null,
       tags: Array.isArray(node.tags)
         ? node.tags
             .map((tag) => String(tag || '').trim())
@@ -510,6 +538,7 @@ async function getBoxDataStructure(
     box_id: root.box_id,
     label: root.label,
     group: root.group ?? null,
+    notes: root.notes ?? null,
     tree,
     ...(includeAncestors ? { ancestors } : {}),
     ...(includeStats ? { stats } : {}),
@@ -776,6 +805,18 @@ async function getBoxesByParent(parentId) {
 
 async function createBox(data) {
   const payload = { ...data };
+  const notesInput = normalizeOptionalBoxNotesInput(
+    data && Object.prototype.hasOwnProperty.call(data, 'notes')
+      ? data.notes
+      : undefined
+  );
+  if (notesInput.provided) {
+    if (notesInput.clear) {
+      delete payload.notes;
+    } else {
+      payload.notes = notesInput.value;
+    }
+  }
   const groupInput = normalizeOptionalBoxGroupInput(
     data && Object.prototype.hasOwnProperty.call(data, 'group')
       ? data.group
@@ -837,6 +878,21 @@ async function createBox(data) {
 async function updateBox(id, data) {
   const patch = { ...data };
   const patchFields = new Set(Object.keys(patch));
+  const notesInput = normalizeOptionalBoxNotesInput(
+    data && Object.prototype.hasOwnProperty.call(data, 'notes')
+      ? data.notes
+      : undefined
+  );
+  let unsetNotes = false;
+  if (notesInput.provided) {
+    patchFields.add('notes');
+    if (notesInput.clear) {
+      unsetNotes = true;
+      delete patch.notes;
+    } else {
+      patch.notes = notesInput.value;
+    }
+  }
   const groupInput = normalizeOptionalBoxGroupInput(
     data && Object.prototype.hasOwnProperty.call(data, 'group')
       ? data.group
@@ -919,10 +975,13 @@ async function updateBox(id, data) {
 
   // Perform the update
   const setDoc = { ...patch };
-  const updateDoc = unsetGroup
+  const unsetDoc = {};
+  if (unsetGroup) unsetDoc.group = 1;
+  if (unsetNotes) unsetDoc.notes = 1;
+  const updateDoc = Object.keys(unsetDoc).length
     ? {
         ...(Object.keys(setDoc).length ? { $set: setDoc } : {}),
-        $unset: { group: 1 },
+        $unset: unsetDoc,
       }
     : setDoc;
 

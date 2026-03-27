@@ -95,12 +95,15 @@ function BoxInspectContent({
   selectedLocationLabel,
   selectedGroupLabel,
   selectedPath,
+  selectedNotes,
   boxDetailsLoading,
   boxDetailsError,
   directItems,
   childBoxes,
   selectedBoxHref,
 }) {
+  const notes = String(selectedNotes || '').trim();
+
   return (
     <>
       <S.BoxInspectHeader>
@@ -110,6 +113,15 @@ function BoxInspectContent({
         ) : null}
         {selectedPath ? <S.BoxInspectPath>{selectedPath}</S.BoxInspectPath> : null}
       </S.BoxInspectHeader>
+
+      <S.BoxInspectNotes>
+        <S.BoxInspectNotesLabel>Notes</S.BoxInspectNotesLabel>
+        {notes ? (
+          <S.BoxInspectNotesText>{notes}</S.BoxInspectNotesText>
+        ) : (
+          <S.BoxInspectNotesEmpty>No notes</S.BoxInspectNotesEmpty>
+        )}
+      </S.BoxInspectNotes>
 
       <S.BoxInspectSection>
         <S.BoxInspectSectionTitle>
@@ -534,6 +546,9 @@ export default function RetrievalBoxCentricView({
     selectedTree?.location || selectedBoxSummary?.locationLabel || 'Unknown Location',
   ).trim();
   const selectedPath = buildBoxPath(selectedBoxDetails);
+  const selectedNotes = String(
+    selectedTree?.notes || selectedBoxSummary?.notes || '',
+  ).trim();
   const directItems = Array.isArray(selectedTree?.items) ? selectedTree.items : [];
   const childBoxes = Array.isArray(selectedTree?.childBoxes) ? selectedTree.childBoxes : [];
   const selectedBoxHref = selectedBoxSummary?.boxHref || (selectedBoxId ? `/boxes/${selectedBoxId}` : '');
@@ -686,6 +701,7 @@ export default function RetrievalBoxCentricView({
                                 selectedLocationLabel={selectedLocationLabel}
                                 selectedGroupLabel={selectedGroupLabel}
                                 selectedPath={selectedPath}
+                                selectedNotes={selectedNotes}
                                 boxDetailsLoading={boxDetailsLoading}
                                 boxDetailsError={boxDetailsError}
                                 directItems={directItems}
@@ -711,6 +727,7 @@ export default function RetrievalBoxCentricView({
                     selectedLocationLabel={selectedLocationLabel}
                     selectedGroupLabel={selectedGroupLabel}
                     selectedPath={selectedPath}
+                    selectedNotes={selectedNotes}
                     boxDetailsLoading={boxDetailsLoading}
                     boxDetailsError={boxDetailsError}
                     directItems={directItems}

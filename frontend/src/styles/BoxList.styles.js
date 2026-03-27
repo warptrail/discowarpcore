@@ -148,6 +148,10 @@ const RailBack = styled.div`
   );
   pointer-events: none;
   z-index: 0;
+
+  @media (max-width: 560px) {
+    opacity: ${({ $isRoot, $depth = 0 }) => ($isRoot ? 0.94 : $depth >= 2 ? 0.62 : 0.78)};
+  }
 `;
 
 const RailFront = styled.div`
@@ -175,6 +179,13 @@ const RailFront = styled.div`
     rgba(12, 15, 17, 0.95) 68%,
     rgba(12, 15, 17, 0.9) 100%
   );
+
+  @media (max-width: 560px) {
+    margin-right: 2px;
+    padding-right: 0.3rem;
+    padding-left: ${({ $isRoot, $depth = 0 }) =>
+      $isRoot ? '1.3rem' : $depth >= 2 ? '0.96rem' : '1.1rem'};
+  }
 `;
 
 const BoxCard = styled.div`
@@ -337,6 +348,41 @@ const FieldValue = styled.div`
   word-break: break-word;
 `;
 
+const DescriptionValue = styled(FieldValue)`
+  @media (max-width: 560px) {
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    ${({ $depth = 0 }) =>
+      $depth >= 2 &&
+      css`
+        display: none;
+      `}
+  }
+`;
+
+const MobileDescriptionHint = styled.span`
+  display: none;
+
+  @media (max-width: 560px) {
+    ${({ $depth = 0 }) =>
+      $depth >= 2
+        ? css`
+            display: inline-flex;
+            align-items: center;
+          `
+        : css`
+            display: none;
+          `}
+    color: ${toneAlpha(LCARS.textDim, 'cf')};
+    font-size: 12px;
+    line-height: 1.35;
+    font-style: italic;
+  }
+`;
+
 const TagRow = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -396,6 +442,49 @@ const BoxFooter = styled.div`
   border-top: 1px dashed ${LCARS.line};
 `;
 
+const NotesPreviewArea = styled.div`
+  display: grid;
+  gap: 4px;
+  margin: 0 12px 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid ${toneAlpha(LCARS.line, 'db')};
+  background: linear-gradient(180deg, rgba(13, 21, 29, 0.88), rgba(10, 16, 22, 0.84));
+`;
+
+const NotesPreviewLabel = styled.span`
+  color: ${toneAlpha(LCARS.textDim, 'dc')};
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.42px;
+  text-transform: uppercase;
+`;
+
+const NotesPreviewText = styled.p`
+  margin: 0;
+  color: ${toneAlpha(LCARS.text, 'de')};
+  font-size: 12.5px;
+  line-height: 1.44;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+
+  @media (max-width: 720px) {
+    font-size: 12px;
+    line-height: 1.4;
+    -webkit-line-clamp: 2;
+  }
+`;
+
+const NotesPreviewEmpty = styled.span`
+  color: ${toneAlpha(LCARS.textDim, 'b8')};
+  font-size: 12px;
+  font-style: italic;
+`;
+
 const StatPill = styled.span`
   font-size: 11px;
   font-weight: 900;
@@ -432,6 +521,12 @@ const NodeChildren = styled.div`
   flex-direction: column;
   gap: 0.72rem;
   padding-left: 0.24rem;
+
+  @media (max-width: 560px) {
+    margin-left: ${({ $depth = 1 }) => Math.min(Math.max($depth, 1) * 5, 14)}px;
+    gap: 0.58rem;
+    padding-left: 0.12rem;
+  }
 `;
 
 const OrphanedRevealShell = styled.div`
@@ -524,12 +619,18 @@ export const styledComponents = {
   FieldGroup,
   FieldLabel,
   FieldValue,
+  DescriptionValue,
+  MobileDescriptionHint,
 
   TagRow,
   TagBubble,
 
   BoxFooter,
   StatPill,
+  NotesPreviewArea,
+  NotesPreviewLabel,
+  NotesPreviewText,
+  NotesPreviewEmpty,
 
   NodeChildren,
   OrphanedRevealShell,

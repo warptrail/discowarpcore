@@ -20,7 +20,7 @@ const boxSchema = new mongoose.Schema({
     index: true,
   },
   description: String,
-  notes: String,
+  notes: { type: String, trim: true, set: normalizeOptionalString },
   tags: [String],
   imagePath: { type: String, default: '' },
   image: {
@@ -68,7 +68,7 @@ boxSchema.statics.newId = function () {
 // 🔎 New helper: fetch slim set for breadcrumb maps
 boxSchema.statics.findAllBoxesForMaps = async function () {
   return this.find()
-    .select('_id box_id label group description parentBox location locationId')
+    .select('_id box_id label group description notes parentBox location locationId')
     .lean();
 };
 

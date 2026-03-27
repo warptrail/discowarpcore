@@ -770,6 +770,41 @@ export const BoxInspectPath = styled.p`
   overflow-wrap: anywhere;
 `;
 
+export const BoxInspectNotes = styled.section`
+  display: grid;
+  gap: 0.14rem;
+  border: 1px solid rgba(119, 213, 255, 0.22);
+  border-radius: 8px;
+  background: rgba(8, 20, 31, 0.5);
+  padding: 0.32rem 0.4rem;
+`;
+
+export const BoxInspectNotesLabel = styled.p`
+  margin: 0;
+  color: ${RETRIEVAL.textDim};
+  font-size: 0.65rem;
+  font-weight: 740;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+`;
+
+export const BoxInspectNotesText = styled.p`
+  margin: 0;
+  color: #def0ff;
+  font-size: 0.72rem;
+  line-height: 1.42;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 7.2em;
+  overflow-y: auto;
+`;
+
+export const BoxInspectNotesEmpty = styled.span`
+  color: ${RETRIEVAL.textMuted};
+  font-size: 0.69rem;
+  font-style: italic;
+`;
+
 export const BoxInspectSection = styled.section`
   display: grid;
   gap: 0.2rem;

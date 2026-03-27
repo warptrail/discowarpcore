@@ -151,6 +151,7 @@ export default function BoxMetaPanel({
   const shortId = String(box?.box_id ?? box?.shortId ?? '');
   const title = box?.label ?? box?.name ?? 'Box';
   const group = String(box?.group ?? '').trim();
+  const notes = String(box?.notes ?? '').trim();
   const location = String(
     box?.location ?? box?.locationName ?? box?.locationId?.name ?? ''
   ).trim();
@@ -307,6 +308,11 @@ export default function BoxMetaPanel({
           </S.BoxImageWrap>
         ) : null}
       </S.IdentityZone>
+
+      <S.NotesZone>
+        <S.Label>Notes</S.Label>
+        {notes ? <S.NotesBody>{notes}</S.NotesBody> : <S.NotesEmpty>No notes</S.NotesEmpty>}
+      </S.NotesZone>
 
       <S.MetaZone>
         <S.StatGroup>

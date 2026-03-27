@@ -94,9 +94,29 @@ export default function useBoxActionPanelController({
       if (navigated) return;
 
       setActivePanel(null);
-      await refreshBox?.();
+      try {
+        await refreshBox?.();
+      } catch (error) {
+        console.error('[BoxActionPanel] refresh after save failed:', error);
+      }
+
+      const resolvedShortId = String(
+        updated?.box_id || updated?.shortId || routeShortId || '',
+      ).trim();
+      const resolvedLabel = String(updated?.label || '').trim();
+      const detail = resolvedShortId
+        ? `Box #${resolvedShortId} updated.`
+        : resolvedLabel
+          ? `Box "${resolvedLabel}" updated.`
+          : 'Changes saved.';
+
+      showToast?.({
+        variant: 'success',
+        title: 'Box updated',
+        message: detail,
+      });
     },
-    [onBoxSaved, refreshBox],
+    [onBoxSaved, refreshBox, routeShortId, showToast],
   );
 
   const undoEmpty = useCallback(async () => {

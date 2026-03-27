@@ -16,6 +16,7 @@ export default function BoxLocatorInspectorPanel({
   const selectedLabel = String(
     selectedTree?.label || selection?.label || 'Selected Box',
   ).trim();
+  const notes = String(selectedTree?.notes || selection?.notes || '').trim();
   const directItems = Array.isArray(selectedTree?.items) ? selectedTree.items : [];
   const childBoxes = Array.isArray(selectedTree?.childBoxes)
     ? selectedTree.childBoxes
@@ -144,6 +145,19 @@ export default function BoxLocatorInspectorPanel({
       ) : null}
 
       <S.LocatorInspectorBody>
+        <S.LocatorSection>
+          <S.LocatorSectionTitle>Notes</S.LocatorSectionTitle>
+          {loading ? (
+            <S.LocatorStatusText>Loading notes...</S.LocatorStatusText>
+          ) : error ? (
+            <S.LocatorStatusText>{error}</S.LocatorStatusText>
+          ) : notes ? (
+            <S.LocatorNotes>{notes}</S.LocatorNotes>
+          ) : (
+            <S.LocatorEmptyBlock>No notes.</S.LocatorEmptyBlock>
+          )}
+        </S.LocatorSection>
+
         <S.LocatorSection>
           <S.LocatorSectionTitle>
             Direct Items ({loading ? '-' : directItems.length})

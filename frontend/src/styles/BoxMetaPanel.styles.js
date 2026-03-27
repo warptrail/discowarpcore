@@ -454,6 +454,38 @@ export const MetaZone = styled.div`
   border-bottom: 1px solid ${LCARS.line};
 `;
 
+export const NotesZone = styled.section`
+  display: grid;
+  gap: 6px;
+  border: 1px solid ${LCARS.line};
+  border-radius: 10px;
+  background: ${LCARS.panelSoft};
+  padding: 8px 10px;
+`;
+
+export const NotesBody = styled.p`
+  margin: 0;
+  color: ${LCARS.text};
+  font-size: 0.84rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+  }
+`;
+
+export const NotesEmpty = styled.span`
+  color: ${LCARS.textDim};
+  font-size: 0.8rem;
+  font-style: italic;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+  }
+`;
+
 export const StatGroup = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

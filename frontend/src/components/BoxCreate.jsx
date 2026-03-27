@@ -111,6 +111,34 @@ const Input = styled.input`
   }
 `;
 
+const Textarea = styled.textarea`
+  width: 100%;
+  border-radius: 9px;
+  border: 1px solid rgba(122, 142, 167, 0.45);
+  background: ${LCARS.inset};
+  color: ${LCARS.text};
+  font-size: 0.94rem;
+  line-height: 1.45;
+  min-height: 92px;
+  padding: 0.62rem 0.72rem;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+  resize: vertical;
+  white-space: pre-wrap;
+
+  &::placeholder {
+    color: rgba(214, 226, 241, 0.44);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: ${LCARS.teal};
+    box-shadow:
+      0 0 0 2px rgba(76, 198, 193, 0.25),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+    background: #0c121b;
+  }
+`;
+
 const ShortIdInput = styled(Input)`
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     'Liberation Mono', 'Courier New', monospace;
@@ -215,6 +243,7 @@ function BoxCreate({
   const [boxId, setBoxId] = useState('');
   const [label, setLabel] = useState('');
   const [group, setGroup] = useState('');
+  const [notes, setNotes] = useState('');
   const [locationId, setLocationId] = useState('');
   const [tags, setTags] = useState([]);
   const [locationCreateBusy, setLocationCreateBusy] = useState(false);
@@ -284,6 +313,7 @@ function BoxCreate({
         box_id: boxId,
         label: label.trim(),
         group: group.trim() || undefined,
+        notes: notes.trim() || undefined,
         locationId: locationId || null,
         tags: normalizeTags(tags),
       });
@@ -388,6 +418,17 @@ function BoxCreate({
             Optional larger furniture/unit grouping, e.g. Entertainment Center
             or Tool Chest.
           </Hint>
+        </Field>
+
+        <Field>
+          <Label htmlFor="notes">Notes</Label>
+          <Textarea
+            id="notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Add contextual notes for this box..."
+          />
+          <Hint>Optional freeform context for this box.</Hint>
         </Field>
 
         <Field>

@@ -39,6 +39,7 @@ export default function EditBoxDetailsForm({
   const [shortId, setShortId] = useState(initial?.box_id ?? '');
   const [label, setLabel] = useState(initial?.label ?? '');
   const [group, setGroup] = useState(initial?.group ?? '');
+  const [notes, setNotes] = useState(initial?.notes ?? '');
   const [locationId, setLocationId] = useState(
     initialLocationId ? String(initialLocationId) : '',
   );
@@ -74,6 +75,7 @@ export default function EditBoxDetailsForm({
     setShortId(initial?.box_id ?? '');
     setLabel(initial?.label ?? '');
     setGroup(initial?.group ?? '');
+    setNotes(initial?.notes ?? '');
     const nextLocationId =
       initial?.locationId?._id ??
       initial?.locationId ??
@@ -89,6 +91,7 @@ export default function EditBoxDetailsForm({
     initial?.box_id,
     initial?.label,
     initial?.group,
+    initial?.notes,
     initial?.locationId,
     initial?.tags,
     initial?.image,
@@ -115,13 +118,15 @@ export default function EditBoxDetailsForm({
     const sameLabel = String(label || '') === String(initial?.label || '');
     const sameGroup =
       String(group || '').trim() === String(initial?.group || '').trim();
+    const sameNotes =
+      String(notes || '').trim() === String(initial?.notes || '').trim();
     const sameLocation =
       String(locationId || '') === String(initial?.locationId?._id ?? initial?.locationId ?? '');
     const sameTags =
       JSON.stringify([...tags].sort()) ===
       JSON.stringify([...(initial?.tags || [])].sort());
-    return !(sameId && sameLabel && sameGroup && sameLocation && sameTags);
-  }, [shortId, label, group, locationId, tags, initial]);
+    return !(sameId && sameLabel && sameGroup && sameNotes && sameLocation && sameTags);
+  }, [shortId, label, group, notes, locationId, tags, initial]);
 
   const canSave =
     !busy &&
@@ -180,6 +185,7 @@ export default function EditBoxDetailsForm({
         box_id: shortId,
         label: label.trim(),
         group: group.trim() || null,
+        notes: notes.trim() || null,
         locationId: locationId || null,
         tags,
       });
@@ -188,6 +194,7 @@ export default function EditBoxDetailsForm({
         box_id: shortId,
         label,
         group,
+        notes,
         tags,
       });
     } catch (e2) {
@@ -326,6 +333,16 @@ export default function EditBoxDetailsForm({
                     showIdentity={false}
                     {...identityFieldProps}
                   />
+                  <S.Field $compact={compact}>
+                    <S.Label htmlFor="box-notes" $compact={compact}>Notes</S.Label>
+                    <S.Textarea
+                      id="box-notes"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Add contextual notes for this box..."
+                      $compact={compact}
+                    />
+                  </S.Field>
                   <BoxTagsField
                     compact={compact}
                     inline
@@ -393,6 +410,25 @@ export default function EditBoxDetailsForm({
       ) : (
         <>
           <BoxIdentityFields compact {...identityFieldProps} />
+
+          <S.SectionCard $tone="lilac">
+            <S.SectionHeader>
+              <S.SectionLabel>Notes</S.SectionLabel>
+              <S.SectionTitle>Context</S.SectionTitle>
+            </S.SectionHeader>
+            <S.SectionBody>
+              <S.Field $compact>
+                <S.Label htmlFor="box-notes-compact" $compact>Notes</S.Label>
+                <S.Textarea
+                  id="box-notes-compact"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Add contextual notes for this box..."
+                  $compact
+                />
+              </S.Field>
+            </S.SectionBody>
+          </S.SectionCard>
 
           <S.SectionCard $tone="amber">
             <S.SectionHeader>
