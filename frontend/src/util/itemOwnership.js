@@ -105,6 +105,11 @@ export function getItemOwnershipContext(item) {
     boxId ? `Box ${boxId}` : ''
   );
   const boxDescription = firstNonEmpty(rawBox?.description);
+  const boxGroup = firstNonEmpty(
+    rawBox?.group,
+    rawBox?.groupLabel,
+    rawBox?.resolvedGroup,
+  );
 
   const hasFallbackBoxRef = Boolean(boxId || boxMongoId || fallbackBoxLabel);
   const isBoxed = !isGone && (hasCanonicalBox || hasFallbackBoxRef);
@@ -119,7 +124,14 @@ export function getItemOwnershipContext(item) {
     item?.resolvedLocation,
     item?.resolvedBoxLocation
   );
+  const inheritedBoxGroup = firstNonEmpty(
+    item?.inheritedGroup,
+    item?.resolvedGroup,
+    item?.resolvedBoxGroup,
+    rawBox?.resolvedGroup,
+  );
   const inheritedLocation = firstNonEmpty(boxLocation, inheritedBoxLocation);
+  const inheritedGroup = firstNonEmpty(boxGroup, inheritedBoxGroup);
   const itemLevelLocation = firstNonEmpty(item?.location);
   const effectiveLocation = isBoxed ? inheritedLocation : itemLevelLocation;
   const effectiveLocationSource = isBoxed
@@ -131,6 +143,14 @@ export function getItemOwnershipContext(item) {
     : itemLevelLocation
       ? 'item'
       : '';
+  const effectiveBoxGroup = isBoxed ? inheritedGroup : '';
+  const effectiveBoxGroupSource = isBoxed
+    ? boxGroup
+      ? 'box'
+      : inheritedBoxGroup
+        ? 'inherited'
+        : ''
+    : '';
 
   return {
     isGone,
@@ -138,9 +158,13 @@ export function getItemOwnershipContext(item) {
     isOrphaned: !isGone && !isBoxed,
     parentBoxLabel: boxLabel,
     boxLocation,
+    boxGroup,
     inheritedLocation,
+    inheritedGroup,
     effectiveLocation,
+    effectiveBoxGroup,
     effectiveLocationSource,
+    effectiveBoxGroupSource,
     hasCanonicalBox,
     box: isBoxed
       ? {
@@ -148,6 +172,9 @@ export function getItemOwnershipContext(item) {
           _id: boxMongoId || rawBox?._id || rawBox?.id || undefined,
           box_id: boxId || rawBox?.box_id || undefined,
           label: boxLabel || rawBox?.label || rawBox?.name || undefined,
+          group: boxGroup || rawBox?.group || undefined,
+          groupLabel: boxGroup || rawBox?.groupLabel || undefined,
+          resolvedGroup: inheritedGroup || rawBox?.resolvedGroup || undefined,
           description: boxDescription || rawBox?.description || undefined,
         }
       : null,

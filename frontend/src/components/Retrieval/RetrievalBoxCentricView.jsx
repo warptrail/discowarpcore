@@ -10,6 +10,7 @@ import * as S from './Retrieval.styles';
 import FilterCombobox from './FilterCombobox';
 import RetrievalModeToggle from './RetrievalModeToggle';
 import RetrievalSearchBar from './RetrievalSearchBar';
+import { getBoxGroupColorTones } from './boxColors';
 import {
   normalizeRetrievalBoxesPage,
   normalizeRetrievalFilterOptions,
@@ -77,17 +78,11 @@ function useMediaQuery(query) {
   return matches;
 }
 
-function buildBoxPath(details, selectedSummary) {
+function buildBoxPath(details) {
   const ancestors = Array.isArray(details?.ancestors) ? details.ancestors : [];
   const segments = ancestors
     .map((ancestor) => String(ancestor?.label || '').trim())
     .filter(Boolean);
-
-  const current = String(
-    details?.tree?.label || selectedSummary?.boxLabel || '',
-  ).trim();
-
-  if (current) segments.push(current);
   return segments.join(' > ');
 }
 
@@ -97,10 +92,8 @@ function formatCount(count, singular, plural) {
 }
 
 function BoxInspectContent({
-  selectedBoxId,
-  selectedLabel,
-  selectedGroupLabel,
   selectedLocationLabel,
+  selectedGroupLabel,
   selectedPath,
   boxDetailsLoading,
   boxDetailsError,
@@ -111,15 +104,10 @@ function BoxInspectContent({
   return (
     <>
       <S.BoxInspectHeader>
-        <S.BoxInspectTitle>
-          <S.BoxInspectTitleLink to={selectedBoxHref}>
-            #{selectedBoxId} · {selectedLabel}
-          </S.BoxInspectTitleLink>
-        </S.BoxInspectTitle>
+        <S.BoxInspectSubtitle>Location: {selectedLocationLabel}</S.BoxInspectSubtitle>
         {selectedGroupLabel ? (
           <S.BoxInspectSubtitle>Group: {selectedGroupLabel}</S.BoxInspectSubtitle>
         ) : null}
-        <S.BoxInspectSubtitle>Location: {selectedLocationLabel}</S.BoxInspectSubtitle>
         {selectedPath ? <S.BoxInspectPath>{selectedPath}</S.BoxInspectPath> : null}
       </S.BoxInspectHeader>
 
@@ -545,10 +533,7 @@ export default function RetrievalBoxCentricView({
   const selectedLocationLabel = String(
     selectedTree?.location || selectedBoxSummary?.locationLabel || 'Unknown Location',
   ).trim();
-  const selectedLabel = String(
-    selectedTree?.label || selectedBoxSummary?.boxLabel || 'Selected Box',
-  ).trim();
-  const selectedPath = buildBoxPath(selectedBoxDetails, selectedBoxSummary);
+  const selectedPath = buildBoxPath(selectedBoxDetails);
   const directItems = Array.isArray(selectedTree?.items) ? selectedTree.items : [];
   const childBoxes = Array.isArray(selectedTree?.childBoxes) ? selectedTree.childBoxes : [];
   const selectedBoxHref = selectedBoxSummary?.boxHref || (selectedBoxId ? `/boxes/${selectedBoxId}` : '');
@@ -654,27 +639,42 @@ export default function RetrievalBoxCentricView({
                       const normalizedId = normalizeBoxId(box?.boxId);
                       const isActive = normalizedId === normalizeBoxId(selectedBoxId);
                       const inlinePanelId = `retrieval-box-inline-${normalizedId || box.id}`;
+                      const rowTones = getBoxGroupColorTones(
+                        box?.groupLabel,
+                        box?.boxId || box?.id || 0,
+                      );
                       return (
                         <S.BoxListItem key={box.id}>
                           <S.BoxListRow
                             type="button"
                             onClick={() => handleSelectBox(normalizedId)}
                             $active={isActive}
+                            $boxColorRgb={rowTones.baseRgb}
+                            $boxMutedRgb={rowTones.mutedRgb}
                             aria-expanded={isMobile ? isActive : undefined}
                             aria-controls={isMobile ? inlinePanelId : undefined}
                           >
                             <S.BoxRowMain>
-                              <S.BoxRowId>#{box.boxId || '—'}</S.BoxRowId>
-                              <S.BoxRowLabel>{box.boxLabel}</S.BoxRowLabel>
+                              <S.BoxRowId $boxNeonRgb={rowTones.neonRgb}>
+                                #{box.boxId || '—'}
+                              </S.BoxRowId>
+                              <S.BoxRowLabel $boxMutedRgb={rowTones.mutedRgb}>
+                                {box.boxLabel}
+                              </S.BoxRowLabel>
                             </S.BoxRowMain>
                             {box.groupLabel ? (
-                              <S.BoxRowSubline>{box.groupLabel}</S.BoxRowSubline>
+                              <S.BoxRowSubline
+                                title={box.groupLabel}
+                                $boxMutedRgb={rowTones.mutedRgb}
+                              >
+                                Group: {box.groupLabel}
+                              </S.BoxRowSubline>
                             ) : null}
                             <S.BoxRowMeta>
-                              <S.BoxMetaPill>
+                              <S.BoxMetaPill $boxMutedRgb={rowTones.mutedRgb}>
                                 {formatCount(box.directItemCount, 'item', 'items')}
                               </S.BoxMetaPill>
-                              <S.BoxMetaPill>
+                              <S.BoxMetaPill $boxMutedRgb={rowTones.mutedRgb}>
                                 {formatCount(box.childBoxCount, 'child box', 'child boxes')}
                               </S.BoxMetaPill>
                             </S.BoxRowMeta>
@@ -683,10 +683,8 @@ export default function RetrievalBoxCentricView({
                           {isMobile && isActive ? (
                             <S.MobileInlineInspectPanel id={inlinePanelId}>
                               <BoxInspectContent
-                                selectedBoxId={selectedBoxId}
-                                selectedLabel={selectedLabel}
-                                selectedGroupLabel={selectedGroupLabel}
                                 selectedLocationLabel={selectedLocationLabel}
+                                selectedGroupLabel={selectedGroupLabel}
                                 selectedPath={selectedPath}
                                 boxDetailsLoading={boxDetailsLoading}
                                 boxDetailsError={boxDetailsError}
@@ -710,10 +708,8 @@ export default function RetrievalBoxCentricView({
                   <S.ExpandedMuted>Select a box to inspect its contents.</S.ExpandedMuted>
                 ) : (
                   <BoxInspectContent
-                    selectedBoxId={selectedBoxId}
-                    selectedLabel={selectedLabel}
-                    selectedGroupLabel={selectedGroupLabel}
                     selectedLocationLabel={selectedLocationLabel}
+                    selectedGroupLabel={selectedGroupLabel}
                     selectedPath={selectedPath}
                     boxDetailsLoading={boxDetailsLoading}
                     boxDetailsError={boxDetailsError}

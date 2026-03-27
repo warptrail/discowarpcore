@@ -61,7 +61,11 @@ export default function ItemRow({
   const collapsedDescription = String(description || '').trim();
   const hasCollapsedDescription = collapsedDescription.length > 0;
   const hasCollapsedTags = visibleCollapsedTags.length > 0;
-  const showCollapsedFallback = !hasCollapsedTags && !hasCollapsedDescription;
+  const showCollapsedTags = !isMobile && hasCollapsedTags;
+  const showCollapsedFallback =
+    !isMobile && !showCollapsedTags && !hasCollapsedDescription;
+  const hasCollapsedQuickContent =
+    showCollapsedTags || hasCollapsedDescription || showCollapsedFallback;
   const [localImage, setLocalImage] = useState(item?.image || null);
   const [localImagePath, setLocalImagePath] = useState(item?.imagePath || '');
   const [expandedMode, setExpandedMode] = useState('overview');
@@ -83,6 +87,9 @@ export default function ItemRow({
   const contentRef = useRef(null);
   const itemHomeHref = _id ? getItemHomeHref(_id) : null;
   const rowIsOpen = isOpen;
+  const showHeaderMoveAction = !isMobile;
+  const showExpandedMoveAction = isMobile;
+  const showItemNameLink = Boolean(itemHomeHref) && (!isMobile || rowIsOpen);
   const { actions: timestampActions } = useItemTimestampActions({
     item,
     onSaved,
@@ -277,7 +284,7 @@ export default function ItemRow({
       $height={targetHeight}
     >
       <S.Row onClick={handleRowClick} $open={rowIsOpen}>
-        <S.RowHeader $open={rowIsOpen}>
+        <S.RowHeader $open={rowIsOpen} $hasActions={showHeaderMoveAction}>
           <S.RowMain $showThumb={!rowIsOpen}>
             {!rowIsOpen && (
               <S.RowThumb>
@@ -289,60 +296,65 @@ export default function ItemRow({
               </S.RowThumb>
             )}
 
-            <S.TitleGroup>
-              {itemHomeHref ? (
+            <S.TitleGroup $mobileCollapsed={!rowIsOpen}>
+              {showItemNameLink ? (
                 <S.ItemNameChip
+                  $mobileCollapsed={!rowIsOpen}
                   to={itemHomeHref}
                   onClick={(e) => e.stopPropagation()}
                 >
                   {name}
                 </S.ItemNameChip>
               ) : (
-                <S.Title>{name}</S.Title>
+                <S.Title $mobileCollapsed={!rowIsOpen}>{name}</S.Title>
               )}
             </S.TitleGroup>
           </S.RowMain>
 
-          <S.RowActions>
-            <S.RowActionCluster>
-              <S.QuickActionButton
-                type="button"
-                $tone="move"
-                $active={rowIsOpen && expandedMode === 'move'}
-                onClick={handleMoveModeToggle}
-              >
-                Move
-              </S.QuickActionButton>
-            </S.RowActionCluster>
-          </S.RowActions>
+          {showHeaderMoveAction ? (
+            <S.RowActions $open={rowIsOpen}>
+              <S.RowActionCluster>
+                <S.QuickActionButton
+                  type="button"
+                  $tone="move"
+                  $active={rowIsOpen && expandedMode === 'move'}
+                  onClick={handleMoveModeToggle}
+                >
+                  Move
+                </S.QuickActionButton>
+              </S.RowActionCluster>
+            </S.RowActions>
+          ) : null}
         </S.RowHeader>
 
-        <S.QuickView $collapsed={rowIsOpen}>
-          <S.QuickMetaRow>
-            {hasCollapsedTags ? (
-              <S.QuickTagLane>
-                {visibleCollapsedTags.map((tag) => (
-                  <S.QuickTag key={tag}>{tag}</S.QuickTag>
+        {hasCollapsedQuickContent ? (
+          <S.QuickView $collapsed={rowIsOpen}>
+            <S.QuickMetaRow>
+              {showCollapsedTags ? (
+                <S.QuickTagLane>
+                  {visibleCollapsedTags.map((tag) => (
+                    <S.QuickTag key={tag}>{tag}</S.QuickTag>
                 ))}
                 {hiddenCollapsedTagCount > 0 ? (
                   <S.QuickTagOverflow>
                     +{hiddenCollapsedTagCount}
                   </S.QuickTagOverflow>
-                ) : null}
-              </S.QuickTagLane>
-            ) : null}
+                  ) : null}
+                </S.QuickTagLane>
+              ) : null}
 
-            {hasCollapsedDescription ? (
-              <S.QuickSummaryDescription $hasTags={hasCollapsedTags}>
-                {collapsedDescription}
-              </S.QuickSummaryDescription>
-            ) : null}
+              {hasCollapsedDescription ? (
+                <S.QuickSummaryDescription $hasTags={showCollapsedTags}>
+                  {collapsedDescription}
+                </S.QuickSummaryDescription>
+              ) : null}
 
-            {showCollapsedFallback ? (
-              <S.QuickSummaryFallback>No details</S.QuickSummaryFallback>
-            ) : null}
-          </S.QuickMetaRow>
-        </S.QuickView>
+              {showCollapsedFallback ? (
+                <S.QuickSummaryFallback>No details</S.QuickSummaryFallback>
+              ) : null}
+            </S.QuickMetaRow>
+          </S.QuickView>
+        ) : null}
       </S.Row>
 
       <S.Collapse
@@ -355,6 +367,15 @@ export default function ItemRow({
             {expandedMode !== 'move' && (
               <S.ExpandedActionStrip>
                 <S.ExpandedActionCluster>
+                  {showExpandedMoveAction ? (
+                    <S.QuickActionButton
+                      type="button"
+                      $tone="move"
+                      onClick={handleMoveModeToggle}
+                    >
+                      Move
+                    </S.QuickActionButton>
+                  ) : null}
                   {timestampActions.map((action) => (
                     <S.QuickActionButton
                       key={action.id}

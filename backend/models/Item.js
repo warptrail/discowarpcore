@@ -322,7 +322,7 @@ itemSchema.statics.findItemById = async function (id, { select } = {}) {
   const leaf = isGone
     ? null
     : await Box.findOne({ items: item._id })
-        .select('_id box_id label description parentBox location locationId')
+        .select('_id box_id label group description parentBox location locationId')
         .populate('locationId', 'name')
         .lean();
 
@@ -340,6 +340,7 @@ itemSchema.statics.findItemById = async function (id, { select } = {}) {
   const maps = buildBoxMaps(allBoxes);
   const { breadcrumb, depth, rootBox } = makeBreadcrumb(leaf._id, maps);
   const leafLocation = firstNonEmpty(leaf?.locationId?.name, leaf?.location);
+  const leafGroup = firstNonEmpty(leaf?.group);
 
   // Effective location is the first non-empty location from leaf -> ancestors.
   let resolvedLocation = '';
@@ -356,13 +357,32 @@ itemSchema.statics.findItemById = async function (id, { select } = {}) {
   }
   const inheritedLocation = firstNonEmpty(leafLocation, resolvedLocation);
 
+  // Effective group is the first non-empty group from leaf -> ancestors.
+  let resolvedGroup = '';
+  let groupCursor = String(leaf._id);
+  while (groupCursor) {
+    const node = maps.byId.get(groupCursor);
+    if (!node) break;
+    const groupValue = firstNonEmpty(node?.group);
+    if (groupValue) {
+      resolvedGroup = groupValue;
+      break;
+    }
+    groupCursor = maps.parentOf.get(groupCursor);
+  }
+  const inheritedGroup = firstNonEmpty(leafGroup, resolvedGroup);
+
   return withNormalizedItemCategory({
     ...item,
     inheritedLocation,
+    inheritedGroup,
     box: {
       _id: leaf._id,
       box_id: leaf.box_id,
       label: leaf.label,
+      group: leafGroup,
+      groupLabel: leafGroup,
+      resolvedGroup: inheritedGroup,
       description: leaf.description,
       location: leafLocation,
       locationName: leafLocation,

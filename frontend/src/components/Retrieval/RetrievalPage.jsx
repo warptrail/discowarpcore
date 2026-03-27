@@ -62,6 +62,8 @@ function buildItemSearchText(item) {
       tags,
       item?.boxName,
       item?.boxNumber,
+      item?.boxGroupLabel,
+      item?.groupLabel,
       item?.locationLabel,
       item?.locationPath,
       item?.primaryOwnerName,

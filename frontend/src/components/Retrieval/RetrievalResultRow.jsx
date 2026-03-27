@@ -38,6 +38,7 @@ export default function RetrievalResultRow({
 
   const imageUrl = String(item?.imageUrl || '').trim();
   const previewImageUrl = String(item?.previewImageUrl || imageUrl).trim();
+  const boxGroupLabel = String(item?.boxGroupLabel || item?.groupLabel || '').trim();
   const locationLabel = String(item?.locationLabel || '').trim();
   const boxTones = getBoxColorTones(item?.boxNumber || item?.boxId || 0);
   const hasImage = Boolean(imageUrl);
@@ -99,11 +100,35 @@ export default function RetrievalResultRow({
                   <S.CompactLocation
                     title={locationLabel}
                     $boxMutedRgb={boxTones.mutedRgb}
+                    $hideOnMobile
                   >
                     {locationLabel}
                   </S.CompactLocation>
                 ) : null}
               </S.CompactMetaLine>
+
+              {boxGroupLabel || locationLabel ? (
+                <S.CompactSecondaryMetaLine>
+                  {boxGroupLabel ? (
+                    <S.CompactContextChip
+                      title={`Group: ${boxGroupLabel}`}
+                      $tone="group"
+                      $boxMutedRgb={boxTones.mutedRgb}
+                    >
+                      Group: {boxGroupLabel}
+                    </S.CompactContextChip>
+                  ) : null}
+                  {locationLabel ? (
+                    <S.CompactContextChip
+                      title={`Location: ${locationLabel}`}
+                      $tone="location"
+                      $boxMutedRgb={boxTones.mutedRgb}
+                    >
+                      Location: {locationLabel}
+                    </S.CompactContextChip>
+                  ) : null}
+                </S.CompactSecondaryMetaLine>
+              ) : null}
             </S.BadgeStack>
           </S.RowMain>
 

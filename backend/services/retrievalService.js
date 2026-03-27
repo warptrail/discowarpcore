@@ -178,7 +178,20 @@ function getBoxContext(item, maps, itemToLeafBoxId) {
     isOrphaned ? ORPHANED_BOX_NAME : '',
     UNKNOWN_BOX_NAME
   );
-  const groupLabel = firstNonEmpty(leafBox?.group);
+  const leafGroup = firstNonEmpty(leafBox?.group);
+  let resolvedGroup = '';
+  let groupCursor = firstNonEmpty(leafId);
+  while (groupCursor) {
+    const node = maps.byId.get(groupCursor);
+    if (!node) break;
+    const groupValue = firstNonEmpty(node?.group);
+    if (groupValue) {
+      resolvedGroup = groupValue;
+      break;
+    }
+    groupCursor = firstNonEmpty(maps.parentOf.get(groupCursor));
+  }
+  const groupLabel = firstNonEmpty(leafGroup, resolvedGroup);
   const locationLabel = firstNonEmpty(
     leafBox?.location,
     item?.location,
@@ -476,6 +489,22 @@ function buildRetrievalBoxes(boxDocs = []) {
     childCountByParentId.set(parentId, current + 1);
   }
 
+  const resolveEffectiveGroupLabel = (leafBoxId) => {
+    let cursor = firstNonEmpty(leafBoxId);
+
+    while (cursor) {
+      const node = maps.byId.get(cursor);
+      if (!node) break;
+
+      const groupValue = firstNonEmpty(node?.group);
+      if (groupValue) return groupValue;
+
+      cursor = firstNonEmpty(maps.parentOf.get(cursor));
+    }
+
+    return '';
+  };
+
   return safeBoxes
     .map((box) => {
       const mongoId = firstNonEmpty(box?._id);
@@ -488,7 +517,10 @@ function buildRetrievalBoxes(boxDocs = []) {
         boxId ? `Box ${boxId}` : '',
         UNKNOWN_BOX_NAME
       );
-      const groupLabel = firstNonEmpty(box?.group);
+      const groupLabel = firstNonEmpty(
+        box?.group,
+        resolveEffectiveGroupLabel(mongoId)
+      );
       const groupKey = normalizeFacetKey(groupLabel);
       const locationLabel = firstNonEmpty(box?.location, UNKNOWN_LOCATION_LABEL);
       const locationKey = normalizeFacetKey(locationLabel);

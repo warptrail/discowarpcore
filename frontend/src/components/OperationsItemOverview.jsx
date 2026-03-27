@@ -65,6 +65,7 @@ export default function OperationsItemOverview({
   tags = [],
   primaryBox,
   location,
+  boxGroup,
   breadcrumbTrail = [],
   keepPriorityLabel,
   keepPriorityTone = 'muted',
@@ -122,6 +123,7 @@ export default function OperationsItemOverview({
         {isMobile && tagsRow}
         {!isMobile && <DetailRow label="Primary Box" value={primaryBox || '—'} />}
         <DetailRow label="Location" value={location || '—'} />
+        <DetailRow label="Box Group" value={boxGroup || '—'} />
         <DetailRow
           label="Breadcrumb"
           value={<BreadcrumbTrail breadcrumb={breadcrumbTrail} />}

@@ -21,13 +21,18 @@ export default function RetrievalExpandedPanel({
   const tags = Array.isArray(resolvedItem?.tags) ? resolvedItem.tags.filter(Boolean) : [];
   const pathLine = String(resolvedItem?.locationPath || '').trim();
   const locationLabel = String(resolvedItem?.locationLabel || '').trim();
+  const boxGroupLabel = String(
+    resolvedItem?.boxGroupLabel || resolvedItem?.groupLabel || ''
+  ).trim();
   const keepPriority = normalizeKeepPriority(resolvedItem?.keepPriority);
   const keepPriorityLabel = formatKeepPriorityLabel(
     resolvedItem?.keepPriorityLabel || keepPriority,
   );
   const keepPriorityToneValue = keepPriorityTone(keepPriority);
   const hasPrimaryDetails = Boolean(description || notes || pathLine);
-  const hasMetadata = Boolean(categoryLabel || keepPriorityLabel || tags.length || locationLabel);
+  const hasMetadata = Boolean(
+    categoryLabel || keepPriorityLabel || tags.length || locationLabel || boxGroupLabel
+  );
   const hasSiblings = Array.isArray(resolvedItem?.siblingItems) && resolvedItem.siblingItems.length > 0;
   const hasContext = Boolean(hasMetadata || hasSiblings || resolvedItem?.boxHref);
   const isConsumable = Boolean(resolvedItem?.isConsumable);
@@ -150,6 +155,11 @@ export default function RetrievalExpandedPanel({
                   <S.ExpandedContextValue>{locationLabel}</S.ExpandedContextValue>
                 </S.ExpandedMetaCard>
               ) : null}
+
+              <S.ExpandedMetaCard>
+                <S.ExpandedDetailLabel>Box Group</S.ExpandedDetailLabel>
+                <S.ExpandedContextValue>{boxGroupLabel || '—'}</S.ExpandedContextValue>
+              </S.ExpandedMetaCard>
 
               {tags.length ? (
                 <S.ExpandedMetaCard $fullWidth>

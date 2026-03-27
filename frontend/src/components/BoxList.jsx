@@ -33,6 +33,7 @@ export default function BoxList({
   pagination = {},
   onPageChange,
   onInventoryQueryChange,
+  onOperationsDataRefreshRequest,
 }) {
   const [quickCreatedBoxes, setQuickCreatedBoxes] = useState([]);
   const [quickOrphanedDelta, setQuickOrphanedDelta] = useState(0);
@@ -54,10 +55,20 @@ export default function BoxList({
   const totalCount = Number.isFinite(Number(pagination?.total))
     ? Number(pagination.total)
     : 0;
+  const pageLimit = Math.max(1, Number(pagination?.limit) || 50);
 
   const mergedBoxes = useMemo(
     () => mergeQuickCreatedBoxes(boxes, quickCreatedBoxes),
     [boxes, quickCreatedBoxes],
+  );
+  const quickCreatedCountDelta = useMemo(
+    () => countMissingQuickCreatedBoxes(boxes, quickCreatedBoxes),
+    [boxes, quickCreatedBoxes],
+  );
+  const effectiveTotalCount = Math.max(0, totalCount + quickCreatedCountDelta);
+  const effectiveTotalPages = Math.max(
+    totalPages,
+    Math.max(1, Math.ceil(effectiveTotalCount / pageLimit)),
   );
   const ownerOptions = useMemo(() => collectOwnerOptions(mergedBoxes), [mergedBoxes]);
   const groupOptions = useMemo(
@@ -154,7 +165,7 @@ export default function BoxList({
   }, [searchQuery, groupFilter, sortBy, onInventoryQueryChange]);
 
   const showOrphanedContainer = showOrphanedVirtual && orphanedMatchesControls;
-  const hasAnyData = totalCount > 0 || effectiveOrphanedCount > 0;
+  const hasAnyData = effectiveTotalCount > 0 || effectiveOrphanedCount > 0;
   const noData = !hasAnyData;
   const hasNoMatches =
     hasAnyData &&
@@ -184,6 +195,8 @@ export default function BoxList({
 
       return [...byId.values()];
     });
+
+    onOperationsDataRefreshRequest?.();
   };
 
   const handleQuickOrphanCreated = () => {
@@ -349,7 +362,7 @@ export default function BoxList({
         </>
       )}
 
-      {totalCount > 0 ? (
+      {effectiveTotalCount > 0 ? (
         <S.PaginationBar>
           <S.PaginationButton
             type="button"
@@ -360,14 +373,16 @@ export default function BoxList({
           </S.PaginationButton>
 
           <S.PaginationInfo>
-            Page {currentPage} of {totalPages}
-            {Number.isFinite(totalCount) ? ` // ${totalCount} total boxes` : ''}
+            Page {currentPage} of {effectiveTotalPages}
+            {Number.isFinite(effectiveTotalCount)
+              ? ` // ${effectiveTotalCount} total boxes`
+              : ''}
           </S.PaginationInfo>
 
           <S.PaginationButton
             type="button"
             onClick={() => onPageChange?.(currentPage + 1)}
-            disabled={currentPage >= totalPages}
+            disabled={currentPage >= effectiveTotalPages}
           >
             Next
           </S.PaginationButton>
@@ -865,6 +880,29 @@ function mergeQuickCreatedBoxes(baseNodes, quickCreatedBoxes) {
   return sortNodes([...byId.values()], 'boxId');
 }
 
+function countMissingQuickCreatedBoxes(baseNodes, quickCreatedBoxes) {
+  const base = Array.isArray(baseNodes) ? baseNodes : [];
+  const quick = Array.isArray(quickCreatedBoxes) ? quickCreatedBoxes : [];
+
+  if (quick.length === 0) return 0;
+
+  const baseIds = new Set(
+    base
+      .map((node) => String(node?._id || '').trim())
+      .filter(Boolean),
+  );
+  let missing = 0;
+
+  for (const entry of quick) {
+    const nextId = String(entry?._id || '').trim();
+    if (!nextId) continue;
+    if (baseIds.has(nextId)) continue;
+    missing += 1;
+  }
+
+  return missing;
+}
+
 function getLocationId(node) {
   return node?.locationId?._id ?? node?.locationId ?? null;
 }
@@ -907,11 +945,6 @@ function buildOrphanedContainerNode({ orphanedItems = [], orphanedCount = 0 } = 
     systemType: 'orphaned',
     itemCountOverride: resolvedCount,
   };
-}
-
-function truncate(str, n) {
-  if (!str) return '';
-  return str.length > n ? `${str.slice(0, n - 1)}...` : str;
 }
 
 function buildBoxLocatorIndex(nodes) {

@@ -260,6 +260,8 @@ export default function ItemDetails({
   const topBoxSummary = topBox
     ? formatBoxSummary(topBox?.label, topBox?.box_id)
     : '—';
+  const placementLocation = ownership.effectiveLocation || location || '—';
+  const placementBoxGroup = ownership.effectiveBoxGroup || '—';
   const keepPriorityLabel = formatKeepPriorityLabel(keepPriority);
   const keepPriorityToneValue = keepPriorityTone(keepPriority);
   const keepPriorityHeaderLabel = (keepPriorityLabel || 'Unspecified').toUpperCase();
@@ -323,7 +325,8 @@ export default function ItemDetails({
           categoryLabel={categoryLabel}
           tags={tagList}
           primaryBox={primaryBox}
-          location={location}
+          location={placementLocation}
+          boxGroup={placementBoxGroup}
           breadcrumbTrail={breadcrumbTrail}
           keepPriorityLabel={keepPriorityLabel}
           keepPriorityTone={keepPriorityToneValue}
@@ -448,7 +451,8 @@ export default function ItemDetails({
           </DetailSection>
 
           <DetailSection title="Placement / Hierarchy" tone="coral" wide>
-            <DetailRow label="Location" value={location || '—'} stretch />
+            <DetailRow label="Location" value={placementLocation} stretch />
+            <DetailRow label="Box Group" value={placementBoxGroup} stretch />
             <DetailRow label="Box" value={primaryBox} stretch />
             <DetailRow label="Box Description" value={resolvedBox?.description || '—'} stretch />
             <DetailRow label="Depth" value={depth ?? '—'} />

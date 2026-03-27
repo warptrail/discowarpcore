@@ -69,7 +69,7 @@ function buildBoxLookup(rawTree) {
   const byShortId = new Map();
   const nodes = readTreeNodes(rawTree);
 
-  const visit = (node, ancestorLabels = []) => {
+  const visit = (node, ancestorLabels = [], inheritedLocation = '', inheritedGroup = '') => {
     if (!node || typeof node !== 'object') return;
 
     const boxNumber = firstNonEmpty(node.box_id, node.boxId, node.shortId);
@@ -87,6 +87,12 @@ function buildBoxLookup(rawTree) {
       node.location,
       node.locationName,
       node.locationLabel,
+      inheritedLocation,
+    );
+    const groupLabel = firstNonEmpty(
+      node.groupLabel,
+      node.group,
+      inheritedGroup,
     );
 
     const locationPath =
@@ -101,6 +107,7 @@ function buildBoxLookup(rawTree) {
       boxPath,
       locationLabel,
       locationPath,
+      groupLabel,
     };
 
     if (boxMongoId) byMongoId.set(boxMongoId, entry);
@@ -108,7 +115,7 @@ function buildBoxLookup(rawTree) {
 
     const children = Array.isArray(node.childBoxes) ? node.childBoxes : [];
     for (const child of children) {
-      visit(child, pathLabels);
+      visit(child, pathLabels, locationLabel || inheritedLocation, groupLabel || inheritedGroup);
     }
   };
 
@@ -212,6 +219,13 @@ function getItemBoxContext(item, boxLookup) {
     ownership.inheritedLocation,
     item?.location,
   );
+  const groupLabel = firstNonEmpty(
+    lookupEntry?.groupLabel,
+    ownership.effectiveBoxGroup,
+    ownership.inheritedGroup,
+    item?.boxGroupLabel,
+    item?.groupLabel,
+  );
 
   const locationPath = firstNonEmpty(
     lookupEntry?.locationPath,
@@ -245,6 +259,7 @@ function getItemBoxContext(item, boxLookup) {
     locationLabel: locationLabel || UNKNOWN_LOCATION_LABEL,
     locationPath: locationPath || locationLabel || UNKNOWN_LOCATION_LABEL,
     locationKey: normalizeFacetKey(locationLabel || UNKNOWN_LOCATION_LABEL),
+    groupLabel,
   };
 }
 
@@ -295,6 +310,7 @@ export function buildRetrievalItems(rawItems, rawTree) {
       tags.join(' '),
       context.boxName,
       context.boxNumber,
+      context.groupLabel,
       context.locationLabel,
       context.locationPath,
       context.boxPath,
@@ -318,6 +334,8 @@ export function buildRetrievalItems(rawItems, rawTree) {
       boxName: context.boxName,
       boxPath: context.boxPath,
       boxKey: context.boxKey,
+      boxGroupLabel: context.groupLabel,
+      groupLabel: context.groupLabel,
       locationLabel: context.locationLabel,
       locationPath: context.locationPath,
       locationKey: context.locationKey,
@@ -590,6 +608,8 @@ export function normalizeRetrievalItemsPage(rawItems) {
           UNKNOWN_BOX_NAME,
         ),
         boxPath: firstNonEmpty(rawItem?.boxPath),
+        boxGroupLabel: firstNonEmpty(rawItem?.boxGroupLabel, rawItem?.groupLabel),
+        groupLabel: firstNonEmpty(rawItem?.groupLabel, rawItem?.boxGroupLabel),
         locationLabel: firstNonEmpty(rawItem?.locationLabel, UNKNOWN_LOCATION_LABEL),
         locationPath: firstNonEmpty(rawItem?.locationPath, UNKNOWN_LOCATION_LABEL),
         primaryOwnerName: firstNonEmpty(rawItem?.primaryOwnerName),

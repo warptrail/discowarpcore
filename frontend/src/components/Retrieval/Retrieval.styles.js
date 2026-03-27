@@ -588,24 +588,47 @@ export const BoxListItem = styled.div`
 export const BoxListRow = styled.button`
   width: 100%;
   border: 1px solid
-    ${({ $active }) =>
-      $active ? 'rgba(119, 213, 255, 0.54)' : 'rgba(255, 255, 255, 0.1)'};
+    ${({ $active, $boxColorRgb }) =>
+      $active
+        ? `rgba(${$boxColorRgb || '119, 213, 255'}, 0.56)`
+        : `rgba(${$boxColorRgb || '160, 170, 190'}, 0.26)`};
   border-radius: 10px;
-  background: ${({ $active }) =>
+  background: ${({ $active, $boxColorRgb }) =>
     $active
-      ? 'linear-gradient(180deg, rgba(119, 213, 255, 0.16), rgba(119, 213, 255, 0.09))'
-      : 'rgba(255, 255, 255, 0.04)'};
+      ? `linear-gradient(
+          180deg,
+          rgba(${$boxColorRgb || '119, 213, 255'}, 0.2),
+          rgba(${$boxColorRgb || '119, 213, 255'}, 0.11)
+        )`
+      : `linear-gradient(
+          180deg,
+          rgba(${$boxColorRgb || '160, 170, 190'}, 0.1),
+          rgba(${$boxColorRgb || '160, 170, 190'}, 0.05)
+        )`};
   color: ${RETRIEVAL.text};
   text-align: left;
   padding: 0.34rem 0.42rem;
   display: grid;
   gap: 0.18rem;
   cursor: pointer;
-  transition: border-color 120ms ease, background 120ms ease;
+  box-shadow: ${({ $boxColorRgb }) =>
+    `inset 0 1px 0 rgba(${$boxColorRgb || '160, 170, 190'}, 0.12)`};
+  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
 
   &:hover {
-    border-color: rgba(119, 213, 255, 0.4);
-    background: rgba(119, 213, 255, 0.1);
+    border-color: ${({ $boxColorRgb }) =>
+      `rgba(${$boxColorRgb || '119, 213, 255'}, 0.44)`};
+    background: ${({ $boxColorRgb }) =>
+      `linear-gradient(
+        180deg,
+        rgba(${$boxColorRgb || '119, 213, 255'}, 0.16),
+        rgba(${$boxColorRgb || '119, 213, 255'}, 0.09)
+      )`};
+    box-shadow:
+      ${({ $boxColorRgb }) =>
+        `inset 0 1px 0 rgba(${$boxColorRgb || '119, 213, 255'}, 0.16)`},
+      ${({ $boxColorRgb }) =>
+        `0 0 0 1px rgba(${$boxColorRgb || '119, 213, 255'}, 0.16)`};
   }
 `;
 
@@ -616,8 +639,8 @@ export const MobileInlineInspectPanel = styled.section`
     radial-gradient(circle at 94% 8%, rgba(76, 198, 193, 0.1), transparent 42%),
     linear-gradient(180deg, rgba(16, 24, 35, 0.9), rgba(11, 18, 27, 0.92));
   display: grid;
-  gap: 0.34rem;
-  padding: 0.44rem 0.48rem;
+  gap: 0.28rem;
+  padding: 0.4rem 0.44rem;
 
   @media (min-width: 980px) {
     display: none;
@@ -635,16 +658,17 @@ export const BoxRowId = styled.span`
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
     'Courier New', monospace;
-  color: ${RETRIEVAL.cyan};
+  color: ${({ $boxNeonRgb }) => `rgba(${$boxNeonRgb || '119, 213, 255'}, 0.98)`};
   font-size: 0.8rem;
   font-weight: 780;
   letter-spacing: 0.05em;
   white-space: nowrap;
+  text-shadow: ${({ $boxNeonRgb }) => `0 0 6px rgba(${$boxNeonRgb || '119, 213, 255'}, 0.28)`};
 `;
 
 export const BoxRowLabel = styled.span`
   min-width: 0;
-  color: #ebf3fb;
+  color: ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '235, 243, 251'}, 0.94)`};
   font-size: 0.8rem;
   font-weight: 700;
   line-height: 1.2;
@@ -654,10 +678,25 @@ export const BoxRowLabel = styled.span`
 `;
 
 export const BoxRowSubline = styled.span`
-  min-width: 0;
-  color: rgba(207, 224, 238, 0.76);
-  font-size: 0.68rem;
-  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '207, 224, 238'}, 0.32)`};
+  background:
+    linear-gradient(
+      135deg,
+      ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '207, 224, 238'}, 0.18)`},
+      ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '207, 224, 238'}, 0.1)`}
+    ),
+    rgba(11, 17, 24, 0.48);
+  color: ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '207, 224, 238'}, 0.92)`};
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  padding: 0.14rem 0.36rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -675,9 +714,9 @@ export const BoxMetaPill = styled.span`
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  border: 1px solid rgba(127, 215, 255, 0.2);
-  background: rgba(127, 215, 255, 0.08);
-  color: ${RETRIEVAL.textDim};
+  border: 1px solid ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '127, 215, 255'}, 0.26)`};
+  background: ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '127, 215, 255'}, 0.1)`};
+  color: ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '190, 205, 218'}, 0.94)`};
   line-height: 1;
   padding: 0.14rem 0.4rem;
 `;
@@ -689,13 +728,13 @@ export const BoxInspectPanel = styled.section`
     radial-gradient(circle at 94% 8%, rgba(76, 198, 193, 0.12), transparent 42%),
     linear-gradient(180deg, rgba(18, 26, 37, 0.9), rgba(12, 19, 28, 0.92));
   display: grid;
-  gap: 0.38rem;
-  padding: 0.54rem 0.6rem;
+  gap: 0.3rem;
+  padding: 0.48rem 0.56rem;
 `;
 
 export const BoxInspectHeader = styled.div`
   display: grid;
-  gap: 0.18rem;
+  gap: 0.12rem;
 `;
 
 export const BoxInspectTitle = styled.h3`
@@ -733,7 +772,7 @@ export const BoxInspectPath = styled.p`
 
 export const BoxInspectSection = styled.section`
   display: grid;
-  gap: 0.24rem;
+  gap: 0.2rem;
 `;
 
 export const BoxInspectSectionTitle = styled.p`
@@ -885,6 +924,7 @@ export const SummaryTop = styled.div`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     align-items: flex-start;
+    gap: 0.24rem;
   }
 `;
 
@@ -902,8 +942,8 @@ export const RowMain = styled.div`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: 40px minmax(0, 1fr);
-    gap: 0.4rem;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 0.46rem;
   }
 `;
 
@@ -924,8 +964,8 @@ const thumbFrameBase = css`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    width: 40px;
-    border-radius: 7px;
+    width: 44px;
+    border-radius: 8px;
   }
 `;
 
@@ -996,6 +1036,18 @@ export const CompactMetaLine = styled.div`
   }
 `;
 
+export const CompactSecondaryMetaLine = styled.div`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.24rem;
+    min-width: 0;
+  }
+`;
+
 export const ExpandControl = styled.span`
   align-self: center;
   display: inline-grid;
@@ -1012,7 +1064,9 @@ export const ExpandControl = styled.span`
   flex: 0 0 auto;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    margin-top: 0.02rem;
+    width: 26px;
+    height: 26px;
+    margin-top: 0.04rem;
   }
 `;
 
@@ -1288,10 +1342,50 @@ export const CompactLocation = styled(ItemTagChip)`
   padding: 0.28rem 0.48rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
+    ${({ $hideOnMobile }) => ($hideOnMobile ? 'display: none;' : '')}
     flex: 0 1 42%;
     min-height: 23px;
     padding: 0.24rem 0.44rem;
     font-size: ${MOBILE_FONT_XS};
+  }
+`;
+
+export const CompactContextChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+  border-radius: 8px;
+  border: 1px solid
+    ${({ $tone, $boxMutedRgb }) =>
+      $tone === 'group'
+        ? `rgba(${$boxMutedRgb || '167, 182, 255'}, 0.34)`
+        : `rgba(${$boxMutedRgb || '120, 226, 198'}, 0.34)`};
+  background:
+    linear-gradient(
+      135deg,
+      ${({ $tone, $boxMutedRgb }) =>
+        $tone === 'group'
+          ? `rgba(${$boxMutedRgb || '167, 182, 255'}, 0.2)`
+          : `rgba(${$boxMutedRgb || '120, 226, 198'}, 0.2)`},
+      ${({ $tone, $boxMutedRgb }) =>
+        $tone === 'group'
+          ? `rgba(${$boxMutedRgb || '167, 182, 255'}, 0.1)`
+          : `rgba(${$boxMutedRgb || '120, 226, 198'}, 0.1)`}
+    ),
+    rgba(10, 16, 24, 0.58);
+  color: ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '214, 226, 241'}, 0.92)`};
+  font-size: ${MOBILE_FONT_XS};
+  font-weight: 680;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0.18rem 0.42rem;
+
+  @media (min-width: calc(${MOBILE_BREAKPOINT} + 1px)) {
+    display: none;
   }
 `;
 

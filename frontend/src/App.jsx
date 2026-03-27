@@ -134,6 +134,7 @@ function App() {
   const [boxesPage, setBoxesPage] = useState(1);
   const [boxesTotal, setBoxesTotal] = useState(0);
   const [boxesTotalPages, setBoxesTotalPages] = useState(1);
+  const [operationsRefreshTick, setOperationsRefreshTick] = useState(0);
   const [orphanedCount, setOrphanedCount] = useState(0);
   const [orphanedItems, setOrphanedItems] = useState([]);
   const [locations, setLocations] = useState([]);
@@ -153,6 +154,10 @@ function App() {
         ? prev
         : normalized
     );
+  }, []);
+
+  const handleOperationsDataRefreshRequest = useCallback(() => {
+    setOperationsRefreshTick((prev) => prev + 1);
   }, []);
 
   useEffect(() => {
@@ -238,7 +243,14 @@ function App() {
     return () => {
       isAlive = false;
     };
-  }, [location, boxesPage, inventoryQuery.q, inventoryQuery.group, inventoryQuery.sortBy]);
+  }, [
+    location,
+    boxesPage,
+    inventoryQuery.q,
+    inventoryQuery.group,
+    inventoryQuery.sortBy,
+    operationsRefreshTick,
+  ]);
 
   useEffect(() => {
     disableAutofillWithin(document.body);
@@ -283,6 +295,7 @@ function App() {
               }}
               onPageChange={setBoxesPage}
               onInventoryQueryChange={handleInventoryQueryChange}
+              onOperationsDataRefreshRequest={handleOperationsDataRefreshRequest}
             />
           }
         />

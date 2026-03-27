@@ -126,6 +126,7 @@ export const Row = styled.div`
 `;
 
 export const RowHeader = styled.div`
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
@@ -145,14 +146,15 @@ export const RowHeader = styled.div`
   transition: border-color 220ms ease, background 220ms ease, box-shadow 220ms ease;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.32rem;
+    grid-template-columns: ${({ $hasActions }) =>
+      $hasActions ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'};
+    gap: ${({ $hasActions }) => ($hasActions ? '0.32rem' : '0')};
     padding: 0.28rem 0.34rem;
     border-radius: 9px;
   }
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
-    gap: 0.22rem;
+    gap: ${({ $hasActions }) => ($hasActions ? '0.22rem' : '0')};
     padding: 0.24rem 0.3rem;
   }
 
@@ -514,6 +516,13 @@ export const Title = styled.div`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 0.9rem;
     line-height: 1.18;
+
+    ${({ $mobileCollapsed }) =>
+      $mobileCollapsed &&
+      css`
+        width: 100%;
+        max-width: 100%;
+      `}
   }
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
@@ -548,6 +557,23 @@ export const ItemNameChip = styled(Link)`
     line-height: 1.18;
     padding: 0.1rem 0.28rem;
     letter-spacing: 0.012em;
+
+    ${({ $mobileCollapsed }) =>
+      $mobileCollapsed &&
+      css`
+        display: inline-flex;
+        align-items: center;
+        justify-self: stretch;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        flex: 1 1 auto;
+        border-radius: 8px;
+        padding: 0.12rem 0.38rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      `}
   }
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
@@ -556,6 +582,13 @@ export const ItemNameChip = styled(Link)`
     padding: 0.08rem 0.24rem;
     border-color: rgba(76, 198, 193, 0.34);
     background: rgba(76, 198, 193, 0.08);
+
+    ${({ $mobileCollapsed }) =>
+      $mobileCollapsed &&
+      css`
+        border-radius: 7px;
+        padding: 0.1rem 0.3rem;
+      `}
   }
 
   &:hover {
@@ -770,17 +803,18 @@ export const QuickActionButton = styled.button`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 32px;
-    font-size: 0.64rem;
-    letter-spacing: 0.04em;
-    padding: 0.16rem 0.34rem;
-    border-radius: 7px;
+    min-height: ${({ $compactMobile }) => ($compactMobile ? '25px' : '32px')};
+    font-size: ${({ $compactMobile }) => ($compactMobile ? '0.56rem' : '0.64rem')};
+    letter-spacing: ${({ $compactMobile }) => ($compactMobile ? '0.03em' : '0.04em')};
+    padding: ${({ $compactMobile }) => ($compactMobile ? '0.06rem 0.18rem' : '0.16rem 0.34rem')};
+    border-radius: ${({ $compactMobile }) => ($compactMobile ? '6px' : '7px')};
   }
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
-    min-height: 30px;
-    font-size: 0.62rem;
-    padding: 0.15rem 0.3rem;
+    min-height: ${({ $compactMobile }) => ($compactMobile ? '23px' : '30px')};
+    font-size: ${({ $compactMobile }) => ($compactMobile ? '0.54rem' : '0.62rem')};
+    padding: ${({ $compactMobile }) => ($compactMobile ? '0.05rem 0.16rem' : '0.15rem 0.3rem')};
+    border-radius: ${({ $compactMobile }) => ($compactMobile ? '5px' : '7px')};
   }
 `;
 
