@@ -497,14 +497,12 @@ function Branch({ node, depth = 0 }) {
             ) : null}
           </S.BoxFooter>
 
-          <S.NotesPreviewArea>
-            <S.NotesPreviewLabel>Notes</S.NotesPreviewLabel>
-            {notes ? (
+          {notes ? (
+            <S.NotesPreviewArea>
+              <S.NotesPreviewLabel>Notes</S.NotesPreviewLabel>
               <S.NotesPreviewText>{notes}</S.NotesPreviewText>
-            ) : (
-              <S.NotesPreviewEmpty>No notes</S.NotesPreviewEmpty>
-            )}
-          </S.NotesPreviewArea>
+            </S.NotesPreviewArea>
+          ) : null}
         </S.BoxCard>
 
         {childBoxes.length > 0 && (

@@ -114,14 +114,12 @@ function BoxInspectContent({
         {selectedPath ? <S.BoxInspectPath>{selectedPath}</S.BoxInspectPath> : null}
       </S.BoxInspectHeader>
 
-      <S.BoxInspectNotes>
-        <S.BoxInspectNotesLabel>Notes</S.BoxInspectNotesLabel>
-        {notes ? (
+      {notes ? (
+        <S.BoxInspectNotes>
+          <S.BoxInspectNotesLabel>Notes</S.BoxInspectNotesLabel>
           <S.BoxInspectNotesText>{notes}</S.BoxInspectNotesText>
-        ) : (
-          <S.BoxInspectNotesEmpty>No notes</S.BoxInspectNotesEmpty>
-        )}
-      </S.BoxInspectNotes>
+        </S.BoxInspectNotes>
+      ) : null}
 
       <S.BoxInspectSection>
         <S.BoxInspectSectionTitle>

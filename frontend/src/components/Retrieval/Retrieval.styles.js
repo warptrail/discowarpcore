@@ -799,12 +799,6 @@ export const BoxInspectNotesText = styled.p`
   overflow-y: auto;
 `;
 
-export const BoxInspectNotesEmpty = styled.span`
-  color: ${RETRIEVAL.textMuted};
-  font-size: 0.69rem;
-  font-style: italic;
-`;
-
 export const BoxInspectSection = styled.section`
   display: grid;
   gap: 0.2rem;

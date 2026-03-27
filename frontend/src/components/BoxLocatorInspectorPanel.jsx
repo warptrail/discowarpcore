@@ -145,18 +145,12 @@ export default function BoxLocatorInspectorPanel({
       ) : null}
 
       <S.LocatorInspectorBody>
-        <S.LocatorSection>
-          <S.LocatorSectionTitle>Notes</S.LocatorSectionTitle>
-          {loading ? (
-            <S.LocatorStatusText>Loading notes...</S.LocatorStatusText>
-          ) : error ? (
-            <S.LocatorStatusText>{error}</S.LocatorStatusText>
-          ) : notes ? (
+        {notes ? (
+          <S.LocatorSection>
+            <S.LocatorSectionTitle>Notes</S.LocatorSectionTitle>
             <S.LocatorNotes>{notes}</S.LocatorNotes>
-          ) : (
-            <S.LocatorEmptyBlock>No notes.</S.LocatorEmptyBlock>
-          )}
-        </S.LocatorSection>
+          </S.LocatorSection>
+        ) : null}
 
         <S.LocatorSection>
           <S.LocatorSectionTitle>

@@ -309,10 +309,12 @@ export default function BoxMetaPanel({
         ) : null}
       </S.IdentityZone>
 
-      <S.NotesZone>
-        <S.Label>Notes</S.Label>
-        {notes ? <S.NotesBody>{notes}</S.NotesBody> : <S.NotesEmpty>No notes</S.NotesEmpty>}
-      </S.NotesZone>
+      {notes ? (
+        <S.NotesZone>
+          <S.Label>Notes</S.Label>
+          <S.NotesBody>{notes}</S.NotesBody>
+        </S.NotesZone>
+      ) : null}
 
       <S.MetaZone>
         <S.StatGroup>

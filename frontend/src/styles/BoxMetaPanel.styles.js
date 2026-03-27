@@ -476,16 +476,6 @@ export const NotesBody = styled.p`
   }
 `;
 
-export const NotesEmpty = styled.span`
-  color: ${LCARS.textDim};
-  font-size: 0.8rem;
-  font-style: italic;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${MOBILE_FONT_SM};
-  }
-`;
-
 export const StatGroup = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

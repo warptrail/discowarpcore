@@ -339,12 +339,6 @@ const NotesText = styled.div`
   overflow-y: auto;
 `;
 
-const NotesEmpty = styled.div`
-  color: #9db4bd;
-  font-size: 0.72rem;
-  font-style: italic;
-`;
-
 const BoxHint = styled.p`
   margin: 0;
   color: #b8c7cf;
@@ -702,10 +696,12 @@ export default function IntakeCurrentBoxPanel({
                 </StatCard>
               </StatsGrid>
 
-              <NotesCard>
-                <NotesLabel>Notes</NotesLabel>
-                {notes ? <NotesText>{notes}</NotesText> : <NotesEmpty>No notes.</NotesEmpty>}
-              </NotesCard>
+              {notes ? (
+                <NotesCard>
+                  <NotesLabel>Notes</NotesLabel>
+                  <NotesText>{notes}</NotesText>
+                </NotesCard>
+              ) : null}
 
               {tags.length ? (
                 <TagRow>

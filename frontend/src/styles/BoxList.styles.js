@@ -26,6 +26,8 @@ const BRACKET_COLORS = [
 ];
 const ROOT_RAIL = '#7FD7FF';
 const RAIL_W = '3px';
+const MOBILE_BREAKPOINT_NARROW = '560px';
+const MOBILE_RAIL_W = '2px';
 const RADIUS = '14px';
 const radiusL = '12px';
 const railBaseX = '-0.74rem';
@@ -35,6 +37,26 @@ const railTone = ({ $isRoot, $depth = 0 }) =>
 const toneAlpha = (hex, alpha = 'ff') => `${hex}${alpha}`;
 const depthStep = ({ $depth = 0 }) => Math.min(Math.max($depth, 0), 4);
 const railTop = ({ $isRoot }) => ($isRoot ? '0.22rem' : '0.3rem');
+const mobileDepthCostPx = ({ $depth = 1 }) => {
+  const d = Math.max(1, Number($depth) || 1);
+  if (d <= 1) return 4;
+  if (d === 2) return 6;
+  if (d === 3) return 7;
+  return 8;
+};
+
+const mobileRailInset = ({ $isRoot, $depth = 0 }) => {
+  if ($isRoot) return '1.06rem';
+  if ($depth <= 1) return '0.86rem';
+  if ($depth === 2) return '0.72rem';
+  return '0.62rem';
+};
+
+const mobileRailBaseOffset = ({ $depth = 0 }) => {
+  if ($depth >= 3) return '-0.24rem';
+  if ($depth >= 1) return '-0.31rem';
+  return '-0.4rem';
+};
 
 const railOuterCorners = ({ $isRoot, $depth = 0 }) => {
   const d = depthStep({ $depth });
@@ -149,7 +171,8 @@ const RailBack = styled.div`
   pointer-events: none;
   z-index: 0;
 
-  @media (max-width: 560px) {
+  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+    margin-left: ${({ $depth = 0 }) => mobileRailBaseOffset({ $depth })};
     opacity: ${({ $isRoot, $depth = 0 }) => ($isRoot ? 0.94 : $depth >= 2 ? 0.62 : 0.78)};
   }
 `;
@@ -180,11 +203,13 @@ const RailFront = styled.div`
     rgba(12, 15, 17, 0.9) 100%
   );
 
-  @media (max-width: 560px) {
-    margin-right: 2px;
-    padding-right: 0.3rem;
-    padding-left: ${({ $isRoot, $depth = 0 }) =>
-      $isRoot ? '1.3rem' : $depth >= 2 ? '0.96rem' : '1.1rem'};
+  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+    margin-left: calc(${MOBILE_RAIL_W} + 0.02rem);
+    margin-right: 1px;
+    margin-top: ${({ $isRoot }) => `calc(${railTop({ $isRoot })} + ${MOBILE_RAIL_W})`};
+    margin-bottom: ${MOBILE_RAIL_W};
+    padding-right: 0.2rem;
+    padding-left: ${({ $isRoot, $depth = 0 }) => mobileRailInset({ $isRoot, $depth })};
   }
 `;
 
@@ -233,6 +258,10 @@ const BoxCard = styled.div`
         background: ${LCARS.teal};
         opacity: 0.42;
       `}
+
+    @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+      width: ${({ $depth = 0 }) => ($depth >= 2 ? '2px' : '3px')};
+    }
   }
 
   &:hover {
@@ -479,12 +508,6 @@ const NotesPreviewText = styled.p`
   }
 `;
 
-const NotesPreviewEmpty = styled.span`
-  color: ${toneAlpha(LCARS.textDim, 'b8')};
-  font-size: 12px;
-  font-style: italic;
-`;
-
 const StatPill = styled.span`
   font-size: 11px;
   font-weight: 900;
@@ -522,10 +545,10 @@ const NodeChildren = styled.div`
   gap: 0.72rem;
   padding-left: 0.24rem;
 
-  @media (max-width: 560px) {
-    margin-left: ${({ $depth = 1 }) => Math.min(Math.max($depth, 1) * 5, 14)}px;
-    gap: 0.58rem;
-    padding-left: 0.12rem;
+  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+    margin-left: ${({ $depth = 1 }) => `${mobileDepthCostPx({ $depth })}px`};
+    gap: 0.54rem;
+    padding-left: 0.08rem;
   }
 `;
 
@@ -630,7 +653,6 @@ export const styledComponents = {
   NotesPreviewArea,
   NotesPreviewLabel,
   NotesPreviewText,
-  NotesPreviewEmpty,
 
   NodeChildren,
   OrphanedRevealShell,
