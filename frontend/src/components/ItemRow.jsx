@@ -6,6 +6,7 @@ import React, {
   useCallback,
   useContext,
 } from 'react';
+import { useNavigate } from 'react-router-dom';
 import * as S from '../styles/ItemRow.styles';
 import ItemDetails from './ItemDetails';
 import MoveItemToOtherBox from './MoveItemToOtherBox';
@@ -29,6 +30,7 @@ export default function ItemRow({
   flashColor = 'blue',
   refreshBox,
 }) {
+  const navigate = useNavigate();
   const isMobile = useIsMobile(768);
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
@@ -62,10 +64,13 @@ export default function ItemRow({
   const hasCollapsedDescription = collapsedDescription.length > 0;
   const hasCollapsedTags = visibleCollapsedTags.length > 0;
   const showCollapsedTags = !isMobile && hasCollapsedTags;
+  const showCollapsedDescription = !isMobile && hasCollapsedDescription;
   const showCollapsedFallback =
-    !isMobile && !showCollapsedTags && !hasCollapsedDescription;
-  const hasCollapsedQuickContent =
-    showCollapsedTags || hasCollapsedDescription || showCollapsedFallback;
+    !isMobile && !showCollapsedTags && !showCollapsedDescription;
+  const showMobileCollapsedDescription = isMobile && hasCollapsedDescription;
+  const hasCollapsedQuickContent = isMobile
+    ? showMobileCollapsedDescription
+    : showCollapsedTags || showCollapsedDescription || showCollapsedFallback;
   const [localImage, setLocalImage] = useState(item?.image || null);
   const [localImagePath, setLocalImagePath] = useState(item?.imagePath || '');
   const [expandedMode, setExpandedMode] = useState('overview');
@@ -86,9 +91,11 @@ export default function ItemRow({
   const [targetHeight, setTargetHeight] = useState(0);
   const contentRef = useRef(null);
   const itemHomeHref = _id ? getItemHomeHref(_id) : null;
+  const itemEditHref = itemHomeHref
+    ? `${itemHomeHref}${itemHomeHref.includes('?') ? '&' : '?'}mode=edit`
+    : null;
   const rowIsOpen = isOpen;
-  const showHeaderMoveAction = !isMobile;
-  const showExpandedMoveAction = isMobile;
+  const showExpandedMoveAction = true;
   const showItemNameLink = Boolean(itemHomeHref) && (!isMobile || rowIsOpen);
   const { actions: timestampActions } = useItemTimestampActions({
     item,
@@ -188,6 +195,15 @@ export default function ItemRow({
     setExpandedMode('overview');
   }, []);
 
+  const handleEditNavigation = useCallback(
+    (event) => {
+      event?.stopPropagation?.();
+      if (!itemEditHref) return;
+      navigate(itemEditHref);
+    },
+    [itemEditHref, navigate]
+  );
+
   const handleMoveToSelectedBox = useCallback(
     async ({
       destBoxId,
@@ -284,7 +300,7 @@ export default function ItemRow({
       $height={targetHeight}
     >
       <S.Row onClick={handleRowClick} $open={rowIsOpen}>
-        <S.RowHeader $open={rowIsOpen} $hasActions={showHeaderMoveAction}>
+        <S.RowHeader $open={rowIsOpen}>
           <S.RowMain $showThumb={!rowIsOpen}>
             {!rowIsOpen && (
               <S.RowThumb>
@@ -311,48 +327,45 @@ export default function ItemRow({
             </S.TitleGroup>
           </S.RowMain>
 
-          {showHeaderMoveAction ? (
-            <S.RowActions $open={rowIsOpen}>
-              <S.RowActionCluster>
-                <S.QuickActionButton
-                  type="button"
-                  $tone="move"
-                  $active={rowIsOpen && expandedMode === 'move'}
-                  onClick={handleMoveModeToggle}
-                >
-                  Move
-                </S.QuickActionButton>
-              </S.RowActionCluster>
-            </S.RowActions>
-          ) : null}
+          <S.RowChevron aria-hidden="true" $open={rowIsOpen}>
+            ▾
+          </S.RowChevron>
         </S.RowHeader>
 
         {hasCollapsedQuickContent ? (
           <S.QuickView $collapsed={rowIsOpen}>
-            <S.QuickMetaRow>
-              {showCollapsedTags ? (
-                <S.QuickTagLane>
-                  {visibleCollapsedTags.map((tag) => (
-                    <S.QuickTag key={tag}>{tag}</S.QuickTag>
-                ))}
-                {hiddenCollapsedTagCount > 0 ? (
-                  <S.QuickTagOverflow>
-                    +{hiddenCollapsedTagCount}
-                  </S.QuickTagOverflow>
-                  ) : null}
-                </S.QuickTagLane>
-              ) : null}
-
-              {hasCollapsedDescription ? (
-                <S.QuickSummaryDescription $hasTags={showCollapsedTags}>
+            {isMobile ? (
+              <S.QuickMetaRow>
+                <S.QuickSummaryDescription>
                   {collapsedDescription}
                 </S.QuickSummaryDescription>
-              ) : null}
+              </S.QuickMetaRow>
+            ) : (
+              <S.QuickDesktopStack>
+                {showCollapsedTags ? (
+                  <S.QuickTagLane>
+                    {visibleCollapsedTags.map((tag) => (
+                      <S.QuickTag key={tag}>{tag}</S.QuickTag>
+                    ))}
+                    {hiddenCollapsedTagCount > 0 ? (
+                      <S.QuickTagOverflow>
+                        +{hiddenCollapsedTagCount}
+                      </S.QuickTagOverflow>
+                    ) : null}
+                  </S.QuickTagLane>
+                ) : null}
 
-              {showCollapsedFallback ? (
-                <S.QuickSummaryFallback>No details</S.QuickSummaryFallback>
-              ) : null}
-            </S.QuickMetaRow>
+                {showCollapsedDescription ? (
+                  <S.QuickSummaryDescription>
+                    {collapsedDescription}
+                  </S.QuickSummaryDescription>
+                ) : null}
+
+                {showCollapsedFallback ? (
+                  <S.QuickSummaryFallback>No details</S.QuickSummaryFallback>
+                ) : null}
+              </S.QuickDesktopStack>
+            )}
           </S.QuickView>
         ) : null}
       </S.Row>
@@ -367,6 +380,15 @@ export default function ItemRow({
             {expandedMode !== 'move' && (
               <S.ExpandedActionStrip>
                 <S.ExpandedActionCluster>
+                  {itemEditHref ? (
+                    <S.QuickActionButton
+                      type="button"
+                      $tone="edit"
+                      onClick={handleEditNavigation}
+                    >
+                      Edit
+                    </S.QuickActionButton>
+                  ) : null}
                   {showExpandedMoveAction ? (
                     <S.QuickActionButton
                       type="button"

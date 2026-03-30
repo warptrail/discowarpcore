@@ -79,6 +79,8 @@ async function getAllItemsApi(req, res) {
 }
 
 async function getItemByIdApi(req, res) {
+  const requestStartNs = process.hrtime.bigint();
+  const itemId = String(req.params?.id || '');
   try {
     const { id } = req.params;
     // optional: allow ?select= to trim fields, else return full doc
@@ -90,7 +92,7 @@ async function getItemByIdApi(req, res) {
           .join(' ')
       : undefined;
 
-    const data = await getItemById(id, { select });
+    const data = await getItemById(id, { select, perf: true });
 
     if (!data)
       return res.status(404).json({ ok: false, error: 'Item not found' });
@@ -98,6 +100,11 @@ async function getItemByIdApi(req, res) {
   } catch (err) {
     console.error('❌ getItemByIdApi:', err);
     return res.status(400).json({ ok: false, error: 'Bad request' });
+  } finally {
+    const totalMs = Number(process.hrtime.bigint() - requestStartNs) / 1e6;
+    console.log(
+      `[perf][item-detail] controller.getItemByIdApi itemId=${itemId} totalRequestMs=${totalMs.toFixed(2)}`
+    );
   }
 }
 

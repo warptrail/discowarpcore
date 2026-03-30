@@ -1,6 +1,5 @@
 // models/Item.js
 const mongoose = require('mongoose');
-const { buildBoxMaps, makeBreadcrumb } = require('../utils/boxHelpers');
 const {
   ITEM_CATEGORIES,
   DEFAULT_ITEM_CATEGORY,
@@ -78,6 +77,38 @@ function getIntervalDays(values) {
   const latest = values[values.length - 1];
   const days = Math.round((latest.getTime() - previous.getTime()) / DAY_MS);
   return Number.isFinite(days) && days >= 0 ? days : null;
+}
+
+function elapsedMs(startNs) {
+  return Number(process.hrtime.bigint() - startNs) / 1e6;
+}
+
+function formatMs(value) {
+  return Number.isFinite(value) ? value.toFixed(2) : '0.00';
+}
+
+async function loadBoxLineage(Box, leafBox, maxDepth = 64) {
+  const lineage = [];
+  if (!leafBox?._id) return lineage;
+
+  lineage.push(leafBox);
+  const visited = new Set([String(leafBox._id)]);
+  let cursorId = leafBox.parentBox ? String(leafBox.parentBox) : '';
+
+  while (cursorId && lineage.length < maxDepth) {
+    if (visited.has(cursorId)) break;
+    visited.add(cursorId);
+
+    const parent = await Box.findById(cursorId)
+      .select('_id box_id label group parentBox location')
+      .lean();
+    if (!parent) break;
+
+    lineage.push(parent);
+    cursorId = parent.parentBox ? String(parent.parentBox) : '';
+  }
+
+  return lineage;
 }
 
 const itemLinkSchema = new mongoose.Schema(
@@ -307,97 +338,132 @@ itemSchema.virtual('parentBox', {
 });
 
 // ✅ Static: find item with breadcrumb + virtuals
-itemSchema.statics.findItemById = async function (id, { select } = {}) {
+itemSchema.statics.findItemById = async function (id, { select, perf = false } = {}) {
+  const perfStartNs = process.hrtime.bigint();
+  const perfData = {
+    itemLookupMs: 0,
+    containingBoxLookupMs: 0,
+    ancestorChainLookupMs: 0,
+    // Legacy fields retained in logs so before/after probes stay comparable.
+    allBoxesLoadMs: 0,
+    boxMapBuildMs: 0,
+    breadcrumbBuildMs: 0,
+    totalMs: 0,
+  };
+
   let q = this.findById(id);
   if (select) q = q.select(select);
+  try {
+    const itemLookupStartNs = process.hrtime.bigint();
+    const itemDoc = await q; // Keep full mongoose doc (virtual support stays unchanged)
+    perfData.itemLookupMs = elapsedMs(itemLookupStartNs);
+    if (!itemDoc) return null;
 
-  const itemDoc = await q; // ⚡ not lean — keep full mongoose doc
-  if (!itemDoc) return null;
+    // Convert to plain object with virtuals included
+    const item = withNormalizedItemCategory(itemDoc.toObject({ virtuals: true }));
+    const isGone = String(item?.item_status || '').toLowerCase() === 'gone';
 
-  // Convert to plain object with virtuals included
-  const item = withNormalizedItemCategory(itemDoc.toObject({ virtuals: true }));
-  const isGone = String(item?.item_status || '').toLowerCase() === 'gone';
+    const Box = mongoose.model('Box');
+    const containingBoxLookupStartNs = process.hrtime.bigint();
+    const leaf = isGone
+      ? null
+      : await Box.findOne({ items: item._id })
+          .select('_id box_id label group description parentBox location locationId')
+          .populate('locationId', 'name')
+          .lean();
+    perfData.containingBoxLookupMs = elapsedMs(containingBoxLookupStartNs);
 
-  const Box = mongoose.model('Box');
-  const leaf = isGone
-    ? null
-    : await Box.findOne({ items: item._id })
-        .select('_id box_id label group description parentBox location locationId')
-        .populate('locationId', 'name')
-        .lean();
+    if (!leaf) {
+      return withNormalizedItemCategory({
+        ...item,
+        box: null,
+        breadcrumb: [],
+        depth: 0,
+        topBox: null,
+      });
+    }
 
-  if (!leaf) {
+    const ancestorChainLookupStartNs = process.hrtime.bigint();
+    const lineage = await loadBoxLineage(Box, leaf);
+    perfData.ancestorChainLookupMs = elapsedMs(ancestorChainLookupStartNs);
+
+    const breadcrumbBuildStartNs = process.hrtime.bigint();
+    const breadcrumb = [...lineage]
+      .reverse()
+      .map((node) => ({
+        _id: node._id,
+        box_id: node.box_id,
+        label: node.label,
+      }));
+    const depth = breadcrumb.length;
+    const rootBox = breadcrumb.length > 0 ? breadcrumb[0] : null;
+    const leafLocation = firstNonEmpty(leaf?.locationId?.name, leaf?.location);
+    const leafGroup = firstNonEmpty(leaf?.group);
+
+    // Effective location is the first non-empty location from leaf -> ancestors.
+    let resolvedLocation = '';
+    for (const node of lineage) {
+      const locationValue = firstNonEmpty(node?.location);
+      if (locationValue) {
+        resolvedLocation = locationValue;
+        break;
+      }
+    }
+    const inheritedLocation = firstNonEmpty(leafLocation, resolvedLocation);
+
+    // Effective group is the first non-empty group from leaf -> ancestors.
+    let resolvedGroup = '';
+    for (const node of lineage) {
+      const groupValue = firstNonEmpty(node?.group);
+      if (groupValue) {
+        resolvedGroup = groupValue;
+        break;
+      }
+    }
+    const inheritedGroup = firstNonEmpty(leafGroup, resolvedGroup);
+    perfData.breadcrumbBuildMs = elapsedMs(breadcrumbBuildStartNs);
+
     return withNormalizedItemCategory({
       ...item,
-      box: null,
-      breadcrumb: [],
-      depth: 0,
-      topBox: null,
+      inheritedLocation,
+      inheritedGroup,
+      box: {
+        _id: leaf._id,
+        box_id: leaf.box_id,
+        label: leaf.label,
+        group: leafGroup,
+        groupLabel: leafGroup,
+        resolvedGroup: inheritedGroup,
+        description: leaf.description,
+        location: leafLocation,
+        locationName: leafLocation,
+        locationId:
+          leaf?.locationId && typeof leaf.locationId === 'object'
+            ? {
+                _id: leaf.locationId._id,
+                name: firstNonEmpty(leaf.locationId.name),
+              }
+            : null,
+      },
+      breadcrumb,
+      depth,
+      topBox: rootBox,
     });
-  }
-
-  const allBoxes = await Box.findAllBoxesForMaps();
-  const maps = buildBoxMaps(allBoxes);
-  const { breadcrumb, depth, rootBox } = makeBreadcrumb(leaf._id, maps);
-  const leafLocation = firstNonEmpty(leaf?.locationId?.name, leaf?.location);
-  const leafGroup = firstNonEmpty(leaf?.group);
-
-  // Effective location is the first non-empty location from leaf -> ancestors.
-  let resolvedLocation = '';
-  let locationCursor = String(leaf._id);
-  while (locationCursor) {
-    const node = maps.byId.get(locationCursor);
-    if (!node) break;
-    const locationValue = firstNonEmpty(node?.location);
-    if (locationValue) {
-      resolvedLocation = locationValue;
-      break;
+  } finally {
+    if (perf) {
+      perfData.totalMs = elapsedMs(perfStartNs);
+      console.log(
+        `[perf][item-detail] model.findItemById itemId=${String(id)} ` +
+          `itemLookupMs=${formatMs(perfData.itemLookupMs)} ` +
+          `containingBoxLookupMs=${formatMs(perfData.containingBoxLookupMs)} ` +
+          `ancestorChainLookupMs=${formatMs(perfData.ancestorChainLookupMs)} ` +
+          `allBoxesLoadMs=${formatMs(perfData.allBoxesLoadMs)} ` +
+          `boxMapBuildMs=${formatMs(perfData.boxMapBuildMs)} ` +
+          `breadcrumbBuildMs=${formatMs(perfData.breadcrumbBuildMs)} ` +
+          `totalMs=${formatMs(perfData.totalMs)}`
+      );
     }
-    locationCursor = maps.parentOf.get(locationCursor);
   }
-  const inheritedLocation = firstNonEmpty(leafLocation, resolvedLocation);
-
-  // Effective group is the first non-empty group from leaf -> ancestors.
-  let resolvedGroup = '';
-  let groupCursor = String(leaf._id);
-  while (groupCursor) {
-    const node = maps.byId.get(groupCursor);
-    if (!node) break;
-    const groupValue = firstNonEmpty(node?.group);
-    if (groupValue) {
-      resolvedGroup = groupValue;
-      break;
-    }
-    groupCursor = maps.parentOf.get(groupCursor);
-  }
-  const inheritedGroup = firstNonEmpty(leafGroup, resolvedGroup);
-
-  return withNormalizedItemCategory({
-    ...item,
-    inheritedLocation,
-    inheritedGroup,
-    box: {
-      _id: leaf._id,
-      box_id: leaf.box_id,
-      label: leaf.label,
-      group: leafGroup,
-      groupLabel: leafGroup,
-      resolvedGroup: inheritedGroup,
-      description: leaf.description,
-      location: leafLocation,
-      locationName: leafLocation,
-      locationId:
-        leaf?.locationId && typeof leaf.locationId === 'object'
-          ? {
-              _id: leaf.locationId._id,
-              name: firstNonEmpty(leaf.locationId.name),
-            }
-          : null,
-    },
-    breadcrumb,
-    depth,
-    topBox: rootBox,
-  });
 };
 itemSchema.virtual('avgUseIntervalDays').get(function () {
   if (!this.usageHistory || this.usageHistory.length < 2) return null;

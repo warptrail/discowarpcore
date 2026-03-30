@@ -146,15 +146,13 @@ export const RowHeader = styled.div`
   transition: border-color 220ms ease, background 220ms ease, box-shadow 220ms ease;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: ${({ $hasActions }) =>
-      $hasActions ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'};
-    gap: ${({ $hasActions }) => ($hasActions ? '0.32rem' : '0')};
+    grid-template-columns: minmax(0, 1fr);
     padding: 0.28rem 0.34rem;
     border-radius: 9px;
   }
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
-    gap: ${({ $hasActions }) => ($hasActions ? '0.22rem' : '0')};
+    gap: 0;
     padding: 0.24rem 0.3rem;
   }
 
@@ -306,11 +304,11 @@ export const QuickView = styled.div`
   min-width: 0;
   overflow: hidden;
   margin-top: ${({ $collapsed }) => ($collapsed ? '0' : '0.3rem')};
-  height: ${({ $collapsed }) => ($collapsed ? '0' : '32px')};
+  max-height: ${({ $collapsed }) => ($collapsed ? '0' : '80px')};
   opacity: ${({ $collapsed }) => ($collapsed ? 0 : 1)};
   transform: translateY(${({ $collapsed }) => ($collapsed ? '-8px' : '0')});
   transition:
-    height 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    max-height 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
     margin-top 220ms ease,
     opacity 220ms ease,
     transform 220ms ease;
@@ -318,7 +316,7 @@ export const QuickView = styled.div`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     margin-top: ${({ $collapsed }) => ($collapsed ? '0' : '0.3rem')};
-    height: ${({ $collapsed }) => ($collapsed ? '0' : '26px')};
+    max-height: ${({ $collapsed }) => ($collapsed ? '0' : '26px')};
   }
 `;
 
@@ -335,16 +333,22 @@ export const QuickMetaRow = styled.div`
   }
 `;
 
+export const QuickDesktopStack = styled.div`
+  display: grid;
+  gap: 0.24rem;
+  min-width: 0;
+`;
+
 export const QuickTagLane = styled.div`
   display: inline-flex;
   align-items: center;
   flex-wrap: nowrap;
   gap: 0.22rem;
   min-width: 0;
-  max-width: 52%;
+  max-width: 100%;
   overflow: hidden;
   white-space: nowrap;
-  flex-shrink: 1;
+  flex-shrink: 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     max-width: 62%;
@@ -396,7 +400,6 @@ export const QuickTagOverflow = styled.span`
 
 export const QuickSummaryDescription = styled.div`
   min-width: 0;
-  flex: 1 1 auto;
   font-size: 0.82rem;
   color: rgba(231, 236, 243, 0.7);
   line-height: 1.18;
@@ -404,7 +407,7 @@ export const QuickSummaryDescription = styled.div`
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   white-space: normal;
   overflow-wrap: anywhere;
 
@@ -427,6 +430,25 @@ export const QuickSummaryFallback = styled.div`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
+  }
+`;
+
+export const RowChevron = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  align-self: center;
+  color: rgba(231, 236, 243, 0.66);
+  font-size: 0.76rem;
+  line-height: 1;
+  transform: rotate(${({ $open }) => ($open ? '180deg' : '0deg')});
+  transition: transform 200ms ease, color 160ms ease;
+  user-select: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
   }
 `;
 

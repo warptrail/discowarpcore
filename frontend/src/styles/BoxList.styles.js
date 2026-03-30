@@ -377,6 +377,93 @@ const FieldValue = styled.div`
   word-break: break-word;
 `;
 
+const BoxContextRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 10px 16px 2px;
+
+  @media (max-width: 720px) {
+    gap: 0.4rem;
+    padding-top: 9px;
+  }
+
+  @media (max-width: 560px) {
+    gap: 0.36rem;
+    padding-top: 8px;
+  }
+`;
+
+const ContextChip = styled.span`
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.42rem;
+  min-width: 0;
+  max-width: 100%;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 10px;
+  padding: ${({ $variant }) =>
+    $variant === 'group' ? '0.38rem 0.62rem' : '0.28rem 0.5rem'};
+  background: ${({ $variant }) =>
+    $variant === 'group'
+      ? `linear-gradient(
+          106deg,
+          ${toneAlpha(LCARS.amber, '3e')} 0%,
+          ${toneAlpha(LCARS.coral, '20')} 62%,
+          rgba(26, 20, 12, 0.94) 100%
+        )`
+      : `linear-gradient(
+          106deg,
+          ${toneAlpha(LCARS.ice, '1f')} 0%,
+          ${toneAlpha(LCARS.ice, '12')} 62%,
+          rgba(11, 18, 27, 0.92) 100%
+        )`};
+  border-color: ${({ $variant }) =>
+    $variant === 'group'
+      ? toneAlpha(LCARS.amber, '96')
+      : toneAlpha(LCARS.ice, '7b')};
+  box-shadow: ${({ $variant }) =>
+    $variant === 'group'
+      ? `inset 0 0 0 1px ${toneAlpha(LCARS.amber, '33')},
+        0 0 14px ${toneAlpha(LCARS.amber, '2d')}`
+      : `inset 0 0 0 1px ${toneAlpha(LCARS.ice, '1f')},
+        0 0 10px ${toneAlpha(LCARS.ice, '14')}`};
+
+  @media (max-width: 560px) {
+    border-radius: 9px;
+    padding: ${({ $variant }) =>
+      $variant === 'group' ? '0.32rem 0.52rem' : '0.24rem 0.42rem'};
+    gap: 0.34rem;
+  }
+`;
+
+const ContextChipLabel = styled.span`
+  flex: 0 0 auto;
+  color: ${toneAlpha(LCARS.textDim, 'd8')};
+  font-size: 0.6rem;
+  font-weight: 820;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.1;
+`;
+
+const ContextChipValue = styled.span`
+  min-width: 0;
+  color: ${toneAlpha(LCARS.text, 'ef')};
+  font-size: 0.82rem;
+  font-weight: 760;
+  letter-spacing: 0.018em;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+
+  @media (max-width: 560px) {
+    font-size: 0.76rem;
+    line-height: 1.18;
+  }
+`;
+
 const DescriptionValue = styled(FieldValue)`
   @media (max-width: 560px) {
     max-width: 100%;
@@ -642,6 +729,10 @@ export const styledComponents = {
   FieldGroup,
   FieldLabel,
   FieldValue,
+  BoxContextRow,
+  ContextChip,
+  ContextChipLabel,
+  ContextChipValue,
   DescriptionValue,
   MobileDescriptionHint,
 

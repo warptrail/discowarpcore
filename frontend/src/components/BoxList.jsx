@@ -430,19 +430,23 @@ function Branch({ node, depth = 0 }) {
             </S.BoxTitle>
           </S.BoxHeader>
 
-          {group && (
-            <S.FieldGroup>
-              <S.FieldLabel>Group</S.FieldLabel>
-              <S.FieldValue>{group}</S.FieldValue>
-            </S.FieldGroup>
-          )}
+          {group || node.location ? (
+            <S.BoxContextRow>
+              {group ? (
+                <S.ContextChip $variant="group" $isRoot={isRoot} $depth={depth}>
+                  <S.ContextChipLabel>Group</S.ContextChipLabel>
+                  <S.ContextChipValue>{group}</S.ContextChipValue>
+                </S.ContextChip>
+              ) : null}
 
-          {node.location && (
-            <S.FieldGroup>
-              <S.FieldLabel>Location</S.FieldLabel>
-              <S.FieldValue>{node.location}</S.FieldValue>
-            </S.FieldGroup>
-          )}
+              {node.location ? (
+                <S.ContextChip $variant="location" $isRoot={isRoot} $depth={depth}>
+                  <S.ContextChipLabel>Location</S.ContextChipLabel>
+                  <S.ContextChipValue>{node.location}</S.ContextChipValue>
+                </S.ContextChip>
+              ) : null}
+            </S.BoxContextRow>
+          ) : null}
 
           {description && (
             <S.FieldGroup>

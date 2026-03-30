@@ -292,8 +292,16 @@ async function getItemsPage({
  * Get a single item by id with breadcrumb + box info.
  * Delegates to Item model static.
  */
-async function getItemById(id, { select } = {}) {
-  const item = await Item.findItemById(id, { select });
+async function getItemById(id, { select, perf = false } = {}) {
+  const perfEnabled = perf === true;
+  const startNs = perfEnabled ? process.hrtime.bigint() : null;
+  const item = await Item.findItemById(id, { select, perf: perfEnabled });
+  if (perfEnabled && startNs) {
+    const totalMs = Number(process.hrtime.bigint() - startNs) / 1e6;
+    console.log(
+      `[perf][item-detail] service.getItemById itemId=${String(id)} totalMs=${totalMs.toFixed(2)}`
+    );
+  }
   return withNormalizedItemCategory(item);
 }
 

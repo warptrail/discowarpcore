@@ -99,5 +99,6 @@ boxSchema.statics.releaseChildrenToFloor = function (parentId) {
 // Leaving this commented out avoids redundant index creation while preserving intent.
 // boxSchema.index({ box_id: 1 }, { unique: true });
 // boxSchema.index({ parentBox: 1 });
+boxSchema.index({ items: 1 });
 
 module.exports = mongoose.model('Box', boxSchema);
