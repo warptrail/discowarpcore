@@ -1,0 +1,35 @@
+3:15:08 AM [vite] http proxy error: /api/boxes/tree?page=1&limit=50&sortBy=boxId
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+3:15:08 AM [vite] http proxy error: /api/items/orphaned?sort=recent&limit=10000
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+3:15:08 AM [vite] http proxy error: /api/locations
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+3:15:08 AM [vite] http proxy error: /api/intake-batches
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+3:15:08 AM [vite] http proxy error: /api/boxes/tree?page=1&limit=50&sortBy=boxId
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+3:15:08 AM [vite] http proxy error: /api/items/orphaned?sort=recent&limit=10000
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+3:15:08 AM [vite] http proxy error: /api/locations
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+^C
+WARP-DECK frontend % tmux capture-pane -t <session>:<window>.<pane> -p > ERROR_12.txt
+
+zsh: no such file or directory: session
+WARP-DECK frontend % tmux capture-pane -t dev -p > ERROR_12.txt
+
+

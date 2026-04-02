@@ -110,19 +110,38 @@ export async function validateAiJsonImport(
 }
 
 export async function importAiJsonItems(
-  { jsonText = '' } = {},
+  { jsonText = '', importImageFiles = [] } = {},
   opts = {}
 ) {
-  const payload = {
-    jsonText: String(jsonText ?? ''),
-  };
+  const hasImportImages = Array.isArray(importImageFiles) && importImageFiles.length > 0;
+  let res;
 
-  const res = await fetch(`${API_BASE}/api/items/ai-json/import`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    signal: opts.signal,
-  });
+  if (hasImportImages) {
+    const formData = new FormData();
+    formData.append('jsonText', String(jsonText ?? ''));
+
+    importImageFiles.forEach((file) => {
+      const fileName = file?.webkitRelativePath || file?.name || 'import-image';
+      formData.append('importImages', file, fileName);
+    });
+
+    res = await fetch(`${API_BASE}/api/items/ai-json/import`, {
+      method: 'POST',
+      body: formData,
+      signal: opts.signal,
+    });
+  } else {
+    const payload = {
+      jsonText: String(jsonText ?? ''),
+    };
+
+    res = await fetch(`${API_BASE}/api/items/ai-json/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: opts.signal,
+    });
+  }
 
   const body = await readJson(res);
   if (!res.ok) {
@@ -134,4 +153,48 @@ export async function importAiJsonItems(
   }
 
   return body;
+}
+
+export async function fetchBatchImportReadySummary(opts = {}) {
+  const res = await fetch(`${API_BASE}/api/media/batch-import/ready-summary`, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+    signal: opts.signal,
+  });
+
+  const body = await readJson(res);
+  if (!res.ok) {
+    throw buildApiError({
+      fallbackMessage: 'Failed to load batch-import image summary',
+      body,
+      status: res.status,
+    });
+  }
+
+  return body?.data || null;
+}
+
+export async function processBatchImportReadyImages({ limit } = {}, opts = {}) {
+  const payload = {};
+  if (Number.isFinite(Number(limit)) && Number(limit) > 0) {
+    payload.limit = Number(limit);
+  }
+
+  const res = await fetch(`${API_BASE}/api/media/batch-import/process-ready`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal: opts.signal,
+  });
+
+  const body = await readJson(res);
+  if (!res.ok) {
+    throw buildApiError({
+      fallbackMessage: 'Failed to queue batch-import images for processing',
+      body,
+      status: res.status,
+    });
+  }
+
+  return body?.data || null;
 }

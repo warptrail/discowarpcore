@@ -1,0 +1,467 @@
+    'Saved /Users/moonshade/Developer/discowarpcore/backend/media/items/processed/5ebece15-9465-4bf9-b926-7e767ca272d0.webp (webp, render_k
+ey=midnight-arc-cyanCore, source=explicit)',
+  stderrSnippet: ''
+}
+[mediaProcessingService] objectGlow invocation {
+  strategy: 'repo-launcher',
+  executable: '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+  argv: [
+    '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/original/16e83fb2-d017-4a8f-a8d1-7649d7a61237.jpeg',
+    '--output',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/processed/16e83fb2-d017-4a8f-a8d1-7649d7a61237.webp',
+    '--background-token',
+    'midnight',
+    '--glow-token',
+    'arc',
+    '--accent-token',
+    'cyanCore'
+  ],
+  cwd: '/Users/moonshade/Developer/objectiglow',
+  env: {
+    OBJECT_GLOW_REPO: '/Users/moonshade/Developer/objectiglow',
+    OBJECTGLOW_PYTHON: '',
+    PYTHONPATH: '',
+    OBJECT_GLOW_MODULE: 'itemcutout',
+    OBJECT_GLOW_RENDER_BACKGROUND: 'midnight',
+    OBJECT_GLOW_RENDER_GLOW: 'arc',
+    OBJECT_GLOW_RENDER_ACCENT: 'cyanCore'
+  }
+}
+^C
+ENGINE-ROOM discowarpcore ⚡
+ENGINE-ROOM discowarpcore ⚡ npm run dev
+
+> discowarpcore@1.0.0 dev
+> nodemon backend/server.js
+
+[nodemon] 3.1.10
+[nodemon] to restart at any time, enter `rs`
+[nodemon] watching path(s): *.*
+[nodemon] watching extensions: js,mjs,cjs,json
+[nodemon] starting `node backend/server.js`
+✅ MongoDB connected
+📍 Location backfill: { scanned: 89, linked: 0, syncedNames: 0, createdLocations: 0 }
+🧵 Recovered queued media jobs: {
+  matchedCount: 8,
+  recoveredCount: 8,
+  skippedCount: 0,
+  failedCount: 0,
+  queueStatus: {
+    concurrency: 2,
+    activeWorkers: 0,
+    queuedCount: 8,
+    maxQueueLength: 200,
+    trackedJobs: 8
+  }
+}
+🚀 Server running at:
+  • http://localhost:5002
+  • http://<your-local-ip>:5002
+[mediaProcessingService] objectGlow invocation {
+  strategy: 'repo-launcher',
+  executable: '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+  argv: [
+    '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/original/7f8c64bb-2db6-4f3c-8f45-c85a53fb3f3b.jpeg',
+    '--output',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/processed/7f8c64bb-2db6-4f3c-8f45-c85a53fb3f3b.webp',
+    '--background-token',
+    'midnight',
+    '--glow-token',
+    'arc',
+    '--accent-token',
+    'cyanCore'
+  ],
+  cwd: '/Users/moonshade/Developer/objectiglow',
+  env: {
+    OBJECT_GLOW_REPO: '/Users/moonshade/Developer/objectiglow',
+    OBJECTGLOW_PYTHON: '',
+    PYTHONPATH: '',
+    OBJECT_GLOW_MODULE: 'itemcutout',
+    OBJECT_GLOW_RENDER_BACKGROUND: 'midnight',
+    OBJECT_GLOW_RENDER_GLOW: 'arc',
+    OBJECT_GLOW_RENDER_ACCENT: 'cyanCore'
+  }
+}
+[mediaProcessingService] objectGlow invocation {
+  strategy: 'repo-launcher',
+  executable: '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+  argv: [
+    '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/original/b5d64a99-79ff-4989-bf7d-c24f439d4fa0.jpeg',
+    '--output',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/processed/b5d64a99-79ff-4989-bf7d-c24f439d4fa0.webp',
+    '--background-token',
+    'midnight',
+    '--glow-token',
+    'arc',
+    '--accent-token',
+    'cyanCore'
+  ],
+  cwd: '/Users/moonshade/Developer/objectiglow',
+  env: {
+    OBJECT_GLOW_REPO: '/Users/moonshade/Developer/objectiglow',
+    OBJECTGLOW_PYTHON: '',
+    PYTHONPATH: '',
+    OBJECT_GLOW_MODULE: 'itemcutout',
+    OBJECT_GLOW_RENDER_BACKGROUND: 'midnight',
+    OBJECT_GLOW_RENDER_GLOW: 'arc',
+    OBJECT_GLOW_RENDER_ACCENT: 'cyanCore'
+  }
+}
+[mediaProcessingService] objectGlow result {
+  strategy: 'repo-launcher',
+  executable: '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+  argv: [
+    '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/original/7f8c64bb-2db6-4f3c-8f45-c85a53fb3f3b.jpeg',
+    '--output',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/processed/7f8c64bb-2db6-4f3c-8f45-c85a53fb3f3b.webp',
+    '--background-token',
+    'midnight',
+    '--glow-token',
+    'arc',
+    '--accent-token',
+    'cyanCore'
+  ],
+  cwd: '/Users/moonshade/Developer/objectiglow',
+  exitCode: 0,
+  signal: null,
+  stdoutSnippet: 'Processing /Users/moonshade/Developer/discowarpcore/backend/media/items/original/7f8c64bb-2db6-4f3c-8f45-c85a53fb3f3b.jpe
+g\n' +
+    'Saved /Users/moonshade/Developer/discowarpcore/backend/media/items/processed/7f8c64bb-2db6-4f3c-8f45-c85a53fb3f3b.webp (webp, render_k
+ey=midnight-arc-cyanCore, source=explicit)',
+  stderrSnippet: ''
+}
+[mediaProcessingService] objectGlow invocation {
+  strategy: 'repo-launcher',
+  executable: '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+  argv: [
+    '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/original/6de5fb8d-021f-48aa-bbc1-6cf94d5008b0.jpeg',
+    '--output',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/processed/6de5fb8d-021f-48aa-bbc1-6cf94d5008b0.webp',
+    '--background-token',
+    'midnight',
+    '--glow-token',
+    'arc',
+    '--accent-token',
+    'cyanCore'
+  ],
+  cwd: '/Users/moonshade/Developer/objectiglow',
+  env: {
+    OBJECT_GLOW_REPO: '/Users/moonshade/Developer/objectiglow',
+    OBJECTGLOW_PYTHON: '',
+    PYTHONPATH: '',
+    OBJECT_GLOW_MODULE: 'itemcutout',
+    OBJECT_GLOW_RENDER_BACKGROUND: 'midnight',
+    OBJECT_GLOW_RENDER_GLOW: 'arc',
+    OBJECT_GLOW_RENDER_ACCENT: 'cyanCore'
+  }
+}
+[mediaProcessingService] objectGlow result {
+  strategy: 'repo-launcher',
+  executable: '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+  argv: [
+    '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/original/b5d64a99-79ff-4989-bf7d-c24f439d4fa0.jpeg',
+    '--output',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/processed/b5d64a99-79ff-4989-bf7d-c24f439d4fa0.webp',
+    '--background-token',
+    'midnight',
+    '--glow-token',
+    'arc',
+    '--accent-token',
+    'cyanCore'
+  ],
+  cwd: '/Users/moonshade/Developer/objectiglow',
+  exitCode: 0,
+  signal: null,
+  stdoutSnippet: 'Processing /Users/moonshade/Developer/discowarpcore/backend/media/items/original/b5d64a99-79ff-4989-bf7d-c24f439d4fa0.jpe
+g\n' +
+    'Saved /Users/moonshade/Developer/discowarpcore/backend/media/items/processed/b5d64a99-79ff-4989-bf7d-c24f439d4fa0.webp (webp, render_k
+ey=midnight-arc-cyanCore, source=explicit)',
+  stderrSnippet: ''
+}
+[mediaProcessingService] objectGlow invocation {
+  strategy: 'repo-launcher',
+  executable: '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+  argv: [
+    '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/original/19c7fd32-ebf7-4e20-a81a-08fd8d6785ac.jpeg',
+    '--output',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/processed/19c7fd32-ebf7-4e20-a81a-08fd8d6785ac.webp',
+    '--background-token',
+    'midnight',
+    '--glow-token',
+    'arc',
+    '--accent-token',
+    'cyanCore'
+  ],
+  cwd: '/Users/moonshade/Developer/objectiglow',
+  env: {
+    OBJECT_GLOW_REPO: '/Users/moonshade/Developer/objectiglow',
+    OBJECTGLOW_PYTHON: '',
+    PYTHONPATH: '',
+    OBJECT_GLOW_MODULE: 'itemcutout',
+    OBJECT_GLOW_RENDER_BACKGROUND: 'midnight',
+    OBJECT_GLOW_RENDER_GLOW: 'arc',
+    OBJECT_GLOW_RENDER_ACCENT: 'cyanCore'
+  }
+}
+^[[A^[[A^[[A[mediaProcessingService] objectGlow result {
+  strategy: 'repo-launcher',
+  executable: '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+  argv: [
+    '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/original/6de5fb8d-021f-48aa-bbc1-6cf94d5008b0.jpeg',
+    '--output',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/processed/6de5fb8d-021f-48aa-bbc1-6cf94d5008b0.webp',
+    '--background-token',
+    'midnight',
+    '--glow-token',
+    'arc',
+    '--accent-token',
+    'cyanCore'
+  ],
+  cwd: '/Users/moonshade/Developer/objectiglow',
+  exitCode: 0,
+  signal: null,
+  stdoutSnippet: 'Processing /Users/moonshade/Developer/discowarpcore/backend/media/items/original/6de5fb8d-021f-48aa-bbc1-6cf94d5008b0.jpe
+g\n' +
+    'Saved /Users/moonshade/Developer/discowarpcore/backend/media/items/processed/6de5fb8d-021f-48aa-bbc1-6cf94d5008b0.webp (webp, render_k
+ey=midnight-arc-cyanCore, source=explicit)',
+  stderrSnippet: ''
+}
+[mediaProcessingService] objectGlow invocation {
+  strategy: 'repo-launcher',
+  executable: '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+  argv: [
+    '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/original/b7d02da7-603d-4090-ba78-0b1617b033c1.jpeg',
+    '--output',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/processed/b7d02da7-603d-4090-ba78-0b1617b033c1.webp',
+    '--background-token',
+    'midnight',
+    '--glow-token',
+    'arc',
+    '--accent-token',
+    'cyanCore'
+  ],
+  cwd: '/Users/moonshade/Developer/objectiglow',
+  env: {
+    OBJECT_GLOW_REPO: '/Users/moonshade/Developer/objectiglow',
+    OBJECTGLOW_PYTHON: '',
+    PYTHONPATH: '',
+    OBJECT_GLOW_MODULE: 'itemcutout',
+    OBJECT_GLOW_RENDER_BACKGROUND: 'midnight',
+    OBJECT_GLOW_RENDER_GLOW: 'arc',
+    OBJECT_GLOW_RENDER_ACCENT: 'cyanCore'
+  }
+}
+[mediaProcessingService] objectGlow result {
+  strategy: 'repo-launcher',
+  executable: '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+  argv: [
+    '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/original/19c7fd32-ebf7-4e20-a81a-08fd8d6785ac.jpeg',
+    '--output',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/processed/19c7fd32-ebf7-4e20-a81a-08fd8d6785ac.webp',
+    '--background-token',
+    'midnight',
+    '--glow-token',
+    'arc',
+    '--accent-token',
+    'cyanCore'
+  ],
+  cwd: '/Users/moonshade/Developer/objectiglow',
+  exitCode: 0,
+  signal: null,
+  stdoutSnippet: 'Processing /Users/moonshade/Developer/discowarpcore/backend/media/items/original/19c7fd32-ebf7-4e20-a81a-08fd8d6785ac.jpe
+g\n' +
+    'Saved /Users/moonshade/Developer/discowarpcore/backend/media/items/processed/19c7fd32-ebf7-4e20-a81a-08fd8d6785ac.webp (webp, render_k
+ey=midnight-arc-cyanCore, source=explicit)',
+  stderrSnippet: ''
+}
+[mediaProcessingService] objectGlow invocation {
+  strategy: 'repo-launcher',
+  executable: '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+  argv: [
+    '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/original/25298588-5b0a-4700-9d30-275b69cb2f5a.jpeg',
+    '--output',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/processed/25298588-5b0a-4700-9d30-275b69cb2f5a.webp',
+    '--background-token',
+    'midnight',
+    '--glow-token',
+    'arc',
+    '--accent-token',
+    'cyanCore'
+  ],
+  cwd: '/Users/moonshade/Developer/objectiglow',
+  env: {
+    OBJECT_GLOW_REPO: '/Users/moonshade/Developer/objectiglow',
+    OBJECTGLOW_PYTHON: '',
+    PYTHONPATH: '',
+    OBJECT_GLOW_MODULE: 'itemcutout',
+    OBJECT_GLOW_RENDER_BACKGROUND: 'midnight',
+    OBJECT_GLOW_RENDER_GLOW: 'arc',
+    OBJECT_GLOW_RENDER_ACCENT: 'cyanCore'
+  }
+}
+[mediaProcessingService] objectGlow result {
+  strategy: 'repo-launcher',
+  executable: '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+  argv: [
+    '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/original/25298588-5b0a-4700-9d30-275b69cb2f5a.jpeg',
+    '--output',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/processed/25298588-5b0a-4700-9d30-275b69cb2f5a.webp',
+    '--background-token',
+    'midnight',
+    '--glow-token',
+    'arc',
+    '--accent-token',
+    'cyanCore'
+  ],
+  cwd: '/Users/moonshade/Developer/objectiglow',
+  exitCode: 0,
+  signal: null,
+  stdoutSnippet: 'Processing /Users/moonshade/Developer/discowarpcore/backend/media/items/original/25298588-5b0a-4700-9d30-275b69cb2f5a.jpe
+g\n' +
+    'Saved /Users/moonshade/Developer/discowarpcore/backend/media/items/processed/25298588-5b0a-4700-9d30-275b69cb2f5a.webp (webp, render_k
+ey=midnight-arc-cyanCore, source=explicit)',
+  stderrSnippet: ''
+}
+[mediaProcessingService] objectGlow invocation {
+  strategy: 'repo-launcher',
+  executable: '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+  argv: [
+    '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/original/f1585bf1-286a-44bd-a5e3-916f6c61c2fa.jpeg',
+    '--output',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/processed/f1585bf1-286a-44bd-a5e3-916f6c61c2fa.webp',
+    '--background-token',
+    'midnight',
+    '--glow-token',
+    'arc',
+    '--accent-token',
+    'cyanCore'
+  ],
+  cwd: '/Users/moonshade/Developer/objectiglow',
+  env: {
+    OBJECT_GLOW_REPO: '/Users/moonshade/Developer/objectiglow',
+    OBJECTGLOW_PYTHON: '',
+    PYTHONPATH: '',
+    OBJECT_GLOW_MODULE: 'itemcutout',
+    OBJECT_GLOW_RENDER_BACKGROUND: 'midnight',
+    OBJECT_GLOW_RENDER_GLOW: 'arc',
+    OBJECT_GLOW_RENDER_ACCENT: 'cyanCore'
+  }
+}
+[mediaProcessingService] objectGlow result {
+  strategy: 'repo-launcher',
+  executable: '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+  argv: [
+    '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/original/b7d02da7-603d-4090-ba78-0b1617b033c1.jpeg',
+    '--output',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/processed/b7d02da7-603d-4090-ba78-0b1617b033c1.webp',
+    '--background-token',
+    'midnight',
+    '--glow-token',
+    'arc',
+    '--accent-token',
+    'cyanCore'
+  ],
+  cwd: '/Users/moonshade/Developer/objectiglow',
+  exitCode: 0,
+  signal: null,
+  stdoutSnippet: 'Processing /Users/moonshade/Developer/discowarpcore/backend/media/items/original/b7d02da7-603d-4090-ba78-0b1617b033c1.jpe
+g\n' +
+    'Saved /Users/moonshade/Developer/discowarpcore/backend/media/items/processed/b7d02da7-603d-4090-ba78-0b1617b033c1.webp (webp, render_k
+ey=midnight-arc-cyanCore, source=explicit)',
+  stderrSnippet: ''
+}
+[mediaProcessingService] objectGlow invocation {
+  strategy: 'repo-launcher',
+  executable: '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+  argv: [
+    '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/original/16e83fb2-d017-4a8f-a8d1-7649d7a61237.jpeg',
+    '--output',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/processed/16e83fb2-d017-4a8f-a8d1-7649d7a61237.webp',
+    '--background-token',
+    'midnight',
+    '--glow-token',
+    'arc',
+    '--accent-token',
+    'cyanCore'
+  ],
+  cwd: '/Users/moonshade/Developer/objectiglow',
+  env: {
+    OBJECT_GLOW_REPO: '/Users/moonshade/Developer/objectiglow',
+    OBJECTGLOW_PYTHON: '',
+    PYTHONPATH: '',
+    OBJECT_GLOW_MODULE: 'itemcutout',
+    OBJECT_GLOW_RENDER_BACKGROUND: 'midnight',
+    OBJECT_GLOW_RENDER_GLOW: 'arc',
+    OBJECT_GLOW_RENDER_ACCENT: 'cyanCore'
+  }
+}
+[mediaProcessingService] objectGlow result {
+  strategy: 'repo-launcher',
+  executable: '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+  argv: [
+    '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/original/f1585bf1-286a-44bd-a5e3-916f6c61c2fa.jpeg',
+    '--output',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/processed/f1585bf1-286a-44bd-a5e3-916f6c61c2fa.webp',
+    '--background-token',
+    'midnight',
+    '--glow-token',
+    'arc',
+    '--accent-token',
+    'cyanCore'
+  ],
+  cwd: '/Users/moonshade/Developer/objectiglow',
+  exitCode: 0,
+  signal: null,
+  stdoutSnippet: 'Processing /Users/moonshade/Developer/discowarpcore/backend/media/items/original/f1585bf1-286a-44bd-a5e3-916f6c61c2fa.jpe
+g\n' +
+    'Saved /Users/moonshade/Developer/discowarpcore/backend/media/items/processed/f1585bf1-286a-44bd-a5e3-916f6c61c2fa.webp (webp, render_k
+ey=midnight-arc-cyanCore, source=explicit)',
+  stderrSnippet: ''
+}
+[mediaProcessingService] objectGlow result {
+  strategy: 'repo-launcher',
+  executable: '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+  argv: [
+    '/Users/moonshade/Developer/objectiglow/bin/objectglow',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/original/16e83fb2-d017-4a8f-a8d1-7649d7a61237.jpeg',
+    '--output',
+    '/Users/moonshade/Developer/discowarpcore/backend/media/items/processed/16e83fb2-d017-4a8f-a8d1-7649d7a61237.webp',
+    '--background-token',
+    'midnight',
+    '--glow-token',
+    'arc',
+    '--accent-token',
+    'cyanCore'
+  ],
+  cwd: '/Users/moonshade/Developer/objectiglow',
+  exitCode: 0,
+  signal: null,
+  stdoutSnippet: 'Processing /Users/moonshade/Developer/discowarpcore/backend/media/items/original/16e83fb2-d017-4a8f-a8d1-7649d7a61237.jpe
+g\n' +
+    'Saved /Users/moonshade/Developer/discowarpcore/backend/media/items/processed/16e83fb2-d017-4a8f-a8d1-7649d7a61237.webp (webp, render_k
+ey=midnight-arc-cyanCore, source=explicit)',
+  stderrSnippet: ''
+}
+^C
+ENGINE-ROOM discowarpcore ⚡ tmux capture-pane -t myession -p -S - > output.txt
+
+can't find pane: myession
+ENGINE-ROOM discowarpcore ⚡ tmux capture-pane -t dev -p -S - > output.txt
+
+

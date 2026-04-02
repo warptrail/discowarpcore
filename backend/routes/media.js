@@ -6,7 +6,11 @@ const {
   getMediaJobStatusApi,
   getMediaJobsApi,
 } = require('../controllers/mediaController');
-const { getMediaStateByIdApi } = require('../controllers/entityMediaController');
+const {
+  getMediaStateByIdApi,
+  getBatchImportReadySummaryApi,
+  postBatchImportProcessReadyApi,
+} = require('../controllers/entityMediaController');
 
 const router = express.Router();
 const MEDIA_TEST_ROUTES_ENABLED =
@@ -16,6 +20,8 @@ const MEDIA_TEST_ROUTES_ENABLED =
 router.post('/jobs/process', postMediaJobEnqueueApi);
 router.get('/jobs', getMediaJobsApi);
 router.get('/jobs/:jobId', getMediaJobStatusApi);
+router.get('/batch-import/ready-summary', getBatchImportReadySummaryApi);
+router.post('/batch-import/process-ready', postBatchImportProcessReadyApi);
 
 if (MEDIA_TEST_ROUTES_ENABLED) {
   // Temporary media processing test endpoint; non-final API surface.

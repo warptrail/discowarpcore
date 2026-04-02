@@ -27,7 +27,14 @@ const OBJECT_GLOW_REPO = String(
 const OBJECT_GLOW_MODULE = process.env.OBJECT_GLOW_MODULE || 'itemcutout';
 const MAX_STDOUT_SNIPPET_LENGTH = 1200;
 const ACTIVE_VARIANTS = new Set(['original', 'processed']);
-const PROCESSING_STATUSES = new Set(['idle', 'queued', 'processing', 'completed', 'failed']);
+const PROCESSING_STATUSES = new Set([
+  'idle',
+  'ready_for_processing',
+  'queued',
+  'processing',
+  'completed',
+  'failed',
+]);
 
 // Avoid stale file-metadata reads when regenerating the same derivative path in rapid succession.
 // Keep memory/item caches enabled for performance; only disable file cache keys.
@@ -106,6 +113,15 @@ function normalizeOptionalDate(value) {
   const parsed = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed;
+}
+
+function renderTokensEqual(leftTokens, rightTokens) {
+  const left = normalizeRenderTokensForState(leftTokens, DEFAULT_RENDER_TOKENS);
+  const right = normalizeRenderTokensForState(rightTokens, DEFAULT_RENDER_TOKENS);
+  return left.mode === right.mode
+    && left.background === right.background
+    && left.glow === right.glow
+    && left.accent === right.accent;
 }
 
 function hasAnyRenderTokenValue(tokens) {
@@ -308,6 +324,7 @@ function normalizeMediaStateRecord(record) {
     displayDerivedFrom: normalizeActiveVariantOrNull(source?.displayDerivedFrom),
     thumbDerivedFrom: normalizeActiveVariantOrNull(source?.thumbDerivedFrom),
     processingStatus: normalizeProcessingStatus(source?.processingStatus, 'idle'),
+    sourceType: toTrimmed(source?.sourceType).toLowerCase(),
     processingError: source?.processingError ?? null,
     processedAt: source?.processedAt ? new Date(source.processedAt).toISOString() : null,
   };
@@ -380,6 +397,10 @@ function normalizeMediaStateUpdate(updateSet = {}) {
     );
   }
 
+  if (Object.prototype.hasOwnProperty.call(normalized, 'sourceType')) {
+    normalized.sourceType = toTrimmed(normalized.sourceType).toLowerCase();
+  }
+
   if (Object.prototype.hasOwnProperty.call(normalized, 'processedAt')) {
     normalized.processedAt = normalizeOptionalDate(normalized.processedAt);
   }
@@ -407,6 +428,7 @@ async function upsertMediaStateByOriginalPath(
     displayDerivedFrom: null,
     thumbDerivedFrom: null,
     processingStatus: 'idle',
+    sourceType: '',
     processingError: null,
     processedAt: null,
   };
@@ -469,6 +491,21 @@ async function getMediaStateByOriginalPath(originalPath) {
 
 async function ensureMediaStateByOriginalPath(originalPath) {
   return upsertMediaStateByOriginalPath(originalPath);
+}
+
+async function countMediaByState(filter = {}) {
+  const query = {};
+  const processingStatus = normalizeProcessingStatus(filter?.processingStatus, '');
+  const sourceType = toTrimmed(filter?.sourceType).toLowerCase();
+
+  if (processingStatus) {
+    query.processingStatus = processingStatus;
+  }
+  if (sourceType) {
+    query.sourceType = sourceType;
+  }
+
+  return MediaState.countDocuments(query);
 }
 
 function toVariantSiblingDirectory(sourceDirPath, targetVariantSegment) {
@@ -687,6 +724,10 @@ function logObjectGlowInvocation({ strategy, executable, args, cwd, debugEnv }) 
   });
 }
 
+function logMediaProcessingEvent(event, details = {}) {
+  console.info(`[mediaProcessingService] ${event}`, details);
+}
+
 async function runObjectGlowSubprocess({ inputPath, outputPath, renderTokens }) {
   const invocation = await resolveObjectGlowInvocation(inputPath, outputPath, renderTokens);
   const { strategy, executable, args, cwd, env, debugEnv } = invocation;
@@ -773,6 +814,81 @@ async function runObjectGlowSubprocess({ inputPath, outputPath, renderTokens }) 
 }
 
 let objectGlowRunner = runObjectGlowSubprocess;
+
+async function reconcileCompletedMediaStateIfArtifactExists(
+  originalPath,
+  {
+    state = null,
+    outputPath = '',
+    renderTokens = null,
+    allowQueuedRecovery = false,
+    reason = 'artifact_reconciliation',
+  } = {}
+) {
+  const normalizedOriginalPath = resolveMediaPath(originalPath, {
+    fieldName: 'originalPath',
+  });
+  const existingState = state || await getMediaStateByOriginalPath(normalizedOriginalPath);
+  if (!existingState?.originalPath) return null;
+
+  const candidateOutputPath = toTrimmed(outputPath)
+    ? resolveMediaPath(outputPath, { fieldName: 'outputPath' })
+    : toTrimmed(existingState.processedPath)
+      ? resolveMediaPath(existingState.processedPath, { fieldName: 'processedPath' })
+      : computeProcessedOutputPath(normalizedOriginalPath);
+
+  const isCompleted = existingState.processingStatus === 'completed';
+  const isRecoverableInterruptedState =
+    allowQueuedRecovery && ['queued', 'processing'].includes(existingState.processingStatus);
+  if (!isCompleted && !isRecoverableInterruptedState) {
+    return null;
+  }
+
+  try {
+    await assertOutputArtifact(candidateOutputPath, {
+      inputPath: normalizedOriginalPath,
+      outputPath: candidateOutputPath,
+    });
+  } catch (_error) {
+    return null;
+  }
+
+  const nextRenderTokens = normalizeRenderTokensForState(
+    renderTokens || existingState.renderTokens,
+    DEFAULT_RENDER_TOKENS
+  );
+
+  logMediaProcessingEvent('terminal completion reconciled from artifact', {
+    reason,
+    mediaId: toTrimmed(existingState.mediaId),
+    originalPath: normalizedOriginalPath,
+    outputPath: candidateOutputPath,
+    previousStatus: existingState.processingStatus,
+    renderTokens: nextRenderTokens,
+  });
+
+  let processingState = await upsertMediaStateByOriginalPath(normalizedOriginalPath, {
+    processedPath: candidateOutputPath,
+    renderTokens: nextRenderTokens,
+    activeVariant: 'processed',
+    processingStatus: 'completed',
+    processingError: null,
+    processedAt: existingState.processedAt || new Date(),
+  });
+
+  processingState = await syncDerivedVariantsForMedia(normalizedOriginalPath);
+
+  logMediaProcessingEvent('terminal completion persisted', {
+    reason,
+    mediaId: toTrimmed(processingState.mediaId),
+    originalPath: normalizedOriginalPath,
+    outputPath: processingState.processedPath,
+    status: processingState.processingStatus,
+    processedAt: processingState.processedAt,
+  });
+
+  return processingState;
+}
 
 async function syncDerivedVariantsForMedia(originalPath) {
   const baseState = await upsertMediaStateByOriginalPath(originalPath);
@@ -922,12 +1038,13 @@ async function setActiveVariantById(mediaId, nextActiveVariant) {
   return setActiveVariant(state.originalPath, nextActiveVariant);
 }
 
-async function queueMediaProcessing(inputPath, outputPath, renderTokens) {
+async function queueMediaProcessing(inputPath, outputPath, renderTokens, options = {}) {
   const normalizedInputPath = resolveMediaPath(inputPath, { fieldName: 'inputPath' });
   const normalizedOutputPath = outputPath
     ? resolveMediaPath(outputPath, { fieldName: 'outputPath' })
     : computeProcessedOutputPath(normalizedInputPath);
   const existingState = await getMediaStateByOriginalPath(normalizedInputPath);
+  const forceReprocess = options?.forceReprocess === true;
   const fallbackTokens = normalizeRenderTokensForState(
     existingState?.renderTokens,
     DEFAULT_RENDER_TOKENS
@@ -940,11 +1057,66 @@ async function queueMediaProcessing(inputPath, outputPath, renderTokens) {
       })
     : fallbackTokens;
 
-  await ensureReadableFile(normalizedInputPath, {
-    code: MEDIA_ERROR_CODES.MEDIA_SOURCE_NOT_FOUND,
-    message: `Input file is missing: ${normalizedInputPath}`,
-    inputPath: normalizedInputPath,
+    await ensureReadableFile(normalizedInputPath, {
+      code: MEDIA_ERROR_CODES.MEDIA_SOURCE_NOT_FOUND,
+      message: `Input file is missing: ${normalizedInputPath}`,
+      inputPath: normalizedInputPath,
+      outputPath: normalizedOutputPath,
+    });
+
+  if (!forceReprocess) {
+    const sameRenderTokensAsExisting = renderTokensEqual(
+      existingState?.renderTokens,
+      resolvedRenderTokens
+    );
+    const reconciledState = await reconcileCompletedMediaStateIfArtifactExists(
+      normalizedInputPath,
+      {
+        state: existingState,
+        outputPath: normalizedOutputPath,
+        renderTokens: resolvedRenderTokens,
+        allowQueuedRecovery: true,
+        reason: existingState?.processingStatus === 'completed'
+          ? 'already_complete_skip'
+          : 'stale_inflight_artifact_skip',
+      }
+    );
+
+    if (reconciledState && (sameRenderTokensAsExisting || !shouldUpdateTokens)) {
+      logMediaProcessingEvent('skip as already complete', {
+        mediaId: toTrimmed(reconciledState.mediaId),
+        originalPath: normalizedInputPath,
+        outputPath: normalizedOutputPath,
+        requestedRenderTokens: resolvedRenderTokens,
+        existingRenderTokens: normalizeRenderTokensForState(
+          reconciledState.renderTokens,
+          DEFAULT_RENDER_TOKENS
+        ),
+        forceReprocess,
+      });
+
+      return {
+        mediaId: reconciledState.mediaId,
+        inputPath: normalizedInputPath,
+        outputPath: normalizedOutputPath,
+        renderTokens: normalizeRenderTokensForState(
+          reconciledState.renderTokens,
+          resolvedRenderTokens
+        ),
+        processingState: reconciledState,
+        skipped: true,
+        skipReason: 'already_complete',
+      };
+    }
+  }
+
+  logMediaProcessingEvent('enqueue requested', {
+    mediaId: toTrimmed(existingState?.mediaId),
+    originalPath: normalizedInputPath,
     outputPath: normalizedOutputPath,
+    forceReprocess,
+    requestedRenderTokens: resolvedRenderTokens,
+    existingStatus: toTrimmed(existingState?.processingStatus),
   });
 
   const processingState = await upsertMediaStateByOriginalPath(
@@ -977,7 +1149,7 @@ async function queueMediaProcessing(inputPath, outputPath, renderTokens) {
   };
 }
 
-async function queueMediaProcessingById(mediaId, outputPath, renderTokens) {
+async function queueMediaProcessingById(mediaId, outputPath, renderTokens, options = {}) {
   const state = await getMediaStateById(mediaId);
   if (!state?.originalPath) {
     throw createMediaError(
@@ -986,11 +1158,11 @@ async function queueMediaProcessingById(mediaId, outputPath, renderTokens) {
       { inputPath: '' }
     );
   }
-  return queueMediaProcessing(state.originalPath, outputPath, renderTokens);
+  return queueMediaProcessing(state.originalPath, outputPath, renderTokens, options);
 }
 
-async function enqueueMediaProcessingById(mediaId, outputPath, renderTokens) {
-  return queueMediaProcessingById(mediaId, outputPath, renderTokens);
+async function enqueueMediaProcessingById(mediaId, outputPath, renderTokens, options = {}) {
+  return queueMediaProcessingById(mediaId, outputPath, renderTokens, options);
 }
 
 async function processImageWithObjectGlowById(mediaId, outputPath, renderTokens) {
@@ -1041,6 +1213,14 @@ async function processImageWithObjectGlow(inputPath, outputPath, options = {}) {
       : materializeRenderTokensForProcessing(fallbackTokens, {
           fallbackTokens: DEFAULT_RENDER_TOKENS,
         });
+
+    logMediaProcessingEvent('start processing', {
+      mediaId: toTrimmed(existingState?.mediaId),
+      originalPath: normalizedInputPath,
+      outputPath: normalizedOutputPath,
+      renderTokens,
+      priorStatus: toTrimmed(existingState?.processingStatus),
+    });
 
     await upsertMediaStateByOriginalPath(
       normalizedInputPath,
@@ -1113,6 +1293,13 @@ async function processImageWithObjectGlow(inputPath, outputPath, options = {}) {
       outputPath: finalOutputPath,
     });
 
+    logMediaProcessingEvent('success', {
+      mediaId: toTrimmed(existingState?.mediaId),
+      originalPath: normalizedInputPath,
+      outputPath: finalOutputPath,
+      renderTokens,
+    });
+
     let processingState = await upsertMediaStateByOriginalPath(normalizedInputPath, {
       processedPath: finalOutputPath,
       renderTokens,
@@ -1125,6 +1312,15 @@ async function processImageWithObjectGlow(inputPath, outputPath, options = {}) {
     if (processingState.activeVariant === 'processed') {
       processingState = await syncDerivedVariantsForMedia(normalizedInputPath);
     }
+
+    logMediaProcessingEvent('terminal completion persisted', {
+      reason: 'process_success',
+      mediaId: toTrimmed(processingState.mediaId),
+      originalPath: normalizedInputPath,
+      outputPath: finalOutputPath,
+      status: processingState.processingStatus,
+      processedAt: processingState.processedAt,
+    });
 
     return {
       result: {
@@ -1158,6 +1354,13 @@ async function processImageWithObjectGlow(inputPath, outputPath, options = {}) {
         processingError,
       });
       mediaError.processingState = processingState;
+      logMediaProcessingEvent('retry/failure', {
+        mediaId: toTrimmed(processingState.mediaId),
+        originalPath: normalizedInputPath,
+        outputPath: normalizedOutputPath,
+        status: processingState.processingStatus,
+        error: processingError,
+      });
     }
 
     throw mediaError;
@@ -1239,9 +1442,12 @@ module.exports = {
   processImageWithObjectGlow,
   computeProcessedOutputPath,
   syncDerivedVariantsForMedia,
+  reconcileCompletedMediaStateIfArtifactExists,
   setActiveVariant,
   getMediaStateByOriginalPath,
+  upsertMediaStateByOriginalPath,
   ensureMediaStateByOriginalPath,
+  countMediaByState,
   toErrorPayload: toMediaErrorPayload,
   __setObjectGlowRunnerForTests,
   __resetObjectGlowRunnerForTests,

@@ -8,6 +8,7 @@ const {
   processImageWithObjectGlowById,
   getMediaStateByOriginalPath,
   getMediaStateById,
+  reconcileCompletedMediaStateIfArtifactExists,
 } = require('./mediaProcessingService');
 const {
   MEDIA_ERROR_CODES,
@@ -104,6 +105,11 @@ let processImageRunner = processImageWithObjectGlow;
 let processImageByIdRunner = processImageWithObjectGlowById;
 let getMediaStateRunner = getMediaStateByOriginalPath;
 let getMediaStateByIdRunner = getMediaStateById;
+let reconcileCompletedStateRunner = reconcileCompletedMediaStateIfArtifactExists;
+
+function logMediaJobEvent(event, details = {}) {
+  console.info(`[mediaJobService] ${event}`, details);
+}
 
 function createJobId() {
   if (typeof randomUUID === 'function') {
@@ -215,6 +221,15 @@ async function runJob(job) {
   job.startedAt = new Date().toISOString();
   job.updatedAt = job.startedAt;
   job.attemptCount += 1;
+  logMediaJobEvent('start processing', {
+    jobId: job.id,
+    mediaId: job.mediaId,
+    originalPath: job.originalPath,
+    outputPath: job.outputPath,
+    attemptCount: job.attemptCount,
+    renderTokens: job.renderTokens,
+    queueStatus: getQueueStatus(),
+  });
 
   try {
     const normalizedMediaId = toTrimmed(job.mediaId);
@@ -247,6 +262,14 @@ async function runJob(job) {
       })
     );
     job.error = null;
+    logMediaJobEvent('success', {
+      jobId: job.id,
+      mediaId: job.mediaId,
+      originalPath: job.originalPath,
+      outputPath: job.outputPath,
+      processingStatus: job.processingState?.processingStatus,
+      queueStatus: getQueueStatus(),
+    });
   } catch (error) {
     job.status = 'failed';
     job.finishedAt = new Date().toISOString();
@@ -263,6 +286,15 @@ async function runJob(job) {
         originalPath: job.originalPath,
       })
     );
+    logMediaJobEvent('retry/failure', {
+      jobId: job.id,
+      mediaId: job.mediaId,
+      originalPath: job.originalPath,
+      outputPath: job.outputPath,
+      error: job.error,
+      processingStatus: job.processingState?.processingStatus,
+      queueStatus: getQueueStatus(),
+    });
   } finally {
     activeWorkers -= 1;
     pruneCompletedJobHistory();
@@ -289,6 +321,7 @@ async function enqueueMediaProcessingJob({
   inputPath,
   outputPath,
   renderTokens,
+  forceReprocess = false,
 } = {}) {
   const rawMediaId = toTrimmed(mediaId);
   const rawInputPath = toTrimmed(inputPath);
@@ -313,13 +346,32 @@ async function enqueueMediaProcessingJob({
     ? await queueMediaProcessingByIdRunner(
         rawMediaId,
         rawOutputPath || undefined,
-        resolvedRenderTokens
+        resolvedRenderTokens,
+        { forceReprocess }
       )
     : await queueMediaProcessingRunner(
         rawInputPath,
         rawOutputPath || undefined,
-        resolvedRenderTokens
+        resolvedRenderTokens,
+        { forceReprocess }
       );
+  if (queued?.skipped) {
+    logMediaJobEvent('skip as already complete', {
+      mediaId: toTrimmed(queued?.mediaId || queued?.processingState?.mediaId),
+      originalPath: queued?.inputPath,
+      outputPath: queued?.outputPath,
+      skipReason: queued?.skipReason || 'already_complete',
+      forceReprocess,
+      queueStatus: getQueueStatus(),
+    });
+    return {
+      job: null,
+      queueStatus: getQueueStatus(),
+      processingState: queued.processingState || null,
+      skipped: true,
+      skipReason: queued.skipReason || 'already_complete',
+    };
+  }
   const resolvedMediaId = toTrimmed(queued?.mediaId || queued?.processingState?.mediaId);
   const queuedRenderTokens = normalizeRenderTokens(
     queued?.renderTokens || queued?.processingState?.renderTokens || resolvedRenderTokens
@@ -330,6 +382,13 @@ async function enqueueMediaProcessingJob({
     renderTokens: queuedRenderTokens,
   });
   if (existingOpenJob) {
+    logMediaJobEvent('enqueue deduped to open job', {
+      requestedMediaId: rawMediaId || resolvedMediaId,
+      originalPath: queued.inputPath,
+      existingJobId: existingOpenJob.id,
+      forceReprocess,
+      queueStatus: getQueueStatus(),
+    });
     return {
       job: normalizeJobRecord(existingOpenJob),
       queueStatus: getQueueStatus(),
@@ -357,6 +416,15 @@ async function enqueueMediaProcessingJob({
 
   jobsById.set(job.id, job);
   pendingJobIds.push(job.id);
+  logMediaJobEvent('enqueue', {
+    jobId: job.id,
+    mediaId: job.mediaId,
+    originalPath: job.originalPath,
+    outputPath: job.outputPath,
+    forceReprocess,
+    renderTokens: job.renderTokens,
+    queueStatus: getQueueStatus(),
+  });
   schedulePump();
 
   return {
@@ -365,11 +433,17 @@ async function enqueueMediaProcessingJob({
   };
 }
 
-async function enqueueMediaProcessingJobById(mediaId, outputPath, renderTokens) {
+async function enqueueMediaProcessingJobById(
+  mediaId,
+  outputPath,
+  renderTokens,
+  forceReprocess = false
+) {
   return enqueueMediaProcessingJob({
     mediaId,
     outputPath,
     renderTokens,
+    forceReprocess,
   });
 }
 
@@ -442,6 +516,7 @@ async function recoverQueuedMediaJobs({ limit } = {}) {
     .lean();
 
   let recoveredCount = 0;
+  let reconciledCount = 0;
   let skippedCount = 0;
   let failedCount = 0;
 
@@ -453,6 +528,33 @@ async function recoverQueuedMediaJobs({ limit } = {}) {
 
     const recordMediaId = toTrimmed(record.mediaId);
     const recordRenderTokens = toValidatedRenderTokensOrDefault(record.renderTokens);
+    logMediaJobEvent('recovery candidate', {
+      mediaId: recordMediaId,
+      originalPath: record.originalPath,
+      outputPath: toTrimmed(record.processedPath),
+      processingStatus: toTrimmed(record.processingStatus),
+      renderTokens: recordRenderTokens,
+    });
+
+    const reconciledState = await reconcileCompletedStateRunner(record.originalPath, {
+      state: record,
+      outputPath: toTrimmed(record.processedPath) || undefined,
+      renderTokens: recordRenderTokens,
+      allowQueuedRecovery: true,
+      reason: 'startup_recovery',
+    });
+    if (reconciledState) {
+      reconciledCount += 1;
+      skippedCount += 1;
+      logMediaJobEvent('recovery reconciled terminal completion', {
+        mediaId: toTrimmed(reconciledState.mediaId),
+        originalPath: reconciledState.originalPath,
+        outputPath: reconciledState.processedPath,
+        processingStatus: reconciledState.processingStatus,
+      });
+      continue;
+    }
+
     if (findOpenJobByIdentity({
       mediaId: recordMediaId,
       originalPath: record.originalPath,
@@ -467,13 +569,26 @@ async function recoverQueuedMediaJobs({ limit } = {}) {
         ? await queueMediaProcessingByIdRunner(
             recordMediaId,
             toTrimmed(record.processedPath) || undefined,
-            recordRenderTokens
+            recordRenderTokens,
+            { forceReprocess: false }
           )
         : await queueMediaProcessingRunner(
             record.originalPath,
             toTrimmed(record.processedPath) || undefined,
-            recordRenderTokens
+            recordRenderTokens,
+            { forceReprocess: false }
           );
+      if (queued?.skipped) {
+        reconciledCount += 1;
+        skippedCount += 1;
+        logMediaJobEvent('recovery skipped as already complete', {
+          mediaId: toTrimmed(queued?.mediaId || queued?.processingState?.mediaId),
+          originalPath: queued?.inputPath,
+          outputPath: queued?.outputPath,
+          skipReason: queued?.skipReason || 'already_complete',
+        });
+        continue;
+      }
       const resolvedMediaId = toTrimmed(queued?.mediaId || queued?.processingState?.mediaId);
       const queuedRenderTokens = normalizeRenderTokens(
         queued?.renderTokens || queued?.processingState?.renderTokens || recordRenderTokens
@@ -501,8 +616,25 @@ async function recoverQueuedMediaJobs({ limit } = {}) {
       jobsById.set(job.id, job);
       pendingJobIds.push(job.id);
       recoveredCount += 1;
-    } catch (_error) {
+      logMediaJobEvent('recovery enqueue', {
+        jobId: job.id,
+        mediaId: job.mediaId,
+        originalPath: job.originalPath,
+        outputPath: job.outputPath,
+        processingStatus: job.processingState?.processingStatus,
+        queueStatus: getQueueStatus(),
+      });
+    } catch (error) {
       failedCount += 1;
+      logMediaJobEvent('recovery failure', {
+        mediaId: recordMediaId,
+        originalPath: record.originalPath,
+        outputPath: toTrimmed(record.processedPath),
+        error: toMediaErrorPayload(error, {
+          code: MEDIA_ERROR_CODES.OBJECT_GLOW_PROCESS_FAILED,
+          message: 'Failed to recover queued media job',
+        }),
+      });
     }
   }
 
@@ -513,6 +645,7 @@ async function recoverQueuedMediaJobs({ limit } = {}) {
   return {
     matchedCount: candidates.length,
     recoveredCount,
+    reconciledCount,
     skippedCount,
     failedCount,
     queueStatus: getQueueStatus(),
@@ -537,6 +670,9 @@ function __setMediaJobHandlersForTests(handlers = {}) {
   }
   if (typeof handlers.getMediaStateById === 'function') {
     getMediaStateByIdRunner = handlers.getMediaStateById;
+  }
+  if (typeof handlers.reconcileCompletedMediaStateIfArtifactExists === 'function') {
+    reconcileCompletedStateRunner = handlers.reconcileCompletedMediaStateIfArtifactExists;
   }
 }
 
@@ -601,6 +737,7 @@ function __resetMediaJobServiceForTests() {
   processImageByIdRunner = processImageWithObjectGlowById;
   getMediaStateRunner = getMediaStateByOriginalPath;
   getMediaStateByIdRunner = getMediaStateById;
+  reconcileCompletedStateRunner = reconcileCompletedMediaStateIfArtifactExists;
 }
 
 module.exports = {

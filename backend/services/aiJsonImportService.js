@@ -12,6 +12,10 @@ const {
   quoteLabel,
   toIdString,
 } = require('./eventLogService');
+const {
+  buildImportImageLookup,
+  attachBatchImportImageToItem,
+} = require('./batchImportImageService');
 
 const AI_IMPORT_FALLBACK_SOURCE = 'ai_json_import';
 const AI_IMPORT_SOURCE_MAX_LENGTH = 120;
@@ -40,7 +44,8 @@ function createAiImportError(
 
 function isPlainObject(value) {
   if (!value || typeof value !== 'object') return false;
-  return Object.getPrototypeOf(value) === Object.prototype;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
 }
 
 function normalizeText(value) {
@@ -331,6 +336,7 @@ function validateAndNormalizeAiImportPayload(rawPayload = {}) {
       category: normalizeItemCategory(rawItem.category),
       tags: normalizeTags(rawItem.tags),
       quantity: normalizeQuantity(rawItem.quantity),
+      imageKey: normalizeNullableText(rawItem.imageKey),
       location:
         normalizeNullableText(rawItem.location) ?? normalizedBatchContext.location,
       box: normalizeNullableText(rawItem.box) ?? normalizedBatchContext.box,
@@ -605,6 +611,7 @@ async function logAiImportBatchEvent({
   batchContext,
   inputMode,
   inputLength,
+  imageImportSummary,
 } = {}) {
   const safeStatus =
     status === 'success' || status === 'partial_success' || status === 'failed'
@@ -658,6 +665,15 @@ async function logAiImportBatchEvent({
         warning_count: Array.isArray(warnings) ? warnings.length : 0,
         validation_error_count: errorSummary.length,
         validation_errors: errorSummary,
+        image_import_summary: imageImportSummary && typeof imageImportSummary === 'object'
+          ? {
+              requested_count: Number(imageImportSummary.requestedCount) || 0,
+              attached_count: Number(imageImportSummary.attachedCount) || 0,
+              missing_count: Number(imageImportSummary.missingCount) || 0,
+              ambiguous_count: Number(imageImportSummary.ambiguousCount) || 0,
+              ready_count: Number(imageImportSummary.readyCount) || 0,
+            }
+          : null,
       },
     },
     {
@@ -728,6 +744,7 @@ async function validateAiJsonImport(body = {}) {
       batchContext: validation.normalizedBatchContext,
       inputMode: extracted.inputMode,
       inputLength: extracted.inputLength,
+      imageImportSummary: null,
     });
 
     const err = createAiImportError('AI JSON import validation failed.', {
@@ -821,6 +838,7 @@ async function importAiJsonItems(body = {}) {
       batchContext: validation.normalizedBatchContext,
       inputMode: extracted.inputMode,
       inputLength: extracted.inputLength,
+      imageImportSummary: null,
     });
 
     const err = createAiImportError('AI JSON payload is not importable.', {
@@ -850,6 +868,14 @@ async function importAiJsonItems(body = {}) {
     }));
   const warnings = [...validation.warnings];
   const boxResolutionCache = new Map();
+  const importImageLookup = buildImportImageLookup(body?.importImages);
+  const imageImportSummary = {
+    requestedCount: validation.normalizedItems.filter((entry) => entry.imageKey).length,
+    attachedCount: 0,
+    missingCount: 0,
+    ambiguousCount: 0,
+    readyCount: 0,
+  };
 
   for (const normalizedItem of validation.normalizedItems) {
     let targetBoxRef = null;
@@ -919,6 +945,35 @@ async function importAiJsonItems(body = {}) {
         index: normalizedItem.index,
       });
 
+      if (normalizedItem.imageKey) {
+        try {
+          const attachment = await attachBatchImportImageToItem({
+            itemId: created._id,
+            imageKey: normalizedItem.imageKey,
+            importImageLookup,
+          });
+
+          if (attachment.status === 'attached') {
+            imageImportSummary.attachedCount += 1;
+            imageImportSummary.readyCount += 1;
+          } else if (attachment.status === 'missing') {
+            imageImportSummary.missingCount += 1;
+            warnings.push(
+              `No import image matched imageKey "${normalizedItem.imageKey}" for item "${createdItemRef.label}".`
+            );
+          } else if (attachment.status === 'ambiguous') {
+            imageImportSummary.ambiguousCount += 1;
+            warnings.push(
+              `Multiple import images matched imageKey "${normalizedItem.imageKey}" for item "${createdItemRef.label}": ${attachment.matches.map((entry) => entry.fileName).join(', ')}.`
+            );
+          }
+        } catch (imageError) {
+          warnings.push(
+            `Imported item "${createdItemRef.label}" but failed to attach imageKey "${normalizedItem.imageKey}": ${imageError?.message || 'Unknown image import error.'}`
+          );
+        }
+      }
+
       await logEventBestEffort(
         {
           event_type: 'item_created',
@@ -933,6 +988,7 @@ async function importAiJsonItems(body = {}) {
             import_mode: 'ai_json',
             source: validation.normalizedBatchContext.source,
             import_index: normalizedItem.index,
+            ...(normalizedItem.imageKey ? { image_key: normalizedItem.imageKey } : {}),
           },
         },
         {
@@ -977,6 +1033,7 @@ async function importAiJsonItems(body = {}) {
     batchContext: validation.normalizedBatchContext,
     inputMode: extracted.inputMode,
     inputLength: extracted.inputLength,
+    imageImportSummary,
   });
 
   return {
@@ -991,6 +1048,7 @@ async function importAiJsonItems(body = {}) {
     warnings,
     validationErrors: failures,
     batchContext: validation.normalizedBatchContext,
+    imageImportSummary,
   };
 }
 

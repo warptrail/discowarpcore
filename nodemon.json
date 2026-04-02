@@ -1,0 +1,17 @@
+{
+  "watch": [
+    "backend",
+    "scripts",
+    "package.json"
+  ],
+  "ext": "js,mjs,cjs,json",
+  "ignore": [
+    "backend/media/**",
+    "frontend/**",
+    "node_modules/**",
+    "test/**",
+    "var/**",
+    "*.txt"
+  ],
+  "delay": "150"
+}

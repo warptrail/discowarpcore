@@ -81,3 +81,7 @@ backend/media/items/thumb/*
 backend/media/boxes/original/*
 backend/media/boxes/display/*
 backend/media/boxes/thumb/*
+
+# Runtime intake staging workspace
+/var/intake/batches/*
+!/var/intake/batches/.gitkeep

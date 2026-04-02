@@ -16,6 +16,7 @@ function normalizeStatus(value, fallback = 'idle') {
   if (!normalized) return fallback;
   if (
     normalized === 'idle' ||
+    normalized === 'ready_for_processing' ||
     normalized === 'queued' ||
     normalized === 'processing' ||
     normalized === 'completed' ||

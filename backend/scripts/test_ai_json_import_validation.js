@@ -24,6 +24,7 @@ function run() {
         category: 'Tools',
         tags: ['metal', 'heavy'],
         quantity: 2,
+        imageKey: 'hammer-photo',
       },
     ],
   });
@@ -35,6 +36,10 @@ function run() {
   invariant(singleValid.normalizedItems[0].category === 'tools', 'Expected normalized category tools');
   invariant(singleValid.normalizedItems[0].location === 'Garage Shelf', 'Expected batch location fallback');
   invariant(singleValid.normalizedItems[0].box === '101', 'Expected batch box fallback');
+  invariant(
+    singleValid.normalizedItems[0].imageKey === 'hammer-photo',
+    'Expected imageKey to be preserved'
+  );
 
   const perItemOverride = validateAndNormalizeAiImportPayload({
     batchContext: {

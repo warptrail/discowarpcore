@@ -1,9 +1,13 @@
-import { useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import {
+  fetchBatchImportReadySummary,
   importAiJsonItems,
+  processBatchImportReadyImages,
   validateAiJsonImport,
 } from '../../api/bulkImport';
+import { ToastContext } from '../Toast';
+import IntakeBatchManager from './IntakeBatchManager';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_CONTROL_MIN_HEIGHT,
@@ -12,7 +16,7 @@ import {
 
 const Panel = styled.section`
   border: 1px solid rgba(96, 152, 189, 0.36);
-  border-radius: 12px;
+  border-radius: 14px;
   background: linear-gradient(180deg, rgba(12, 20, 29, 0.94) 0%, rgba(8, 14, 22, 0.98) 100%);
   padding: 0.8rem;
   display: grid;
@@ -22,6 +26,25 @@ const Panel = styled.section`
     padding: 0.64rem;
     gap: 0.6rem;
   }
+`;
+
+const IntroPanel = styled(Panel)`
+  gap: 0.36rem;
+`;
+
+const IntroTitle = styled.h2`
+  margin: 0;
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #e2effc;
+`;
+
+const IntroText = styled.p`
+  margin: 0;
+  color: #a8c0d8;
+  font-size: 0.8rem;
+  line-height: 1.42;
 `;
 
 const Section = styled.div`
@@ -214,6 +237,55 @@ const Feedback = styled.div`
   font-size: 0.8rem;
 `;
 
+const AdvancedWrap = styled.details`
+  border: 1px solid rgba(80, 131, 167, 0.3);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(9, 16, 24, 0.92) 0%, rgba(7, 12, 18, 0.96) 100%);
+  overflow: hidden;
+`;
+
+const AdvancedSummary = styled.summary`
+  list-style: none;
+  cursor: pointer;
+  padding: 0.82rem 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.72rem;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+`;
+
+const AdvancedHeader = styled.div`
+  display: grid;
+  gap: 0.18rem;
+`;
+
+const AdvancedTitle = styled.div`
+  font-size: 0.84rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #dcecfb;
+`;
+
+const AdvancedText = styled.div`
+  font-size: 0.76rem;
+  color: #93adc4;
+`;
+
+const AdvancedPill = styled.div`
+  border-radius: 999px;
+  border: 1px solid rgba(88, 143, 184, 0.42);
+  background: rgba(14, 24, 35, 0.85);
+  color: #c2d8ec;
+  padding: 0.18rem 0.46rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+`;
+
 function isJsonFile(file) {
   const mime = String(file?.type || '').toLowerCase();
   const name = String(file?.name || '');
@@ -252,6 +324,16 @@ function normalizeImportResult(raw = {}) {
     createdCount: Number(raw?.createdCount) || 0,
     failedCount: Number(raw?.failedCount) || 0,
     createdItemIds: Array.isArray(raw?.createdItemIds) ? raw.createdItemIds : [],
+    imageImportSummary:
+      raw?.imageImportSummary && typeof raw.imageImportSummary === 'object'
+        ? {
+            requestedCount: Number(raw.imageImportSummary.requestedCount) || 0,
+            attachedCount: Number(raw.imageImportSummary.attachedCount) || 0,
+            missingCount: Number(raw.imageImportSummary.missingCount) || 0,
+            ambiguousCount: Number(raw.imageImportSummary.ambiguousCount) || 0,
+            readyCount: Number(raw.imageImportSummary.readyCount) || 0,
+          }
+        : null,
     warnings: Array.isArray(raw?.warnings) ? raw.warnings : [],
     validationErrors: Array.isArray(raw?.validationErrors) ? raw.validationErrors : [],
   };
@@ -259,8 +341,12 @@ function normalizeImportResult(raw = {}) {
 
 export default function BulkImportAiJsonPanel() {
   const jsonFileInputRef = useRef(null);
+  const importImageInputRef = useRef(null);
+  const toastCtx = useContext(ToastContext);
   const [jsonText, setJsonText] = useState('');
   const [jsonFileName, setJsonFileName] = useState('');
+  const [importImageFiles, setImportImageFiles] = useState([]);
+  const [importImageFolderLabel, setImportImageFolderLabel] = useState('');
   const [validationBusy, setValidationBusy] = useState(false);
   const [importBusy, setImportBusy] = useState(false);
   const [hasValidatedCurrentText, setHasValidatedCurrentText] = useState(false);
@@ -282,6 +368,13 @@ export default function BulkImportAiJsonPanel() {
     if (validationResult.isImportable) return 'warning';
     return 'error';
   }, [validationResult]);
+
+  useEffect(() => {
+    const input = importImageInputRef.current;
+    if (!input) return;
+    input.setAttribute('webkitdirectory', '');
+    input.setAttribute('directory', '');
+  }, []);
 
   const handleJsonTextChange = (event) => {
     setJsonText(event.target.value);
@@ -319,6 +412,21 @@ export default function BulkImportAiJsonPanel() {
       setFeedback({ tone: 'error', message: err?.message || 'Failed to read JSON file.' });
       event.target.value = '';
     }
+  };
+
+  const handleImportImageFolderChange = (event) => {
+    const files = Array.from(event.target.files || []).filter(Boolean);
+    setImportImageFiles(files);
+
+    if (!files.length) {
+      setImportImageFolderLabel('');
+      return;
+    }
+
+    const firstRelativePath = String(files[0]?.webkitRelativePath || '').trim();
+    const folderName = firstRelativePath.split('/').filter(Boolean)[0]
+      || 'selected image folder';
+    setImportImageFolderLabel(folderName);
   };
 
   const handleValidate = async () => {
@@ -372,7 +480,9 @@ export default function BulkImportAiJsonPanel() {
     setFeedback({ tone: 'info', message: '' });
 
     try {
-      const result = normalizeImportResult(await importAiJsonItems({ jsonText }));
+      const result = normalizeImportResult(
+        await importAiJsonItems({ jsonText, importImageFiles })
+      );
       setImportResult(result);
       setFeedback({
         tone: result.status === 'failed' ? 'error' : 'success',
@@ -383,6 +493,47 @@ export default function BulkImportAiJsonPanel() {
               ? `Imported ${result.createdCount} items with ${result.failedCount} issue${result.failedCount === 1 ? '' : 's'}.`
               : 'Import failed. No items were created.',
       });
+
+      const readyCount = Number(result?.imageImportSummary?.readyCount) || 0;
+      if (readyCount > 0) {
+        const latestSummary = await fetchBatchImportReadySummary().catch(() => null);
+        const totalReadyCount = Number(latestSummary?.readyCount) || readyCount;
+
+        toastCtx?.showToast?.({
+          title: 'Imported images ready',
+          message: `${readyCount} new image${readyCount === 1 ? '' : 's'} are ready for batch processing.${totalReadyCount > readyCount ? ` ${totalReadyCount} total pending.` : ''}`,
+          variant: 'warning',
+          sticky: true,
+          actions: [
+            {
+              label: 'Process Now',
+              kind: 'primary',
+              onClick: async () => {
+                try {
+                  const queued = await processBatchImportReadyImages();
+                  const queuedCount = Number(queued?.queuedCount) || 0;
+                  toastCtx?.showToast?.({
+                    title: 'Batch processing queued',
+                    message: `Queued ${queuedCount} imported image${queuedCount === 1 ? '' : 's'} for processing.`,
+                    variant: 'success',
+                  });
+                } catch (error) {
+                  toastCtx?.showToast?.({
+                    title: 'Batch processing start failed',
+                    message: error?.message || 'Failed to queue imported images for processing.',
+                    variant: 'danger',
+                    sticky: true,
+                  });
+                }
+              },
+            },
+            {
+              label: 'Later',
+              onClick: () => toastCtx?.hideToast?.(),
+            },
+          ],
+        });
+      }
     } catch (err) {
       const body = err?.responseBody || {};
       setImportResult(
@@ -409,124 +560,163 @@ export default function BulkImportAiJsonPanel() {
   const currentErrors = validationResult?.validationErrors || [];
 
   return (
-    <Panel>
-      <Section>
-        <Label htmlFor="bulk-import-ai-json-file">JSON File (Optional)</Label>
-        <FileInput
-          id="bulk-import-ai-json-file"
-          ref={jsonFileInputRef}
-          type="file"
-          accept=".json,application/json,text/json"
-          onChange={handleJsonFileChange}
-        />
-        <StatusLine>
-          {jsonFileName
-            ? `Loaded ${jsonFileName}.`
-            : 'Paste JSON directly or load a .json file into the editor.'}
-        </StatusLine>
-      </Section>
+    <>
+      <IntroPanel>
+        <IntroTitle>AI JSON Import</IntroTitle>
+        <IntroText>Use the batch workflow for normal intake. Direct JSON import stays available as an advanced fallback.</IntroText>
+      </IntroPanel>
 
-      <Section>
-        <Label htmlFor="bulk-import-ai-json-text">AI JSON Payload</Label>
-        <TextArea
-          id="bulk-import-ai-json-text"
-          value={jsonText}
-          onChange={handleJsonTextChange}
-          placeholder='{"batchContext":{"source":"ai_json_import"},"items":[{"name":"Example Item","description":"","category":"miscellaneous","tags":[],"quantity":1,"location":null,"box":null}]}'
-        />
-      </Section>
+      <IntakeBatchManager />
 
-      <ButtonRow>
-        <ActionButton type="button" onClick={handleValidate} disabled={!canValidate}>
-          {validationBusy ? 'Validating…' : 'Validate'}
-        </ActionButton>
-        <ActionButton
-          type="button"
-          $variant="import"
-          onClick={handleImport}
-          disabled={!canImport}
-        >
-          {importBusy ? 'Importing…' : 'Import JSON'}
-        </ActionButton>
-      </ButtonRow>
+      <AdvancedWrap>
+        <AdvancedSummary>
+          <AdvancedHeader>
+            <AdvancedTitle>Advanced Direct JSON Import</AdvancedTitle>
+            <AdvancedText>Use this only when you want to skip the repo-local batch workflow.</AdvancedText>
+          </AdvancedHeader>
+          <AdvancedPill>{canImport ? 'ready' : 'manual mode'}</AdvancedPill>
+        </AdvancedSummary>
 
-      <StatusLine $tone={canImport ? 'valid' : hasValidatedCurrentText ? 'warning' : 'muted'}>
-        {canImport
-          ? 'Validation complete. Import can proceed.'
-          : hasValidatedCurrentText
-            ? 'Revalidate after edits, or resolve validation issues before import.'
-            : 'Validate this payload before importing.'}
-      </StatusLine>
+        <Panel>
+          <Section>
+            <Label htmlFor="bulk-import-ai-json-file">Direct JSON File</Label>
+            <FileInput
+              id="bulk-import-ai-json-file"
+              ref={jsonFileInputRef}
+              type="file"
+              accept=".json,application/json,text/json"
+              onChange={handleJsonFileChange}
+            />
+            <StatusLine>
+              {jsonFileName ? `Loaded ${jsonFileName}.` : 'Paste JSON or load a .json file.'}
+            </StatusLine>
+          </Section>
 
-      {validationResult ? (
-        <ResultCard $tone={validationTone}>
-          <ResultHeading>
-            Validation {validationResult.valid ? 'Valid' : validationResult.isImportable ? 'Valid with Issues' : 'Invalid'}
-          </ResultHeading>
-          <ResultLine>
-            Parsed: {validationResult.receivedCount} • Normalized: {validationResult.validCount} • Issues: {validationResult.failedCount}
-          </ResultLine>
-          {validationResult.source ? <ResultLine>Source: {validationResult.source}</ResultLine> : null}
+          <Section>
+            <Label htmlFor="bulk-import-ai-image-folder">Direct Import Images Folder</Label>
+            <FileInput
+              id="bulk-import-ai-image-folder"
+              ref={importImageInputRef}
+              type="file"
+              accept=".jpg,.jpeg,.png,.webp,.heic,image/jpeg,image/png,image/webp,image/heic"
+              multiple
+              onChange={handleImportImageFolderChange}
+            />
+            <StatusLine>
+              {importImageFiles.length
+                ? `Loaded ${importImageFiles.length} image file${importImageFiles.length === 1 ? '' : 's'} from ${importImageFolderLabel || 'selected folder'}. Exact basename must match imageKey.`
+                : 'Only needed when the JSON already contains imageKey values.'}
+            </StatusLine>
+          </Section>
 
-          {currentWarnings.length ? (
-            <>
-              <ResultLine>Warnings:</ResultLine>
-              <IssueList>
-                {currentWarnings.slice(0, 8).map((entry, index) => (
-                  <Issue key={`warn-${index}`} $tone="warning">{String(entry || '').trim()}</Issue>
-                ))}
-              </IssueList>
-            </>
+          <Section>
+            <Label htmlFor="bulk-import-ai-json-text">Direct AI JSON Payload</Label>
+            <TextArea
+              id="bulk-import-ai-json-text"
+              value={jsonText}
+              onChange={handleJsonTextChange}
+              placeholder='{"batchContext":{"source":"ai_json_import"},"items":[{"name":"Example Item","description":"","category":"miscellaneous","tags":[],"quantity":1,"location":null,"box":null,"imageKey":"example-item"}]}'
+            />
+          </Section>
+
+          <ButtonRow>
+            <ActionButton type="button" onClick={handleValidate} disabled={!canValidate}>
+              {validationBusy ? 'Validating…' : 'Validate Direct JSON'}
+            </ActionButton>
+            <ActionButton
+              type="button"
+              $variant="import"
+              onClick={handleImport}
+              disabled={!canImport}
+            >
+              {importBusy ? 'Importing…' : 'Import Direct JSON'}
+            </ActionButton>
+          </ButtonRow>
+
+          <StatusLine $tone={canImport ? 'valid' : hasValidatedCurrentText ? 'warning' : 'muted'}>
+            {canImport
+              ? 'Direct payload validated.'
+              : hasValidatedCurrentText
+                ? 'Revalidate after edits or fix the reported issues.'
+                : 'Validate before importing.'}
+          </StatusLine>
+
+          {validationResult ? (
+            <ResultCard $tone={validationTone}>
+              <ResultHeading>
+                Validation {validationResult.valid ? 'Valid' : validationResult.isImportable ? 'Valid with Issues' : 'Invalid'}
+              </ResultHeading>
+              <ResultLine>
+                Parsed: {validationResult.receivedCount} • Normalized: {validationResult.validCount} • Issues: {validationResult.failedCount}
+              </ResultLine>
+              {validationResult.source ? <ResultLine>Source: {validationResult.source}</ResultLine> : null}
+
+              {currentWarnings.length ? (
+                <>
+                  <ResultLine>Warnings:</ResultLine>
+                  <IssueList>
+                    {currentWarnings.slice(0, 8).map((entry, index) => (
+                      <Issue key={`warn-${index}`} $tone="warning">{String(entry || '').trim()}</Issue>
+                    ))}
+                  </IssueList>
+                </>
+              ) : null}
+
+              {currentErrors.length ? (
+                <>
+                  <ResultLine>Validation Errors:</ResultLine>
+                  <IssueList>
+                    {currentErrors.slice(0, 10).map((entry, index) => (
+                      <Issue key={`err-${index}`}>{toIssueLabel(entry)}</Issue>
+                    ))}
+                  </IssueList>
+                </>
+              ) : null}
+            </ResultCard>
           ) : null}
 
-          {currentErrors.length ? (
-            <>
-              <ResultLine>Validation Errors:</ResultLine>
-              <IssueList>
-                {currentErrors.slice(0, 10).map((entry, index) => (
-                  <Issue key={`err-${index}`}>{toIssueLabel(entry)}</Issue>
-                ))}
-              </IssueList>
-            </>
-          ) : null}
-        </ResultCard>
-      ) : null}
+          {importResult ? (
+            <ResultCard $tone={importResult.status === 'failed' ? 'error' : importResult.status === 'partial_success' ? 'warning' : 'valid'}>
+              <ResultHeading>Import {importResult.status.replace(/_/g, ' ')}</ResultHeading>
+              <ResultLine>
+                Received: {importResult.receivedCount} • Validated: {importResult.validCount} • Created: {importResult.createdCount} • Failed: {importResult.failedCount}
+              </ResultLine>
+              {importResult.imageImportSummary ? (
+                <ResultLine>
+                  Images Requested: {importResult.imageImportSummary.requestedCount} • Attached: {importResult.imageImportSummary.attachedCount} • Ready: {importResult.imageImportSummary.readyCount} • Missing: {importResult.imageImportSummary.missingCount} • Ambiguous: {importResult.imageImportSummary.ambiguousCount}
+                </ResultLine>
+              ) : null}
+              {importResult.createdItemIds.length ? (
+                <ResultLine>Created IDs: {importResult.createdItemIds.slice(0, 10).join(', ')}</ResultLine>
+              ) : null}
 
-      {importResult ? (
-        <ResultCard $tone={importResult.status === 'failed' ? 'error' : importResult.status === 'partial_success' ? 'warning' : 'valid'}>
-          <ResultHeading>Import {importResult.status.replace(/_/g, ' ')}</ResultHeading>
-          <ResultLine>
-            Received: {importResult.receivedCount} • Validated: {importResult.validCount} • Created: {importResult.createdCount} • Failed: {importResult.failedCount}
-          </ResultLine>
-          {importResult.createdItemIds.length ? (
-            <ResultLine>Created IDs: {importResult.createdItemIds.slice(0, 10).join(', ')}</ResultLine>
+              {importResult.warnings.length ? (
+                <>
+                  <ResultLine>Warnings:</ResultLine>
+                  <IssueList>
+                    {importResult.warnings.slice(0, 8).map((entry, index) => (
+                      <Issue key={`import-warn-${index}`} $tone="warning">{String(entry || '').trim()}</Issue>
+                    ))}
+                  </IssueList>
+                </>
+              ) : null}
+
+              {importResult.validationErrors.length ? (
+                <>
+                  <ResultLine>Errors:</ResultLine>
+                  <IssueList>
+                    {importResult.validationErrors.slice(0, 10).map((entry, index) => (
+                      <Issue key={`import-err-${index}`}>{toIssueLabel(entry)}</Issue>
+                    ))}
+                  </IssueList>
+                </>
+              ) : null}
+            </ResultCard>
           ) : null}
 
-          {importResult.warnings.length ? (
-            <>
-              <ResultLine>Warnings:</ResultLine>
-              <IssueList>
-                {importResult.warnings.slice(0, 8).map((entry, index) => (
-                  <Issue key={`import-warn-${index}`} $tone="warning">{String(entry || '').trim()}</Issue>
-                ))}
-              </IssueList>
-            </>
-          ) : null}
-
-          {importResult.validationErrors.length ? (
-            <>
-              <ResultLine>Errors:</ResultLine>
-              <IssueList>
-                {importResult.validationErrors.slice(0, 10).map((entry, index) => (
-                  <Issue key={`import-err-${index}`}>{toIssueLabel(entry)}</Issue>
-                ))}
-              </IssueList>
-            </>
-          ) : null}
-        </ResultCard>
-      ) : null}
-
-      {feedback.message ? <Feedback $tone={feedback.tone}>{feedback.message}</Feedback> : null}
-    </Panel>
+          {feedback.message ? <Feedback $tone={feedback.tone}>{feedback.message}</Feedback> : null}
+        </Panel>
+      </AdvancedWrap>
+    </>
   );
 }

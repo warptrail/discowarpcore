@@ -916,7 +916,10 @@ async function setItemImage(id, image) {
   const previousPaths = collectImageStoragePaths(current);
   const normalizedImage = {
     ...(image && typeof image === 'object' ? image : {}),
-    mediaId: '',
+    mediaId:
+      image && typeof image === 'object' && typeof image.mediaId === 'string'
+        ? image.mediaId.trim()
+        : '',
   };
   const nextPaths = new Set(
     collectImageStoragePaths({ image: normalizedImage, imagePath: '' })

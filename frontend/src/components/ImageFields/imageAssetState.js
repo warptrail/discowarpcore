@@ -26,6 +26,7 @@ export function normalizeProcessingStatus(status, fallback = '') {
   if (normalized === 'processing') return 'processing';
   if (normalized === 'completed') return 'completed';
   if (normalized === 'failed') return 'failed';
+  if (normalized === 'ready_for_processing') return 'ready_for_processing';
   if (normalized === 'idle') return 'idle';
   return fallback;
 }
@@ -155,5 +156,8 @@ export function formatProcessActionLabel(status, labels = {}) {
   if (normalized === 'processing') return labels.processing || 'Processing...';
   if (normalized === 'completed') return labels.completed || 'Reprocess Image';
   if (normalized === 'failed') return labels.failed || 'Retry Process';
+  if (normalized === 'ready_for_processing') {
+    return labels.ready_for_processing || labels.idle || 'Process Image';
+  }
   return labels.idle || 'Process Image';
 }

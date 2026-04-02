@@ -11,6 +11,10 @@ const ITEM_MEDIA_SUBDIRS = {
   thumb: 'items/thumb',
 };
 
+const IMPORT_MEDIA_SUBDIRS = {
+  staging: '_imports/staging',
+};
+
 const BOX_MEDIA_SUBDIRS = {
   original: 'boxes/original',
   display: 'boxes/display',
@@ -45,6 +49,7 @@ const MEDIA_SUBDIRS = [
   ITEM_MEDIA_SUBDIRS.original,
   ITEM_MEDIA_SUBDIRS.display,
   ITEM_MEDIA_SUBDIRS.thumb,
+  IMPORT_MEDIA_SUBDIRS.staging,
   BOX_MEDIA_SUBDIRS.original,
   BOX_MEDIA_SUBDIRS.display,
   BOX_MEDIA_SUBDIRS.thumb,
@@ -69,6 +74,7 @@ module.exports = {
   MEDIA_ROOT,
   MEDIA_URL_BASE,
   ITEM_MEDIA_SUBDIRS,
+  IMPORT_MEDIA_SUBDIRS,
   BOX_MEDIA_SUBDIRS,
   ALLOWED_IMAGE_MIME_TO_EXT,
   UPLOAD_LIMITS,

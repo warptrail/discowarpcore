@@ -75,11 +75,11 @@ const TabSubtext = styled.div`
 `;
 
 export default function BulkImportPage() {
-  const [activeTab, setActiveTab] = useState('text');
+  const [activeTab, setActiveTab] = useState('ai');
 
   const tabSubtext = useMemo(() => {
     if (activeTab === 'ai') {
-      return 'AI JSON mode validates schema, then imports normalized items with audit logging.';
+      return 'AI JSON mode now includes repo-local batch setup, JSON/CSV validation, image staging, and direct import from validated intake batches.';
     }
     return 'Text mode imports one item name per line exactly as before.';
   }, [activeTab]);
@@ -89,8 +89,8 @@ export default function BulkImportPage() {
       <Intro>
         <Title>Bulk Import</Title>
         <IntroText>
-          Choose a mode: plain-text item names or standardized AI JSON payload import.
-          Both modes import into the existing item system and support orphaned imports.
+          Choose a mode: plain-text item names or AI JSON intake/import.
+          All modes import into the existing item system and preserve the current app contracts.
         </IntroText>
       </Intro>
 

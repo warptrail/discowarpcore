@@ -58,6 +58,7 @@ function normalizeMediaStateForResponse(state) {
     processedPath: toTrimmed(state.processedPath),
     displayPath: toTrimmed(state.displayPath),
     thumbPath: toTrimmed(state.thumbPath),
+    sourceType: toTrimmed(state.sourceType).toLowerCase(),
     renderTokens: {
       mode: toTrimmed(state?.renderTokens?.mode).toLowerCase() || 'explicit',
       background: toTrimmed(state?.renderTokens?.background),
@@ -278,7 +279,8 @@ async function enqueueItemMediaProcessing(itemId, options = {}) {
   const enqueueResult = await enqueueMediaProcessingJobByIdRunner(
     state.mediaId,
     undefined,
-    options?.renderTokens
+    options?.renderTokens,
+    true
   );
   return toEnqueueResponse(state, enqueueResult);
 }
@@ -288,7 +290,8 @@ async function enqueueBoxMediaProcessing(boxId, options = {}) {
   const enqueueResult = await enqueueMediaProcessingJobByIdRunner(
     state.mediaId,
     undefined,
-    options?.renderTokens
+    options?.renderTokens,
+    true
   );
   return toEnqueueResponse(state, enqueueResult);
 }

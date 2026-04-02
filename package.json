@@ -24,6 +24,12 @@
     "test:media-subsystem-contract": "node --test test/media/mediaSubsystem.contract.test.js",
     "test:media-job-contract": "node --test test/media/mediaJobService.contract.test.js",
     "test:entity-media-contract": "node --test test/media/entityMedia.contract.test.js",
+    "test:batch-import-media-contract": "node --test test/media/batchImportedMedia.contract.test.js test/media/batchImportImageService.contract.test.js",
+    "intake:create-batch": "node scripts/create_intake_batch.js",
+    "intake:merge-json": "node scripts/merge_inventory_json.js",
+    "intake:assign-imagekeys": "node scripts/assign_imagekeys_to_json.js",
+    "intake:validate-batch": "node scripts/validate_intake_batch.js",
+    "intake:stage-images": "node scripts/stage_imagekey_files.js",
     "deploy:neonazoth": "rsync -avz --delete --exclude 'node_modules/' --exclude 'dist/' --exclude '.git/' --exclude '.vite/' --exclude 'frontend/node_modules/' --exclude 'frontend/dist/' --exclude 'backend/media/' ./ warptrail@neonazoth:~/discowarpcore/",
     "deploy:neonazoth:dry": "rsync -avzn --delete --exclude 'node_modules/' --exclude 'dist/' --exclude '.git/' --exclude '.vite/' --exclude 'frontend/node_modules/' --exclude 'frontend/dist/' --exclude 'backend/media/' ./ warptrail@neonazoth:~/discowarpcore/",
     "install:neonazoth": "ssh warptrail@neonazoth 'cd ~/discowarpcore && npm install && cd frontend && npm install'"

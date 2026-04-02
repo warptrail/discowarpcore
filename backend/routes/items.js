@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { validateObjectIdParam } = require('../utils/validateObjectIdParam.js');
 const { uploadSingleItemImage } = require('../middleware/itemImageUpload');
+const { uploadAiJsonImportImages } = require('../middleware/aiJsonImportUpload');
 
 const {
   getAllItemsApi,
@@ -31,7 +32,7 @@ router.get('/orphaned', getOrphanedItemsApi);
 router.get('/random', getRandomItemApi);
 router.post('/bulk-create', postBulkCreateItemsApi);
 router.post('/ai-json/validate', postValidateAiJsonImportApi);
-router.post('/ai-json/import', postAiJsonImportApi);
+router.post('/ai-json/import', uploadAiJsonImportImages, postAiJsonImportApi);
 router.patch('/:id/mark-gone', validateObjectIdParam('id'), markItemGoneApi);
 router.patch('/:id/restore-active', validateObjectIdParam('id'), restoreItemToActiveApi);
 router.get(

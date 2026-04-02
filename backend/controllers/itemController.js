@@ -1,4 +1,5 @@
 // controllers/itemController.js
+const fs = require('fs/promises');
 const {
   getAllItems,
   getItemsPage,
@@ -27,6 +28,16 @@ const {
   safeDeleteMediaFile,
   safeDeleteMediaFiles,
 } = require('../utils/mediaCleanup');
+
+async function cleanupUploadedImportImages(files = []) {
+  await Promise.allSettled(
+    (Array.isArray(files) ? files : []).map((file) => {
+      const filePath = String(file?.path || '').trim();
+      if (!filePath) return Promise.resolve();
+      return fs.unlink(filePath);
+    })
+  );
+}
 
 function parsePositiveInt(raw, fallback) {
   const n = Number.parseInt(String(raw ?? ''), 10);
@@ -208,8 +219,12 @@ async function postValidateAiJsonImportApi(req, res) {
 }
 
 async function postAiJsonImportApi(req, res) {
+  const importImages = Array.isArray(req.files) ? req.files : [];
   try {
-    const result = await importAiJsonItems(req.body || {});
+    const result = await importAiJsonItems({
+      ...(req.body || {}),
+      importImages,
+    });
     const statusCode =
       result.status === 'success' ? 201 : result.status === 'partial_success' ? 207 : 400;
     return res.status(statusCode).json({ ok: statusCode < 400, ...result });
@@ -225,6 +240,8 @@ async function postAiJsonImportApi(req, res) {
       warnings: Array.isArray(err?.warnings) ? err.warnings : [],
       ...(err?.metrics && typeof err.metrics === 'object' ? err.metrics : {}),
     });
+  } finally {
+    await cleanupUploadedImportImages(importImages);
   }
 }
 

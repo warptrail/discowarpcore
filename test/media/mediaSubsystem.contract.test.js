@@ -355,6 +355,60 @@ test('queueMediaProcessing sets queued state without Mongo update-path conflicts
   assert.match(queued.processingState.mediaId, /^med_[a-f0-9]+$/);
 });
 
+test('queueMediaProcessing reconciles stale queued state to completed when artifact already exists', async (t) => {
+  const stateMock = installMediaStateMock();
+  t.after(() => stateMock.restore());
+
+  const tempDir = await createTempMediaDir();
+  t.after(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  const inputPath = path.join(tempDir, 'items', 'original', 'stale-queued.jpg');
+  const outputPath = path.join(tempDir, 'items', 'processed', 'stale-queued.webp');
+  await createTestImage(inputPath, { width: 60, height: 60, rgb: [90, 30, 120] });
+  await fs.mkdir(path.dirname(outputPath), { recursive: true });
+  await sharp(inputPath).webp().toFile(outputPath);
+
+  stateMock.store.set(inputPath, {
+    mediaId: 'med_stale_queue',
+    originalPath: inputPath,
+    processedPath: outputPath,
+    displayPath: '',
+    thumbPath: '',
+    renderTokens: {
+      mode: 'explicit',
+      background: 'midnight',
+      glow: 'arc',
+      accent: 'cyanCore',
+    },
+    activeVariant: 'original',
+    displayDerivedFrom: null,
+    thumbDerivedFrom: null,
+    processingStatus: 'queued',
+    processingError: null,
+    processedAt: null,
+  });
+
+  const queued = await mediaProcessingService.queueMediaProcessing(
+    inputPath,
+    outputPath,
+    {
+      background: 'midnight',
+      glow: 'arc',
+      accent: 'cyanCore',
+    }
+  );
+
+  assert.equal(queued.skipped, true);
+  assert.equal(queued.skipReason, 'already_complete');
+  assert.equal(queued.processingState.processingStatus, 'completed');
+  assert.equal(queued.processingState.activeVariant, 'processed');
+  assert.ok(queued.processingState.displayPath);
+  assert.ok(queued.processingState.thumbPath);
+  assert.ok(queued.processingState.processedAt);
+});
+
 test('getMediaStateById and queueMediaProcessingById keep path compatibility', async (t) => {
   const stateMock = installMediaStateMock();
   t.after(() => stateMock.restore());

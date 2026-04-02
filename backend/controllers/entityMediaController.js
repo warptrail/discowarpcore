@@ -10,6 +10,10 @@ const {
 } = require('../services/entityMediaService');
 const { getMediaStateById } = require('../services/mediaProcessingService');
 const {
+  getBatchImportReadySummary,
+  enqueueBatchImportReadyMedia,
+} = require('../services/batchImportedMediaService');
+const {
   MEDIA_ERROR_CODES,
   createMediaError,
   toMediaErrorPayload,
@@ -38,6 +42,7 @@ function toStatusPayload(state) {
     processedPath: state.processedPath,
     displayPath: state.displayPath,
     thumbPath: state.thumbPath,
+    sourceType: state.sourceType || '',
     renderTokens: state.renderTokens || null,
     processedAt: state.processedAt,
   };
@@ -182,6 +187,32 @@ async function patchBoxActiveVariantApi(req, res) {
   }
 }
 
+async function getBatchImportReadySummaryApi(_req, res) {
+  try {
+    const data = await getBatchImportReadySummary();
+    return res.status(200).json({
+      ok: true,
+      data,
+    });
+  } catch (error) {
+    return sendMediaError(res, error);
+  }
+}
+
+async function postBatchImportProcessReadyApi(req, res) {
+  try {
+    const data = await enqueueBatchImportReadyMedia({
+      limit: req.body?.limit,
+    });
+    return res.status(202).json({
+      ok: true,
+      data,
+    });
+  } catch (error) {
+    return sendMediaError(res, error);
+  }
+}
+
 module.exports = {
   postItemProcessImageApi,
   postBoxProcessImageApi,
@@ -190,4 +221,6 @@ module.exports = {
   getMediaStateByIdApi,
   patchItemActiveVariantApi,
   patchBoxActiveVariantApi,
+  getBatchImportReadySummaryApi,
+  postBatchImportProcessReadyApi,
 };

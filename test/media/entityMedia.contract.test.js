@@ -184,6 +184,7 @@ test('item media-status response includes frontend polling fields', async (t) =>
     'processingError',
     'processingStatus',
     'renderTokens',
+    'sourceType',
     'thumbPath',
   ]);
 });

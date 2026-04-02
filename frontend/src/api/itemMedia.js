@@ -58,6 +58,7 @@ function normalizeMediaState(payload) {
     mediaId: toTrimmed(payload.mediaId),
     activeVariant: toTrimmed(payload.activeVariant),
     processingStatus: toTrimmed(payload.processingStatus).toLowerCase() || 'idle',
+    sourceType: toTrimmed(payload.sourceType).toLowerCase(),
     processingError:
       payload.processingError && typeof payload.processingError === 'object'
         ? payload.processingError

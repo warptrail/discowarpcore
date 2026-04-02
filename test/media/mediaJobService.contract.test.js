@@ -368,3 +368,77 @@ test('enqueueMediaProcessingJobById dedupes by mediaId', async (t) => {
 
   assert.equal(first.job.id, second.job.id);
 });
+
+test('recovery reconciles stale queued records with existing output instead of re-enqueueing', async (t) => {
+  mediaJobService.__resetMediaJobServiceForTests();
+  t.after(() => mediaJobService.__resetMediaJobServiceForTests());
+
+  const queuedCalls = [];
+
+  mediaJobService.__setMediaJobHandlersForTests({
+    queueMediaProcessingById: async (mediaId, outputPath, renderTokens) => {
+      queuedCalls.push({ mediaId, outputPath, renderTokens });
+      return {
+        mediaId,
+        inputPath: '/tmp/recovery.jpg',
+        outputPath: outputPath || '/tmp/recovery.webp',
+        processingState: {
+          mediaId,
+          originalPath: '/tmp/recovery.jpg',
+          processedPath: outputPath || '/tmp/recovery.webp',
+          processingStatus: 'queued',
+        },
+      };
+    },
+    reconcileCompletedMediaStateIfArtifactExists: async (_originalPath, options) => ({
+      mediaId: 'med_recovery',
+      originalPath: '/tmp/recovery.jpg',
+      processedPath: options.outputPath,
+      processingStatus: 'completed',
+      activeVariant: 'processed',
+      processedAt: '2026-04-02T10:00:00.000Z',
+    }),
+  });
+
+  const originalFind = require('../../backend/models/MediaState').find;
+  const MediaState = require('../../backend/models/MediaState');
+  MediaState.find = function find() {
+    const chain = {
+      sort() {
+        return chain;
+      },
+      limit() {
+        return chain;
+      },
+      async lean() {
+        return [
+          {
+            mediaId: 'med_recovery',
+            originalPath: '/tmp/recovery.jpg',
+            processedPath: '/tmp/recovery.webp',
+            processingStatus: 'queued',
+            renderTokens: {
+              mode: 'explicit',
+              background: 'midnight',
+              glow: 'arc',
+              accent: 'cyanCore',
+            },
+          },
+        ];
+      },
+    };
+    return chain;
+  };
+  t.after(() => {
+    MediaState.find = originalFind;
+  });
+
+  const summary = await mediaJobService.recoverQueuedMediaJobs();
+
+  assert.equal(summary.matchedCount, 1);
+  assert.equal(summary.recoveredCount, 0);
+  assert.equal(summary.reconciledCount, 1);
+  assert.equal(summary.skippedCount, 1);
+  assert.equal(summary.failedCount, 0);
+  assert.equal(queuedCalls.length, 0);
+});

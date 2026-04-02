@@ -2,7 +2,14 @@ const mongoose = require('mongoose');
 const { createMediaId } = require('../utils/mediaId');
 
 const ACTIVE_VARIANTS = ['original', 'processed'];
-const PROCESSING_STATUSES = ['idle', 'queued', 'processing', 'completed', 'failed'];
+const PROCESSING_STATUSES = [
+  'idle',
+  'ready_for_processing',
+  'queued',
+  'processing',
+  'completed',
+  'failed',
+];
 
 function toTrimmed(value) {
   return value == null ? '' : String(value).trim();
@@ -74,6 +81,12 @@ const mediaStateSchema = new mongoose.Schema(
       default: 'idle',
       index: true,
     },
+    sourceType: {
+      type: String,
+      default: '',
+      trim: true,
+      index: true,
+    },
     processingError: {
       type: mongoose.Schema.Types.Mixed,
       default: null,
@@ -111,6 +124,7 @@ mediaStateSchema.pre('validate', function normalizePathFields(next) {
     this.renderTokens.glow = toTrimmed(this.renderTokens.glow);
     this.renderTokens.accent = toTrimmed(this.renderTokens.accent);
   }
+  this.sourceType = toTrimmed(this.sourceType).toLowerCase();
   next();
 });
 
