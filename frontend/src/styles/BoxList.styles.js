@@ -216,8 +216,7 @@ const RailFront = styled.div`
 const BoxCard = styled.div`
   ${panelBase};
   position: relative;
-  display: flex;
-  flex-direction: column;
+  display: block;
   overflow: hidden;
   cursor: pointer;
   animation: ${breatheIn} 140ms ease both;
@@ -290,16 +289,15 @@ const BoxCard = styled.div`
 
 const BoxHeader = styled.div`
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
-  padding: 15px 16px 11px;
-  border-bottom: 1px solid ${LCARS.line};
+  gap: 0.52rem;
+  padding: 0;
 `;
 
 const BoxTitle = styled.div`
   font-weight: 900;
-  font-size: clamp(18px, 3.6vw, 22px);
+  font-size: clamp(0.94rem, 1.8vw, 1.08rem);
   color: ${({ $isRoot, $depth = 0 }) =>
     toneAlpha(railTone({ $isRoot, $depth }), 'ee')};
   text-shadow: 0 0 10px
@@ -318,15 +316,16 @@ const BoxTitle = styled.div`
 const ShortId = styled.span`
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  border-radius: 12px;
+  justify-self: end;
+  padding: 0.2rem 0.44rem;
+  border-radius: 999px;
   font-weight: 900;
-  font-size: clamp(14px, 3.4vw, 18px);
-  letter-spacing: 0.4px;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
   color: ${({ $isRoot, $depth = 0 }) =>
     toneAlpha(railTone({ $isRoot, $depth }), 'f0')};
   background: transparent;
-  border: 2px solid
+  border: 1px solid
     ${({ $isRoot, $depth = 0 }) => toneAlpha(railTone({ $isRoot, $depth }), 'bd')};
   ${({ $isSystem }) =>
     $isSystem &&
@@ -393,6 +392,86 @@ const BoxContextRow = styled.div`
     gap: 0.36rem;
     padding-top: 8px;
   }
+`;
+
+const BoxImageFrame = styled.div`
+  position: relative;
+  width: 92px;
+  height: 92px;
+  border: 1px solid ${LCARS.line};
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(8, 12, 15, 0.64), rgba(8, 12, 15, 0.92)),
+    #11161a;
+  overflow: hidden;
+  flex: 0 0 auto;
+
+  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+    width: 74px;
+    height: 74px;
+    border-radius: 8px;
+  }
+`;
+
+const BoxImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+`;
+
+const BoxImagePlaceholder = styled.div`
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: ${toneAlpha(LCARS.textDim, 'dd')};
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+`;
+
+const BoxMetaStack = styled.div`
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.14rem 0 0.14rem;
+`;
+
+const BoxMetaLine = styled.div`
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.38rem;
+  align-items: baseline;
+  min-width: 0;
+`;
+
+const BoxMetaLabel = styled.span`
+  color: ${toneAlpha(LCARS.textDim, 'c9')};
+  font-size: 0.58rem;
+  font-weight: 820;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.1;
+`;
+
+const BoxMetaValue = styled.span`
+  min-width: 0;
+  color: ${toneAlpha(LCARS.text, 'e6')};
+  font-size: 0.74rem;
+  line-height: 1.22;
+  overflow-wrap: anywhere;
+`;
+
+const BoxSummary = styled.p`
+  margin: 0;
+  padding: 0.16rem 0 0.1rem;
+  color: ${toneAlpha(LCARS.textDim, 'd8')};
+  font-size: 0.72rem;
+  line-height: 1.28;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 `;
 
 const ContextChip = styled.span`
@@ -502,8 +581,8 @@ const MobileDescriptionHint = styled.span`
 const TagRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px 16px 6px;
+  gap: 0.35rem;
+  padding: 0.26rem 0 0.38rem;
 `;
 
 const TagBubble = styled.span`
@@ -553,15 +632,34 @@ const TagBubble = styled.span`
 const BoxFooter = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px 16px 12px;
+  gap: 0.35rem;
+  padding: 0.38rem 0 0.12rem;
   border-top: 1px dashed ${LCARS.line};
+`;
+
+const BoxBodyRow = styled.div`
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.72rem;
+  align-items: start;
+  padding: 0.68rem 0.78rem 0.74rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+    gap: 0.58rem;
+    padding: 0.56rem 0.62rem 0.6rem;
+  }
+`;
+
+const BoxContent = styled.div`
+  min-width: 0;
+  display: grid;
+  gap: 0;
 `;
 
 const NotesPreviewArea = styled.div`
   display: grid;
   gap: 4px;
-  margin: 0 12px 12px;
+  margin: 0.2rem 0 0;
   padding: 8px 10px;
   border-radius: 10px;
   border: 1px solid ${toneAlpha(LCARS.line, 'db')};
@@ -596,10 +694,10 @@ const NotesPreviewText = styled.p`
 `;
 
 const StatPill = styled.span`
-  font-size: 11px;
+  font-size: 0.64rem;
   font-weight: 900;
   border-radius: 999px;
-  padding: 2px 8px;
+  padding: 0.18rem 0.48rem;
   line-height: 1.2;
   white-space: nowrap;
   color: ${LCARS.textDim};
@@ -721,10 +819,20 @@ export const styledComponents = {
   RailFront,
 
   BoxCard,
+  BoxBodyRow,
+  BoxContent,
+  BoxImageFrame,
+  BoxImage,
+  BoxImagePlaceholder,
   BoxHeader,
   BoxTitle,
   Meta,
   ShortId,
+  BoxMetaStack,
+  BoxMetaLine,
+  BoxMetaLabel,
+  BoxMetaValue,
+  BoxSummary,
 
   FieldGroup,
   FieldLabel,

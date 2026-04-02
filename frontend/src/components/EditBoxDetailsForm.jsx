@@ -1,31 +1,31 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 
-import { removeBoxImage, updateBoxDetails, uploadBoxImage } from '../api/boxes';
+import { updateBoxDetails } from '../api/boxes';
 import useShortIdAvailability from '../hooks/useShortIdAvailability';
 import useLocationRegistry from '../hooks/useLocationRegistry';
 import useBoxGroupRegistry from '../hooks/useBoxGroupRegistry';
 import { ToastContext } from './Toast';
-import { cropImageToSquare } from '../util/cropImageToSquare';
 
 import * as S from './BoxForms/BoxEditForm.styles';
 import BoxIdentityFields from './BoxForms/BoxIdentityFields';
 import BoxTagsField from './BoxForms/BoxTagsField';
 import BoxFormActions from './BoxForms/BoxFormActions';
-import ImageSourcePicker from './ImageSourcePicker';
-
-const pickBoxImageUrl = (box) =>
-  box?.image?.display?.url ||
-  box?.image?.thumb?.url ||
-  box?.image?.original?.url ||
-  box?.image?.url ||
-  box?.imagePath ||
-  '';
+import BoxImageField from './ImageFields/BoxImageField';
 
 export default function EditBoxDetailsForm({
   boxMongoId,
   initial,
   onSaved,
   onImageUpdated,
+  onProcessImage,
+  processImageStatus = 'idle',
+  processImageBusy = false,
+  processImageError = '',
+  processImageJobId = '',
+  processImageMediaId = '',
+  persistedRenderTokens = null,
+  processedPreviewUrl = '',
+  imageRefreshToken = 0,
   onDestroy,
   onCancel,
   TagInputComponent,
@@ -51,10 +51,6 @@ export default function EditBoxDetailsForm({
   const [busy, setBusy] = useState(false);
   const [destroyBusy, setDestroyBusy] = useState(false);
   const [error, setError] = useState(null);
-  const [imageUrl, setImageUrl] = useState(() => pickBoxImageUrl(initial));
-  const [imageBusy, setImageBusy] = useState(false);
-  const [imageError, setImageError] = useState('');
-  const [imageStatus, setImageStatus] = useState('');
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
   const initialTagsKey = JSON.stringify(initial?.tags || []);
@@ -83,9 +79,6 @@ export default function EditBoxDetailsForm({
     setLocationId(nextLocationId ? String(nextLocationId) : '');
     setLocationError('');
     setTags(Array.isArray(initial?.tags) ? initial.tags : []);
-    setImageUrl(pickBoxImageUrl(initial));
-    setImageError('');
-    setImageStatus('');
   }, [
     initial?._id,
     initial?.box_id,
@@ -94,8 +87,6 @@ export default function EditBoxDetailsForm({
     initial?.notes,
     initial?.locationId,
     initial?.tags,
-    initial?.image,
-    initial?.imagePath,
     initialTagsKey,
   ]);
 
@@ -201,52 +192,6 @@ export default function EditBoxDetailsForm({
       setError(e2.message || 'Update failed');
     } finally {
       setBusy(false);
-    }
-  };
-
-  const handleSelectedImage = async (file) => {
-    if (!file || !boxMongoId) return;
-
-    setImageBusy(true);
-    setImageError('');
-    setImageStatus('');
-
-    try {
-      const processedFile = await cropImageToSquare(file, { maxDimension: 1200 });
-      const data = await uploadBoxImage(boxMongoId, processedFile);
-      const nextUrl = data?.image?.display?.url || data?.urls?.display || '';
-      setImageUrl(nextUrl);
-      setImageStatus('Image uploaded.');
-      await Promise.resolve(onImageUpdated?.({
-        image: data?.image || null,
-        imagePath: data?.image?.display?.url || data?.image?.original?.url || '',
-      }));
-    } catch (err) {
-      setImageError(err?.message || 'Image upload failed');
-    } finally {
-      setImageBusy(false);
-    }
-  };
-
-  const handleRemoveImage = async () => {
-    if (!boxMongoId || !imageUrl) return;
-
-    setImageBusy(true);
-    setImageError('');
-    setImageStatus('');
-
-    try {
-      const data = await removeBoxImage(boxMongoId);
-      setImageUrl('');
-      setImageStatus('Image removed.');
-      await Promise.resolve(onImageUpdated?.({
-        image: data?.image || null,
-        imagePath: '',
-      }));
-    } catch (err) {
-      setImageError(err?.message || 'Image removal failed');
-    } finally {
-      setImageBusy(false);
     }
   };
 
@@ -362,46 +307,33 @@ export default function EditBoxDetailsForm({
                   <S.SectionHint>Preview + media actions</S.SectionHint>
                 </S.SectionHeader>
                 <S.SectionBody>
-                  <S.MediaFrame>
-                    {imageUrl ? (
-                      <S.ImagePreview src={imageUrl} alt={`${label || 'Box'} preview`} />
-                    ) : (
-                      <S.FileStub>No box image uploaded.</S.FileStub>
-                    )}
-
-                    <S.Actions $alignStart $wrap style={{ marginTop: 0 }}>
-                      <ImageSourcePicker
-                        disabled={busy || destroyBusy || imageBusy || !boxMongoId}
-                        onFileSelected={handleSelectedImage}
-                        label={imageUrl ? 'Replace Photo' : 'Upload Photo'}
-                        renderAction={({ label: actionLabel, onClick, disabled: actionDisabled }) => (
-                          <S.Ghost
-                            type="button"
-                            onClick={onClick}
-                            disabled={actionDisabled}
-                          >
-                            {actionLabel}
-                          </S.Ghost>
-                        )}
-                      />
-
-                      {imageUrl ? (
-                        <S.Ghost
-                          type="button"
-                          onClick={handleRemoveImage}
-                          disabled={busy || destroyBusy || imageBusy}
-                        >
-                          Delete Photo
-                        </S.Ghost>
-                      ) : null}
-                    </S.Actions>
-
-                    <S.MediaStatusStack>
-                      {imageBusy ? <S.Hint>Working…</S.Hint> : null}
-                      {imageStatus ? <S.Hint $success>{imageStatus}</S.Hint> : null}
-                      {imageError ? <S.Hint $error>{imageError}</S.Hint> : null}
-                    </S.MediaStatusStack>
-                  </S.MediaFrame>
+                  <BoxImageField
+                    box={initial}
+                    boxId={boxMongoId}
+                    disabled={busy || destroyBusy}
+                    title="Box Image"
+                    showVariantLabel={false}
+                    placeholder="No box image uploaded."
+                    messageSubject="Image"
+                    clearLabel="Delete Photo"
+                    onBoxImageUpdated={({ image, imagePath }) => {
+                      void Promise.resolve(
+                        onImageUpdated?.({
+                          image: image || null,
+                          imagePath: imagePath || '',
+                        })
+                      );
+                    }}
+                    onProcessImage={onProcessImage}
+                    processImageStatus={processImageStatus}
+                    processImageBusy={processImageBusy}
+                    processImageError={processImageError}
+                    processImageJobId={processImageJobId}
+                    processImageMediaId={processImageMediaId}
+                    persistedRenderTokens={persistedRenderTokens}
+                    processedPreviewUrl={processedPreviewUrl}
+                    imageRefreshToken={imageRefreshToken}
+                  />
                 </S.SectionBody>
               </S.SectionCard>
             </S.ConsoleSide>
@@ -436,47 +368,34 @@ export default function EditBoxDetailsForm({
               <S.SectionTitle>Media</S.SectionTitle>
             </S.SectionHeader>
             <S.SectionBody>
-              <S.ImageCompactGrid>
-                {imageUrl ? (
-                  <S.ImagePreview
-                    src={imageUrl}
-                    alt={`${label || 'Box'} preview`}
-                    $compact
-                  />
-                ) : (
-                  <S.FileStub $compact>No photo</S.FileStub>
-                )}
-                <S.ImageActionStack>
-                  <S.CompactPhotoActions>
-                    <ImageSourcePicker
-                      disabled={busy || destroyBusy || imageBusy || !boxMongoId}
-                      onFileSelected={handleSelectedImage}
-                      label={imageUrl ? 'Replace Photo' : 'Upload Photo'}
-                      renderAction={({ label: actionLabel, onClick, disabled: actionDisabled }) => (
-                        <S.CompactPhotoButton
-                          type="button"
-                          onClick={onClick}
-                          disabled={actionDisabled}
-                        >
-                          {actionLabel}
-                        </S.CompactPhotoButton>
-                      )}
-                    />
-                    {imageUrl ? (
-                      <S.CompactPhotoButton
-                        type="button"
-                        onClick={handleRemoveImage}
-                        disabled={busy || destroyBusy || imageBusy}
-                      >
-                        Delete Photo
-                      </S.CompactPhotoButton>
-                    ) : null}
-                  </S.CompactPhotoActions>
-                  {imageBusy ? <S.Hint $compact>Working…</S.Hint> : null}
-                  {imageStatus ? <S.Hint $success $compact>{imageStatus}</S.Hint> : null}
-                  {imageError ? <S.Hint $error $compact>{imageError}</S.Hint> : null}
-                </S.ImageActionStack>
-              </S.ImageCompactGrid>
+              <BoxImageField
+                box={initial}
+                boxId={boxMongoId}
+                compact
+                disabled={busy || destroyBusy}
+                title="Box Image"
+                showVariantLabel={false}
+                placeholder="No photo"
+                messageSubject="Image"
+                clearLabel="Delete Photo"
+                onBoxImageUpdated={({ image, imagePath }) => {
+                  void Promise.resolve(
+                    onImageUpdated?.({
+                      image: image || null,
+                      imagePath: imagePath || '',
+                    })
+                  );
+                }}
+                onProcessImage={onProcessImage}
+                processImageStatus={processImageStatus}
+                processImageBusy={processImageBusy}
+                processImageError={processImageError}
+                processImageJobId={processImageJobId}
+                processImageMediaId={processImageMediaId}
+                persistedRenderTokens={persistedRenderTokens}
+                processedPreviewUrl={processedPreviewUrl}
+                imageRefreshToken={imageRefreshToken}
+              />
             </S.SectionBody>
           </S.SectionCard>
         </>

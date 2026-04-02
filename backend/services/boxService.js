@@ -1094,13 +1094,19 @@ async function setBoxImage(id, image) {
   if (!current) return null;
 
   const previousPaths = collectImageStoragePaths(current);
-  const nextPaths = new Set(collectImageStoragePaths({ image, imagePath: '' }));
+  const normalizedImage = {
+    ...(image && typeof image === 'object' ? image : {}),
+    mediaId: '',
+  };
+  const nextPaths = new Set(
+    collectImageStoragePaths({ image: normalizedImage, imagePath: '' })
+  );
 
   const updated = await Box.findByIdAndUpdate(
     id,
     {
-      image,
-      imagePath: image?.display?.url || image?.original?.url || '',
+      image: normalizedImage,
+      imagePath: normalizedImage?.display?.url || normalizedImage?.original?.url || '',
     },
     { new: true, runValidators: true }
   );
@@ -1177,6 +1183,29 @@ async function clearBoxImage(id) {
   }
 
   return updated;
+}
+
+async function selectExistingBoxImage(id, _payload = {}) {
+  if (!Box.isValidId(id)) {
+    const err = new Error('Invalid box id');
+    err.status = 400;
+    err.code = 'INVALID_OBJECT_ID';
+    throw err;
+  }
+
+  const box = await Box.findById(id).select('_id').lean();
+  if (!box) {
+    const err = new Error('Box not found');
+    err.status = 404;
+    err.code = 'BOX_NOT_FOUND';
+    throw err;
+  }
+
+  throw makeHttpError(
+    501,
+    'BOX_SELECT_EXISTING_NOT_IMPLEMENTED',
+    'Selecting an existing image for boxes is not implemented yet.'
+  );
 }
 
 async function collectDescendantBoxIds(rootBoxId) {
@@ -1387,6 +1416,7 @@ module.exports = {
   updateBox,
   setBoxImage,
   clearBoxImage,
+  selectExistingBoxImage,
   getBoxTreeByShortId,
   getBoxTree,
   getAllBoxes,

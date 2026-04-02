@@ -1,5 +1,5 @@
 import { uploadBoxImage, removeBoxImage } from '../../api/boxes';
-import { API_BASE } from '../../api/API_BASE';
+import { removeItemImage, uploadItemImage } from '../../api/itemMedia';
 import { cropImageToSquare } from '../../util/cropImageToSquare';
 
 export function pickImageUrl(entity) {
@@ -11,18 +11,6 @@ export function pickImageUrl(entity) {
     entity?.imagePath ||
     ''
   );
-}
-
-async function parseResponseError(res, fallbackMessage) {
-  const raw = await res.text().catch(() => '');
-  if (!raw) return fallbackMessage;
-
-  try {
-    const parsed = JSON.parse(raw);
-    return parsed?.error || parsed?.message || fallbackMessage;
-  } catch {
-    return raw;
-  }
 }
 
 export async function uploadCroppedBoxImage(boxMongoId, file) {
@@ -43,33 +31,10 @@ export async function uploadCroppedItemImage(itemId, file) {
   if (!file) throw new Error('file is required');
 
   const processedFile = await cropImageToSquare(file, { maxDimension: 1200 });
-  const body = new FormData();
-  body.append('image', processedFile);
-
-  const res = await fetch(`${API_BASE}/api/items/${encodeURIComponent(itemId)}/image`, {
-    method: 'POST',
-    body,
-  });
-
-  if (!res.ok) {
-    const message = await parseResponseError(res, `Upload failed (${res.status})`);
-    throw new Error(message);
-  }
-
-  return res.json().catch(() => ({}));
+  return uploadItemImage(itemId, processedFile);
 }
 
 export async function removeExistingItemImage(itemId) {
   if (!itemId) throw new Error('itemId is required');
-
-  const res = await fetch(`${API_BASE}/api/items/${encodeURIComponent(itemId)}/image`, {
-    method: 'DELETE',
-  });
-
-  if (!res.ok) {
-    const message = await parseResponseError(res, `Remove failed (${res.status})`);
-    throw new Error(message);
-  }
-
-  return res.json().catch(() => ({}));
+  return removeItemImage(itemId);
 }

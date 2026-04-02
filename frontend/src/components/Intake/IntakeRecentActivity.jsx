@@ -1,10 +1,8 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { getItemHomeHref } from '../../api/itemDetails';
+import { getBoxColorTones } from '../Retrieval/boxColors';
 import {
   MOBILE_BREAKPOINT,
-  MOBILE_CONTROL_MIN_HEIGHT,
   MOBILE_FONT_SM,
   MOBILE_FONT_XS,
 } from '../../styles/tokens';
@@ -21,7 +19,7 @@ const Header = styled.header`
   justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.62rem 0.75rem;
+  padding: 0.52rem 0.66rem;
   border-bottom: 1px solid rgba(76, 106, 132, 0.4);
   background: linear-gradient(90deg, rgba(96, 139, 180, 0.2) 0%, rgba(96, 139, 180, 0) 55%);
 `;
@@ -44,92 +42,136 @@ const Counter = styled.span`
 `;
 
 const Body = styled.div`
-  padding: 0.58rem;
+  padding: 0.5rem;
   display: grid;
-  gap: 0.42rem;
+  gap: 0.34rem;
+  max-height: min(48vh, 360px);
+  overflow: auto;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    max-height: none;
+    overflow: visible;
+  }
 `;
 
 const Row = styled.div`
-  border: 1px solid rgba(79, 105, 136, 0.4);
+  border: 1px solid rgba(79, 105, 136, 0.46);
   border-radius: 9px;
-  padding: 0.45rem 0.5rem;
+  padding: 0.32rem 0.38rem;
   display: grid;
-  gap: 0.4rem;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.42rem;
   background: rgba(13, 20, 31, 0.87);
-`;
-
-const EventLink = styled(Link)`
-  color: #eaf4ff;
-  text-decoration: none;
-  font-size: 0.88rem;
-  line-height: 1.3;
-  overflow-wrap: anywhere;
+  cursor: ${({ $clickable }) => ($clickable ? 'pointer' : 'default')};
+  border-color: ${({ $active, $clickable }) =>
+    $active
+      ? 'rgba(223, 180, 96, 0.72)'
+      : $clickable
+        ? 'rgba(94, 126, 158, 0.5)'
+        : 'rgba(79, 105, 136, 0.4)'};
+  box-shadow: ${({ $active }) =>
+    $active ? '0 0 0 1px rgba(223, 180, 96, 0.24)' : 'none'};
 
   &:hover {
-    text-decoration: underline;
-    text-underline-offset: 2px;
+    ${({ $clickable }) => ($clickable ? 'filter: brightness(1.07);' : '')}
   }
+`;
+
+const Thumb = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 7px;
+  border: 1px solid rgba(88, 129, 173, 0.5);
+  overflow: hidden;
+  background: rgba(12, 19, 30, 0.94);
+  display: grid;
+  place-items: center;
+  color: #99b6d4;
+  font-size: 0.56rem;
+  text-transform: uppercase;
+`;
+
+const ThumbImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
+const RowBody = styled.div`
+  min-width: 0;
+  display: grid;
+  gap: 0.12rem;
+`;
+
+const Primary = styled.div`
+  font-size: 0.8rem;
+  line-height: 1.24;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.24rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_SM};
   }
 `;
 
-const Meta = styled.div`
-  color: #a8bed3;
-  font-size: 0.72rem;
+const PrimaryItem = styled.span`
+  min-width: 0;
+  color: #f0f8ff;
+  font-weight: 600;
+  overflow-wrap: anywhere;
 `;
 
-const ActionRow = styled.div`
-  display: flex;
-  gap: 0.42rem;
-  flex-wrap: wrap;
-`;
-
-const OpenAction = styled(Link)`
+const PrimaryDestination = styled.span`
+  min-width: 0;
+  color: #c5d9ee;
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 32px;
-  padding: 0 0.62rem;
-  border-radius: 8px;
-  border: 1px solid rgba(90, 129, 189, 0.6);
-  background: rgba(18, 34, 58, 0.92);
-  color: #deecff;
-  text-decoration: none;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-    font-size: ${MOBILE_FONT_XS};
-  }
+  align-items: baseline;
+  gap: 0.18rem;
+  overflow-wrap: anywhere;
 `;
 
-const MoveAction = styled.button`
-  min-height: 32px;
-  padding: 0 0.62rem;
-  border-radius: 8px;
-  border: 1px solid rgba(205, 163, 90, 0.62);
-  background: rgba(84, 54, 20, 0.95);
-  color: #ffeccf;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  cursor: pointer;
+const Meta = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.24rem;
+`;
 
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+const MetaText = styled.span`
+  color: #8ea6be;
+  font-size: 0.64rem;
+  line-height: 1.2;
+`;
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-    font-size: ${MOBILE_FONT_XS};
-  }
+const MetaSep = styled.span`
+  color: #6f89a3;
+  font-size: 0.62rem;
+  line-height: 1;
+`;
+
+const Arrow = styled.span`
+  color: #7f98b0;
+  font-weight: 500;
+`;
+
+const QtyValue = styled.span`
+  color: #adc3d9;
+  font-weight: 650;
+`;
+
+const LocatorToken = styled.span`
+  color: ${({ $boxNeonRgb }) => `rgba(${$boxNeonRgb || '119, 213, 255'}, 1)`};
+  text-shadow: ${({ $boxNeonRgb }) => `0 0 6px rgba(${$boxNeonRgb || '119, 213, 255'}, 0.34)`};
+  font-size: 0.69rem;
+  line-height: 1;
+  font-weight: 820;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
 `;
 
 const StateText = styled.div`
@@ -186,32 +228,55 @@ function formatRelativeTime(timestamp) {
   return `${Math.floor(days / 7)}w ago`;
 }
 
-function getItemBoxLabel(item, boxLookup) {
+function getItemDestination(item, boxLookup) {
   const directLabel = String(item?.box?.label || '').trim();
   const directBoxId = String(item?.box?.box_id || '').trim();
-  if (directLabel && directBoxId) return `${directLabel} (Box #${directBoxId})`;
-  if (directLabel) return directLabel;
-  if (directBoxId) return `Box #${directBoxId}`;
+  if (directLabel || directBoxId) {
+    return {
+      label: directLabel || `#${directBoxId}`,
+      boxId: directBoxId,
+    };
+  }
 
   const mongoRef = String(item?.box?._id || item?.boxId || '').trim();
   if (mongoRef && boxLookup instanceof Map) {
     const box = boxLookup.get(mongoRef);
     const fallbackLabel = String(box?.label || '').trim();
     const fallbackBoxId = String(box?.box_id || '').trim();
-    if (fallbackLabel && fallbackBoxId) return `${fallbackLabel} (Box #${fallbackBoxId})`;
-    if (fallbackLabel) return fallbackLabel;
-    if (fallbackBoxId) return `Box #${fallbackBoxId}`;
+    if (fallbackLabel || fallbackBoxId) {
+      return {
+        label: fallbackLabel || `#${fallbackBoxId}`,
+        boxId: fallbackBoxId,
+      };
+    }
   }
 
   const breadcrumb = Array.isArray(item?.breadcrumb) ? item.breadcrumb : [];
   const leaf = breadcrumb.length ? breadcrumb[breadcrumb.length - 1] : null;
   const crumbLabel = String(leaf?.label || '').trim();
   const crumbBoxId = String(leaf?.box_id || '').trim();
-  if (crumbLabel && crumbBoxId) return `${crumbLabel} (Box #${crumbBoxId})`;
-  if (crumbLabel) return crumbLabel;
-  if (crumbBoxId) return `Box #${crumbBoxId}`;
+  if (crumbLabel || crumbBoxId) {
+    return {
+      label: crumbLabel || `#${crumbBoxId}`,
+      boxId: crumbBoxId,
+    };
+  }
 
-  return 'orphaned pool';
+  return {
+    label: 'orphaned pool',
+    boxId: '',
+  };
+}
+
+function getItemImageUrl(item) {
+  return (
+    item?.image?.thumb?.url ||
+    item?.image?.display?.url ||
+    item?.image?.original?.url ||
+    item?.image?.url ||
+    item?.imagePath ||
+    ''
+  );
 }
 
 export default function IntakeRecentActivity({
@@ -220,6 +285,7 @@ export default function IntakeRecentActivity({
   loading = false,
   error = '',
   onMoveItem,
+  selectedItemId = '',
 }) {
   return (
     <Panel>
@@ -240,39 +306,63 @@ export default function IntakeRecentActivity({
           !error &&
           items.map((item) => {
             const timestamp = getItemTimestamp(item);
-            const boxLabel = getItemBoxLabel(item, boxLookup);
+            const destination = getItemDestination(item, boxLookup);
             const itemName = item?.name || 'Unnamed item';
             const quantity = item?.quantity ?? 1;
+            const itemId = String(item?._id || '');
+            const clickable = !!itemId;
+            const isActive = itemId && itemId === String(selectedItemId || '');
+            const imageUrl = getItemImageUrl(item);
+            const boxIdLabel = String(destination?.boxId || '').trim();
+            const boxToken = boxIdLabel ? `#${boxIdLabel}` : '';
+            const boxTones = getBoxColorTones(boxIdLabel || 0);
 
             return (
-              <Row key={item?._id || `${item?.name || 'item'}-${timestamp}`}>
-                {item?._id ? (
-                  <EventLink to={getItemHomeHref(item._id)} title={itemName}>
-                    Added {itemName} to {boxLabel}
-                  </EventLink>
-                ) : (
-                  <div>Added {itemName} to {boxLabel}</div>
-                )}
+              <Row
+                key={item?._id || `${item?.name || 'item'}-${timestamp}`}
+                $clickable={clickable}
+                $active={isActive}
+                role={clickable ? 'button' : undefined}
+                tabIndex={clickable ? 0 : undefined}
+                onClick={() => {
+                  if (!clickable) return;
+                  onMoveItem?.(itemId);
+                }}
+                onKeyDown={(event) => {
+                  if (!clickable) return;
+                  if (event.key !== 'Enter' && event.key !== ' ') return;
+                  event.preventDefault();
+                  onMoveItem?.(itemId);
+                }}
+              >
+                <Thumb>
+                  {imageUrl ? <ThumbImage src={imageUrl} alt="" /> : 'No Img'}
+                </Thumb>
 
-                <Meta>
-                  {formatRelativeTime(timestamp)} • {formatFullTimestamp(timestamp)} • qty {quantity}
-                </Meta>
-
-                <ActionRow>
-                  {item?._id ? (
-                    <OpenAction to={getItemHomeHref(item._id)}>
-                      Open Item
-                    </OpenAction>
-                  ) : null}
-
-                  <MoveAction
-                    type="button"
-                    onClick={() => onMoveItem?.(item?._id)}
-                    disabled={!item?._id}
-                  >
-                    Move
-                  </MoveAction>
-                </ActionRow>
+                <RowBody>
+                  <Primary>
+                    <PrimaryItem>{itemName}</PrimaryItem>
+                    <PrimaryDestination>
+                      <Arrow>→</Arrow>
+                      <span>{destination.label}</span>
+                    </PrimaryDestination>
+                  </Primary>
+                  <Meta>
+                    <MetaText>{formatRelativeTime(timestamp)}</MetaText>
+                    <MetaSep>•</MetaSep>
+                    <MetaText>{formatFullTimestamp(timestamp)}</MetaText>
+                    <MetaSep>•</MetaSep>
+                    <MetaText>qty <QtyValue>{quantity}</QtyValue></MetaText>
+                    {boxToken ? (
+                      <>
+                        <MetaSep>•</MetaSep>
+                        <LocatorToken $boxNeonRgb={boxTones.neonRgb}>
+                          {boxToken}
+                        </LocatorToken>
+                      </>
+                    ) : null}
+                  </Meta>
+                </RowBody>
               </Row>
             );
           })}

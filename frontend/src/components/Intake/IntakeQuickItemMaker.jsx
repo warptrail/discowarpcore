@@ -15,9 +15,9 @@ const Panel = styled.section`
   border: 1px solid rgba(108, 171, 203, 0.45);
   border-radius: 12px;
   background: linear-gradient(180deg, rgba(12, 21, 31, 0.94) 0%, rgba(9, 16, 24, 0.96) 100%);
-  padding: 0.62rem;
+  padding: 0.54rem;
   display: grid;
-  gap: 0.54rem;
+  gap: 0.42rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 0.54rem;
@@ -40,19 +40,19 @@ const Heading = styled.h2`
 const Hint = styled.p`
   margin: 0;
   color: #a9c2dc;
-  font-size: 0.76rem;
+  font-size: 0.73rem;
   line-height: 1.35;
 `;
 
 const Form = styled.form`
   display: grid;
-  gap: 0.48rem;
+  gap: 0.4rem;
 `;
 
 const TopRow = styled.div`
   display: grid;
-  gap: 0.48rem;
-  grid-template-columns: minmax(0, 1fr) 120px;
+  gap: 0.42rem;
+  grid-template-columns: minmax(0, 1fr) 104px;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     grid-template-columns: 1fr;
@@ -62,7 +62,7 @@ const TopRow = styled.div`
 
 const Field = styled.div`
   display: grid;
-  gap: 0.3rem;
+  gap: 0.24rem;
   min-width: 0;
 `;
 
@@ -76,13 +76,13 @@ const Label = styled.label`
 
 const Input = styled.input`
   width: 100%;
-  min-height: 38px;
+  min-height: 34px;
   border-radius: 9px;
   border: 1px solid rgba(116, 145, 198, 0.5);
   background: rgba(7, 11, 18, 0.9);
   color: #eaf2ff;
-  font-size: 0.92rem;
-  padding: 0 0.62rem;
+  font-size: 0.84rem;
+  padding: 0 0.52rem;
 
   &:focus {
     outline: none;
@@ -92,20 +92,20 @@ const Input = styled.input`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-    font-size: ${MOBILE_FONT_SM};
+    font-size: 16px;
   }
 `;
 
 const TextArea = styled.textarea`
   width: 100%;
-  min-height: 62px;
+  min-height: 54px;
   border-radius: 9px;
   border: 1px solid rgba(116, 145, 198, 0.5);
   background: rgba(7, 11, 18, 0.9);
   color: #eaf2ff;
-  font-size: 0.86rem;
+  font-size: 0.8rem;
   line-height: 1.35;
-  padding: 0.45rem 0.56rem;
+  padding: 0.38rem 0.5rem;
   resize: vertical;
 
   &:focus {
@@ -113,12 +113,16 @@ const TextArea = styled.textarea`
     border-color: rgba(145, 187, 255, 0.9);
     box-shadow: 0 0 0 2px rgba(91, 141, 236, 0.22);
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 16px;
+  }
 `;
 
 const ImageRow = styled.div`
   display: grid;
-  grid-template-columns: 84px minmax(0, 1fr);
-  gap: 0.5rem;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 0.42rem;
   align-items: start;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -127,8 +131,8 @@ const ImageRow = styled.div`
 `;
 
 const Preview = styled.img`
-  width: 84px;
-  height: 84px;
+  width: 72px;
+  height: 72px;
   border-radius: 10px;
   border: 1px solid rgba(112, 164, 200, 0.52);
   object-fit: cover;
@@ -136,8 +140,8 @@ const Preview = styled.img`
 `;
 
 const PreviewStub = styled.div`
-  width: 84px;
-  height: 84px;
+  width: 72px;
+  height: 72px;
   border-radius: 10px;
   border: 1px dashed rgba(112, 164, 200, 0.48);
   background: rgba(9, 14, 21, 0.64);
@@ -157,7 +161,7 @@ const ImageActions = styled.div`
 `;
 
 const ActionButton = styled.button`
-  min-height: 34px;
+  min-height: 30px;
   border-radius: 8px;
   border: 1px solid ${({ $tone }) =>
     $tone === 'danger'
@@ -168,27 +172,31 @@ const ActionButton = styled.button`
       ? 'rgba(63, 24, 24, 0.92)'
       : 'rgba(14, 36, 30, 0.94)'};
   color: ${({ $tone }) => ($tone === 'danger' ? '#ffd7d7' : '#dff7ee')};
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 0 0.6rem;
+  padding: 0 0.52rem;
   cursor: pointer;
 
   &:disabled {
     opacity: 0.56;
     cursor: not-allowed;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+  }
 `;
 
 const SubmitButton = styled.button`
   width: 100%;
-  min-height: 42px;
+  min-height: 36px;
   border-radius: 10px;
   border: 1px solid rgba(100, 188, 151, 0.82);
   background: linear-gradient(180deg, rgba(23, 75, 60, 0.96) 0%, rgba(16, 51, 42, 0.96) 100%);
   color: #e8fff5;
-  font-size: 0.84rem;
+  font-size: 0.76rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -198,12 +206,16 @@ const SubmitButton = styled.button`
     opacity: 0.56;
     cursor: not-allowed;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+  }
 `;
 
 const StateText = styled.div`
   min-height: 1.05rem;
   color: ${({ $error }) => ($error ? '#f2bebe' : '#9ac6b3')};
-  font-size: 0.75rem;
+  font-size: 0.72rem;
 `;
 
 function tagsToPayload(tags = []) {

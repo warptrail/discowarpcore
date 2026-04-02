@@ -54,11 +54,11 @@ function normalizeExternalLinks(links) {
     .filter((link) => link.label && link.url);
 }
 
-function DetailRow({ label, value, stretch = false }) {
+function DetailRow({ label, value, stretch = false, nowrap = false }) {
   return (
-    <S.DetailRow $stretch={stretch}>
-      <S.RowLabel>{label}</S.RowLabel>
-      <S.RowValue>{value}</S.RowValue>
+    <S.DetailRow $stretch={stretch} $nowrap={nowrap}>
+      <S.RowLabel $nowrap={nowrap}>{label}</S.RowLabel>
+      <S.RowValue $nowrap={nowrap}>{value}</S.RowValue>
     </S.DetailRow>
   );
 }
@@ -69,6 +69,15 @@ function DetailSection({ title, tone = 'teal', wide = false, children }) {
       <S.SectionTitle>{title}</S.SectionTitle>
       <S.SectionBody>{children}</S.SectionBody>
     </S.SectionCard>
+  );
+}
+
+function IdentityField({ label, value }) {
+  return (
+    <S.IdentityField>
+      <S.IdentityFieldLabel>{label}</S.IdentityFieldLabel>
+      <S.IdentityFieldValue>{value}</S.IdentityFieldValue>
+    </S.IdentityField>
   );
 }
 
@@ -107,10 +116,23 @@ function ExternalLinksList({ links = [] }) {
   );
 }
 
+function withCacheBuster(url, cacheKey) {
+  const normalizedUrl = String(url || '').trim();
+  if (!normalizedUrl) return '';
+  if (!cacheKey) return normalizedUrl;
+  if (normalizedUrl.startsWith('data:') || normalizedUrl.startsWith('blob:')) {
+    return normalizedUrl;
+  }
+  const separator = normalizedUrl.includes('?') ? '&' : '?';
+  return `${normalizedUrl}${separator}media_refresh=${encodeURIComponent(cacheKey)}`;
+}
+
 export default function ItemDetails({
   itemId,
   itemData: providedItemData = null,
   enableImageLightbox = false,
+  imageUrlOverride = '',
+  imageRefreshToken = 0,
   variant = 'full',
 }) {
   const [itemData, setItemData] = useState(null);
@@ -160,7 +182,9 @@ export default function ItemDetails({
     return () => cancel();
   }, [hasProvidedData, itemId, shouldFetch]);
 
-  const resolvedItemData = itemData ?? providedItemData;
+  const resolvedItemData = hasProvidedData
+    ? { ...(itemData || {}), ...providedItemData }
+    : itemData;
 
   useEffect(() => {
     if (!lightboxOpen) return undefined;
@@ -222,13 +246,15 @@ export default function ItemDetails({
     topBox,
   } = resolvedItemData;
 
-  const resolvedImageUrl =
+  const resolvedImageUrlRaw =
+    imageUrlOverride ||
     resolvedItemData?.image?.display?.url ||
     resolvedItemData?.image?.thumb?.url ||
     resolvedItemData?.image?.original?.url ||
     resolvedItemData?.image?.url ||
     imagePath ||
     '';
+  const resolvedImageUrl = withCacheBuster(resolvedImageUrlRaw, imageRefreshToken);
   const isOperationsOverview = variant === 'operationsOverview';
   const canOpenLightbox =
     !isOperationsOverview && enableImageLightbox && Boolean(resolvedImageUrl);
@@ -273,48 +299,6 @@ export default function ItemDetails({
       $lightboxOpen={lightboxOpen}
       $priorityTone={keepPriorityToneValue}
     >
-      <S.HeaderBand>
-        <S.TitleBlock>
-          <S.HeaderMeta $compact>
-            <S.StatePill $tone={isGone ? 'coral' : isOrphaned ? 'amber' : 'teal'}>
-              {statusLabel}
-            </S.StatePill>
-            {quantity != null && <S.MetaTag>qty {quantity}</S.MetaTag>}
-            {resolvedBoxId ? <S.MetaTag>box {resolvedBoxId}</S.MetaTag> : null}
-            <S.KeepPriorityPill $tone={keepPriorityToneValue}>
-              {keepPriorityHeaderLabel}
-            </S.KeepPriorityPill>
-          </S.HeaderMeta>
-        </S.TitleBlock>
-      </S.HeaderBand>
-
-      {!isOperationsOverview && resolvedImageUrl ? (
-        <S.FeaturedImageWrap
-          $interactive={canOpenLightbox}
-          role={canOpenLightbox ? 'button' : undefined}
-          tabIndex={canOpenLightbox ? 0 : undefined}
-          onClick={canOpenLightbox ? () => setLightboxOpen(true) : undefined}
-          onKeyDown={
-            canOpenLightbox
-              ? (event) => {
-                  if (event.key !== 'Enter' && event.key !== ' ') return;
-                  event.preventDefault();
-                  setLightboxOpen(true);
-                }
-              : undefined
-          }
-          aria-label={
-            canOpenLightbox
-              ? `Open full-size image for ${resolvedItemData?.name || 'item'}`
-              : undefined
-          }
-        >
-          <S.FeaturedImage
-            src={resolvedImageUrl}
-            alt={`${resolvedItemData?.name || 'Item'} image`}
-          />
-        </S.FeaturedImageWrap>
-      ) : null}
 
       {isOperationsOverview ? (
         <OperationsItemOverview
@@ -340,34 +324,97 @@ export default function ItemDetails({
           externalLinks={externalLinks}
         />
       ) : (
-        <S.SectionGrid>
-          <DetailSection title="Identity / Summary" tone="teal">
-            <DetailRow label="Status" value={statusLabel} />
-            <DetailRow label="Inventory Status" value={isGone ? 'gone' : 'active'} />
-            <DetailRow label="Primary Box" value={primaryBox} />
-            <DetailRow label="Category" value={categoryLabel} />
-            <DetailRow
-              label="Tags"
-              value={
-                tagList.length ? (
-                  <S.TagList>
-                    {tagList.map((tag, idx) => (
-                      <S.TagChip key={`${tag}-${idx}`}>{tag}</S.TagChip>
-                    ))}
-                  </S.TagList>
-                ) : (
-                  <S.MutedValue>—</S.MutedValue>
-                )
-              }
-              stretch
-            />
-          </DetailSection>
+        <>
+          <S.ViewSummaryGrid $hasImage={Boolean(resolvedImageUrl)}>
+            <S.SummaryInfoColumn>
+              <S.HeaderBand>
+                <S.TitleBlock>
+                  <S.HeaderMeta $compact>
+                    <S.StatePill $tone={isGone ? 'coral' : isOrphaned ? 'amber' : 'teal'}>
+                      {statusLabel}
+                    </S.StatePill>
+                    {quantity != null && <S.MetaTag>qty {quantity}</S.MetaTag>}
+                    {resolvedBoxId ? <S.MetaTag>box {resolvedBoxId}</S.MetaTag> : null}
+                    <S.KeepPriorityPill $tone={keepPriorityToneValue}>
+                      {keepPriorityHeaderLabel}
+                    </S.KeepPriorityPill>
+                  </S.HeaderMeta>
+                </S.TitleBlock>
+              </S.HeaderBand>
 
-          <DetailSection title="Inventory / Value" tone="amber">
-            <DetailRow label="Quantity" value={quantity ?? '—'} />
-            <DetailRow label="Value" value={valueLabel} />
-            <DetailRow label="Purchase Price" value={purchasePriceLabel} />
-          </DetailSection>
+              <S.SummaryCardsGrid>
+                <DetailSection title="Identity / Summary" tone="teal">
+                  <S.IdentityFieldsGrid>
+                    <IdentityField label="Status" value={statusLabel} />
+                    <IdentityField
+                      label="Inventory Status"
+                      value={isGone ? 'gone' : 'active'}
+                    />
+                    <IdentityField label="Primary Box" value={primaryBox} />
+                    <IdentityField label="Category" value={categoryLabel} />
+                    <IdentityField
+                      label="Tags"
+                      value={
+                        tagList.length ? (
+                          <S.TagList>
+                            {tagList.map((tag, idx) => (
+                              <S.TagChip key={`${tag}-${idx}`}>{tag}</S.TagChip>
+                            ))}
+                          </S.TagList>
+                        ) : (
+                          <S.MutedValue>—</S.MutedValue>
+                        )
+                      }
+                    />
+                  </S.IdentityFieldsGrid>
+                </DetailSection>
+
+                <DetailSection title="Inventory / Value" tone="amber">
+                  <DetailRow label="Quantity" value={quantity ?? '—'} nowrap />
+                  <DetailRow label="Value" value={valueLabel} nowrap />
+                  <DetailRow label="Purchase Price" value={purchasePriceLabel} nowrap />
+                </DetailSection>
+
+                <DetailSection title="Assignment Snapshot" tone="coral" wide>
+                  <DetailRow label="Location" value={placementLocation} stretch nowrap />
+                  <DetailRow label="Box Group" value={placementBoxGroup} stretch nowrap />
+                  <DetailRow label="Last Checked" value={fmtDate(lastCheckedAt)} nowrap />
+                </DetailSection>
+              </S.SummaryCardsGrid>
+            </S.SummaryInfoColumn>
+
+            {resolvedImageUrl ? (
+              <S.SummaryMediaColumn>
+                <S.FeaturedImageWrap
+                  $interactive={canOpenLightbox}
+                  role={canOpenLightbox ? 'button' : undefined}
+                  tabIndex={canOpenLightbox ? 0 : undefined}
+                  onClick={canOpenLightbox ? () => setLightboxOpen(true) : undefined}
+                  onKeyDown={
+                    canOpenLightbox
+                      ? (event) => {
+                          if (event.key !== 'Enter' && event.key !== ' ') return;
+                          event.preventDefault();
+                          setLightboxOpen(true);
+                        }
+                      : undefined
+                  }
+                  aria-label={
+                    canOpenLightbox
+                      ? `Open full-size image for ${resolvedItemData?.name || 'item'}`
+                      : undefined
+                  }
+                >
+                  <S.FeaturedImage
+                    src={resolvedImageUrl}
+                    alt={`${resolvedItemData?.name || 'Item'} image`}
+                  />
+                </S.FeaturedImageWrap>
+              </S.SummaryMediaColumn>
+            ) : null}
+          </S.ViewSummaryGrid>
+
+          <S.SectionGrid>
 
           <DetailSection title="Description / Notes" tone="lilac" wide>
             <DetailRow label="Description" value={description || '—'} stretch />
@@ -468,7 +515,8 @@ export default function ItemDetails({
             <DetailRow label="Image Path" value={imagePath || '—'} stretch />
           </DetailSection>
 
-        </S.SectionGrid>
+          </S.SectionGrid>
+        </>
       )}
 
       {canOpenLightbox && lightboxOpen ? (

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import * as S from '../styles/BoxDetailView.styles';
@@ -17,6 +17,7 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
   const { shortId } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [boxImageRefreshToken, setBoxImageRefreshToken] = useState(0);
 
   const activeTab = useMemo(() => {
     const tab = searchParams.get('tab');
@@ -151,6 +152,7 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
               parentPath={resolvedParentPath}
               onNavigateBox={handleNavigateBox}
               stats={stats}
+              imageRefreshToken={boxImageRefreshToken}
             />
             <TabControlBar
               mode={activeTab}
@@ -184,6 +186,7 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
             refreshBox={refreshBox}
             activePanel={activePanel}
             onActivePanelChange={handlePanelChange}
+            onBoxImageStateChanged={() => setBoxImageRefreshToken(Date.now())}
           />
         </S.TabViewport>
       </S.Content>

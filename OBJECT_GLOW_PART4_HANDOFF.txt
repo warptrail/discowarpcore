@@ -1,0 +1,107 @@
+Discowarpcore Part 4 Handoff: objectGlow Subprocess Integration
+Date: 2026-03-31
+
+What was implemented
+- Added a backend service layer integration to call objectGlow via subprocess.
+- Kept objectGlow external (no code copied into this repo).
+- Added a minimal temporary API endpoint for test invocation.
+- Did NOT implement jobs, queueing, DB schema changes, uploads, or UI/toast work.
+
+Files changed
+1) backend/services/mediaProcessingService.js
+   - New core integration service.
+   - Exposes:
+     - processImageWithObjectGlow(inputPath, outputPath?)
+     - computeProcessedOutputPath(inputPath)
+     - toErrorPayload(error)
+
+2) backend/controllers/mediaController.js
+   - New controller for temporary endpoint.
+   - Exposes postMediaProcessTestApi.
+
+3) backend/routes/media.js
+   - New route file.
+   - POST /process-test -> postMediaProcessTestApi
+
+4) backend/server.js
+   - Registered media routes:
+     - app.use('/api/media', mediaRoutes)
+
+5) backend/example_env.txt
+   - Added optional objectGlow env hints:
+     - OBJECT_GLOW_PYTHON_BIN=python3
+     - OBJECT_GLOW_MODULE=itemcutout
+     - OBJECT_GLOW_TIMEOUT_MS=120000
+
+Subprocess contract used
+- Command shape:
+  python3 -m itemcutout --input-file <inputPath> --output-file <outputPath> --json
+- Implemented with child_process.spawn and argument array (safe, no shell concatenation).
+- Captures stdout, stderr, exit code.
+- Includes timeout handling (default 120s; env-overridable).
+
+Success handling
+- Requires exit code 0.
+- Parses stdout as JSON.
+- Validates required fields exist:
+  - status
+  - input_path or inputPath
+  - output_path or outputPath
+- Normalizes output to camelCase:
+  {
+    status,
+    inputPath,
+    outputPath,
+    elapsedSeconds,
+    inputDimensions,
+    outputDimensions,
+    glowApplied,
+    glowColor
+  }
+
+Error handling
+- Normalized error object shape:
+  {
+    code: 'OBJECT_GLOW_PROCESS_FAILED' | 'OBJECT_GLOW_BAD_JSON',
+    message,
+    exitCode,
+    stderr,
+    stdoutSnippet,
+    inputPath,
+    outputPath
+  }
+- OBJECT_GLOW_PROCESS_FAILED used for spawn/start failures, non-zero exit, timeout, missing input file.
+- OBJECT_GLOW_BAD_JSON used for invalid JSON or missing required JSON fields.
+- Temporary endpoint returns normalized error payload in response body.
+
+Path ownership assumptions
+- Discowarpcore owns path decisions.
+- If outputPath is omitted, service computes it:
+  - Replaces last path segment named "original" or "originals" with "processed".
+  - Output extension forced to .webp.
+  - If no original/originals segment exists, output becomes:
+    <inputDir>/processed/<inputBaseName>.webp
+- Service creates output directory recursively before running objectGlow.
+
+Temporary endpoint added
+- POST /api/media/process-test
+- Request body:
+  {
+    "inputPath": "/absolute/path/to/existing/input.jpg",
+    "outputPath": "/absolute/path/to/processed.webp" // optional
+  }
+- Response on success:
+  { ok: true, data: <normalized success object> }
+- Response on failure:
+  { ok: false, error: <normalized error object> }
+
+Out-of-scope items intentionally not implemented
+- Background jobs
+- Queues/retries
+- DB persistence updates
+- Upload flow changes
+- UI/toast integration
+
+Operational note
+- Runtime validation in this environment was limited because Node was unavailable in the shell session ("node: command not found").
+- Code was still added following existing Express controller/service structure.

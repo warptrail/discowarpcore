@@ -914,13 +914,19 @@ async function setItemImage(id, image) {
   if (!current) return null;
 
   const previousPaths = collectImageStoragePaths(current);
-  const nextPaths = new Set(collectImageStoragePaths({ image, imagePath: '' }));
+  const normalizedImage = {
+    ...(image && typeof image === 'object' ? image : {}),
+    mediaId: '',
+  };
+  const nextPaths = new Set(
+    collectImageStoragePaths({ image: normalizedImage, imagePath: '' })
+  );
 
   const updated = await Item.findByIdAndUpdate(
     id,
     {
-      image,
-      imagePath: image?.display?.url || image?.original?.url || '',
+      image: normalizedImage,
+      imagePath: normalizedImage?.display?.url || normalizedImage?.original?.url || '',
     },
     { new: true, runValidators: true }
   );

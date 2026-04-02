@@ -15,7 +15,10 @@ const devRoutes = require('./routes/devRoutes');
 const locationRoutes = require('./routes/locations');
 const retrievalRoutes = require('./routes/retrieval');
 const logRoutes = require('./routes/logs');
+const mediaRoutes = require('./routes/media');
 const { backfillBoxLocations } = require('./services/locationService');
+const { recoverQueuedMediaJobs } = require('./services/mediaJobService');
+const { backfillMissingMediaIds } = require('./services/mediaProcessingService');
 
 const PORT = process.env.PORT || 5002;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -35,6 +38,7 @@ app.use('/api/locations', locationRoutes);
 app.use('/api/dev', devRoutes);
 app.use('/api/retrieval', retrievalRoutes);
 app.use('/api/logs', logRoutes);
+app.use('/api/media', mediaRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
@@ -64,6 +68,24 @@ async function startServer() {
     console.log('📍 Location backfill:', result);
   } catch (err) {
     console.error('⚠️ Location backfill failed:', err);
+  }
+
+  try {
+    const backfill = await backfillMissingMediaIds();
+    if (backfill.updatedCount > 0) {
+      console.log('🆔 Backfilled mediaIds for MediaState:', backfill);
+    }
+  } catch (err) {
+    console.error('⚠️ MediaId backfill failed:', err);
+  }
+
+  try {
+    const recovery = await recoverQueuedMediaJobs();
+    if (recovery.recoveredCount > 0) {
+      console.log('🧵 Recovered queued media jobs:', recovery);
+    }
+  } catch (err) {
+    console.error('⚠️ Media job recovery failed:', err);
   }
 
   app.listen(PORT, HOST, () => {

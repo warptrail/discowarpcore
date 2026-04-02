@@ -1,0 +1,7 @@
+curl -sS -X POST http://localhost:5002/api/media/process-test \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "inputPath": "/Users/moonshade/Developer/discowarpcore/test/input/original_mystery_object.jpg”,
+    "outputPath": "/Users/moonshade/Developer/discowarpcore/test/output/original_mystery_object.webp"
+  }'
+  

@@ -8,6 +8,7 @@ import {
   MOBILE_FONT_XS,
 } from '../../styles/tokens';
 import IntakeBoxSelectorPanel from './IntakeBoxSelectorPanel';
+import IntakeCurrentBoxImagePanel from './IntakeCurrentBoxImagePanel';
 import EditBoxDetailsForm from '../EditBoxDetailsForm';
 import { ToastContext } from '../Toast';
 import DestroyBoxSection from '../DestroyBoxSection';
@@ -25,7 +26,7 @@ const Header = styled.header`
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.7rem 0.85rem;
+  padding: 0.54rem 0.72rem;
   border-bottom: 1px solid rgba(70, 132, 112, 0.35);
   background: linear-gradient(90deg, rgba(63, 201, 152, 0.2) 0%, rgba(63, 201, 152, 0) 58%);
 `;
@@ -71,9 +72,9 @@ const ClearCurrentBoxButton = styled.button`
 `;
 
 const Body = styled.div`
-  padding: 0.75rem;
+  padding: 0.58rem;
   display: grid;
-  gap: 0.72rem;
+  gap: 0.52rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 0.62rem;
@@ -83,13 +84,13 @@ const Body = styled.div`
 
 const CurrentBoxCard = styled.div`
   display: grid;
-  gap: 0.56rem;
+  gap: 0.46rem;
 `;
 
 const IdentityTopRow = styled.div`
   display: grid;
-  grid-template-columns: ${({ $hasImage }) => ($hasImage ? '148px minmax(0, 1fr)' : '1fr')};
-  gap: 0.72rem;
+  grid-template-columns: ${({ $hasImage }) => ($hasImage ? '118px minmax(0, 1fr)' : '1fr')};
+  gap: 0.54rem;
   align-items: start;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -109,7 +110,7 @@ const BoxImageWrap = styled.div`
   border: 1px solid rgba(117, 186, 170, 0.45);
   background: rgba(10, 16, 18, 0.86);
   width: 100%;
-  max-width: 148px;
+  max-width: 118px;
   aspect-ratio: 1 / 1;
   align-self: start;
   justify-self: start;
@@ -134,15 +135,23 @@ const BoxIdentity = styled.div`
   border: 1px solid rgba(66, 112, 123, 0.4);
   border-radius: 10px;
   background: rgba(11, 19, 24, 0.8);
-  padding: 0.62rem 0.68rem;
+  padding: 0.46rem 0.54rem;
   min-width: 0;
   display: grid;
+  gap: 0.34rem;
+`;
+
+const IdentityHeadline = styled.div`
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
   gap: 0.42rem;
+  flex-wrap: wrap;
 `;
 
 const BoxName = styled.div`
   color: #e8f1f4;
-  font-size: 1rem;
+  font-size: 0.92rem;
   line-height: 1.25;
   font-weight: 700;
   overflow-wrap: anywhere;
@@ -154,7 +163,7 @@ const BoxName = styled.div`
 
 const BoxMeta = styled.div`
   color: #a7bbc1;
-  font-size: 0.76rem;
+  font-size: 0.68rem;
   letter-spacing: 0.04em;
   display: inline-flex;
   align-items: baseline;
@@ -163,7 +172,7 @@ const BoxMeta = styled.div`
 
 const BoxCode = styled.span`
   font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
-  font-size: 1.22rem;
+  font-size: 1rem;
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0.08em;
@@ -181,7 +190,7 @@ const MetaRow = styled.div`
   gap: 0.32rem;
   min-width: 0;
   color: #9eb7c4;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   letter-spacing: 0.04em;
 `;
 
@@ -204,7 +213,7 @@ const BreadcrumbWrap = styled.div`
   border: 1px solid rgba(84, 129, 144, 0.42);
   border-radius: 8px;
   background: rgba(12, 25, 31, 0.78);
-  padding: 0.36rem 0.42rem;
+  padding: 0.28rem 0.36rem;
   display: grid;
   gap: 0.28rem;
 `;
@@ -232,7 +241,7 @@ const BreadcrumbSegment = styled.button`
     $current ? 'rgba(19, 45, 39, 0.9)' : 'rgba(15, 30, 38, 0.85)'};
   color: ${({ $current }) => ($current ? '#e5fff5' : '#d0e7ef')};
   border-radius: 999px;
-  padding: 0.1rem 0.44rem;
+  padding: 0.08rem 0.38rem;
   max-width: 180px;
   font-size: 0.67rem;
   font-weight: ${({ $current }) => ($current ? 700 : 600)};
@@ -255,8 +264,12 @@ const BreadcrumbSep = styled.span`
 
 const StatsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.34rem 0.42rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.28rem;
+
+  @media (max-width: 1060px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     grid-template-columns: 1fr;
@@ -266,7 +279,7 @@ const StatsGrid = styled.div`
 
 const LowerMetaRegion = styled.div`
   display: grid;
-  gap: 0.42rem;
+  gap: 0.36rem;
   min-width: 0;
 `;
 
@@ -274,7 +287,7 @@ const StatCard = styled.div`
   border: 1px solid rgba(83, 130, 145, 0.42);
   border-radius: 8px;
   background: rgba(11, 23, 29, 0.78);
-  padding: 0.3rem 0.42rem;
+  padding: 0.24rem 0.34rem;
   display: grid;
   gap: 0.16rem;
   min-width: 0;
@@ -289,7 +302,7 @@ const StatTitle = styled.div`
 
 const StatValue = styled.div`
   color: #e3f4fb;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   min-width: 0;
@@ -352,11 +365,11 @@ const BoxHint = styled.p`
 
 const ActionRow = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.48rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.34rem;
   align-items: stretch;
 
-  @media (max-width: 980px) {
+  @media (max-width: 1120px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -367,12 +380,12 @@ const ActionRow = styled.div`
 
 const ActionButton = styled.button`
   width: 100%;
-  min-height: 44px;
-  border-radius: 10px;
+  min-height: 36px;
+  border-radius: 9px;
   border: 1px solid rgba(97, 175, 150, 0.58);
   background: rgba(15, 34, 30, 0.9);
   color: #e4f7f0;
-  font-size: 0.83rem;
+  font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -398,13 +411,13 @@ const LinkButton = styled(Link)`
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 44px;
-  border-radius: 10px;
+  min-height: 36px;
+  border-radius: 9px;
   border: 1px solid rgba(78, 133, 197, 0.58);
   background: rgba(19, 30, 48, 0.9);
   color: #d6e7ff;
   text-decoration: none;
-  font-size: 0.83rem;
+  font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -423,18 +436,18 @@ const EditRegion = styled.div`
   border: 1px solid rgba(86, 146, 167, 0.45);
   border-radius: 10px;
   background: rgba(11, 20, 27, 0.86);
-  padding: 0.46rem;
+  padding: 0.4rem;
   display: grid;
   gap: 0.36rem;
 `;
 
 function getBoxImageUrl(box) {
   return (
+    box?.imagePath ||
     box?.image?.display?.url ||
     box?.image?.thumb?.url ||
     box?.image?.original?.url ||
     box?.image?.url ||
-    box?.imagePath ||
     ''
   );
 }
@@ -628,10 +641,12 @@ export default function IntakeCurrentBoxPanel({
               ) : null}
 
               <BoxIdentity>
-                <BoxName>{selectedBox?.label || 'Unnamed Box'}</BoxName>
-                <BoxMeta>
-                  <BoxCode>#{selectedBox?.box_id || '---'}</BoxCode>
-                </BoxMeta>
+                <IdentityHeadline>
+                  <BoxName>{selectedBox?.label || 'Unnamed Box'}</BoxName>
+                  <BoxMeta>
+                    <BoxCode>#{selectedBox?.box_id || '---'}</BoxCode>
+                  </BoxMeta>
+                </IdentityHeadline>
                 {groupName ? (
                   <MetaRow>
                     <MetaLabel>Group</MetaLabel>
@@ -711,6 +726,11 @@ export default function IntakeCurrentBoxPanel({
                 </TagRow>
               ) : null}
             </LowerMetaRegion>
+
+            <IntakeCurrentBoxImagePanel
+              currentBox={selectedBox}
+              onBoxPhotoUpdated={onCurrentBoxPhotoUpdated}
+            />
           </CurrentBoxCard>
         ) : (
           <>

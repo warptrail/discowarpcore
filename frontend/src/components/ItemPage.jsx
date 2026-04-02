@@ -12,6 +12,7 @@ import ItemPageBreadcrumb from './ItemPageBreadcrumb';
 import EditItemDetailsForm from './EditItemDetailsForm';
 import ItemContainerSection from './ItemContainerSection';
 import useItemTimestampActions from '../hooks/useItemTimestampActions';
+import useItemImageProcessing from '../hooks/useItemImageProcessing';
 import {
   ItemHardDeleteConsolePanel,
   ItemMarkGoneConsolePanel,
@@ -46,6 +47,9 @@ export default function ItemPage() {
   const [containerError, setContainerError] = useState('');
   const [lifecycleDialog, setLifecycleDialog] = useState(null);
   const [lifecycleBusy, setLifecycleBusy] = useState(false);
+  const [imageRefreshToken, setImageRefreshToken] = useState(0);
+  const [processedPreviewUrl, setProcessedPreviewUrl] = useState('');
+  const lastImageLifecycleStatusRef = useRef('');
 
   const undoInFlightRef = useRef(new Set());
   const activeLoadIdRef = useRef(0);
@@ -53,6 +57,12 @@ export default function ItemPage() {
   useEffect(() => {
     setIsEditing(urlWantsEdit);
   }, [itemId, urlWantsEdit]);
+
+  useEffect(() => {
+    setProcessedPreviewUrl('');
+    setImageRefreshToken(0);
+    lastImageLifecycleStatusRef.current = '';
+  }, [itemId]);
 
   const parseErrorMessage = useCallback(async (res, fallback) => {
     const raw = await res.text().catch(() => '');
@@ -425,6 +435,130 @@ export default function ItemPage() {
     hideToast,
   });
 
+  const handleImageProcessingCompleted = useCallback(async ({ state } = {}) => {
+    const nextPreviewUrl = String(
+      state?.preferredImageUrl ||
+      state?.displayUrl ||
+      state?.thumbUrl ||
+      state?.processedUrl ||
+      ''
+    ).trim();
+
+    if (nextPreviewUrl) {
+      setProcessedPreviewUrl(nextPreviewUrl);
+    }
+
+    await loadItem({ preserveLoading: true });
+    setImageRefreshToken(Date.now());
+    showToast?.({
+      variant: 'success',
+      title: 'Image processing complete',
+      message: 'Updated processed image is ready.',
+      sticky: true,
+    });
+  }, [loadItem, showToast]);
+
+  const handleImageProcessingFailed = useCallback(({ error }) => {
+    showToast?.({
+      variant: 'danger',
+      title: 'Image processing failed',
+      message: error || 'Could not process this image.',
+      sticky: true,
+    });
+  }, [showToast]);
+
+  const {
+    processingStatus: processImageStatus,
+    processingState: processImageState,
+    processingError: processImageError,
+    isBusy: processImageBusy,
+    activeVariant,
+    hasProcessedVariant,
+    isSwitchingVariant,
+    variantSwitchError,
+    refreshMediaState,
+    switchActiveVariant,
+    startProcessing: startItemImageProcessing,
+  } = useItemImageProcessing({
+    itemId: item?._id || itemId,
+    onCompleted: handleImageProcessingCompleted,
+    onFailed: handleImageProcessingFailed,
+  });
+
+  const handleProcessItemImage = useCallback(async (renderTokens) => {
+    try {
+      const queued = await startItemImageProcessing({ renderTokens });
+      showToast?.({
+        variant: 'info',
+        title: 'Image processing queued',
+        message: queued?.jobId
+          ? `Queued job ${queued.jobId}.`
+          : 'Image processing request accepted.',
+        sticky: true,
+      });
+      return queued;
+    } catch (error) {
+      showToast?.({
+        variant: 'danger',
+        title: 'Image processing start failed',
+        message: error?.message || 'Failed to enqueue image processing.',
+        sticky: true,
+      });
+      throw error;
+    }
+  }, [showToast, startItemImageProcessing]);
+
+  useEffect(() => {
+    const nextStatus = String(processImageStatus || '').trim().toLowerCase();
+    if (!nextStatus || nextStatus === lastImageLifecycleStatusRef.current) return;
+    lastImageLifecycleStatusRef.current = nextStatus;
+
+    if (nextStatus === 'processing') {
+      showToast?.({
+        variant: 'info',
+        title: 'Image processing in progress',
+        message: 'ObjectGlow/media processing is running.',
+        sticky: true,
+      });
+    }
+  }, [processImageStatus, showToast]);
+
+  const handleSwitchItemVariant = useCallback(async (nextVariant) => {
+    try {
+      const updatedState = await switchActiveVariant(nextVariant);
+      const latestState = updatedState || await refreshMediaState().catch(() => null);
+      const nextPreviewUrl = String(
+        latestState?.preferredImageUrl ||
+        latestState?.displayUrl ||
+        latestState?.thumbUrl ||
+        latestState?.processedUrl ||
+        ''
+      ).trim();
+
+      setProcessedPreviewUrl(nextPreviewUrl || '');
+
+      await loadItem({ preserveLoading: true });
+      setImageRefreshToken(Date.now());
+
+      showToast?.({
+        variant: 'success',
+        title: 'Active variant updated',
+        message: `Switched to ${nextVariant} variant.`,
+        timeoutMs: 3000,
+      });
+
+      return latestState;
+    } catch (error) {
+      showToast?.({
+        variant: 'danger',
+        title: 'Variant switch failed',
+        message: error?.message || 'Could not switch active variant.',
+        timeoutMs: 5000,
+      });
+      throw error;
+    }
+  }, [loadItem, refreshMediaState, showToast, switchActiveVariant]);
+
   const handleConfirmMarkGone = useCallback(
     async ({ disposition, dispositionNotes }) => {
       if (!item?._id || lifecycleBusy) return false;
@@ -687,6 +821,7 @@ export default function ItemPage() {
           onDeletePermanentlyRequest={() => setLifecycleDialog('delete')}
           onReclaimRequest={() => setLifecycleDialog('reclaim')}
           onItemImageUpdated={({ image, imagePath }) => {
+            setProcessedPreviewUrl('');
             setItem((prev) => {
               if (!prev) return prev;
               return {
@@ -695,19 +830,47 @@ export default function ItemPage() {
                 imagePath: imagePath || '',
               };
             });
+            void refreshMediaState().catch(() => {
+              // Media state may not exist yet after image mutation.
+            });
           }}
-          onCancel={() => {
-            setIsEditing(false);
-            loadItem({ preserveLoading: true });
+          onProcessImage={handleProcessItemImage}
+          processImageStatus={processImageStatus}
+          processImageBusy={processImageBusy}
+          processImageError={processImageError}
+          persistedRenderTokens={processImageState?.renderTokens || null}
+          activeVariant={activeVariant}
+          hasProcessedVariant={hasProcessedVariant}
+          onSwitchActiveVariant={handleSwitchItemVariant}
+          switchVariantBusy={isSwitchingVariant}
+          switchVariantError={variantSwitchError}
+          processedPreviewUrl={processedPreviewUrl}
+          imageRefreshToken={imageRefreshToken}
+          onCancel={async () => {
+            try {
+              await loadItem({ preserveLoading: true });
+            } finally {
+              setIsEditing(false);
+            }
           }}
-          onSaved={(updated) => {
+          onSaved={async (updated) => {
             if (!updated) return;
             setItem(updated);
-            setIsEditing(false);
+            try {
+              await loadItem({ preserveLoading: true });
+            } finally {
+              setIsEditing(false);
+            }
           }}
         />
       ) : (
-        <ItemDetails itemId={itemId} itemData={item} enableImageLightbox />
+        <ItemDetails
+          itemId={itemId}
+          itemData={item}
+          enableImageLightbox
+          imageUrlOverride={processedPreviewUrl}
+          imageRefreshToken={imageRefreshToken}
+        />
       )}
 
       {!isEditing ? (

@@ -16,6 +16,18 @@ export default function EditItemDetailsForm({
   triggerFlash,
   onSaved,
   onItemImageUpdated,
+  onProcessImage,
+  processImageStatus = 'idle',
+  processImageBusy = false,
+  processImageError = '',
+  persistedRenderTokens = null,
+  activeVariant = 'original',
+  hasProcessedVariant = false,
+  onSwitchActiveVariant,
+  switchVariantBusy = false,
+  switchVariantError = '',
+  processedPreviewUrl = '',
+  imageRefreshToken = 0,
   onCancel,
   actionDocked = false,
   lifecycleBusy = false,
@@ -54,6 +66,18 @@ export default function EditItemDetailsForm({
           item={item}
           disabled={saving}
           onItemImageUpdated={onItemImageUpdated}
+          onProcessImage={onProcessImage}
+          processImageStatus={processImageStatus}
+          processImageBusy={processImageBusy}
+          processImageError={processImageError}
+          persistedRenderTokens={persistedRenderTokens}
+          activeVariant={activeVariant}
+          hasProcessedVariant={hasProcessedVariant}
+          onSwitchActiveVariant={onSwitchActiveVariant}
+          switchVariantBusy={switchVariantBusy}
+          switchVariantError={switchVariantError}
+          processedPreviewUrl={processedPreviewUrl}
+          imageRefreshToken={imageRefreshToken}
         />
 
         <EditItemTextFieldsSection

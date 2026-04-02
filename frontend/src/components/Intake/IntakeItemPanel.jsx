@@ -17,6 +17,10 @@ const Panel = styled.section`
   padding: 0.68rem;
   display: grid;
   gap: 0.58rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
 `;
 
 const TabBar = styled.div`

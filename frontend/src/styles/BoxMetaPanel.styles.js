@@ -25,6 +25,7 @@ const LCARS = {
 const PANEL_RADIUS = '14px';
 const NODE_RADIUS = '10px';
 const FAST = '150ms ease';
+const DESKTOP_SUMMARY_BREAKPOINT = '980px';
 
 const toneColor = (tone) =>
   tone === 'coral'
@@ -82,6 +83,32 @@ export const Panel = styled.section`
 export const IdentityZone = styled.div`
   display: grid;
   gap: 10px;
+`;
+
+export const SummaryGrid = styled.div`
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+
+  @media (min-width: ${DESKTOP_SUMMARY_BREAKPOINT}) {
+    grid-template-columns: ${({ $hasImage }) =>
+      $hasImage ? 'minmax(260px, 360px) minmax(0, 1fr)' : 'minmax(0, 1fr)'};
+    grid-template-areas: ${({ $hasImage }) =>
+      $hasImage ? '"media info"' : '"info"'};
+    align-items: start;
+    column-gap: 14px;
+  }
+`;
+
+export const SummaryInfo = styled.div`
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+
+  @media (min-width: ${DESKTOP_SUMMARY_BREAKPOINT}) {
+    grid-area: info;
+    align-content: start;
+  }
 `;
 
 export const IdentityHeader = styled.div`
@@ -350,17 +377,30 @@ export const CurrentBoxLocationValue = styled.span`
 
 export const BoxImageWrap = styled.div`
   width: min(360px, 100%);
+  aspect-ratio: 1 / 1;
+  display: grid;
+  place-items: center;
   border-radius: ${NODE_RADIUS};
   overflow: hidden;
   border: 1px solid ${LCARS.line};
-  background: ${LCARS.panelSoft};
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.06), transparent 62%),
+    ${LCARS.panelSoft};
+
+  @media (min-width: ${DESKTOP_SUMMARY_BREAKPOINT}) {
+    grid-area: media;
+    width: 100%;
+    max-width: 360px;
+    justify-self: start;
+    align-self: start;
+  }
 `;
 
 export const BoxImage = styled.img`
   display: block;
   width: 100%;
-  max-height: 240px;
-  object-fit: cover;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
 `;
 
 export const Crumbs = styled.nav`
@@ -452,6 +492,24 @@ export const MetaZone = styled.div`
   padding: 2px 0;
   border-top: 1px solid ${LCARS.line};
   border-bottom: 1px solid ${LCARS.line};
+`;
+
+export const DesktopSummaryMeta = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 1px solid ${LCARS.line};
+  border-radius: 10px;
+  background: linear-gradient(96deg, rgba(76, 198, 193, 0.11), transparent 58%),
+    ${LCARS.panelSoft};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
 `;
 
 export const NotesZone = styled.section`

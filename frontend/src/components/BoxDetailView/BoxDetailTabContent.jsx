@@ -47,6 +47,7 @@ export default function BoxDetailTabContent({
   refreshBox,
   activePanel,
   onActivePanelChange,
+  onBoxImageStateChanged,
 }) {
   const [flatSearchQuery, setFlatSearchQuery] = useState('');
   const [flatSortMode, setFlatSortMode] = useState('treeOrder');
@@ -151,6 +152,7 @@ export default function BoxDetailTabContent({
         refreshBox={refreshBox}
         activePanelState={activePanel}
         onActivePanelStateChange={onActivePanelChange}
+        onImageStateChanged={onBoxImageStateChanged}
       />
     );
   }

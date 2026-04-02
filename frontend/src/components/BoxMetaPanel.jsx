@@ -33,6 +33,14 @@ function normalizeToken(value) {
   return String(value || '').trim().toLowerCase();
 }
 
+function withCacheBuster(url, token) {
+  const source = String(url || '').trim();
+  if (!source) return '';
+  const marker = Number(token);
+  if (!Number.isFinite(marker) || marker <= 0) return source;
+  return `${source}${source.includes('?') ? '&' : '?'}v=${marker}`;
+}
+
 function getRenderableBoxTags(tags, { blockedValues = [] } = {}) {
   const source = Array.isArray(tags) ? tags : [];
   if (!source.length) return [];
@@ -147,6 +155,7 @@ export default function BoxMetaPanel({
   parentPath = [],
   onNavigateBox,
   stats,
+  imageRefreshToken = 0,
 }) {
   const shortId = String(box?.box_id ?? box?.shortId ?? '');
   const title = box?.label ?? box?.name ?? 'Box';
@@ -170,6 +179,7 @@ export default function BoxMetaPanel({
     box?.image?.url ||
     box?.imagePath ||
     '';
+  const boxImageSrc = withCacheBuster(boxImageUrl, imageRefreshToken);
 
   // Badge logic (uses only data we have on this node)
   const scope = useMemo(() => {
@@ -263,75 +273,86 @@ export default function BoxMetaPanel({
           </S.PathContext>
         )}
 
-        <S.CurrentBox
-          aria-current="page"
-          aria-label={`Current box ${currentCrumb?.label ?? title}`}
-          title={`${title}${shortId ? ` (${shortId})` : ''}`}
-        >
-          <S.CurrentBoxId>{pad3(currentCrumb?.id)}</S.CurrentBoxId>
-          <S.CurrentBoxMain>
-            <S.CurrentBoxTitle>{currentCrumb?.label ?? title}</S.CurrentBoxTitle>
-            <S.CurrentBoxInfoRow>
-              {group ? (
-                <S.CurrentBoxLocationChip $variant="group">
-                  <S.CurrentBoxLocationLabel $variant="group">
-                    Group
-                  </S.CurrentBoxLocationLabel>
-                  <S.CurrentBoxLocationValue>{group}</S.CurrentBoxLocationValue>
-                </S.CurrentBoxLocationChip>
-              ) : null}
-              <S.CurrentBoxLocationChip $variant="location" $empty={!location}>
-                <S.CurrentBoxLocationLabel $variant="location" $empty={!location}>
-                  Location
-                </S.CurrentBoxLocationLabel>
-                <S.CurrentBoxLocationValue>{location || 'Unassigned'}</S.CurrentBoxLocationValue>
-              </S.CurrentBoxLocationChip>
-            </S.CurrentBoxInfoRow>
-            {tags.length ? (
-              <S.CurrentBoxTagsSection>
-                <S.CurrentBoxTagsLabel>Tags</S.CurrentBoxTagsLabel>
-                <S.CurrentBoxTagsRow>
-                  {tags.map((tag, index) => (
-                    <S.CurrentBoxTag key={`${shortId || 'box'}-tag-${index}-${tag}`}>
-                      {tag}
-                    </S.CurrentBoxTag>
-                  ))}
-                </S.CurrentBoxTagsRow>
-              </S.CurrentBoxTagsSection>
-            ) : null}
-          </S.CurrentBoxMain>
-        </S.CurrentBox>
+        <S.SummaryGrid $hasImage={!!boxImageUrl}>
+          <S.SummaryInfo>
+            <S.CurrentBox
+              aria-current="page"
+              aria-label={`Current box ${currentCrumb?.label ?? title}`}
+              title={`${title}${shortId ? ` (${shortId})` : ''}`}
+            >
+              <S.CurrentBoxId>{pad3(currentCrumb?.id)}</S.CurrentBoxId>
+              <S.CurrentBoxMain>
+                <S.CurrentBoxTitle>{currentCrumb?.label ?? title}</S.CurrentBoxTitle>
+                <S.CurrentBoxInfoRow>
+                  {group ? (
+                    <S.CurrentBoxLocationChip $variant="group">
+                      <S.CurrentBoxLocationLabel $variant="group">
+                        Group
+                      </S.CurrentBoxLocationLabel>
+                      <S.CurrentBoxLocationValue>{group}</S.CurrentBoxLocationValue>
+                    </S.CurrentBoxLocationChip>
+                  ) : null}
+                  <S.CurrentBoxLocationChip $variant="location" $empty={!location}>
+                    <S.CurrentBoxLocationLabel $variant="location" $empty={!location}>
+                      Location
+                    </S.CurrentBoxLocationLabel>
+                    <S.CurrentBoxLocationValue>{location || 'Unassigned'}</S.CurrentBoxLocationValue>
+                  </S.CurrentBoxLocationChip>
+                </S.CurrentBoxInfoRow>
+                {tags.length ? (
+                  <S.CurrentBoxTagsSection>
+                    <S.CurrentBoxTagsLabel>Tags</S.CurrentBoxTagsLabel>
+                    <S.CurrentBoxTagsRow>
+                      {tags.map((tag, index) => (
+                        <S.CurrentBoxTag key={`${shortId || 'box'}-tag-${index}-${tag}`}>
+                          {tag}
+                        </S.CurrentBoxTag>
+                      ))}
+                    </S.CurrentBoxTagsRow>
+                  </S.CurrentBoxTagsSection>
+                ) : null}
+              </S.CurrentBoxMain>
+            </S.CurrentBox>
 
-        {boxImageUrl ? (
+            <S.MetaZone>
+              <S.StatGroup>
+                <S.StatItem>
+                  <S.StatLabel>Boxes</S.StatLabel>
+                  <S.StatValue $tone="lilac">{safeStats.boxes}</S.StatValue>
+                </S.StatItem>
+                <S.StatItem>
+                  <S.StatLabel>Unique</S.StatLabel>
+                  <S.StatValue $tone="teal">{safeStats.uniqueItems}</S.StatValue>
+                </S.StatItem>
+                <S.StatItem>
+                  <S.StatLabel>Total</S.StatLabel>
+                  <S.StatValue $tone="amber">{safeStats.totalItems}</S.StatValue>
+                </S.StatItem>
+              </S.StatGroup>
+            </S.MetaZone>
+
+            <S.DesktopSummaryMeta>
+              <S.Label>Descendants</S.Label>
+              <S.MetaCount>
+                {descendantCount} total • {children.length} direct
+              </S.MetaCount>
+            </S.DesktopSummaryMeta>
+
+            {notes ? (
+              <S.NotesZone>
+                <S.Label>Notes</S.Label>
+                <S.NotesBody>{notes}</S.NotesBody>
+              </S.NotesZone>
+            ) : null}
+          </S.SummaryInfo>
+
+        {boxImageSrc ? (
           <S.BoxImageWrap>
-            <S.BoxImage src={boxImageUrl} alt={`${title} image`} />
+            <S.BoxImage src={boxImageSrc} alt={`${title} image`} />
           </S.BoxImageWrap>
         ) : null}
+        </S.SummaryGrid>
       </S.IdentityZone>
-
-      {notes ? (
-        <S.NotesZone>
-          <S.Label>Notes</S.Label>
-          <S.NotesBody>{notes}</S.NotesBody>
-        </S.NotesZone>
-      ) : null}
-
-      <S.MetaZone>
-        <S.StatGroup>
-          <S.StatItem>
-            <S.StatLabel>Boxes</S.StatLabel>
-            <S.StatValue $tone="lilac">{safeStats.boxes}</S.StatValue>
-          </S.StatItem>
-          <S.StatItem>
-            <S.StatLabel>Unique</S.StatLabel>
-            <S.StatValue $tone="teal">{safeStats.uniqueItems}</S.StatValue>
-          </S.StatItem>
-          <S.StatItem>
-            <S.StatLabel>Total</S.StatLabel>
-            <S.StatValue $tone="amber">{safeStats.totalItems}</S.StatValue>
-          </S.StatItem>
-        </S.StatGroup>
-      </S.MetaZone>
 
       <S.ChildrenZone>
         <S.SectionHeader>

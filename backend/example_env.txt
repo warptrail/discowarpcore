@@ -3,3 +3,13 @@ PORT=5002
 HOST=0.0.0.0
 # Optional: override where media files are stored (can be a mounted volume in containers)
 # MEDIA_ROOT=./backend/media
+# Optional: objectGlow subprocess overrides
+# OBJECT_GLOW_REPO=/Users/<you>/Developer/objectiglow
+# OBJECT_GLOW_MODULE=itemcutout
+# OBJECT_GLOW_TIMEOUT_MS=120000
+# Optional: in-process media job worker controls
+# MEDIA_JOB_CONCURRENCY=2
+# MEDIA_JOB_MAX_QUEUE_LENGTH=200
+# MEDIA_JOB_HISTORY_LIMIT=1000
+# Optional: explicitly enable temporary media test/admin routes
+# ENABLE_MEDIA_TEST_ROUTES=true

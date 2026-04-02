@@ -17,6 +17,7 @@ import useBoxActionPanelController from './BoxActionPanel/useBoxActionPanelContr
 import { DetailsPanel, PanelContainer } from './BoxActionPanel/BoxActionPanel.styles';
 import { ToastContext } from './Toast';
 import { destroyBoxById, releaseChildrenToFloor, updateBoxById } from '../api/boxes';
+import useBoxImageProcessing from '../hooks/useBoxImageProcessing';
 
 const DESTROY_CONFIRM_PHRASE = 'DESTROY';
 
@@ -29,6 +30,7 @@ export default function BoxActionPanel({
   onRequestDelete,
   activePanelState = null,
   onActivePanelStateChange,
+  onImageStateChanged,
 }) {
   const controller = useBoxActionPanelController({
     boxTree,
@@ -51,6 +53,9 @@ export default function BoxActionPanel({
 
   const [mode, setMode] = useState('default');
   const [destroyConfirmInput, setDestroyConfirmInput] = useState('');
+  const [imageRefreshToken, setImageRefreshToken] = useState(0);
+  const [processedPreviewUrl, setProcessedPreviewUrl] = useState('');
+  const lastImageLifecycleStatusRef = useRef('');
   const destroyToastActiveRef = useRef(false);
   const undoNestBusyRef = useRef(false);
   const navigate = useNavigate();
@@ -62,6 +67,92 @@ export default function BoxActionPanel({
   const isDestroyConfirmMode = mode === 'destroyConfirm';
   const isDestroyConfirmValid = destroyConfirmInput === DESTROY_CONFIRM_PHRASE;
   const isDestroyBusy = !!busy || isMoving;
+
+  useEffect(() => {
+    setProcessedPreviewUrl('');
+    setImageRefreshToken(0);
+    lastImageLifecycleStatusRef.current = '';
+  }, [boxMongoId]);
+
+  const handleImageProcessingCompleted = useCallback(async ({ state } = {}) => {
+    const nextPreviewUrl = String(
+      state?.preferredImageUrl ||
+      state?.displayUrl ||
+      state?.thumbUrl ||
+      state?.processedUrl ||
+      ''
+    ).trim();
+
+    setProcessedPreviewUrl(nextPreviewUrl || '');
+    await refreshBox?.();
+    setImageRefreshToken(Date.now());
+    onImageStateChanged?.();
+    showToast?.({
+      variant: 'success',
+      title: 'Box image processing complete',
+      message: 'Updated processed image is ready.',
+      sticky: true,
+    });
+  }, [onImageStateChanged, refreshBox, showToast]);
+
+  const handleImageProcessingFailed = useCallback(({ error }) => {
+    showToast?.({
+      variant: 'danger',
+      title: 'Box image processing failed',
+      message: error || 'Could not process this box image.',
+      sticky: true,
+    });
+  }, [showToast]);
+
+  const {
+    processingStatus: processImageStatus,
+    processingState: processImageState,
+    processingError: processImageError,
+    isBusy: processImageBusy,
+    startProcessing: startBoxImageProcessing,
+  } = useBoxImageProcessing({
+    boxId: boxMongoId,
+    onCompleted: handleImageProcessingCompleted,
+    onFailed: handleImageProcessingFailed,
+  });
+
+  const handleProcessBoxImage = useCallback(async (renderTokens) => {
+    try {
+      const queued = await startBoxImageProcessing({ renderTokens });
+      showToast?.({
+        variant: 'info',
+        title: 'Box image processing queued',
+        message: queued?.jobId
+          ? `Queued job ${queued.jobId}.`
+          : 'Image processing request accepted.',
+        sticky: true,
+      });
+      return queued;
+    } catch (error) {
+      showToast?.({
+        variant: 'danger',
+        title: 'Box image processing start failed',
+        message: error?.message || 'Failed to enqueue box image processing.',
+        sticky: true,
+      });
+      throw error;
+    }
+  }, [showToast, startBoxImageProcessing]);
+
+  useEffect(() => {
+    const nextStatus = String(processImageStatus || '').trim().toLowerCase();
+    if (!nextStatus || nextStatus === lastImageLifecycleStatusRef.current) return;
+    lastImageLifecycleStatusRef.current = nextStatus;
+
+    if (nextStatus === 'processing') {
+      showToast?.({
+        variant: 'info',
+        title: 'Box image processing in progress',
+        message: 'ObjectGlow/media processing is running.',
+        sticky: true,
+      });
+    }
+  }, [processImageStatus, showToast]);
 
   const resetDestroyConfirmState = useCallback(() => {
     setDestroyConfirmInput('');
@@ -346,7 +437,19 @@ export default function BoxActionPanel({
             boxMongoId={boxMongoId}
             initial={boxTree}
             onSaved={handleFormSaved}
-            onImageUpdated={() => refreshBox?.()}
+            onImageUpdated={() => {
+              setProcessedPreviewUrl('');
+              setImageRefreshToken(Date.now());
+              refreshBox?.();
+              onImageStateChanged?.();
+            }}
+            onProcessImage={handleProcessBoxImage}
+            processImageStatus={processImageStatus}
+            processImageBusy={processImageBusy}
+            processImageError={processImageError}
+            persistedRenderTokens={processImageState?.renderTokens || null}
+            processedPreviewUrl={processedPreviewUrl}
+            imageRefreshToken={imageRefreshToken}
             onCancel={() => {
               setActivePanel(null);
               refreshBox?.();

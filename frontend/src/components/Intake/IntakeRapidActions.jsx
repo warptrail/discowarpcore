@@ -1,151 +1,280 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
+import { API_BASE } from '../../api/API_BASE';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_CONTROL_MIN_HEIGHT,
   MOBILE_FONT_SM,
-  MOBILE_FONT_XS,
 } from '../../styles/tokens';
-import IntakeItemPanel from './IntakeItemPanel';
-import IntakeMoveItemPanel from './IntakeMoveItemPanel';
 
 const Section = styled.section`
   display: grid;
-  gap: 0.6rem;
+  gap: 0.46rem;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
 `;
 
-const ActionGrid = styled.div`
+const Panel = styled.section`
+  border: 1px solid rgba(177, 134, 75, 0.45);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(33, 25, 16, 0.94) 0%, rgba(23, 18, 13, 0.96) 100%);
+  padding: 0.58rem;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.52rem;
+  gap: 0.44rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+`;
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: 1fr;
-  }
+const Hint = styled.p`
+  margin: 0;
+  color: #d0ba95;
+  font-size: 0.74rem;
+  line-height: 1.35;
+`;
+
+const Card = styled.div`
+  border: 1px solid rgba(177, 145, 91, 0.48);
+  border-radius: 10px;
+  background: rgba(19, 13, 8, 0.85);
+  padding: 0.44rem;
+  display: grid;
+  gap: 0.36rem;
+  min-width: 0;
+`;
+
+const CardLabel = styled.div`
+  margin: 0;
+  font-size: 0.67rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #d4bf9f;
+`;
+
+const SelectedItemRow = styled.div`
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 0.42rem;
+  align-items: start;
+  min-width: 0;
+`;
+
+const Thumb = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid rgba(167, 132, 84, 0.5);
+  overflow: hidden;
+  background: rgba(27, 20, 12, 0.95);
+  display: grid;
+  place-items: center;
+  color: #bd9f71;
+  font-size: 0.58rem;
+  text-transform: uppercase;
+`;
+
+const ThumbImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
+const SelectedBody = styled.div`
+  min-width: 0;
+  display: grid;
+  gap: 0.12rem;
+`;
+
+const SelectedName = styled.div`
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #f7e8cf;
+  overflow-wrap: anywhere;
+`;
+
+const SelectedMeta = styled.div`
+  font-size: 0.68rem;
+  color: #d2b98f;
+  line-height: 1.25;
+`;
+
+const EmptyState = styled.div`
+  border: 1px dashed rgba(191, 155, 94, 0.52);
+  border-radius: 10px;
+  padding: 0.52rem;
+  font-size: 0.76rem;
+  color: #d6c39f;
 `;
 
 const ActionButton = styled.button`
-  min-height: 66px;
-  border-radius: 12px;
-  border: 1px solid
-    ${({ $active, $tone }) => {
-      if ($active) return 'rgba(138, 232, 196, 0.9)';
-      if ($tone === 'new') return 'rgba(80, 151, 219, 0.72)';
-      if ($tone === 'move') return 'rgba(223, 180, 96, 0.72)';
-      if ($tone === 'photo') return 'rgba(113, 191, 130, 0.72)';
-      if ($tone === 'danger') return 'rgba(214, 112, 112, 0.8)';
-      return 'rgba(116, 172, 212, 0.56)';
-    }};
-  background: ${({ $active, $tone }) => {
-    if ($active) return 'linear-gradient(180deg, rgba(23, 62, 53, 0.98) 0%, rgba(17, 46, 39, 0.96) 100%)';
-    if ($tone === 'new') return 'linear-gradient(180deg, rgba(18, 41, 72, 0.96) 0%, rgba(13, 31, 55, 0.95) 100%)';
-    if ($tone === 'move') return 'linear-gradient(180deg, rgba(75, 50, 20, 0.95) 0%, rgba(58, 37, 14, 0.94) 100%)';
-    if ($tone === 'photo') return 'linear-gradient(180deg, rgba(20, 56, 41, 0.95) 0%, rgba(14, 43, 31, 0.95) 100%)';
-    if ($tone === 'danger') return 'linear-gradient(180deg, rgba(92, 30, 30, 0.96) 0%, rgba(70, 22, 22, 0.96) 100%)';
-    return 'linear-gradient(180deg, rgba(16, 33, 54, 0.95) 0%, rgba(12, 26, 45, 0.95) 100%)';
-  }};
-  color: ${({ $active }) => ($active ? '#f2fff8' : '#e5f0ff')};
-  font-size: 0.96rem;
+  width: 100%;
+  min-height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(228, 176, 92, 0.76);
+  background: linear-gradient(180deg, rgba(116, 74, 25, 0.92) 0%, rgba(83, 53, 19, 0.95) 100%);
+  color: #fff0d7;
+  font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
-  box-shadow: ${({ $active }) =>
-    $active ? '0 0 0 2px rgba(138, 232, 196, 0.16)' : 'none'};
 
   &:hover:not(:disabled) {
-    filter: brightness(1.07);
+    filter: brightness(1.06);
   }
 
   &:disabled {
-    opacity: 0.56;
+    opacity: 0.54;
     cursor: not-allowed;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: calc(${MOBILE_CONTROL_MIN_HEIGHT} + 16px);
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     font-size: ${MOBILE_FONT_SM};
   }
 `;
 
-const Hint = styled.div`
-  border-radius: 10px;
-  border: 1px dashed rgba(140, 172, 207, 0.55);
-  background: rgba(12, 21, 32, 0.88);
-  padding: 0.56rem 0.62rem;
-  color: #b7cbe0;
-  font-size: 0.78rem;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${MOBILE_FONT_XS};
-  }
+const StateText = styled.div`
+  color: ${({ $error }) => ($error ? '#f6c3c3' : '#d6c39e')};
+  font-size: 0.74rem;
+  min-height: 0.96rem;
 `;
 
-function toggleAction(nextAction, activeAction, onChangeAction) {
-  if (activeAction === nextAction) {
-    onChangeAction?.('');
-    return;
-  }
-  onChangeAction?.(nextAction);
+function getItemImageUrl(item) {
+  return (
+    item?.image?.thumb?.url ||
+    item?.image?.display?.url ||
+    item?.image?.original?.url ||
+    item?.image?.url ||
+    item?.imagePath ||
+    ''
+  );
+}
+
+function getCurrentBoxLabel(item) {
+  const label = String(item?.box?.label || '').trim();
+  const boxId = String(item?.box?.box_id || '').trim();
+  if (label && boxId) return `${label} (#${boxId})`;
+  if (label) return label;
+  if (boxId) return `#${boxId}`;
+  return 'Orphaned';
 }
 
 export default function IntakeRapidActions({
   currentBox,
-  boxes,
-  recentItems,
-  orphanedRefreshKey = 0,
-  activeAction,
-  moveSeedItemId,
-  onChangeAction,
-  onItemCreated,
+  selectedItem = null,
   onItemMoved,
 }) {
-  const hasCurrentBox = !!currentBox?._id;
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState('');
+  const [error, setError] = useState('');
+
+  const selectedItemId = String(selectedItem?._id || '').trim();
+  const currentBoxId = String(currentBox?._id || '').trim();
+  const itemInCurrentBox = useMemo(
+    () => String(selectedItem?.box?._id || selectedItem?.boxId || '') === currentBoxId,
+    [currentBoxId, selectedItem?.box?._id, selectedItem?.boxId],
+  );
+  const canMove = !!selectedItemId && !!currentBoxId && !busy && !itemInCurrentBox;
+  const destinationLabel = currentBox?.box_id
+    ? `${currentBox?.label || 'Unnamed Box'} (#${currentBox.box_id})`
+    : 'No current box selected';
+  const imageUrl = getItemImageUrl(selectedItem);
+
+  const handleMoveToCurrent = async () => {
+    if (!canMove) return;
+    setBusy(true);
+    setStatus('');
+    setError('');
+
+    try {
+      const response = await fetch(`${API_BASE}/api/boxed-items/moveItem`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          itemId: selectedItemId,
+          destBoxId: currentBoxId,
+        }),
+      });
+
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body?.error || body?.message || `Move failed (${response.status})`);
+      }
+
+      const movedMessage = `Moved ${selectedItem?.name || 'item'} to box #${currentBox?.box_id || '---'}.`;
+      setStatus(movedMessage);
+
+      onItemMoved?.({
+        itemId: selectedItemId,
+        destBoxId: currentBoxId,
+        sourceBoxId: String(selectedItem?.box?._id || selectedItem?.boxId || ''),
+        sourceBox: selectedItem?.box
+          ? {
+              _id: selectedItem.box._id,
+              box_id: selectedItem.box.box_id,
+              label: selectedItem.box.label,
+            }
+          : null,
+        item: {
+          ...selectedItem,
+          boxId: currentBoxId,
+          box: {
+            _id: currentBoxId,
+            box_id: currentBox?.box_id,
+            label: currentBox?.label,
+          },
+        },
+        message: movedMessage,
+      });
+    } catch (moveError) {
+      setError(moveError?.message || 'Failed to move item.');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <Section>
-      <ActionGrid>
-        <ActionButton
-          type="button"
-          $active={activeAction === 'add-item'}
-          onClick={() => toggleAction('add-item', activeAction, onChangeAction)}
-        >
-          Add Item
+      <Panel>
+        <Hint>
+          Route selected intake items into the current box.
+        </Hint>
+
+        <Card>
+          <CardLabel>Selected Item</CardLabel>
+          {selectedItemId ? (
+            <SelectedItemRow>
+              <Thumb>
+                {imageUrl ? <ThumbImage src={imageUrl} alt="" /> : 'No Img'}
+              </Thumb>
+              <SelectedBody>
+                <SelectedName>{selectedItem?.name || 'Unnamed item'}</SelectedName>
+                <SelectedMeta>Current: {getCurrentBoxLabel(selectedItem)}</SelectedMeta>
+              </SelectedBody>
+            </SelectedItemRow>
+          ) : (
+            <EmptyState>Select an item from recent activity to move it.</EmptyState>
+          )}
+        </Card>
+
+        <Card>
+          <CardLabel>Destination</CardLabel>
+          <SelectedMeta>{destinationLabel}</SelectedMeta>
+        </Card>
+
+        <ActionButton type="button" disabled={!canMove} onClick={handleMoveToCurrent}>
+          {busy
+            ? 'Moving…'
+            : itemInCurrentBox
+              ? 'Already In Current Box'
+              : 'Move To Current Box'}
         </ActionButton>
 
-        <ActionButton
-          type="button"
-          $tone="move"
-          $active={activeAction === 'move-item'}
-          onClick={() => toggleAction('move-item', activeAction, onChangeAction)}
-          disabled={!hasCurrentBox}
-        >
-          Move Item
-        </ActionButton>
-      </ActionGrid>
-
-      {!hasCurrentBox ? (
-        <Hint>Select a current box above to unlock add and move actions.</Hint>
-      ) : null}
-
-      {activeAction === 'add-item' ? (
-        <IntakeItemPanel
-          currentBox={currentBox}
-          orphanedRefreshKey={orphanedRefreshKey}
-          onItemCreated={onItemCreated}
-          onItemMoved={onItemMoved}
-        />
-      ) : null}
-
-      {activeAction === 'move-item' ? (
-        <IntakeMoveItemPanel
-          currentBox={currentBox}
-          boxes={boxes}
-          recentItems={recentItems}
-          seedItemId={moveSeedItemId}
-          onItemMoved={onItemMoved}
-        />
-      ) : null}
+        <StateText $error={!!error}>{error || status || ' '}</StateText>
+      </Panel>
     </Section>
   );
 }

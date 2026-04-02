@@ -7,6 +7,7 @@ const {
   updateBox,
   setBoxImage,
   clearBoxImage,
+  selectExistingBoxImage,
   getBoxTree,
   getBoxTreeByShortId,
   getAllBoxes,
@@ -396,6 +397,43 @@ async function deleteBoxImageApi(req, res) {
   }
 }
 
+async function postSelectExistingBoxImageApi(req, res) {
+  try {
+    const boxId = req.params?.boxId || req.params?.id;
+    const payload = req.body && typeof req.body === 'object' ? req.body : {};
+    const selected = await selectExistingBoxImage(boxId, payload);
+
+    return res.status(200).json({
+      ok: true,
+      boxId,
+      image: selected?.image || null,
+      imagePath: selected?.imagePath || '',
+    });
+  } catch (err) {
+    if (err.code === 'INVALID_OBJECT_ID') {
+      return res.status(err.status || 400).json({
+        ok: false,
+        error: err.message || 'Invalid box id',
+        code: err.code,
+      });
+    }
+
+    if (err.code === 'BOX_NOT_FOUND') {
+      return res.status(err.status || 404).json({
+        ok: false,
+        error: err.message || 'Box not found',
+        code: err.code,
+      });
+    }
+
+    return res.status(err.status || 400).json({
+      ok: false,
+      error: err.message || 'Failed to select existing box image',
+      ...(err.code ? { code: err.code } : {}),
+    });
+  }
+}
+
 // POST /api/boxes/:id/release-children
 async function releaseChildrenToFloorApi(req, res) {
   try {
@@ -752,6 +790,7 @@ module.exports = {
   createBoxApi,
   updateBoxApi,
   postBoxImageApi,
+  postSelectExistingBoxImageApi,
   deleteBoxImageApi,
   releaseChildrenToFloorApi,
   getBoxTreeApi,

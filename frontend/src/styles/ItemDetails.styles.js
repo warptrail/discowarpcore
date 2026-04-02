@@ -94,6 +94,7 @@ const metaChipBase = css`
 `;
 
 const rowGridColumns = 'minmax(104px, 160px) minmax(0, 1fr)';
+const SUMMARY_DESKTOP_BREAKPOINT = '980px';
 
 export const Panel = styled.section`
   position: relative;
@@ -179,11 +180,19 @@ export const HeaderBand = styled.header`
   display: grid;
   gap: 0.35rem;
   min-width: 0;
+  order: 1;
+
+  @media (min-width: ${SUMMARY_DESKTOP_BREAKPOINT}) {
+    order: initial;
+  }
 `;
 
 export const FeaturedImageWrap = styled.div`
   position: relative;
+  display: grid;
+  place-items: center;
   z-index: 1;
+  min-width: 0;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid ${LCARS.line};
@@ -222,6 +231,10 @@ export const FeaturedImageWrap = styled.div`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     border-radius: 10px;
   }
+
+  @media (min-width: ${SUMMARY_DESKTOP_BREAKPOINT}) {
+    aspect-ratio: 1 / 1;
+  }
 `;
 
 export const FeaturedImage = styled.img`
@@ -229,6 +242,144 @@ export const FeaturedImage = styled.img`
   width: 100%;
   max-height: min(44vh, 420px);
   object-fit: cover;
+
+  @media (min-width: ${SUMMARY_DESKTOP_BREAKPOINT}) {
+    height: 100%;
+    max-height: none;
+    object-fit: contain;
+    object-position: center;
+    background: radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.06), transparent 64%);
+  }
+`;
+
+export const ViewSummaryGrid = styled.div`
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+
+  @media (min-width: ${SUMMARY_DESKTOP_BREAKPOINT}) {
+    grid-template-columns: ${({ $hasImage }) =>
+      $hasImage ? 'minmax(240px, 320px) minmax(0, 1fr)' : 'minmax(0, 1fr)'};
+    grid-template-areas: ${({ $hasImage }) => ($hasImage ? '"media info"' : '"info"')};
+    align-items: start;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.56rem;
+  }
+`;
+
+export const SummaryMediaColumn = styled.div`
+  min-width: 0;
+  order: 2;
+
+  @media (min-width: ${SUMMARY_DESKTOP_BREAKPOINT}) {
+    order: initial;
+    grid-area: media;
+  }
+`;
+
+export const SummaryInfoColumn = styled.div`
+  min-width: 0;
+  display: contents;
+
+  @media (min-width: ${SUMMARY_DESKTOP_BREAKPOINT}) {
+    display: grid;
+    gap: 0.72rem;
+    grid-area: info;
+  }
+`;
+
+export const SummaryCardsGrid = styled.div`
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  order: 3;
+
+  @media (min-width: 1320px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (min-width: ${SUMMARY_DESKTOP_BREAKPOINT}) {
+    order: initial;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.52rem;
+  }
+`;
+
+export const IdentityFieldsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.48rem;
+  min-width: 0;
+
+  @media (max-width: 1240px) {
+    grid-template-columns: 1fr;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.42rem;
+  }
+`;
+
+export const IdentityField = styled.article`
+  min-width: 0;
+  padding: 0.46rem 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(8, 14, 22, 0.14));
+  display: grid;
+  gap: 0.2rem;
+`;
+
+export const IdentityFieldLabel = styled.div`
+  color: ${LCARS.textMuted};
+  font-size: 0.64rem;
+  font-weight: 740;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.07em;
+  }
+`;
+
+export const IdentityFieldValue = styled.div`
+  color: ${LCARS.text};
+  font-weight: 560;
+  line-height: 1.24;
+  min-width: 0;
+  font-size: clamp(0.74rem, 0.68rem + 0.22vw, 0.86rem);
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: normal;
+
+  @media (min-width: ${SUMMARY_DESKTOP_BREAKPOINT}) {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
+    line-height: 1.3;
+    display: block;
+    -webkit-line-clamp: unset;
+    -webkit-box-orient: initial;
+    overflow: visible;
+    text-overflow: initial;
+  }
 `;
 
 export const TitleBlock = styled.div`
@@ -365,7 +516,8 @@ export const SectionBody = styled.div`
 
 export const DetailRow = styled.div`
   display: grid;
-  grid-template-columns: ${rowGridColumns};
+  grid-template-columns: ${({ $nowrap }) =>
+    $nowrap ? 'minmax(120px, 184px) minmax(0, 1fr)' : rowGridColumns};
   align-items: ${({ $stretch }) => ($stretch ? 'start' : 'center')};
   gap: 0.62rem;
   padding: 0.42rem 0.2rem 0.38rem 0.45rem;
@@ -399,6 +551,18 @@ export const RowLabel = styled.div`
     font-size: ${MOBILE_FONT_XS};
     letter-spacing: 0.07em;
   }
+
+  ${({ $nowrap }) =>
+    $nowrap &&
+    css`
+      @media (min-width: ${SUMMARY_DESKTOP_BREAKPOINT}) {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        overflow-wrap: normal;
+        word-break: normal;
+      }
+    `}
 `;
 
 export const RowValue = styled.div`
@@ -414,6 +578,18 @@ export const RowValue = styled.div`
     font-size: ${MOBILE_FONT_SM};
     line-height: 1.32;
   }
+
+  ${({ $nowrap }) =>
+    $nowrap &&
+    css`
+      @media (min-width: ${SUMMARY_DESKTOP_BREAKPOINT}) {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        overflow-wrap: normal;
+        word-break: normal;
+      }
+    `}
 `;
 
 export const MutedValue = styled.span`

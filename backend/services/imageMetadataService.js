@@ -2,6 +2,7 @@ const { MEDIA_URL_BASE } = require('../config/media');
 
 function buildEmptyImageMetadata() {
   return {
+    mediaId: '',
     originalName: '',
     uploadedAt: null,
     original: {

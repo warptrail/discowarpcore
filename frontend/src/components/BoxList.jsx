@@ -397,6 +397,7 @@ function Branch({ node, depth = 0 }) {
   const group = String(node?.group || '').trim();
   const description = String(node?.description || '').trim();
   const notes = String(node?.notes || '').trim();
+  const boxImageUrl = getBoxImageUrl(node);
   const isSystemContainer = !!node?.isSystemContainer;
   const isOrphanedContainer = node?.systemType === 'orphaned';
   const isRoot = depth === 0;
@@ -421,92 +422,98 @@ function Branch({ node, depth = 0 }) {
           $depth={depth}
           $isSystem={isSystemContainer}
         >
-          <S.BoxHeader>
-            <S.ShortId $isRoot={isRoot} $depth={depth} $isSystem={isSystemContainer}>
-              {isSystemContainer ? 'SYS' : `#${node.box_id}`}
-            </S.ShortId>
-            <S.BoxTitle $isRoot={isRoot} $depth={depth} $isSystem={isSystemContainer}>
-              {node.label || node.name || 'Untitled'}
-            </S.BoxTitle>
-          </S.BoxHeader>
+          <S.BoxBodyRow>
+            <S.BoxImageFrame>
+              {boxImageUrl ? (
+                <S.BoxImage
+                  src={boxImageUrl}
+                  alt={`${node.label || node.name || `Box ${node.box_id || ''}`} image`}
+                />
+              ) : (
+                <S.BoxImagePlaceholder>No image</S.BoxImagePlaceholder>
+              )}
+            </S.BoxImageFrame>
 
-          {group || node.location ? (
-            <S.BoxContextRow>
-              {group ? (
-                <S.ContextChip $variant="group" $isRoot={isRoot} $depth={depth}>
-                  <S.ContextChipLabel>Group</S.ContextChipLabel>
-                  <S.ContextChipValue>{group}</S.ContextChipValue>
-                </S.ContextChip>
+            <S.BoxContent>
+              <S.BoxHeader>
+                <S.BoxTitle $isRoot={isRoot} $depth={depth} $isSystem={isSystemContainer}>
+                  {node.label || node.name || 'Untitled'}
+                </S.BoxTitle>
+                <S.ShortId $isRoot={isRoot} $depth={depth} $isSystem={isSystemContainer}>
+                  {isSystemContainer ? 'SYS' : `#${node.box_id}`}
+                </S.ShortId>
+              </S.BoxHeader>
+
+              {group || node.location ? (
+                <S.BoxMetaStack>
+                  {group ? (
+                    <S.BoxMetaLine>
+                      <S.BoxMetaLabel>Group</S.BoxMetaLabel>
+                      <S.BoxMetaValue>{group}</S.BoxMetaValue>
+                    </S.BoxMetaLine>
+                  ) : null}
+
+                  {node.location ? (
+                    <S.BoxMetaLine>
+                      <S.BoxMetaLabel>Location</S.BoxMetaLabel>
+                      <S.BoxMetaValue>{node.location}</S.BoxMetaValue>
+                    </S.BoxMetaLine>
+                  ) : null}
+                </S.BoxMetaStack>
               ) : null}
 
-              {node.location ? (
-                <S.ContextChip $variant="location" $isRoot={isRoot} $depth={depth}>
-                  <S.ContextChipLabel>Location</S.ContextChipLabel>
-                  <S.ContextChipValue>{node.location}</S.ContextChipValue>
-                </S.ContextChip>
+              {description && (
+                <S.BoxSummary>{description}</S.BoxSummary>
+              )}
+
+              {isSystemContainer ? (
+                <S.BoxSummary>Virtual system container</S.BoxSummary>
               ) : null}
-            </S.BoxContextRow>
-          ) : null}
 
-          {description && (
-            <S.FieldGroup>
-              <S.FieldLabel>Description</S.FieldLabel>
-              <S.DescriptionValue $depth={depth}>{description}</S.DescriptionValue>
-              <S.MobileDescriptionHint $depth={depth}>
-                Has description
-              </S.MobileDescriptionHint>
-            </S.FieldGroup>
-          )}
+              {tags.length > 0 && (
+                <>
+                  <S.FieldGroup>
+                    <S.FieldLabel>Tags</S.FieldLabel>
+                    <S.FieldValue />
+                  </S.FieldGroup>
+                  <S.TagRow>
+                    {tags.map((t, i) => (
+                      <S.TagBubble
+                        $isRoot={isRoot}
+                        $depth={depth}
+                        key={`${node._id || node.box_id}-tag-${i}`}
+                      >
+                        {t}
+                      </S.TagBubble>
+                    ))}
+                  </S.TagRow>
+                </>
+              )}
 
-          {isSystemContainer ? (
-            <S.FieldGroup>
-              <S.FieldLabel>Container Type</S.FieldLabel>
-              <S.FieldValue>Virtual system container</S.FieldValue>
-            </S.FieldGroup>
-          ) : null}
+              <S.BoxFooter>
+                <S.StatPill $variant="boxes" $isRoot={isRoot} $depth={depth}>
+                  {isOrphanedContainer
+                    ? 'virtual'
+                    : `${childBoxes.length} ${childBoxes.length === 1 ? 'box' : 'boxes'}`}
+                </S.StatPill>
+                <S.StatPill $variant="items" $isRoot={isRoot} $depth={depth}>
+                  {itemQtyTotal} {itemQtyTotal === 1 ? 'item' : 'items'}
+                </S.StatPill>
+                {isOrphanedContainer ? (
+                  <S.StatPill $isRoot={isRoot} $depth={depth}>
+                    unassigned
+                  </S.StatPill>
+                ) : null}
+              </S.BoxFooter>
 
-          {tags.length > 0 && (
-            <>
-              <S.FieldGroup>
-                <S.FieldLabel>Tags</S.FieldLabel>
-                <S.FieldValue />
-              </S.FieldGroup>
-              <S.TagRow>
-                {tags.map((t, i) => (
-                  <S.TagBubble
-                    $isRoot={isRoot}
-                    $depth={depth}
-                    key={`${node._id || node.box_id}-tag-${i}`}
-                  >
-                    {t}
-                  </S.TagBubble>
-                ))}
-              </S.TagRow>
-            </>
-          )}
-
-          <S.BoxFooter>
-            <S.StatPill $variant="boxes" $isRoot={isRoot} $depth={depth}>
-              {isOrphanedContainer
-                ? 'virtual'
-                : `${childBoxes.length} ${childBoxes.length === 1 ? 'box' : 'boxes'}`}
-            </S.StatPill>
-            <S.StatPill $variant="items" $isRoot={isRoot} $depth={depth}>
-              {itemQtyTotal} {itemQtyTotal === 1 ? 'item' : 'items'}
-            </S.StatPill>
-            {isOrphanedContainer ? (
-              <S.StatPill $isRoot={isRoot} $depth={depth}>
-                unassigned
-              </S.StatPill>
-            ) : null}
-          </S.BoxFooter>
-
-          {notes ? (
-            <S.NotesPreviewArea>
-              <S.NotesPreviewLabel>Notes</S.NotesPreviewLabel>
-              <S.NotesPreviewText>{notes}</S.NotesPreviewText>
-            </S.NotesPreviewArea>
-          ) : null}
+              {notes ? (
+                <S.NotesPreviewArea>
+                  <S.NotesPreviewLabel>Notes</S.NotesPreviewLabel>
+                  <S.NotesPreviewText>{notes}</S.NotesPreviewText>
+                </S.NotesPreviewArea>
+              ) : null}
+            </S.BoxContent>
+          </S.BoxBodyRow>
         </S.BoxCard>
 
         {childBoxes.length > 0 && (
@@ -738,6 +745,17 @@ function compareNodeBoxId(a, b) {
 
 function normalize(value) {
   return String(value || '').trim().toLowerCase();
+}
+
+function getBoxImageUrl(box) {
+  return (
+    box?.image?.thumb?.url ||
+    box?.image?.display?.url ||
+    box?.image?.original?.url ||
+    box?.image?.url ||
+    box?.imagePath ||
+    ''
+  );
 }
 
 function hasItemWithCategory(items, categoryFilter) {

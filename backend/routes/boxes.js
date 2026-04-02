@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { uploadSingleBoxImage } = require('../middleware/boxImageUpload');
+const { validateObjectIdParam } = require('../utils/validateObjectIdParam.js');
 const {
   getBoxDataStructureApi,
   getBoxByMongoIdApi,
@@ -12,6 +13,7 @@ const {
   createBoxApi,
   updateBoxApi,
   postBoxImageApi,
+  postSelectExistingBoxImageApi,
   deleteBoxImageApi,
   releaseChildrenToFloorApi,
   getBoxTreeByShortIdApi,
@@ -26,6 +28,11 @@ const {
   deleteAllBoxesApi,
   getBoxesExcludingApi,
 } = require('../controllers/boxController');
+const {
+  postBoxProcessImageApi,
+  getBoxMediaStatusApi,
+  patchBoxActiveVariantApi,
+} = require('../controllers/entityMediaController');
 
 router.get('/', getAllBoxesApi);
 router.get('/exclude/:id', getBoxesExcludingApi);
@@ -44,6 +51,26 @@ router.get('/:id/export-label.html', exportBoxLabelHtmlApi);
 // router.get('/by-short-id/:shortId/tree', getBoxTreeByShortIdApi);
 router.get('/check-id/:short_id', checkBoxIdAvailability);
 router.post('/', createBoxApi);
+router.get(
+  '/:boxId/media-status',
+  validateObjectIdParam('boxId'),
+  getBoxMediaStatusApi
+);
+router.post(
+  '/:boxId/process-image',
+  validateObjectIdParam('boxId'),
+  postBoxProcessImageApi
+);
+router.patch(
+  '/:boxId/active-variant',
+  validateObjectIdParam('boxId'),
+  patchBoxActiveVariantApi
+);
+router.post(
+  '/:boxId/select-existing-image',
+  validateObjectIdParam('boxId'),
+  postSelectExistingBoxImageApi
+);
 router.post('/:id/image', uploadSingleBoxImage, postBoxImageApi);
 router.delete('/:id/image', deleteBoxImageApi);
 router.patch('/:id', updateBoxApi);

@@ -166,6 +166,7 @@ const itemSchema = new mongoose.Schema(
     links: { type: [itemLinkSchema], default: [], set: normalizeItemLinks },
     imagePath: { type: String, default: '' },
     image: {
+      mediaId: { type: String, default: '', trim: true },
       originalName: { type: String, default: '' },
       uploadedAt: { type: Date, default: null },
       original: {

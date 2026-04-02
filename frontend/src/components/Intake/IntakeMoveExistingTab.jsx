@@ -18,12 +18,21 @@ const PAGE_SIZE = 20;
 const Wrap = styled.div`
   display: grid;
   gap: 0.5rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
 `;
 
 const Controls = styled.div`
   display: grid;
   gap: 0.42rem;
-  grid-template-columns: 1fr 150px 150px 170px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-width: 0;
+
+  @media (max-width: 1280px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     grid-template-columns: 1fr;
@@ -32,6 +41,7 @@ const Controls = styled.div`
 
 const Input = styled.input`
   width: 100%;
+  min-width: 0;
   min-height: 42px;
   border-radius: 10px;
   border: 1px solid rgba(189, 153, 96, 0.56);
@@ -54,6 +64,7 @@ const Input = styled.input`
 
 const Select = styled.select`
   width: 100%;
+  min-width: 0;
   min-height: 42px;
   border-radius: 10px;
   border: 1px solid rgba(189, 153, 96, 0.56);
@@ -77,6 +88,10 @@ const Select = styled.select`
 const Viewport = styled.div`
   max-height: min(42vh, 360px);
   overflow: auto;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   border: 1px solid rgba(184, 147, 89, 0.44);
   border-radius: 10px;
   background: rgba(24, 17, 11, 0.58);
@@ -91,9 +106,15 @@ const Row = styled.div`
   background: rgba(22, 16, 10, 0.86);
   padding: 0.45rem;
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) auto;
+  grid-template-columns: 52px minmax(0, 1fr) minmax(0, 148px);
   gap: 0.48rem;
   align-items: start;
+  min-width: 0;
+  width: 100%;
+
+  @media (max-width: 1280px) {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     grid-template-columns: 48px minmax(0, 1fr);
@@ -101,8 +122,8 @@ const Row = styled.div`
 `;
 
 const Thumb = styled.div`
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   border-radius: 8px;
   border: 1px solid rgba(179, 146, 89, 0.44);
   overflow: hidden;
@@ -112,6 +133,11 @@ const Thumb = styled.div`
   color: #c3a980;
   font-size: 0.62rem;
   text-transform: uppercase;
+
+  @media (max-width: 1280px) {
+    width: 48px;
+    height: 48px;
+  }
 `;
 
 const ThumbImage = styled.img`
@@ -164,6 +190,7 @@ const Tag = styled.span`
 `;
 
 const MoveButton = styled.button`
+  width: 100%;
   min-height: 34px;
   border-radius: 8px;
   border: 1px solid rgba(219, 173, 99, 0.72);
@@ -173,13 +200,20 @@ const MoveButton = styled.button`
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  padding: 0 0.62rem;
+  padding: 0.2rem 0.54rem;
   cursor: pointer;
   align-self: center;
+  text-align: center;
+  line-height: 1.2;
+  white-space: normal;
 
   &:disabled {
     opacity: 0.54;
     cursor: not-allowed;
+  }
+
+  @media (max-width: 1280px) {
+    grid-column: 1 / -1;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {

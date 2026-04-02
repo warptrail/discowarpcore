@@ -17,14 +17,25 @@ const CURRENT_BOX_STORAGE_KEY = 'intake.currentBoxId';
 
 const Wrap = styled.div`
   display: grid;
-  gap: 0.72rem;
+  gap: 0.58rem;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
 `;
 
 const Intro = styled.section`
   border: 1px solid rgba(77, 138, 180, 0.4);
   border-radius: 12px;
   background: linear-gradient(180deg, rgba(13, 22, 31, 0.93) 0%, rgba(9, 16, 24, 0.96) 100%);
-  padding: 0.72rem 0.8rem;
+  padding: 0.62rem 0.74rem;
 `;
 
 const IntroTitle = styled.h1`
@@ -40,19 +51,44 @@ const IntroTitle = styled.h1`
 `;
 
 const IntroText = styled.p`
-  margin: 0.34rem 0 0;
+  margin: 0.26rem 0 0;
   color: #a8c0d8;
-  font-size: 0.84rem;
-  line-height: 1.45;
+  font-size: 0.79rem;
+  line-height: 1.35;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_SM};
   }
 `;
 
+const Workbench = styled.div`
+  display: grid;
+  gap: 0.56rem;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+
+  @media (min-width: 980px) {
+    grid-template-columns: minmax(0, 1.02fr) minmax(0, 1.18fr);
+    align-items: start;
+  }
+`;
+
+const Column = styled.div`
+  display: grid;
+  gap: 0.56rem;
+  align-content: start;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+`;
+
 const Section = styled.section`
   display: grid;
-  gap: 0.46rem;
+  gap: 0.36rem;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
 `;
 
 const SectionHeading = styled.h2`
@@ -69,8 +105,13 @@ const StateText = styled.div`
   border: 1px solid ${({ $error }) => ($error ? 'rgba(208, 128, 128, 0.52)' : 'rgba(109, 156, 201, 0.44)')};
   background: ${({ $error }) => ($error ? 'rgba(60, 24, 24, 0.84)' : 'rgba(13, 23, 34, 0.84)')};
   color: ${({ $error }) => ($error ? '#f2c6c6' : '#b5c8dc')};
-  padding: 0.5rem 0.58rem;
-  font-size: 0.78rem;
+  padding: 0.42rem 0.5rem;
+  font-size: 0.74rem;
+`;
+
+const StatusStack = styled.div`
+  display: grid;
+  gap: 0.36rem;
 `;
 
 function readStoredCurrentBoxId() {
@@ -247,7 +288,6 @@ export default function IntakePage({ boxes = [] }) {
   const [loadingItems, setLoadingItems] = useState(false);
   const [itemsError, setItemsError] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
-  const [orphanedRefreshKey, setOrphanedRefreshKey] = useState(0);
 
   const flattenedBoxes = useMemo(() => {
     const mergedById = new Map();
@@ -501,17 +541,19 @@ export default function IntakePage({ boxes = [] }) {
     })
   ), [scopedCurrentBoxItems]);
 
-  const recentItems = useMemo(() => (
-    [...scopedCurrentBoxItems]
-      .sort((a, b) => getItemCreatedTimestamp(b) - getItemCreatedTimestamp(a))
-      .slice(0, 10)
-  ), [scopedCurrentBoxItems]);
-
   const recentActivityItems = useMemo(() => (
     [...mergedIntakeItems]
       .sort((a, b) => getItemCreatedTimestamp(b) - getItemCreatedTimestamp(a))
       .slice(0, 10)
   ), [mergedIntakeItems]);
+
+  const selectedRoutingItem = useMemo(
+    () =>
+      (Array.isArray(mergedIntakeItems) ? mergedIntakeItems : []).find(
+        (item) => String(item?._id || '') === String(moveSeedItemId || ''),
+      ) || null,
+    [mergedIntakeItems, moveSeedItemId],
+  );
 
   const handleSelectBox = (nextBoxId) => {
     const normalized = String(nextBoxId || '').trim();
@@ -562,7 +604,7 @@ export default function IntakePage({ boxes = [] }) {
 
     setSelectedBoxId(createdId);
     setSelectorOpen(false);
-    setActiveAction('add-item');
+    setActiveAction('');
 
     if (normalized?.box_id) {
       setStatusMessage(`Created box #${normalized.box_id} and set it as current intake box.`);
@@ -571,18 +613,9 @@ export default function IntakePage({ boxes = [] }) {
     }
   }, []);
 
-  const handleActionChange = (nextAction) => {
-    const normalized = String(nextAction || '').trim();
-    setActiveAction(normalized);
-    if (normalized !== 'move-item') {
-      setMoveSeedItemId('');
-    }
-  };
-
   const handleMoveFromRecent = (itemId) => {
-    if (!itemId || !currentBox?._id) return;
+    if (!itemId) return;
     setMoveSeedItemId(String(itemId));
-    setActiveAction('move-item');
   };
 
   const handleItemMutation = useCallback(({ message, item, itemId, destBoxId, sourceBoxId, sourceBox } = {}) => {
@@ -773,9 +806,6 @@ export default function IntakePage({ boxes = [] }) {
 
   const handleQuickOrphanCreated = useCallback((payload = {}) => {
     handleItemMutation(payload);
-    if (payload?.refreshOrphaned) {
-      setOrphanedRefreshKey((prev) => prev + 1);
-    }
   }, [handleItemMutation]);
 
   const handleBoxPhotoMutation = ({ boxId, image, imagePath, message } = {}) => {
@@ -854,83 +884,91 @@ export default function IntakePage({ boxes = [] }) {
   return (
     <Wrap>
       <Intro>
-        <IntroTitle>Intake Workflow</IntroTitle>
+        <IntroTitle>Intake Workbench</IntroTitle>
         <IntroText>
-          Mobile-first capture mode for quickly building inventory. Select a box once,
-          then keep adding items, photos, and move corrections with minimal taps.
+          Dense admin layout for fast capture and box movement. Keep a current box set,
+          then create, move, and verify items without leaving this screen.
         </IntroText>
       </Intro>
 
-      <Section>
-        <IntakeQuickItemMaker
-          onItemCreated={handleQuickOrphanCreated}
-        />
-      </Section>
+      <Workbench>
+        <Column>
+          <Section>
+            <IntakeQuickItemMaker
+              onItemCreated={handleQuickOrphanCreated}
+            />
+          </Section>
 
-      <Section>
-        <IntakeCurrentBoxPanel
-          boxes={flattenedBoxes}
-          selectedBox={currentBox}
-          currentBoxInsight={currentBoxInsight}
-          selectedBoxId={selectedBoxId}
-          selectorOpen={selectorOpen}
-          onSelectBox={handleSelectBox}
-          onToggleSelector={() => setSelectorOpen((prev) => !prev)}
-          onCreateBox={handleCreateBox}
-          onCurrentBoxPhotoUpdated={handleBoxPhotoMutation}
-          onCurrentBoxUpdated={handleCurrentBoxUpdated}
-          onCurrentBoxDestroyed={handleCurrentBoxDestroyed}
-        />
-      </Section>
+          <Section>
+            <SectionHeading>Item Routing</SectionHeading>
+            <IntakeRapidActions
+              currentBox={currentBox}
+              selectedItem={selectedRoutingItem}
+              onItemMoved={handleItemMutation}
+            />
+          </Section>
 
-      {activeAction === 'create-box' ? (
-        <Section>
-          <BoxCreate
-            embedded
-            autoNavigate={false}
-            title="Create Box In Intake"
-            onCreated={handleBoxCreated}
-            onCancel={() => setActiveAction('')}
-          />
-        </Section>
-      ) : null}
+          {statusMessage || itemsError ? (
+            <Section>
+              <SectionHeading>Status</SectionHeading>
+              <StatusStack>
+                {statusMessage ? <StateText>{statusMessage}</StateText> : null}
+                {itemsError ? <StateText $error>{itemsError}</StateText> : null}
+              </StatusStack>
+            </Section>
+          ) : null}
+        </Column>
 
-      <Section>
-        <IntakeCurrentBoxItemsPanel
-          currentBox={currentBox}
-          items={currentBoxItems}
-          loading={loadingItems}
-          error={itemsError}
-        />
-      </Section>
+        <Column>
+          <Section>
+            <IntakeCurrentBoxPanel
+              boxes={flattenedBoxes}
+              selectedBox={currentBox}
+              currentBoxInsight={currentBoxInsight}
+              selectedBoxId={selectedBoxId}
+              selectorOpen={selectorOpen}
+              onSelectBox={handleSelectBox}
+              onToggleSelector={() => setSelectorOpen((prev) => !prev)}
+              onCreateBox={handleCreateBox}
+              onCurrentBoxPhotoUpdated={handleBoxPhotoMutation}
+              onCurrentBoxUpdated={handleCurrentBoxUpdated}
+              onCurrentBoxDestroyed={handleCurrentBoxDestroyed}
+            />
+          </Section>
 
-      <Section>
-        <SectionHeading>Item Actions</SectionHeading>
-        <IntakeRapidActions
-          currentBox={currentBox}
-          boxes={flattenedBoxes}
-          recentItems={recentItems}
-          orphanedRefreshKey={orphanedRefreshKey}
-          activeAction={activeAction}
-          moveSeedItemId={moveSeedItemId}
-          onChangeAction={handleActionChange}
-          onItemCreated={handleItemMutation}
-          onItemMoved={handleItemMutation}
-        />
-      </Section>
+          {activeAction === 'create-box' ? (
+            <Section>
+              <BoxCreate
+                embedded
+                autoNavigate={false}
+                title="Create Box In Intake"
+                onCreated={handleBoxCreated}
+                onCancel={() => setActiveAction('')}
+              />
+            </Section>
+          ) : null}
 
-      <Section>
-        <IntakeRecentActivity
-          items={recentActivityItems}
-          boxLookup={boxesById}
-          loading={loadingItems}
-          error={itemsError}
-          onMoveItem={handleMoveFromRecent}
-        />
-      </Section>
+          <Section>
+            <IntakeCurrentBoxItemsPanel
+              currentBox={currentBox}
+              items={currentBoxItems}
+              loading={loadingItems}
+              error={itemsError}
+            />
+          </Section>
 
-      {statusMessage ? <StateText>{statusMessage}</StateText> : null}
-      {itemsError ? <StateText $error>{itemsError}</StateText> : null}
+          <Section>
+            <IntakeRecentActivity
+              items={recentActivityItems}
+              boxLookup={boxesById}
+              loading={loadingItems}
+              error={itemsError}
+              onMoveItem={handleMoveFromRecent}
+              selectedItemId={moveSeedItemId}
+            />
+          </Section>
+        </Column>
+      </Workbench>
     </Wrap>
   );
 }

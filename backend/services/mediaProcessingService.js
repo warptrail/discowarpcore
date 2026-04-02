@@ -1,0 +1,1248 @@
+const fs = require('fs/promises');
+const { constants: FS_CONSTANTS } = require('fs');
+const path = require('path');
+const { spawn } = require('child_process');
+const sharp = require('sharp');
+
+const MediaState = require('../models/MediaState');
+const { DERIVATIVE_SIZES, DERIVATIVE_FORMAT, MEDIA_ROOT } = require('../config/media');
+const { createMediaId } = require('../utils/mediaId');
+const {
+  MEDIA_ERROR_CODES,
+  createMediaError,
+  isMediaError,
+  toMediaErrorPayload,
+} = require('./mediaErrors');
+const {
+  DEFAULT_RENDER_TOKENS,
+  RENDER_TOKEN_KEYS,
+  resolveRenderTokens,
+  validateRenderTokens,
+} = require('./renderTokenContract');
+
+const DEFAULT_OBJECT_GLOW_REPO = path.resolve(__dirname, '../../../objectiglow');
+const OBJECT_GLOW_REPO = String(
+  process.env.OBJECT_GLOW_REPO || DEFAULT_OBJECT_GLOW_REPO
+).trim();
+const OBJECT_GLOW_MODULE = process.env.OBJECT_GLOW_MODULE || 'itemcutout';
+const MAX_STDOUT_SNIPPET_LENGTH = 1200;
+const ACTIVE_VARIANTS = new Set(['original', 'processed']);
+const PROCESSING_STATUSES = new Set(['idle', 'queued', 'processing', 'completed', 'failed']);
+
+// Avoid stale file-metadata reads when regenerating the same derivative path in rapid succession.
+// Keep memory/item caches enabled for performance; only disable file cache keys.
+sharp.cache({ files: 0 });
+
+function toPositiveInteger(value, fallback) {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return parsed;
+}
+
+const OBJECT_GLOW_TIMEOUT_MS = toPositiveInteger(
+  process.env.OBJECT_GLOW_TIMEOUT_MS,
+  120000
+);
+
+function toTrimmed(value) {
+  return value == null ? '' : String(value).trim();
+}
+
+function normalizeMediaId(value) {
+  return toTrimmed(value);
+}
+
+function toStdoutSnippet(stdout) {
+  const text = String(stdout || '').trim();
+  if (!text) return '';
+  if (text.length <= MAX_STDOUT_SNIPPET_LENGTH) return text;
+  return `${text.slice(0, MAX_STDOUT_SNIPPET_LENGTH)}...`;
+}
+
+function coerceBoolean(value) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true') return true;
+    if (normalized === 'false') return false;
+  }
+  return null;
+}
+
+function coerceNumber(value) {
+  if (value == null || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeDimensions(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const width = coerceNumber(raw.width);
+  const height = coerceNumber(raw.height);
+  if (width == null || height == null) return null;
+  return { width, height };
+}
+
+function normalizeActiveVariant(value, fallback = 'original') {
+  const normalized = toTrimmed(value).toLowerCase();
+  if (ACTIVE_VARIANTS.has(normalized)) return normalized;
+  return fallback;
+}
+
+function normalizeActiveVariantOrNull(value) {
+  const normalized = toTrimmed(value).toLowerCase();
+  if (!normalized) return null;
+  return ACTIVE_VARIANTS.has(normalized) ? normalized : null;
+}
+
+function normalizeProcessingStatus(value, fallback = 'idle') {
+  const normalized = toTrimmed(value).toLowerCase();
+  if (PROCESSING_STATUSES.has(normalized)) return normalized;
+  return fallback;
+}
+
+function normalizeOptionalDate(value) {
+  if (value == null || value === '') return null;
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
+function hasAnyRenderTokenValue(tokens) {
+  if (!tokens || typeof tokens !== 'object') return false;
+  const mode = toTrimmed(tokens.mode).toLowerCase();
+  if (mode === 'random') return true;
+  return Boolean(
+    toTrimmed(tokens.background) || toTrimmed(tokens.glow) || toTrimmed(tokens.accent)
+  );
+}
+
+function normalizeRenderTokensForState(tokens, fallbackTokens = DEFAULT_RENDER_TOKENS) {
+  const candidate = resolveRenderTokens(tokens, fallbackTokens);
+  const validation = validateRenderTokens(candidate, {
+    fallbackTokens: DEFAULT_RENDER_TOKENS,
+  });
+  const resolved = validation.isValid ? validation.renderTokens : DEFAULT_RENDER_TOKENS;
+  const mode = toTrimmed(resolved.mode).toLowerCase() === 'random' ? 'random' : 'explicit';
+  return {
+    mode,
+    background: toTrimmed(resolved.background),
+    glow: toTrimmed(resolved.glow),
+    accent: toTrimmed(resolved.accent),
+  };
+}
+
+function validateAndResolveRenderTokens(tokens, {
+  fallbackTokens = DEFAULT_RENDER_TOKENS,
+  fieldName = 'renderTokens',
+} = {}) {
+  const validation = validateRenderTokens(tokens, { fallbackTokens });
+  if (!validation.isValid) {
+    throw createMediaError(
+      MEDIA_ERROR_CODES.MEDIA_INVALID_INPUT,
+      validation.errors[0] || `${fieldName} is invalid`,
+      { fieldName, errors: validation.errors }
+    );
+  }
+  return normalizeRenderTokensForState(validation.renderTokens, fallbackTokens);
+}
+
+function pickRandomToken(tokens = [], fallback = '') {
+  const source = Array.isArray(tokens) ? tokens.filter(Boolean) : [];
+  if (!source.length) return toTrimmed(fallback);
+  const index = Math.floor(Math.random() * source.length);
+  return toTrimmed(source[index]) || toTrimmed(fallback);
+}
+
+function materializeRenderTokensForProcessing(tokens, {
+  fallbackTokens = DEFAULT_RENDER_TOKENS,
+} = {}) {
+  const resolved = validateAndResolveRenderTokens(tokens, { fallbackTokens });
+  if (resolved.mode !== 'random') return resolved;
+
+  return {
+    mode: 'random',
+    background: pickRandomToken(RENDER_TOKEN_KEYS.backgrounds, resolved.background),
+    glow: pickRandomToken(RENDER_TOKEN_KEYS.glows, resolved.glow),
+    accent: pickRandomToken(RENDER_TOKEN_KEYS.accents, resolved.accent),
+  };
+}
+
+function getAllowedMediaRoots() {
+  const roots = [MEDIA_ROOT]
+    .map((entry) => path.resolve(String(entry || '').trim()))
+    .filter(Boolean);
+
+  const seen = new Set();
+  return roots.filter((root) => {
+    if (seen.has(root)) return false;
+    seen.add(root);
+    return true;
+  });
+}
+
+const ALLOWED_MEDIA_ROOTS = getAllowedMediaRoots();
+
+function isPathInsideRoot(candidatePath, rootPath) {
+  const relative = path.relative(rootPath, candidatePath);
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+}
+
+function assertPathInAllowedRoots(resolvedPath, fieldName) {
+  const insideAllowedRoot = ALLOWED_MEDIA_ROOTS.some((rootPath) =>
+    isPathInsideRoot(resolvedPath, rootPath)
+  );
+
+  if (!insideAllowedRoot) {
+    throw createMediaError(
+      MEDIA_ERROR_CODES.MEDIA_PATH_OUT_OF_BOUNDS,
+      `${fieldName} must resolve within MEDIA_ROOT`,
+      {
+        inputPath: fieldName === 'inputPath' || fieldName === 'originalPath'
+          ? resolvedPath
+          : '',
+        outputPath: fieldName === 'outputPath' || fieldName === 'processedPath'
+          ? resolvedPath
+          : '',
+        fieldName,
+        allowedRoots: ALLOWED_MEDIA_ROOTS,
+      }
+    );
+  }
+}
+
+function resolveMediaPath(rawPath, { fieldName, allowEmpty = false } = {}) {
+  const field = fieldName || 'path';
+  const raw = toTrimmed(rawPath);
+
+  if (!raw) {
+    if (allowEmpty) return '';
+    throw createMediaError(
+      MEDIA_ERROR_CODES.MEDIA_INVALID_INPUT,
+      `${field} is required`,
+      { fieldName: field }
+    );
+  }
+
+  const resolved = path.isAbsolute(raw)
+    ? path.resolve(raw)
+    : path.resolve(MEDIA_ROOT, raw);
+
+  assertPathInAllowedRoots(resolved, field);
+  return resolved;
+}
+
+async function ensureReadableFile(filePath, {
+  code = MEDIA_ERROR_CODES.MEDIA_SOURCE_NOT_FOUND,
+  message,
+  inputPath = '',
+  outputPath = '',
+} = {}) {
+  const resolvedPath = resolveMediaPath(filePath, {
+    fieldName: inputPath ? 'inputPath' : 'path',
+  });
+
+  try {
+    const stat = await fs.stat(resolvedPath);
+    if (!stat.isFile()) {
+      throw new Error('not_file');
+    }
+    return resolvedPath;
+  } catch (_error) {
+    throw createMediaError(
+      code,
+      message || `Source file is missing: ${resolvedPath}`,
+      {
+        inputPath: inputPath || resolvedPath,
+        outputPath,
+      }
+    );
+  }
+}
+
+async function assertOutputArtifact(filePath, {
+  code = MEDIA_ERROR_CODES.MEDIA_OUTPUT_MISSING,
+  message,
+  inputPath = '',
+  outputPath = '',
+  minSizeBytes = 1,
+} = {}) {
+  const resolvedPath = resolveMediaPath(filePath, {
+    fieldName: outputPath ? 'outputPath' : 'path',
+  });
+
+  try {
+    const stat = await fs.stat(resolvedPath);
+    if (!stat.isFile()) {
+      throw new Error('not_file');
+    }
+    if (!Number.isFinite(stat.size) || stat.size < minSizeBytes) {
+      throw new Error('empty_file');
+    }
+    return resolvedPath;
+  } catch (_error) {
+    throw createMediaError(
+      code,
+      message || `Expected output artifact is missing: ${resolvedPath}`,
+      {
+        inputPath,
+        outputPath: outputPath || resolvedPath,
+      }
+    );
+  }
+}
+
+function normalizeMediaStateRecord(record) {
+  if (!record) return null;
+  const source =
+    typeof record?.toObject === 'function' ? record.toObject({ virtuals: false }) : record;
+
+  return {
+    mediaId: normalizeMediaId(source?.mediaId),
+    originalPath: toTrimmed(source?.originalPath),
+    processedPath: toTrimmed(source?.processedPath),
+    displayPath: toTrimmed(source?.displayPath),
+    thumbPath: toTrimmed(source?.thumbPath),
+    renderTokens: normalizeRenderTokensForState(source?.renderTokens, DEFAULT_RENDER_TOKENS),
+    activeVariant: normalizeActiveVariant(source?.activeVariant, 'original'),
+    displayDerivedFrom: normalizeActiveVariantOrNull(source?.displayDerivedFrom),
+    thumbDerivedFrom: normalizeActiveVariantOrNull(source?.thumbDerivedFrom),
+    processingStatus: normalizeProcessingStatus(source?.processingStatus, 'idle'),
+    processingError: source?.processingError ?? null,
+    processedAt: source?.processedAt ? new Date(source.processedAt).toISOString() : null,
+  };
+}
+
+function removeUndefinedEntries(input = {}) {
+  const next = {};
+  for (const [key, value] of Object.entries(input)) {
+    if (value !== undefined) {
+      next[key] = value;
+    }
+  }
+  return next;
+}
+
+function normalizeMediaStateUpdate(updateSet = {}) {
+  const normalized = { ...updateSet };
+
+  if (Object.prototype.hasOwnProperty.call(normalized, 'mediaId')) {
+    normalized.mediaId = normalizeMediaId(normalized.mediaId);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(normalized, 'processedPath')) {
+    normalized.processedPath = resolveMediaPath(normalized.processedPath, {
+      fieldName: 'processedPath',
+      allowEmpty: true,
+    });
+  }
+
+  if (Object.prototype.hasOwnProperty.call(normalized, 'displayPath')) {
+    normalized.displayPath = resolveMediaPath(normalized.displayPath, {
+      fieldName: 'displayPath',
+      allowEmpty: true,
+    });
+  }
+
+  if (Object.prototype.hasOwnProperty.call(normalized, 'thumbPath')) {
+    normalized.thumbPath = resolveMediaPath(normalized.thumbPath, {
+      fieldName: 'thumbPath',
+      allowEmpty: true,
+    });
+  }
+
+  if (Object.prototype.hasOwnProperty.call(normalized, 'renderTokens')) {
+    normalized.renderTokens = validateAndResolveRenderTokens(normalized.renderTokens, {
+      fieldName: 'renderTokens',
+    });
+  }
+
+  if (Object.prototype.hasOwnProperty.call(normalized, 'activeVariant')) {
+    normalized.activeVariant = normalizeActiveVariant(normalized.activeVariant, 'original');
+  }
+
+  if (Object.prototype.hasOwnProperty.call(normalized, 'displayDerivedFrom')) {
+    normalized.displayDerivedFrom = normalizeActiveVariantOrNull(
+      normalized.displayDerivedFrom
+    );
+  }
+
+  if (Object.prototype.hasOwnProperty.call(normalized, 'thumbDerivedFrom')) {
+    normalized.thumbDerivedFrom = normalizeActiveVariantOrNull(
+      normalized.thumbDerivedFrom
+    );
+  }
+
+  if (Object.prototype.hasOwnProperty.call(normalized, 'processingStatus')) {
+    normalized.processingStatus = normalizeProcessingStatus(
+      normalized.processingStatus,
+      'idle'
+    );
+  }
+
+  if (Object.prototype.hasOwnProperty.call(normalized, 'processedAt')) {
+    normalized.processedAt = normalizeOptionalDate(normalized.processedAt);
+  }
+
+  return normalized;
+}
+
+async function upsertMediaStateByOriginalPath(
+  originalPath,
+  updateSet = {},
+  setOnInsert = {}
+) {
+  const normalizedOriginalPath = resolveMediaPath(originalPath, {
+    fieldName: 'originalPath',
+  });
+
+  const defaultInsert = {
+    mediaId: createMediaId(),
+    originalPath: normalizedOriginalPath,
+    processedPath: '',
+    displayPath: '',
+    thumbPath: '',
+    renderTokens: normalizeRenderTokensForState(DEFAULT_RENDER_TOKENS),
+    activeVariant: 'original',
+    displayDerivedFrom: null,
+    thumbDerivedFrom: null,
+    processingStatus: 'idle',
+    processingError: null,
+    processedAt: null,
+  };
+
+  const normalizedSet = removeUndefinedEntries(normalizeMediaStateUpdate(updateSet));
+  const normalizedSetOnInsert = removeUndefinedEntries(
+    normalizeMediaStateUpdate({
+      ...defaultInsert,
+      ...setOnInsert,
+    })
+  );
+
+  for (const key of Object.keys(normalizedSet)) {
+    if (Object.prototype.hasOwnProperty.call(normalizedSetOnInsert, key)) {
+      delete normalizedSetOnInsert[key];
+    }
+  }
+
+  const update = {
+    $set: normalizedSet,
+    $setOnInsert: normalizedSetOnInsert,
+  };
+
+  const doc = await MediaState.findOneAndUpdate(
+    { originalPath: normalizedOriginalPath },
+    update,
+    {
+      new: true,
+      upsert: true,
+      setDefaultsOnInsert: true,
+      runValidators: true,
+    }
+  );
+
+  return normalizeMediaStateRecord(doc);
+}
+
+async function getMediaStateById(mediaId) {
+  const normalizedMediaId = normalizeMediaId(mediaId);
+
+  if (!normalizedMediaId) {
+    throw createMediaError(
+      MEDIA_ERROR_CODES.MEDIA_INVALID_INPUT,
+      'mediaId is required',
+      { fieldName: 'mediaId' }
+    );
+  }
+
+  const doc = await MediaState.findOne({ mediaId: normalizedMediaId }).lean();
+  return normalizeMediaStateRecord(doc);
+}
+
+async function getMediaStateByOriginalPath(originalPath) {
+  const normalizedOriginalPath = resolveMediaPath(originalPath, {
+    fieldName: 'originalPath',
+  });
+  const doc = await MediaState.findOne({ originalPath: normalizedOriginalPath }).lean();
+  return normalizeMediaStateRecord(doc);
+}
+
+async function ensureMediaStateByOriginalPath(originalPath) {
+  return upsertMediaStateByOriginalPath(originalPath);
+}
+
+function toVariantSiblingDirectory(sourceDirPath, targetVariantSegment) {
+  const segments = path.resolve(sourceDirPath).split(path.sep);
+  const variantSegments = new Set([
+    'original',
+    'originals',
+    'processed',
+    'display',
+    'thumb',
+  ]);
+
+  for (let index = segments.length - 1; index >= 0; index -= 1) {
+    const segment = toTrimmed(segments[index]).toLowerCase();
+    if (variantSegments.has(segment)) {
+      const next = [...segments];
+      next[index] = targetVariantSegment;
+      return next.join(path.sep);
+    }
+  }
+
+  return path.join(path.resolve(sourceDirPath), targetVariantSegment);
+}
+
+function computeDerivedPathFromSource(sourcePath, derivativeKind) {
+  const normalizedSourcePath = resolveMediaPath(sourcePath, {
+    fieldName: 'sourcePath',
+  });
+  const sourceDir = path.dirname(normalizedSourcePath);
+  const baseName = path.parse(normalizedSourcePath).name;
+  const derivativeDir = toVariantSiblingDirectory(sourceDir, derivativeKind);
+  return resolveMediaPath(
+    path.join(derivativeDir, `${baseName}${DERIVATIVE_FORMAT.extension}`),
+    {
+      fieldName: `${derivativeKind}Path`,
+    }
+  );
+}
+
+function computeProcessedOutputPath(inputPath) {
+  const normalizedInputPath = resolveMediaPath(inputPath, {
+    fieldName: 'inputPath',
+  });
+  const sourceDir = path.dirname(normalizedInputPath);
+  const baseName = path.parse(normalizedInputPath).name;
+  const processedDir = toVariantSiblingDirectory(sourceDir, 'processed');
+  return resolveMediaPath(path.join(processedDir, `${baseName}.webp`), {
+    fieldName: 'outputPath',
+  });
+}
+
+function normalizeObjectGlowSuccessPayload(
+  payload = {},
+  { inputPath: fallbackInputPath = '', outputPath: fallbackOutputPath = '' } = {}
+) {
+  const status = toTrimmed(payload.status);
+  const inputPath = toTrimmed(payload.inputPath || payload.input_path);
+  const outputPath = toTrimmed(payload.outputPath || payload.output_path);
+
+  if (!status || !inputPath || !outputPath) {
+    throw createMediaError(
+      MEDIA_ERROR_CODES.OBJECT_GLOW_BAD_JSON,
+      'objectGlow JSON response is missing required fields',
+      {
+        inputPath: fallbackInputPath,
+        outputPath: fallbackOutputPath,
+      }
+    );
+  }
+
+  return {
+    status,
+    inputPath,
+    outputPath,
+    elapsedSeconds: coerceNumber(payload.elapsedSeconds ?? payload.elapsed_seconds),
+    inputDimensions: normalizeDimensions(
+      payload.inputDimensions ?? payload.input_dimensions
+    ),
+    outputDimensions: normalizeDimensions(
+      payload.outputDimensions ?? payload.output_dimensions
+    ),
+    glowApplied: coerceBoolean(payload.glowApplied ?? payload.glow_applied),
+    glowColor:
+      payload.glowColor != null
+        ? payload.glowColor
+        : payload.glow_color != null
+          ? payload.glow_color
+          : null,
+  };
+}
+
+function prependPythonPath(prefixPath, existingPythonPath) {
+  const normalizedPrefix = toTrimmed(prefixPath);
+  const normalizedExisting = toTrimmed(existingPythonPath);
+  if (!normalizedPrefix) return normalizedExisting;
+  if (!normalizedExisting) return normalizedPrefix;
+  return `${normalizedPrefix}${path.delimiter}${normalizedExisting}`;
+}
+
+async function isExecutableFile(candidatePath) {
+  const normalizedPath = toTrimmed(candidatePath);
+  if (!normalizedPath) return false;
+
+  try {
+    const stat = await fs.stat(normalizedPath);
+    if (!stat.isFile()) return false;
+    await fs.access(normalizedPath, FS_CONSTANTS.X_OK);
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
+
+function buildObjectGlowCliArgs(inputPath, outputPath, renderTokens) {
+  const normalized = normalizeRenderTokensForState(renderTokens, DEFAULT_RENDER_TOKENS);
+  return [
+    inputPath,
+    '--output',
+    outputPath,
+    '--background-token',
+    normalized.background,
+    '--glow-token',
+    normalized.glow,
+    '--accent-token',
+    normalized.accent,
+  ];
+}
+
+async function resolveObjectGlowInvocation(inputPath, outputPath, renderTokens) {
+  const repoRoot = path.resolve(OBJECT_GLOW_REPO);
+  const launcherPath = path.join(repoRoot, 'bin', 'objectglow');
+  const venvPythonPath = path.join(repoRoot, '.venv', 'bin', 'python');
+  const cliArgs = buildObjectGlowCliArgs(inputPath, outputPath, renderTokens);
+  const normalizedRenderTokens = normalizeRenderTokensForState(renderTokens, DEFAULT_RENDER_TOKENS);
+
+  if (await isExecutableFile(launcherPath)) {
+    return {
+      strategy: 'repo-launcher',
+      executable: launcherPath,
+      args: cliArgs,
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        OBJECT_GLOW_REPO: repoRoot,
+      },
+      debugEnv: {
+        OBJECT_GLOW_REPO: repoRoot,
+        OBJECTGLOW_PYTHON: toTrimmed(process.env.OBJECTGLOW_PYTHON),
+        PYTHONPATH: toTrimmed(process.env.PYTHONPATH),
+        OBJECT_GLOW_MODULE,
+        OBJECT_GLOW_RENDER_BACKGROUND: normalizedRenderTokens.background,
+        OBJECT_GLOW_RENDER_GLOW: normalizedRenderTokens.glow,
+        OBJECT_GLOW_RENDER_ACCENT: normalizedRenderTokens.accent,
+      },
+    };
+  }
+
+  if (await isExecutableFile(venvPythonPath)) {
+    const repoSrc = path.join(repoRoot, 'src');
+    const pythonPath = prependPythonPath(repoSrc, process.env.PYTHONPATH);
+
+    return {
+      strategy: 'repo-venv-python-fallback',
+      executable: venvPythonPath,
+      args: ['-m', OBJECT_GLOW_MODULE, ...cliArgs],
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        OBJECT_GLOW_REPO: repoRoot,
+        PYTHONPATH: pythonPath,
+      },
+      debugEnv: {
+        OBJECT_GLOW_REPO: repoRoot,
+        OBJECTGLOW_PYTHON: toTrimmed(process.env.OBJECTGLOW_PYTHON) || venvPythonPath,
+        PYTHONPATH: pythonPath,
+        OBJECT_GLOW_MODULE,
+        OBJECT_GLOW_RENDER_BACKGROUND: normalizedRenderTokens.background,
+        OBJECT_GLOW_RENDER_GLOW: normalizedRenderTokens.glow,
+        OBJECT_GLOW_RENDER_ACCENT: normalizedRenderTokens.accent,
+      },
+    };
+  }
+
+  throw createMediaError(
+    MEDIA_ERROR_CODES.OBJECT_GLOW_SPAWN_FAILED,
+    `objectGlow repo-local launcher not found at ${launcherPath} and fallback python not found at ${venvPythonPath}`,
+    {
+      inputPath,
+      outputPath,
+      stdoutSnippet: '',
+      stderr: '',
+      details: {
+        objectGlowRepo: repoRoot,
+        launcherPath,
+        venvPythonPath,
+      },
+    }
+  );
+}
+
+function logObjectGlowInvocation({ strategy, executable, args, cwd, debugEnv }) {
+  console.info('[mediaProcessingService] objectGlow invocation', {
+    strategy,
+    executable,
+    argv: [executable, ...(Array.isArray(args) ? args : [])],
+    cwd,
+    env: {
+      OBJECT_GLOW_REPO: toTrimmed(debugEnv?.OBJECT_GLOW_REPO),
+      OBJECTGLOW_PYTHON: toTrimmed(debugEnv?.OBJECTGLOW_PYTHON),
+      PYTHONPATH: toTrimmed(debugEnv?.PYTHONPATH),
+      OBJECT_GLOW_MODULE: toTrimmed(debugEnv?.OBJECT_GLOW_MODULE),
+      OBJECT_GLOW_RENDER_BACKGROUND: toTrimmed(debugEnv?.OBJECT_GLOW_RENDER_BACKGROUND),
+      OBJECT_GLOW_RENDER_GLOW: toTrimmed(debugEnv?.OBJECT_GLOW_RENDER_GLOW),
+      OBJECT_GLOW_RENDER_ACCENT: toTrimmed(debugEnv?.OBJECT_GLOW_RENDER_ACCENT),
+    },
+  });
+}
+
+async function runObjectGlowSubprocess({ inputPath, outputPath, renderTokens }) {
+  const invocation = await resolveObjectGlowInvocation(inputPath, outputPath, renderTokens);
+  const { strategy, executable, args, cwd, env, debugEnv } = invocation;
+
+  logObjectGlowInvocation({ strategy, executable, args, cwd, debugEnv });
+
+  return new Promise((resolve, reject) => {
+    const child = spawn(executable, args, {
+      cwd,
+      env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    let stdout = '';
+    let stderr = '';
+    let settled = false;
+
+    const timeoutHandle = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      child.kill('SIGKILL');
+      reject(
+        createMediaError(
+          MEDIA_ERROR_CODES.OBJECT_GLOW_TIMEOUT,
+          `objectGlow timed out after ${OBJECT_GLOW_TIMEOUT_MS}ms`,
+          {
+            inputPath,
+            outputPath,
+            stderr,
+            stdoutSnippet: toStdoutSnippet(stdout),
+          }
+        )
+      );
+    }, Math.max(1000, OBJECT_GLOW_TIMEOUT_MS));
+
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on('error', (spawnError) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutHandle);
+      reject(
+        createMediaError(
+          MEDIA_ERROR_CODES.OBJECT_GLOW_SPAWN_FAILED,
+          `Failed to start objectGlow subprocess: ${spawnError.message}`,
+          {
+            inputPath,
+            outputPath,
+            stderr,
+            stdoutSnippet: toStdoutSnippet(stdout),
+          }
+        )
+      );
+    });
+
+    child.on('close', (exitCode, signal) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutHandle);
+      console.info('[mediaProcessingService] objectGlow result', {
+        strategy,
+        executable,
+        argv: [executable, ...(Array.isArray(args) ? args : [])],
+        cwd,
+        exitCode: Number.isInteger(exitCode) ? exitCode : null,
+        signal: signal || null,
+        stdoutSnippet: toStdoutSnippet(stdout),
+        stderrSnippet: toStdoutSnippet(stderr),
+      });
+      resolve({
+        exitCode: Number.isInteger(exitCode) ? exitCode : null,
+        signal: signal || null,
+        stdout,
+        stderr,
+      });
+    });
+  });
+}
+
+let objectGlowRunner = runObjectGlowSubprocess;
+
+async function syncDerivedVariantsForMedia(originalPath) {
+  const baseState = await upsertMediaStateByOriginalPath(originalPath);
+  const activeVariant = normalizeActiveVariant(baseState.activeVariant, 'original');
+
+  const sourcePath =
+    activeVariant === 'processed' ? baseState.processedPath : baseState.originalPath;
+
+  if (!sourcePath) {
+    throw createMediaError(
+      MEDIA_ERROR_CODES.MEDIA_SOURCE_NOT_FOUND,
+      `No source path available for activeVariant=${activeVariant}`,
+      {
+        inputPath: baseState.originalPath,
+        outputPath: baseState.processedPath,
+      }
+    );
+  }
+
+  const normalizedSourcePath = await ensureReadableFile(sourcePath, {
+    code: MEDIA_ERROR_CODES.MEDIA_SOURCE_NOT_FOUND,
+    message: `Active source file is missing for variant ${activeVariant}: ${sourcePath}`,
+    inputPath: baseState.originalPath,
+    outputPath: baseState.processedPath,
+  });
+
+  const displayPath = computeDerivedPathFromSource(normalizedSourcePath, 'display');
+  const thumbPath = computeDerivedPathFromSource(normalizedSourcePath, 'thumb');
+
+  await fs.mkdir(path.dirname(displayPath), { recursive: true });
+  await fs.mkdir(path.dirname(thumbPath), { recursive: true });
+
+  try {
+    const source = sharp(normalizedSourcePath).rotate();
+
+    await Promise.all([
+      source
+        .clone()
+        .resize({
+          width: DERIVATIVE_SIZES.displayMaxDim,
+          height: DERIVATIVE_SIZES.displayMaxDim,
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .toFormat(DERIVATIVE_FORMAT.sharpFormat, {
+          quality: DERIVATIVE_FORMAT.displayQuality,
+        })
+        .toFile(displayPath),
+      source
+        .clone()
+        .resize({
+          width: DERIVATIVE_SIZES.thumbMaxDim,
+          height: DERIVATIVE_SIZES.thumbMaxDim,
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .toFormat(DERIVATIVE_FORMAT.sharpFormat, {
+          quality: DERIVATIVE_FORMAT.thumbQuality,
+        })
+        .toFile(thumbPath),
+    ]);
+  } catch (error) {
+    if (isMediaError(error)) throw error;
+    throw createMediaError(
+      MEDIA_ERROR_CODES.MEDIA_DERIVATIVE_SYNC_FAILED,
+      `Failed to regenerate derived variants: ${error.message}`,
+      {
+        inputPath: baseState.originalPath,
+        outputPath: baseState.processedPath,
+      }
+    );
+  }
+
+  await assertOutputArtifact(displayPath, {
+    code: MEDIA_ERROR_CODES.MEDIA_DERIVATIVE_SYNC_FAILED,
+    message: 'Display derivative is missing after sync',
+    inputPath: baseState.originalPath,
+    outputPath: displayPath,
+  });
+
+  await assertOutputArtifact(thumbPath, {
+    code: MEDIA_ERROR_CODES.MEDIA_DERIVATIVE_SYNC_FAILED,
+    message: 'Thumb derivative is missing after sync',
+    inputPath: baseState.originalPath,
+    outputPath: thumbPath,
+  });
+
+  return upsertMediaStateByOriginalPath(baseState.originalPath, {
+    displayPath,
+    thumbPath,
+    displayDerivedFrom: activeVariant,
+    thumbDerivedFrom: activeVariant,
+  });
+}
+
+async function setActiveVariant(originalPath, nextActiveVariant) {
+  const normalizedNextVariant = toTrimmed(nextActiveVariant).toLowerCase();
+
+  if (!ACTIVE_VARIANTS.has(normalizedNextVariant)) {
+    throw createMediaError(
+      MEDIA_ERROR_CODES.MEDIA_INVALID_INPUT,
+      'activeVariant must be "original" or "processed"',
+      {
+        inputPath: toTrimmed(originalPath),
+      }
+    );
+  }
+
+  const state = await upsertMediaStateByOriginalPath(originalPath);
+  const sourcePath =
+    normalizedNextVariant === 'processed' ? state.processedPath : state.originalPath;
+
+  if (!sourcePath) {
+    throw createMediaError(
+      MEDIA_ERROR_CODES.MEDIA_SOURCE_NOT_FOUND,
+      `Cannot set activeVariant=${normalizedNextVariant}; source path is empty`,
+      {
+        inputPath: state.originalPath,
+        outputPath: state.processedPath,
+      }
+    );
+  }
+
+  await ensureReadableFile(sourcePath, {
+    code: MEDIA_ERROR_CODES.MEDIA_SOURCE_NOT_FOUND,
+    message: `Cannot set activeVariant=${normalizedNextVariant}; source file missing: ${sourcePath}`,
+    inputPath: state.originalPath,
+    outputPath: state.processedPath,
+  });
+
+  await upsertMediaStateByOriginalPath(state.originalPath, {
+    activeVariant: normalizedNextVariant,
+  });
+
+  return syncDerivedVariantsForMedia(state.originalPath);
+}
+
+async function setActiveVariantById(mediaId, nextActiveVariant) {
+  const state = await getMediaStateById(mediaId);
+  if (!state?.originalPath) {
+    throw createMediaError(
+      MEDIA_ERROR_CODES.MEDIA_SOURCE_NOT_FOUND,
+      `Media state not found for mediaId=${toTrimmed(mediaId)}`,
+      { inputPath: '' }
+    );
+  }
+  return setActiveVariant(state.originalPath, nextActiveVariant);
+}
+
+async function queueMediaProcessing(inputPath, outputPath, renderTokens) {
+  const normalizedInputPath = resolveMediaPath(inputPath, { fieldName: 'inputPath' });
+  const normalizedOutputPath = outputPath
+    ? resolveMediaPath(outputPath, { fieldName: 'outputPath' })
+    : computeProcessedOutputPath(normalizedInputPath);
+  const existingState = await getMediaStateByOriginalPath(normalizedInputPath);
+  const fallbackTokens = normalizeRenderTokensForState(
+    existingState?.renderTokens,
+    DEFAULT_RENDER_TOKENS
+  );
+  const shouldUpdateTokens = hasAnyRenderTokenValue(renderTokens);
+  const resolvedRenderTokens = shouldUpdateTokens
+    ? validateAndResolveRenderTokens(renderTokens, {
+        fallbackTokens,
+        fieldName: 'renderTokens',
+      })
+    : fallbackTokens;
+
+  await ensureReadableFile(normalizedInputPath, {
+    code: MEDIA_ERROR_CODES.MEDIA_SOURCE_NOT_FOUND,
+    message: `Input file is missing: ${normalizedInputPath}`,
+    inputPath: normalizedInputPath,
+    outputPath: normalizedOutputPath,
+  });
+
+  const processingState = await upsertMediaStateByOriginalPath(
+    normalizedInputPath,
+    {
+      processedPath: normalizedOutputPath,
+      processingStatus: 'queued',
+      processingError: null,
+      ...(shouldUpdateTokens ? { renderTokens: resolvedRenderTokens } : {}),
+    },
+    {
+      originalPath: normalizedInputPath,
+      renderTokens: resolvedRenderTokens,
+      activeVariant: 'original',
+      displayDerivedFrom: null,
+      thumbDerivedFrom: null,
+      processedAt: null,
+    }
+  );
+
+  return {
+    mediaId: processingState.mediaId,
+    inputPath: normalizedInputPath,
+    outputPath: normalizedOutputPath,
+    renderTokens: normalizeRenderTokensForState(
+      processingState.renderTokens,
+      resolvedRenderTokens
+    ),
+    processingState,
+  };
+}
+
+async function queueMediaProcessingById(mediaId, outputPath, renderTokens) {
+  const state = await getMediaStateById(mediaId);
+  if (!state?.originalPath) {
+    throw createMediaError(
+      MEDIA_ERROR_CODES.MEDIA_SOURCE_NOT_FOUND,
+      `Media state not found for mediaId=${toTrimmed(mediaId)}`,
+      { inputPath: '' }
+    );
+  }
+  return queueMediaProcessing(state.originalPath, outputPath, renderTokens);
+}
+
+async function enqueueMediaProcessingById(mediaId, outputPath, renderTokens) {
+  return queueMediaProcessingById(mediaId, outputPath, renderTokens);
+}
+
+async function processImageWithObjectGlowById(mediaId, outputPath, renderTokens) {
+  const state = await getMediaStateById(mediaId);
+  if (!state?.originalPath) {
+    throw createMediaError(
+      MEDIA_ERROR_CODES.MEDIA_SOURCE_NOT_FOUND,
+      `Media state not found for mediaId=${toTrimmed(mediaId)}`,
+      { inputPath: '' }
+    );
+  }
+  const fallbackTokens = normalizeRenderTokensForState(
+    state?.renderTokens,
+    DEFAULT_RENDER_TOKENS
+  );
+  const requestedTokens = hasAnyRenderTokenValue(renderTokens)
+    ? renderTokens
+    : fallbackTokens;
+  const materializedTokens = materializeRenderTokensForProcessing(requestedTokens, {
+    fallbackTokens,
+  });
+
+  return processImageWithObjectGlow(state.originalPath, outputPath, {
+    renderTokens: materializedTokens,
+  });
+}
+
+async function processImageWithObjectGlow(inputPath, outputPath, options = {}) {
+  let normalizedInputPath = '';
+  let normalizedOutputPath = '';
+  let renderTokens = normalizeRenderTokensForState(DEFAULT_RENDER_TOKENS);
+
+  try {
+    normalizedInputPath = resolveMediaPath(inputPath, { fieldName: 'inputPath' });
+    normalizedOutputPath = outputPath
+      ? resolveMediaPath(outputPath, { fieldName: 'outputPath' })
+      : computeProcessedOutputPath(normalizedInputPath);
+    const existingState = await getMediaStateByOriginalPath(normalizedInputPath);
+    const requestedTokens = options?.renderTokens;
+    const fallbackTokens = normalizeRenderTokensForState(
+      existingState?.renderTokens,
+      DEFAULT_RENDER_TOKENS
+    );
+    renderTokens = hasAnyRenderTokenValue(requestedTokens)
+      ? materializeRenderTokensForProcessing(requestedTokens, {
+          fallbackTokens,
+        })
+      : materializeRenderTokensForProcessing(fallbackTokens, {
+          fallbackTokens: DEFAULT_RENDER_TOKENS,
+        });
+
+    await upsertMediaStateByOriginalPath(
+      normalizedInputPath,
+      {
+        processedPath: normalizedOutputPath,
+        renderTokens,
+        processingStatus: 'processing',
+        processingError: null,
+      },
+      {
+        originalPath: normalizedInputPath,
+        renderTokens,
+        activeVariant: 'original',
+        displayDerivedFrom: null,
+        thumbDerivedFrom: null,
+        processedAt: null,
+      }
+    );
+
+    await ensureReadableFile(normalizedInputPath, {
+      code: MEDIA_ERROR_CODES.MEDIA_SOURCE_NOT_FOUND,
+      message: `Input file is missing: ${normalizedInputPath}`,
+      inputPath: normalizedInputPath,
+      outputPath: normalizedOutputPath,
+    });
+
+    await fs.mkdir(path.dirname(normalizedOutputPath), { recursive: true });
+
+    const { exitCode, signal, stdout, stderr } = await objectGlowRunner({
+      inputPath: normalizedInputPath,
+      outputPath: normalizedOutputPath,
+      renderTokens,
+    });
+
+    if (exitCode !== 0) {
+      const reason =
+        exitCode == null && signal
+          ? `objectGlow terminated by signal ${signal}`
+          : `objectGlow exited with code ${exitCode}`;
+
+      throw createMediaError(
+        MEDIA_ERROR_CODES.OBJECT_GLOW_PROCESS_FAILED,
+        reason,
+        {
+          exitCode,
+          stderr,
+          stdoutSnippet: toStdoutSnippet(stdout),
+          inputPath: normalizedInputPath,
+          outputPath: normalizedOutputPath,
+        }
+      );
+    }
+
+    const finalOutputPath = normalizedOutputPath;
+    const normalizedSuccess = {
+      status: 'ok',
+      inputPath: normalizedInputPath,
+      outputPath: finalOutputPath,
+      elapsedSeconds: null,
+      inputDimensions: null,
+      outputDimensions: null,
+      glowApplied: null,
+      glowColor: null,
+    };
+
+    await assertOutputArtifact(finalOutputPath, {
+      code: MEDIA_ERROR_CODES.MEDIA_OUTPUT_MISSING,
+      message: 'objectGlow exited successfully but processed output is missing',
+      inputPath: normalizedInputPath,
+      outputPath: finalOutputPath,
+    });
+
+    let processingState = await upsertMediaStateByOriginalPath(normalizedInputPath, {
+      processedPath: finalOutputPath,
+      renderTokens,
+      activeVariant: 'processed',
+      processingStatus: 'completed',
+      processingError: null,
+      processedAt: new Date(),
+    });
+
+    if (processingState.activeVariant === 'processed') {
+      processingState = await syncDerivedVariantsForMedia(normalizedInputPath);
+    }
+
+    return {
+      result: {
+        ...normalizedSuccess,
+        inputPath: normalizedInputPath,
+        outputPath: finalOutputPath,
+        renderTokens,
+      },
+      processingState,
+    };
+  } catch (error) {
+    const mediaError = isMediaError(error)
+      ? error
+      : createMediaError(
+          MEDIA_ERROR_CODES.OBJECT_GLOW_PROCESS_FAILED,
+          error?.message
+            ? `objectGlow processing failed: ${error.message}`
+            : 'Failed to process image with objectGlow',
+          {
+            inputPath: normalizedInputPath,
+            outputPath: normalizedOutputPath,
+          }
+        );
+
+    if (normalizedInputPath) {
+      const processingError = toMediaErrorPayload(mediaError);
+      const processingState = await upsertMediaStateByOriginalPath(normalizedInputPath, {
+        processedPath: normalizedOutputPath,
+        renderTokens,
+        processingStatus: 'failed',
+        processingError,
+      });
+      mediaError.processingState = processingState;
+    }
+
+    throw mediaError;
+  }
+}
+
+function __setObjectGlowRunnerForTests(runner) {
+  objectGlowRunner = typeof runner === 'function' ? runner : runObjectGlowSubprocess;
+}
+
+function __resetObjectGlowRunnerForTests() {
+  objectGlowRunner = runObjectGlowSubprocess;
+}
+
+function toBackfillLimit(limit) {
+  const parsed = Number.parseInt(String(limit ?? ''), 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 500;
+  if (parsed > 5000) return 5000;
+  return parsed;
+}
+
+async function backfillMissingMediaIds({ limit } = {}) {
+  const safeLimit = toBackfillLimit(limit);
+  const candidates = await MediaState.find({
+    $or: [
+      { mediaId: { $exists: false } },
+      { mediaId: null },
+      { mediaId: '' },
+    ],
+    originalPath: { $nin: ['', null] },
+  })
+    .sort({ updatedAt: 1, _id: 1 })
+    .limit(safeLimit)
+    .lean();
+
+  let updatedCount = 0;
+  let skippedCount = 0;
+
+  for (const record of candidates) {
+    const originalPath = toTrimmed(record?.originalPath);
+    if (!originalPath) {
+      skippedCount += 1;
+      continue;
+    }
+
+    try {
+      await MediaState.findOneAndUpdate(
+        { originalPath },
+        {
+          $set: {
+            mediaId: createMediaId(),
+          },
+        },
+        {
+          runValidators: false,
+        }
+      );
+      updatedCount += 1;
+    } catch (_error) {
+      skippedCount += 1;
+    }
+  }
+
+  return {
+    matchedCount: candidates.length,
+    updatedCount,
+    skippedCount,
+  };
+}
+
+module.exports = {
+  backfillMissingMediaIds,
+  getMediaStateById,
+  enqueueMediaProcessingById,
+  queueMediaProcessingById,
+  processImageWithObjectGlowById,
+  setActiveVariantById,
+  queueMediaProcessing,
+  processImageWithObjectGlow,
+  computeProcessedOutputPath,
+  syncDerivedVariantsForMedia,
+  setActiveVariant,
+  getMediaStateByOriginalPath,
+  ensureMediaStateByOriginalPath,
+  toErrorPayload: toMediaErrorPayload,
+  __setObjectGlowRunnerForTests,
+  __resetObjectGlowRunnerForTests,
+};

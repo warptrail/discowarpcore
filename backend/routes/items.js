@@ -20,6 +20,11 @@ const {
   restoreItemToActiveApi,
   backfillOrphanedTimestampsApi,
 } = require('../controllers/itemController');
+const {
+  postItemProcessImageApi,
+  getItemMediaStatusApi,
+  patchItemActiveVariantApi,
+} = require('../controllers/entityMediaController');
 
 router.get('/', getAllItemsApi);
 router.get('/orphaned', getOrphanedItemsApi);
@@ -29,6 +34,21 @@ router.post('/ai-json/validate', postValidateAiJsonImportApi);
 router.post('/ai-json/import', postAiJsonImportApi);
 router.patch('/:id/mark-gone', validateObjectIdParam('id'), markItemGoneApi);
 router.patch('/:id/restore-active', validateObjectIdParam('id'), restoreItemToActiveApi);
+router.get(
+  '/:itemId/media-status',
+  validateObjectIdParam('itemId'),
+  getItemMediaStatusApi
+);
+router.post(
+  '/:itemId/process-image',
+  validateObjectIdParam('itemId'),
+  postItemProcessImageApi
+);
+router.patch(
+  '/:itemId/active-variant',
+  validateObjectIdParam('itemId'),
+  patchItemActiveVariantApi
+);
 router.get('/:id', validateObjectIdParam('id'), getItemByIdApi);
 router.post('/', postItem);
 router.post('/:id/image', validateObjectIdParam('id'), uploadSingleItemImage, postItemImageApi);

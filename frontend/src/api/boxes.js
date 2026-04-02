@@ -77,6 +77,20 @@ async function downloadBoxExportFile(
   return { filename };
 }
 
+async function parseJsonErrorResponse(response, fallbackMessage) {
+  const data = await response.json().catch(() => ({}));
+  const message =
+    data?.error?.message ||
+    data?.error ||
+    data?.message ||
+    fallbackMessage;
+  const error = new Error(message);
+  if (data?.code) {
+    error.code = data.code;
+  }
+  return error;
+}
+
 // frontend/src/api/boxes.js
 export async function fetchBoxTreeByShortId(shortId, { signal } = {}) {
   if (!shortId) throw new Error('shortId is required');
@@ -285,6 +299,29 @@ export async function removeBoxImage(boxMongoId, opts = {}) {
     throw new Error(data?.error || data?.message || 'Failed to remove box image');
   }
   return data;
+}
+
+export async function selectExistingBoxImage(boxMongoId, payload = {}, opts = {}) {
+  if (!boxMongoId) throw new Error('boxMongoId is required');
+
+  const res = await fetch(
+    `${API_BASE}/api/boxes/${encodeURIComponent(boxMongoId)}/select-existing-image`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload && typeof payload === 'object' ? payload : {}),
+      signal: opts.signal,
+    }
+  );
+
+  if (!res.ok) {
+    throw await parseJsonErrorResponse(
+      res,
+      `Failed to select existing image (${res.status})`
+    );
+  }
+
+  return res.json().catch(() => ({}));
 }
 
 export async function downloadBoxJsonExport(boxMongoId, opts = {}) {
