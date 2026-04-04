@@ -59,6 +59,25 @@ const List = styled.div`
   align-content: start;
 `;
 
+const Section = styled.div`
+  display: grid;
+  gap: 0.34rem;
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.48rem;
+`;
+
+const SectionTitle = styled.div`
+  font-size: 0.67rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8eb1cc;
+`;
+
 const QueueRow = styled.button`
   text-align: left;
   width: 100%;
@@ -92,10 +111,31 @@ const QueueRow = styled.button`
     bottom: 0;
     width: ${({ $selected }) => ($selected ? '6px' : '3px')};
     border-radius: 10px 0 0 10px;
-    background: ${({ $selected }) =>
-      $selected
-        ? 'linear-gradient(180deg, #f3b56f 0%, #77d7bb 45%, #75b7f0 100%)'
-        : 'rgba(81, 121, 151, 0.44)'};
+    background: ${({ $selected, $accentTone }) => {
+      if ($accentTone === 'archived') {
+        return $selected
+          ? 'linear-gradient(180deg, #df7b7b 0%, #b34d4d 100%)'
+          : 'rgba(179, 77, 77, 0.6)';
+      }
+      if ($accentTone === 'imported') {
+        return $selected
+          ? 'linear-gradient(180deg, #8fe1b8 0%, #5dbd89 100%)'
+          : 'rgba(93, 189, 137, 0.58)';
+      }
+      if ($accentTone === 'validated') {
+        return $selected
+          ? 'linear-gradient(180deg, #f1c676 0%, #d39a38 100%)'
+          : 'rgba(211, 154, 56, 0.58)';
+      }
+      if ($accentTone === 'failed') {
+        return $selected
+          ? 'linear-gradient(180deg, #ea908f 0%, #ce6563 100%)'
+          : 'rgba(206, 101, 99, 0.58)';
+      }
+      return $selected
+        ? 'linear-gradient(180deg, #8ec3f3 0%, #5d97d4 100%)'
+        : 'rgba(81, 121, 151, 0.44)';
+    }};
   }
 
   &:hover {
@@ -180,6 +220,43 @@ const SubduedLine = styled.div`
   color: #819cb4;
 `;
 
+const StageRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+`;
+
+const StageChip = styled.div`
+  border-radius: 999px;
+  border: 1px solid
+    ${({ $tone }) =>
+      $tone === 'stage'
+        ? 'rgba(111, 171, 224, 0.44)'
+        : $tone === 'validate'
+          ? 'rgba(207, 170, 101, 0.44)'
+          : 'rgba(104, 177, 141, 0.44)'};
+  background: ${({ $active, $tone }) =>
+    $active
+      ? $tone === 'stage'
+        ? 'rgba(16, 34, 49, 0.92)'
+        : $tone === 'validate'
+          ? 'rgba(49, 35, 16, 0.92)'
+          : 'rgba(16, 40, 31, 0.92)'
+      : 'rgba(13, 22, 33, 0.82)'};
+  color: ${({ $active, $tone }) =>
+    $active
+      ? $tone === 'stage'
+        ? '#9bc7f0'
+        : $tone === 'validate'
+          ? '#efd2a5'
+          : '#c9f1dd'
+      : '#85a3bc'};
+  padding: 0.14rem 0.38rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+`;
+
 const Empty = styled.div`
   border-radius: 10px;
   border: 1px dashed rgba(104, 155, 191, 0.46);
@@ -196,76 +273,168 @@ function toDisplayDate(value) {
   return date.toLocaleString();
 }
 
-function statusTone(batch) {
-  if (batch.importStatus === 'imported') return 'success';
-  if (batch.validation?.ok) return 'success';
-  if (batch.hasJsonFile && batch.hasCsvFile) return 'warning';
-  return 'error';
+function toValidationState(batch) {
+  if (batch.validationStatus === 'passed') return { label: 'validation passed', tone: 'success' };
+  if (batch.validationStatus === 'failed') return { label: 'validation failed', tone: 'error' };
+  return { label: 'not validated', tone: 'default' };
 }
 
-function toQueueState(batch) {
-  if (batch.importStatus === 'imported') {
-    return { label: 'imported', tone: 'success' };
-  }
-  if (batch.validation?.ok) {
-    return { label: 'ready', tone: 'success' };
-  }
-  if (batch.hasJsonFile && batch.hasCsvFile) {
-    return { label: 'needs validation', tone: 'warning' };
-  }
-  return { label: 'needs assets', tone: 'error' };
+function toImportState(batch) {
+  if (batch.importLifecycleStatus === 'success') return { label: 'import success', tone: 'success' };
+  if (batch.importLifecycleStatus === 'failed') return { label: 'import failed', tone: 'error' };
+  return { label: 'not imported', tone: 'default' };
 }
 
-function toAssetLine(batch) {
-  if (batch.originalImagesCount || batch.stagedImagesCount) {
-    return `${batch.originalImagesCount} original · ${batch.stagedImagesCount} staged`;
+function toSourceLine(batch) {
+  const mappingLine = batch.mappingRequired
+    ? `Mapping CSV ${batch.mappingCsvPresent ? 'present' : 'missing'}`
+    : `Mapping CSV ${batch.mappingCsvPresent ? 'present' : 'optional'}`;
+  return `AI JSON ${batch.aiJsonPresent ? 'present' : 'missing'} · ${mappingLine}`;
+}
+
+function toCountsLine(batch) {
+  const rowCount = Number(batch.validationSnapshot?.rowCount) || 0;
+  const imageCount =
+    Number(batch.sourceManifest?.imageCount)
+    || Number(batch.packageSnapshot?.structureSummary?.imageCount)
+    || Number(batch.originalImagesCount)
+    || 0;
+  const imageText = batch.imagesIncluded
+    ? `${imageCount} image${imageCount === 1 ? '' : 's'} included`
+    : 'no images included';
+  return `${rowCount} row${rowCount === 1 ? '' : 's'} · ${imageText}`;
+}
+
+function toReceiptState(batch) {
+  const receipt = batch?.localReceipt;
+  if (!receipt) return { label: 'no receipt', tone: 'default' };
+  if (receipt.safeToDelete) return { label: 'safe to delete', tone: 'success' };
+  if (receipt.status === 'validation_failed' || receipt.status === 'import_failed') {
+    return { label: receipt.status.replace(/_/g, ' '), tone: 'error' };
   }
-  if (batch.hasJsonFile || batch.hasCsvFile) {
-    return `JSON ${batch.hasJsonFile ? 'present' : 'missing'} · CSV ${batch.hasCsvFile ? 'present' : 'missing'}`;
+  return { label: receipt.status.replace(/_/g, ' ') || 'receipt present', tone: 'warning' };
+}
+
+function toWorkspaceState(batch) {
+  if (batch?.localFolderMissing) {
+    return { label: 'legacy folder missing', tone: 'error' };
   }
-  return 'No assets attached yet';
+  if (batch?.isArchived) {
+    return { label: 'archived provenance', tone: 'warning' };
+  }
+  return { label: 'staged package ready', tone: 'success' };
+}
+
+function toBatchAccentTone(batch) {
+  if (batch?.isArchived) return 'archived';
+  if (batch?.importLifecycleStatus === 'failed') return 'failed';
+  if (batch?.importLifecycleStatus === 'success') return 'imported';
+  if (batch?.validationStatus === 'failed') return 'failed';
+  if (batch?.validationStatus === 'passed') return 'validated';
+  return 'staged';
 }
 
 export default function IntakeBatchList({ batches, selectedBatchId, onSelect }) {
+  const safeBatches = Array.isArray(batches) ? batches : [];
+  const activeBatches = safeBatches.filter((batch) => !batch?.isArchived);
+  const archivedBatches = safeBatches.filter((batch) => batch?.isArchived);
+
+  function renderBatchList(rows, { emptyMessage, selectedLabel }) {
+    if (!rows.length) {
+      return <Empty>{emptyMessage}</Empty>;
+    }
+
+    return (
+      <List role="listbox" aria-label="Intake batches">
+        {rows.map((batch) => {
+          const selected = batch.id === selectedBatchId;
+          const validationState = toValidationState(batch);
+          const importState = toImportState(batch);
+          const receiptState = toReceiptState(batch);
+          const workspaceState = toWorkspaceState(batch);
+          const accentTone = toBatchAccentTone(batch);
+          return (
+            <QueueRow
+              key={batch.id}
+              type="button"
+              role="option"
+              aria-selected={selected}
+              $selected={selected}
+              $accentTone={accentTone}
+              onClick={() => onSelect(batch.id)}
+            >
+              <RowTop>
+                <BatchName>{batch.name}</BatchName>
+                <StatePill $tone={batch.isArchived ? 'warning' : validationState.tone}>
+                  {batch.isArchived ? 'archived' : validationState.label}
+                </StatePill>
+              </RowTop>
+
+              <SecondaryLine>{toSourceLine(batch)}</SecondaryLine>
+              <SecondaryLine>{toCountsLine(batch)}</SecondaryLine>
+              <StageRow>
+                <StageChip $tone="stage" $active>
+                  staged
+                </StageChip>
+                <StageChip $tone="validate" $active={batch.validationStatus === 'passed'}>
+                  validated
+                </StageChip>
+                <StageChip $tone="import" $active={batch.importLifecycleStatus === 'success'}>
+                  imported
+                </StageChip>
+              </StageRow>
+              <SubduedLine>{importState.label}</SubduedLine>
+              <SubduedLine>{workspaceState.label}</SubduedLine>
+              <SubduedLine>{receiptState.label}</SubduedLine>
+              <SubduedLine>
+                {batch.packageSnapshot?.originalPackageFilename
+                  ? `Package ${batch.packageSnapshot.originalPackageFilename}`
+                  : `Batch ${batch.localFolderName || batch.batchId}`}
+                {batch.localReceipt?.updatedAt ? ` · receipt ${toDisplayDate(batch.localReceipt.updatedAt)}` : ''}
+              </SubduedLine>
+              {batch.isArchived && batch.archiveState?.archivedAt ? (
+                <SubduedLine>Archived {toDisplayDate(batch.archiveState.archivedAt)}</SubduedLine>
+              ) : null}
+              <SubduedLine>Updated {toDisplayDate(batch.updatedAt || batch.createdAt)}</SubduedLine>
+              {selected ? <SelectedLine>{selectedLabel}</SelectedLine> : null}
+            </QueueRow>
+          );
+        })}
+      </List>
+    );
+  }
+
   return (
     <Panel>
       <Header>
         <HeaderText>
           <Title>Existing Batches</Title>
-          <Text>Select a batch to manage its assets and import status.</Text>
+          <Text>Select a staged package batch to review provenance, receipt status, archive state, and import history.</Text>
         </HeaderText>
-        <CountChip>{batches.length} batch{batches.length === 1 ? '' : 'es'}</CountChip>
+        <CountChip>{safeBatches.length} batch{safeBatches.length === 1 ? '' : 'es'}</CountChip>
       </Header>
 
-      {batches.length ? (
-        <List role="listbox" aria-label="Intake batches">
-          {batches.map((batch) => {
-            const selected = batch.id === selectedBatchId;
-            const queueState = toQueueState(batch);
-            return (
-              <QueueRow
-                key={batch.id}
-                type="button"
-                role="option"
-                aria-selected={selected}
-                $selected={selected}
-                onClick={() => onSelect(batch.id)}
-              >
-                <RowTop>
-                  <BatchName>{batch.name}</BatchName>
-                  <StatePill $tone={queueState.tone}>{queueState.label}</StatePill>
-                </RowTop>
+      <Section>
+        <SectionHeader>
+          <SectionTitle>Active Batches</SectionTitle>
+          <CountChip>{activeBatches.length}</CountChip>
+        </SectionHeader>
+        {renderBatchList(activeBatches, {
+          emptyMessage: 'No active staged packages yet. Upload a Disco Warp Core batch zip to begin.',
+          selectedLabel: 'Selected active batch',
+        })}
+      </Section>
 
-                <SecondaryLine>{toAssetLine(batch)}</SecondaryLine>
-                <SubduedLine>Updated {toDisplayDate(batch.updatedAt || batch.createdAt)}</SubduedLine>
-                {selected ? <SelectedLine>Active batch</SelectedLine> : null}
-              </QueueRow>
-            );
-          })}
-        </List>
-      ) : (
-        <Empty>No intake batches yet. Create one above to start a batch workflow.</Empty>
-      )}
+      <Section>
+        <SectionHeader>
+          <SectionTitle>Archived Provenance</SectionTitle>
+          <CountChip>{archivedBatches.length}</CountChip>
+        </SectionHeader>
+        {renderBatchList(archivedBatches, {
+          emptyMessage: 'No archived batches yet.',
+          selectedLabel: 'Selected archived batch',
+        })}
+      </Section>
     </Panel>
   );
 }

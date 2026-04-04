@@ -9,6 +9,7 @@ export default function ItemContainerSection({
   error = '',
   onMoveItem,
   onRemoveFromBox,
+  onToggleConsumable,
   timestampActions = [],
 }) {
   const [showPicker, setShowPicker] = useState(false);
@@ -22,6 +23,7 @@ export default function ItemContainerSection({
     (boxShortId ? `Box ${boxShortId}` : 'Current box');
   const isBoxed = ownership.isBoxed;
   const isGone = String(item?.item_status || '').toLowerCase() === 'gone';
+  const isConsumable = Boolean(item?.isConsumable);
   const boxHref = boxShortId ? `/boxes/${encodeURIComponent(boxShortId)}` : '';
   const resolvedLocation = String(ownership.effectiveLocation || '').trim();
   const locationSource = isGone
@@ -141,15 +143,35 @@ export default function ItemContainerSection({
             >
               Remove from box
             </S.ContainerButton>
+
+            <S.ContainerButton
+              type="button"
+              disabled={pending}
+              onClick={onToggleConsumable}
+              $active={isConsumable}
+            >
+              {isConsumable ? 'Consumable on' : 'Consumable off'}
+            </S.ContainerButton>
           </>
         ) : (
-          <S.ContainerButton
-            type="button"
-            disabled={pending}
-            onClick={() => setShowPicker((prev) => !prev)}
-          >
-            Place in box
-          </S.ContainerButton>
+          <>
+            <S.ContainerButton
+              type="button"
+              disabled={pending}
+              onClick={() => setShowPicker((prev) => !prev)}
+            >
+              Place in box
+            </S.ContainerButton>
+
+            <S.ContainerButton
+              type="button"
+              disabled={pending}
+              onClick={onToggleConsumable}
+              $active={isConsumable}
+            >
+              {isConsumable ? 'Consumable on' : 'Consumable off'}
+            </S.ContainerButton>
+          </>
         )}
       </S.ContainerActions>
 

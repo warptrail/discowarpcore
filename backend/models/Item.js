@@ -196,6 +196,12 @@ const itemSchema = new mongoose.Schema(
     },
     location: { type: String, default: '' },
     source: { type: String, default: '' },
+    sourceBatchId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Batch',
+      default: null,
+      index: true,
+    },
     orphanedAt: { type: Date, default: null },
     item_status: {
       type: String,

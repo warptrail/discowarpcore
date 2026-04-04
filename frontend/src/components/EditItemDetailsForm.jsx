@@ -20,6 +20,7 @@ export default function EditItemDetailsForm({
   processImageStatus = 'idle',
   processImageBusy = false,
   processImageError = '',
+  processImageProgressLabel = '',
   persistedRenderTokens = null,
   activeVariant = 'original',
   hasProcessedVariant = false,
@@ -70,6 +71,7 @@ export default function EditItemDetailsForm({
           processImageStatus={processImageStatus}
           processImageBusy={processImageBusy}
           processImageError={processImageError}
+          processImageProgressLabel={processImageProgressLabel}
           persistedRenderTokens={persistedRenderTokens}
           activeVariant={activeVariant}
           hasProcessedVariant={hasProcessedVariant}

@@ -8,14 +8,21 @@ const uploadRoot = path.join(INTAKE_ROOT, '_uploads');
 fs.mkdirSync(uploadRoot, { recursive: true });
 
 const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadRoot),
+  destination: (_req, _file, cb) => {
+    try {
+      fs.mkdirSync(uploadRoot, { recursive: true });
+      cb(null, uploadRoot);
+    } catch (error) {
+      cb(error);
+    }
+  },
   filename: (_req, file, cb) => {
     const ext = path.extname(String(file.originalname || ''));
     cb(null, `${crypto.randomUUID()}${ext}`);
   },
 });
 
-const upload = multer({
+const assetUpload = multer({
   storage,
   limits: {
     files: 1000,
@@ -23,12 +30,19 @@ const upload = multer({
   },
 });
 
+const packageUpload = multer({
+  storage,
+  limits: {
+    files: 1,
+    fileSize: 500 * 1024 * 1024,
+  },
+});
+
 function uploadIntakeBatchAssets(req, res, next) {
-  return upload.fields([
+  return assetUpload.fields([
     { name: 'images', maxCount: 1000 },
     { name: 'jsonFile', maxCount: 1 },
     { name: 'csvFile', maxCount: 1 },
-    { name: 'collageFile', maxCount: 1 },
   ])(req, res, (error) => {
     if (!error) return next();
     return res.status(400).json({
@@ -38,6 +52,17 @@ function uploadIntakeBatchAssets(req, res, next) {
   });
 }
 
+function uploadIntakeBatchPackage(req, res, next) {
+  return packageUpload.single('packageFile')(req, res, (error) => {
+    if (!error) return next();
+    return res.status(400).json({
+      ok: false,
+      error: error?.message || 'Failed to upload intake batch package.',
+    });
+  });
+}
+
 module.exports = {
   uploadIntakeBatchAssets,
+  uploadIntakeBatchPackage,
 };

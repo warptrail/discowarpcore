@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import * as S from './Retrieval.styles';
 
 export default function RetrievalImageLightbox({
@@ -23,7 +24,7 @@ export default function RetrievalImageLightbox({
 
   const title = String(itemName || '').trim();
 
-  return (
+  const lightbox = (
     <S.LightboxBackdrop
       role="dialog"
       aria-modal="true"
@@ -47,4 +48,7 @@ export default function RetrievalImageLightbox({
       </S.LightboxPanel>
     </S.LightboxBackdrop>
   );
+
+  if (typeof document === 'undefined') return lightbox;
+  return createPortal(lightbox, document.body);
 }

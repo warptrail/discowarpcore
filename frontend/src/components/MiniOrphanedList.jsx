@@ -24,14 +24,18 @@ const DEFAULT_SORT_OPTIONS = [
 
 const Panel = styled.section`
   margin-top: 0.9rem;
-  border: 1px solid #2b3430;
-  border-radius: 10px;
-  background: linear-gradient(180deg, #141817 0%, #101312 100%);
+  border: 1px solid rgba(76, 123, 98, 0.48);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(18, 26, 23, 0.98) 0%, rgba(9, 14, 12, 0.98) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(194, 238, 215, 0.04),
+    0 16px 34px rgba(0, 0, 0, 0.24);
   overflow: hidden;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     margin-top: 0.62rem;
-    border-radius: ${MOBILE_PANEL_RADIUS};
+    border-radius: calc(${MOBILE_PANEL_RADIUS} + 2px);
   }
 `;
 
@@ -40,31 +44,44 @@ const Header = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 0.6rem;
-  padding: 0.5rem 0.68rem;
-  border-bottom: 1px solid #25302b;
-  background: linear-gradient(90deg, rgba(78, 199, 123, 0.12) 0%, transparent 48%);
+  padding: 0.62rem 0.78rem;
+  border-bottom: 1px solid rgba(71, 103, 86, 0.46);
+  background:
+    linear-gradient(90deg, rgba(78, 199, 123, 0.16) 0%, rgba(78, 199, 123, 0.02) 38%, transparent 74%),
+    linear-gradient(180deg, rgba(17, 27, 23, 0.98) 0%, rgba(11, 17, 15, 0.98) 100%);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: 0.42rem 0.5rem;
+    padding: 0.5rem 0.58rem;
   }
 `;
 
 const Title = styled.h4`
   margin: 0;
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #d9e5de;
+  color: #d8e8df;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.32);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
   }
 `;
 
 const Count = styled.span`
-  font-size: 0.72rem;
-  color: #a5b3ab;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.9rem;
+  min-height: 1.55rem;
+  padding: 0 0.48rem;
+  border-radius: 999px;
+  border: 1px solid rgba(97, 143, 117, 0.5);
+  background: rgba(19, 33, 27, 0.82);
+  font-size: 0.71rem;
+  font-weight: 700;
+  color: #b6cdc0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
@@ -72,32 +89,45 @@ const Count = styled.span`
 `;
 
 const Body = styled.div`
-  display: grid;
-  gap: 0.35rem;
-  padding: 0.5rem 0.55rem 0.56rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.58rem 0.6rem 0.62rem;
+  min-height: 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    gap: 0.3rem;
-    padding: 0.42rem;
+    gap: 0.38rem;
+    padding: 0.46rem;
   }
 `;
 
 const ListViewport = styled.div`
-  display: grid;
-  gap: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.46rem;
   min-width: 0;
   min-height: 0;
-  ${({ $fixedHeight }) => ($fixedHeight ? `
-    height: ${$fixedHeight};
+  ${({ $maxHeight }) => ($maxHeight ? `
+    max-height: ${$maxHeight};
     overflow: auto;
     overscroll-behavior: contain;
+    padding-right: 0.08rem;
   ` : '')}
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(92, 132, 108, 0.48);
+  }
 `;
 
 const ControlsRow = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 220px;
-  gap: 0.38rem;
+  grid-template-columns: minmax(0, 1fr) 200px;
+  gap: 0.46rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     grid-template-columns: 1fr;
@@ -106,18 +136,20 @@ const ControlsRow = styled.div`
 
 const SearchInput = styled.input`
   width: 100%;
-  min-height: 34px;
-  border-radius: 8px;
-  border: 1px solid rgba(90, 128, 110, 0.52);
-  background: rgba(12, 16, 14, 0.9);
-  color: #dcede4;
-  font-size: 0.8rem;
-  padding: 0 0.56rem;
+  min-height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(86, 132, 104, 0.56);
+  background:
+    linear-gradient(180deg, rgba(15, 20, 18, 0.96) 0%, rgba(10, 14, 13, 0.98) 100%);
+  color: #dfede6;
+  font-size: 0.79rem;
+  padding: 0 0.72rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 
   &:focus {
     outline: none;
-    border-color: rgba(116, 194, 146, 0.78);
-    box-shadow: 0 0 0 2px rgba(75, 142, 101, 0.18);
+    border-color: rgba(116, 194, 146, 0.84);
+    box-shadow: 0 0 0 2px rgba(75, 142, 101, 0.2);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -128,18 +160,20 @@ const SearchInput = styled.input`
 
 const SortSelect = styled.select`
   width: 100%;
-  min-height: 34px;
-  border-radius: 8px;
-  border: 1px solid rgba(90, 128, 110, 0.52);
-  background: rgba(12, 16, 14, 0.9);
+  min-height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(86, 132, 104, 0.56);
+  background:
+    linear-gradient(180deg, rgba(15, 20, 18, 0.96) 0%, rgba(10, 14, 13, 0.98) 100%);
   color: #dcede4;
-  font-size: 0.77rem;
-  padding: 0 0.52rem;
+  font-size: 0.75rem;
+  padding: 0 0.7rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 
   &:focus {
     outline: none;
-    border-color: rgba(116, 194, 146, 0.78);
-    box-shadow: 0 0 0 2px rgba(75, 142, 101, 0.18);
+    border-color: rgba(116, 194, 146, 0.84);
+    box-shadow: 0 0 0 2px rgba(75, 142, 101, 0.2);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -149,43 +183,109 @@ const SortSelect = styled.select`
 `;
 
 const Row = styled.div`
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.45rem;
-  min-height: 34px;
-  padding: 0.28rem 0.42rem 0.28rem 0.52rem;
-  border-radius: 7px;
-  border: 1px solid #2a332f;
-  background: #171b1a;
+  align-content: center;
+  gap: 0.68rem;
+  flex: 0 0 auto;
+  padding: 0.62rem 0.62rem 0.62rem 0.82rem;
+  border-radius: 12px;
+  border: 1px solid rgba(63, 87, 74, 0.7);
+  background:
+    linear-gradient(90deg, rgba(102, 190, 138, 0.1) 0%, rgba(102, 190, 138, 0.02) 16%, transparent 38%),
+    linear-gradient(180deg, rgba(28, 33, 30, 0.98) 0%, rgba(20, 24, 22, 0.98) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 10px 18px rgba(0, 0, 0, 0.18);
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 10px;
+    bottom: 10px;
+    width: 4px;
+    border-radius: 0 999px 999px 0;
+    background: linear-gradient(180deg, #7fd699 0%, #3f815a 100%);
+    opacity: 0.92;
+  }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     grid-template-columns: 1fr;
-    min-height: 0;
-    gap: 0.3rem;
-    padding: 0.32rem 0.4rem;
+    gap: 0.5rem;
+    padding: 0.58rem 0.58rem 0.58rem 0.78rem;
   }
+`;
+
+const IdentityTopRow = styled.div`
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.58rem;
+  width: 100%;
+
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    gap: 0.46rem;
+  }
+`;
+
+const IdentityText = styled.div`
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.14rem;
+`;
+
+const ThumbFrame = styled.div`
+  width: 46px;
+  height: 30px;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(92, 124, 107, 0.62);
+  background:
+    linear-gradient(180deg, rgba(16, 24, 21, 0.98) 0%, rgba(9, 13, 12, 0.98) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 4px 10px rgba(0, 0, 0, 0.18);
+`;
+
+const ThumbImage = styled.img`
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+`;
+
+const ThumbPlaceholder = styled.div`
+  width: 100%;
+  height: 100%;
+  background:
+    linear-gradient(135deg, rgba(82, 110, 95, 0.18) 0%, rgba(38, 51, 45, 0.3) 100%);
 `;
 
 const Identity = styled.div`
   min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 0.38rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
-    grid-template-columns: 1fr;
-    justify-items: start;
-    gap: 0.18rem;
+    gap: 0.34rem;
   }
 `;
 
 const Name = styled.span`
   min-width: 0;
-  color: #e4ece8;
-  font-size: 0.85rem;
-  white-space: nowrap;
+  color: #e7efe9;
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: normal;
   overflow: hidden;
   text-overflow: ellipsis;
 
@@ -198,9 +298,11 @@ const NameLink = styled(Link)`
   display: inline-block;
   width: fit-content;
   max-width: 100%;
-  color: #e4ece8;
-  font-size: 0.85rem;
-  white-space: nowrap;
+  color: #e7efe9;
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: normal;
   overflow: hidden;
   text-overflow: ellipsis;
   text-decoration: none;
@@ -210,15 +312,31 @@ const NameLink = styled(Link)`
   }
 
   &:hover {
+    color: #f1fff6;
     text-decoration: underline;
     text-underline-offset: 2px;
-    text-decoration-color: rgba(78, 199, 123, 0.86);
+    text-decoration-color: rgba(104, 212, 146, 0.92);
   }
 `;
 
+const MetaCluster = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.34rem;
+`;
+
 const Meta = styled.span`
-  font-size: 0.7rem;
-  color: #a3b0a8;
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.35rem;
+  padding: 0.1rem 0.44rem;
+  border-radius: 999px;
+  border: 1px solid rgba(91, 116, 103, 0.6);
+  background: rgba(18, 24, 21, 0.9);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: #a9b8af;
   white-space: nowrap;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -227,21 +345,25 @@ const Meta = styled.span`
 `;
 
 const AssignBtn = styled.button`
-  border: 1px solid #3f6f55;
-  border-radius: 7px;
-  min-height: 26px;
-  padding: 0 0.58rem;
-  background: #1b2c23;
-  color: #def2e7;
-  font-size: 0.72rem;
+  min-width: 94px;
+  border: 1px solid rgba(87, 145, 110, 0.78);
+  border-radius: 999px;
+  min-height: 34px;
+  padding: 0 0.86rem;
+  background:
+    linear-gradient(180deg, rgba(34, 61, 46, 0.98) 0%, rgba(26, 45, 35, 0.98) 100%);
+  color: #e4f5eb;
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   cursor: pointer;
-  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 
   &:hover:not(:disabled) {
-    border-color: #4ec77b;
-    background: #244031;
+    border-color: rgba(112, 201, 147, 0.92);
+    background:
+      linear-gradient(180deg, rgba(40, 72, 54, 1) 0%, rgba(28, 52, 39, 1) 100%);
   }
 
   &:disabled {
@@ -251,7 +373,7 @@ const AssignBtn = styled.button`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: 100%;
-    min-height: 34px;
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     font-size: ${MOBILE_FONT_XS};
   }
 `;
@@ -259,11 +381,14 @@ const AssignBtn = styled.button`
 const StateText = styled.div`
   font-size: 0.75rem;
   color: ${({ $error }) => ($error ? '#f2b8b8' : '#9faea6')};
-  padding: 0.1rem 0.12rem;
+  padding: 0.34rem 0.42rem;
+  border-radius: 10px;
+  border: 1px dashed ${({ $error }) => ($error ? 'rgba(201, 96, 96, 0.42)' : 'rgba(95, 126, 109, 0.38)')};
+  background: ${({ $error }) => ($error ? 'rgba(74, 24, 24, 0.22)' : 'rgba(16, 22, 19, 0.54)')};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
-    padding: 0.08rem 0.08rem;
+    padding: 0.28rem 0.32rem;
   }
 `;
 
@@ -348,6 +473,17 @@ function mergeUniqueById(existing, incoming) {
   }
 
   return merged;
+}
+
+function getItemThumbUrl(item) {
+  return String(
+    item?.image?.thumb?.url ||
+    item?.image?.display?.url ||
+    item?.image?.original?.url ||
+    item?.image?.url ||
+    item?.imagePath ||
+    ''
+  ).trim();
 }
 
 export default function MiniOrphanedList({
@@ -467,11 +603,12 @@ export default function MiniOrphanedList({
         setTotalCount(0);
       }
     } finally {
-      if (requestSeqRef.current !== requestSeq) return;
-      if (append) {
-        setLoadingMore(false);
-      } else {
-        setLoading(false);
+      if (requestSeqRef.current === requestSeq) {
+        if (append) {
+          setLoadingMore(false);
+        } else {
+          setLoading(false);
+        }
       }
     }
   }, [safePageSize, searchQuery, showControls, sortBy]);
@@ -602,7 +739,7 @@ export default function MiniOrphanedList({
           </ControlsRow>
         ) : null}
 
-        <ListViewport $fixedHeight={fixedViewportHeight}>
+        <ListViewport $maxHeight={fixedViewportHeight}>
           {showInitialLoading ? <StateText>Loading orphaned items…</StateText> : null}
           {showUpdatingState ? <StateText>Updating results…</StateText> : null}
           {!loading && error ? <StateText $error>{error}</StateText> : null}
@@ -614,20 +751,38 @@ export default function MiniOrphanedList({
             visibleItems.map((item) => (
               <Row key={item?._id || `${item?.name}-${item?.orphanedAt || 'none'}`}>
                 <Identity>
-                  {item?._id ? (
-                    <NameLink
-                      to={getItemHomeHref(item._id)}
-                      title={item?.name || '(Unnamed Item)'}
-                    >
-                      {item?.name || '(Unnamed Item)'}
-                    </NameLink>
-                  ) : (
-                    <Name title={item?.name || '(Unnamed Item)'}>
-                      {item?.name || '(Unnamed Item)'}
-                    </Name>
-                  )}
-                  <Meta>qty {item?.quantity ?? 1}</Meta>
-                  <Meta>{formatOrphanedTime(item?.orphanedAt)}</Meta>
+                  <IdentityTopRow>
+                    <ThumbFrame aria-hidden="true">
+                      {getItemThumbUrl(item) ? (
+                        <ThumbImage
+                          src={getItemThumbUrl(item)}
+                          alt=""
+                        />
+                      ) : (
+                        <ThumbPlaceholder />
+                      )}
+                    </ThumbFrame>
+
+                    <IdentityText>
+                      {item?._id ? (
+                        <NameLink
+                          to={getItemHomeHref(item._id)}
+                          title={item?.name || '(Unnamed Item)'}
+                        >
+                          {item?.name || '(Unnamed Item)'}
+                        </NameLink>
+                      ) : (
+                        <Name title={item?.name || '(Unnamed Item)'}>
+                          {item?.name || '(Unnamed Item)'}
+                        </Name>
+                      )}
+                    </IdentityText>
+                  </IdentityTopRow>
+
+                  <MetaCluster>
+                    <Meta>qty {item?.quantity ?? 1}</Meta>
+                    <Meta>{formatOrphanedTime(item?.orphanedAt)}</Meta>
+                  </MetaCluster>
                 </Identity>
 
                 <AssignBtn

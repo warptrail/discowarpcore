@@ -5,6 +5,7 @@ import { ToastContext } from './ToastContext';
 export function ToastProvider({ children }) {
   const location = useLocation();
   const [toast, setToast] = useState(null);
+  const [activeRetrievalItem, setActiveRetrievalItem] = useState(null);
   const dismissTimerRef = useRef(null);
 
   const clearTimer = () => {
@@ -31,6 +32,7 @@ export function ToastProvider({ children }) {
       onClose,
       sticky = false,
       timeoutMs = 4500,
+      loading = false,
     } = config;
 
     setToast({
@@ -41,6 +43,7 @@ export function ToastProvider({ children }) {
       content,
       onClose,
       sticky,
+      loading,
     });
 
     if (!sticky) {
@@ -54,10 +57,21 @@ export function ToastProvider({ children }) {
   useEffect(() => {
     // Clear route-scoped console/toast state on path navigation.
     hideToast();
+    if (!String(location.pathname || '').startsWith('/retrieval')) {
+      setActiveRetrievalItem(null);
+    }
   }, [location.pathname, hideToast]);
 
   return (
-    <ToastContext.Provider value={{ toast, showToast, hideToast }}>
+    <ToastContext.Provider
+      value={{
+        toast,
+        showToast,
+        hideToast,
+        activeRetrievalItem,
+        setActiveRetrievalItem,
+      }}
+    >
       {children}
     </ToastContext.Provider>
   );

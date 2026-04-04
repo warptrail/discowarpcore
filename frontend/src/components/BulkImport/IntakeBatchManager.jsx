@@ -1,18 +1,18 @@
-import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import {
-  createIntakeBatch,
-  deleteIntakeBatch,
+  archiveIntakeBatch,
+  fetchIntakeBatchById,
   fetchIntakeBatches,
   importIntakeBatch,
-  stageIntakeBatch,
-  updateIntakeBatchAssets,
+  permanentlyDeleteIntakeBatch,
+  processIntakeBatchSelectedItems,
+  recreateIntakeBatchLocalFolder,
+  uploadIntakeBatchPackage,
   validateIntakeBatch,
 } from '../../api/intakeBatches';
-import {
-  fetchBatchImportReadySummary,
-  processBatchImportReadyImages,
-} from '../../api/bulkImport';
+import { DEFAULT_RENDER_TOKENS, normalizeRenderTokens } from '../../constants/renderTokens';
+import useBatchImageProcessingConsole from '../../hooks/useBatchImageProcessingConsole.jsx';
 import { ToastContext } from '../Toast';
 import IntakeBatchCreatePanel from './IntakeBatchCreatePanel';
 import IntakeBatchList from './IntakeBatchList';
@@ -54,68 +54,175 @@ const Feedback = styled.div`
   font-size: 0.8rem;
 `;
 
-function summarizeAssetSelection(files = []) {
-  const count = Array.isArray(files) ? files.length : 0;
-  if (!count) return 'No image folder selected.';
-  const first = String(files[0]?.webkitRelativePath || '').trim();
-  const label = first.split('/').filter(Boolean)[0] || 'selected folder';
-  return `${count} image file${count === 1 ? '' : 's'} selected from ${label}.`;
+function formatPackageUploadError(error) {
+  const baseMessage = String(error?.message || 'Failed to stage intake batch package.').trim();
+  const responseBody =
+    error?.responseBody && typeof error.responseBody === 'object'
+      ? error.responseBody
+      : null;
+  const details = [];
+
+  if (error?.status && Number(error.status) > 0) {
+    details.push(`HTTP ${error.status}`);
+  }
+
+  if (Array.isArray(responseBody?.errors) && responseBody.errors.length) {
+    details.push(responseBody.errors.slice(0, 2).join(' | '));
+  } else if (Array.isArray(responseBody?.warnings) && responseBody.warnings.length) {
+    details.push(responseBody.warnings.slice(0, 2).join(' | '));
+  } else if (typeof responseBody?.nextStepSuggestion === 'string' && responseBody.nextStepSuggestion.trim()) {
+    details.push(responseBody.nextStepSuggestion.trim());
+  }
+
+  if (error?.isNetworkError && error?.requestPath) {
+    details.push(`request ${error.requestPath}`);
+  }
+
+  return [baseMessage, ...details].filter(Boolean).join(' • ');
 }
 
-export default function IntakeBatchManager() {
+const DEFAULT_IMPORTED_ITEMS_PAGE = Object.freeze({
+  itemsLimit: 50,
+  itemsOffset: 0,
+  itemsSort: 'name',
+});
+
+export default function IntakeBatchManager({
+  selectedBatchIdOverride = '',
+  onSelectedBatchIdChange = null,
+  onSelectedBatchIdInvalid = null,
+}) {
   const toastCtx = useContext(ToastContext);
-  const createImagesRef = useRef(null);
-  const updateImagesRef = useRef(null);
+  const showToast = toastCtx?.showToast;
+  const hideToast = toastCtx?.hideToast;
+  const showToastRef = useRef(showToast);
+  const createPackageInputRef = useRef(null);
   const [batches, setBatches] = useState([]);
-  const [selectedBatchId, setSelectedBatchId] = useState('');
+  const [selectedBatchId, setSelectedBatchId] = useState(() =>
+    String(selectedBatchIdOverride || '').trim()
+  );
+  const [selectedBatchDetail, setSelectedBatchDetail] = useState(null);
+  const [importedItemsPageState, setImportedItemsPageState] = useState(DEFAULT_IMPORTED_ITEMS_PAGE);
+  const [processingModeEnabled, setProcessingModeEnabled] = useState(false);
+  const [selectedItemIds, setSelectedItemIds] = useState([]);
+  const [batchRenderTokens, setBatchRenderTokens] = useState(() =>
+    normalizeRenderTokens(DEFAULT_RENDER_TOKENS)
+  );
   const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [busyAction, setBusyAction] = useState('');
-  const [createName, setCreateName] = useState('');
-  const [createImages, setCreateImages] = useState([]);
-  const [createJsonFile, setCreateJsonFile] = useState(null);
-  const [createCsvFile, setCreateCsvFile] = useState(null);
-  const [createCollageFile, setCreateCollageFile] = useState(null);
-  const [updateImages, setUpdateImages] = useState([]);
-  const [updateJsonFile, setUpdateJsonFile] = useState(null);
-  const [updateCsvFile, setUpdateCsvFile] = useState(null);
-  const [updateCollageFile, setUpdateCollageFile] = useState(null);
+  const [createPackageFile, setCreatePackageFile] = useState(null);
   const [feedback, setFeedback] = useState({ tone: 'info', message: '' });
   const refreshTimeoutRef = useRef(null);
+  const selectedBatchIdRef = useRef('');
+  const detailRequestIdRef = useRef(0);
+  const handleProcessSelectedRef = useRef(null);
+  const resetTrackedBatchProcessingRef = useRef(() => {});
 
-  useEffect(() => {
-    const createInput = createImagesRef.current;
-    if (createInput) {
-      createInput.setAttribute('webkitdirectory', '');
-      createInput.setAttribute('directory', '');
-    }
-    const updateInput = updateImagesRef.current;
-    if (updateInput) {
-      updateInput.setAttribute('webkitdirectory', '');
-      updateInput.setAttribute('directory', '');
-    }
-  }, []);
-
-  const selectedBatch = useMemo(
+  const selectedBatchSummary = useMemo(
     () => batches.find((batch) => batch.id === selectedBatchId) || null,
     [batches, selectedBatchId]
   );
-  const selectedBatchValidationOk = Boolean(selectedBatch?.validation?.ok);
-  const selectedBatchHasImageLinkedJson = Number(selectedBatch?.validation?.itemsWithImageKeysCount) > 0;
+  const selectedBatch = useMemo(() => {
+    if (!selectedBatchSummary) return null;
+    if (selectedBatchDetail?.id === selectedBatchSummary.id) {
+      return {
+        ...selectedBatchSummary,
+        ...selectedBatchDetail,
+      };
+    }
+    return selectedBatchSummary;
+  }, [selectedBatchDetail, selectedBatchSummary]);
+  const selectedBatchValidationOk =
+    selectedBatch?.validationStatus === 'passed' && !selectedBatch?.isArchived;
+  const loadedImportedItems = useMemo(
+    () => (
+      Array.isArray(selectedBatch?.importedItemsPage?.items)
+        ? selectedBatch.importedItemsPage.items
+        : []
+    ),
+    [selectedBatch?.importedItemsPage?.items]
+  );
+  const loadedImportedItemIds = useMemo(
+    () => loadedImportedItems
+      .map((item) => String(item?.id || '').trim())
+      .filter(Boolean),
+    [loadedImportedItems]
+  );
+  const loadedProcessableItemIds = useMemo(
+    () => loadedImportedItems
+      .filter((item) => item?.processing?.isProcessable)
+      .map((item) => String(item?.id || '').trim())
+      .filter(Boolean),
+    [loadedImportedItems]
+  );
+  const loadedPageLabel = useMemo(() => {
+    if (!loadedImportedItems.length) return 'no loaded items';
+    const start = importedItemsPageState.itemsOffset + 1;
+    const end = importedItemsPageState.itemsOffset + loadedImportedItems.length;
+    return `loaded page ${start}-${end}`;
+  }, [importedItemsPageState.itemsOffset, loadedImportedItems.length]);
+  const selectedLoadedItemCount = useMemo(
+    () => selectedItemIds.filter((itemId) => loadedImportedItemIds.includes(itemId)).length,
+    [loadedImportedItemIds, selectedItemIds]
+  );
 
-  const refreshBatches = async () => {
+  useEffect(() => {
+    selectedBatchIdRef.current = selectedBatchId;
+  }, [selectedBatchId]);
+
+  useEffect(() => {
+    showToastRef.current = showToast;
+  }, [showToast]);
+
+  useEffect(() => {
+    const validIds = new Set(loadedProcessableItemIds);
+    setSelectedItemIds((current) => current.filter((itemId) => validIds.has(itemId)));
+  }, [loadedProcessableItemIds]);
+
+  const applySelectedBatchId = useCallback((nextBatchId, { notify = true } = {}) => {
+    const normalizedBatchId = String(nextBatchId || '').trim();
+    const batchChanged = normalizedBatchId !== selectedBatchIdRef.current;
+    setSelectedBatchId(normalizedBatchId);
+    if (batchChanged) {
+      setSelectedBatchDetail(null);
+      setImportedItemsPageState(DEFAULT_IMPORTED_ITEMS_PAGE);
+      setProcessingModeEnabled(false);
+      setSelectedItemIds([]);
+      setBatchRenderTokens(normalizeRenderTokens(DEFAULT_RENDER_TOKENS));
+      resetTrackedBatchProcessingRef.current?.();
+    }
+    if (notify) {
+      onSelectedBatchIdChange?.(normalizedBatchId);
+    }
+  }, [onSelectedBatchIdChange]);
+
+  useEffect(() => {
+    const normalizedOverride = String(selectedBatchIdOverride || '').trim();
+    if (!normalizedOverride || normalizedOverride === selectedBatchIdRef.current) {
+      return;
+    }
+    applySelectedBatchId(normalizedOverride, { notify: false });
+  }, [applySelectedBatchId, selectedBatchIdOverride]);
+
+  const refreshBatches = useCallback(async () => {
     setLoading(true);
     try {
-      const nextBatches = await fetchIntakeBatches();
+      const nextBatches = await fetchIntakeBatches({ includeArchived: true });
       setBatches(nextBatches);
       setFeedback((current) => (
         current?.tone === 'error' && /Backend API unavailable/i.test(String(current?.message || ''))
           ? { tone: 'info', message: '' }
           : current
       ));
-      if (!selectedBatchId && nextBatches[0]?.id) {
-        setSelectedBatchId(nextBatches[0].id);
-      } else if (selectedBatchId && !nextBatches.some((batch) => batch.id === selectedBatchId)) {
-        setSelectedBatchId(nextBatches[0]?.id || '');
+      const currentSelectedBatchId = selectedBatchIdRef.current;
+      if (!currentSelectedBatchId && nextBatches[0]?.id) {
+        applySelectedBatchId(nextBatches[0].id);
+      } else if (
+        currentSelectedBatchId &&
+        !nextBatches.some((batch) => batch.id === currentSelectedBatchId)
+      ) {
+        applySelectedBatchId(nextBatches[0]?.id || '');
       }
     } catch (error) {
       console.error('[IntakeBatchManager] refreshBatches failed', error);
@@ -136,7 +243,74 @@ export default function IntakeBatchManager() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [applySelectedBatchId]);
+
+  const loadSelectedBatchDetail = useCallback(async (
+    batchId,
+    {
+      silent = false,
+      page = importedItemsPageState,
+    } = {}
+  ) => {
+    const normalizedBatchId = String(batchId || '').trim();
+    if (!normalizedBatchId) {
+      setSelectedBatchDetail(null);
+      return null;
+    }
+
+    const requestId = detailRequestIdRef.current + 1;
+    detailRequestIdRef.current = requestId;
+    if (!silent) {
+      setDetailLoading(true);
+    }
+
+    try {
+      const detail = await fetchIntakeBatchById(normalizedBatchId, {
+        itemsLimit: page?.itemsLimit,
+        itemsOffset: page?.itemsOffset,
+        itemsSort: page?.itemsSort,
+      });
+      if (detailRequestIdRef.current !== requestId) {
+        return null;
+      }
+      setSelectedBatchDetail(detail);
+      return detail;
+    } catch (error) {
+      if (detailRequestIdRef.current === requestId) {
+        const isMissingBatch = /batch not found/i.test(String(error?.message || ''));
+        const isMalformedRequest = Number(error?.status) === 400;
+        setSelectedBatchDetail(null);
+        setFeedback({
+          tone: 'error',
+          message:
+            isMalformedRequest
+              ? 'Failed to load intake batch detail because the request was malformed.'
+              : error?.message || 'Failed to load intake batch detail.',
+        });
+        toastCtx?.showToast?.({
+          title: 'Batch detail unavailable',
+          message:
+            isMalformedRequest
+              ? 'Failed to load intake batch detail because the request URL or parameters were invalid.'
+              : error?.message || `Failed to load batch ${normalizedBatchId}.`,
+          variant: 'danger',
+          sticky: true,
+        });
+        if (isMissingBatch) {
+          const fallbackBatchId = batches[0]?.id || '';
+          if (fallbackBatchId && fallbackBatchId !== normalizedBatchId) {
+            applySelectedBatchId(fallbackBatchId);
+          }
+          onSelectedBatchIdInvalid?.(normalizedBatchId);
+        }
+      }
+      return null;
+    } finally {
+      if (!silent && detailRequestIdRef.current === requestId) {
+        setDetailLoading(false);
+      }
+    }
+  }, [applySelectedBatchId, batches, importedItemsPageState, onSelectedBatchIdInvalid, toastCtx]);
 
   useEffect(() => {
     void refreshBatches();
@@ -146,9 +320,13 @@ export default function IntakeBatchManager() {
         refreshTimeoutRef.current = null;
       }
     };
-  }, []);
+  }, [refreshBatches]);
 
-  const replaceBatch = (nextBatch) => {
+  useEffect(() => {
+    void loadSelectedBatchDetail(selectedBatchId);
+  }, [importedItemsPageState, loadSelectedBatchDetail, selectedBatchId]);
+
+  const replaceBatch = useCallback((nextBatch) => {
     setBatches((current) => {
       const existing = current.some((entry) => entry.id === nextBatch.id);
       const next = existing
@@ -160,66 +338,157 @@ export default function IntakeBatchManager() {
         return rightTime - leftTime;
       });
     });
-    setSelectedBatchId(nextBatch.id);
-  };
+    applySelectedBatchId(nextBatch.id);
+    setSelectedBatchDetail((current) => (
+      current?.id === nextBatch.id
+        ? { ...current, ...nextBatch }
+        : current
+    ));
+  }, [applySelectedBatchId]);
 
-  const handleCreateBatch = async () => {
-    setBusyAction('create');
+  const handleImportedItemsSortChange = useCallback((nextSort) => {
+    setImportedItemsPageState((current) => ({
+      ...current,
+      itemsOffset: 0,
+      itemsSort: String(nextSort || '').trim() || 'name',
+    }));
+  }, []);
+
+  const handleImportedItemsPageChange = useCallback((nextOffset) => {
+    setImportedItemsPageState((current) => ({
+      ...current,
+      itemsOffset: Math.max(0, Number(nextOffset) || 0),
+    }));
+  }, []);
+
+  const handleToggleProcessingMode = useCallback(() => {
+    setProcessingModeEnabled((current) => !current);
+  }, []);
+
+  const handleSelectionChange = useCallback((nextSelection) => {
+    const validIds = new Set(loadedProcessableItemIds);
+    setSelectedItemIds(
+      Array.isArray(nextSelection)
+        ? nextSelection
+            .map((entry) => String(entry || '').trim())
+            .filter((entry) => entry && validIds.has(entry))
+        : []
+    );
+  }, [loadedProcessableItemIds]);
+
+  const handleBatchRenderTokenChange = useCallback((field, value) => {
+    setBatchRenderTokens((current) => normalizeRenderTokens({
+      ...current,
+      [field]: value,
+    }));
+  }, []);
+
+  const handleSelectAllLoaded = useCallback(() => {
+    setSelectedItemIds(loadedProcessableItemIds);
+  }, [loadedProcessableItemIds]);
+
+  const handleSelectNoneLoaded = useCallback(() => {
+    setSelectedItemIds([]);
+  }, []);
+
+  const handleSelectUnprocessedLoaded = useCallback(() => {
+    setSelectedItemIds(
+      loadedImportedItems
+        .filter((item) => item?.processing?.isProcessable)
+        .map((item) => item.id)
+    );
+  }, [loadedImportedItems]);
+
+  const handleSelectFailedLoaded = useCallback(() => {
+    setSelectedItemIds(
+      loadedImportedItems
+        .filter((item) => item?.processing?.status === 'failed')
+        .map((item) => item.id)
+    );
+  }, [loadedImportedItems]);
+
+  const {
+    trackedJobByMediaId,
+    trackedProgressSummary: trackedBatchProgressSummary,
+    beginTrackedRun,
+    resetTracking: resetTrackedBatchProcessing,
+    renderConsoleContent,
+  } = useBatchImageProcessingConsole({
+    contextId: selectedBatch?.id || '',
+    contextLabel: selectedBatch?.name || 'Batch processing',
+    processingModeEnabled,
+    setProcessingModeEnabled,
+    renderTokens: batchRenderTokens,
+    busyAction,
+    selectedCount: selectedLoadedItemCount,
+    pageLabel: loadedPageLabel,
+    failedSelectableCount: loadedImportedItems.filter((item) => item?.processing?.status === 'failed').length,
+    selectionScopeMessage: 'Selection and processing controls apply only to the currently loaded ledger page.',
+    processingModeOffMessage: 'Processing mode is off. This view is in archival review mode.',
+    selectAllLabel: 'Select All Loaded',
+    selectUnprocessedLabel: 'Select Unprocessed',
+    showFailedSelector: true,
+    onSelectAllLoaded: handleSelectAllLoaded,
+    onSelectNoneLoaded: handleSelectNoneLoaded,
+    onSelectUnprocessedLoaded: handleSelectUnprocessedLoaded,
+    onSelectFailedLoaded: handleSelectFailedLoaded,
+    onProcessSelected: () => {
+      void handleProcessSelectedRef.current?.(selectedItemIds);
+    },
+    onRenderTokenChange: handleBatchRenderTokenChange,
+    showToast,
+    hideToast,
+    onRefreshStatus:
+      selectedBatch?.id
+        ? () => loadSelectedBatchDetail(selectedBatch.id, { silent: true })
+        : null,
+  });
+
+  useEffect(() => {
+    resetTrackedBatchProcessingRef.current = resetTrackedBatchProcessing;
+  }, [resetTrackedBatchProcessing]);
+
+  const handleUploadPackage = async () => {
+    if (!createPackageFile) return;
+    setBusyAction('upload-package');
     setFeedback({ tone: 'info', message: '' });
+    showToastRef.current?.({
+      title: 'Staging batch package',
+      message: `${createPackageFile.name}...`,
+      variant: 'info',
+      loading: true,
+    });
     try {
-      const batch = await createIntakeBatch({
-        name: createName,
-        imageFiles: createImages,
-        jsonFile: createJsonFile,
-        csvFile: createCsvFile,
-        collageFile: createCollageFile,
-      });
+      const result = await uploadIntakeBatchPackage(createPackageFile);
+      const batch = result.batch;
+      if (!batch) {
+        throw new Error('Package staging did not return a batch record.');
+      }
       replaceBatch(batch);
-      setCreateName('');
-      setCreateImages([]);
-      setCreateJsonFile(null);
-      setCreateCsvFile(null);
-      setCreateCollageFile(null);
-      if (createImagesRef.current) createImagesRef.current.value = '';
+      setCreatePackageFile(null);
+      if (createPackageInputRef.current) {
+        createPackageInputRef.current.value = '';
+      }
       setFeedback({
         tone: 'success',
-        message: `Created batch ${batch.name}.`,
+        message: result.nextStepSuggestion || `Staged package ${batch.name}.`,
+      });
+      showToastRef.current?.({
+        title: 'Batch package staged',
+        message: result.nextStepSuggestion || `${batch.name} is ready for validation.`,
+        variant: 'success',
       });
     } catch (error) {
+      const formattedError = formatPackageUploadError(error);
       setFeedback({
         tone: 'error',
-        message: error?.message || 'Failed to create intake batch.',
+        message: formattedError,
       });
-    } finally {
-      setBusyAction('');
-    }
-  };
-
-  const handleUpdateAssets = async () => {
-    if (!selectedBatch) return;
-    setBusyAction('update-assets');
-    setFeedback({ tone: 'info', message: '' });
-    try {
-      const batch = await updateIntakeBatchAssets(selectedBatch.id, {
-        imageFiles: updateImages,
-        jsonFile: updateJsonFile,
-        csvFile: updateCsvFile,
-        collageFile: updateCollageFile,
-      });
-      replaceBatch(batch);
-      setUpdateImages([]);
-      setUpdateJsonFile(null);
-      setUpdateCsvFile(null);
-      setUpdateCollageFile(null);
-      if (updateImagesRef.current) updateImagesRef.current.value = '';
-      setFeedback({
-        tone: 'success',
-        message: `Updated assets for ${batch.name}.`,
-      });
-    } catch (error) {
-      setFeedback({
-        tone: 'error',
-        message: error?.message || 'Failed to update intake batch assets.',
+      showToastRef.current?.({
+        title: 'Batch package staging failed',
+        message: formattedError,
+        variant: 'danger',
+        sticky: true,
       });
     } finally {
       setBusyAction('');
@@ -230,40 +499,43 @@ export default function IntakeBatchManager() {
     if (!selectedBatch) return;
     setBusyAction('validate');
     setFeedback({ tone: 'info', message: '' });
+    showToastRef.current?.({
+      title: 'Validating batch',
+      message: `${selectedBatch.name}...`,
+      variant: 'info',
+      loading: true,
+    });
     try {
       const result = await validateIntakeBatch(selectedBatch.id);
       replaceBatch(result.batch);
+      await loadSelectedBatchDetail(result.batch.id, { silent: true });
+      const rowCount = Number(result.batch?.validationSnapshot?.rowCount) || 0;
+      const errorCount = Number(result.batch?.validationSnapshot?.errorCount) || 0;
       setFeedback({
-        tone: result.validation?.ok ? 'success' : 'error',
-        message: result.validation?.ok
+        tone: result.batch?.validationStatus === 'passed' ? 'success' : 'error',
+        message: result.batch?.validationStatus === 'passed'
           ? `Validation passed for ${result.batch.name}.`
           : `Validation failed for ${result.batch.name}.`,
+      });
+      showToastRef.current?.({
+        title: result.batch?.validationStatus === 'passed' ? 'Validation passed' : 'Validation failed',
+        message:
+          result.batch?.validationStatus === 'passed'
+            ? `${rowCount} row${rowCount === 1 ? '' : 's'}, ${errorCount} error${errorCount === 1 ? '' : 's'}.`
+            : `${errorCount} error${errorCount === 1 ? '' : 's'}.`,
+        variant: result.batch?.validationStatus === 'passed' ? 'success' : 'danger',
+        sticky: result.batch?.validationStatus !== 'passed',
       });
     } catch (error) {
       setFeedback({
         tone: 'error',
         message: error?.message || 'Failed to validate intake batch.',
       });
-    } finally {
-      setBusyAction('');
-    }
-  };
-
-  const handleStage = async () => {
-    if (!selectedBatch) return;
-    setBusyAction('stage');
-    setFeedback({ tone: 'info', message: '' });
-    try {
-      const result = await stageIntakeBatch(selectedBatch.id);
-      replaceBatch(result.batch);
-      setFeedback({
-        tone: 'success',
-        message: `Staged ${Number(result.stageResult?.stagedCount) || 0} image file(s) for ${result.batch.name}.`,
-      });
-    } catch (error) {
-      setFeedback({
-        tone: 'error',
-        message: error?.message || 'Failed to stage intake batch.',
+      showToastRef.current?.({
+        title: 'Validation failed',
+        message: error?.message || 'Failed to validate intake batch.',
+        variant: 'danger',
+        sticky: true,
       });
     } finally {
       setBusyAction('');
@@ -274,111 +546,287 @@ export default function IntakeBatchManager() {
     if (!selectedBatch) return;
     setBusyAction('import');
     setFeedback({ tone: 'info', message: '' });
+    showToastRef.current?.({
+      title: 'Importing batch',
+      message: `${selectedBatch.name}...`,
+      variant: 'info',
+      loading: true,
+    });
     try {
       const result = await importIntakeBatch(selectedBatch.id);
       replaceBatch(result.batch);
-      const readyCount = Number(result.importResult?.imageImportSummary?.readyCount) || 0;
+      await loadSelectedBatchDetail(result.batch.id, { silent: true });
+      const createdCount = Number(result.batch?.importSnapshot?.createdItemCount) || 0;
+      const updatedCount = Number(result.batch?.importSnapshot?.updatedItemCount) || 0;
+      const skippedCount = Number(result.batch?.importSnapshot?.skippedItemCount) || 0;
+      const failedCount = Number(result.batch?.importSnapshot?.failedItemCount) || 0;
       setFeedback({
-        tone: result.importResult?.status === 'failed' ? 'error' : 'success',
+        tone: result.batch?.importLifecycleStatus === 'success' ? 'success' : 'error',
         message:
-          result.importResult?.status === 'success'
-            ? `Imported ${result.importResult?.createdCount || 0} items from ${result.batch.name}.`
-            : result.importResult?.status === 'partial_success'
-              ? `Imported ${result.importResult?.createdCount || 0} items from ${result.batch.name} with ${result.importResult?.failedCount || 0} issue(s).`
-              : `Import failed for ${result.batch.name}.`,
+          result.batch?.importLifecycleStatus === 'success'
+            ? `Import complete for ${result.batch.name}.`
+            : `Import failed for ${result.batch.name}.`,
       });
-
-      if (readyCount > 0) {
-        const latestSummary = await fetchBatchImportReadySummary().catch(() => null);
-        const totalReadyCount = Number(latestSummary?.readyCount) || readyCount;
-        toastCtx?.showToast?.({
-          title: 'Imported images ready',
-          message: `${readyCount} new image${readyCount === 1 ? '' : 's'} are ready for batch processing.${totalReadyCount > readyCount ? ` ${totalReadyCount} total pending.` : ''}`,
-          variant: 'warning',
-          sticky: true,
-          actions: [
-            {
-              label: 'Process Now',
-              kind: 'primary',
-              onClick: async () => {
-                try {
-                  const queued = await processBatchImportReadyImages();
-                  const queuedCount = Number(queued?.queuedCount) || 0;
-                  toastCtx?.showToast?.({
-                    title: 'Batch processing queued',
-                    message: `Queued ${queuedCount} imported image${queuedCount === 1 ? '' : 's'} for processing.`,
-                    variant: 'success',
-                  });
-                } catch (error) {
-                  toastCtx?.showToast?.({
-                    title: 'Batch processing start failed',
-                    message: error?.message || 'Failed to queue imported images for processing.',
-                    variant: 'danger',
-                    sticky: true,
-                  });
-                }
-              },
-            },
-            {
-              label: 'Later',
-              onClick: () => toastCtx?.hideToast?.(),
-            },
-          ],
-        });
-      }
+      showToastRef.current?.({
+        title: result.batch?.importLifecycleStatus === 'success' ? 'Import complete' : 'Import failed',
+        message:
+          result.batch?.importLifecycleStatus === 'success'
+            ? `${createdCount} created, ${updatedCount} updated, ${skippedCount} skipped, ${failedCount} failed.`
+            : `${failedCount} failed. See import details.`,
+        variant: result.batch?.importLifecycleStatus === 'success' ? 'success' : 'danger',
+        sticky: result.batch?.importLifecycleStatus !== 'success',
+      });
     } catch (error) {
       setFeedback({
         tone: 'error',
         message: error?.message || 'Failed to import intake batch.',
       });
+      toastCtx?.showToast?.({
+        title: 'Import failed',
+        message: error?.message || 'Failed to import intake batch.',
+        variant: 'danger',
+        sticky: true,
+      });
     } finally {
       setBusyAction('');
     }
   };
 
-  const handleDelete = async () => {
+  const handleArchive = async () => {
     if (!selectedBatch) return;
     const confirmed = window.confirm(
-      `Delete intake batch "${selectedBatch.name}" from the temporary intake cache?`
+      `Archive intake batch "${selectedBatch.name}"? This keeps the provenance record but removes the active source-file workspace.`
     );
     if (!confirmed) return;
 
-    setBusyAction('delete');
+    setBusyAction('archive');
     setFeedback({ tone: 'info', message: '' });
+    showToastRef.current?.({
+      title: 'Archiving batch',
+      message: `${selectedBatch.name}...`,
+      variant: 'info',
+      loading: true,
+    });
     try {
-      await deleteIntakeBatch(selectedBatch.id);
-      setBatches((current) => current.filter((batch) => batch.id !== selectedBatch.id));
-      setSelectedBatchId((current) => (current === selectedBatch.id ? '' : current));
+      const result = await archiveIntakeBatch(selectedBatch.id);
+      if (result?.batch) {
+        replaceBatch(result.batch);
+        await loadSelectedBatchDetail(result.batch.id, { silent: true });
+      }
       setFeedback({
         tone: 'success',
-        message: `Deleted batch ${selectedBatch.name}.`,
+        message: `Archived batch ${selectedBatch.name}.`,
       });
     } catch (error) {
       setFeedback({
         tone: 'error',
-        message: error?.message || 'Failed to delete intake batch.',
+        message: error?.message || 'Failed to archive intake batch.',
       });
     } finally {
       setBusyAction('');
     }
   };
 
+  const handlePermanentDelete = async () => {
+    if (!selectedBatch) return;
+    const confirmed = window.confirm(
+      `Permanently delete intake batch "${selectedBatch.name}"?\n\nThis removes the batch record, deletes any items linked to this batch, deletes those item images, and cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setBusyAction('delete-permanent');
+    setFeedback({ tone: 'info', message: '' });
+    showToastRef.current?.({
+      title: 'Deleting batch',
+      message: `${selectedBatch.name} and its imported items...`,
+      variant: 'warning',
+      loading: true,
+      sticky: true,
+    });
+    try {
+      const result = await permanentlyDeleteIntakeBatch(selectedBatch.id);
+      let nextSelectedBatchId = '';
+      setBatches((current) => {
+        const remaining = current.filter((entry) => entry.id !== selectedBatch.id);
+        nextSelectedBatchId = remaining[0]?.id || '';
+        return remaining;
+      });
+      applySelectedBatchId(nextSelectedBatchId);
+      setSelectedBatchDetail(null);
+      setFeedback({
+        tone: 'success',
+        message: `Deleted batch ${result.batchName || selectedBatch.name}. Removed ${result.deletedItemCount} item(s) and ${result.deletedMediaFileCount} media file(s).`,
+      });
+      showToastRef.current?.({
+        title: 'Batch permanently deleted',
+        message: `${result.deletedItemCount} item(s) removed • ${result.deletedMediaFileCount} media file(s) deleted.`,
+        variant: 'warning',
+        sticky: true,
+      });
+    } catch (error) {
+      setFeedback({
+        tone: 'error',
+        message: error?.message || 'Failed to permanently delete intake batch.',
+      });
+      showToastRef.current?.({
+        title: 'Batch delete failed',
+        message: error?.message || 'Failed to permanently delete intake batch.',
+        variant: 'danger',
+        sticky: true,
+      });
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const handleRecreateLocalFolder = async () => {
+    if (!selectedBatch) return;
+    setBusyAction('recreate-local-folder');
+    setFeedback({ tone: 'info', message: '' });
+    showToastRef.current?.({
+      title: 'Recreating local staging folder',
+      message: `${selectedBatch.name}...`,
+      variant: 'info',
+      loading: true,
+    });
+    try {
+      const result = await recreateIntakeBatchLocalFolder(selectedBatch.id);
+      replaceBatch(result.batch);
+      await loadSelectedBatchDetail(result.batch.id, { silent: true });
+      setFeedback({
+        tone: 'success',
+        message: `Recreated local staging folder for ${result.batch.name}.`,
+      });
+      showToastRef.current?.({
+        title: 'Local staging folder recreated',
+        message: `${result.batch.localFolderName || result.batch.batchId} is available again for asset updates.`,
+        variant: 'success',
+      });
+    } catch (error) {
+      setFeedback({
+        tone: 'error',
+        message: error?.message || 'Failed to recreate local staging folder.',
+      });
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const handleProcessSelected = useCallback(async (itemIds = []) => {
+    if (!selectedBatch) return;
+    const normalizedItemIds = Array.isArray(itemIds)
+      ? itemIds.map((entry) => String(entry || '').trim()).filter(Boolean)
+      : [];
+    if (!normalizedItemIds.length) return;
+
+    setBusyAction('process-selected');
+    setFeedback({ tone: 'info', message: '' });
+      showToastRef.current?.({
+        title: 'Queueing batch processing',
+        message: `${selectedBatch.name}: ${normalizedItemIds.length} selected item${normalizedItemIds.length === 1 ? '' : 's'}.`,
+        variant: 'info',
+        sticky: true,
+        loading: true,
+        content: renderConsoleContent({
+          onProcessSelectedOverride: () => {
+            void handleProcessSelected(normalizedItemIds);
+          },
+        }),
+      });
+
+    try {
+      const result = await processIntakeBatchSelectedItems(selectedBatch.id, normalizedItemIds, {
+        renderTokens: batchRenderTokens,
+      });
+      replaceBatch(result.batch);
+      await loadSelectedBatchDetail(result.batch?.id || selectedBatch.id, {
+        silent: true,
+      });
+
+      const request = result.processingRequest || {};
+      const queuedCount = Number(request.queuedCount) || 0;
+      const skippedAlreadyProcessedCount = Number(request.skippedAlreadyProcessedCount) || 0;
+      const skippedMissingOriginalCount = Number(request.skippedMissingOriginalCount) || 0;
+      const skippedInFlightCount = Number(request.skippedInFlightCount) || 0;
+      const failedCount = Number(request.failedCount) || 0;
+      const requestJobIds = Array.isArray(request.jobIds) ? request.jobIds : [];
+
+      beginTrackedRun({
+        jobIds: requestJobIds,
+        expectedCount: requestJobIds.length,
+      });
+
+      const parts = [];
+      if (queuedCount > 0) parts.push(`Queued ${queuedCount}`);
+      if (skippedAlreadyProcessedCount > 0) {
+        parts.push(`skipped ${skippedAlreadyProcessedCount} already processed`);
+      }
+      if (skippedInFlightCount > 0) {
+        parts.push(`left ${skippedInFlightCount} already in progress`);
+      }
+      if (skippedMissingOriginalCount > 0) {
+        parts.push(`${skippedMissingOriginalCount} unavailable`);
+      }
+      if (failedCount > 0) {
+        parts.push(`${failedCount} failed to queue`);
+      }
+
+      setFeedback({
+        tone: queuedCount > 0 ? 'success' : 'info',
+        message: parts.length
+          ? `${selectedBatch.name}: ${parts.join(' · ')}.`
+          : `No new items were queued for ${selectedBatch.name}.`,
+      });
+
+      showToastRef.current?.({
+        title: queuedCount > 0 ? 'Batch processing queued' : 'No items queued',
+        message: parts.length
+          ? parts.join(' • ')
+          : 'Selected items were already processed, unavailable, or already in progress.',
+        variant: failedCount > 0 ? 'warning' : queuedCount > 0 ? 'success' : 'info',
+        sticky: failedCount > 0 || queuedCount > 0,
+        content: renderConsoleContent({
+          onProcessSelectedOverride: () => {
+            void handleProcessSelected(normalizedItemIds);
+          },
+        }),
+      });
+    } catch (error) {
+      setFeedback({
+        tone: 'error',
+        message: error?.message || 'Failed to queue selected batch items for processing.',
+      });
+      showToastRef.current?.({
+        title: 'Batch processing start failed',
+        message: error?.message || 'Failed to queue selected batch items for processing.',
+        variant: 'danger',
+        sticky: true,
+      });
+    } finally {
+      setBusyAction('');
+    }
+  }, [
+    batchRenderTokens,
+    beginTrackedRun,
+    loadSelectedBatchDetail,
+    replaceBatch,
+    renderConsoleContent,
+    selectedBatch,
+  ]);
+
+  useEffect(() => {
+    handleProcessSelectedRef.current = (itemIds) => {
+      void handleProcessSelected(itemIds);
+    };
+  }, [handleProcessSelected]);
+
   return (
     <Wrap>
       <IntakeBatchCreatePanel
-        createName={createName}
-        setCreateName={setCreateName}
-        createImagesRef={createImagesRef}
-        createImages={createImages}
-        createJsonFile={createJsonFile}
-        createCsvFile={createCsvFile}
-        createCollageFile={createCollageFile}
-        summarizeAssetSelection={summarizeAssetSelection}
-        onCreateImagesChange={(event) => setCreateImages(Array.from(event.target.files || []))}
-        onCreateJsonChange={(event) => setCreateJsonFile(event.target.files?.[0] || null)}
-        onCreateCsvChange={(event) => setCreateCsvFile(event.target.files?.[0] || null)}
-        onCreateCollageChange={(event) => setCreateCollageFile(event.target.files?.[0] || null)}
-        onCreateBatch={handleCreateBatch}
+        packageFile={createPackageFile}
+        packageInputRef={createPackageInputRef}
+        onPackageFileChange={(event) => setCreatePackageFile(event.target.files?.[0] || null)}
+        onUploadPackage={handleUploadPackage}
         onRefresh={() => void refreshBatches()}
         busyAction={busyAction}
         loading={loading}
@@ -388,28 +836,27 @@ export default function IntakeBatchManager() {
         <IntakeBatchList
           batches={batches}
           selectedBatchId={selectedBatchId}
-          onSelect={setSelectedBatchId}
+          onSelect={applySelectedBatchId}
         />
 
         <IntakeBatchDetailsPanel
           selectedBatch={selectedBatch}
           selectedBatchValidationOk={selectedBatchValidationOk}
-          selectedBatchHasImageLinkedJson={selectedBatchHasImageLinkedJson}
-          updateImagesRef={updateImagesRef}
-          updateImages={updateImages}
-          updateJsonFile={updateJsonFile}
-          updateCsvFile={updateCsvFile}
-          updateCollageFile={updateCollageFile}
-          summarizeAssetSelection={summarizeAssetSelection}
-          onUpdateImagesChange={(event) => setUpdateImages(Array.from(event.target.files || []))}
-          onUpdateJsonChange={(event) => setUpdateJsonFile(event.target.files?.[0] || null)}
-          onUpdateCsvChange={(event) => setUpdateCsvFile(event.target.files?.[0] || null)}
-          onUpdateCollageChange={(event) => setUpdateCollageFile(event.target.files?.[0] || null)}
-          onUpdateAssets={handleUpdateAssets}
+          importedItemsPageState={importedItemsPageState}
+          processingModeEnabled={processingModeEnabled}
+          selectedItemIds={selectedItemIds}
+          liveBatchJobSummary={trackedBatchProgressSummary}
+          liveJobProgressByMediaId={trackedJobByMediaId}
+          detailLoading={detailLoading}
           onValidate={handleValidate}
-          onStage={handleStage}
           onImport={handleImport}
-          onDelete={handleDelete}
+          onToggleProcessingMode={handleToggleProcessingMode}
+          onSelectedItemIdsChange={handleSelectionChange}
+          onImportedItemsPageChange={handleImportedItemsPageChange}
+          onImportedItemsSortChange={handleImportedItemsSortChange}
+          onRecreateLocalFolder={handleRecreateLocalFolder}
+          onDeletePermanently={handlePermanentDelete}
+          onDelete={handleArchive}
           busyAction={busyAction}
         />
       </Grid>

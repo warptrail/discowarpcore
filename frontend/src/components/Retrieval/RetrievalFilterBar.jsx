@@ -2,6 +2,8 @@ import * as S from './Retrieval.styles';
 import FilterCombobox from './FilterCombobox';
 
 export default function RetrievalFilterBar({
+  sortOptions = [],
+  selectedSort = '',
   categoryOptions = [],
   tagOptions = [],
   locationOptions = [],
@@ -13,6 +15,7 @@ export default function RetrievalFilterBar({
   selectedOwner = '',
   selectedKeepPriority = '',
   onCategoryChange,
+  onSortChange,
   onTagChange,
   onLocationChange,
   onOwnerChange,
@@ -23,8 +26,27 @@ export default function RetrievalFilterBar({
   onAddOwner,
   onAddKeepPriority,
 }) {
+  const safeSortOptions = Array.isArray(sortOptions) ? sortOptions : [];
+
   return (
     <S.FilterGrid>
+      <S.FilterControl>
+        <S.FilterLabel>Sort</S.FilterLabel>
+        <S.FilterRow>
+          <S.SortSelect
+            value={selectedSort}
+            onChange={(event) => onSortChange?.(event.target.value)}
+            aria-label="Retrieval sort order"
+          >
+            {safeSortOptions.map((option) => (
+              <option key={option.key} value={option.key}>
+                {option.label}
+              </option>
+            ))}
+          </S.SortSelect>
+        </S.FilterRow>
+      </S.FilterControl>
+
       <S.FilterControl>
         <S.FilterLabel>Category</S.FilterLabel>
         <S.FilterRow>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as S from './BoxEditForm.styles';
 
 const normalize = (value) =>
@@ -37,6 +37,7 @@ export default function BoxSelectableField({
 }) {
   const [inputValue, setInputValue] = useState('');
   const [open, setOpen] = useState(false);
+  const selectingFromDropdownRef = useRef(false);
 
   const safeOptions = useMemo(
     () =>
@@ -155,6 +156,11 @@ export default function BoxSelectableField({
           onFocus={() => setOpen(true)}
           onBlur={() => {
             window.setTimeout(() => {
+              if (selectingFromDropdownRef.current) {
+                selectingFromDropdownRef.current = false;
+                return;
+              }
+
               setOpen(false);
 
               const trimmed = toTrimmed(inputValue);
@@ -221,7 +227,13 @@ export default function BoxSelectableField({
         {open ? (
           <S.LocationDropdown role="listbox" aria-label={dropdownAriaLabel || `${label} options`}>
             {includeNoneOption ? (
-              <S.LocationOption onMouseDown={handleSelectNone} $active={!value}>
+              <S.LocationOption
+                onMouseDown={() => {
+                  selectingFromDropdownRef.current = true;
+                  handleSelectNone();
+                }}
+                $active={!value}
+              >
                 <S.LocationOptionName>{noneLabel}</S.LocationOptionName>
               </S.LocationOption>
             ) : null}
@@ -229,7 +241,10 @@ export default function BoxSelectableField({
             {filteredOptions.map((option) => (
               <S.LocationOption
                 key={option.key}
-                onMouseDown={() => handleSelectExisting(option)}
+                onMouseDown={() => {
+                  selectingFromDropdownRef.current = true;
+                  handleSelectExisting(option);
+                }}
                 $active={option.key === String(value || '')}
               >
                 <S.LocationOptionName>{option.label}</S.LocationOptionName>
@@ -240,7 +255,12 @@ export default function BoxSelectableField({
             ))}
 
             {canCreate ? (
-              <S.LocationOption onMouseDown={handleCreate}>
+              <S.LocationOption
+                onMouseDown={() => {
+                  selectingFromDropdownRef.current = true;
+                  handleCreate();
+                }}
+              >
                 <S.LocationOptionName>
                   {createLabelBuilder(inputValue)}
                 </S.LocationOptionName>

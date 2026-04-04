@@ -1,0 +1,127 @@
+{
+  "batchContext": {
+    "source": "ai_json_import"
+  },
+  "items": [
+    {
+      "name": "Starbucks Caffè Verona Coffee Beans",
+      "description": "Bag of dark roast whole bean coffee",
+      "category": "food",
+      "tags": ["coffee", "beans", "starbucks"],
+      "quantity": 1,
+      "location": null,
+      "box": null,
+      "imageKey": "coffee-beans"
+    },
+    {
+      "name": "Wooden Barrel Mug",
+      "description": "Rustic wood mug with metal band accents",
+      "category": "kitchen",
+      "tags": ["mug", "wood", "drinkware"],
+      "quantity": 1,
+      "location": null,
+      "box": null,
+      "imageKey": "wooden-mug"
+    },
+    {
+      "name": "Interior Paint Cans",
+      "description": "Two partially used cans of interior paint",
+      "category": "home_improvement",
+      "tags": ["paint", "supplies", "diy"],
+      "quantity": 2,
+      "location": null,
+      "box": null,
+      "imageKey": "paint-cans"
+    },
+    {
+      "name": "Coleman Boxed Item",
+      "description": "Tall cardboard box containing a Coleman product",
+      "category": "outdoor",
+      "tags": ["coleman", "gear", "boxed"],
+      "quantity": 1,
+      "location": null,
+      "box": null,
+      "imageKey": "coleman-box"
+    },
+    {
+      "name": "Hand Scrub Brush",
+      "description": "Ergonomic handheld cleaning brush with bristles",
+      "category": "cleaning",
+      "tags": ["brush", "scrubber", "household"],
+      "quantity": 1,
+      "location": null,
+      "box": null,
+      "imageKey": "scrub-brush"
+    },
+    {
+      "name": "Duct Tape Roll",
+      "description": "Roll of gray duct tape",
+      "category": "tools",
+      "tags": ["tape", "adhesive", "repair"],
+      "quantity": 1,
+      "location": null,
+      "box": null,
+      "imageKey": "duct-tape"
+    },
+    {
+      "name": "Portable Power Bank",
+      "description": "Veektomx rechargeable battery pack",
+      "category": "electronics",
+      "tags": ["power", "battery", "charger"],
+      "quantity": 1,
+      "location": null,
+      "box": null,
+      "imageKey": "power-bank"
+    },
+    {
+      "name": "Wooden Cigar Box",
+      "description": "Decorative El Producto cigar box",
+      "category": "storage",
+      "tags": ["box", "wood", "vintage"],
+      "quantity": 1,
+      "location": null,
+      "box": null,
+      "imageKey": "cigar-box"
+    },
+    {
+      "name": "USB Charging Cable",
+      "description": "White USB cable with decorative cable tie",
+      "category": "electronics",
+      "tags": ["cable", "usb", "charging"],
+      "quantity": 1,
+      "location": null,
+      "box": null,
+      "imageKey": "usb-cable"
+    },
+    {
+      "name": "Mead Five Star Notebook",
+      "description": "Small spiral-bound notebook",
+      "category": "office",
+      "tags": ["notebook", "paper", "writing"],
+      "quantity": 1,
+      "location": null,
+      "box": null,
+      "imageKey": "notebook"
+    },
+    {
+      "name": "Logitech Wireless Mouse",
+      "description": "White Logitech computer mouse",
+      "category": "electronics",
+      "tags": ["mouse", "computer", "peripheral"],
+      "quantity": 1,
+      "location": null,
+      "box": null,
+      "imageKey": "wireless-mouse"
+    },
+    {
+      "name": "Altoids Mint Tin",
+      "description": "Metal tin of wintergreen mints",
+      "category": "food",
+      "tags": ["mints", "tin", "altoids"],
+      "quantity": 1,
+      "location": null,
+      "box": null,
+      "imageKey": "altoids-tin"
+    }
+  ]
+}

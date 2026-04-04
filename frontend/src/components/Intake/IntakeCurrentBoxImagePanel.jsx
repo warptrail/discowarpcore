@@ -37,6 +37,7 @@ export default function IntakeCurrentBoxImagePanel({
     processingStatus,
     processingState,
     processingError,
+    jobProgressLabel,
     isBusy: processBusy,
     isSwitchingVariant,
     variantSwitchError,
@@ -101,11 +102,11 @@ export default function IntakeCurrentBoxImagePanel({
       showToast?.({
         variant: 'info',
         title: 'Glow processing in progress',
-        message: `Processing box #${boxShortId} image.`,
+        message: jobProgressLabel || `Processing box #${boxShortId} image.`,
         sticky: true,
       });
     }
-  }, [boxShortId, processingStatus, showToast]);
+  }, [boxShortId, jobProgressLabel, processingStatus, showToast]);
 
   const normalizedActiveVariant = useMemo(() => {
     return toTrimmed(activeVariant).toLowerCase() === 'processed'
@@ -302,6 +303,7 @@ export default function IntakeCurrentBoxImagePanel({
       processImageStatus={processingStatus}
       processImageBusy={processBusy}
       processImageError={processingError}
+      processImageProgressLabel={jobProgressLabel}
       persistedRenderTokens={processingState?.renderTokens || null}
       processTone="primary"
       processActionLabels={{

@@ -21,6 +21,7 @@ export async function fetchRetrievalItemsPage(
     locations = [],
     owners = [],
     keepPriorities = [],
+    sort = '',
     limit = DEFAULT_RETRIEVAL_LIMIT,
     offset = 0,
   },
@@ -35,6 +36,7 @@ export async function fetchRetrievalItemsPage(
   appendCsvParam(params, 'location', locations);
   appendCsvParam(params, 'owner', owners);
   appendCsvParam(params, 'keepPriority', keepPriorities);
+  if (String(sort || '').trim()) params.set('sort', String(sort).trim());
 
   params.set('limit', String(limit));
   params.set('offset', String(offset));

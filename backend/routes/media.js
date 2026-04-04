@@ -4,6 +4,7 @@ const {
   postMediaBatchTestApi,
   postMediaJobEnqueueApi,
   getMediaJobStatusApi,
+  getMediaJobEventsApi,
   getMediaJobsApi,
 } = require('../controllers/mediaController');
 const {
@@ -19,6 +20,7 @@ const MEDIA_TEST_ROUTES_ENABLED =
 
 router.post('/jobs/process', postMediaJobEnqueueApi);
 router.get('/jobs', getMediaJobsApi);
+router.get('/jobs/:jobId/events', getMediaJobEventsApi);
 router.get('/jobs/:jobId', getMediaJobStatusApi);
 router.get('/batch-import/ready-summary', getBatchImportReadySummaryApi);
 router.post('/batch-import/process-ready', postBatchImportProcessReadyApi);

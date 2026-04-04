@@ -6,7 +6,12 @@ const {
   validateIntakeBatch,
   stageIntakeBatch,
   importIntakeBatch,
+  ingestIntakeBatchPackage,
+  ingestIntakeBatchPackageArchiveFromFile,
+  processIntakeBatchSelectedItems,
   deleteIntakeBatch,
+  permanentlyDeleteIntakeBatch,
+  recreateIntakeBatchLocalFolder,
 } = require('../services/intakeBatchService');
 
 function logIntakeBatchControllerEvent(event, details = {}) {
@@ -20,9 +25,37 @@ function sendError(res, error, fallbackMessage) {
   });
 }
 
-async function getIntakeBatchesApi(_req, res) {
+function parsePositiveInt(value, fallback, { min = 1, max = 500 } = {}) {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  if (parsed < min) return min;
+  if (parsed > max) return max;
+  return parsed;
+}
+
+function parseNonNegativeInt(value, fallback, { min = 0, max = 1000000 } = {}) {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  if (parsed < min) return min;
+  if (parsed > max) return max;
+  return parsed;
+}
+
+function parseBooleanFlag(value, fallback = false) {
+  if (typeof value === 'boolean') return value;
+  const normalized = String(value ?? '').trim().toLowerCase();
+  if (!normalized) return fallback;
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return fallback;
+}
+
+async function getIntakeBatchesApi(req, res) {
   try {
-    const batches = await listIntakeBatches();
+    const includeArchived =
+      String(req.query?.includeArchived || '').trim().toLowerCase() === '1' ||
+      String(req.query?.includeArchived || '').trim().toLowerCase() === 'true';
+    const batches = await listIntakeBatches({ includeArchived });
     return res.status(200).json({ ok: true, batches });
   } catch (error) {
     return sendError(res, error, 'Failed to list intake batches.');
@@ -31,7 +64,15 @@ async function getIntakeBatchesApi(_req, res) {
 
 async function getIntakeBatchApi(req, res) {
   try {
-    const batch = await getIntakeBatchById(req.params.batchId);
+    const itemsLimit = parsePositiveInt(req.query?.itemsLimit, 50, { min: 1, max: 500 });
+    const itemsOffset = parseNonNegativeInt(req.query?.itemsOffset, 0, { min: 0, max: 1000000 });
+    const itemsSort = String(req.query?.itemsSort || '').trim().toLowerCase();
+    const batch = await getIntakeBatchById(req.params.batchId, {
+      includeImportedItems: true,
+      importedItemsLimit: itemsLimit,
+      importedItemsOffset: itemsOffset,
+      importedItemsSort: itemsSort,
+    });
     return res.status(200).json({ ok: true, batch });
   } catch (error) {
     return sendError(res, error, 'Failed to load intake batch.');
@@ -47,6 +88,21 @@ async function postCreateIntakeBatchApi(req, res) {
     return res.status(201).json({ ok: true, batch });
   } catch (error) {
     return sendError(res, error, 'Failed to create intake batch.');
+  }
+}
+
+async function postIngestIntakeBatchPackageApi(req, res) {
+  try {
+    const uploadedPackage = req.file;
+    if (!uploadedPackage?.path) {
+      throw new Error('packageFile zip upload is required.');
+    }
+    const result = await ingestIntakeBatchPackageArchiveFromFile(uploadedPackage.path, {
+      originalPackageFilename: uploadedPackage.originalname,
+    });
+    return res.status(result?.ok ? 201 : 400).json(result);
+  } catch (error) {
+    return sendError(res, error, 'Failed to ingest intake batch package.');
   }
 }
 
@@ -113,22 +169,58 @@ async function postImportIntakeBatchApi(req, res) {
   }
 }
 
+async function postProcessIntakeBatchSelectedItemsApi(req, res) {
+  const batchId = String(req.params?.batchId || '').trim();
+  try {
+    const result = await processIntakeBatchSelectedItems(batchId, {
+      itemIds: req.body?.itemIds,
+      renderTokens: req.body?.renderTokens,
+    });
+    return res.status(202).json({ ok: true, ...result });
+  } catch (error) {
+    return sendError(res, error, 'Failed to queue selected batch items for processing.');
+  }
+}
+
 async function deleteIntakeBatchApi(req, res) {
   try {
     const result = await deleteIntakeBatch(req.params.batchId);
     return res.status(200).json({ ok: true, ...result });
   } catch (error) {
-    return sendError(res, error, 'Failed to delete intake batch.');
+    return sendError(res, error, 'Failed to archive intake batch.');
+  }
+}
+
+async function deleteIntakeBatchPermanentlyApi(req, res) {
+  try {
+    const result = await permanentlyDeleteIntakeBatch(req.params.batchId);
+    return res.status(200).json({ ok: true, ...result });
+  } catch (error) {
+    return sendError(res, error, 'Failed to permanently delete intake batch.');
+  }
+}
+
+async function postRecreateIntakeBatchLocalFolderApi(req, res) {
+  try {
+    const result = await recreateIntakeBatchLocalFolder(req.params.batchId);
+    return res.status(200).json({ ok: true, ...result });
+  } catch (error) {
+    return sendError(res, error, 'Failed to recreate local staging folder.');
   }
 }
 
 module.exports = {
   getIntakeBatchesApi,
   getIntakeBatchApi,
+  postIngestIntakeBatchPackageApi,
   postCreateIntakeBatchApi,
   postUpdateIntakeBatchAssetsApi,
   postValidateIntakeBatchApi,
   postStageIntakeBatchApi,
   postImportIntakeBatchApi,
+  postIngestIntakeBatchPackageApi,
+  postProcessIntakeBatchSelectedItemsApi,
   deleteIntakeBatchApi,
+  deleteIntakeBatchPermanentlyApi,
+  postRecreateIntakeBatchLocalFolderApi,
 };

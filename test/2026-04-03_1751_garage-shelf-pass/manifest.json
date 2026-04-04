@@ -1,0 +1,40 @@
+{
+  "packageVersion": 1,
+  "app": "discowarpcore",
+  "batchLabel": "garage shelf pass",
+  "createdAt": "2026-04-04T00:51:26.788Z",
+  "sourceMachine": "lunarlander.local",
+  "operator": "moonshade",
+  "cleanupIntent": "preserve_temp_artifacts_until_explicit_cleanup",
+  "files": {
+    "aiIntakeJson": "ai_intake.json",
+    "imageMappingCsv": "image_mapping.csv",
+    "imagesDir": "images"
+  },
+  "images": {
+    "included": true,
+    "count": 12
+  },
+  "metadata": {
+    "createdByTool": "dwc-batch-send",
+    "dryRun": true,
+    "sourceDir": "/Users/moonshade/Intake/discowarpcore/batch_01",
+    "sourceJsonFilename": "batch_1_AI.json",
+    "sourceCsvFilename": "image_order.csv",
+    "sourceImagesDirname": "images",
+    "sourceImageEntries": [
+      "IMG_9506.jpeg",
+      "IMG_9507.jpeg",
+      "IMG_9508.jpeg",
+      "IMG_9509.jpeg",
+      "IMG_9510.jpeg",
+      "IMG_9511.jpeg",
+      "IMG_9512.jpeg",
+      "IMG_9513.jpeg",
+      "IMG_9514.jpeg",
+      "IMG_9515.jpeg",
+      "IMG_9516.jpeg",
+      "IMG_9517.jpeg"
+    ]
+  }
+}

@@ -108,6 +108,7 @@ export default function BoxActionPanel({
     processingStatus: processImageStatus,
     processingState: processImageState,
     processingError: processImageError,
+    jobProgressLabel: processImageProgressLabel,
     isBusy: processImageBusy,
     startProcessing: startBoxImageProcessing,
   } = useBoxImageProcessing({
@@ -148,11 +149,11 @@ export default function BoxActionPanel({
       showToast?.({
         variant: 'info',
         title: 'Box image processing in progress',
-        message: 'ObjectGlow/media processing is running.',
+        message: processImageProgressLabel || 'ObjectGlow/media processing is running.',
         sticky: true,
       });
     }
-  }, [processImageStatus, showToast]);
+  }, [processImageProgressLabel, processImageStatus, showToast]);
 
   const resetDestroyConfirmState = useCallback(() => {
     setDestroyConfirmInput('');
@@ -447,6 +448,7 @@ export default function BoxActionPanel({
             processImageStatus={processImageStatus}
             processImageBusy={processImageBusy}
             processImageError={processImageError}
+            processImageProgressLabel={processImageProgressLabel}
             persistedRenderTokens={processImageState?.renderTokens || null}
             processedPreviewUrl={processedPreviewUrl}
             imageRefreshToken={imageRefreshToken}

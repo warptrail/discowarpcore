@@ -723,6 +723,7 @@ export default function Header() {
   const toastCtx = useContext(ToastContext);
   const toast = toastCtx?.toast ?? null;
   const hideToast = toastCtx?.hideToast;
+  const activeRetrievalItem = toastCtx?.activeRetrievalItem ?? null;
   const { runRandomItem } = useRandomItemFlow();
 
   const handleToastClose = () => {
@@ -834,11 +835,19 @@ export default function Header() {
           message={toast?.message}
           content={toast?.content}
           variant={toast?.variant ?? 'info'}
+          loading={!!toast?.loading}
           actions={toast?.actions ?? []}
-          onClose={toast ? handleToastClose : undefined}
+          onClose={
+            toast
+              ? handleToastClose
+              : typeof activeRetrievalItem?.onCollapse === 'function'
+                ? activeRetrievalItem.onCollapse
+                : undefined
+          }
           showIdle
           idleIcon="📦"
           idleText="Console ready. Awaiting orders…"
+          activeRetrievalItem={activeRetrievalItem}
         />
       </ToastRow>
     </HeaderShell>

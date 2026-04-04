@@ -29,6 +29,22 @@ const compareLabel = (a, b) =>
     sensitivity: 'base',
   });
 
+export function normalizeRetrievalSortOptions(rawOptions) {
+  const safeOptions = Array.isArray(rawOptions) ? rawOptions : [];
+  const seen = new Set();
+  const normalized = [];
+
+  for (const option of safeOptions) {
+    const key = firstNonEmpty(option?.key, option?.value);
+    const label = firstNonEmpty(option?.label, key);
+    if (!key || !label || seen.has(key)) continue;
+    seen.add(key);
+    normalized.push({ key, label });
+  }
+
+  return normalized;
+}
+
 function uniqueTrimmedValues(values) {
   const seen = new Set();
   const next = [];
@@ -165,14 +181,31 @@ function getItemHref(itemId) {
   }
 }
 
-function getItemImageUrl(item) {
-  return firstNonEmpty(
-    item?.image?.thumb?.url,
-    item?.image?.display?.url,
+function resolveItemImageUrls(item) {
+  const activeVariant = toTrimmed(item?.image?.activeVariant).toLowerCase();
+  const processedUrl = firstNonEmpty(
+    item?.image?.processed?.url,
+    item?.image?.processed?.path,
+  );
+  const displayUrl = firstNonEmpty(item?.image?.display?.url);
+  const thumbUrl = firstNonEmpty(item?.image?.thumb?.url);
+  const originalUrl = firstNonEmpty(
     item?.image?.original?.url,
     item?.image?.url,
     item?.imagePath,
   );
+
+  if (activeVariant === 'processed' || (!activeVariant && processedUrl)) {
+    return {
+      imageUrl: firstNonEmpty(thumbUrl, displayUrl, processedUrl, originalUrl),
+      previewImageUrl: firstNonEmpty(processedUrl, displayUrl, originalUrl, thumbUrl),
+    };
+  }
+
+  return {
+    imageUrl: firstNonEmpty(thumbUrl, displayUrl, originalUrl, processedUrl),
+    previewImageUrl: firstNonEmpty(originalUrl, displayUrl, thumbUrl, processedUrl),
+  };
 }
 
 function isItemOrphaned(item) {
@@ -317,6 +350,8 @@ export function buildRetrievalItems(rawItems, rawTree) {
       getBreadcrumbPath(item),
     ]);
 
+    const imageUrls = resolveItemImageUrls(item);
+
     base.push({
       id,
       name,
@@ -340,7 +375,8 @@ export function buildRetrievalItems(rawItems, rawTree) {
       locationPath: context.locationPath,
       locationKey: context.locationKey,
       searchText,
-      imageUrl: getItemImageUrl(item),
+      imageUrl: imageUrls.imageUrl,
+      previewImageUrl: imageUrls.previewImageUrl,
       boxHref: getBoxHref(context.boxNumber),
       itemHref: getItemHref(id),
     });
@@ -584,6 +620,8 @@ export function normalizeRetrievalItemsPage(rawItems) {
         ? hasConsumableTag
         : Boolean(explicitConsumable);
 
+      const imageUrls = resolveItemImageUrls(rawItem);
+
       return {
         id,
         name: firstNonEmpty(rawItem?.name, 'Unnamed item'),
@@ -617,8 +655,13 @@ export function normalizeRetrievalItemsPage(rawItems) {
         usageHistory: normalizeDateHistory(rawItem?.usageHistory),
         checkHistory: normalizeDateHistory(rawItem?.checkHistory),
         maintenanceHistory: normalizeDateHistory(rawItem?.maintenanceHistory),
-        imageUrl: firstNonEmpty(rawItem?.imageUrl),
-        previewImageUrl: firstNonEmpty(rawItem?.previewImageUrl, rawItem?.imageUrl),
+        imageUrl: firstNonEmpty(rawItem?.imageUrl, imageUrls.imageUrl),
+        previewImageUrl: firstNonEmpty(
+          rawItem?.previewImageUrl,
+          rawItem?.imageUrl,
+          imageUrls.previewImageUrl,
+          imageUrls.imageUrl,
+        ),
         siblingItems: uniqueTrimmedValues(rawItem?.siblingItems),
         itemHref: getItemHref(id),
         boxHref: getBoxHref(rawItem?.boxNumber),

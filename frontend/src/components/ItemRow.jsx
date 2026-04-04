@@ -437,6 +437,7 @@ export default function ItemRow({
               <ItemDetails
                 itemId={_id}
                 itemData={itemForView}
+                enableImageLightbox
                 variant="operationsOverview"
               />
             )}

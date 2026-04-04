@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   useLocation,
   useNavigationType,
@@ -17,6 +17,7 @@ import {
   normalizeStatusFilter,
   prepareItemForList,
 } from './AllItemsList/allItemsList.utils';
+import useAllItemsBatchProcessing from './AllItemsList/useAllItemsBatchProcessing.jsx';
 
 const ALL_ITEMS_SCROLL_STORAGE_PREFIX = 'all-items:scroll:';
 const SCROLL_RESTORE_MAX_FRAMES = 240;
@@ -78,6 +79,32 @@ export default function AllItemsList() {
   const [error, setError] = useState('');
   const pendingScrollRestoreRef = useRef();
 
+  const loadItems = useCallback(async ({ signal, silent = false } = {}) => {
+    if (!silent) {
+      setLoading(true);
+    }
+    setError('');
+
+    try {
+      const res = await fetch(`${API_BASE}/api/items?status=all`, { signal });
+      if (!res.ok) {
+        throw new Error(`Failed to fetch items (${res.status})`);
+      }
+      const data = await res.json();
+      setItems(Array.isArray(data) ? data : []);
+    } catch (fetchError) {
+      if (fetchError?.name === 'AbortError') return;
+      setError(fetchError?.message || 'Failed to load items');
+      if (!silent) {
+        setItems([]);
+      }
+    } finally {
+      if (!signal?.aborted && !silent) {
+        setLoading(false);
+      }
+    }
+  }, []);
+
   if (pendingScrollRestoreRef.current === undefined) {
     pendingScrollRestoreRef.current = readPersistedScrollY({
       key: location.key,
@@ -87,30 +114,10 @@ export default function AllItemsList() {
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
-    setError('');
-
-    fetch(`${API_BASE}/api/items?status=all`, { signal: controller.signal })
-      .then(async (res) => {
-        if (!res.ok) {
-          throw new Error(`Failed to fetch items (${res.status})`);
-        }
-        const data = await res.json();
-        setItems(Array.isArray(data) ? data : []);
-      })
-      .catch((fetchError) => {
-        if (fetchError?.name === 'AbortError') return;
-        setError(fetchError?.message || 'Failed to load items');
-        setItems([]);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
-      });
+    void loadItems({ signal: controller.signal });
 
     return () => controller.abort();
-  }, []);
+  }, [loadItems]);
 
   useEffect(() => {
     const queryStatus = normalizeStatusFilter(searchParams.get('status'));
@@ -175,16 +182,72 @@ export default function AllItemsList() {
     [items],
   );
 
+  const batchFocused = statusFilter === 'batch';
+
   const visibleItems = useMemo(
     () =>
       filterAndSortItems(preparedItems, {
-        statusFilter,
+        statusFilter: batchFocused ? 'all' : statusFilter,
         filter,
         sortBy,
         searchQuery,
+        batchFocused,
       }),
-    [preparedItems, searchQuery, statusFilter, filter, sortBy],
+    [batchFocused, preparedItems, searchQuery, statusFilter, filter, sortBy],
   );
+
+  const batchProcessing = useAllItemsBatchProcessing({
+    enabled: batchFocused,
+    visibleItems,
+    onRefreshItems: () => loadItems({ silent: true }),
+  });
+
+  const handleStatusChange = useCallback((nextStatus) => {
+    const normalizedStatus = normalizeStatusFilter(nextStatus);
+    setStatusFilter(normalizedStatus);
+
+    if (normalizedStatus === 'batch') {
+      setSortBy('batch');
+      setFilter('all');
+    }
+  }, []);
+
+  const handleFocusBatch = useCallback((batchId) => {
+    const normalizedBatchId = String(batchId || '').trim();
+    if (!normalizedBatchId) return;
+    setStatusFilter('batch');
+    setSortBy('batch');
+    setFilter('all');
+    batchProcessing.focusBatch(normalizedBatchId);
+  }, [batchProcessing]);
+
+  const batchToneMap = useMemo(() => {
+    const toneKeys = [
+      'root',
+      'teal',
+      'amber',
+      'lilac',
+      'coral',
+      'rootSoft',
+      'tealDeep',
+      'amberSoft',
+      'lilacDeep',
+      'coralSoft',
+      'rootDeep',
+      'tealSoft',
+    ];
+    const next = new Map();
+    let toneIndex = 0;
+
+    for (const item of visibleItems) {
+      const batchId = String(item?._allItems?.sourceBatchId || '').trim();
+      if (!batchId || next.has(batchId)) continue;
+      next.set(batchId, toneKeys[toneIndex % toneKeys.length]);
+      toneIndex += 1;
+    }
+
+    return next;
+  }, [visibleItems]);
 
   useEffect(() => {
     const targetScrollY = pendingScrollRestoreRef.current;
@@ -254,6 +317,32 @@ export default function AllItemsList() {
     [],
   );
 
+  const batchOptions = useMemo(() => {
+    const seen = new Set();
+    return preparedItems
+      .map((item) => item?._allItems)
+      .filter((meta) => meta?.hasSourceBatch && meta?.sourceBatchId)
+      .sort((left, right) =>
+        String(left?.sourceBatchSortKey || '').localeCompare(String(right?.sourceBatchSortKey || ''), undefined, {
+          sensitivity: 'base',
+        })
+      )
+      .flatMap((meta) => {
+        const batchId = String(meta?.sourceBatchId || '').trim();
+        if (!batchId || seen.has(batchId)) return [];
+        seen.add(batchId);
+        const label = String(meta?.sourceBatchLabel || batchId).trim();
+        const archiveSuffix =
+          String(meta?.sourceBatchArchiveStatus || '').trim().toLowerCase() === 'archived'
+            ? ' (Archived)'
+            : '';
+        return [{
+          value: `batch:${batchId}`,
+          label: `Batch: ${label}${archiveSuffix}`,
+        }];
+      });
+  }, [preparedItems]);
+
   return (
     <S.PageShell>
       <AllItemsToolbar
@@ -261,17 +350,45 @@ export default function AllItemsList() {
         filter={filter}
         sortBy={sortBy}
         searchQuery={searchQuery}
-        onStatusChange={setStatusFilter}
+        onStatusChange={handleStatusChange}
         onFilterChange={setFilter}
         onSortChange={setSortBy}
         onSearchChange={setSearchQuery}
         categoryOptions={categoryOptions}
+        batchOptions={batchOptions}
         visibleCount={visibleItems.length}
         totalCount={counts.total}
         activeCount={counts.active}
         goneCount={counts.gone}
         orphanedCount={counts.orphaned}
+        batchFocused={batchFocused}
       />
+
+      {batchFocused ? (
+        <S.BatchSelectionPanel>
+          <S.BatchSelectionSummary>
+            <S.BatchSelectionTitle>Batch Processing Console</S.BatchSelectionTitle>
+            <S.BatchSelectionText>
+              {batchProcessing.selectedItemIds.length
+                ? `${batchProcessing.selectedItemIds.length} selected across ${batchProcessing.selectedBatchCount || 1} batch${batchProcessing.selectedBatchCount === 1 ? '' : 'es'} on this page.`
+                : 'Open the console to manage visible selection and run image processing from this page.'}
+            </S.BatchSelectionText>
+          </S.BatchSelectionSummary>
+          <S.BatchSelectionActions>
+            <S.BatchActionButton
+              type="button"
+              $tone={batchProcessing.processingModeEnabled ? 'ghost' : 'primary'}
+              onClick={
+                batchProcessing.processingModeEnabled
+                  ? () => batchProcessing.hideConsole()
+                  : () => batchProcessing.showConsole()
+              }
+            >
+              {batchProcessing.processingModeEnabled ? 'Close Batch Console' : 'Open Batch Console'}
+            </S.BatchActionButton>
+          </S.BatchSelectionActions>
+        </S.BatchSelectionPanel>
+      ) : null}
 
       {error ? <S.ErrorState role="alert">{error}</S.ErrorState> : null}
 
@@ -281,10 +398,28 @@ export default function AllItemsList() {
         ) : visibleItems.length ? (
           <>
             <S.DesktopWrap>
-              <AllItemsDesktopTable items={visibleItems} />
+              <AllItemsDesktopTable
+                items={visibleItems}
+                batchFocused={batchFocused}
+                batchToneMap={batchToneMap}
+                selectedItemIds={batchProcessing.selectedItemIds}
+                selectedBatchId={batchProcessing.selectedBatchId}
+                onToggleItemSelection={batchProcessing.toggleItemSelection}
+                onSelectBatch={batchProcessing.selectBatch}
+                onFocusBatch={handleFocusBatch}
+              />
             </S.DesktopWrap>
             <S.MobileWrap>
-              <AllItemsMobileCards items={visibleItems} />
+              <AllItemsMobileCards
+                items={visibleItems}
+                batchFocused={batchFocused}
+                batchToneMap={batchToneMap}
+                selectedItemIds={batchProcessing.selectedItemIds}
+                selectedBatchId={batchProcessing.selectedBatchId}
+                onToggleItemSelection={batchProcessing.toggleItemSelection}
+                onSelectBatch={batchProcessing.selectBatch}
+                onFocusBatch={handleFocusBatch}
+              />
             </S.MobileWrap>
           </>
         ) : (

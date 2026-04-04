@@ -1,7 +1,11 @@
 const Item = require('../models/Item');
 const Box = require('../models/Box');
+const MediaState = require('../models/MediaState');
+const path = require('path');
+const { MEDIA_ROOT, toMediaUrl } = require('../config/media');
 const { normalizeItemCategory } = require('../utils/itemCategory');
 const { buildBoxMaps, makeBreadcrumb } = require('../utils/boxHelpers');
+const { collectImageStoragePaths } = require('./imageMetadataService');
 const {
   formatKeepPriorityLabel,
   normalizeKeepPriorityValue,
@@ -15,6 +19,30 @@ const MAX_LIMIT = 100;
 const UNKNOWN_LOCATION_LABEL = 'Unknown Location';
 const UNKNOWN_BOX_NAME = 'Unknown Box';
 const ORPHANED_BOX_NAME = 'ORPHANED';
+const RETRIEVAL_ITEM_SORT_OPTIONS = [
+  { key: 'location', label: 'Location (A → Z)' },
+  { key: 'location_desc', label: 'Location (Z → A)' },
+  { key: 'name', label: 'Item Name (A → Z)' },
+  { key: 'name_desc', label: 'Item Name (Z → A)' },
+  { key: 'box', label: 'Box ID (Low → High)' },
+  { key: 'box_desc', label: 'Box ID (High → Low)' },
+  { key: 'category', label: 'Category (A → Z)' },
+  { key: 'category_desc', label: 'Category (Z → A)' },
+  { key: 'owner', label: 'Primary Owner (A → Z)' },
+  { key: 'owner_desc', label: 'Primary Owner (Z → A)' },
+  { key: 'keepPriority', label: 'Keep Priority (Low → Essential)' },
+  { key: 'keepPriority_desc', label: 'Keep Priority (Essential → Low)' },
+];
+const RETRIEVAL_ITEM_SORT_KEYS = new Set(
+  RETRIEVAL_ITEM_SORT_OPTIONS.map((option) => option.key),
+);
+const KEEP_PRIORITY_RANKS = {
+  low: 0,
+  medium: 1,
+  high: 2,
+  essential: 3,
+  decommissioned: 4,
+};
 
 function toTrimmed(value) {
   return value == null ? '' : String(value).trim();
@@ -97,6 +125,12 @@ function parseOffset(rawOffset) {
   return parsed;
 }
 
+function normalizeSort(rawSort) {
+  const value = toTrimmed(rawSort);
+  if (!value) return 'location';
+  return RETRIEVAL_ITEM_SORT_KEYS.has(value) ? value : 'location';
+}
+
 function uniqueTrimmedValues(values) {
   const seen = new Set();
   const next = [];
@@ -136,24 +170,124 @@ function buildSearchText(parts) {
   return normalizeText(parts.filter(Boolean).join(' '));
 }
 
-function getItemImageUrl(item) {
-  return firstNonEmpty(
-    item?.image?.thumb?.url,
-    item?.image?.display?.url,
-    item?.image?.original?.url,
-    item?.image?.url,
-    item?.imagePath
-  );
+function mediaPathToClientUrl(pathValue) {
+  const normalized = toTrimmed(pathValue);
+  if (!normalized) return '';
+
+  const relativePath = path.isAbsolute(normalized)
+    ? path.relative(MEDIA_ROOT, normalized)
+    : normalized.replace(/^\/+/, '');
+
+  if (!relativePath || relativePath.startsWith('..')) return '';
+  return toMediaUrl(relativePath);
 }
 
-function getItemPreviewImageUrl(item) {
-  return firstNonEmpty(
-    item?.image?.display?.url,
+async function attachMediaStateSummariesForRetrieval(rawItems = []) {
+  const items = Array.isArray(rawItems) ? rawItems : [];
+  if (!items.length) return [];
+
+  const mediaIds = Array.from(
+    new Set(
+      items
+        .map((item) => toTrimmed(item?.image?.mediaId))
+        .filter(Boolean)
+    )
+  );
+  const originalPaths = Array.from(
+    new Set(items.flatMap((item) => collectImageStoragePaths(item)).filter(Boolean))
+  );
+
+  if (!mediaIds.length && !originalPaths.length) {
+    return items;
+  }
+
+  const clauses = [];
+  if (mediaIds.length) {
+    clauses.push({ mediaId: { $in: mediaIds } });
+  }
+  if (originalPaths.length) {
+    clauses.push({ originalPath: { $in: originalPaths } });
+  }
+
+  const mediaStates = clauses.length
+    ? await MediaState.find(clauses.length === 1 ? clauses[0] : { $or: clauses })
+        .select('mediaId originalPath processedPath displayPath thumbPath activeVariant')
+        .lean()
+    : [];
+
+  const mediaStateByMediaId = new Map();
+  const mediaStateByOriginalPath = new Map();
+  for (const state of Array.isArray(mediaStates) ? mediaStates : []) {
+    const mediaId = toTrimmed(state?.mediaId);
+    const originalPath = toTrimmed(state?.originalPath);
+    if (mediaId) mediaStateByMediaId.set(mediaId, state);
+    if (originalPath) mediaStateByOriginalPath.set(originalPath, state);
+  }
+
+  return items.map((item) => {
+    const mediaId = toTrimmed(item?.image?.mediaId);
+    const matchedState =
+      (mediaId ? mediaStateByMediaId.get(mediaId) : null) ||
+      collectImageStoragePaths(item)
+        .map((value) => mediaStateByOriginalPath.get(value))
+        .find(Boolean) ||
+      null;
+
+    if (!matchedState) return item;
+
+    const processedUrl = mediaPathToClientUrl(matchedState?.processedPath);
+    const displayUrl = mediaPathToClientUrl(matchedState?.displayPath);
+    const thumbUrl = mediaPathToClientUrl(matchedState?.thumbPath);
+    const activeVariant = toTrimmed(matchedState?.activeVariant).toLowerCase();
+
+    return {
+      ...item,
+      image: {
+        ...(item?.image || {}),
+        display: {
+          ...(item?.image?.display || {}),
+          url: firstNonEmpty(displayUrl, item?.image?.display?.url),
+        },
+        thumb: {
+          ...(item?.image?.thumb || {}),
+          url: firstNonEmpty(thumbUrl, item?.image?.thumb?.url),
+        },
+        processed: {
+          ...(item?.image?.processed || {}),
+          url: firstNonEmpty(processedUrl, item?.image?.processed?.url),
+        },
+        activeVariant: firstNonEmpty(activeVariant, item?.image?.activeVariant, 'original')
+          .toLowerCase(),
+      },
+    };
+  });
+}
+
+function resolveItemImageUrls(item) {
+  const activeVariant = toTrimmed(item?.image?.activeVariant).toLowerCase();
+  const processedUrl = firstNonEmpty(
+    item?.image?.processed?.url,
+    item?.image?.processed?.path
+  );
+  const displayUrl = firstNonEmpty(item?.image?.display?.url);
+  const thumbUrl = firstNonEmpty(item?.image?.thumb?.url);
+  const originalUrl = firstNonEmpty(
     item?.image?.original?.url,
-    item?.image?.thumb?.url,
     item?.image?.url,
     item?.imagePath
   );
+
+  if (activeVariant === 'processed' || (!activeVariant && processedUrl)) {
+    return {
+      imageUrl: firstNonEmpty(thumbUrl, displayUrl, processedUrl, originalUrl),
+      previewImageUrl: firstNonEmpty(processedUrl, displayUrl, originalUrl, thumbUrl),
+    };
+  }
+
+  return {
+    imageUrl: firstNonEmpty(thumbUrl, displayUrl, originalUrl, processedUrl),
+    previewImageUrl: firstNonEmpty(originalUrl, displayUrl, thumbUrl, processedUrl),
+  };
 }
 
 function getBoxContext(item, maps, itemToLeafBoxId) {
@@ -336,6 +470,7 @@ function buildRetrievalItems(itemDocs, boxDocs) {
       primaryOwnerName,
       isConsumable ? 'consumable' : 'non consumable',
     ]);
+    const imageUrls = resolveItemImageUrls(item);
 
     const retrievalItem = {
       id,
@@ -365,8 +500,8 @@ function buildRetrievalItems(itemDocs, boxDocs) {
       checkHistory,
       maintenanceHistory,
       searchText,
-      imageUrl: getItemImageUrl(item),
-      previewImageUrl: getItemPreviewImageUrl(item),
+      imageUrl: imageUrls.imageUrl,
+      previewImageUrl: imageUrls.previewImageUrl,
       siblingItems: [],
     };
 
@@ -445,6 +580,58 @@ function filterRetrievalItems(
     }
 
     return true;
+  });
+}
+
+function sortRetrievalItems(items, sortKey = 'location') {
+  const key = normalizeSort(sortKey);
+  const safeItems = Array.isArray(items) ? [...items] : [];
+  const descending = key.endsWith('_desc');
+  const baseKey = descending ? key.slice(0, -5) : key;
+
+  const direction = descending ? -1 : 1;
+  const withDirection = (value) => value * direction;
+
+  const compareByName = (left, right) => compareLabel(left?.name, right?.name);
+  const compareByLocation = (left, right) => {
+    const byLocation = compareLabel(left?.locationLabel, right?.locationLabel);
+    if (byLocation !== 0) return byLocation;
+    const byBox = compareBoxNumber(left?.boxNumber, right?.boxNumber);
+    if (byBox !== 0) return byBox;
+    return compareByName(left, right);
+  };
+
+  return safeItems.sort((left, right) => {
+    if (baseKey === 'name') {
+      return withDirection(compareByName(left, right));
+    }
+
+    if (baseKey === 'box') {
+      const byBox = compareBoxNumber(left?.boxNumber, right?.boxNumber);
+      if (byBox !== 0) return withDirection(byBox);
+      return compareByLocation(left, right);
+    }
+
+    if (baseKey === 'category') {
+      const byCategory = compareLabel(left?.categoryLabel, right?.categoryLabel);
+      if (byCategory !== 0) return withDirection(byCategory);
+      return compareByLocation(left, right);
+    }
+
+    if (baseKey === 'owner') {
+      const byOwner = compareLabel(left?.primaryOwnerName, right?.primaryOwnerName);
+      if (byOwner !== 0) return withDirection(byOwner);
+      return compareByLocation(left, right);
+    }
+
+    if (baseKey === 'keepPriority') {
+      const leftRank = KEEP_PRIORITY_RANKS[left?.keepPriorityKey] ?? Number.POSITIVE_INFINITY;
+      const rightRank = KEEP_PRIORITY_RANKS[right?.keepPriorityKey] ?? Number.POSITIVE_INFINITY;
+      if (leftRank !== rightRank) return withDirection(leftRank - rightRank);
+      return compareByLocation(left, right);
+    }
+
+    return withDirection(compareByLocation(left, right));
   });
 }
 
@@ -641,10 +828,11 @@ async function getRetrievalItemsPage(params = {}) {
   const locationFilters = normalizeFilterValues(params.location);
   const ownerFilters = normalizeFilterValues(params.owner);
   const keepPriorityFilters = normalizeFilterValues(params.keepPriority);
+  const sort = normalizeSort(params.sort);
   const limit = parseLimit(params.limit);
   const offset = parseOffset(params.offset);
 
-  const [itemDocs, boxDocs] = await Promise.all([
+  const [rawItemDocs, boxDocs] = await Promise.all([
     Item.find(ACTIVE_ITEM_FILTER)
       .select(
         '_id name description notes maintenanceNotes category tags location image imagePath primaryOwnerName keepPriority orphanedAt isConsumable usageHistory checkHistory maintenanceHistory'
@@ -652,6 +840,7 @@ async function getRetrievalItemsPage(params = {}) {
       .lean(),
     Box.find().select('_id box_id label group notes location parentBox items').lean(),
   ]);
+  const itemDocs = await attachMediaStateSummariesForRetrieval(rawItemDocs);
 
   const retrievalItems = buildRetrievalItems(itemDocs, boxDocs);
   const filteredItems = filterRetrievalItems(retrievalItems, {
@@ -663,14 +852,17 @@ async function getRetrievalItemsPage(params = {}) {
     keepPriorityFilters,
   });
 
-  const total = filteredItems.length;
-  const pagedItems = filteredItems.slice(offset, offset + limit).map(toClientItem);
+  const sortedItems = sortRetrievalItems(filteredItems, sort);
+  const total = sortedItems.length;
+  const pagedItems = sortedItems.slice(offset, offset + limit).map(toClientItem);
 
   return {
     items: pagedItems,
     total,
     limit,
     offset,
+    sort,
+    sortOptions: RETRIEVAL_ITEM_SORT_OPTIONS,
     hasMore: offset + pagedItems.length < total,
     filters: collectFilterOptions(retrievalItems),
   };

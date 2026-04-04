@@ -137,7 +137,7 @@ export default function BoxInlineItemActions({
             assignLabel="Assign"
             showControls
             paginationMode="paged"
-            fixedViewportHeight="min(44vh, 360px)"
+            fixedViewportHeight="min(68vh, 560px)"
             searchPlaceholder="Search orphaned items..."
             sortOptions={ORPHAN_SORT_OPTIONS}
             emptyText="No orphaned items match the current search."

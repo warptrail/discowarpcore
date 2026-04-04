@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import ImageSourcePicker from '../ImageSourcePicker';
+import RetrievalImageLightbox from '../Retrieval/RetrievalImageLightbox';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_CONTROL_MIN_HEIGHT,
@@ -11,6 +12,7 @@ import {
   createImageAssetState,
   toTrimmed,
 } from './imageAssetState';
+import RenderTokenControls from '../Processing/RenderTokenControls';
 
 const Field = styled.section`
   border: 1px solid rgba(105, 154, 176, 0.44);
@@ -60,11 +62,12 @@ const BodyRow = styled.div`
   min-width: 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: ${({ $compact }) => ($compact ? '62px minmax(0, 1fr)' : '68px minmax(0, 1fr)')};
+    grid-template-columns: ${({ $compact, $mobileHeaderPreview }) =>
+      $mobileHeaderPreview ? '1fr' : ($compact ? '62px minmax(0, 1fr)' : '68px minmax(0, 1fr)')};
   }
 `;
 
-const PreviewFrame = styled.div`
+const previewFrameStyles = `
   width: ${({ $compact }) => ($compact ? '66px' : '74px')};
   height: ${({ $compact }) => ($compact ? '66px' : '74px')};
   border-radius: 10px;
@@ -75,8 +78,41 @@ const PreviewFrame = styled.div`
   place-items: center;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    width: ${({ $compact }) => ($compact ? '62px' : '68px')};
-    height: ${({ $compact }) => ($compact ? '62px' : '68px')};
+    width: ${({ $compact, $mobileHeaderPreview }) => $mobileHeaderPreview ? '100%' : ($compact ? '62px' : '68px')};
+    height: ${({ $compact, $mobileHeaderPreview }) => $mobileHeaderPreview ? '132px' : ($compact ? '62px' : '68px')};
+    border-radius: ${({ $mobileHeaderPreview }) => ($mobileHeaderPreview ? '12px' : '10px')};
+  }
+`;
+
+const PreviewFrame = styled.div`
+  ${previewFrameStyles}
+`;
+
+const PreviewButton = styled.button`
+  ${previewFrameStyles}
+  appearance: none;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  margin: 0;
+  cursor: zoom-in;
+  line-height: 0;
+  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+
+  &:hover {
+    border-color: rgba(120, 196, 226, 0.8);
+    box-shadow: 0 0 0 1px rgba(120, 196, 226, 0.16);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: rgba(120, 196, 226, 0.92);
+    box-shadow: 0 0 0 2px rgba(120, 196, 226, 0.22);
+  }
+
+  &:active {
+    transform: scale(0.985);
   }
 `;
 
@@ -84,7 +120,9 @@ const PreviewImage = styled.img`
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: cover;
+  object-fit: ${({ $mobileHeaderPreview }) => ($mobileHeaderPreview ? 'cover' : 'contain')};
+  object-position: center;
+  background: rgba(5, 10, 16, 0.96);
 `;
 
 const Placeholder = styled.div`
@@ -102,89 +140,6 @@ const ActionStack = styled.div`
   min-width: 0;
   align-content: start;
   container-type: inline-size;
-`;
-
-const RenderOptionsPanel = styled.div`
-  border: 1px solid rgba(91, 133, 156, 0.5);
-  border-radius: 8px;
-  background: rgba(10, 22, 30, 0.9);
-  padding: ${({ $compact }) => ($compact ? '0.26rem' : '0.3rem')};
-  display: grid;
-  gap: 0.26rem;
-`;
-
-const RenderModeBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  min-height: 18px;
-  padding: 0.08rem 0.34rem;
-  border-radius: 999px;
-  border: 1px solid rgba(118, 214, 179, 0.62);
-  background: rgba(20, 58, 45, 0.92);
-  color: #c8f6e5;
-  font-size: 0.56rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-`;
-
-const RenderOptionsLabel = styled.div`
-  color: #95b7cb;
-  font-size: 0.59rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-`;
-
-const RenderOptionsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.24rem;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: 1fr;
-  }
-
-  @container (max-width: 420px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  @container (max-width: 320px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const RenderOptionField = styled.label`
-  display: grid;
-  gap: 0.18rem;
-  min-width: 0;
-`;
-
-const RenderOptionLabel = styled.span`
-  color: #c4dcea;
-  font-size: 0.58rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-`;
-
-const RenderSelect = styled.select`
-  min-height: ${({ $compact }) => ($compact ? '30px' : '32px')};
-  border-radius: 7px;
-  border: 1px solid rgba(88, 136, 162, 0.62);
-  background: rgba(11, 24, 33, 0.95);
-  color: #d9ecf6;
-  padding: 0 0.36rem;
-  font-size: 0.64rem;
-  line-height: 1.2;
-
-  &:disabled {
-    opacity: 0.6;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-    font-size: ${MOBILE_FONT_SM};
-  }
 `;
 
 const ActionGrid = styled.div`
@@ -285,33 +240,6 @@ function renderUploadAction(action, compact) {
   );
 }
 
-function normalizeSelectOptions(options = []) {
-  const source = Array.isArray(options) ? options : [];
-  return source
-    .map((entry) => ({
-      id: toTrimmed(entry?.id),
-      label: toTrimmed(entry?.label),
-    }))
-    .filter((entry) => entry.id && entry.label);
-}
-
-function normalizeModeOptions(options = []) {
-  const source = Array.isArray(options) ? options : [];
-  const normalized = source
-    .map((entry) => ({
-      id: toTrimmed(entry?.id).toLowerCase(),
-      label: toTrimmed(entry?.label),
-    }))
-    .filter((entry) => (entry.id === 'explicit' || entry.id === 'random') && entry.label);
-  if (!normalized.length) {
-    return [
-      { id: 'explicit', label: 'Explicit Tokens' },
-      { id: 'random', label: 'Random Tokens' },
-    ];
-  }
-  return normalized;
-}
-
 export default function ImageAssetField({
   className,
   title = 'Image',
@@ -333,13 +261,16 @@ export default function ImageAssetField({
   onRenderTokenChange = null,
   renderTokensDisabled = false,
   compact = false,
+  mobileHeaderPreview = false,
 }) {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const normalizedState = useMemo(
     () => createImageAssetState(imageState || {}),
     [imageState]
   );
 
   const hasImage = Boolean(normalizedState.activeUrl);
+  const lightboxUrl = toTrimmed(normalizedState.activeUrl || normalizedState.originalUrl);
 
   const lines = statusLines
     .filter((entry) => entry && toTrimmed(entry.text))
@@ -348,28 +279,6 @@ export default function ImageAssetField({
       tone: entry.tone || 'default',
       key: entry.key || `${entry.tone || 'default'}:${toTrimmed(entry.text)}`,
     }));
-
-  const normalizedRenderTokenOptions = useMemo(() => ({
-    background: normalizeSelectOptions(renderTokenOptions?.background),
-    glow: normalizeSelectOptions(renderTokenOptions?.glow),
-    accent: normalizeSelectOptions(renderTokenOptions?.accent),
-  }), [renderTokenOptions]);
-
-  const hasRenderTokenSelectors = Boolean(
-    normalizedRenderTokenOptions.background.length &&
-    normalizedRenderTokenOptions.glow.length &&
-    normalizedRenderTokenOptions.accent.length &&
-    renderTokens &&
-    typeof onRenderTokenChange === 'function'
-  );
-  const normalizedTokenMode = toTrimmed(renderTokens?.mode).toLowerCase() === 'random'
-    ? 'random'
-    : 'explicit';
-  const normalizedRenderTokenModeOptions = useMemo(
-    () => normalizeModeOptions(renderTokenModeOptions),
-    [renderTokenModeOptions]
-  );
-  const showExplicitSelectors = normalizedTokenMode !== 'random';
 
   return (
     <Field className={className} $compact={compact}>
@@ -380,14 +289,26 @@ export default function ImageAssetField({
         ) : null}
       </HeaderRow>
 
-      <BodyRow $compact={compact}>
-        <PreviewFrame $compact={compact}>
-          {hasImage ? (
-            <PreviewImage src={normalizedState.activeUrl} alt={previewAlt} />
-          ) : (
+      <BodyRow $compact={compact} $mobileHeaderPreview={mobileHeaderPreview}>
+        {hasImage ? (
+          <PreviewButton
+            type="button"
+            $compact={compact}
+            $mobileHeaderPreview={mobileHeaderPreview}
+            onClick={() => setLightboxOpen(true)}
+            aria-label={`Open full-size ${previewAlt.toLowerCase()}`}
+          >
+            <PreviewImage
+              src={normalizedState.activeUrl}
+              alt={previewAlt}
+              $mobileHeaderPreview={mobileHeaderPreview}
+            />
+          </PreviewButton>
+        ) : (
+          <PreviewFrame $compact={compact} $mobileHeaderPreview={mobileHeaderPreview}>
             <Placeholder>{placeholder}</Placeholder>
-          )}
-        </PreviewFrame>
+          </PreviewFrame>
+        )}
 
         <ActionStack>
           <ActionGrid>
@@ -399,85 +320,14 @@ export default function ImageAssetField({
             {extraActions.map((action) => renderStandardAction(action, compact))}
           </ActionGrid>
 
-          {hasRenderTokenSelectors ? (
-            <RenderOptionsPanel $compact={compact}>
-            <RenderOptionsLabel>Render Tokens</RenderOptionsLabel>
-            {normalizedTokenMode === 'random' ? (
-              <RenderModeBadge>Random mode active</RenderModeBadge>
-            ) : null}
-            <RenderOptionsGrid>
-                <RenderOptionField>
-                  <RenderOptionLabel>Mode</RenderOptionLabel>
-                  <RenderSelect
-                    $compact={compact}
-                    value={normalizedTokenMode}
-                    onChange={(event) => onRenderTokenChange('mode', event.target.value)}
-                    disabled={renderTokensDisabled}
-                  >
-                    {normalizedRenderTokenModeOptions.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </RenderSelect>
-                </RenderOptionField>
-
-                {showExplicitSelectors ? (
-                <RenderOptionField>
-                  <RenderOptionLabel>Background</RenderOptionLabel>
-                  <RenderSelect
-                    $compact={compact}
-                    value={toTrimmed(renderTokens?.background)}
-                    onChange={(event) => onRenderTokenChange('background', event.target.value)}
-                    disabled={renderTokensDisabled}
-                  >
-                    {normalizedRenderTokenOptions.background.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </RenderSelect>
-                </RenderOptionField>
-                ) : null}
-
-                {showExplicitSelectors ? (
-                <RenderOptionField>
-                  <RenderOptionLabel>Glow</RenderOptionLabel>
-                  <RenderSelect
-                    $compact={compact}
-                    value={toTrimmed(renderTokens?.glow)}
-                    onChange={(event) => onRenderTokenChange('glow', event.target.value)}
-                    disabled={renderTokensDisabled}
-                  >
-                    {normalizedRenderTokenOptions.glow.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </RenderSelect>
-                </RenderOptionField>
-                ) : null}
-
-                {showExplicitSelectors ? (
-                <RenderOptionField>
-                  <RenderOptionLabel>Accent</RenderOptionLabel>
-                  <RenderSelect
-                    $compact={compact}
-                    value={toTrimmed(renderTokens?.accent)}
-                    onChange={(event) => onRenderTokenChange('accent', event.target.value)}
-                    disabled={renderTokensDisabled}
-                  >
-                    {normalizedRenderTokenOptions.accent.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </RenderSelect>
-                </RenderOptionField>
-                ) : null}
-              </RenderOptionsGrid>
-            </RenderOptionsPanel>
-          ) : null}
+          <RenderTokenControls
+            renderTokens={renderTokens}
+            renderTokenOptions={renderTokenOptions}
+            renderTokenModeOptions={renderTokenModeOptions}
+            onRenderTokenChange={onRenderTokenChange}
+            disabled={renderTokensDisabled}
+            compact={compact}
+          />
 
         </ActionStack>
       </BodyRow>
@@ -489,6 +339,13 @@ export default function ImageAssetField({
       ))}
 
       {toTrimmed(hint) ? <StatusLine>{toTrimmed(hint)}</StatusLine> : null}
+
+      <RetrievalImageLightbox
+        isOpen={lightboxOpen && Boolean(lightboxUrl)}
+        imageSrc={lightboxUrl}
+        itemName={previewAlt}
+        onClose={() => setLightboxOpen(false)}
+      />
     </Field>
   );
 }

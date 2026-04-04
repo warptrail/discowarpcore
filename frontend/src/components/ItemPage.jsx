@@ -7,6 +7,7 @@ import {
   markItemGone,
   restoreItemToActive,
 } from '../api/itemLifecycle';
+import { editItem } from '../api/editItem';
 import ItemDetails from './ItemDetails';
 import ItemPageBreadcrumb from './ItemPageBreadcrumb';
 import EditItemDetailsForm from './EditItemDetailsForm';
@@ -409,6 +410,45 @@ export default function ItemPage() {
     [item, loadItem, requestRemoveFromBoxMutation, showToast, showUndoToast]
   );
 
+  const handleToggleConsumable = useCallback(async () => {
+    if (!item?._id) return false;
+
+    const nextConsumable = !Boolean(item?.isConsumable);
+    const itemName = getItemName(item);
+
+    try {
+      setContainerPending(true);
+      setContainerError('');
+
+      await editItem(item._id, { isConsumable: nextConsumable });
+      const refreshed = await loadItem({ preserveLoading: true });
+      const resolvedName = getItemName(refreshed || item);
+
+      showToast?.({
+        variant: 'success',
+        title: nextConsumable ? 'Consumable enabled' : 'Consumable cleared',
+        message: nextConsumable
+          ? `"${resolvedName}" now tracks as consumable inventory.`
+          : `"${resolvedName}" no longer tracks as consumable inventory.`,
+        timeoutMs: 3600,
+      });
+
+      return true;
+    } catch (err) {
+      const message = err?.message || `Could not update consumable state for "${itemName}".`;
+      setContainerError(message);
+      showToast?.({
+        variant: 'danger',
+        title: 'Consumable update failed',
+        message,
+        timeoutMs: 4600,
+      });
+      return false;
+    } finally {
+      setContainerPending(false);
+    }
+  }, [item, loadItem, showToast]);
+
   const dismissLifecycleDialog = useCallback(() => {
     setLifecycleDialog(null);
     hideToast?.();
@@ -471,6 +511,7 @@ export default function ItemPage() {
     processingStatus: processImageStatus,
     processingState: processImageState,
     processingError: processImageError,
+    jobProgressLabel: processImageProgressLabel,
     isBusy: processImageBusy,
     activeVariant,
     hasProcessedVariant,
@@ -484,6 +525,32 @@ export default function ItemPage() {
     onCompleted: handleImageProcessingCompleted,
     onFailed: handleImageProcessingFailed,
   });
+
+  useEffect(() => {
+    const normalizedVariant = String(processImageState?.activeVariant || '').trim().toLowerCase();
+    const nextPreviewUrl = String(
+      processImageState?.preferredImageUrl ||
+      processImageState?.displayUrl ||
+      processImageState?.thumbUrl ||
+      processImageState?.processedUrl ||
+      ''
+    ).trim();
+
+    if (normalizedVariant === 'processed' && nextPreviewUrl) {
+      setProcessedPreviewUrl((current) => (current === nextPreviewUrl ? current : nextPreviewUrl));
+      return;
+    }
+
+    if (normalizedVariant === 'original') {
+      setProcessedPreviewUrl((current) => (current ? '' : current));
+    }
+  }, [
+    processImageState?.activeVariant,
+    processImageState?.preferredImageUrl,
+    processImageState?.displayUrl,
+    processImageState?.thumbUrl,
+    processImageState?.processedUrl,
+  ]);
 
   const handleProcessItemImage = useCallback(async (renderTokens) => {
     try {
@@ -517,11 +584,11 @@ export default function ItemPage() {
       showToast?.({
         variant: 'info',
         title: 'Image processing in progress',
-        message: 'ObjectGlow/media processing is running.',
+        message: processImageProgressLabel || 'ObjectGlow/media processing is running.',
         sticky: true,
       });
     }
-  }, [processImageStatus, showToast]);
+  }, [processImageProgressLabel, processImageStatus, showToast]);
 
   const handleSwitchItemVariant = useCallback(async (nextVariant) => {
     try {
@@ -809,6 +876,7 @@ export default function ItemPage() {
         error={containerError}
         onMoveItem={handleMoveItem}
         onRemoveFromBox={handleRemoveFromBox}
+        onToggleConsumable={handleToggleConsumable}
         timestampActions={isGoneItem ? [] : timestampActions}
       />
 
@@ -838,6 +906,7 @@ export default function ItemPage() {
           processImageStatus={processImageStatus}
           processImageBusy={processImageBusy}
           processImageError={processImageError}
+          processImageProgressLabel={processImageProgressLabel}
           persistedRenderTokens={processImageState?.renderTokens || null}
           activeVariant={activeVariant}
           hasProcessedVariant={hasProcessedVariant}

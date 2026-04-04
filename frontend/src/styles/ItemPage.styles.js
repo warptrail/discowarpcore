@@ -542,9 +542,10 @@ export const ContainerSecondaryValue = styled.span`
 `;
 
 export const ContainerButton = styled.button`
-  border: 1px solid ${LCARS.teal}80;
+  border: 1px solid ${({ $active }) => ($active ? `${LCARS.amber}88` : `${LCARS.teal}80`)};
   border-radius: 8px;
-  background: rgba(76, 198, 193, 0.15);
+  background: ${({ $active }) =>
+    $active ? 'rgba(232, 177, 92, 0.18)' : 'rgba(76, 198, 193, 0.15)'};
   color: ${LCARS.text};
   font-size: 0.78rem;
   font-weight: 700;
@@ -556,8 +557,9 @@ export const ContainerButton = styled.button`
   transition: border-color 120ms ease, background 120ms ease;
 
   &:hover:enabled {
-    border-color: ${LCARS.teal};
-    background: rgba(76, 198, 193, 0.24);
+    border-color: ${({ $active }) => ($active ? LCARS.amber : LCARS.teal)};
+    background: ${({ $active }) =>
+      $active ? 'rgba(232, 177, 92, 0.28)' : 'rgba(76, 198, 193, 0.24)'};
   }
 
   &:disabled {

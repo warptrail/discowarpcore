@@ -25,12 +25,16 @@ async function readJsonPayload(jsonPath) {
 }
 
 async function listImageFiles(dirPath) {
-  const entries = await fs.readdir(dirPath, { withFileTypes: true });
-  return entries
-    .filter((entry) => entry.isFile())
-    .map((entry) => entry.name)
-    .filter((name) => ALLOWED_EXTENSIONS.has(path.extname(name).toLowerCase()))
-    .sort((left, right) => left.localeCompare(right));
+  try {
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isFile())
+      .map((entry) => entry.name)
+      .filter((name) => ALLOWED_EXTENSIONS.has(path.extname(name).toLowerCase()))
+      .sort((left, right) => left.localeCompare(right));
+  } catch {
+    return [];
+  }
 }
 
 async function summarizeBatch({ jsonPath, csvPath, sourceDir }) {
@@ -41,14 +45,38 @@ async function summarizeBatch({ jsonPath, csvPath, sourceDir }) {
 
   const items = Array.isArray(payload.items) ? payload.items : [];
   const itemsWithImageKeys = items.filter((item) => toTrimmed(item?.imageKey));
-  const csvSourceFiles = await parseImageOrderCsv(csvPath);
   const originalImageFiles = await listImageFiles(sourceDir);
+  const originalImageSet = new Set(originalImageFiles);
+  const imagesIncluded = originalImageFiles.length > 0;
+  const csvSourceFiles = (csvPath)
+    ? await parseImageOrderCsv(csvPath)
+    : [];
+
+  let readyCount = 0;
+  let missingCount = 0;
+  let ambiguousCount = 0;
+
+  if (imagesIncluded) {
+    for (const sourceFile of csvSourceFiles) {
+      if (!sourceFile) continue;
+      if (originalImageSet.has(sourceFile)) {
+        readyCount += 1;
+      } else {
+        missingCount += 1;
+      }
+    }
+  }
 
   return {
     totalItems: items.length,
     itemsWithImageKeysCount: itemsWithImageKeys.length,
+    rowCount: csvSourceFiles.length,
+    readyCount,
+    missingCount,
+    ambiguousCount,
     csvSourceFilesCount: csvSourceFiles.length,
     originalImageFilesCount: originalImageFiles.length,
+    imagesIncluded,
     csvSourceFiles,
     originalImageFiles,
   };
@@ -56,26 +84,30 @@ async function summarizeBatch({ jsonPath, csvPath, sourceDir }) {
 
 function validateBatchSummary(summary) {
   const errors = [];
+  const warnings = [];
 
-  if (summary.itemsWithImageKeysCount === 0) {
-    errors.push('No items with imageKey were found in merged_inventory_batch.json.');
-  }
-
-  if (summary.csvSourceFilesCount !== summary.itemsWithImageKeysCount) {
+  if (summary.imagesIncluded && summary.csvSourceFilesCount !== summary.itemsWithImageKeysCount) {
     errors.push(
       `CSV row count (${summary.csvSourceFilesCount}) does not match items with imageKey (${summary.itemsWithImageKeysCount}).`
     );
   }
 
-  if (summary.originalImageFilesCount !== summary.csvSourceFilesCount) {
-    errors.push(
-      `original_images file count (${summary.originalImageFilesCount}) does not match raw image-order CSV row count (${summary.csvSourceFilesCount}).`
+  if (!summary.imagesIncluded) {
+    warnings.push(
+      summary.csvSourceFilesCount > 0
+        ? 'No source images included; validation checked AI JSON and mapping CSV only.'
+        : 'No source images included; validation checked AI JSON only.'
+    );
+  } else if (summary.originalImageFilesCount !== summary.csvSourceFilesCount) {
+    warnings.push(
+      `original_images file count (${summary.originalImageFilesCount}) differs from raw image-order CSV row count (${summary.csvSourceFilesCount}).`
     );
   }
 
   return {
     ok: errors.length === 0,
     errors,
+    warnings,
   };
 }
 
@@ -95,6 +127,10 @@ async function main() {
   console.log(`- items with imageKey: ${summary.itemsWithImageKeysCount}`);
   console.log(`- image-order CSV rows: ${summary.csvSourceFilesCount}`);
   console.log(`- original_images files: ${summary.originalImageFilesCount}`);
+
+  validation.warnings.forEach((warning) => {
+    console.warn(`- warning: ${warning}`);
+  });
 
   if (!validation.ok) {
     validation.errors.forEach((error) => {

@@ -6,6 +6,7 @@ const {
   enqueueMediaProcessingJob,
   getMediaJobStatus,
   listMediaJobs,
+  subscribeToMediaJobEvents,
 } = require('../services/mediaJobService');
 const {
   MEDIA_ERROR_CODES,
@@ -135,10 +136,93 @@ async function getMediaJobsApi(req, res) {
   }
 }
 
+async function getMediaJobEventsApi(req, res) {
+  let unsubscribe = null;
+  let keepAliveId = null;
+
+  try {
+    const jobId = toTrimmedString(req.params?.jobId);
+    const snapshot = await getMediaJobStatus(jobId);
+
+    res.status(200);
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    if (typeof res.flushHeaders === 'function') {
+      res.flushHeaders();
+    }
+
+    const writeEvent = (eventName, payload) => {
+      res.write(`event: ${eventName}\n`);
+      res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    };
+
+    writeEvent('snapshot', {
+      type: 'snapshot',
+      job: snapshot?.job || null,
+      queueStatus: snapshot?.queueStatus || null,
+      event: null,
+    });
+
+    if (['completed', 'failed'].includes(String(snapshot?.job?.status || '').toLowerCase())) {
+      writeEvent('terminal', {
+        type: 'terminal',
+        job: snapshot?.job || null,
+        queueStatus: snapshot?.queueStatus || null,
+        event: null,
+      });
+      res.end();
+      return;
+    }
+
+    unsubscribe = subscribeToMediaJobEvents(jobId, (payload) => {
+      const jobStatus = String(payload?.job?.status || '').toLowerCase();
+      writeEvent('update', {
+        ...payload,
+        queueStatus: snapshot?.queueStatus || null,
+      });
+
+      if (jobStatus === 'completed' || jobStatus === 'failed') {
+        writeEvent('terminal', {
+          ...payload,
+          type: 'terminal',
+          queueStatus: snapshot?.queueStatus || null,
+        });
+        unsubscribe?.();
+        unsubscribe = null;
+        if (keepAliveId) {
+          clearInterval(keepAliveId);
+          keepAliveId = null;
+        }
+        res.end();
+      }
+    });
+
+    keepAliveId = setInterval(() => {
+      res.write(': keepalive\n\n');
+    }, 15000);
+
+    req.on('close', () => {
+      unsubscribe?.();
+      unsubscribe = null;
+      if (keepAliveId) {
+        clearInterval(keepAliveId);
+        keepAliveId = null;
+      }
+    });
+  } catch (error) {
+    if (!res.headersSent) {
+      return sendMediaError(res, error);
+    }
+    res.end();
+  }
+}
+
 module.exports = {
   postMediaProcessTestApi,
   postMediaBatchTestApi,
   postMediaJobEnqueueApi,
   getMediaJobStatusApi,
+  getMediaJobEventsApi,
   getMediaJobsApi,
 };

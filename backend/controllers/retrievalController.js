@@ -12,6 +12,7 @@ async function getRetrievalItemsApi(req, res) {
       location: req.query.location,
       owner: req.query.owner,
       keepPriority: req.query.keepPriority,
+      sort: req.query.sort,
       limit: req.query.limit,
       offset: req.query.offset,
     });

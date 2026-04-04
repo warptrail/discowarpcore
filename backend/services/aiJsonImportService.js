@@ -59,6 +59,12 @@ function normalizeNullableText(value) {
   return cleaned ? cleaned : null;
 }
 
+function normalizeNullableObjectId(value) {
+  const cleaned = normalizeNullableText(value);
+  if (!cleaned) return null;
+  return Box.isValidId(cleaned) ? cleaned : null;
+}
+
 function sanitizeSource(value) {
   const cleaned = normalizeText(value)
     .replace(/[\u0000-\u001f\u007f]/g, '')
@@ -857,6 +863,7 @@ async function importAiJsonItems(body = {}) {
 
   const createdItemIds = [];
   const createdEntries = [];
+  const sourceBatchId = normalizeNullableObjectId(body?.sourceBatchId);
   const failures = validation.validationErrors
     .filter((entry) => !isTopLevelValidationError(entry))
     .map((entry) => ({
@@ -905,6 +912,7 @@ async function importAiJsonItems(body = {}) {
       quantity: normalizedItem.quantity,
       location: normalizedItem.location || '',
       source: validation.normalizedBatchContext.source,
+      sourceBatchId,
       orphanedAt: targetBoxRef?.id ? null : new Date(),
     };
 

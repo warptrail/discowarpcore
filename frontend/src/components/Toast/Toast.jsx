@@ -5,6 +5,7 @@ import {
   MOBILE_CONTROL_MIN_HEIGHT,
   MOBILE_NARROW_BREAKPOINT,
 } from '../../styles/tokens';
+import { keyframes } from 'styled-components';
 
 const Wrap = styled.div`
   position: relative;
@@ -96,6 +97,64 @@ const Idle = styled.div`
     font-size: 0.82rem;
   }
 `;
+
+const RetrievalStateWrap = styled.div`
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+`;
+
+const RetrievalTop = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+`;
+
+const RetrievalName = styled.span`
+  color: #eaf4ff;
+  font-size: 0.86rem;
+  font-weight: 760;
+  line-height: 1.2;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const RetrievalBoxId = styled.span`
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(119, 213, 255, 0.52);
+  background: rgba(119, 213, 255, 0.18);
+  color: #c8eeff;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  font-weight: 820;
+  font-size: 0.78rem;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  padding: 0.18rem 0.42rem;
+  flex: 0 0 auto;
+`;
+
+const RetrievalOrphaned = styled(RetrievalBoxId)`
+  border-color: rgba(224, 49, 49, 0.62);
+  background: rgba(224, 49, 49, 0.2);
+  color: #ffd7d7;
+`;
+
+const RetrievalMeta = styled.span`
+  color: rgba(226, 236, 247, 0.72);
+  font-size: 0.74rem;
+  line-height: 1.25;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
 const Controls = styled.div`
   display: flex;
   align-items: flex-start;
@@ -152,20 +211,56 @@ const CloseBtn = styled(Btn)`
   }
 `;
 
+const spin = keyframes`
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+`;
+
+const Spinner = styled.span`
+  width: 0.88rem;
+  height: 0.88rem;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  border-top-color: rgba(255, 255, 255, 0.96);
+  animation: ${spin} 0.8s linear infinite;
+  flex: 0 0 auto;
+`;
+
 export default function Toast({
   open,
   title,
   message,
   content,
   variant = 'info', // 'success' | 'warning' | 'danger' | 'info'
+  loading = false,
   actions = [], // [{id?, label, onClick, kind}] kind 'primary'|'ghost'
   onClose,
   showIdle = true,
   idleIcon = '📦',
   idleText = 'Standing by…',
+  activeRetrievalItem = null,
 }) {
-  const isIdle = !open;
+  const hasActiveRetrieval =
+    !open && activeRetrievalItem && typeof activeRetrievalItem === 'object';
+  const isIdle = !open && !hasActiveRetrieval;
   const hasContent = !isIdle && !!content;
+  const retrievalName = String(activeRetrievalItem?.name || '').trim();
+  const retrievalBoxId = String(activeRetrievalItem?.boxNumber || '').trim();
+  const retrievalBoxName = String(activeRetrievalItem?.boxName || '').trim();
+  const retrievalLocation = String(activeRetrievalItem?.locationLabel || '').trim();
+  const retrievalIsOrphaned = !retrievalBoxId;
 
   return (
     <Wrap
@@ -184,9 +279,27 @@ export default function Toast({
               <span>{idleText}</span>
             </Idle>
           ) : null
+        ) : hasActiveRetrieval ? (
+          <RetrievalStateWrap>
+            <RetrievalTop>
+              {retrievalIsOrphaned ? (
+                <RetrievalOrphaned>ORPHANED</RetrievalOrphaned>
+              ) : (
+                <RetrievalBoxId>{`#${retrievalBoxId}`}</RetrievalBoxId>
+              )}
+              <RetrievalName>{retrievalName || 'Expanded item'}</RetrievalName>
+            </RetrievalTop>
+            {retrievalLocation ? <RetrievalMeta>{`Location: ${retrievalLocation}`}</RetrievalMeta> : null}
+            {retrievalBoxName ? <RetrievalMeta>{retrievalBoxName}</RetrievalMeta> : null}
+          </RetrievalStateWrap>
         ) : (
           <>
-            {title && <Title>{title}</Title>}
+            {title ? (
+              <TitleRow>
+                {loading ? <Spinner aria-hidden="true" /> : null}
+                <Title>{title}</Title>
+              </TitleRow>
+            ) : null}
             {message && <Msg>{message}</Msg>}
             {hasContent && <ContentWrap>{content}</ContentWrap>}
           </>

@@ -11,6 +11,7 @@ export default function ItemImageField({
   processImageStatus = 'idle',
   processImageBusy = false,
   processImageError = '',
+  processImageProgressLabel = '',
   persistedRenderTokens = null,
   activeVariant = 'original',
   hasProcessedVariant = false,
@@ -61,6 +62,7 @@ export default function ItemImageField({
       processImageStatus={processImageStatus}
       processImageBusy={processImageBusy}
       processImageError={processImageError}
+      processImageProgressLabel={processImageProgressLabel}
       persistedRenderTokens={persistedRenderTokens}
       processActionLabels={{
         idle: 'Process Item Image',

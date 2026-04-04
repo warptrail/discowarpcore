@@ -9,7 +9,6 @@ var/
       <batch-id>/
         merged_inventory_batch.json
         image_order.csv
-        collage.jpg
         imagekey_mapping.csv
         original_images/
         staged_images/
@@ -30,8 +29,6 @@ Canonical app data still lives in MongoDB and app-managed media storage after im
   The merged JSON payload used for AI JSON import.
 - `image_order.csv`
   The SnapSheet image-order export or equivalent ordered filename list.
-- `collage.jpg`
-  Optional visual reference or collage.
 - `imagekey_mapping.csv`
   Generated source-to-staged mapping for debugging and auditability.
 - `original_images/`
@@ -104,7 +101,7 @@ You can still override individual paths explicitly when needed.
 ## Workflow
 
 1. Create a batch folder.
-2. Put merged JSON, image-order CSV, and optional collage into that batch.
+2. Put merged JSON and image-order CSV into that batch.
 3. Copy or sync source photos into `original_images/`.
 4. Fill missing `imageKey` values if needed.
 5. Run batch validation to confirm JSON/CSV/image counts line up.

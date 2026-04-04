@@ -1,12 +1,6 @@
-import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
-import {
-  fetchBatchImportReadySummary,
-  importAiJsonItems,
-  processBatchImportReadyImages,
-  validateAiJsonImport,
-} from '../../api/bulkImport';
-import { ToastContext } from '../Toast';
+import { importAiJsonItems, validateAiJsonImport } from '../../api/bulkImport';
 import IntakeBatchManager from './IntakeBatchManager';
 import {
   MOBILE_BREAKPOINT,
@@ -339,14 +333,14 @@ function normalizeImportResult(raw = {}) {
   };
 }
 
-export default function BulkImportAiJsonPanel() {
+export default function BulkImportAiJsonPanel({
+  selectedBatchIdOverride = '',
+  onSelectedBatchIdChange = null,
+  onSelectedBatchIdInvalid = null,
+}) {
   const jsonFileInputRef = useRef(null);
-  const importImageInputRef = useRef(null);
-  const toastCtx = useContext(ToastContext);
   const [jsonText, setJsonText] = useState('');
   const [jsonFileName, setJsonFileName] = useState('');
-  const [importImageFiles, setImportImageFiles] = useState([]);
-  const [importImageFolderLabel, setImportImageFolderLabel] = useState('');
   const [validationBusy, setValidationBusy] = useState(false);
   const [importBusy, setImportBusy] = useState(false);
   const [hasValidatedCurrentText, setHasValidatedCurrentText] = useState(false);
@@ -368,13 +362,6 @@ export default function BulkImportAiJsonPanel() {
     if (validationResult.isImportable) return 'warning';
     return 'error';
   }, [validationResult]);
-
-  useEffect(() => {
-    const input = importImageInputRef.current;
-    if (!input) return;
-    input.setAttribute('webkitdirectory', '');
-    input.setAttribute('directory', '');
-  }, []);
 
   const handleJsonTextChange = (event) => {
     setJsonText(event.target.value);
@@ -412,21 +399,6 @@ export default function BulkImportAiJsonPanel() {
       setFeedback({ tone: 'error', message: err?.message || 'Failed to read JSON file.' });
       event.target.value = '';
     }
-  };
-
-  const handleImportImageFolderChange = (event) => {
-    const files = Array.from(event.target.files || []).filter(Boolean);
-    setImportImageFiles(files);
-
-    if (!files.length) {
-      setImportImageFolderLabel('');
-      return;
-    }
-
-    const firstRelativePath = String(files[0]?.webkitRelativePath || '').trim();
-    const folderName = firstRelativePath.split('/').filter(Boolean)[0]
-      || 'selected image folder';
-    setImportImageFolderLabel(folderName);
   };
 
   const handleValidate = async () => {
@@ -480,9 +452,7 @@ export default function BulkImportAiJsonPanel() {
     setFeedback({ tone: 'info', message: '' });
 
     try {
-      const result = normalizeImportResult(
-        await importAiJsonItems({ jsonText, importImageFiles })
-      );
+      const result = normalizeImportResult(await importAiJsonItems({ jsonText }));
       setImportResult(result);
       setFeedback({
         tone: result.status === 'failed' ? 'error' : 'success',
@@ -493,47 +463,6 @@ export default function BulkImportAiJsonPanel() {
               ? `Imported ${result.createdCount} items with ${result.failedCount} issue${result.failedCount === 1 ? '' : 's'}.`
               : 'Import failed. No items were created.',
       });
-
-      const readyCount = Number(result?.imageImportSummary?.readyCount) || 0;
-      if (readyCount > 0) {
-        const latestSummary = await fetchBatchImportReadySummary().catch(() => null);
-        const totalReadyCount = Number(latestSummary?.readyCount) || readyCount;
-
-        toastCtx?.showToast?.({
-          title: 'Imported images ready',
-          message: `${readyCount} new image${readyCount === 1 ? '' : 's'} are ready for batch processing.${totalReadyCount > readyCount ? ` ${totalReadyCount} total pending.` : ''}`,
-          variant: 'warning',
-          sticky: true,
-          actions: [
-            {
-              label: 'Process Now',
-              kind: 'primary',
-              onClick: async () => {
-                try {
-                  const queued = await processBatchImportReadyImages();
-                  const queuedCount = Number(queued?.queuedCount) || 0;
-                  toastCtx?.showToast?.({
-                    title: 'Batch processing queued',
-                    message: `Queued ${queuedCount} imported image${queuedCount === 1 ? '' : 's'} for processing.`,
-                    variant: 'success',
-                  });
-                } catch (error) {
-                  toastCtx?.showToast?.({
-                    title: 'Batch processing start failed',
-                    message: error?.message || 'Failed to queue imported images for processing.',
-                    variant: 'danger',
-                    sticky: true,
-                  });
-                }
-              },
-            },
-            {
-              label: 'Later',
-              onClick: () => toastCtx?.hideToast?.(),
-            },
-          ],
-        });
-      }
     } catch (err) {
       const body = err?.responseBody || {};
       setImportResult(
@@ -566,13 +495,17 @@ export default function BulkImportAiJsonPanel() {
         <IntroText>Use the batch workflow for normal intake. Direct JSON import stays available as an advanced fallback.</IntroText>
       </IntroPanel>
 
-      <IntakeBatchManager />
+      <IntakeBatchManager
+        selectedBatchIdOverride={selectedBatchIdOverride}
+        onSelectedBatchIdChange={onSelectedBatchIdChange}
+        onSelectedBatchIdInvalid={onSelectedBatchIdInvalid}
+      />
 
       <AdvancedWrap>
         <AdvancedSummary>
           <AdvancedHeader>
             <AdvancedTitle>Advanced Direct JSON Import</AdvancedTitle>
-            <AdvancedText>Use this only when you want to skip the repo-local batch workflow.</AdvancedText>
+            <AdvancedText>Use this only when you want to skip the repo-local batch workflow and import JSON items without images.</AdvancedText>
           </AdvancedHeader>
           <AdvancedPill>{canImport ? 'ready' : 'manual mode'}</AdvancedPill>
         </AdvancedSummary>
@@ -593,29 +526,12 @@ export default function BulkImportAiJsonPanel() {
           </Section>
 
           <Section>
-            <Label htmlFor="bulk-import-ai-image-folder">Direct Import Images Folder</Label>
-            <FileInput
-              id="bulk-import-ai-image-folder"
-              ref={importImageInputRef}
-              type="file"
-              accept=".jpg,.jpeg,.png,.webp,.heic,image/jpeg,image/png,image/webp,image/heic"
-              multiple
-              onChange={handleImportImageFolderChange}
-            />
-            <StatusLine>
-              {importImageFiles.length
-                ? `Loaded ${importImageFiles.length} image file${importImageFiles.length === 1 ? '' : 's'} from ${importImageFolderLabel || 'selected folder'}. Exact basename must match imageKey.`
-                : 'Only needed when the JSON already contains imageKey values.'}
-            </StatusLine>
-          </Section>
-
-          <Section>
             <Label htmlFor="bulk-import-ai-json-text">Direct AI JSON Payload</Label>
             <TextArea
               id="bulk-import-ai-json-text"
               value={jsonText}
               onChange={handleJsonTextChange}
-              placeholder='{"batchContext":{"source":"ai_json_import"},"items":[{"name":"Example Item","description":"","category":"miscellaneous","tags":[],"quantity":1,"location":null,"box":null,"imageKey":"example-item"}]}'
+              placeholder='{"batchContext":{"source":"ai_json_import"},"items":[{"name":"Example Item","description":"","category":"miscellaneous","tags":[],"quantity":1,"location":null,"box":null}]}'
             />
           </Section>
 

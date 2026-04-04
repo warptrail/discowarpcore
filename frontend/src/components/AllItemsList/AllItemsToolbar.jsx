@@ -19,6 +19,7 @@ export default function AllItemsToolbar({
   onSortChange,
   onSearchChange,
   categoryOptions = [],
+  batchOptions = [],
   visibleCount = 0,
   totalCount = 0,
   activeCount = 0,
@@ -26,6 +27,7 @@ export default function AllItemsToolbar({
   orphanedCount = 0,
 }) {
   const safeCategoryOptions = Array.isArray(categoryOptions) ? categoryOptions : [];
+  const safeBatchOptions = Array.isArray(batchOptions) ? batchOptions : [];
 
   return (
     <S.HeaderPanel>
@@ -88,6 +90,11 @@ export default function AllItemsToolbar({
                 {option.label}
               </option>
             ))}
+            {safeBatchOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </S.Select>
         </S.ControlGroup>
 
@@ -102,6 +109,7 @@ export default function AllItemsToolbar({
           </S.Select>
         </S.ControlGroup>
       </S.ControlsRow>
+
     </S.HeaderPanel>
   );
 }

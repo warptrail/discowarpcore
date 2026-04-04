@@ -77,6 +77,92 @@ function normalizeMediaState(payload) {
   };
 }
 
+function normalizeMediaJobProgress(payload) {
+  if (!payload || typeof payload !== 'object') return null;
+
+  const warning =
+    payload.warning && typeof payload.warning === 'object'
+      ? {
+          code: toTrimmed(payload.warning.code),
+          message: toTrimmed(payload.warning.message),
+        }
+      : null;
+
+  return {
+    event: toTrimmed(payload.event),
+    stage: toTrimmed(payload.stage),
+    message: toTrimmed(payload.message),
+    progressPercent:
+      typeof payload.progressPercent === 'number' && Number.isFinite(payload.progressPercent)
+        ? payload.progressPercent
+        : null,
+    stageCurrent:
+      typeof payload.stageCurrent === 'number' && Number.isFinite(payload.stageCurrent)
+        ? payload.stageCurrent
+        : null,
+    stageTotal:
+      typeof payload.stageTotal === 'number' && Number.isFinite(payload.stageTotal)
+        ? payload.stageTotal
+        : null,
+    etaSeconds:
+      typeof payload.etaSeconds === 'number' && Number.isFinite(payload.etaSeconds)
+        ? payload.etaSeconds
+        : null,
+    elapsedSeconds:
+      typeof payload.elapsedSeconds === 'number' && Number.isFinite(payload.elapsedSeconds)
+        ? payload.elapsedSeconds
+        : null,
+    lastProgressAt: payload.lastProgressAt || null,
+    outputPath: toTrimmed(payload.outputPath),
+    warning,
+  };
+}
+
+function normalizeMediaJob(payload) {
+  if (!payload || typeof payload !== 'object') return null;
+
+  return {
+    id: toTrimmed(payload.id),
+    operation: toTrimmed(payload.operation),
+    status: toTrimmed(payload.status).toLowerCase() || 'queued',
+    batchId: toTrimmed(payload.batchId),
+    mediaId: toTrimmed(payload.mediaId),
+    originalPath: toTrimmed(payload.originalPath),
+    outputPath: toTrimmed(payload.outputPath),
+    createdAt: payload.createdAt || null,
+    startedAt: payload.startedAt || null,
+    finishedAt: payload.finishedAt || null,
+    updatedAt: payload.updatedAt || null,
+    attemptCount: Number(payload.attemptCount) || 0,
+    renderTokens: normalizeRenderTokens(payload.renderTokens),
+    result: payload.result && typeof payload.result === 'object' ? payload.result : null,
+    error: payload.error && typeof payload.error === 'object' ? payload.error : null,
+    processingState: normalizeMediaState(payload.processingState || null),
+    progress: normalizeMediaJobProgress(payload.progress || null),
+    currentStage: toTrimmed(payload.currentStage),
+    progressPercent:
+      typeof payload.progressPercent === 'number' && Number.isFinite(payload.progressPercent)
+        ? payload.progressPercent
+        : null,
+    message: toTrimmed(payload.message),
+    lastProgressAt: payload.lastProgressAt || null,
+    elapsedSeconds:
+      typeof payload.elapsedSeconds === 'number' && Number.isFinite(payload.elapsedSeconds)
+        ? payload.elapsedSeconds
+        : null,
+    etaSeconds:
+      typeof payload.etaSeconds === 'number' && Number.isFinite(payload.etaSeconds)
+        ? payload.etaSeconds
+        : null,
+    recentEvents: Array.isArray(payload.recentEvents) ? payload.recentEvents : [],
+  };
+}
+
+export function isTerminalMediaJobStatus(status) {
+  const normalized = toTrimmed(status).toLowerCase();
+  return normalized === 'completed' || normalized === 'failed';
+}
+
 export function isTerminalMediaStatus(status) {
   const normalized = toTrimmed(status).toLowerCase();
   return normalized === 'completed' || normalized === 'failed';
@@ -301,6 +387,96 @@ export async function fetchMediaStateById(mediaId, { signal } = {}) {
 
   const json = await response.json().catch(() => ({}));
   return normalizeMediaState(json?.data || null);
+}
+
+export async function fetchMediaJobStatus(jobId, { signal } = {}) {
+  const normalizedJobId = toTrimmed(jobId);
+  if (!normalizedJobId) throw new Error('jobId is required');
+
+  const url = `${API_BASE}/api/media/jobs/${encodeURIComponent(normalizedJobId)}`;
+  const response = await fetch(url, {
+    method: 'GET',
+    signal,
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) {
+    const message = await parseApiError(
+      response,
+      `Failed to fetch media job (${response.status})`
+    );
+    throw new Error(message);
+  }
+
+  const json = await response.json().catch(() => ({}));
+  const data = json?.data || {};
+  return {
+    job: normalizeMediaJob(data.job || null),
+    queueStatus: data.queueStatus || null,
+  };
+}
+
+export function subscribeToMediaJobEvents(
+  jobId,
+  {
+    onSnapshot,
+    onUpdate,
+    onTerminal,
+    onError,
+  } = {}
+) {
+  const normalizedJobId = toTrimmed(jobId);
+  if (!normalizedJobId) {
+    throw new Error('jobId is required');
+  }
+
+  if (typeof window === 'undefined' || typeof window.EventSource !== 'function') {
+    throw new Error('EventSource is not available in this environment.');
+  }
+
+  const url = `${API_BASE}/api/media/jobs/${encodeURIComponent(normalizedJobId)}/events`;
+  const source = new window.EventSource(url, { withCredentials: false });
+
+  const parsePayload = (rawEvent) => {
+    try {
+      const parsed = JSON.parse(rawEvent?.data || '{}');
+      return {
+        type: toTrimmed(parsed.type),
+        job: normalizeMediaJob(parsed.job || null),
+        queueStatus: parsed.queueStatus || null,
+        event: parsed.event && typeof parsed.event === 'object' ? parsed.event : null,
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  source.addEventListener('snapshot', (event) => {
+    const payload = parsePayload(event);
+    if (!payload) return;
+    onSnapshot?.(payload);
+  });
+
+  source.addEventListener('update', (event) => {
+    const payload = parsePayload(event);
+    if (!payload) return;
+    onUpdate?.(payload);
+  });
+
+  source.addEventListener('terminal', (event) => {
+    const payload = parsePayload(event);
+    if (!payload) return;
+    onTerminal?.(payload);
+    source.close();
+  });
+
+  source.onerror = (event) => {
+    onError?.(event);
+  };
+
+  return () => {
+    source.close();
+  };
 }
 
 export async function setItemActiveVariant(itemId, activeVariant, { signal } = {}) {

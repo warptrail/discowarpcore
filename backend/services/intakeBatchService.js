@@ -1,23 +1,95 @@
 const fs = require('fs/promises');
 const path = require('path');
+const mongoose = require('mongoose');
+const os = require('os');
+const { execFile } = require('child_process');
+const { promisify } = require('util');
 
+const Batch = require('../models/Batch');
+const Item = require('../models/Item');
+const Box = require('../models/Box');
+const MediaState = require('../models/MediaState');
 const {
+  REPO_ROOT,
   BATCHES_ROOT,
+  RECEIPT_FILENAME,
   createBatchId,
   ensureBatchStructure,
+  getExternalIntakeRoot,
   getBatchLayout,
   toTrimmed,
 } = require('../../scripts/intakeWorkspace');
+const { toAbsoluteMediaPath } = require('../config/media');
 const { summarizeBatch, validateBatchSummary } = require('../../scripts/validate_intake_batch');
 const { stageBatchImages } = require('../../scripts/stage_imagekey_files');
 const { importAiJsonItems } = require('./aiJsonImportService');
+const { ensureItemMediaState } = require('./entityMediaService');
+const { enqueueMediaProcessingJobById } = require('./mediaJobService');
+const { collectImageStoragePaths } = require('./imageMetadataService');
+const { safeDeleteMediaFiles } = require('../utils/mediaCleanup');
+const {
+  DEFAULT_RENDER_TOKENS,
+  validateRenderTokens,
+} = require('./renderTokenContract');
 
 const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.heic']);
 const JSON_EXTENSIONS = new Set(['.json']);
 const CSV_EXTENSIONS = new Set(['.csv']);
+const RECEIPT_VERSION = 1;
+const RECEIPT_APP_NAME = 'discowarpcore';
+const PRODUCTION_TARGET = 'mongo-batch-provenance-and-server-media';
+const PACKAGE_FILES = Object.freeze({
+  manifest: 'manifest.json',
+  aiIntakeJson: 'ai_intake.json',
+  importReadyJson: 'import_ready.json',
+  collageManifestJson: 'collage_manifest.json',
+  legacyCsv: 'image_mapping.csv',
+  imageOrderCsv: 'image_order.csv',
+  orderCsv: 'order.csv',
+  legacyImagesDir: 'images',
+  rawImagesDir: 'raw_images',
+  originalImagesDir: 'original_images',
+});
+
+const VALIDATION_STATUSES = new Set(['not_validated', 'passed', 'failed']);
+const IMPORT_STATUSES = new Set(['not_imported', 'success', 'failed']);
+const PROCESSING_STATUSES = new Set([
+  'not_requested',
+  'queued',
+  'in_progress',
+  'partial',
+  'complete',
+  'failed',
+]);
+const ARCHIVE_STATUSES = new Set(['active', 'archived']);
+
+let stageBatchImagesRunner = stageBatchImages;
+let importAiJsonItemsRunner = importAiJsonItems;
+let batchModel = Batch;
+let itemModel = Item;
+let boxModel = Box;
+let mediaStateModel = MediaState;
+let ensureItemMediaStateRunner = ensureItemMediaState;
+let enqueueMediaProcessingJobByIdRunner = enqueueMediaProcessingJobById;
+const execFileAsync = promisify(execFile);
+const PACKAGE_TEMP_ROOT = path.join(os.tmpdir(), 'dwc-package-ingest');
 
 function logIntakeBatchEvent(event, details = {}) {
   console.info(`[intakeBatchService] ${event}`, details);
+}
+
+function isPlainObject(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function toPlainObject(value) {
+  if (!value) return null;
+  if (typeof value.toObject === 'function') {
+    return value.toObject({ depopulate: true });
+  }
+  return value;
 }
 
 function fileExists(filePath) {
@@ -33,6 +105,70 @@ function inferMimeType(fileName) {
   return '';
 }
 
+function toArrayOfTrimmedStrings(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => toTrimmed(entry))
+    .filter(Boolean);
+}
+
+function toIsoStringOrNull(value) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
+function toNonNegativeInteger(value, fallback = 0) {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+  return parsed;
+}
+
+function normalizeValidationStatus(value) {
+  const normalized = toTrimmed(value).toLowerCase();
+  return VALIDATION_STATUSES.has(normalized) ? normalized : 'not_validated';
+}
+
+function normalizeImportStatus(value) {
+  const normalized = toTrimmed(value).toLowerCase();
+  return IMPORT_STATUSES.has(normalized) ? normalized : 'not_imported';
+}
+
+function normalizeProcessingStatus(value) {
+  const normalized = toTrimmed(value).toLowerCase();
+  return PROCESSING_STATUSES.has(normalized) ? normalized : 'not_requested';
+}
+
+function normalizeArchiveStatus(value) {
+  const normalized = toTrimmed(value).toLowerCase();
+  return ARCHIVE_STATUSES.has(normalized) ? normalized : 'active';
+}
+
+function toRepoRelativePath(filePath) {
+  const normalized = toTrimmed(filePath);
+  if (!normalized) return '';
+  const relative = path.relative(REPO_ROOT, path.resolve(normalized));
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
+    return normalized;
+  }
+  return relative.replace(/\\/g, '/');
+}
+
+function resolveStoredPath(filePath, { batchDir = '' } = {}) {
+  const normalized = toTrimmed(filePath);
+  if (!normalized) return '';
+  if (path.isAbsolute(normalized)) {
+    return normalized;
+  }
+
+  const fromRepo = path.resolve(REPO_ROOT, normalized);
+  if (batchDir && normalized.startsWith('.')) {
+    return path.resolve(batchDir, normalized);
+  }
+  return fromRepo;
+}
+
 async function safeReadJson(filePath, fallback = null) {
   try {
     const raw = await fs.readFile(filePath, 'utf8');
@@ -42,21 +178,422 @@ async function safeReadJson(filePath, fallback = null) {
   }
 }
 
-async function writeBatchState(batchDir, patch = {}) {
-  const layout = getBatchLayout(batchDir);
-  const existing = (await safeReadJson(layout.stateJson, {})) || {};
-  const next = {
-    ...existing,
-    ...patch,
-    updatedAt: new Date().toISOString(),
-  };
-  await fs.writeFile(layout.stateJson, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
+function deepMerge(baseValue, patchValue) {
+  if (patchValue === undefined) {
+    return baseValue;
+  }
+  if (!isPlainObject(baseValue) || !isPlainObject(patchValue)) {
+    return patchValue;
+  }
+
+  const next = { ...baseValue };
+  for (const [key, value] of Object.entries(patchValue)) {
+    next[key] = deepMerge(baseValue[key], value);
+  }
   return next;
 }
 
-async function readBatchState(batchDir) {
+function defaultBatchState(batchDir) {
+  const resolvedBatchDir = path.resolve(batchDir);
+  const batchId = path.basename(resolvedBatchDir);
+  const layout = getBatchLayout(resolvedBatchDir);
+  return {
+    databaseId: '',
+    schemaVersion: 3,
+    batchDir: resolvedBatchDir,
+    identity: {
+      batchId,
+      batchName: batchId,
+      createdAt: null,
+      updatedAt: null,
+    },
+    sourceManifest: {
+      aiJsonOriginalFilename: '',
+      mappingCsvOriginalFilename: '',
+      imageOriginalFilenames: [],
+      imageCount: 0,
+      imagesIncluded: false,
+      storedFilePaths: {
+        aiJsonPath: toRepoRelativePath(layout.mergedInventoryJson),
+        mappingCsvPath: toRepoRelativePath(layout.imageOrderCsv),
+        originalImagesDirPath: toRepoRelativePath(layout.originalImagesDir),
+        stagedImagesDirPath: toRepoRelativePath(layout.stagedImagesDir),
+        imageKeyMappingCsvPath: toRepoRelativePath(layout.imageKeyMappingCsv),
+      },
+    },
+    validationSnapshot: {
+      status: 'not_validated',
+      validatedAt: null,
+      totalItems: 0,
+      itemsWithImageKeysCount: 0,
+      rowCount: 0,
+      readyCount: 0,
+      missingCount: 0,
+      ambiguousCount: 0,
+      warningCount: 0,
+      errorCount: 0,
+      csvSourceFilesCount: 0,
+      originalImageFilesCount: 0,
+      validationErrors: [],
+      validationWarnings: [],
+    },
+    importSnapshot: {
+      status: 'not_imported',
+      importedAt: null,
+      createdItemCount: 0,
+      updatedItemCount: 0,
+      skippedItemCount: 0,
+      failedItemCount: 0,
+      importedItemIds: [],
+      importErrorSummary: '',
+    },
+    archiveState: {
+      status: 'active',
+      archivedAt: null,
+      archiveReason: '',
+      sourceFilesDeletedAt: null,
+    },
+    processingSummary: {
+      status: 'not_requested',
+      queuedCount: 0,
+      completedCount: 0,
+      failedCount: 0,
+      lastRequestedAt: null,
+    },
+  };
+}
+
+function normalizeValidationSnapshot(rawValue = {}, legacyValue = {}) {
+  const source = isPlainObject(rawValue) ? rawValue : {};
+  const legacy = isPlainObject(legacyValue) ? legacyValue : {};
+  const legacyErrors = Array.isArray(legacy.errors) ? legacy.errors : [];
+  const legacyWarnings = Array.isArray(legacy.warnings) ? legacy.warnings : [];
+  const status =
+    source.status != null
+      ? normalizeValidationStatus(source.status)
+      : legacy.ok === true
+        ? 'passed'
+        : legacy.ok === false || legacyErrors.length > 0
+          ? 'failed'
+          : 'not_validated';
+
+  const validationErrors = toArrayOfTrimmedStrings(
+    source.validationErrors != null ? source.validationErrors : legacy.errors
+  );
+  const validationWarnings = toArrayOfTrimmedStrings(
+    source.validationWarnings != null ? source.validationWarnings : legacy.warnings
+  );
+
+  return {
+    status,
+    validatedAt: toIsoStringOrNull(source.validatedAt || legacy.validatedAt),
+    totalItems: toNonNegativeInteger(
+      source.totalItems != null ? source.totalItems : legacy.totalItems,
+      0
+    ),
+    itemsWithImageKeysCount: toNonNegativeInteger(
+      source.itemsWithImageKeysCount != null
+        ? source.itemsWithImageKeysCount
+        : legacy.itemsWithImageKeysCount,
+      0
+    ),
+    rowCount: toNonNegativeInteger(
+      source.rowCount != null ? source.rowCount : legacy.csvSourceFilesCount,
+      0
+    ),
+    readyCount: toNonNegativeInteger(source.readyCount, 0),
+    missingCount: toNonNegativeInteger(source.missingCount, 0),
+    ambiguousCount: toNonNegativeInteger(source.ambiguousCount, 0),
+    warningCount: toNonNegativeInteger(
+      source.warningCount != null ? source.warningCount : validationWarnings.length,
+      validationWarnings.length
+    ),
+    errorCount: toNonNegativeInteger(
+      source.errorCount != null ? source.errorCount : validationErrors.length,
+      validationErrors.length
+    ),
+    csvSourceFilesCount: toNonNegativeInteger(
+      source.csvSourceFilesCount != null ? source.csvSourceFilesCount : legacy.csvSourceFilesCount,
+      0
+    ),
+    originalImageFilesCount: toNonNegativeInteger(
+      source.originalImageFilesCount != null
+        ? source.originalImageFilesCount
+        : legacy.originalImageFilesCount,
+      0
+    ),
+    validationErrors,
+    validationWarnings,
+  };
+}
+
+function normalizeImportSnapshot(rawValue = {}, legacyState = {}) {
+  const source = isPlainObject(rawValue) ? rawValue : {};
+  const legacyImportResult = isPlainObject(legacyState.importResult) ? legacyState.importResult : {};
+  const legacyStatus = toTrimmed(legacyState.importStatus).toLowerCase();
+  const normalizedStatus =
+    source.status != null
+      ? normalizeImportStatus(source.status)
+      : legacyStatus === 'success' || legacyStatus === 'imported'
+        ? 'success'
+        : legacyStatus === 'failed' || legacyStatus === 'partial_success'
+          ? 'failed'
+          : 'not_imported';
+
+  const importErrorSummary = toTrimmed(
+    source.importErrorSummary ||
+    legacyImportResult.errorSummary ||
+    (normalizedStatus === 'failed' && Array.isArray(legacyImportResult.validationErrors)
+      ? legacyImportResult.validationErrors
+          .slice(0, 3)
+          .map((entry) => toTrimmed(entry?.message || entry))
+          .filter(Boolean)
+          .join(' | ')
+      : '')
+  );
+
+  return {
+    status: normalizedStatus,
+    importedAt: toIsoStringOrNull(source.importedAt || legacyState.importedAt),
+    createdItemCount: toNonNegativeInteger(
+      source.createdItemCount != null ? source.createdItemCount : legacyImportResult.createdCount,
+      0
+    ),
+    updatedItemCount: toNonNegativeInteger(source.updatedItemCount, 0),
+    skippedItemCount: toNonNegativeInteger(source.skippedItemCount, 0),
+    failedItemCount: toNonNegativeInteger(
+      source.failedItemCount != null ? source.failedItemCount : legacyImportResult.failedCount,
+      0
+    ),
+    importedItemIds: toArrayOfTrimmedStrings(
+      source.importedItemIds != null ? source.importedItemIds : legacyImportResult.createdItemIds
+    ),
+    importErrorSummary,
+  };
+}
+
+function normalizeProcessingSummary(rawValue = {}) {
+  const source = isPlainObject(rawValue) ? rawValue : {};
+  return {
+    status: normalizeProcessingStatus(source.status),
+    queuedCount: toNonNegativeInteger(source.queuedCount, 0),
+    completedCount: toNonNegativeInteger(source.completedCount, 0),
+    failedCount: toNonNegativeInteger(source.failedCount, 0),
+    lastRequestedAt: toIsoStringOrNull(source.lastRequestedAt),
+  };
+}
+
+function normalizeArchiveState(rawValue = {}) {
+  const source = isPlainObject(rawValue) ? rawValue : {};
+  return {
+    status: normalizeArchiveStatus(source.status),
+    archivedAt: toIsoStringOrNull(source.archivedAt),
+    archiveReason: toTrimmed(source.archiveReason),
+    sourceFilesDeletedAt: toIsoStringOrNull(source.sourceFilesDeletedAt),
+  };
+}
+
+function normalizePackageSnapshot(rawValue = {}) {
+  const source = isPlainObject(rawValue) ? rawValue : {};
+  return {
+    ingestedAt: toIsoStringOrNull(source.ingestedAt),
+    originalPackageFilename: toTrimmed(source.originalPackageFilename),
+    manifest: isPlainObject(source.manifest) ? source.manifest : {},
+    structureSummary: isPlainObject(source.structureSummary) ? source.structureSummary : {},
+  };
+}
+
+function normalizeSourceManifest(rawValue = {}, legacyState = {}, batchDir) {
+  const source = isPlainObject(rawValue) ? rawValue : {};
   const layout = getBatchLayout(batchDir);
-  return safeReadJson(layout.stateJson, {});
+  const storedFilePaths = {
+    aiJsonPath: toTrimmed(source?.storedFilePaths?.aiJsonPath) || toRepoRelativePath(layout.mergedInventoryJson),
+    mappingCsvPath: toTrimmed(source?.storedFilePaths?.mappingCsvPath) || toRepoRelativePath(layout.imageOrderCsv),
+    collagePath: toTrimmed(source?.storedFilePaths?.collagePath) || toRepoRelativePath(layout.collageImage),
+    originalImagesDirPath:
+      toTrimmed(source?.storedFilePaths?.originalImagesDirPath) || toRepoRelativePath(layout.originalImagesDir),
+    stagedImagesDirPath:
+      toTrimmed(source?.storedFilePaths?.stagedImagesDirPath) || toRepoRelativePath(layout.stagedImagesDir),
+    imageKeyMappingCsvPath:
+      toTrimmed(source?.storedFilePaths?.imageKeyMappingCsvPath) || toRepoRelativePath(layout.imageKeyMappingCsv),
+  };
+
+  const imageOriginalFilenames = toArrayOfTrimmedStrings(source.imageOriginalFilenames);
+  const imageCount =
+    source.imageCount != null
+      ? toNonNegativeInteger(source.imageCount, imageOriginalFilenames.length)
+      : imageOriginalFilenames.length;
+
+  return {
+    aiJsonOriginalFilename: toTrimmed(source.aiJsonOriginalFilename || legacyState.aiJsonOriginalFilename),
+    mappingCsvOriginalFilename: toTrimmed(
+      source.mappingCsvOriginalFilename || legacyState.mappingCsvOriginalFilename
+    ),
+    collageOriginalFilename: toTrimmed(
+      source.collageOriginalFilename || legacyState.collageOriginalFilename
+    ),
+    imageOriginalFilenames,
+    imageCount,
+    imagesIncluded:
+      typeof source.imagesIncluded === 'boolean'
+        ? source.imagesIncluded
+        : imageCount > 0,
+    storedFilePaths,
+  };
+}
+
+function normalizeBatchState(rawState = {}, batchDir) {
+  const resolvedBatchDir = path.resolve(batchDir);
+  const defaults = defaultBatchState(resolvedBatchDir);
+  const raw = isPlainObject(rawState) ? rawState : {};
+  const identitySource = isPlainObject(raw.identity) ? raw.identity : {};
+
+  const identity = {
+    batchId: path.basename(resolvedBatchDir),
+    batchName: toTrimmed(identitySource.batchName || raw.name) || path.basename(resolvedBatchDir),
+    createdAt: toIsoStringOrNull(identitySource.createdAt || raw.createdAt),
+    updatedAt: toIsoStringOrNull(identitySource.updatedAt || raw.updatedAt),
+  };
+
+  const state = {
+    databaseId: toTrimmed(raw._id || raw.id),
+    schemaVersion: Math.max(3, toNonNegativeInteger(raw.schemaVersion, 3)),
+    batchDir: toTrimmed(raw.batchDir) || resolvedBatchDir,
+    identity,
+    sourceManifest: normalizeSourceManifest(raw.sourceManifest, raw, resolvedBatchDir),
+    validationSnapshot: normalizeValidationSnapshot(
+      raw.validationSnapshot,
+      raw.lastValidation
+    ),
+    importSnapshot: normalizeImportSnapshot(raw.importSnapshot, raw),
+    archiveState: normalizeArchiveState(raw.archiveState),
+    processingSummary: normalizeProcessingSummary(raw.processingSummary),
+    packageSnapshot: normalizePackageSnapshot(raw.packageSnapshot),
+  };
+
+  return deepMerge(defaults, state);
+}
+
+function toPersistedBatchState(state = {}) {
+  const normalized = normalizeBatchState(state, state.batchDir);
+  return {
+    schemaVersion: normalized.schemaVersion,
+    batchDir: normalized.batchDir,
+    identity: normalized.identity,
+    sourceManifest: normalized.sourceManifest,
+    validationSnapshot: normalized.validationSnapshot,
+    importSnapshot: normalized.importSnapshot,
+    archiveState: normalized.archiveState,
+    processingSummary: normalized.processingSummary,
+    packageSnapshot: normalized.packageSnapshot,
+  };
+}
+
+async function writeBatchStateMirror(batchDir, state) {
+  if (!batchDir) return;
+  const batchDirExists = await fileExists(batchDir);
+  if (!batchDirExists) return;
+  const layout = getBatchLayout(batchDir);
+  await fs.writeFile(
+    layout.stateJson,
+    `${JSON.stringify(toPersistedBatchState(state), null, 2)}\n`,
+    'utf8'
+  );
+}
+
+async function findBatchRecordByBatchId(batchId) {
+  const record = await batchModel.findOne({ 'identity.batchId': batchId });
+  if (!record) return null;
+  return normalizeBatchState(toPlainObject(record), record.batchDir || path.join(BATCHES_ROOT, batchId));
+}
+
+async function findAllBatchRecords() {
+  const records = await batchModel.find({});
+  return (Array.isArray(records) ? records : [])
+    .map((record) => {
+      const raw = toPlainObject(record);
+      const batchDir = raw?.batchDir || path.join(BATCHES_ROOT, raw?.identity?.batchId || '');
+      return normalizeBatchState(raw, batchDir);
+    });
+}
+
+async function persistBatchState(state) {
+  const normalized = normalizeBatchState(state, state.batchDir);
+  const now = new Date().toISOString();
+  normalized.identity.updatedAt = now;
+  if (!normalized.identity.createdAt) {
+    normalized.identity.createdAt = now;
+  }
+
+  const record = await batchModel.findOneAndUpdate(
+    { 'identity.batchId': normalized.identity.batchId },
+    { $set: toPersistedBatchState(normalized) },
+    {
+      new: true,
+      upsert: true,
+      runValidators: true,
+      setDefaultsOnInsert: true,
+    }
+  );
+
+  const saved = normalizeBatchState(
+    toPlainObject(record),
+    normalized.batchDir
+  );
+  await writeBatchStateMirror(saved.batchDir, saved);
+  return saved;
+}
+
+async function hydrateBatchRecordFromFilesystem(batchDir, patch = {}) {
+  const resolvedBatchDir = path.resolve(batchDir);
+  const layout = getBatchLayout(resolvedBatchDir);
+  const legacyState = (await safeReadJson(layout.stateJson, {})) || {};
+  const merged = normalizeBatchState(deepMerge(legacyState, patch), resolvedBatchDir);
+  return persistBatchState(merged);
+}
+
+async function ensureBatchRecord(batchDir, patch = undefined) {
+  const resolvedBatchDir = path.resolve(batchDir);
+  const batchId = path.basename(resolvedBatchDir);
+  const existing = await findBatchRecordByBatchId(batchId);
+  if (!existing) {
+    return hydrateBatchRecordFromFilesystem(resolvedBatchDir, patch || {});
+  }
+  if (patch === undefined) {
+    return existing;
+  }
+  return persistBatchState(deepMerge(existing, patch));
+}
+
+async function writeBatchState(batchDir, patch = {}) {
+  const existing = await ensureBatchRecord(batchDir);
+  return persistBatchState(deepMerge(existing, patch));
+}
+
+async function readBatchState(batchDir) {
+  return ensureBatchRecord(batchDir);
+}
+
+async function listFilesystemBatchDirs(rootDir) {
+  try {
+    await fs.mkdir(rootDir, { recursive: true });
+    const entries = await fs.readdir(rootDir, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => path.join(rootDir, entry.name));
+  } catch {
+    return [];
+  }
+}
+
+async function migrateFilesystemBatchesToDatabase() {
+  const filesystemBatchDirs = [
+    ...await listFilesystemBatchDirs(getExternalIntakeRoot()),
+    ...await listFilesystemBatchDirs(BATCHES_ROOT),
+  ];
+  await Promise.all(
+    filesystemBatchDirs.map((batchDir) => ensureBatchRecord(batchDir))
+  );
 }
 
 async function countFiles(dirPath, allowedExtensions = null) {
@@ -75,6 +612,118 @@ async function countFiles(dirPath, allowedExtensions = null) {
   }
 }
 
+async function listFiles(dirPath, allowedExtensions = null) {
+  try {
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isFile())
+      .map((entry) => entry.name)
+      .filter((name) => (
+        allowedExtensions
+          ? allowedExtensions.has(path.extname(name).toLowerCase())
+          : true
+      ))
+      .sort((left, right) => left.localeCompare(right));
+  } catch {
+    return [];
+  }
+}
+
+function pickPreferredFile(candidates = [], preferredNames = []) {
+  const safeCandidates = Array.isArray(candidates) ? candidates : [];
+  if (!safeCandidates.length) return '';
+
+  for (const preferredName of preferredNames) {
+    const match = safeCandidates.find((candidate) => (
+      path.basename(candidate).toLowerCase() === String(preferredName || '').toLowerCase()
+    ));
+    if (match) return match;
+  }
+
+  return [...safeCandidates].sort((left, right) => left.localeCompare(right))[0] || '';
+}
+
+async function detectBatchPackageAssets(batchDir) {
+  const resolvedBatchDir = path.resolve(batchDir);
+  const layout = getBatchLayout(resolvedBatchDir);
+  const receiptPath = path.join(resolvedBatchDir, RECEIPT_FILENAME);
+  let rootEntries = [];
+
+  try {
+    rootEntries = await fs.readdir(resolvedBatchDir, { withFileTypes: true });
+  } catch {
+    rootEntries = [];
+  }
+
+  const rootFiles = rootEntries
+    .filter((entry) => entry.isFile())
+    .map((entry) => entry.name);
+
+  const jsonCandidates = rootFiles
+    .filter((name) => JSON_EXTENSIONS.has(path.extname(name).toLowerCase()))
+    .filter((name) => !['batch_state.json', RECEIPT_FILENAME].includes(name));
+  const csvCandidates = rootFiles
+    .filter((name) => CSV_EXTENSIONS.has(path.extname(name).toLowerCase()))
+    .filter((name) => path.basename(name).toLowerCase() !== 'imagekey_mapping.csv');
+  const rootImageNames = rootFiles
+    .filter((name) => IMAGE_EXTENSIONS.has(path.extname(name).toLowerCase()))
+    .sort((left, right) => left.localeCompare(right));
+  const legacyImageNames = await listFiles(layout.originalImagesDir, IMAGE_EXTENSIONS);
+
+  const aiJsonPath = pickPreferredFile(
+    jsonCandidates.map((name) => path.join(resolvedBatchDir, name)),
+    ['merged_inventory_batch.json', 'engine-output.json']
+  );
+  const mappingCsvPath = pickPreferredFile(
+    csvCandidates.map((name) => path.join(resolvedBatchDir, name)),
+    ['image_order.csv', 'mapping.csv']
+  );
+
+  const imageDir = rootImageNames.length ? resolvedBatchDir : layout.originalImagesDir;
+  const imageOriginalFilenames = rootImageNames.length ? rootImageNames : legacyImageNames;
+
+  return {
+    aiJsonPath,
+    mappingCsvPath,
+    imageDir,
+    imageOriginalFilenames,
+    imageCount: imageOriginalFilenames.length,
+    imagesIncluded: imageOriginalFilenames.length > 0,
+    imageKeyMappingCsvPath: layout.imageKeyMappingCsv,
+    receiptPath,
+  };
+}
+
+async function resolveBatchOperationalPaths(state) {
+  const batchDir = path.resolve(state.batchDir);
+  const layout = getBatchLayout(batchDir);
+  const detected = await detectBatchPackageAssets(batchDir);
+  const stored = state?.sourceManifest?.storedFilePaths || {};
+  const aiJsonPath = await fileExists(resolveStoredPath(stored.aiJsonPath, { batchDir }))
+    ? resolveStoredPath(stored.aiJsonPath, { batchDir })
+    : detected.aiJsonPath;
+  const mappingCsvPath = await fileExists(resolveStoredPath(stored.mappingCsvPath, { batchDir }))
+    ? resolveStoredPath(stored.mappingCsvPath, { batchDir })
+    : detected.mappingCsvPath;
+  const imageDirCandidate = resolveStoredPath(stored.originalImagesDirPath, { batchDir });
+  const imageDir = (imageDirCandidate && await fileExists(imageDirCandidate))
+    ? imageDirCandidate
+    : detected.imageDir;
+  const receiptPath = detected.receiptPath;
+
+  return {
+    batchDir,
+    layout,
+    aiJsonPath,
+    mappingCsvPath,
+    imageDir,
+    imageOriginalFilenames: detected.imageOriginalFilenames,
+    imageCount: detected.imageCount,
+    imagesIncluded: detected.imagesIncluded,
+    receiptPath,
+  };
+}
+
 async function moveUploadedFile(sourcePath, destinationPath) {
   await fs.mkdir(path.dirname(destinationPath), { recursive: true });
   await fs.rename(sourcePath, destinationPath);
@@ -90,23 +739,749 @@ async function cleanupUploadedFiles(files = []) {
   );
 }
 
+function normalizeZipEntryPath(entryPath) {
+  return String(entryPath || '').replace(/\\/g, '/').replace(/^\.?\//, '');
+}
+
+function isUnsafeZipEntry(entryPath) {
+  const normalized = normalizeZipEntryPath(entryPath);
+  return (
+    !normalized ||
+    normalized.startsWith('/') ||
+    normalized.split('/').some((segment) => segment === '..')
+  );
+}
+
+function shouldIgnoreZipEntry(entryPath) {
+  const normalized = normalizeZipEntryPath(entryPath);
+  if (!normalized) return true;
+  if (normalized.startsWith('__MACOSX/')) return true;
+  return normalized.split('/').some((segment) => segment.startsWith('.'));
+}
+
+async function listZipEntries(zipFilePath) {
+  const { stdout } = await execFileAsync('/usr/bin/zipinfo', ['-1', zipFilePath]);
+  return String(stdout || '')
+    .split('\n')
+    .map((line) => normalizeZipEntryPath(line))
+    .filter(Boolean);
+}
+
+async function unzipArchive(zipFilePath, destinationDir) {
+  await fs.mkdir(destinationDir, { recursive: true });
+  await execFileAsync('/usr/bin/unzip', ['-qq', zipFilePath, '-d', destinationDir]);
+}
+
 function flattenUploadedFiles(uploadedFiles = {}) {
   const groups = Object.values(uploadedFiles || {});
   return groups.flatMap((group) => (Array.isArray(group) ? group : []));
 }
 
+async function buildSourceManifestPatch(batchDir, existingManifest = {}, uploadedFiles = {}) {
+  const paths = await resolveBatchOperationalPaths({ batchDir, sourceManifest: existingManifest });
+  const jsonFile = uploadedFiles.jsonFile?.[0] || null;
+  const csvFile = uploadedFiles.csvFile?.[0] || null;
+  const imageOriginalFilenames = paths.imageOriginalFilenames.length
+    ? paths.imageOriginalFilenames
+    : toArrayOfTrimmedStrings(existingManifest.imageOriginalFilenames);
+
+  return {
+    aiJsonOriginalFilename:
+      toTrimmed(jsonFile?.originalname)
+      || path.basename(paths.aiJsonPath || '')
+      || toTrimmed(existingManifest.aiJsonOriginalFilename),
+    mappingCsvOriginalFilename:
+      toTrimmed(csvFile?.originalname)
+      || path.basename(paths.mappingCsvPath || '')
+      || toTrimmed(existingManifest.mappingCsvOriginalFilename),
+    imageOriginalFilenames,
+    imageCount: imageOriginalFilenames.length,
+    imagesIncluded: imageOriginalFilenames.length > 0,
+    storedFilePaths: {
+      aiJsonPath: toRepoRelativePath(paths.aiJsonPath),
+      mappingCsvPath: toRepoRelativePath(paths.mappingCsvPath),
+      originalImagesDirPath: toRepoRelativePath(paths.imageDir),
+      stagedImagesDirPath: toRepoRelativePath(paths.layout.stagedImagesDir),
+      imageKeyMappingCsvPath: toRepoRelativePath(paths.layout.imageKeyMappingCsv),
+    },
+  };
+}
+
+function toCompatValidation(snapshot) {
+  if (!snapshot || snapshot.status === 'not_validated') return null;
+  return {
+    ok: snapshot.status === 'passed',
+    errors: [...snapshot.validationErrors],
+    warnings: [...snapshot.validationWarnings],
+    totalItems: snapshot.totalItems,
+    itemsWithImageKeysCount: snapshot.itemsWithImageKeysCount,
+    csvSourceFilesCount: snapshot.csvSourceFilesCount,
+    originalImageFilesCount: snapshot.originalImageFilesCount,
+    rowCount: snapshot.rowCount,
+    readyCount: snapshot.readyCount,
+    missingCount: snapshot.missingCount,
+    ambiguousCount: snapshot.ambiguousCount,
+    warningCount: snapshot.warningCount,
+    errorCount: snapshot.errorCount,
+    validatedAt: snapshot.validatedAt,
+  };
+}
+
+function toCompatImportResult(snapshot) {
+  if (!snapshot || snapshot.status === 'not_imported') return null;
+  return {
+    status: snapshot.status,
+    createdCount: snapshot.createdItemCount,
+    updatedCount: snapshot.updatedItemCount,
+    skippedCount: snapshot.skippedItemCount,
+    failedCount: snapshot.failedItemCount,
+    createdItemIds: [...snapshot.importedItemIds],
+    errorSummary: snapshot.importErrorSummary || '',
+  };
+}
+
+function assertBatchActive(batch) {
+  if (batch?.archiveState?.status === 'archived') {
+    throw new Error('Archived batches are read-only.');
+  }
+}
+
+function toObjectIdString(value) {
+  const normalized = toTrimmed(value);
+  return normalized && mongoose.isValidObjectId(normalized) ? normalized : '';
+}
+
+function toObjectIdStrings(values = []) {
+  return Array.from(new Set(
+    (Array.isArray(values) ? values : [])
+      .map((value) => toObjectIdString(value))
+      .filter(Boolean)
+  ));
+}
+
+function resolveItemOriginalStoragePath(item = {}) {
+  return (
+    toTrimmed(item?.image?.original?.storagePath) ||
+    toTrimmed(item?.image?.storagePath) ||
+    ''
+  );
+}
+
+function resolveItemOriginalAbsolutePath(item = {}) {
+  const storagePath = resolveItemOriginalStoragePath(item);
+  if (storagePath) {
+    return toAbsoluteMediaPath(storagePath);
+  }
+  return '';
+}
+
+function toMediaStateLookupKeyFromItem(item = {}) {
+  return (
+    toTrimmed(item?.image?.mediaId) ||
+    resolveItemOriginalAbsolutePath(item) ||
+    ''
+  );
+}
+
+function normalizeLedgerProcessingStatus(mediaState, item = {}) {
+  const rawStatus = toTrimmed(mediaState?.processingStatus).toLowerCase();
+  const hasOriginalImage = Boolean(
+    resolveItemOriginalStoragePath(item) ||
+    toTrimmed(item?.imagePath) ||
+    toTrimmed(item?.image?.original?.url)
+  );
+
+  if (!hasOriginalImage) {
+    return {
+      status: 'unavailable',
+      mediaStatus: rawStatus || 'missing',
+      isProcessable: false,
+      isProcessed: false,
+      isUnavailable: true,
+      isInFlight: false,
+      canRetry: false,
+    };
+  }
+
+  if (rawStatus === 'completed') {
+    return {
+      status: 'processed',
+      mediaStatus: rawStatus,
+      isProcessable: false,
+      isProcessed: true,
+      isUnavailable: false,
+      isInFlight: false,
+      canRetry: false,
+    };
+  }
+
+  if (rawStatus === 'queued') {
+    return {
+      status: 'queued',
+      mediaStatus: rawStatus,
+      isProcessable: false,
+      isProcessed: false,
+      isUnavailable: false,
+      isInFlight: true,
+      canRetry: false,
+    };
+  }
+
+  if (rawStatus === 'processing') {
+    return {
+      status: 'processing',
+      mediaStatus: rawStatus,
+      isProcessable: false,
+      isProcessed: false,
+      isUnavailable: false,
+      isInFlight: true,
+      canRetry: false,
+    };
+  }
+
+  if (rawStatus === 'failed') {
+    return {
+      status: 'failed',
+      mediaStatus: rawStatus,
+      isProcessable: true,
+      isProcessed: false,
+      isUnavailable: false,
+      isInFlight: false,
+      canRetry: true,
+    };
+  }
+
+  return {
+    status: 'not_requested',
+    mediaStatus: rawStatus || 'ready_for_processing',
+    isProcessable: true,
+    isProcessed: false,
+    isUnavailable: false,
+    isInFlight: false,
+    canRetry: false,
+  };
+}
+
+function toImportedItemLedgerEntry(item, mediaState, boxByItemId = new Map()) {
+  const processing = normalizeLedgerProcessingStatus(mediaState, item);
+  const itemId = toTrimmed(item?._id);
+  const originalUrl =
+    toTrimmed(item?.image?.original?.url) ||
+    toTrimmed(item?.imagePath);
+  const displayUrl = toTrimmed(item?.image?.display?.url);
+  const thumbUrl = toTrimmed(item?.image?.thumb?.url);
+  const processedUrl = toTrimmed(mediaState?.processedPath);
+  const boxRef = itemId ? boxByItemId.get(itemId) || null : null;
+
+  return {
+    id: itemId,
+    name: toTrimmed(item?.name) || 'Unnamed item',
+    location: toTrimmed(item?.location),
+    itemStatus: toTrimmed(item?.item_status) || 'active',
+    orphanedAt: item?.orphanedAt || null,
+    createdAt: item?.createdAt || null,
+    updatedAt: item?.updatedAt || null,
+    currentBox: boxRef,
+    sourceBatchId: toTrimmed(item?.sourceBatchId) || null,
+    image: {
+      mediaId: toTrimmed(item?.image?.mediaId),
+      originalName: toTrimmed(item?.image?.originalName),
+      originalUrl,
+      displayUrl,
+      thumbUrl,
+      preferredUrl: displayUrl || thumbUrl || originalUrl,
+    },
+    processing: {
+      ...processing,
+      sourceType: toTrimmed(mediaState?.sourceType).toLowerCase() || '',
+      processedAt: mediaState?.processedAt || null,
+      processingError: mediaState?.processingError || null,
+      activeVariant: toTrimmed(mediaState?.activeVariant),
+      hasProcessedOutput: Boolean(
+        toTrimmed(mediaState?.processedPath) ||
+        toTrimmed(mediaState?.displayPath) ||
+        toTrimmed(mediaState?.thumbPath)
+      ),
+      processedUrl,
+    },
+  };
+}
+
+function deriveBatchProcessingSummary(importedItems = [], existingSummary = {}, overrides = {}) {
+  const items = Array.isArray(importedItems) ? importedItems : [];
+  const queuedCount = items.filter((item) =>
+    ['queued', 'processing'].includes(item?.processing?.status)
+  ).length;
+  const processingCount = items.filter((item) => item?.processing?.status === 'processing').length;
+  const completedCount = items.filter((item) => item?.processing?.status === 'processed').length;
+  const failedCount = items.filter((item) => item?.processing?.status === 'failed').length;
+  const notRequestedCount = items.filter((item) => item?.processing?.status === 'not_requested').length;
+  const unavailableCount = items.filter((item) => item?.processing?.status === 'unavailable').length;
+
+  let status = 'not_requested';
+  if (queuedCount > 0) {
+    status = processingCount > 0 ? 'in_progress' : 'queued';
+  } else if (completedCount > 0 && failedCount === 0 && notRequestedCount === 0 && unavailableCount === 0) {
+    status = 'complete';
+  } else if (failedCount > 0 && completedCount === 0 && notRequestedCount === 0 && unavailableCount === 0) {
+    status = 'failed';
+  } else if (completedCount > 0 || failedCount > 0) {
+    status = 'partial';
+  }
+
+  return normalizeProcessingSummary({
+    status,
+    queuedCount,
+    completedCount,
+    failedCount,
+    lastRequestedAt: overrides.lastRequestedAt ?? existingSummary?.lastRequestedAt ?? null,
+  });
+}
+
+function processingSummariesEqual(left = {}, right = {}) {
+  return (
+    normalizeProcessingStatus(left?.status) === normalizeProcessingStatus(right?.status) &&
+    toNonNegativeInteger(left?.queuedCount, 0) === toNonNegativeInteger(right?.queuedCount, 0) &&
+    toNonNegativeInteger(left?.completedCount, 0) === toNonNegativeInteger(right?.completedCount, 0) &&
+    toNonNegativeInteger(left?.failedCount, 0) === toNonNegativeInteger(right?.failedCount, 0) &&
+    toIsoStringOrNull(left?.lastRequestedAt) === toIsoStringOrNull(right?.lastRequestedAt)
+  );
+}
+
+function buildReceiptSummaryCounts(batch = {}) {
+  return {
+    rowCount: toNonNegativeInteger(batch?.validationSnapshot?.rowCount, 0),
+    readyCount: toNonNegativeInteger(batch?.validationSnapshot?.readyCount, 0),
+    missingCount: toNonNegativeInteger(batch?.validationSnapshot?.missingCount, 0),
+    warningCount: toNonNegativeInteger(batch?.validationSnapshot?.warningCount, 0),
+    errorCount: toNonNegativeInteger(batch?.validationSnapshot?.errorCount, 0),
+    createdItemCount: toNonNegativeInteger(batch?.importSnapshot?.createdItemCount, 0),
+    failedItemCount: toNonNegativeInteger(batch?.importSnapshot?.failedItemCount, 0),
+    imageCount: toNonNegativeInteger(batch?.sourceManifest?.imageCount, 0),
+  };
+}
+
+async function readBatchReceipt(batchDir) {
+  const receiptPath = path.join(path.resolve(batchDir), RECEIPT_FILENAME);
+  const receipt = await safeReadJson(receiptPath, null);
+  if (!isPlainObject(receipt)) {
+    return null;
+  }
+  return {
+    path: receiptPath,
+    app: toTrimmed(receipt.app),
+    receiptVersion: toNonNegativeInteger(receipt.receiptVersion, 0),
+    batchFolderName: toTrimmed(receipt.batchFolderName),
+    status: toTrimmed(receipt.status),
+    safeToDelete: Boolean(receipt.safeToDelete),
+    validatedAt: toIsoStringOrNull(receipt.validatedAt),
+    importedAt: toIsoStringOrNull(receipt.importedAt),
+    batchRecordId: toTrimmed(receipt.batchRecordId),
+    batchLabel: toTrimmed(receipt.batchLabel),
+    productionTarget: toTrimmed(receipt.productionTarget),
+    summaryCounts: isPlainObject(receipt.summaryCounts) ? receipt.summaryCounts : {},
+    updatedAt: toIsoStringOrNull(receipt.updatedAt),
+  };
+}
+
+async function writeBatchReceipt(batch, {
+  status = '',
+  safeToDelete = false,
+} = {}) {
+  const resolvedBatch = batch?.batchDir ? batch : await getIntakeBatchById(batch?.batchId || batch?.id || '');
+  const receiptPath = path.join(path.resolve(resolvedBatch.batchDir), RECEIPT_FILENAME);
+  const payload = {
+    app: RECEIPT_APP_NAME,
+    receiptVersion: RECEIPT_VERSION,
+    batchFolderName: path.basename(resolvedBatch.batchDir),
+    status: toTrimmed(status) || 'pending',
+    safeToDelete: Boolean(safeToDelete),
+    validatedAt: toIsoStringOrNull(resolvedBatch.validationSnapshot?.validatedAt),
+    importedAt: toIsoStringOrNull(resolvedBatch.importSnapshot?.importedAt),
+    batchRecordId: toTrimmed(resolvedBatch.databaseId),
+    batchLabel: toTrimmed(resolvedBatch.batchName || resolvedBatch.name || path.basename(resolvedBatch.batchDir)),
+    productionTarget: PRODUCTION_TARGET,
+    summaryCounts: buildReceiptSummaryCounts(resolvedBatch),
+    updatedAt: new Date().toISOString(),
+  };
+
+  await fs.writeFile(receiptPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+  return payload;
+}
+
+function normalizeLedgerSort(value) {
+  const normalized = toTrimmed(value).toLowerCase();
+  if (normalized === 'created') return 'created';
+  if (normalized === 'status') return 'status';
+  return 'name';
+}
+
+function parseBooleanFlag(value, fallback = false) {
+  if (typeof value === 'boolean') return value;
+  const normalized = toTrimmed(value).toLowerCase();
+  if (!normalized) return fallback;
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return fallback;
+}
+
+function toBoundedPositiveInteger(value, fallback, { min = 1, max = 500 } = {}) {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  if (parsed < min) return min;
+  if (parsed > max) return max;
+  return parsed;
+}
+
+function toBoundedNonNegativeInteger(value, fallback, { min = 0, max = 100000 } = {}) {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  if (parsed < min) return min;
+  if (parsed > max) return max;
+  return parsed;
+}
+
+async function loadCurrentBoxRefsForItems(itemIds = []) {
+  const normalizedIds = toObjectIdStrings(itemIds);
+  if (!normalizedIds.length) return new Map();
+
+  const boxes = await boxModel.find({ items: { $in: normalizedIds } })
+    .select('_id box_id label items')
+    .lean();
+
+  const byItemId = new Map();
+  for (const box of Array.isArray(boxes) ? boxes : []) {
+    const boxRef = {
+      id: toTrimmed(box?._id),
+      boxId: toTrimmed(box?.box_id),
+      label: toTrimmed(box?.label) || `Box ${toTrimmed(box?.box_id) || ''}`.trim() || 'Box',
+    };
+    for (const itemId of Array.isArray(box?.items) ? box.items : []) {
+      const normalizedItemId = toObjectIdString(itemId);
+      if (!normalizedItemId || byItemId.has(normalizedItemId)) continue;
+      byItemId.set(normalizedItemId, boxRef);
+    }
+  }
+
+  return byItemId;
+}
+
+async function buildImportedItemsLedger(
+  state,
+  {
+    selectedItemIds = null,
+    limit = null,
+    offset = 0,
+    sort = 'name',
+  } = {}
+) {
+  const batchDatabaseId = toObjectIdString(state?.databaseId);
+  const importedItemIds = toObjectIdStrings(state?.importSnapshot?.importedItemIds);
+  const requestedItemIds = selectedItemIds == null ? null : toObjectIdStrings(selectedItemIds);
+  const safeSort = normalizeLedgerSort(sort);
+  const safeOffset = toBoundedNonNegativeInteger(offset, 0, { min: 0, max: 1000000 });
+  const safeLimit =
+    limit == null ? null : toBoundedPositiveInteger(limit, 50, { min: 1, max: 500 });
+
+  if (!batchDatabaseId && !importedItemIds.length) {
+    return {
+      items: [],
+      total: 0,
+      limit: safeLimit == null ? 0 : safeLimit,
+      offset: safeOffset,
+      hasMore: false,
+    };
+  }
+
+  const membershipClauses = [];
+  if (batchDatabaseId) {
+    membershipClauses.push({ sourceBatchId: batchDatabaseId });
+  }
+  if (importedItemIds.length) {
+    membershipClauses.push({ _id: { $in: importedItemIds } });
+  }
+
+  const query = membershipClauses.length === 1 ? membershipClauses[0] : { $or: membershipClauses };
+  if (requestedItemIds?.length) {
+    query._id = { $in: requestedItemIds };
+  }
+
+  const matchingItems = await itemModel.find(query)
+    .select('_id name location item_status orphanedAt createdAt updatedAt sourceBatchId image imagePath')
+    .lean();
+
+  if (!matchingItems.length) {
+    return {
+      items: [],
+      total: 0,
+      limit: safeLimit == null ? 0 : safeLimit,
+      offset: safeOffset,
+      hasMore: false,
+    };
+  }
+
+  const importedIdOrder = new Map(importedItemIds.map((itemId, index) => [itemId, index]));
+  let mediaByKey = null;
+
+  if (safeSort === 'status') {
+    const lookupKeys = Array.from(new Set(
+      matchingItems
+        .map((item) => toMediaStateLookupKeyFromItem(item))
+        .filter(Boolean)
+    ));
+    const mediaIdKeys = lookupKeys.filter((value) => !value.includes(path.sep));
+    const originalPathKeys = lookupKeys.filter((value) => value.includes(path.sep));
+    const mediaStateQueryClauses = [
+      ...(mediaIdKeys.length ? [{ mediaId: { $in: mediaIdKeys } }] : []),
+      ...(originalPathKeys.length ? [{ originalPath: { $in: originalPathKeys } }] : []),
+    ];
+    const mediaStates = mediaStateQueryClauses.length
+      ? await mediaStateModel.find({ $or: mediaStateQueryClauses }).lean()
+      : [];
+
+    mediaByKey = new Map();
+    for (const mediaState of Array.isArray(mediaStates) ? mediaStates : []) {
+      const mediaId = toTrimmed(mediaState?.mediaId);
+      const originalPath = toTrimmed(mediaState?.originalPath);
+      if (mediaId) {
+        mediaByKey.set(mediaId, mediaState);
+      }
+      if (originalPath) {
+        mediaByKey.set(originalPath, mediaState);
+      }
+    }
+  }
+
+  const sortedItems = [...matchingItems].sort((left, right) => {
+    if (safeSort === 'created') {
+      const leftTime = new Date(left?.createdAt || 0).getTime();
+      const rightTime = new Date(right?.createdAt || 0).getTime();
+      if (leftTime !== rightTime) return rightTime - leftTime;
+    } else if (safeSort === 'status') {
+      const leftStatus = normalizeLedgerProcessingStatus(
+        mediaByKey?.get(toMediaStateLookupKeyFromItem(left)) || null,
+        left
+      ).status;
+      const rightStatus = normalizeLedgerProcessingStatus(
+        mediaByKey?.get(toMediaStateLookupKeyFromItem(right)) || null,
+        right
+      ).status;
+      const statusCompare = leftStatus.localeCompare(rightStatus);
+      if (statusCompare !== 0) return statusCompare;
+    } else {
+      const nameCompare = String(left?.name || '').localeCompare(String(right?.name || ''), undefined, {
+        sensitivity: 'base',
+        numeric: true,
+      });
+      if (nameCompare !== 0) return nameCompare;
+    }
+
+    const leftId = toTrimmed(left?._id);
+    const rightId = toTrimmed(right?._id);
+    const leftRank = importedIdOrder.has(leftId) ? importedIdOrder.get(leftId) : Number.MAX_SAFE_INTEGER;
+    const rightRank = importedIdOrder.has(rightId) ? importedIdOrder.get(rightId) : Number.MAX_SAFE_INTEGER;
+    if (leftRank !== rightRank) return leftRank - rightRank;
+    return String(leftId).localeCompare(String(rightId));
+  });
+
+  const total = sortedItems.length;
+  const pagedItems = safeLimit == null
+    ? sortedItems
+    : sortedItems.slice(safeOffset, safeOffset + safeLimit);
+  const boxByItemId = await loadCurrentBoxRefsForItems(pagedItems.map((item) => item?._id));
+  if (!mediaByKey) {
+    const mediaLookupKeys = Array.from(new Set(
+      pagedItems
+        .map((item) => toMediaStateLookupKeyFromItem(item))
+        .filter(Boolean)
+    ));
+    const mediaIdKeys = mediaLookupKeys.filter((value) => !value.includes(path.sep));
+    const originalPathKeys = mediaLookupKeys.filter((value) => value.includes(path.sep));
+    const mediaStateQueryClauses = [
+      ...(mediaIdKeys.length ? [{ mediaId: { $in: mediaIdKeys } }] : []),
+      ...(originalPathKeys.length ? [{ originalPath: { $in: originalPathKeys } }] : []),
+    ];
+    const mediaStates = mediaStateQueryClauses.length
+      ? await mediaStateModel.find({ $or: mediaStateQueryClauses }).lean()
+      : [];
+
+    mediaByKey = new Map();
+    for (const mediaState of Array.isArray(mediaStates) ? mediaStates : []) {
+      const mediaId = toTrimmed(mediaState?.mediaId);
+      const originalPath = toTrimmed(mediaState?.originalPath);
+      if (mediaId) {
+        mediaByKey.set(mediaId, mediaState);
+      }
+      if (originalPath) {
+        mediaByKey.set(originalPath, mediaState);
+      }
+    }
+  }
+
+  const items = pagedItems.map((item) => {
+    const mediaState = mediaByKey.get(toMediaStateLookupKeyFromItem(item)) || null;
+    return toImportedItemLedgerEntry(item, mediaState, boxByItemId);
+  });
+
+  return {
+    items,
+    total,
+    limit: safeLimit == null ? total : safeLimit,
+    offset: safeOffset,
+    hasMore: safeLimit == null ? false : safeOffset + items.length < total,
+    sort: safeSort,
+  };
+}
+
+async function summarizeIntakeBatch(
+  batchDir,
+  {
+    includeImportedItems = false,
+    importedItemsLimit = null,
+    importedItemsOffset = 0,
+    importedItemsSort = 'name',
+  } = {}
+) {
+  const state = await readBatchState(batchDir);
+  const paths = await resolveBatchOperationalPaths(state);
+  const layout = paths.layout;
+
+  let batchStats = null;
+  try {
+    batchStats = await fs.stat(state.batchDir);
+  } catch {
+    batchStats = null;
+  }
+
+  const hasJsonFile = await fileExists(paths.aiJsonPath);
+  const hasCsvFile = await fileExists(paths.mappingCsvPath);
+  const hasMappingCsv = await fileExists(layout.imageKeyMappingCsv);
+  const originalImagesCount = paths.imageCount;
+  const stagedImagesCount = await countFiles(layout.stagedImagesDir, IMAGE_EXTENSIONS);
+  const localReceipt = await readBatchReceipt(state.batchDir);
+  const mappingRequired = originalImagesCount > 0;
+  const localFolderPresent = await fileExists(state.batchDir);
+
+  const createdAt = state.identity.createdAt || batchStats?.birthtime?.toISOString?.() || null;
+  const updatedAt = state.identity.updatedAt || batchStats?.mtime?.toISOString?.() || null;
+  const validation = toCompatValidation(state.validationSnapshot);
+  const importResult = toCompatImportResult(state.importSnapshot);
+  const importStatusCompat =
+    state.importSnapshot.status === 'success'
+      ? 'imported'
+      : state.importSnapshot.status;
+  const sourceManifest = {
+    ...state.sourceManifest,
+    aiJsonOriginalFilename:
+      toTrimmed(state.sourceManifest?.aiJsonOriginalFilename) || path.basename(paths.aiJsonPath || ''),
+    mappingCsvOriginalFilename:
+      toTrimmed(state.sourceManifest?.mappingCsvOriginalFilename) || path.basename(paths.mappingCsvPath || ''),
+    imageOriginalFilenames: paths.imageOriginalFilenames,
+    imageCount: paths.imageCount,
+    imagesIncluded: paths.imagesIncluded,
+    storedFilePaths: {
+      ...(state.sourceManifest?.storedFilePaths || {}),
+      aiJsonPath: toRepoRelativePath(paths.aiJsonPath),
+      mappingCsvPath: toRepoRelativePath(paths.mappingCsvPath),
+      originalImagesDirPath: toRepoRelativePath(paths.imageDir),
+      stagedImagesDirPath: toRepoRelativePath(layout.stagedImagesDir),
+      imageKeyMappingCsvPath: toRepoRelativePath(layout.imageKeyMappingCsv),
+    },
+  };
+  const summary = {
+    id: state.identity.batchId,
+    batchId: state.identity.batchId,
+    databaseId: state.databaseId,
+    batchDir: state.batchDir,
+    name: state.identity.batchName,
+    batchName: state.identity.batchName,
+    createdAt,
+    updatedAt,
+    identity: {
+      ...state.identity,
+      createdAt,
+      updatedAt,
+    },
+    sourceManifest,
+    validationSnapshot: state.validationSnapshot,
+    importSnapshot: state.importSnapshot,
+    archiveState: state.archiveState,
+    processingSummary: state.processingSummary,
+    packageSnapshot: state.packageSnapshot,
+    validationStatus: state.validationSnapshot.status,
+    importLifecycleStatus: state.importSnapshot.status,
+    importStatus: importStatusCompat,
+    imagesIncluded: Boolean(paths.imagesIncluded),
+    aiJsonPresent: Boolean(sourceManifest.aiJsonOriginalFilename) || hasJsonFile,
+    mappingCsvPresent: Boolean(sourceManifest.mappingCsvOriginalFilename) || hasCsvFile,
+    mappingRequired,
+    hasJsonFile,
+    hasCsvFile,
+    hasMappingCsv,
+    originalImagesCount,
+    stagedImagesCount,
+    localFolderPresent,
+    localFolderMissing: !localFolderPresent,
+    localReceipt,
+    localFolderName: path.basename(state.batchDir),
+    localFolderPath: state.batchDir,
+    importedAt: state.importSnapshot.importedAt,
+    importResult,
+    validation,
+  };
+
+  if (includeImportedItems) {
+    const importedItemsPage = await buildImportedItemsLedger(state, {
+      limit: importedItemsLimit,
+      offset: importedItemsOffset,
+      sort: importedItemsSort,
+    });
+    summary.importedItemsPage = importedItemsPage;
+    summary.importedItemCount = importedItemsPage.total;
+  }
+
+  return summary;
+}
+
+async function listIntakeBatches({ includeArchived = false } = {}) {
+  const records = await findAllBatchRecords();
+  const batches = await Promise.all(
+    records
+      .filter((record) => includeArchived || record.archiveState.status !== 'archived')
+      .map((record) => summarizeIntakeBatch(record.batchDir))
+  );
+
+  return batches.sort((left, right) => {
+    const leftTime = new Date(left.updatedAt || left.createdAt || 0).getTime();
+    const rightTime = new Date(right.updatedAt || right.createdAt || 0).getTime();
+    return rightTime - leftTime;
+  });
+}
+
+async function getIntakeBatchById(batchId, options = {}) {
+  const normalized = path.basename(toTrimmed(batchId));
+  if (!normalized) {
+    throw new Error('batchId is required');
+  }
+
+  const existing = await findBatchRecordByBatchId(normalized);
+  if (existing) {
+    return summarizeIntakeBatch(existing.batchDir, options);
+  }
+  throw new Error(`Batch not found: ${normalized}`);
+}
+
 async function saveUploadedAssetsToBatch(batchDir, uploadedFiles = {}) {
   const layout = await ensureBatchStructure(batchDir);
+  const state = await readBatchState(batchDir);
+  assertBatchActive(state);
   const images = Array.isArray(uploadedFiles.images) ? uploadedFiles.images : [];
   const jsonFile = uploadedFiles.jsonFile?.[0] || null;
   const csvFile = uploadedFiles.csvFile?.[0] || null;
-  const collageFile = uploadedFiles.collageFile?.[0] || null;
 
   try {
     for (const file of images) {
-      const originalName = path.basename(
-        String(file.originalname || '').replace(/\\/g, '/')
-      );
+      const originalName = path.basename(String(file.originalname || '').replace(/\\/g, '/'));
       const ext = path.extname(originalName).toLowerCase();
       if (!IMAGE_EXTENSIONS.has(ext)) {
         throw new Error(`Unsupported image extension for ${originalName}`);
@@ -130,96 +1505,70 @@ async function saveUploadedAssetsToBatch(batchDir, uploadedFiles = {}) {
       await moveUploadedFile(csvFile.path, layout.imageOrderCsv);
     }
 
-    if (collageFile) {
-      const ext = path.extname(String(collageFile.originalname || '')).toLowerCase();
-      if (!IMAGE_EXTENSIONS.has(ext)) {
-        throw new Error('Collage file must be an image.');
-      }
-      await moveUploadedFile(collageFile.path, layout.collageImage);
-    }
   } catch (error) {
     await cleanupUploadedFiles(flattenUploadedFiles(uploadedFiles));
     throw error;
   }
 
-  return getIntakeBatchById(path.basename(batchDir));
-}
-
-async function summarizeIntakeBatch(batchDir) {
-  const layout = getBatchLayout(batchDir);
-  const state = await readBatchState(batchDir);
-  let batchStats = null;
-  try {
-    batchStats = await fs.stat(batchDir);
-  } catch {
-    batchStats = null;
-  }
-  const validation = state?.lastValidation && typeof state.lastValidation === 'object'
-    ? state.lastValidation
-    : null;
-
-  return {
-    id: path.basename(batchDir),
-    batchDir,
-    name: toTrimmed(state?.name) || path.basename(batchDir),
-    createdAt: state?.createdAt || batchStats?.birthtime?.toISOString?.() || null,
-    updatedAt: state?.updatedAt || batchStats?.mtime?.toISOString?.() || null,
-    importedAt: state?.importedAt || null,
-    importStatus: toTrimmed(state?.importStatus) || 'not_imported',
-    importResult: state?.importResult || null,
-    hasJsonFile: await fileExists(layout.mergedInventoryJson),
-    hasCsvFile: await fileExists(layout.imageOrderCsv),
-    hasCollageFile: await fileExists(layout.collageImage),
-    hasMappingCsv: await fileExists(layout.imageKeyMappingCsv),
-    originalImagesCount: await countFiles(layout.originalImagesDir, IMAGE_EXTENSIONS),
-    stagedImagesCount: await countFiles(layout.stagedImagesDir, IMAGE_EXTENSIONS),
-    validation: validation || null,
-  };
-}
-
-async function listIntakeBatches() {
-  await fs.mkdir(BATCHES_ROOT, { recursive: true });
-  const entries = await fs.readdir(BATCHES_ROOT, { withFileTypes: true });
-  const batches = await Promise.all(
-    entries
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => summarizeIntakeBatch(path.join(BATCHES_ROOT, entry.name)))
-  );
-
-  return batches.sort((left, right) => {
-    const leftTime = new Date(left.updatedAt || left.createdAt || 0).getTime();
-    const rightTime = new Date(right.updatedAt || right.createdAt || 0).getTime();
-    return rightTime - leftTime;
+  await writeBatchState(batchDir, {
+    sourceManifest: await buildSourceManifestPatch(
+      batchDir,
+      state.sourceManifest,
+      uploadedFiles
+    ),
+    archiveState: {
+      status: 'active',
+      archivedAt: null,
+      archiveReason: '',
+      sourceFilesDeletedAt: null,
+    },
   });
-}
 
-async function getIntakeBatchById(batchId) {
-  const normalized = path.basename(toTrimmed(batchId));
-  if (!normalized) {
-    throw new Error('batchId is required');
-  }
+  logIntakeBatchEvent('batch assets updated', {
+    batchId: state.identity.batchId,
+    jsonUpdated: Boolean(jsonFile),
+    csvUpdated: Boolean(csvFile),
+    uploadedImageCount: images.length,
+  });
 
-  const batchDir = path.join(BATCHES_ROOT, normalized);
-  const exists = await fileExists(batchDir);
-  if (!exists) {
-    throw new Error(`Batch not found: ${normalized}`);
-  }
-  return summarizeIntakeBatch(batchDir);
+  return getIntakeBatchById(path.basename(batchDir));
 }
 
 async function createIntakeBatch({ name = '', uploadedFiles = {} } = {}) {
   const batchId = createBatchId(name || 'batch');
-  const batchDir = path.join(BATCHES_ROOT, batchId);
+  const batchDir = path.join(getExternalIntakeRoot(), batchId);
   await ensureBatchStructure(batchDir);
   await writeBatchState(batchDir, {
-    name: toTrimmed(name) || batchId,
-    createdAt: new Date().toISOString(),
-    importStatus: 'not_imported',
+    identity: {
+      batchId,
+      batchName: toTrimmed(name) || batchId,
+      createdAt: new Date().toISOString(),
+    },
+    archiveState: {
+      status: 'active',
+      archivedAt: null,
+      archiveReason: '',
+      sourceFilesDeletedAt: null,
+    },
   });
+
   if (flattenUploadedFiles(uploadedFiles).length) {
-    return saveUploadedAssetsToBatch(batchDir, uploadedFiles);
+    const batch = await saveUploadedAssetsToBatch(batchDir, uploadedFiles);
+    logIntakeBatchEvent('batch created', {
+      batchId: batch.batchId,
+      batchName: batch.batchName,
+      imagesIncluded: batch.imagesIncluded,
+    });
+    return batch;
   }
-  return summarizeIntakeBatch(batchDir);
+
+  const batch = await summarizeIntakeBatch(batchDir);
+  logIntakeBatchEvent('batch created', {
+    batchId: batch.batchId,
+    batchName: batch.batchName,
+    imagesIncluded: batch.imagesIncluded,
+  });
+  return batch;
 }
 
 async function updateIntakeBatchAssets(batchId, uploadedFiles = {}) {
@@ -227,76 +1576,191 @@ async function updateIntakeBatchAssets(batchId, uploadedFiles = {}) {
   return saveUploadedAssetsToBatch(batch.batchDir, uploadedFiles);
 }
 
+function buildFailedValidationSnapshot({
+  existingSnapshot,
+  errors = [],
+  warnings = [],
+  summary = null,
+} = {}) {
+  const validationWarnings = toArrayOfTrimmedStrings(warnings);
+  const validationErrors = toArrayOfTrimmedStrings(errors);
+  return {
+    status: 'failed',
+    validatedAt: new Date().toISOString(),
+    totalItems: toNonNegativeInteger(summary?.totalItems, existingSnapshot?.totalItems || 0),
+    itemsWithImageKeysCount: toNonNegativeInteger(
+      summary?.itemsWithImageKeysCount,
+      existingSnapshot?.itemsWithImageKeysCount || 0
+    ),
+    rowCount: toNonNegativeInteger(summary?.rowCount, existingSnapshot?.rowCount || 0),
+    readyCount: toNonNegativeInteger(summary?.readyCount, 0),
+    missingCount: toNonNegativeInteger(summary?.missingCount, 0),
+    ambiguousCount: toNonNegativeInteger(summary?.ambiguousCount, 0),
+    warningCount: validationWarnings.length,
+    errorCount: validationErrors.length,
+    csvSourceFilesCount: toNonNegativeInteger(
+      summary?.csvSourceFilesCount,
+      existingSnapshot?.csvSourceFilesCount || 0
+    ),
+    originalImageFilesCount: toNonNegativeInteger(summary?.originalImageFilesCount, 0),
+    validationErrors,
+    validationWarnings,
+  };
+}
+
 async function validateIntakeBatch(batchId) {
   const batch = await getIntakeBatchById(batchId);
-  const layout = getBatchLayout(batch.batchDir);
+  assertBatchActive(batch);
+  const paths = await resolveBatchOperationalPaths(batch);
   const startedAt = Date.now();
-  logIntakeBatchEvent('validate start', {
-    batchId: batch.id,
+  logIntakeBatchEvent('batch validated start', {
+    batchId: batch.batchId,
     batchDir: batch.batchDir,
+    imagesIncluded: batch.imagesIncluded,
   });
-  const summary = await summarizeBatch({
-    jsonPath: layout.mergedInventoryJson,
-    csvPath: layout.imageOrderCsv,
-    sourceDir: layout.originalImagesDir,
-  });
+
+  const missingErrors = [];
+  if (!paths.aiJsonPath || !await fileExists(paths.aiJsonPath)) {
+    missingErrors.push('AI Intake Engine JSON is required.');
+  }
+  if (paths.imagesIncluded && (!paths.mappingCsvPath || !await fileExists(paths.mappingCsvPath))) {
+    missingErrors.push('Mapping CSV is required when images are included.');
+  }
+
+  if (missingErrors.length) {
+    const snapshot = buildFailedValidationSnapshot({
+      existingSnapshot: batch.validationSnapshot,
+      errors: missingErrors,
+    });
+    await writeBatchState(batch.batchDir, {
+      validationSnapshot: snapshot,
+    });
+    const nextBatch = await summarizeIntakeBatch(batch.batchDir);
+    await writeBatchReceipt(nextBatch, {
+      status: 'validation_failed',
+      safeToDelete: false,
+    });
+    logIntakeBatchEvent('batch validated', {
+      batchId: batch.batchId,
+      status: snapshot.status,
+      errorCount: snapshot.errorCount,
+      warningCount: snapshot.warningCount,
+      durationMs: Date.now() - startedAt,
+    });
+    return {
+      batch: await summarizeIntakeBatch(batch.batchDir),
+      validation: toCompatValidation(snapshot),
+    };
+  }
+
+  let summary;
+  try {
+    summary = await summarizeBatch({
+      jsonPath: paths.aiJsonPath,
+      csvPath: paths.mappingCsvPath,
+      sourceDir: paths.imageDir,
+    });
+  } catch (error) {
+    const snapshot = buildFailedValidationSnapshot({
+      existingSnapshot: batch.validationSnapshot,
+      errors: [error?.message || 'Batch validation failed.'],
+    });
+    await writeBatchState(batch.batchDir, {
+      validationSnapshot: snapshot,
+    });
+    const nextBatch = await summarizeIntakeBatch(batch.batchDir);
+    await writeBatchReceipt(nextBatch, {
+      status: 'validation_failed',
+      safeToDelete: false,
+    });
+    logIntakeBatchEvent('batch validated', {
+      batchId: batch.batchId,
+      status: snapshot.status,
+      errorCount: snapshot.errorCount,
+      warningCount: snapshot.warningCount,
+      durationMs: Date.now() - startedAt,
+    });
+    return {
+      batch: await summarizeIntakeBatch(batch.batchDir),
+      validation: toCompatValidation(snapshot),
+    };
+  }
+
   const validation = validateBatchSummary(summary);
-  const normalizedValidation = {
-    ok: validation.ok,
-    errors: validation.errors,
+  const snapshot = {
+    status: validation.ok ? 'passed' : 'failed',
+    validatedAt: new Date().toISOString(),
     totalItems: summary.totalItems,
     itemsWithImageKeysCount: summary.itemsWithImageKeysCount,
+    rowCount: summary.rowCount,
+    readyCount: summary.readyCount,
+    missingCount: summary.missingCount,
+    ambiguousCount: summary.ambiguousCount,
+    warningCount: validation.warnings.length,
+    errorCount: validation.errors.length,
     csvSourceFilesCount: summary.csvSourceFilesCount,
     originalImageFilesCount: summary.originalImageFilesCount,
-    validatedAt: new Date().toISOString(),
+    validationErrors: validation.errors,
+    validationWarnings: validation.warnings,
   };
 
   await writeBatchState(batch.batchDir, {
-    lastValidation: normalizedValidation,
+    validationSnapshot: snapshot,
+  });
+  const summarizedBatch = await summarizeIntakeBatch(batch.batchDir);
+  await writeBatchReceipt(summarizedBatch, {
+    status: snapshot.status === 'passed' ? 'validated' : 'validation_failed',
+    safeToDelete: false,
   });
 
-  logIntakeBatchEvent('validate success', {
-    batchId: batch.id,
-    ok: normalizedValidation.ok,
-    totalItems: normalizedValidation.totalItems,
-    itemsWithImageKeysCount: normalizedValidation.itemsWithImageKeysCount,
+  logIntakeBatchEvent('batch validated', {
+    batchId: batch.batchId,
+    status: snapshot.status,
+    rowCount: snapshot.rowCount,
+    readyCount: snapshot.readyCount,
+    missingCount: snapshot.missingCount,
+    ambiguousCount: snapshot.ambiguousCount,
+    errorCount: snapshot.errorCount,
+    warningCount: snapshot.warningCount,
     durationMs: Date.now() - startedAt,
   });
 
   return {
-    batch: await summarizeIntakeBatch(batch.batchDir),
-    validation: normalizedValidation,
+    batch: summarizedBatch,
+    validation: toCompatValidation(snapshot),
   };
 }
 
 async function stageIntakeBatch(batchId) {
   const batch = await getIntakeBatchById(batchId);
-  const layout = getBatchLayout(batch.batchDir);
+  assertBatchActive(batch);
+  const paths = await resolveBatchOperationalPaths(batch);
+  const layout = paths.layout;
   const startedAt = Date.now();
   logIntakeBatchEvent('stage start', {
-    batchId: batch.id,
-    batchDir: batch.batchDir,
+    batchId: batch.batchId,
+    imagesIncluded: batch.imagesIncluded,
     stagedDir: layout.stagedImagesDir,
   });
-  const result = await stageBatchImages({
-    jsonPath: layout.mergedInventoryJson,
-    csvPath: layout.imageOrderCsv,
-    sourceDir: layout.originalImagesDir,
+
+  const result = await stageBatchImagesRunner({
+    jsonPath: paths.aiJsonPath,
+    csvPath: paths.mappingCsvPath,
+    sourceDir: paths.imageDir,
     stagedDir: layout.stagedImagesDir,
     mappingCsvPath: layout.imageKeyMappingCsv,
   });
 
   await writeBatchState(batch.batchDir, {
-    lastStagedAt: new Date().toISOString(),
-    lastStageResult: {
-      stagedCount: result.stagedCount,
-      itemsWithImageKeysCount: result.itemsWithImageKeysCount,
-      sourceFilesCount: result.sourceFilesCount,
+    sourceManifest: {
+      storedFilePaths: {
+        imageKeyMappingCsvPath: toRepoRelativePath(layout.imageKeyMappingCsv),
+      },
     },
   });
 
   logIntakeBatchEvent('stage success', {
-    batchId: batch.id,
+    batchId: batch.batchId,
     stagedCount: result.stagedCount,
     itemsWithImageKeysCount: result.itemsWithImageKeysCount,
     sourceFilesCount: result.sourceFilesCount,
@@ -313,87 +1777,166 @@ async function stageIntakeBatch(batchId) {
   };
 }
 
+function buildImportErrorSummary(result = {}, stageWarning = '') {
+  const parts = [];
+  if (stageWarning) parts.push(stageWarning);
+  if (Array.isArray(result.validationErrors) && result.validationErrors.length) {
+    parts.push(
+      result.validationErrors
+        .slice(0, 3)
+        .map((entry) => toTrimmed(entry?.message || entry))
+        .filter(Boolean)
+        .join(' | ')
+    );
+  }
+  return parts.filter(Boolean).join(' | ');
+}
+
 async function importIntakeBatch(batchId) {
   const batch = await getIntakeBatchById(batchId);
-  const layout = getBatchLayout(batch.batchDir);
+  assertBatchActive(batch);
+  const paths = await resolveBatchOperationalPaths(batch);
+  const layout = paths.layout;
   const startedAt = Date.now();
-  const payload = await safeReadJson(layout.mergedInventoryJson, null);
+  const payload = await safeReadJson(paths.aiJsonPath, null);
   const items = Array.isArray(payload?.items) ? payload.items : [];
   const itemsWithImageKeysCount = items.filter((item) => toTrimmed(item?.imageKey)).length;
-  const lastValidation = batch.validation || null;
 
-  logIntakeBatchEvent('import start', {
-    batchId: batch.id,
+  logIntakeBatchEvent('batch import started', {
+    batchId: batch.batchId,
     batchDir: batch.batchDir,
+    databaseId: batch.databaseId,
     itemCount: items.length,
     itemsWithImageKeysCount,
-    hasCsvFile: batch.hasCsvFile,
-    importStatus: batch.importStatus,
+    imagesIncluded: batch.imagesIncluded,
+    validationStatus: batch.validationStatus,
     pid: process.pid,
   });
 
-  if (!lastValidation || !lastValidation.ok) {
-    throw new Error('Batch must pass validation before import.');
-  }
-
-  if (itemsWithImageKeysCount > 0) {
-    if (!batch.hasCsvFile) {
-      throw new Error('Batch import with imageKey values requires a validated image-order CSV.');
-    }
-
-    logIntakeBatchEvent('import staging required', {
-      batchId: batch.id,
-      itemsWithImageKeysCount,
-      csvPath: layout.imageOrderCsv,
+  if (batch.validationStatus !== 'passed') {
+    const error = new Error('Batch must pass validation before import.');
+    await writeBatchReceipt(batch, {
+      status: 'import_failed',
+      safeToDelete: false,
     });
-    await stageIntakeBatch(batchId);
+    throw error;
   }
 
-  const jsonText = await fs.readFile(layout.mergedInventoryJson, 'utf8');
-  const stagedEntries = await fs.readdir(layout.stagedImagesDir, { withFileTypes: true });
-  const importImages = stagedEntries
-    .filter((entry) => entry.isFile())
-    .map((entry) => ({
-      originalname: entry.name,
-      path: path.join(layout.stagedImagesDir, entry.name),
-      mimetype: inferMimeType(entry.name),
-    }));
-
-  if (itemsWithImageKeysCount > 0 && !importImages.length) {
-    throw new Error('No staged images found. Stage the batch before importing.');
+  if (!paths.aiJsonPath || !await fileExists(paths.aiJsonPath)) {
+    const error = new Error('AI Intake Engine JSON is required.');
+    await writeBatchReceipt(batch, {
+      status: 'import_failed',
+      safeToDelete: false,
+    });
+    throw error;
   }
 
-  logIntakeBatchEvent('import payload prepared', {
-    batchId: batch.id,
-    importImageCount: importImages.length,
-    jsonPath: layout.mergedInventoryJson,
-  });
+  if (paths.imagesIncluded && (!paths.mappingCsvPath || !await fileExists(paths.mappingCsvPath))) {
+    const error = new Error('Mapping CSV is required when images are included.');
+    await writeBatchReceipt(batch, {
+      status: 'import_failed',
+      safeToDelete: false,
+    });
+    throw error;
+  }
 
-  const result = await importAiJsonItems({
-    jsonText,
-    importImages: itemsWithImageKeysCount > 0 ? importImages : [],
-  });
+  const jsonText = await fs.readFile(paths.aiJsonPath, 'utf8');
+  let stageWarning = '';
+  let importImages = [];
 
-  await writeBatchState(batch.batchDir, {
+  if (itemsWithImageKeysCount > 0 && batch.imagesIncluded) {
+    try {
+      await stageIntakeBatch(batch.batchId);
+      const stagedEntries = await fs.readdir(layout.stagedImagesDir, { withFileTypes: true });
+      importImages = stagedEntries
+        .filter((entry) => entry.isFile())
+        .map((entry) => ({
+          originalname: entry.name,
+          path: path.join(layout.stagedImagesDir, entry.name),
+          mimetype: inferMimeType(entry.name),
+        }));
+    } catch (error) {
+      stageWarning = `Image staging skipped during import: ${error?.message || 'Unknown staging error.'}`;
+      logIntakeBatchEvent('batch import staging skipped', {
+        batchId: batch.batchId,
+        reason: stageWarning,
+      });
+      importImages = [];
+    }
+  }
+
+  let result;
+  try {
+    result = await importAiJsonItemsRunner({
+      jsonText,
+      importImages,
+      sourceBatchId: batch.databaseId || null,
+    });
+  } catch (error) {
+    await writeBatchReceipt(batch, {
+      status: 'import_failed',
+      safeToDelete: false,
+    });
+    throw error;
+  }
+
+  const importStatus = result.status === 'success' ? 'success' : 'failed';
+  const importSnapshot = {
+    status: importStatus,
     importedAt: new Date().toISOString(),
-    importStatus: result.status || 'imported',
-    importResult: {
-      status: result.status,
-      createdCount: result.createdCount,
-      failedCount: result.failedCount,
-      imageImportSummary: result.imageImportSummary || null,
-    },
-  });
+    createdItemCount: toNonNegativeInteger(result.createdCount, 0),
+    updatedItemCount: 0,
+    skippedItemCount: 0,
+    failedItemCount: toNonNegativeInteger(result.failedCount, 0),
+    importedItemIds: toArrayOfTrimmedStrings(result.createdItemIds),
+    importErrorSummary: buildImportErrorSummary(result, stageWarning),
+  };
 
-  logIntakeBatchEvent('import success', {
-    batchId: batch.id,
-    status: result.status,
-    createdCount: result.createdCount,
-    failedCount: result.failedCount,
-    imageImportSummary: result.imageImportSummary || null,
-    durationMs: Date.now() - startedAt,
-    pid: process.pid,
+  const persistedBatchState = await writeBatchState(batch.batchDir, {
+    importSnapshot,
   });
+  const importedLedger = await buildImportedItemsLedger(persistedBatchState, {
+    limit: null,
+    sort: 'name',
+  });
+  const nextProcessingSummary = deriveBatchProcessingSummary(
+    importedLedger.items,
+    persistedBatchState.processingSummary
+  );
+  if (!processingSummariesEqual(nextProcessingSummary, persistedBatchState.processingSummary)) {
+    await writeBatchState(batch.batchDir, {
+      processingSummary: nextProcessingSummary,
+    });
+  }
+
+  if (importStatus === 'success') {
+    const nextBatch = await summarizeIntakeBatch(batch.batchDir);
+    await writeBatchReceipt(nextBatch, {
+      status: 'imported',
+      safeToDelete: true,
+    });
+    logIntakeBatchEvent('batch import completed', {
+      batchId: batch.batchId,
+      status: importStatus,
+      createdItemCount: importSnapshot.createdItemCount,
+      failedItemCount: importSnapshot.failedItemCount,
+      durationMs: Date.now() - startedAt,
+    });
+  } else {
+    const nextBatch = await summarizeIntakeBatch(batch.batchDir);
+    await writeBatchReceipt(nextBatch, {
+      status: 'import_failed',
+      safeToDelete: false,
+    });
+    logIntakeBatchEvent('batch import failed', {
+      batchId: batch.batchId,
+      status: importStatus,
+      createdItemCount: importSnapshot.createdItemCount,
+      failedItemCount: importSnapshot.failedItemCount,
+      errorSummary: importSnapshot.importErrorSummary,
+      durationMs: Date.now() - startedAt,
+    });
+  }
 
   return {
     batch: await summarizeIntakeBatch(batch.batchDir),
@@ -401,13 +1944,810 @@ async function importIntakeBatch(batchId) {
   };
 }
 
+function normalizePackageManifest(rawManifest) {
+  if (isPlainObject(rawManifest)) {
+    return rawManifest;
+  }
+
+  const manifestText = toTrimmed(rawManifest);
+  if (!manifestText) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(manifestText);
+    if (!isPlainObject(parsed)) {
+      throw new Error('manifest must be a JSON object');
+    }
+    return parsed;
+  } catch (error) {
+    throw new Error(`Invalid package manifest: ${error?.message || 'Unable to parse manifest JSON.'}`);
+  }
+}
+
+function buildPackageReceiptAdvice({ batch, validation = null, importResult = null, status = '' } = {}) {
+  const nextStatus = toTrimmed(status)
+    || (importResult?.status === 'success'
+      ? 'imported'
+      : batch?.validationStatus === 'passed'
+        ? 'validated'
+        : batch?.validationStatus === 'failed'
+          ? 'validation_failed'
+          : 'received');
+
+  return {
+    status: nextStatus,
+    safeToDelete: nextStatus === 'imported',
+    batchRecordId: toTrimmed(batch?.databaseId),
+    batchId: toTrimmed(batch?.batchId),
+    batchLabel: toTrimmed(batch?.batchName || batch?.name),
+    validatedAt: batch?.validationSnapshot?.validatedAt || null,
+    importedAt: batch?.importSnapshot?.importedAt || null,
+    summaryCounts: buildReceiptSummaryCounts(batch || {}),
+  };
+}
+
+function validateObservedPackageStructure(entries = []) {
+  const warnings = [];
+  const errors = [];
+  const safeEntries = [];
+
+  for (const entry of entries) {
+    if (isUnsafeZipEntry(entry)) {
+      errors.push(`Unsafe zip entry rejected: ${entry}`);
+      continue;
+    }
+    if (shouldIgnoreZipEntry(entry)) {
+      warnings.push(`Ignored zip entry: ${entry}`);
+      continue;
+    }
+    safeEntries.push(normalizeZipEntryPath(entry));
+  }
+
+  const normalizedSet = new Set(safeEntries);
+  const hasManifest = normalizedSet.has(PACKAGE_FILES.manifest);
+  const hasAiIntakeJson = normalizedSet.has(PACKAGE_FILES.aiIntakeJson);
+  const hasImportReadyJson = normalizedSet.has(PACKAGE_FILES.importReadyJson);
+  const hasCollageManifestJson = normalizedSet.has(PACKAGE_FILES.collageManifestJson);
+  const hasLegacyMappingCsv = normalizedSet.has(PACKAGE_FILES.legacyCsv);
+  const hasImageOrderCsv = normalizedSet.has(PACKAGE_FILES.imageOrderCsv);
+  const hasOrderCsv = normalizedSet.has(PACKAGE_FILES.orderCsv);
+  const imageEntries = safeEntries.filter((entry) => (
+    (entry.startsWith(`${PACKAGE_FILES.legacyImagesDir}/`)
+      || entry.startsWith(`${PACKAGE_FILES.rawImagesDir}/`)
+      || entry.startsWith(`${PACKAGE_FILES.originalImagesDir}/`))
+      && !entry.endsWith('/')
+  ));
+  const resolvedImagesDir = imageEntries.some((entry) => entry.startsWith(`${PACKAGE_FILES.rawImagesDir}/`))
+    ? PACKAGE_FILES.rawImagesDir
+    : imageEntries.some((entry) => entry.startsWith(`${PACKAGE_FILES.originalImagesDir}/`))
+      ? PACKAGE_FILES.originalImagesDir
+    : imageEntries.some((entry) => entry.startsWith(`${PACKAGE_FILES.legacyImagesDir}/`))
+      ? PACKAGE_FILES.legacyImagesDir
+      : '';
+
+  if (!hasManifest) {
+    errors.push(`Missing required package file: ${PACKAGE_FILES.manifest}`);
+  }
+  if (!hasAiIntakeJson && !hasImportReadyJson) {
+    errors.push(`Package must include ${PACKAGE_FILES.aiIntakeJson} or ${PACKAGE_FILES.importReadyJson}`);
+  }
+  if (imageEntries.length > 0 && !hasLegacyMappingCsv && !hasImageOrderCsv && !hasOrderCsv) {
+    errors.push(
+      `Package includes images but is missing required ${PACKAGE_FILES.legacyCsv}, ${PACKAGE_FILES.imageOrderCsv}, or ${PACKAGE_FILES.orderCsv}`
+    );
+  }
+
+  const unexpectedRootEntries = safeEntries.filter((entry) => {
+    const root = entry.split('/')[0];
+    return ![
+      PACKAGE_FILES.manifest,
+      PACKAGE_FILES.aiIntakeJson,
+      PACKAGE_FILES.importReadyJson,
+      PACKAGE_FILES.collageManifestJson,
+      PACKAGE_FILES.legacyCsv,
+      PACKAGE_FILES.imageOrderCsv,
+      PACKAGE_FILES.orderCsv,
+      PACKAGE_FILES.legacyImagesDir,
+      PACKAGE_FILES.rawImagesDir,
+      PACKAGE_FILES.originalImagesDir,
+      'collage.jpg',
+    ].includes(root);
+  });
+
+  if (unexpectedRootEntries.length > 0) {
+    warnings.push(`Unexpected root entries ignored: ${unexpectedRootEntries.join(', ')}`);
+  }
+
+  return {
+    warnings,
+    errors,
+    summary: {
+      entries: safeEntries,
+      hasManifest,
+      hasAiJson: hasAiIntakeJson || hasImportReadyJson,
+      hasAiIntakeJson,
+      hasImportReadyJson,
+      hasCollageManifestJson,
+      hasMappingCsv: hasLegacyMappingCsv || hasImageOrderCsv || hasOrderCsv,
+      hasLegacyMappingCsv,
+      hasImageOrderCsv,
+      hasOrderCsv,
+      imagesIncluded: imageEntries.length > 0,
+      imageCount: imageEntries.length,
+      imageEntries,
+      imagesDir: resolvedImagesDir,
+      intakeJsonFile: hasImportReadyJson ? PACKAGE_FILES.importReadyJson : hasAiIntakeJson ? PACKAGE_FILES.aiIntakeJson : '',
+      mappingCsvFile: hasOrderCsv
+        ? PACKAGE_FILES.orderCsv
+        : hasImageOrderCsv
+          ? PACKAGE_FILES.imageOrderCsv
+          : hasLegacyMappingCsv
+            ? PACKAGE_FILES.legacyCsv
+            : '',
+      ignoredEntryCount: warnings.length,
+    },
+  };
+}
+
+function validatePackageManifest(manifest = {}, structureSummary = {}) {
+  const warnings = [];
+  const errors = [];
+
+  if (!isPlainObject(manifest)) {
+    return {
+      warnings,
+      errors: ['Package manifest.json must be a JSON object.'],
+    };
+  }
+
+  const usesLegacyContract =
+    toTrimmed(manifest.app) || manifest.packageVersion != null || isPlainObject(manifest.files);
+
+  if (usesLegacyContract) {
+    if (toTrimmed(manifest.app) !== 'discowarpcore') {
+      errors.push(`manifest.app must be "discowarpcore", got "${toTrimmed(manifest.app)}"`);
+    }
+
+    if (Number(manifest.packageVersion) !== 1) {
+      errors.push(`manifest.packageVersion must be 1, got "${manifest.packageVersion}"`);
+    }
+
+    const files = isPlainObject(manifest.files) ? manifest.files : {};
+    const expectedJson = structureSummary.intakeJsonFile || PACKAGE_FILES.aiIntakeJson;
+    const expectedCsv = structureSummary.mappingCsvFile || PACKAGE_FILES.legacyCsv;
+    const expectedImagesDir = structureSummary.imagesDir || PACKAGE_FILES.legacyImagesDir;
+
+    if (toTrimmed(files.aiIntakeJson) !== expectedJson) {
+      errors.push(`manifest.files.aiIntakeJson must be "${expectedJson}"`);
+    }
+    if (structureSummary.hasMappingCsv && toTrimmed(files.imageMappingCsv) !== expectedCsv) {
+      errors.push(`manifest.files.imageMappingCsv must be "${expectedCsv}"`);
+    }
+    if (structureSummary.imagesIncluded && toTrimmed(files.imagesDir) !== expectedImagesDir) {
+      errors.push(`manifest.files.imagesDir must be "${expectedImagesDir}"`);
+    }
+
+    const declaredImageCount = Number(manifest?.images?.count);
+    if (structureSummary.imagesIncluded && Number.isFinite(declaredImageCount) && declaredImageCount !== structureSummary.imageCount) {
+      warnings.push(
+        `manifest.images.count (${declaredImageCount}) does not match observed image count (${structureSummary.imageCount}).`
+      );
+    }
+    return { warnings, errors };
+  }
+
+  if (!toTrimmed(manifest.batchId) && !toTrimmed(manifest.displayName)) {
+    errors.push('manifest.batchId or manifest.displayName is required.');
+  }
+  if (!isPlainObject(manifest.status)) {
+    warnings.push('manifest.status should be an object.');
+  }
+  if (!isPlainObject(manifest.artifacts)) {
+    warnings.push('manifest.artifacts should be an object.');
+  } else {
+    const artifacts = manifest.artifacts;
+    const importReadyName = toTrimmed(artifacts.importReady);
+    const orderCsvName = toTrimmed(artifacts.orderCsv);
+    const collageManifestName = toTrimmed(artifacts.collageManifest);
+    const collageImageName = toTrimmed(artifacts.collageImage);
+
+    if (
+      structureSummary.hasImportReadyJson
+      && importReadyName
+      && importReadyName !== structureSummary.intakeJsonFile
+    ) {
+      warnings.push(
+        `manifest.artifacts.importReady is "${importReadyName}" but package contains "${structureSummary.intakeJsonFile}".`
+      );
+    }
+    if (
+      structureSummary.hasMappingCsv
+      && orderCsvName
+      && orderCsvName !== structureSummary.mappingCsvFile
+    ) {
+      warnings.push(
+        `manifest.artifacts.orderCsv is "${orderCsvName}" but package contains "${structureSummary.mappingCsvFile}".`
+      );
+    }
+    if (
+      structureSummary.hasCollageManifestJson
+      && collageManifestName
+      && collageManifestName !== PACKAGE_FILES.collageManifestJson
+    ) {
+      warnings.push(
+        `manifest.artifacts.collageManifest is "${collageManifestName}" but package contains "${PACKAGE_FILES.collageManifestJson}".`
+      );
+    }
+    if (
+      collageImageName
+      && !collageImageName.toLowerCase().endsWith('.jpg')
+      && !collageImageName.toLowerCase().endsWith('.jpeg')
+    ) {
+      warnings.push(`manifest.artifacts.collageImage is "${collageImageName}". Expected a JPG/JPEG artifact name.`);
+    }
+  }
+
+  const declaredImageCount = Array.isArray(manifest.sourceImages) ? manifest.sourceImages.length : null;
+  if (structureSummary.imagesIncluded && Number.isInteger(declaredImageCount) && declaredImageCount !== structureSummary.imageCount) {
+    warnings.push(
+      `manifest.sourceImages.length (${declaredImageCount}) does not match observed image count (${structureSummary.imageCount}).`
+    );
+  }
+  if (Array.isArray(manifest.sourceImages)) {
+    const invalidEntries = manifest.sourceImages.filter((entry) => !toTrimmed(entry?.filename));
+    if (invalidEntries.length > 0) {
+      warnings.push('manifest.sourceImages contains entries without filename values.');
+    }
+  }
+
+  return { warnings, errors };
+}
+
+async function stageBatchFromPackageExtraction({
+  extractionDir,
+  originalPackageFilename = '',
+  structureSummary = {},
+  manifest = {},
+}) {
+  const intakeJsonFile = toTrimmed(structureSummary.intakeJsonFile) || PACKAGE_FILES.aiIntakeJson;
+  const mappingCsvFile = toTrimmed(structureSummary.mappingCsvFile);
+  const imagesDirName = toTrimmed(structureSummary.imagesDir);
+  const uploadedFiles = {
+    jsonFile: [{
+      path: path.join(extractionDir, intakeJsonFile),
+      originalname:
+        toTrimmed(manifest?.metadata?.sourceJsonFilename)
+        || toTrimmed(manifest?.artifacts?.importReady)
+        || intakeJsonFile,
+    }],
+  };
+
+  const csvPath = mappingCsvFile ? path.join(extractionDir, mappingCsvFile) : '';
+  if (csvPath && await fileExists(csvPath)) {
+    uploadedFiles.csvFile = [{
+      path: csvPath,
+      originalname:
+        toTrimmed(manifest?.metadata?.sourceCsvFilename)
+        || toTrimmed(manifest?.artifacts?.orderCsv)
+        || mappingCsvFile,
+    }];
+  }
+
+  const imagesDir = imagesDirName ? path.join(extractionDir, imagesDirName) : '';
+  const imageEntries = imagesDir ? await listFiles(imagesDir, null) : [];
+  if (imageEntries.length > 0) {
+    uploadedFiles.images = imageEntries.map((entry) => ({
+      path: path.join(imagesDir, entry),
+      originalname: entry,
+    }));
+  }
+
+  const batch = await createIntakeBatch({
+    name:
+      toTrimmed(manifest?.batchLabel)
+      || toTrimmed(manifest?.displayName)
+      || toTrimmed(manifest?.batchId)
+      || path.basename(extractionDir),
+    uploadedFiles,
+  });
+
+  await writeBatchState(batch.batchDir, {
+    packageSnapshot: {
+      ingestedAt: new Date().toISOString(),
+      originalPackageFilename: toTrimmed(originalPackageFilename),
+      manifest,
+      structureSummary,
+    },
+  });
+
+  return getIntakeBatchById(batch.batchId);
+}
+
+async function ingestIntakeBatchPackage({
+  manifest = {},
+  uploadedFiles = {},
+  autoValidate = true,
+  autoImport = true,
+} = {}) {
+  const normalizedManifest = normalizePackageManifest(manifest);
+  const normalizedAutoValidate = parseBooleanFlag(autoValidate, true);
+  const normalizedAutoImport = parseBooleanFlag(autoImport, true);
+  const batchLabel =
+    toTrimmed(normalizedManifest.batchLabel)
+    || toTrimmed(normalizedManifest.batchFolderName)
+    || 'batch';
+
+  if (normalizedAutoImport && !normalizedAutoValidate) {
+    throw new Error('autoImport requires autoValidate.');
+  }
+
+  const batch = await createIntakeBatch({
+    name: batchLabel,
+    uploadedFiles,
+  });
+
+  let nextBatch = batch;
+  let validation = null;
+  let importResult = null;
+  let ingestStatus = 'received';
+
+  if (normalizedAutoValidate) {
+    const validationResult = await validateIntakeBatch(batch.batchId);
+    nextBatch = validationResult.batch;
+    validation = validationResult.validation;
+    ingestStatus = nextBatch.validationStatus === 'passed' ? 'validated' : 'validation_failed';
+  }
+
+  if (normalizedAutoImport && nextBatch.validationStatus === 'passed') {
+    const importResponse = await importIntakeBatch(nextBatch.batchId);
+    nextBatch = importResponse.batch;
+    importResult = importResponse.importResult;
+    ingestStatus = importResult?.status === 'success' ? 'imported' : 'import_failed';
+  }
+
+  return {
+    batch: nextBatch,
+    validation,
+    importResult,
+    packageIngest: {
+      status: ingestStatus,
+      manifest: normalizedManifest,
+      autoValidate: normalizedAutoValidate,
+      autoImport: normalizedAutoImport,
+    },
+    receiptAdvice: buildPackageReceiptAdvice({
+      batch: nextBatch,
+      validation,
+      importResult,
+      status: ingestStatus,
+    }),
+  };
+}
+
+async function ingestIntakeBatchPackageArchiveFromFile(zipFilePath, {
+  originalPackageFilename = '',
+} = {}) {
+  const absoluteZipPath = path.resolve(String(zipFilePath || ''));
+  const uploadExists = await fileExists(absoluteZipPath);
+  if (!uploadExists) {
+    throw new Error(`Package zip not found: ${absoluteZipPath}`);
+  }
+
+  await fs.mkdir(PACKAGE_TEMP_ROOT, { recursive: true });
+  const ingestRoot = await fs.mkdtemp(path.join(PACKAGE_TEMP_ROOT, 'package-'));
+  const uploadedZipPath = path.join(ingestRoot, toTrimmed(originalPackageFilename) || path.basename(absoluteZipPath));
+  const extractDir = path.join(ingestRoot, 'extracted');
+  let cleanupSafe = false;
+
+  logIntakeBatchEvent('package ingest received', {
+    zipFilePath: absoluteZipPath,
+    originalPackageFilename: toTrimmed(originalPackageFilename) || path.basename(absoluteZipPath),
+  });
+
+  try {
+    await fs.mkdir(ingestRoot, { recursive: true });
+    await fs.copyFile(absoluteZipPath, uploadedZipPath);
+
+    const entries = await listZipEntries(uploadedZipPath);
+    const structureValidation = validateObservedPackageStructure(entries);
+
+    if (structureValidation.errors.length > 0) {
+      logIntakeBatchEvent('package structure validation failed', {
+        zipFilePath: absoluteZipPath,
+        errors: structureValidation.errors,
+      });
+      return {
+        ok: false,
+        batchId: '',
+        batchLabel: '',
+        packageStructureSummary: structureValidation.summary,
+        requiredAssetsFound: false,
+        imagePresenceCount: structureValidation.summary.imageCount,
+        warnings: structureValidation.warnings,
+        errors: structureValidation.errors,
+        nextStepSuggestion: 'Fix the package structure and try uploading again.',
+      };
+    }
+
+    logIntakeBatchEvent('package unzip started', {
+      zipFilePath: absoluteZipPath,
+      ingestRoot,
+    });
+    await unzipArchive(uploadedZipPath, extractDir);
+    logIntakeBatchEvent('package unzip completed', {
+      zipFilePath: absoluteZipPath,
+      extractDir,
+    });
+
+    const manifest = await safeReadJson(path.join(extractDir, PACKAGE_FILES.manifest), null);
+    if (!isPlainObject(manifest)) {
+      throw new Error('Package manifest.json is missing or invalid.');
+    }
+    const manifestValidation = validatePackageManifest(manifest, structureValidation.summary);
+    if (manifestValidation.errors.length > 0) {
+      logIntakeBatchEvent('package manifest validation failed', {
+        zipFilePath: absoluteZipPath,
+        errors: manifestValidation.errors,
+      });
+      return {
+        ok: false,
+        batchId: '',
+        batchLabel: toTrimmed(manifest.batchLabel),
+        packageStructureSummary: structureValidation.summary,
+        requiredAssetsFound: false,
+        imagePresenceCount: structureValidation.summary.imageCount,
+        warnings: [...structureValidation.warnings, ...manifestValidation.warnings],
+        errors: manifestValidation.errors,
+        nextStepSuggestion: 'Fix the manifest contents and try uploading again.',
+      };
+    }
+
+    const batch = await stageBatchFromPackageExtraction({
+      extractionDir: extractDir,
+      originalPackageFilename: toTrimmed(originalPackageFilename) || path.basename(absoluteZipPath),
+      structureSummary: structureValidation.summary,
+      manifest,
+    });
+
+    cleanupSafe = true;
+    logIntakeBatchEvent('batch staging record created from package', {
+      batchId: batch.batchId,
+      batchLabel: batch.batchName,
+      originalPackageFilename: toTrimmed(originalPackageFilename) || path.basename(absoluteZipPath),
+    });
+
+    return {
+      ok: true,
+      batchId: batch.batchId,
+      batchLabel: batch.batchName,
+      batch,
+      packageStructureSummary: structureValidation.summary,
+      requiredAssetsFound: true,
+      imagePresenceCount: structureValidation.summary.imageCount,
+      warnings: [...structureValidation.warnings, ...manifestValidation.warnings],
+      errors: [],
+      nextStepSuggestion: 'Package staged successfully. Validate the batch before import.',
+    };
+  } finally {
+    if (cleanupSafe) {
+      await fs.rm(ingestRoot, { recursive: true, force: true });
+      logIntakeBatchEvent('package ingest temp cleanup completed', {
+        ingestRoot,
+      });
+    } else {
+      logIntakeBatchEvent('package ingest temp preserved for debugging', {
+        ingestRoot,
+      });
+    }
+  }
+}
+
+async function processIntakeBatchSelectedItems(batchId, {
+  itemIds = [],
+  renderTokens = undefined,
+} = {}) {
+  const batch = await getIntakeBatchById(batchId);
+  const normalizedItemIds = Array.from(new Set(
+    (Array.isArray(itemIds) ? itemIds : [])
+      .map((value) => toTrimmed(value))
+      .filter(Boolean)
+  ));
+
+  if (!normalizedItemIds.length) {
+    throw new Error('Select at least one imported item to process.');
+  }
+
+  const validSelectedIds = toObjectIdStrings(normalizedItemIds);
+  if (validSelectedIds.length !== normalizedItemIds.length) {
+    throw new Error('One or more selected item ids are invalid.');
+  }
+
+  const batchState = await readBatchState(batch.batchDir);
+  const selectedLedger = await buildImportedItemsLedger(batchState, {
+    selectedItemIds: validSelectedIds,
+    limit: null,
+    sort: 'name',
+  });
+  const selectedItems = Array.isArray(selectedLedger?.items) ? selectedLedger.items : [];
+
+  if (selectedItems.length !== validSelectedIds.length) {
+    throw new Error('One or more selected items do not belong to this batch.');
+  }
+
+  const renderTokenValidation = validateRenderTokens(renderTokens, {
+    fallbackTokens: DEFAULT_RENDER_TOKENS,
+  });
+  if (!renderTokenValidation.isValid) {
+    throw new Error(renderTokenValidation.errors[0] || 'Invalid render token selection.');
+  }
+  const normalizedRenderTokens = renderTokenValidation.renderTokens;
+
+  const processableItems = selectedItems.filter((item) => item?.processing?.isProcessable);
+  let skippedAlreadyProcessedCount = selectedItems.filter(
+    (item) => item?.processing?.status === 'processed'
+  ).length;
+  let skippedMissingOriginalCount = selectedItems.filter(
+    (item) => item?.processing?.status === 'unavailable'
+  ).length;
+  let skippedInFlightCount = selectedItems.filter((item) =>
+    ['queued', 'processing'].includes(item?.processing?.status)
+  ).length;
+
+  logIntakeBatchEvent('batch processing request received', {
+    batchId: batch.batchId,
+    databaseId: batch.databaseId,
+    selectedItemCount: selectedItems.length,
+    skippedAlreadyProcessedCount,
+    skippedMissingOriginalCount,
+    skippedInFlightCount,
+    renderTokens: normalizedRenderTokens,
+  });
+
+  if (!processableItems.length) {
+    throw new Error('No processable items selected. Already processed, unavailable, or already queued items were skipped.');
+  }
+
+  let queuedCount = 0;
+  let failedCount = 0;
+  const jobIds = [];
+  const failures = [];
+
+  for (const item of processableItems) {
+    try {
+      const mediaState = await ensureItemMediaStateRunner(item.id);
+      if (!mediaState?.mediaId) {
+        skippedMissingOriginalCount += 1;
+        continue;
+      }
+
+      const queued = await enqueueMediaProcessingJobByIdRunner(
+        mediaState.mediaId,
+        undefined,
+        normalizedRenderTokens,
+        false,
+        { batchId: batch.batchId }
+      );
+
+      if (queued?.skipped) {
+        if (queued?.skipReason === 'already_complete') {
+          skippedAlreadyProcessedCount += 1;
+        } else {
+          skippedInFlightCount += 1;
+        }
+        continue;
+      }
+
+      if (queued?.job?.id) {
+        jobIds.push(queued.job.id);
+      }
+      queuedCount += 1;
+    } catch (error) {
+      failedCount += 1;
+      failures.push({
+        itemId: item.id,
+        itemName: item.name,
+        message: error?.message || 'Failed to queue processing.',
+      });
+    }
+  }
+
+  const lastRequestedAt = new Date().toISOString();
+  const fullLedgerAfterQueue = await buildImportedItemsLedger(batchState, {
+    limit: null,
+    sort: 'name',
+  });
+  const nextProcessingSummary = deriveBatchProcessingSummary(
+    fullLedgerAfterQueue.items,
+    batch.processingSummary,
+    { lastRequestedAt }
+  );
+  await writeBatchState(batch.batchDir, {
+    processingSummary: nextProcessingSummary,
+  });
+  const nextBatch = await getIntakeBatchById(batchId, {
+    includeImportedItems: true,
+    importedItemsLimit: 50,
+    importedItemsOffset: 0,
+    importedItemsSort: 'name',
+  });
+
+  logIntakeBatchEvent('batch processing request completed', {
+    batchId: batch.batchId,
+    selectedItemCount: selectedItems.length,
+    processableItemCount: processableItems.length,
+    queuedCount,
+    skippedAlreadyProcessedCount,
+    skippedMissingOriginalCount,
+    skippedInFlightCount,
+    failedCount,
+    renderTokens: normalizedRenderTokens,
+  });
+
+  return {
+    batch: nextBatch,
+    processingRequest: {
+      selectedItemCount: selectedItems.length,
+      processableItemCount: processableItems.length,
+      queuedCount,
+      skippedAlreadyProcessedCount,
+      skippedMissingOriginalCount,
+      skippedInFlightCount,
+      failedCount,
+      renderTokens: normalizedRenderTokens,
+      jobIds,
+      failures,
+    },
+  };
+}
+
 async function deleteIntakeBatch(batchId) {
   const batch = await getIntakeBatchById(batchId);
+  if (batch.importLifecycleStatus !== 'success') {
+    throw new Error('Only imported batches can be archived.');
+  }
+  const archivedAt = new Date().toISOString();
+
   await fs.rm(batch.batchDir, { recursive: true, force: true });
+  await writeBatchState(batch.batchDir, {
+    archiveState: {
+      status: 'archived',
+      archivedAt,
+      archiveReason: 'archived_by_user',
+      sourceFilesDeletedAt: archivedAt,
+    },
+  });
+
   return {
     id: batch.id,
     deleted: true,
+    archived: true,
+    batch: await summarizeIntakeBatch(batch.batchDir),
   };
+}
+
+async function findBatchOwnedItems(batch = {}) {
+  const membershipClauses = [];
+  const importedItemIds = toObjectIdStrings(batch?.importSnapshot?.importedItemIds);
+
+  if (importedItemIds.length) {
+    membershipClauses.push({ _id: { $in: importedItemIds } });
+  }
+
+  if (batch?.databaseId) {
+    membershipClauses.push({ sourceBatchId: batch.databaseId });
+  }
+
+  if (!membershipClauses.length) {
+    return [];
+  }
+
+  return itemModel.find({ $or: membershipClauses })
+    .select('_id image imagePath sourceBatchId')
+    .lean();
+}
+
+async function permanentlyDeleteIntakeBatch(batchId) {
+  const batch = await getIntakeBatchById(batchId);
+  const ownedItems = await findBatchOwnedItems(batch);
+  const itemIds = ownedItems
+    .map((item) => toTrimmed(item?._id || item?.id))
+    .filter(Boolean);
+  const mediaIds = ownedItems
+    .map((item) => toTrimmed(item?.image?.mediaId))
+    .filter(Boolean);
+  const imagePaths = ownedItems.flatMap((item) => collectImageStoragePaths(item));
+
+  if (itemIds.length) {
+    await boxModel.updateMany(
+      { items: { $in: itemIds } },
+      { $pull: { items: { $in: itemIds } } }
+    );
+  }
+
+  const mediaCleanup = await safeDeleteMediaFiles(imagePaths, {
+    label: `batch-delete:${batch.batchId}`,
+  });
+
+  if (mediaIds.length) {
+    await mediaStateModel.deleteMany({ mediaId: { $in: mediaIds } });
+  }
+
+  if (itemIds.length) {
+    await itemModel.deleteMany({ _id: { $in: itemIds } });
+  }
+
+  await batchModel.deleteOne({ 'identity.batchId': batch.batchId });
+  await fs.rm(batch.batchDir, { recursive: true, force: true });
+
+  return {
+    id: batch.id,
+    deleted: true,
+    archived: false,
+    batchId: batch.batchId,
+    batchName: batch.name,
+    deletedItemCount: itemIds.length,
+    deletedMediaStateCount: mediaIds.length,
+    deletedMediaFileCount: mediaCleanup.deleted,
+  };
+}
+
+async function recreateIntakeBatchLocalFolder(batchId) {
+  const batch = await getIntakeBatchById(batchId);
+  if (batch.isArchived) {
+    throw new Error('Archived batches cannot recreate a local staging folder.');
+  }
+
+  await ensureBatchStructure(batch.batchDir);
+  const nextBatch = await summarizeIntakeBatch(batch.batchDir);
+
+  logIntakeBatchEvent('local staging folder recreated', {
+    batchId: batch.batchId,
+    batchDir: batch.batchDir,
+  });
+
+  return {
+    batch: nextBatch,
+    recreated: true,
+  };
+}
+
+function __setIntakeBatchServiceHandlersForTests(handlers = {}) {
+  if (handlers.batchModel) {
+    batchModel = handlers.batchModel;
+  }
+  if (handlers.itemModel) {
+    itemModel = handlers.itemModel;
+  }
+  if (handlers.boxModel) {
+    boxModel = handlers.boxModel;
+  }
+  if (handlers.mediaStateModel) {
+    mediaStateModel = handlers.mediaStateModel;
+  }
+  if (typeof handlers.stageBatchImages === 'function') {
+    stageBatchImagesRunner = handlers.stageBatchImages;
+  }
+  if (typeof handlers.importAiJsonItems === 'function') {
+    importAiJsonItemsRunner = handlers.importAiJsonItems;
+  }
+  if (typeof handlers.ensureItemMediaState === 'function') {
+    ensureItemMediaStateRunner = handlers.ensureItemMediaState;
+  }
+  if (typeof handlers.enqueueMediaProcessingJobById === 'function') {
+    enqueueMediaProcessingJobByIdRunner = handlers.enqueueMediaProcessingJobById;
+  }
+}
+
+function __resetIntakeBatchServiceHandlersForTests() {
+  batchModel = Batch;
+  itemModel = Item;
+  boxModel = Box;
+  mediaStateModel = MediaState;
+  stageBatchImagesRunner = stageBatchImages;
+  importAiJsonItemsRunner = importAiJsonItems;
+  ensureItemMediaStateRunner = ensureItemMediaState;
+  enqueueMediaProcessingJobByIdRunner = enqueueMediaProcessingJobById;
 }
 
 module.exports = {
@@ -418,5 +2758,13 @@ module.exports = {
   validateIntakeBatch,
   stageIntakeBatch,
   importIntakeBatch,
+  ingestIntakeBatchPackage,
+  ingestIntakeBatchPackageArchiveFromFile,
+  processIntakeBatchSelectedItems,
   deleteIntakeBatch,
+  permanentlyDeleteIntakeBatch,
+  recreateIntakeBatchLocalFolder,
+  __hydrateBatchRecordFromFilesystemForTests: hydrateBatchRecordFromFilesystem,
+  __setIntakeBatchServiceHandlersForTests,
+  __resetIntakeBatchServiceHandlersForTests,
 };

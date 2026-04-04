@@ -11,6 +11,7 @@ export default function RetrievalExpandedPanel({
   item,
   panelId,
   onLifecycleAction,
+  onPreviewImage,
 }) {
   const resolvedItem = item && typeof item === 'object' ? item : null;
   const [pendingAction, setPendingAction] = useState('');
@@ -19,7 +20,6 @@ export default function RetrievalExpandedPanel({
   const notes = String(resolvedItem?.notes || '').trim();
   const categoryLabel = String(resolvedItem?.categoryLabel || '').trim();
   const tags = Array.isArray(resolvedItem?.tags) ? resolvedItem.tags.filter(Boolean) : [];
-  const pathLine = String(resolvedItem?.locationPath || '').trim();
   const locationLabel = String(resolvedItem?.locationLabel || '').trim();
   const boxGroupLabel = String(
     resolvedItem?.boxGroupLabel || resolvedItem?.groupLabel || ''
@@ -29,7 +29,7 @@ export default function RetrievalExpandedPanel({
     resolvedItem?.keepPriorityLabel || keepPriority,
   );
   const keepPriorityToneValue = keepPriorityTone(keepPriority);
-  const hasPrimaryDetails = Boolean(description || notes || pathLine);
+  const hasPrimaryDetails = Boolean(description || notes);
   const hasMetadata = Boolean(
     categoryLabel || keepPriorityLabel || tags.length || locationLabel || boxGroupLabel
   );
@@ -38,6 +38,9 @@ export default function RetrievalExpandedPanel({
   const isConsumable = Boolean(resolvedItem?.isConsumable);
   const maintenanceActionType = isConsumable ? 'consumed' : 'maintained';
   const maintenanceActionLabel = isConsumable ? 'Consumed' : 'Maintained';
+  const imageUrl = String(resolvedItem?.imageUrl || '').trim();
+  const previewImageUrl = String(resolvedItem?.previewImageUrl || imageUrl).trim();
+  const hasImage = Boolean(previewImageUrl);
   const editHref = useMemo(() => {
     const href = String(resolvedItem?.itemHref || '').trim();
     if (!href) return '';
@@ -74,26 +77,51 @@ export default function RetrievalExpandedPanel({
         <S.ExpandedItemPanel>
           <S.ExpandedPanelTitle>Item details</S.ExpandedPanelTitle>
 
-          {description ? (
-            <S.ExpandedDetailBlock>
-              <S.ExpandedDetailLabel>Description</S.ExpandedDetailLabel>
-              <S.ExpandedDetailText>{description}</S.ExpandedDetailText>
-            </S.ExpandedDetailBlock>
-          ) : null}
+          <S.ExpandedItemBody>
+            <S.ExpandedMediaColumn>
+              {hasImage ? (
+                <S.ExpandedMediaButton
+                  type="button"
+                  onClick={() =>
+                    onPreviewImage?.({ src: previewImageUrl, name: resolvedItem.name })
+                  }
+                  aria-label={`Preview image for ${resolvedItem.name}`}
+                >
+                  <S.ExpandedMediaFrame>
+                    <S.ExpandedMediaImage
+                      src={previewImageUrl}
+                      alt={`${resolvedItem.name} preview`}
+                    />
+                  </S.ExpandedMediaFrame>
+                </S.ExpandedMediaButton>
+              ) : (
+                <S.ExpandedMediaFrame>
+                  <S.ExpandedMediaPlaceholder>No image on file</S.ExpandedMediaPlaceholder>
+                </S.ExpandedMediaFrame>
+              )}
+            </S.ExpandedMediaColumn>
 
-          {notes ? (
-            <S.ExpandedDetailBlock>
-              <S.ExpandedDetailLabel>Notes</S.ExpandedDetailLabel>
-              <S.ExpandedDetailText>{notes}</S.ExpandedDetailText>
-            </S.ExpandedDetailBlock>
-          ) : null}
+            <S.ExpandedTextColumn>
+              {description ? (
+                <S.ExpandedDetailBlock>
+                  <S.ExpandedDetailLabel>Description</S.ExpandedDetailLabel>
+                  <S.ExpandedDetailText>{description}</S.ExpandedDetailText>
+                </S.ExpandedDetailBlock>
+              ) : null}
 
-          {pathLine ? (
-            <S.ExpandedDetailBlock>
-              <S.ExpandedDetailLabel>Path</S.ExpandedDetailLabel>
-              <S.ExpandedPathText>{pathLine}</S.ExpandedPathText>
-            </S.ExpandedDetailBlock>
-          ) : null}
+              {notes ? (
+                <S.ExpandedNotesBlock>
+                  <S.ExpandedDetailLabel>Notes</S.ExpandedDetailLabel>
+                  <S.ExpandedNotesText>{notes}</S.ExpandedNotesText>
+                </S.ExpandedNotesBlock>
+              ) : (
+                <S.ExpandedNotesBlock>
+                  <S.ExpandedDetailLabel>Notes</S.ExpandedDetailLabel>
+                  <S.ExpandedNotesEmpty>No notes recorded for this item.</S.ExpandedNotesEmpty>
+                </S.ExpandedNotesBlock>
+              )}
+            </S.ExpandedTextColumn>
+          </S.ExpandedItemBody>
         </S.ExpandedItemPanel>
       ) : null}
 
@@ -132,46 +160,42 @@ export default function RetrievalExpandedPanel({
           </S.ExpandedActionRow>
 
           {hasMetadata ? (
-            <S.ExpandedMetadataGrid>
+            <S.ExpandedMetaList>
               {categoryLabel ? (
-                <S.ExpandedMetaCard>
-                  <S.ExpandedDetailLabel>Category</S.ExpandedDetailLabel>
-                  <S.CategoryValue>{categoryLabel}</S.CategoryValue>
-                </S.ExpandedMetaCard>
+                <S.ExpandedMetaRow>
+                  <S.ExpandedMetaLabel>Category</S.ExpandedMetaLabel>
+                  <S.ExpandedMetaValue>{categoryLabel}</S.ExpandedMetaValue>
+                </S.ExpandedMetaRow>
               ) : null}
 
               {keepPriorityLabel ? (
-                <S.ExpandedMetaCard>
-                  <S.ExpandedDetailLabel>Keep Priority</S.ExpandedDetailLabel>
-                  <S.KeepPriorityChip $tone={keepPriorityToneValue}>
+                <S.ExpandedMetaRow>
+                  <S.ExpandedMetaLabel>Keep Priority</S.ExpandedMetaLabel>
+                  <S.ExpandedMetaValue $tone={keepPriorityToneValue}>
                     {keepPriorityLabel}
-                  </S.KeepPriorityChip>
-                </S.ExpandedMetaCard>
+                  </S.ExpandedMetaValue>
+                </S.ExpandedMetaRow>
               ) : null}
 
               {locationLabel ? (
-                <S.ExpandedMetaCard>
-                  <S.ExpandedDetailLabel>Location</S.ExpandedDetailLabel>
-                  <S.ExpandedContextValue>{locationLabel}</S.ExpandedContextValue>
-                </S.ExpandedMetaCard>
+                <S.ExpandedMetaRow>
+                  <S.ExpandedMetaLabel>Location</S.ExpandedMetaLabel>
+                  <S.ExpandedMetaValue>{locationLabel}</S.ExpandedMetaValue>
+                </S.ExpandedMetaRow>
               ) : null}
 
-              <S.ExpandedMetaCard>
-                <S.ExpandedDetailLabel>Box Group</S.ExpandedDetailLabel>
-                <S.ExpandedContextValue>{boxGroupLabel || '—'}</S.ExpandedContextValue>
-              </S.ExpandedMetaCard>
+              <S.ExpandedMetaRow>
+                <S.ExpandedMetaLabel>Box Group</S.ExpandedMetaLabel>
+                <S.ExpandedMetaValue>{boxGroupLabel || '—'}</S.ExpandedMetaValue>
+              </S.ExpandedMetaRow>
 
               {tags.length ? (
-                <S.ExpandedMetaCard $fullWidth>
-                  <S.ExpandedDetailLabel>Tags</S.ExpandedDetailLabel>
-                  <S.TagRow>
-                    {tags.map((tag) => (
-                      <S.ItemTagChip key={`${resolvedItem.id}-${tag}`}>{tag}</S.ItemTagChip>
-                    ))}
-                  </S.TagRow>
-                </S.ExpandedMetaCard>
+                <S.ExpandedMetaRow $fullWidth>
+                  <S.ExpandedMetaLabel>Tags</S.ExpandedMetaLabel>
+                  <S.ExpandedMetaValue>{tags.join(' • ')}</S.ExpandedMetaValue>
+                </S.ExpandedMetaRow>
               ) : null}
-            </S.ExpandedMetadataGrid>
+            </S.ExpandedMetaList>
           ) : null}
 
           {hasSiblings ? (

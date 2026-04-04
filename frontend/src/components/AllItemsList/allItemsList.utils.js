@@ -31,6 +31,7 @@ export const STATUS_FILTER_OPTIONS = [
   { value: 'active', label: 'Active Inventory' },
   { value: 'gone', label: 'No Longer Have' },
   { value: 'all', label: 'Full History' },
+  { value: 'batch', label: 'Batch Focused' },
 ];
 
 export const BASE_FILTER_OPTIONS = [
@@ -44,6 +45,7 @@ export const BASE_FILTER_OPTIONS = [
 
 export const SORT_OPTIONS = [
   { value: 'alpha', label: 'Alphabetical' },
+  { value: 'batch', label: 'Source Batch' },
   { value: 'box', label: 'Box ID' },
   { value: 'date', label: 'Date Added' },
   { value: 'keepPriority', label: 'Keep Priority' },
@@ -122,6 +124,9 @@ function buildItemSearchText(item, {
   dispositionLabel,
   quantityLabel,
   tags,
+  sourceBatchLabel,
+  sourceBatchId,
+  sourceBatchArchiveLabel,
 }) {
   const parts = [];
 
@@ -138,6 +143,12 @@ function buildItemSearchText(item, {
   pushSearchFragment(parts, item?.keepPriority);
   pushSearchFragment(parts, keepPriorityKey);
   pushSearchFragment(parts, keepPriorityLabel);
+  pushSearchFragment(parts, item?.sourceBatchId);
+  pushSearchFragment(parts, sourceBatchId);
+  pushSearchFragment(parts, item?.sourceBatch?.batchId);
+  pushSearchFragment(parts, item?.sourceBatch?.batchName);
+  pushSearchFragment(parts, sourceBatchLabel);
+  pushSearchFragment(parts, sourceBatchArchiveLabel);
   pushSearchFragment(parts, item?.condition);
   pushSearchFragment(parts, item?.acquisitionType);
   pushSearchFragment(parts, item?.item_status);
@@ -171,7 +182,7 @@ function getDispositionTone(value) {
 
 export function normalizeStatusFilter(value) {
   const next = String(value || '').trim().toLowerCase();
-  if (next === 'active' || next === 'gone' || next === 'all') return next;
+  if (next === 'active' || next === 'gone' || next === 'all' || next === 'batch') return next;
   return 'active';
 }
 
@@ -184,6 +195,10 @@ export function normalizeItemFilter(value) {
     if (ITEM_CATEGORIES.includes(category)) {
       return `category:${category}`;
     }
+  }
+  if (next.startsWith('batch:')) {
+    const batchId = String(next.slice('batch:'.length) || '').trim();
+    if (batchId) return `batch:${batchId}`;
   }
   return 'all';
 }
@@ -225,6 +240,66 @@ export function getVisibleTags(tags, maxVisible = 4) {
   return { visible, overflow, total: safeTags.length };
 }
 
+export function getItemThumbnailUrl(item) {
+  const activeVariant = String(item?.image?.activeVariant || '').trim().toLowerCase();
+  const processedUrl = String(item?.image?.processed?.url || '').trim();
+  const displayUrl = String(item?.image?.display?.url || '').trim();
+  const thumbUrl = String(item?.image?.thumb?.url || '').trim();
+  const originalUrl = String(
+    item?.image?.original?.url || item?.image?.url || item?.imagePath || '',
+  ).trim();
+
+  if (activeVariant === 'processed') {
+    return displayUrl || thumbUrl || processedUrl || originalUrl;
+  }
+
+  return String(
+    processedUrl ||
+      displayUrl ||
+      thumbUrl ||
+      originalUrl ||
+      '',
+  ).trim();
+}
+
+function hasProcessableImageSource(item) {
+  return Boolean(
+    String(
+      item?.image?.original?.url ||
+        item?.image?.original?.path ||
+        item?.image?.display?.url ||
+        item?.image?.thumb?.url ||
+        item?.image?.url ||
+        item?.imagePath ||
+        '',
+    ).trim(),
+  );
+}
+
+function getItemProcessingMeta(item) {
+  const activeVariant = String(item?.image?.activeVariant || '').trim().toLowerCase();
+  const processingStatus = String(item?.image?.processingStatus || '').trim().toLowerCase();
+  const processedUrl = String(item?.image?.processed?.url || item?.image?.processed?.path || '').trim();
+  const hasProcessableImage = hasProcessableImageSource(item);
+  const hasProcessedOutput = Boolean(processedUrl);
+  const isAlreadyProcessed =
+    activeVariant === 'processed' ||
+    processingStatus === 'completed' ||
+    hasProcessedOutput;
+  const isInFlight = processingStatus === 'queued' || processingStatus === 'processing';
+  const isBatchProcessable = hasProcessableImage && !isAlreadyProcessed && !isInFlight;
+
+  return {
+    hasProcessableImage,
+    hasProcessedOutput,
+    isAlreadyProcessed,
+    isInFlight,
+    isBatchProcessable,
+    processingStatus,
+    activeVariant,
+  };
+}
+
 export function prepareItemForList(item) {
   const ownership = getItemOwnershipContext(item);
   const isGone = isGoneItem(item);
@@ -245,6 +320,22 @@ export function prepareItemForList(item) {
   const tags = Array.isArray(item?.tags) ? item.tags.filter(Boolean) : [];
   const ownerLabel = String(item?.primaryOwnerName || '').trim();
   const statusLabel = isGone ? 'No Longer Have' : isOrphaned ? 'Orphaned' : 'Active';
+  const sourceBatchId = String(item?.sourceBatchId || '').trim();
+  const sourceBatch = item?.sourceBatch && typeof item.sourceBatch === 'object'
+    ? item.sourceBatch
+    : null;
+  const sourceBatchArchiveStatus = String(sourceBatch?.archiveStatus || '').trim().toLowerCase();
+  const sourceBatchArchiveLabel =
+    sourceBatchArchiveStatus === 'archived' ? 'archived batch' : sourceBatchId ? 'active batch' : '';
+  const sourceBatchLabel = String(
+    sourceBatch?.batchName ||
+    sourceBatch?.label ||
+    sourceBatch?.batchId ||
+    ''
+  ).trim();
+  const sourceBatchDisplayLabel = sourceBatchLabel || sourceBatchId || 'Batch';
+  const sourceBatchSortKey = `${String(sourceBatch?.batchId || sourceBatchId || '').trim()} ${sourceBatchDisplayLabel}`.trim();
+  const processingMeta = getItemProcessingMeta(item);
   const quantityLabel =
     item?.quantity == null || item?.quantity === ''
       ? '—'
@@ -258,6 +349,9 @@ export function prepareItemForList(item) {
     dispositionLabel,
     quantityLabel,
     tags,
+    sourceBatchLabel,
+    sourceBatchId,
+    sourceBatchArchiveLabel,
   });
 
   return {
@@ -285,6 +379,9 @@ export function prepareItemForList(item) {
       boxLabel,
       boxDescription,
       boxHref: boxId ? `/boxes/${encodeURIComponent(boxId)}` : '',
+      sourceBatchHref: sourceBatchId
+        ? `/import?batch=${encodeURIComponent(sourceBatchId)}`
+        : '',
       hasHistoricalBox: Boolean(!isBoxed && (boxId || boxLabel || boxDescription)),
       locationLabel: ownership.inheritedLocation || String(item?.location || '').trim(),
       orphanedAtLabel: formatDateLabel(item?.orphanedAt),
@@ -297,16 +394,106 @@ export function prepareItemForList(item) {
       keepPriorityLabel,
       keepPriorityTone: keepPriorityTone(keepPriorityKey),
       ownerLabel,
+      sourceBatchId,
+      sourceBatch,
+      sourceBatchLabel: sourceBatchDisplayLabel,
+      sourceBatchSortKey,
+      sourceBatchArchiveStatus,
+      sourceBatchArchiveLabel,
+      hasSourceBatch: Boolean(sourceBatchId),
       purchasePriceCents: Number.isFinite(item?.purchasePriceCents)
         ? item.purchasePriceCents
         : -1,
       quantityLabel,
+      thumbnailUrl: getItemThumbnailUrl(item),
+      hasProcessableImage: processingMeta.hasProcessableImage,
+      hasProcessedOutput: processingMeta.hasProcessedOutput,
+      isAlreadyProcessed: processingMeta.isAlreadyProcessed,
+      isProcessingInFlight: processingMeta.isInFlight,
+      isBatchProcessable: processingMeta.isBatchProcessable,
+      processingStatus: processingMeta.processingStatus,
+      activeVariant: processingMeta.activeVariant,
       searchText,
     },
   };
 }
 
-export function filterAndSortItems(items, { statusFilter, filter, sortBy, searchQuery }) {
+function compareItemsBySort(a, b, sortBy) {
+  const aMeta = a?._allItems || {};
+  const bMeta = b?._allItems || {};
+
+  if (sortBy === 'batch') {
+    const byBatch = compareText(aMeta.sourceBatchSortKey, bMeta.sourceBatchSortKey);
+    if (byBatch !== 0) return byBatch;
+    return compareByName(a, b);
+  }
+
+  if (sortBy === 'box') {
+    const byBox = compareText(aMeta.boxId, bMeta.boxId);
+    if (byBox !== 0) return byBox;
+    return compareByName(a, b);
+  }
+
+  if (sortBy === 'date') {
+    if (aMeta.createdAtMs !== bMeta.createdAtMs) {
+      return bMeta.createdAtMs - aMeta.createdAtMs;
+    }
+    return compareByName(a, b);
+  }
+
+  if (sortBy === 'keepPriority') {
+    if (aMeta.keepPriorityRank !== bMeta.keepPriorityRank) {
+      return aMeta.keepPriorityRank - bMeta.keepPriorityRank;
+    }
+    return compareByName(a, b);
+  }
+
+  if (sortBy === 'owner') {
+    const byOwner = compareText(aMeta.ownerLabel, bMeta.ownerLabel);
+    if (byOwner !== 0) return byOwner;
+    return compareByName(a, b);
+  }
+
+  if (sortBy === 'lastMaintained') {
+    if (aMeta.lastMaintainedAtMs !== bMeta.lastMaintainedAtMs) {
+      return bMeta.lastMaintainedAtMs - aMeta.lastMaintainedAtMs;
+    }
+    return compareByName(a, b);
+  }
+
+  if (sortBy === 'purchasePrice') {
+    if (aMeta.purchasePriceCents !== bMeta.purchasePriceCents) {
+      return bMeta.purchasePriceCents - aMeta.purchasePriceCents;
+    }
+    return compareByName(a, b);
+  }
+
+  if (sortBy === 'category') {
+    const byCategory = compareText(aMeta.normalizedCategory, bMeta.normalizedCategory);
+    if (byCategory !== 0) return byCategory;
+    return compareByName(a, b);
+  }
+
+  if (sortBy === 'dispositionAt') {
+    if (aMeta.dispositionAtMs !== bMeta.dispositionAtMs) {
+      return bMeta.dispositionAtMs - aMeta.dispositionAtMs;
+    }
+    return compareByName(a, b);
+  }
+
+  return compareByName(a, b);
+}
+
+export function filterAndSortItems(
+  items,
+  {
+    statusFilter,
+    filter,
+    sortBy,
+    searchQuery,
+    batchFocused = false,
+  }
+) {
   const next = Array.isArray(items) ? [...items] : [];
   const normalizedSearchQuery = normalizeSearchFragment(searchQuery);
 
@@ -333,68 +520,28 @@ export function filterAndSortItems(items, { statusFilter, filter, sortBy, search
       const selectedCategory = String(filter).slice('category:'.length);
       return meta.normalizedCategory === selectedCategory;
     }
+    if (String(filter || '').startsWith('batch:')) {
+      const selectedBatchId = String(filter).slice('batch:'.length).trim();
+      return meta.sourceBatchId === selectedBatchId;
+    }
 
     return true;
   });
 
   filtered.sort((a, b) => {
-    const aMeta = a?._allItems || {};
-    const bMeta = b?._allItems || {};
-
-    if (sortBy === 'box') {
-      const byBox = compareText(aMeta.boxId, bMeta.boxId);
-      if (byBox !== 0) return byBox;
-      return compareByName(a, b);
-    }
-
-    if (sortBy === 'date') {
-      if (aMeta.createdAtMs !== bMeta.createdAtMs) {
-        return bMeta.createdAtMs - aMeta.createdAtMs;
+    if (batchFocused) {
+      const byBatch = compareText(
+        a?._allItems?.sourceBatchSortKey || a?._allItems?.sourceBatchId || 'zzzz-no-batch',
+        b?._allItems?.sourceBatchSortKey || b?._allItems?.sourceBatchId || 'zzzz-no-batch',
+      );
+      if (byBatch !== 0) return byBatch;
+      if (sortBy !== 'batch') {
+        const withinBatch = compareItemsBySort(a, b, sortBy);
+        if (withinBatch !== 0) return withinBatch;
       }
-      return compareByName(a, b);
     }
 
-    if (sortBy === 'keepPriority') {
-      if (aMeta.keepPriorityRank !== bMeta.keepPriorityRank) {
-        return aMeta.keepPriorityRank - bMeta.keepPriorityRank;
-      }
-      return compareByName(a, b);
-    }
-
-    if (sortBy === 'owner') {
-      const byOwner = compareText(aMeta.ownerLabel, bMeta.ownerLabel);
-      if (byOwner !== 0) return byOwner;
-      return compareByName(a, b);
-    }
-
-    if (sortBy === 'lastMaintained') {
-      if (aMeta.lastMaintainedAtMs !== bMeta.lastMaintainedAtMs) {
-        return bMeta.lastMaintainedAtMs - aMeta.lastMaintainedAtMs;
-      }
-      return compareByName(a, b);
-    }
-
-    if (sortBy === 'purchasePrice') {
-      if (aMeta.purchasePriceCents !== bMeta.purchasePriceCents) {
-        return bMeta.purchasePriceCents - aMeta.purchasePriceCents;
-      }
-      return compareByName(a, b);
-    }
-
-    if (sortBy === 'category') {
-      const byCategory = compareText(aMeta.normalizedCategory, bMeta.normalizedCategory);
-      if (byCategory !== 0) return byCategory;
-      return compareByName(a, b);
-    }
-
-    if (sortBy === 'dispositionAt') {
-      if (aMeta.dispositionAtMs !== bMeta.dispositionAtMs) {
-        return bMeta.dispositionAtMs - aMeta.dispositionAtMs;
-      }
-      return compareByName(a, b);
-    }
-
-    return compareByName(a, b);
+    return compareItemsBySort(a, b, sortBy);
   });
 
   return filtered;

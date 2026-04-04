@@ -618,3 +618,119 @@ test('runMediaBatchOperation applies limit while preserving matchedCount', async
   assert.equal(summary.attemptedCount, 2);
   assert.equal(summary.records.length, 2);
 });
+
+test('objectGlow progress line parser normalizes JSONL events and ignores malformed lines', () => {
+  const events = [];
+  const parser = mediaProcessingService.__createObjectGlowLineParserForTests({
+    context: {
+      runId: 'job_parser_1',
+      mediaId: 'med_parser_1',
+      batchId: 'batch_parser_1',
+    },
+    onEvent: (event) => {
+      events.push(event);
+    },
+  });
+
+  parser.append('not-json\n');
+  parser.append('{"event":"job_queued","stage":"queued","message":"Queued","etaSecondsRemaining":8}\n');
+  parser.append('{"event":"stage_progress","stage":"segment","message":"Masking","progressPercent":42,"elapsedSeconds":1.5}\n');
+  parser.append('{"event":"job_completed","stage":"finalize","message":"Done","outputPath":"/tmp/parser.webp"}\n');
+  const state = parser.flush();
+
+  assert.equal(events.length, 3);
+  assert.equal(events[0].event, 'job_queued');
+  assert.equal(events[0].etaSeconds, 8);
+  assert.equal(events[1].event, 'stage_progress');
+  assert.equal(events[1].runId, 'job_parser_1');
+  assert.equal(events[1].mediaId, 'med_parser_1');
+  assert.equal(events[1].batchId, 'batch_parser_1');
+  assert.equal(events[1].progressPercent, 42);
+  assert.equal(events[1].elapsedSeconds, 1.5);
+  assert.equal(state.lastCompletedEvent.outputPath, '/tmp/parser.webp');
+  assert.equal(state.lastFailedEvent, null);
+});
+
+test('processImageWithObjectGlow emits progress events and preserves terminal event metadata', async (t) => {
+  const stateMock = installMediaStateMock();
+  t.after(() => stateMock.restore());
+  t.after(() => mediaProcessingService.__resetObjectGlowRunnerForTests());
+
+  const tempDir = await createTempMediaDir();
+  t.after(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  const inputPath = path.join(tempDir, 'items', 'original', 'progressful.jpg');
+  const outputPath = path.join(tempDir, 'items', 'processed', 'progressful.webp');
+  await createTestImage(inputPath, { width: 72, height: 48, rgb: [30, 120, 200] });
+
+  const observedEvents = [];
+  let observedProgressContext = null;
+
+  mediaProcessingService.__setObjectGlowRunnerForTests(async ({
+    inputPath: inPath,
+    outputPath: outPath,
+    progressContext,
+    onEvent,
+  }) => {
+    observedProgressContext = progressContext;
+    onEvent?.({
+      event: 'stage_started',
+      stage: 'segment',
+      message: 'Starting segmentation',
+      runId: progressContext.runId,
+      mediaId: progressContext.mediaId,
+      batchId: progressContext.batchId,
+    });
+    onEvent?.({
+      event: 'stage_progress',
+      stage: 'segment',
+      message: 'Mask extraction',
+      runId: progressContext.runId,
+      mediaId: progressContext.mediaId,
+      batchId: progressContext.batchId,
+      progressPercent: 55,
+    });
+    await fs.mkdir(path.dirname(outPath), { recursive: true });
+    await sharp(inPath).webp().toFile(outPath);
+    onEvent?.({
+      event: 'job_completed',
+      stage: 'finalize',
+      message: 'Completed',
+      runId: progressContext.runId,
+      mediaId: progressContext.mediaId,
+      batchId: progressContext.batchId,
+      outputPath: outPath,
+      elapsedSeconds: 1.25,
+      outputDimensions: { width: 72, height: 48 },
+    });
+
+    return {
+      exitCode: 0,
+      signal: null,
+      stdout: '',
+      stderr: '',
+    };
+  });
+
+  const result = await mediaProcessingService.processImageWithObjectGlow(inputPath, outputPath, {
+    progressContext: {
+      runId: 'job_progress_1',
+      mediaId: 'med_progress_1',
+      batchId: 'batch_progress_1',
+    },
+    onProgress: (event) => observedEvents.push(event),
+  });
+
+  assert.deepEqual(observedProgressContext, {
+    runId: 'job_progress_1',
+    mediaId: 'med_progress_1',
+    batchId: 'batch_progress_1',
+  });
+  assert.equal(observedEvents.length, 3);
+  assert.equal(observedEvents[1].progressPercent, 55);
+  assert.equal(result.result.elapsedSeconds, 1.25);
+  assert.deepEqual(result.result.outputDimensions, { width: 72, height: 48 });
+  assert.equal(result.processingState.processingStatus, 'completed');
+});

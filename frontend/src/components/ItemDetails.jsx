@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import * as S from '../styles/ItemDetails.styles';
 import { fetchItemDetails, createAborter } from '../api/itemDetails';
+import { getImportBatchHref } from '../api/intakeBatches';
 import { formatItemCategory, normalizeItemCategory } from '../util/itemCategories';
 import {
   formatKeepPriorityLabel,
@@ -9,6 +10,7 @@ import {
 } from '../util/keepPriority';
 import { getItemOwnershipContext } from '../util/itemOwnership';
 import OperationsItemOverview from './OperationsItemOverview';
+import RetrievalImageLightbox from './Retrieval/RetrievalImageLightbox';
 
 function fmtDate(value) {
   return value ? dayjs(value).format('YYYY-MM-DD') : '—';
@@ -44,6 +46,16 @@ function formatDispositionLabel(value) {
   return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
 
+function formatSourceBatchSummary(batch) {
+  if (!batch || typeof batch !== 'object') return '—';
+  const batchName = String(batch.batchName || batch.label || '').trim();
+  const batchId = String(batch.batchId || '').trim();
+  if (batchName && batchId) return `${batchName} (${batchId})`;
+  if (batchName) return batchName;
+  if (batchId) return batchId;
+  return '—';
+}
+
 function normalizeExternalLinks(links) {
   if (!Array.isArray(links)) return [];
   return links
@@ -54,11 +66,11 @@ function normalizeExternalLinks(links) {
     .filter((link) => link.label && link.url);
 }
 
-function DetailRow({ label, value, stretch = false, nowrap = false }) {
+function DetailRow({ label, value, stretch = false, nowrap = false, stackLabel = false }) {
   return (
-    <S.DetailRow $stretch={stretch} $nowrap={nowrap}>
-      <S.RowLabel $nowrap={nowrap}>{label}</S.RowLabel>
-      <S.RowValue $nowrap={nowrap}>{value}</S.RowValue>
+    <S.DetailRow $stretch={stretch} $nowrap={nowrap} $stackLabel={stackLabel}>
+      <S.RowLabel $nowrap={nowrap} $stackLabel={stackLabel}>{label}</S.RowLabel>
+      <S.RowValue $nowrap={nowrap} $stackLabel={stackLabel}>{value}</S.RowValue>
     </S.DetailRow>
   );
 }
@@ -78,6 +90,15 @@ function IdentityField({ label, value }) {
       <S.IdentityFieldLabel>{label}</S.IdentityFieldLabel>
       <S.IdentityFieldValue>{value}</S.IdentityFieldValue>
     </S.IdentityField>
+  );
+}
+
+function IdentityFieldRow({ label, value }) {
+  return (
+    <S.IdentityFieldRow>
+      <S.IdentityFieldLabel>{label}</S.IdentityFieldLabel>
+      <S.IdentityFieldRowValue>{value}</S.IdentityFieldRowValue>
+    </S.IdentityFieldRow>
   );
 }
 
@@ -144,7 +165,11 @@ export default function ItemDetails({
   const providedHasContainmentSnapshot =
     hasProvidedData &&
     ('box' in providedItemData || Array.isArray(providedItemData?.breadcrumb));
-  const shouldFetch = !!itemId && (!hasProvidedData || !providedHasContainmentSnapshot);
+  const providedHasSourceBatchSnapshot =
+    hasProvidedData &&
+    ('sourceBatchId' in providedItemData || 'sourceBatch' in providedItemData);
+  const shouldFetch =
+    !!itemId && (!hasProvidedData || !providedHasContainmentSnapshot || !providedHasSourceBatchSnapshot);
 
   useEffect(() => {
     if (!shouldFetch) {
@@ -240,6 +265,8 @@ export default function ItemDetails({
     lastMaintainedAt,
     maintenanceIntervalDays,
     maintenanceNotes,
+    sourceBatchId,
+    sourceBatch,
     box: apiBox,
     breadcrumb,
     depth,
@@ -256,8 +283,7 @@ export default function ItemDetails({
     '';
   const resolvedImageUrl = withCacheBuster(resolvedImageUrlRaw, imageRefreshToken);
   const isOperationsOverview = variant === 'operationsOverview';
-  const canOpenLightbox =
-    !isOperationsOverview && enableImageLightbox && Boolean(resolvedImageUrl);
+  const canOpenLightbox = enableImageLightbox && Boolean(resolvedImageUrl);
 
   const tagList = Array.isArray(tags) ? tags : [];
   const usageDates = Array.isArray(usageHistory) ? usageHistory : [];
@@ -293,6 +319,10 @@ export default function ItemDetails({
   const keepPriorityHeaderLabel = (keepPriorityLabel || 'Unspecified').toUpperCase();
   const valueLabel = fmtUsdValue(value, valueCents);
   const purchasePriceLabel = fmtUsdFromCents(purchasePriceCents);
+  const sourceBatchSummary = formatSourceBatchSummary(sourceBatch);
+  const sourceBatchLink = sourceBatchId || sourceBatch?.id
+    ? getImportBatchHref(sourceBatch?.id || sourceBatchId)
+    : '';
 
   return (
     <S.Panel
@@ -304,6 +334,8 @@ export default function ItemDetails({
         <OperationsItemOverview
           itemName={resolvedItemData?.name}
           thumbnailUrl={resolvedImageUrl}
+          canOpenImageLightbox={canOpenLightbox}
+          onOpenImageLightbox={canOpenLightbox ? () => setLightboxOpen(true) : undefined}
           quantity={quantity}
           statusLabel={statusLabel}
           categoryLabel={categoryLabel}
@@ -325,66 +357,9 @@ export default function ItemDetails({
         />
       ) : (
         <>
-          <S.ViewSummaryGrid $hasImage={Boolean(resolvedImageUrl)}>
-            <S.SummaryInfoColumn>
-              <S.HeaderBand>
-                <S.TitleBlock>
-                  <S.HeaderMeta $compact>
-                    <S.StatePill $tone={isGone ? 'coral' : isOrphaned ? 'amber' : 'teal'}>
-                      {statusLabel}
-                    </S.StatePill>
-                    {quantity != null && <S.MetaTag>qty {quantity}</S.MetaTag>}
-                    {resolvedBoxId ? <S.MetaTag>box {resolvedBoxId}</S.MetaTag> : null}
-                    <S.KeepPriorityPill $tone={keepPriorityToneValue}>
-                      {keepPriorityHeaderLabel}
-                    </S.KeepPriorityPill>
-                  </S.HeaderMeta>
-                </S.TitleBlock>
-              </S.HeaderBand>
-
-              <S.SummaryCardsGrid>
-                <DetailSection title="Identity / Summary" tone="teal">
-                  <S.IdentityFieldsGrid>
-                    <IdentityField label="Status" value={statusLabel} />
-                    <IdentityField
-                      label="Inventory Status"
-                      value={isGone ? 'gone' : 'active'}
-                    />
-                    <IdentityField label="Primary Box" value={primaryBox} />
-                    <IdentityField label="Category" value={categoryLabel} />
-                    <IdentityField
-                      label="Tags"
-                      value={
-                        tagList.length ? (
-                          <S.TagList>
-                            {tagList.map((tag, idx) => (
-                              <S.TagChip key={`${tag}-${idx}`}>{tag}</S.TagChip>
-                            ))}
-                          </S.TagList>
-                        ) : (
-                          <S.MutedValue>—</S.MutedValue>
-                        )
-                      }
-                    />
-                  </S.IdentityFieldsGrid>
-                </DetailSection>
-
-                <DetailSection title="Inventory / Value" tone="amber">
-                  <DetailRow label="Quantity" value={quantity ?? '—'} nowrap />
-                  <DetailRow label="Value" value={valueLabel} nowrap />
-                  <DetailRow label="Purchase Price" value={purchasePriceLabel} nowrap />
-                </DetailSection>
-
-                <DetailSection title="Assignment Snapshot" tone="coral" wide>
-                  <DetailRow label="Location" value={placementLocation} stretch nowrap />
-                  <DetailRow label="Box Group" value={placementBoxGroup} stretch nowrap />
-                  <DetailRow label="Last Checked" value={fmtDate(lastCheckedAt)} nowrap />
-                </DetailSection>
-              </S.SummaryCardsGrid>
-            </S.SummaryInfoColumn>
-
+          <S.TopSectionGrid $hasImage={Boolean(resolvedImageUrl)}>
             {resolvedImageUrl ? (
-              <S.SummaryMediaColumn>
+              <S.TopSectionMedia>
                 <S.FeaturedImageWrap
                   $interactive={canOpenLightbox}
                   role={canOpenLightbox ? 'button' : undefined}
@@ -410,15 +385,96 @@ export default function ItemDetails({
                     alt={`${resolvedItemData?.name || 'Item'} image`}
                   />
                 </S.FeaturedImageWrap>
-              </S.SummaryMediaColumn>
+              </S.TopSectionMedia>
             ) : null}
-          </S.ViewSummaryGrid>
+
+            <S.TopSectionContext>
+              <S.HeaderBand>
+                <S.TitleBlock>
+                  <S.HeaderMeta $compact>
+                    <S.StatePill $tone={isGone ? 'coral' : isOrphaned ? 'amber' : 'teal'}>
+                      {statusLabel}
+                    </S.StatePill>
+                    {quantity != null && <S.MetaTag>qty {quantity}</S.MetaTag>}
+                    {resolvedBoxId ? <S.MetaTag>box {resolvedBoxId}</S.MetaTag> : null}
+                    <S.KeepPriorityPill $tone={keepPriorityToneValue}>
+                      {keepPriorityHeaderLabel}
+                    </S.KeepPriorityPill>
+                    {categoryLabel !== '—' ? <S.MetaTag>{categoryLabel}</S.MetaTag> : null}
+                  </S.HeaderMeta>
+                </S.TitleBlock>
+              </S.HeaderBand>
+
+              <DetailSection title="Description / Notes" tone="lilac">
+                <DetailRow label="Description" value={description || '—'} stretch stackLabel />
+                <DetailRow label="Notes" value={notes || '—'} stretch stackLabel />
+              </DetailSection>
+            </S.TopSectionContext>
+          </S.TopSectionGrid>
 
           <S.SectionGrid>
 
-          <DetailSection title="Description / Notes" tone="lilac" wide>
-            <DetailRow label="Description" value={description || '—'} stretch />
-            <DetailRow label="Notes" value={notes || '—'} stretch />
+          <DetailSection title="Identity / Summary" tone="teal">
+            <S.IdentityFieldsGrid>
+              <IdentityField label="Status" value={statusLabel} />
+              <IdentityField
+                label="Inventory Status"
+                value={isGone ? 'gone' : 'active'}
+              />
+              <IdentityField label="Primary Box" value={primaryBox} />
+              <IdentityField label="Category" value={categoryLabel} />
+              <IdentityField label="Source Batch" value={sourceBatchSummary} />
+              <IdentityFieldRow
+                label="Tags"
+                value={
+                  tagList.length ? (
+                    <S.TagList>
+                      {tagList.map((tag, idx) => (
+                        <S.TagChip key={`${tag}-${idx}`}>{tag}</S.TagChip>
+                      ))}
+                    </S.TagList>
+                  ) : (
+                    <S.MutedValue>—</S.MutedValue>
+                  )
+                }
+              />
+            </S.IdentityFieldsGrid>
+          </DetailSection>
+
+          <DetailSection title="Inventory / Value" tone="amber">
+            <DetailRow label="Quantity" value={quantity ?? '—'} nowrap />
+            <DetailRow label="Value" value={valueLabel} nowrap />
+            <DetailRow label="Purchase Price" value={purchasePriceLabel} nowrap />
+          </DetailSection>
+
+          <DetailSection title="Assignment Snapshot" tone="coral">
+            <DetailRow label="Location" value={placementLocation} stretch nowrap />
+            <DetailRow label="Box Group" value={placementBoxGroup} stretch nowrap />
+            <DetailRow label="Last Checked" value={fmtDate(lastCheckedAt)} nowrap />
+          </DetailSection>
+
+          <DetailSection title="Ownership / Retention" tone="amber">
+            <DetailRow
+              label="Keep Priority"
+              value={
+                keepPriorityLabel ? (
+                  <S.KeepPriorityBadge
+                    $tone={keepPriorityToneValue}
+                  >
+                    {keepPriorityLabel}
+                  </S.KeepPriorityBadge>
+                ) : (
+                  '—'
+                )
+              }
+            />
+            <DetailRow label="Primary Owner" value={primaryOwnerName || '—'} />
+            <DetailRow label="Condition" value={condition || '—'} />
+            <DetailRow
+              label="Consumable"
+              value={isConsumable ? 'Yes' : 'No'}
+            />
+            <DetailRow label="Acquisition Type" value={acquisitionType || '—'} />
           </DetailSection>
 
           <DetailSection title="External Links" tone="lilac" wide>
@@ -457,30 +513,6 @@ export default function ItemDetails({
             <DetailRow label="Orphaned At" value={fmtDate(orphanedAt)} />
           </DetailSection>
 
-          <DetailSection title="Ownership / Retention" tone="amber" wide>
-            <DetailRow
-              label="Keep Priority"
-              value={
-                keepPriorityLabel ? (
-                  <S.KeepPriorityBadge
-                    $tone={keepPriorityToneValue}
-                  >
-                    {keepPriorityLabel}
-                  </S.KeepPriorityBadge>
-                ) : (
-                  '—'
-                )
-              }
-            />
-            <DetailRow label="Primary Owner" value={primaryOwnerName || '—'} />
-            <DetailRow label="Condition" value={condition || '—'} />
-            <DetailRow
-              label="Consumable"
-              value={isConsumable ? 'Yes' : 'No'}
-            />
-            <DetailRow label="Acquisition Type" value={acquisitionType || '—'} />
-          </DetailSection>
-
           <DetailSection title="Maintenance" tone="teal" wide>
             <DetailRow
               label="Last Maintained"
@@ -511,6 +543,37 @@ export default function ItemDetails({
             />
           </DetailSection>
 
+          <DetailSection title="Provenance / Batch" tone="amber" wide>
+            <DetailRow label="Source Batch" value={sourceBatchSummary} stretch />
+            <DetailRow label="Source Batch Record" value={sourceBatchId || '—'} stretch />
+            <DetailRow
+              label="Batch View"
+              value={
+                sourceBatchLink ? (
+                  <S.RouteLink to={sourceBatchLink}>Open Batch</S.RouteLink>
+                ) : (
+                  '—'
+                )
+              }
+            />
+            <DetailRow
+              label="Batch Status"
+              value={
+                sourceBatch?.archiveStatus
+                  ? String(sourceBatch.archiveStatus).replace(/_/g, ' ')
+                  : '—'
+              }
+            />
+            <DetailRow
+              label="Batch Imported"
+              value={sourceBatch?.importedAt ? fmtDate(sourceBatch.importedAt) : '—'}
+            />
+            <DetailRow
+              label="Batch Archived"
+              value={sourceBatch?.archivedAt ? fmtDate(sourceBatch.archivedAt) : '—'}
+            />
+          </DetailSection>
+
           <DetailSection title="Media Metadata" tone="lilac" wide>
             <DetailRow label="Image Path" value={imagePath || '—'} stretch />
           </DetailSection>
@@ -519,7 +582,14 @@ export default function ItemDetails({
         </>
       )}
 
-      {canOpenLightbox && lightboxOpen ? (
+      {isOperationsOverview ? (
+        <RetrievalImageLightbox
+          isOpen={canOpenLightbox && lightboxOpen}
+          imageSrc={resolvedImageUrl}
+          itemName={resolvedItemData?.name || ''}
+          onClose={() => setLightboxOpen(false)}
+        />
+      ) : canOpenLightbox && lightboxOpen ? (
         <S.LightboxOverlay
           onClick={() => setLightboxOpen(false)}
           role="dialog"

@@ -19,6 +19,7 @@ import {
   buildActiveFilterChips,
   normalizeRetrievalFilterOptions,
   normalizeRetrievalItemsPage,
+  normalizeRetrievalSortOptions,
 } from './retrievalModel';
 
 const EMPTY_FILTERS = {
@@ -44,6 +45,21 @@ const EMPTY_FILTER_OPTIONS = {
 
 const RETRIEVAL_STATE_STORAGE_PREFIX = 'retrieval:state:';
 const SCROLL_RESTORE_MAX_FRAMES = 240;
+const DEFAULT_ITEM_SORT = 'location';
+const DEFAULT_SORT_OPTIONS = [
+  { key: 'location', label: 'Location (A → Z)' },
+  { key: 'location_desc', label: 'Location (Z → A)' },
+  { key: 'name', label: 'Item Name (A → Z)' },
+  { key: 'name_desc', label: 'Item Name (Z → A)' },
+  { key: 'box', label: 'Box ID (Low → High)' },
+  { key: 'box_desc', label: 'Box ID (High → Low)' },
+  { key: 'category', label: 'Category (A → Z)' },
+  { key: 'category_desc', label: 'Category (Z → A)' },
+  { key: 'owner', label: 'Primary Owner (A → Z)' },
+  { key: 'owner_desc', label: 'Primary Owner (Z → A)' },
+  { key: 'keepPriority', label: 'Keep Priority (Low → Essential)' },
+  { key: 'keepPriority_desc', label: 'Keep Priority (Essential → Low)' },
+];
 
 function toKey(value) {
   return String(value || '')
@@ -230,6 +246,27 @@ function sanitizeMode(rawMode) {
   return rawMode === 'boxes' ? 'boxes' : 'items';
 }
 
+function sanitizeSort(rawSort, options = DEFAULT_SORT_OPTIONS) {
+  const value = String(rawSort || '').trim();
+  if (!value) return DEFAULT_ITEM_SORT;
+  const keys = new Set(
+    (Array.isArray(options) ? options : [])
+      .map((option) => String(option?.key || '').trim())
+      .filter(Boolean),
+  );
+  return keys.has(value) ? value : DEFAULT_ITEM_SORT;
+}
+
+function sameSortOptions(a, b) {
+  const left = Array.isArray(a) ? a : [];
+  const right = Array.isArray(b) ? b : [];
+  if (left.length !== right.length) return false;
+  return left.every((option, index) => {
+    const other = right[index];
+    return option?.key === other?.key && option?.label === other?.label;
+  });
+}
+
 function readPersistedRetrievalState({ key, navigationType }) {
   if (typeof window === 'undefined') return null;
   if (!key || key === 'default') return null;
@@ -265,6 +302,7 @@ export default function RetrievalPage() {
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
   const hideToast = toastCtx?.hideToast;
+  const setActiveRetrievalItem = toastCtx?.setActiveRetrievalItem;
   const navigate = useNavigate();
   const location = useLocation();
   const navigationType = useNavigationType();
@@ -304,13 +342,20 @@ export default function RetrievalPage() {
   const [selectedLocation, setSelectedLocation] = useState('');
   const [selectedOwner, setSelectedOwner] = useState('');
   const [selectedKeepPriority, setSelectedKeepPriority] = useState('');
-  const [expandedIds, setExpandedIds] = useState(
-    () => new Set(sanitizeExpandedIds(initialItemState?.expandedIds)),
+  const [sortOptions, setSortOptions] = useState(DEFAULT_SORT_OPTIONS);
+  const [selectedSort, setSelectedSort] = useState(() =>
+    sanitizeSort(initialItemState?.selectedSort, DEFAULT_SORT_OPTIONS),
+  );
+  const [showRefine, setShowRefine] = useState(false);
+  const [activeExpandedId, setActiveExpandedId] = useState(
+    () => sanitizeExpandedIds(initialItemState?.expandedIds)[0] || '',
   );
   const [boxModeState, setBoxModeState] = useState(() =>
     sanitizeBoxModeState(initialSnapshot?.boxes),
   );
   const [lightboxImage, setLightboxImage] = useState(null);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const isItemsMode = retrievalMode === 'items';
 
   const debouncedSearchValue = useDebouncedValue(searchValue, 220);
@@ -333,8 +378,9 @@ export default function RetrievalPage() {
       locations: activeFilters.locations,
       owners: activeFilters.owners,
       keepPriorities: activeFilters.keepPriorities,
+      sort: selectedSort,
     }),
-    [debouncedSearchValue, activeFilters],
+    [debouncedSearchValue, activeFilters, selectedSort],
   );
 
   const queryKey = useMemo(() => JSON.stringify(queryState), [queryState]);
@@ -353,13 +399,14 @@ export default function RetrievalPage() {
       items: {
         searchValue: String(searchValue || ''),
         activeFilters: sanitizeFilters(activeFilters),
-        expandedIds: Array.from(expandedIds),
+        expandedIds: activeExpandedId ? [activeExpandedId] : [],
+        selectedSort: sanitizeSort(selectedSort),
       },
       boxes: sanitizeBoxModeState(boxModeState),
       scrollY: typeof window === 'undefined' ? 0 : window.scrollY,
       savedAt: Date.now(),
     };
-  }, [activeFilters, boxModeState, expandedIds, retrievalMode, searchValue]);
+  }, [activeExpandedId, activeFilters, boxModeState, retrievalMode, searchValue, selectedSort]);
 
   useEffect(() => {
     const persist = () => {
@@ -437,6 +484,26 @@ export default function RetrievalPage() {
   );
 
   useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const mediaQuery = window.matchMedia('(max-width: 760px)');
+    const update = () => {
+      setIsMobileViewport(Boolean(mediaQuery.matches));
+      if (!mediaQuery.matches) {
+        setShowMobileSearch(false);
+      }
+    };
+
+    update();
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', update);
+      return () => mediaQuery.removeEventListener('change', update);
+    }
+    mediaQuery.addListener(update);
+    return () => mediaQuery.removeListener(update);
+  }, []);
+
+  useEffect(() => {
     setActiveFilters((current) => pruneFilters(current, filterOptions));
   }, [filterOptions]);
 
@@ -444,15 +511,7 @@ export default function RetrievalPage() {
     if (!isItemsMode) return;
     const validIds = new Set(items.map((item) => item.id));
 
-    setExpandedIds((current) => {
-      const next = new Set();
-      for (const id of current) {
-        if (validIds.has(id)) next.add(id);
-      }
-
-      if (next.size === current.size) return current;
-      return next;
-    });
+    setActiveExpandedId((current) => (current && validIds.has(current) ? current : ''));
   }, [isItemsMode, items]);
 
   useEffect(() => {
@@ -474,7 +533,7 @@ export default function RetrievalPage() {
       setOffset(0);
       setHasMore(false);
       if (hasLoadedItemsRef.current) {
-        setExpandedIds(new Set());
+        setActiveExpandedId('');
       }
       setLightboxImage(null);
 
@@ -496,6 +555,13 @@ export default function RetrievalPage() {
         setOffset(Number(payload?.offset) || 0);
         setHasMore(Boolean(payload?.hasMore));
         setFilterOptions(normalizeRetrievalFilterOptions(payload?.filters));
+        const nextSortOptions = normalizeRetrievalSortOptions(payload?.sortOptions);
+        if (nextSortOptions.length) {
+          setSortOptions((current) =>
+            sameSortOptions(current, nextSortOptions) ? current : nextSortOptions,
+          );
+        }
+        setSelectedSort((current) => sanitizeSort(payload?.sort || current, nextSortOptions));
       } catch (loadError) {
         if (loadError?.name === 'AbortError') return;
         if (queryKeyRef.current !== currentQueryKey) return;
@@ -584,16 +650,47 @@ export default function RetrievalPage() {
   }, [addFilter, selectedKeepPriority]);
 
   const toggleExpanded = useCallback((itemId) => {
-    setExpandedIds((current) => {
-      const next = new Set(current);
-      if (next.has(itemId)) {
-        next.delete(itemId);
-      } else {
-        next.add(itemId);
-      }
-      return next;
-    });
+    const resolvedId = String(itemId || '').trim();
+    if (!resolvedId) return;
+    setActiveExpandedId((current) => (current === resolvedId ? '' : resolvedId));
   }, []);
+
+  useEffect(() => {
+    if (typeof setActiveRetrievalItem !== 'function') return;
+    if (!isItemsMode) {
+      setActiveRetrievalItem(null);
+      return;
+    }
+
+    const activeId = String(activeExpandedId || '').trim();
+    const activeItem = activeId ? items.find((entry) => entry.id === activeId) : null;
+
+    if (!activeItem) {
+      setActiveRetrievalItem(null);
+      return;
+    }
+
+    const boxName = String(activeItem?.boxName || '').trim();
+    const boxSnippet = boxName.length > 42 ? `${boxName.slice(0, 41).trimEnd()}…` : boxName;
+
+    setActiveRetrievalItem({
+      id: activeItem.id,
+      name: String(activeItem?.name || '').trim(),
+      boxNumber: String(activeItem?.boxNumber || '').trim(),
+      boxName: boxSnippet,
+      locationLabel: String(activeItem?.locationLabel || '').trim(),
+      onCollapse: () => setActiveExpandedId((current) => (current === activeItem.id ? '' : current)),
+    });
+  }, [activeExpandedId, isItemsMode, items, setActiveRetrievalItem]);
+
+  useEffect(
+    () => () => {
+      if (typeof setActiveRetrievalItem === 'function') {
+        setActiveRetrievalItem(null);
+      }
+    },
+    [setActiveRetrievalItem],
+  );
 
   const parseApiError = useCallback(async (response, fallbackMessage) => {
     const raw = await response.text().catch(() => '');
@@ -647,11 +744,7 @@ export default function RetrievalPage() {
                   setItems((current) =>
                     current.filter((entry) => entry.id !== itemId),
                   );
-                  setExpandedIds((current) => {
-                    const next = new Set(current);
-                    next.delete(itemId);
-                    return next;
-                  });
+                  setActiveExpandedId((current) => (current === itemId ? '' : current));
                   setTotal((current) => Math.max(0, current - 1));
 
                   showToast?.({
@@ -947,6 +1040,13 @@ export default function RetrievalPage() {
       setLimit(Number(payload?.limit) || limit);
       setOffset(Number(payload?.offset) || nextOffset);
       setHasMore(Boolean(payload?.hasMore));
+      const nextSortOptions = normalizeRetrievalSortOptions(payload?.sortOptions);
+      if (nextSortOptions.length) {
+        setSortOptions((current) =>
+          sameSortOptions(current, nextSortOptions) ? current : nextSortOptions,
+        );
+      }
+      setSelectedSort((current) => sanitizeSort(payload?.sort || current, nextSortOptions));
     } catch (loadError) {
       if (loadError?.name === 'AbortError') return;
       if (queryKeyRef.current !== currentQueryKey) return;
@@ -1004,36 +1104,59 @@ export default function RetrievalPage() {
 
         <RetrievalModeToggle mode={retrievalMode} onChange={setRetrievalMode} />
 
-        <RetrievalSearchBar value={searchValue} onChange={setSearchValue} />
+        <S.DesktopSearchWrap>
+          <RetrievalSearchBar value={searchValue} onChange={setSearchValue} />
+        </S.DesktopSearchWrap>
 
-        <RetrievalFilterBar
-          categoryOptions={filterOptions.categories}
-          tagOptions={filterOptions.tags}
-          locationOptions={filterOptions.locations}
-          ownerOptions={filterOptions.owners}
-          keepPriorityOptions={filterOptions.keepPriorities}
-          selectedCategory={selectedCategory}
-          selectedTag={selectedTag}
-          selectedLocation={selectedLocation}
-          selectedOwner={selectedOwner}
-          selectedKeepPriority={selectedKeepPriority}
-          onCategoryChange={setSelectedCategory}
-          onTagChange={setSelectedTag}
-          onLocationChange={setSelectedLocation}
-          onOwnerChange={setSelectedOwner}
-          onKeepPriorityChange={setSelectedKeepPriority}
-          onAddCategory={handleAddCategory}
-          onAddTag={handleAddTag}
-          onAddLocation={handleAddLocation}
-          onAddOwner={handleAddOwner}
-          onAddKeepPriority={handleAddKeepPriority}
-        />
+        <S.RefineHeaderRow>
+          <S.RefineToggle
+            type="button"
+            onClick={() => setShowRefine((current) => !current)}
+            aria-expanded={showRefine}
+            aria-controls="retrieval-refine-panel"
+          >
+            {showRefine ? 'Hide Refine' : 'Refine'}
+          </S.RefineToggle>
+          {activeChips.length ? (
+            <S.RefineCount>{activeChips.length} active filters</S.RefineCount>
+          ) : null}
+        </S.RefineHeaderRow>
 
-        <ActiveFilterChips
-          chips={activeChips}
-          onRemove={removeFilter}
-          onClearAll={clearAllFilters}
-        />
+        {showRefine ? (
+          <S.RefinePanel id="retrieval-refine-panel">
+            <RetrievalFilterBar
+              sortOptions={sortOptions}
+              selectedSort={selectedSort}
+              categoryOptions={filterOptions.categories}
+              tagOptions={filterOptions.tags}
+              locationOptions={filterOptions.locations}
+              ownerOptions={filterOptions.owners}
+              keepPriorityOptions={filterOptions.keepPriorities}
+              selectedCategory={selectedCategory}
+              selectedTag={selectedTag}
+              selectedLocation={selectedLocation}
+              selectedOwner={selectedOwner}
+              selectedKeepPriority={selectedKeepPriority}
+              onSortChange={setSelectedSort}
+              onCategoryChange={setSelectedCategory}
+              onTagChange={setSelectedTag}
+              onLocationChange={setSelectedLocation}
+              onOwnerChange={setSelectedOwner}
+              onKeepPriorityChange={setSelectedKeepPriority}
+              onAddCategory={handleAddCategory}
+              onAddTag={handleAddTag}
+              onAddLocation={handleAddLocation}
+              onAddOwner={handleAddOwner}
+              onAddKeepPriority={handleAddKeepPriority}
+            />
+
+            <ActiveFilterChips
+              chips={activeChips}
+              onRemove={removeFilter}
+              onClearAll={clearAllFilters}
+            />
+          </S.RefinePanel>
+        ) : null}
       </S.ControlsPanel>
 
       {error ? <S.ErrorState role="alert">{error}</S.ErrorState> : null}
@@ -1047,7 +1170,7 @@ export default function RetrievalPage() {
 
         <RetrievalResultsList
           items={items}
-          expandedIds={expandedIds}
+          activeExpandedId={activeExpandedId}
           onToggleRow={toggleExpanded}
           onPreviewImage={handlePreviewImage}
           onLifecycleAction={handleLifecycleAction}
@@ -1077,6 +1200,40 @@ export default function RetrievalPage() {
         itemName={lightboxImage?.name || ''}
         onClose={handleCloseLightbox}
       />
+
+      {isMobileViewport ? (
+        <>
+          {showMobileSearch ? (
+            <S.MobileSearchPanel role="dialog" aria-label="Retrieval search">
+              <S.MobileSearchHeader>
+                <S.MobileSearchTitle>Search inventory</S.MobileSearchTitle>
+                <S.MobileSearchClose
+                  type="button"
+                  onClick={() => setShowMobileSearch(false)}
+                >
+                  Close
+                </S.MobileSearchClose>
+              </S.MobileSearchHeader>
+              <S.SearchInput
+                id="retrieval-mobile-search"
+                type="search"
+                value={searchValue}
+                onChange={(event) => setSearchValue(event.target.value)}
+                placeholder="Search by item, box, notes, or location"
+                autoComplete="off"
+                autoFocus
+              />
+            </S.MobileSearchPanel>
+          ) : null}
+          <S.MobileSearchTrigger
+            type="button"
+            aria-label="Open retrieval search"
+            onClick={() => setShowMobileSearch((current) => !current)}
+          >
+            <span aria-hidden="true">🔎</span>
+          </S.MobileSearchTrigger>
+        </>
+      ) : null}
     </S.PageShell>
   );
 }

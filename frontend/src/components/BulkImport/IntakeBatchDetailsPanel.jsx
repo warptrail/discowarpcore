@@ -1,9 +1,11 @@
+import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_CONTROL_MIN_HEIGHT,
   MOBILE_FONT_SM,
 } from '../../styles/tokens';
+import IntakeBatchImportedItemsPanel from './IntakeBatchImportedItemsPanel';
 
 const Panel = styled.section`
   border: 1px solid rgba(96, 152, 189, 0.36);
@@ -113,6 +115,64 @@ const SummaryGrid = styled.div`
   }
 `;
 
+const SequenceRow = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.48rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const SequenceCard = styled.div`
+  border-radius: 12px;
+  border: 1px solid
+    ${({ $tone }) =>
+      $tone === 'stage'
+        ? 'rgba(111, 171, 224, 0.44)'
+        : $tone === 'validate'
+          ? 'rgba(207, 170, 101, 0.44)'
+          : 'rgba(104, 177, 141, 0.44)'};
+  background: ${({ $active, $tone }) =>
+    $active
+      ? $tone === 'stage'
+        ? 'rgba(16, 34, 49, 0.92)'
+        : $tone === 'validate'
+          ? 'rgba(49, 35, 16, 0.92)'
+          : 'rgba(16, 40, 31, 0.92)'
+      : 'rgba(10, 18, 28, 0.84)'};
+  padding: 0.6rem;
+  display: grid;
+  gap: 0.18rem;
+`;
+
+const SequenceStep = styled.div`
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: ${({ $active, $tone }) =>
+    $active
+      ? $tone === 'stage'
+        ? '#9bc7f0'
+        : $tone === 'validate'
+          ? '#efd2a5'
+          : '#c9f1dd'
+      : '#7994aa'};
+`;
+
+const SequenceValue = styled.div`
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #e9f5ff;
+`;
+
+const SequenceMeta = styled.div`
+  font-size: 0.73rem;
+  color: #a7bed3;
+  line-height: 1.35;
+`;
+
 const SummaryLine = styled.div`
   font-size: 0.77rem;
   color: #bdd2e8;
@@ -125,6 +185,13 @@ const SummaryLabel = styled.span`
 const Block = styled.div`
   display: grid;
   gap: 0.46rem;
+`;
+
+const AccordionBlock = styled(Block)`
+  border-radius: 12px;
+  border: 1px solid rgba(88, 143, 184, 0.22);
+  background: rgba(8, 14, 22, 0.56);
+  padding: 0.68rem;
 `;
 
 const BlockHeader = styled.div`
@@ -147,52 +214,24 @@ const BlockText = styled.p`
   line-height: 1.35;
 `;
 
-const AssetGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.62rem;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const Field = styled.div`
-  display: grid;
-  gap: 0.32rem;
-`;
-
-const Label = styled.label`
-  margin: 0;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #9dbbd4;
-`;
-
-const FileInput = styled.input`
-  display: block;
+const AccordionToggle = styled.button`
   width: 100%;
-  min-height: 40px;
-  border-radius: 9px;
-  border: 1px solid rgba(108, 152, 188, 0.5);
-  background: rgba(7, 11, 18, 0.9);
-  color: #d7e9fc;
-  padding: 0.48rem 0.56rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  border-radius: 10px;
+  border: 1px solid rgba(96, 152, 189, 0.28);
+  background: rgba(11, 20, 31, 0.88);
+  color: #d8e9fa;
+  padding: 0.62rem 0.72rem;
+  cursor: pointer;
+  text-align: left;
+`;
 
-  &::file-selector-button {
-    border: 1px solid rgba(99, 167, 145, 0.64);
-    border-radius: 8px;
-    background: rgba(18, 49, 38, 0.94);
-    color: #dcfaec;
-    font-size: 0.74rem;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    font-weight: 700;
-    padding: 0.35rem 0.6rem;
-    margin-right: 0.55rem;
-    cursor: pointer;
-  }
+const AccordionMeta = styled.span`
+  font-size: 0.72rem;
+  color: #8faac1;
 `;
 
 const StatusLine = styled.div`
@@ -204,6 +243,31 @@ const StatusLine = styled.div`
       : $tone === 'error'
         ? '#f2bebe'
         : '#9fb2c4'};
+`;
+
+const GuidanceCard = styled.div`
+  border-radius: 12px;
+  border: 1px solid rgba(104, 177, 141, 0.38);
+  background: rgba(16, 40, 31, 0.72);
+  padding: 0.72rem;
+  display: grid;
+  gap: 0.34rem;
+`;
+
+const FooterResetRow = styled.div`
+  border-top: 1px solid rgba(88, 143, 184, 0.22);
+  padding-top: 0.72rem;
+  display: grid;
+  gap: 0.44rem;
+`;
+
+const ProcessingEntryCard = styled.div`
+  border-radius: 12px;
+  border: 1px solid rgba(88, 143, 184, 0.34);
+  background: rgba(9, 17, 25, 0.86);
+  padding: 0.72rem;
+  display: grid;
+  gap: 0.56rem;
 `;
 
 const ActionCluster = styled.div`
@@ -219,19 +283,24 @@ const ButtonRow = styled.div`
 
 const Button = styled.button`
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+  min-width: 10.5rem;
   border-radius: 10px;
   border: 1px solid
-    ${({ $tone }) =>
+    ${({ $tone, $active }) =>
       $tone === 'danger'
         ? 'rgba(210, 104, 104, 0.82)'
         : $tone === 'primary'
           ? 'rgba(100, 188, 151, 0.82)'
+          : $active
+            ? 'rgba(129, 209, 170, 0.92)'
           : 'rgba(102, 167, 212, 0.75)'};
-  background: ${({ $tone }) =>
+  background: ${({ $tone, $active }) =>
     $tone === 'danger'
       ? 'linear-gradient(180deg, rgba(85, 26, 30, 0.96) 0%, rgba(62, 18, 20, 0.96) 100%)'
       : $tone === 'primary'
         ? 'linear-gradient(180deg, rgba(23, 75, 60, 0.96) 0%, rgba(16, 51, 42, 0.96) 100%)'
+        : $active
+          ? 'linear-gradient(180deg, rgba(25, 86, 62, 0.96) 0%, rgba(18, 61, 44, 0.96) 100%)'
         : 'linear-gradient(180deg, rgba(26, 60, 83, 0.96) 0%, rgba(17, 43, 62, 0.96) 100%)'};
   color: #e8fff5;
   font-size: 0.79rem;
@@ -248,7 +317,15 @@ const Button = styled.button`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_SM};
+    min-width: 100%;
   }
+`;
+
+const SecondaryDangerButton = styled(Button)`
+  min-width: 9rem;
+  border-color: rgba(210, 104, 104, 0.52);
+  background: linear-gradient(180deg, rgba(48, 18, 22, 0.9) 0%, rgba(34, 14, 17, 0.94) 100%);
+  color: #f0caca;
 `;
 
 const ValidationCard = styled.div`
@@ -291,6 +368,46 @@ const Issue = styled.li`
   font-size: 0.74rem;
 `;
 
+const FactList = styled.div`
+  display: grid;
+  gap: 0.34rem;
+`;
+
+const FactLine = styled.div`
+  font-size: 0.77rem;
+  color: #bdd2e8;
+  line-height: 1.4;
+`;
+
+const FactValue = styled.span`
+  color: #e2effc;
+`;
+
+const FactNote = styled.span`
+  color: #8faac1;
+`;
+
+const FilenameList = styled.ul`
+  margin: 0;
+  padding: 0 0 0 1rem;
+  display: grid;
+  gap: 0.18rem;
+`;
+
+const Filename = styled.li`
+  font-size: 0.74rem;
+  color: #b8cee2;
+`;
+
+const FilenameCount = styled.div`
+  font-size: 0.74rem;
+  color: #8faac1;
+`;
+
+const ImportedItemsAnchor = styled.div`
+  scroll-margin-top: 8.5rem;
+`;
+
 function toDisplayDate(value) {
   if (!value) return 'n/a';
   const date = new Date(value);
@@ -298,33 +415,146 @@ function toDisplayDate(value) {
   return date.toLocaleString();
 }
 
+function getRecordedAssetStatus({ active, filename, required, optionalLabel, archivedLabel }) {
+  if (active) {
+    return {
+      tone: 'success',
+      label: 'Active attachment present',
+      detail: filename || null,
+    };
+  }
+  if (filename) {
+    return {
+      tone: required ? 'default' : 'default',
+      label: archivedLabel || 'Archived provenance recorded',
+      detail: filename,
+    };
+  }
+  return {
+    tone: required ? 'default' : 'default',
+    label: optionalLabel || 'Not included',
+    detail: null,
+  };
+}
+
+function getAccordionMeta({ completed = false, collapsed = false, idleLabel = 'Open' } = {}) {
+  if (completed && collapsed) return 'Completed · hidden';
+  if (completed) return 'Completed · expanded';
+  return idleLabel;
+}
+
+function buildProvenanceClipboardText({
+  selectedBatch,
+  packageSummaryLines,
+  aiJsonStatus,
+  mappingCsvStatus,
+  imagesStatus,
+  archiveStatus,
+  receiptStatus,
+  packageStructureSummary,
+  sourceImageNames,
+  hasLegacyReferenceAsset,
+  legacyReferenceStatus,
+}) {
+  const lines = [
+    `Batch: ${selectedBatch?.name || selectedBatch?.batchId || 'Unknown batch'}`,
+    `Batch Record ID: ${selectedBatch?.id || 'n/a'}`,
+    `Batch Label: ${selectedBatch?.batchId || selectedBatch?.name || 'n/a'}`,
+  ];
+
+  if (packageSummaryLines.length) {
+    lines.push(`Package: ${packageSummaryLines.join(' · ')}`);
+  }
+
+  lines.push(`AI Intake JSON: ${aiJsonStatus.label}${aiJsonStatus.detail ? ` · ${aiJsonStatus.detail}` : ''}`);
+  lines.push(`Image Mapping CSV: ${mappingCsvStatus.label}${mappingCsvStatus.detail ? ` · ${mappingCsvStatus.detail}` : ''}`);
+  lines.push(`Images: ${imagesStatus.label}${imagesStatus.detail ? ` · ${imagesStatus.detail}` : ''}`);
+  lines.push(`Archive State: ${archiveStatus.label}${archiveStatus.detail ? ` · ${archiveStatus.detail}` : ''}`);
+  lines.push(`Local Receipt: ${receiptStatus.label}${receiptStatus.detail ? ` · ${receiptStatus.detail}` : ''}`);
+
+  if (packageStructureSummary) {
+    lines.push(
+      `Observed Package Structure: ${[
+        packageStructureSummary.hasManifest ? 'manifest present' : 'manifest missing',
+        packageStructureSummary.hasAiJson ? 'AI JSON present' : 'AI JSON missing',
+        packageStructureSummary.hasMappingCsv
+          ? 'mapping CSV present'
+          : selectedBatch?.imagesIncluded
+            ? 'mapping CSV missing'
+            : 'mapping CSV optional',
+        packageStructureSummary.imagesIncluded
+          ? `${packageStructureSummary.imageCount || 0} image file(s)`
+          : 'no images included',
+      ].join(' · ')}`,
+    );
+  }
+
+  if (hasLegacyReferenceAsset) {
+    lines.push(
+      `Legacy Reference Asset: ${legacyReferenceStatus.label}${legacyReferenceStatus.detail ? ` · ${legacyReferenceStatus.detail}` : ''}`,
+    );
+  }
+
+  if (sourceImageNames.length) {
+    lines.push('Original image filenames:');
+    sourceImageNames.forEach((name) => {
+      lines.push(`- ${name}`);
+    });
+  }
+
+  return lines.join('\n');
+}
+
 export default function IntakeBatchDetailsPanel({
   selectedBatch,
   selectedBatchValidationOk,
-  selectedBatchHasImageLinkedJson,
-  updateImagesRef,
-  updateImages,
-  updateJsonFile,
-  updateCsvFile,
-  updateCollageFile,
-  summarizeAssetSelection,
-  onUpdateImagesChange,
-  onUpdateJsonChange,
-  onUpdateCsvChange,
-  onUpdateCollageChange,
-  onUpdateAssets,
+  importedItemsPageState,
+  processingModeEnabled = false,
+  selectedItemIds = [],
+  liveBatchJobSummary = null,
+  liveJobProgressByMediaId = null,
+  detailLoading = false,
   onValidate,
-  onStage,
   onImport,
+  onToggleProcessingMode,
+  onSelectedItemIdsChange,
+  onImportedItemsSortChange,
+  onRecreateLocalFolder,
+  onDeletePermanently,
   onDelete,
   busyAction,
 }) {
+  const importedItemsAnchorRef = useRef(null);
+  const previousProcessingModeRef = useRef(Boolean(processingModeEnabled));
+  const [packageSectionOpen, setPackageSectionOpen] = useState(false);
+  const [validationSectionOpen, setValidationSectionOpen] = useState(true);
+  const [importSectionOpen, setImportSectionOpen] = useState(true);
+  const [copyFeedback, setCopyFeedback] = useState('');
+
+  useEffect(() => {
+    const wasEnabled = previousProcessingModeRef.current;
+    previousProcessingModeRef.current = Boolean(processingModeEnabled);
+
+    if (processingModeEnabled && !wasEnabled) {
+      importedItemsAnchorRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }
+  }, [processingModeEnabled, selectedBatch?.id]);
+
+  useEffect(() => {
+    setPackageSectionOpen(false);
+    setValidationSectionOpen(selectedBatch?.validationStatus !== 'passed');
+    setImportSectionOpen(selectedBatch?.importLifecycleStatus !== 'success');
+  }, [selectedBatch?.id, selectedBatch?.validationStatus, selectedBatch?.importLifecycleStatus]);
+
   if (!selectedBatch) {
     return (
       <Panel>
         <Header>
           <Title>Selected Batch</Title>
-          <Text>Choose a batch from the list to manage files, validation, staging, and import.</Text>
+          <Text>Choose a batch from the list to review source assets, validation, and import state.</Text>
         </Header>
         <Empty>No batch selected.</Empty>
       </Panel>
@@ -332,12 +562,139 @@ export default function IntakeBatchDetailsPanel({
   }
 
   const validation = selectedBatch.validation || null;
+  const validationSnapshot = selectedBatch.validationSnapshot || null;
+  const importSnapshot = selectedBatch.importSnapshot || null;
+  const sourceManifest = selectedBatch.sourceManifest || null;
+  const archiveState = selectedBatch.archiveState || null;
+  const isArchived = Boolean(selectedBatch.isArchived);
+  const localFolderMissing = Boolean(selectedBatch.localFolderMissing);
+  const hasLegacyReferenceAsset = Boolean(sourceManifest?.collageOriginalFilename);
+  const legacyReferenceStatus = getRecordedAssetStatus({
+    active: hasLegacyReferenceAsset,
+    filename: sourceManifest?.collageOriginalFilename,
+    required: false,
+    archivedLabel: 'Archived provenance recorded',
+    optionalLabel: 'Not recorded',
+  });
+  const validationTone =
+    selectedBatch.validationStatus === 'passed'
+      ? 'success'
+      : selectedBatch.validationStatus === 'failed'
+        ? 'error'
+        : 'default';
+  const importTone =
+    selectedBatch.importLifecycleStatus === 'success'
+      ? 'success'
+      : selectedBatch.importLifecycleStatus === 'failed'
+        ? 'error'
+        : 'default';
+  const canArchiveBatch = selectedBatch.importLifecycleStatus === 'success' && !isArchived;
+  const validationCompleted = selectedBatch.validationStatus === 'passed';
+  const importCompleted = selectedBatch.importLifecycleStatus === 'success';
+  const sourceImageNames = Array.isArray(sourceManifest?.imageOriginalFilenames)
+    ? sourceManifest.imageOriginalFilenames
+    : [];
+  const packageSnapshot = selectedBatch.packageSnapshot || null;
+  const packageStructureSummary = packageSnapshot?.structureSummary || null;
+  const packageManifest = packageSnapshot?.manifest || null;
+  const packageSummaryLines = [];
+  if (packageSnapshot?.originalPackageFilename) {
+    packageSummaryLines.push(`Uploaded package ${packageSnapshot.originalPackageFilename}`);
+  }
+  if (packageSnapshot?.ingestedAt) {
+    packageSummaryLines.push(`Staged ${toDisplayDate(packageSnapshot.ingestedAt)}`);
+  }
+  if (packageManifest?.packageVersion != null) {
+    packageSummaryLines.push(`manifest v${packageManifest.packageVersion}`);
+  }
+  const aiJsonStatus = getRecordedAssetStatus({
+    active: selectedBatch.aiJsonPresent,
+    filename: sourceManifest?.aiJsonOriginalFilename,
+    required: true,
+    archivedLabel: 'Archived provenance recorded',
+    optionalLabel: 'No active attachment recorded',
+  });
+  const mappingCsvStatus = getRecordedAssetStatus({
+    active: selectedBatch.mappingCsvPresent,
+    filename: sourceManifest?.mappingCsvOriginalFilename,
+    required: Boolean(selectedBatch.mappingRequired),
+    archivedLabel: 'Archived provenance recorded',
+    optionalLabel: selectedBatch.mappingRequired ? 'No active attachment recorded' : 'Optional, not included',
+  });
+  const receiptStatus = selectedBatch.localReceipt
+    ? {
+        label: selectedBatch.localReceipt.safeToDelete
+          ? 'Safe to delete local folder'
+          : String(selectedBatch.localReceipt.status || 'receipt present').replace(/_/g, ' '),
+        detail: selectedBatch.localReceipt.updatedAt
+          ? `Receipt updated ${toDisplayDate(selectedBatch.localReceipt.updatedAt)}`
+          : 'Receipt present',
+      }
+    : {
+        label: 'No local receipt yet',
+        detail: 'Validate or import to write a staging receipt into the folder.',
+      };
+  const imagesStatus = selectedBatch.imagesIncluded
+    ? {
+        label: 'Images included',
+        detail: `${sourceManifest?.imageCount || packageStructureSummary?.imageCount || 0} file(s) recorded`,
+      }
+    : sourceManifest?.imageCount
+      ? {
+          label: 'Archived provenance recorded',
+          detail: `${sourceManifest.imageCount} image file(s) recorded`,
+        }
+      : {
+          label: 'No images included',
+          detail: 'Optional for intake/import.',
+        };
+  const archiveStatus = isArchived
+    ? {
+        label: 'Archived provenance record',
+        detail: archiveState?.archivedAt
+          ? `Archived ${toDisplayDate(archiveState.archivedAt)}`
+          : 'Archived',
+      }
+    : localFolderMissing
+      ? {
+          label: 'Legacy local staging folder missing',
+          detail: 'Durable Mongo provenance remains, but the older local staging workspace was deleted.',
+        }
+    : {
+        label: 'Active staged package',
+        detail: 'Package provenance is recorded and ready for validation/import review.',
+      };
+  const provenanceClipboardText = buildProvenanceClipboardText({
+    selectedBatch,
+    packageSummaryLines,
+    aiJsonStatus,
+    mappingCsvStatus,
+    imagesStatus,
+    archiveStatus,
+    receiptStatus,
+    packageStructureSummary,
+    sourceImageNames,
+    hasLegacyReferenceAsset,
+    legacyReferenceStatus,
+  });
+
+  const handleCopyProvenance = async () => {
+    try {
+      if (!navigator?.clipboard?.writeText) {
+        throw new Error('Clipboard API unavailable in this browser.');
+      }
+      await navigator.clipboard.writeText(provenanceClipboardText);
+      setCopyFeedback('Package provenance copied to clipboard.');
+    } catch (error) {
+      setCopyFeedback(error?.message || 'Failed to copy package provenance.');
+    }
+  };
 
   return (
     <Panel>
       <Header>
         <Title>Selected Batch</Title>
-        <Text>Work from this panel: update assets, validate, stage, import, or clear the cache entry.</Text>
+        <Text>Zip upload, batch staging, validation, then import. This screen is now the package-staging and batch-import console for the intake workflow.</Text>
       </Header>
 
       <SummaryCard>
@@ -347,25 +704,33 @@ export default function IntakeBatchDetailsPanel({
             <SummaryMeta>{selectedBatch.id}</SummaryMeta>
           </div>
           <ChipRow>
-            <Chip $tone={selectedBatchValidationOk ? 'success' : 'error'}>
-              {selectedBatchValidationOk ? 'validated' : 'needs validation'}
+            <Chip $tone={validationTone}>
+              {String(selectedBatch.validationStatus || 'not_validated').replace(/_/g, ' ')}
             </Chip>
-            <Chip>{String(selectedBatch.importStatus || 'not_imported').replace(/_/g, ' ')}</Chip>
+            <Chip $tone={importTone}>
+              {String(selectedBatch.importLifecycleStatus || 'not_imported').replace(/_/g, ' ')}
+            </Chip>
+            <Chip $tone={isArchived || localFolderMissing ? 'error' : 'default'}>
+              {isArchived ? 'archived' : localFolderMissing ? 'folder missing' : 'active'}
+            </Chip>
+            <Chip $tone={selectedBatch.imagesIncluded ? 'success' : 'default'}>
+              {selectedBatch.imagesIncluded ? 'images included' : 'images optional'}
+            </Chip>
           </ChipRow>
         </SummaryTop>
 
         <ChipRow>
-          <Chip $tone={selectedBatch.hasJsonFile ? 'success' : 'error'}>
-            JSON {selectedBatch.hasJsonFile ? 'present' : 'missing'}
+          <Chip $tone={selectedBatch.aiJsonPresent ? 'success' : 'error'}>
+            AI Intake JSON {selectedBatch.aiJsonPresent ? 'present' : 'missing'}
           </Chip>
-          <Chip $tone={selectedBatch.hasCsvFile ? 'success' : 'error'}>
-            CSV {selectedBatch.hasCsvFile ? 'present' : 'missing'}
+          <Chip $tone={selectedBatch.mappingRequired && !selectedBatch.mappingCsvPresent ? 'error' : selectedBatch.mappingCsvPresent ? 'success' : 'default'}>
+            Mapping CSV {selectedBatch.mappingCsvPresent ? 'present' : selectedBatch.mappingRequired ? 'missing' : 'optional'}
           </Chip>
-          <Chip $tone={selectedBatch.hasCollageFile ? 'success' : 'default'}>
-            Collage {selectedBatch.hasCollageFile ? 'present' : 'missing'}
+          <Chip $tone={selectedBatch.imagesIncluded ? 'success' : 'default'}>
+            Images {selectedBatch.imagesIncluded ? 'included' : 'not included'}
           </Chip>
-          <Chip $tone={selectedBatch.hasMappingCsv ? 'success' : 'default'}>
-            Mapping {selectedBatch.hasMappingCsv ? 'present' : 'pending'}
+          <Chip $tone={isArchived ? 'error' : 'default'}>
+            {archiveStatus.label}
           </Chip>
         </ChipRow>
 
@@ -378,134 +743,277 @@ export default function IntakeBatchDetailsPanel({
           </SummaryLine>
           <SummaryLine>
             <SummaryLabel>Imported:</SummaryLabel>{' '}
-            {selectedBatch.importedAt ? toDisplayDate(selectedBatch.importedAt) : 'Not yet'}
+            {importSnapshot?.importedAt ? toDisplayDate(importSnapshot.importedAt) : 'Not yet'}
           </SummaryLine>
           <SummaryLine>
-            <SummaryLabel>Images:</SummaryLabel> {selectedBatch.originalImagesCount} original •{' '}
-            {selectedBatch.stagedImagesCount} staged
+            <SummaryLabel>Rows:</SummaryLabel> {validationSnapshot?.rowCount || 0}
+          </SummaryLine>
+          <SummaryLine>
+            <SummaryLabel>Archive State:</SummaryLabel> {archiveStatus.detail}
+          </SummaryLine>
+          <SummaryLine>
+            <SummaryLabel>Local Folder:</SummaryLabel> {selectedBatch.localFolderName || selectedBatch.batchId}
           </SummaryLine>
         </SummaryGrid>
+
+        <SequenceRow>
+          <SequenceCard $tone="stage" $active>
+            <SequenceStep $tone="stage" $active>Step 1</SequenceStep>
+            <SequenceValue>Zip Staged</SequenceValue>
+            <SequenceMeta>
+              {packageSnapshot?.originalPackageFilename
+                ? packageSnapshot.originalPackageFilename
+                : 'Package record present'}
+            </SequenceMeta>
+          </SequenceCard>
+          <SequenceCard $tone="validate" $active={selectedBatch.validationStatus === 'passed'}>
+            <SequenceStep $tone="validate" $active={selectedBatch.validationStatus === 'passed'}>Step 2</SequenceStep>
+            <SequenceValue>Batch Validation</SequenceValue>
+            <SequenceMeta>
+              {selectedBatch.validationStatus === 'passed'
+                ? `Passed ${toDisplayDate(validationSnapshot?.validatedAt)}`
+                : selectedBatch.validationStatus === 'failed'
+                  ? 'Validation failed'
+                  : 'Pending validation'}
+            </SequenceMeta>
+          </SequenceCard>
+          <SequenceCard $tone="import" $active={selectedBatch.importLifecycleStatus === 'success'}>
+            <SequenceStep $tone="import" $active={selectedBatch.importLifecycleStatus === 'success'}>Step 3</SequenceStep>
+            <SequenceValue>Item Import</SequenceValue>
+            <SequenceMeta>
+              {selectedBatch.importLifecycleStatus === 'success'
+                ? `Imported ${toDisplayDate(importSnapshot?.importedAt)}`
+                : selectedBatch.importLifecycleStatus === 'failed'
+                  ? 'Import failed'
+                  : 'Pending import'}
+            </SequenceMeta>
+          </SequenceCard>
+        </SequenceRow>
       </SummaryCard>
 
-      <Block>
-        <BlockHeader>
-          <BlockTitle>Asset Updates</BlockTitle>
-          <BlockText>Replace only the files you need to change.</BlockText>
-        </BlockHeader>
+      <AccordionBlock>
+        <AccordionToggle
+          type="button"
+          onClick={() => setPackageSectionOpen((current) => !current)}
+        >
+          <BlockHeader>
+            <BlockTitle>Package Provenance</BlockTitle>
+            <BlockText>
+              Staged package details, recorded asset structure, and receipt metadata.
+            </BlockText>
+          </BlockHeader>
+          <AccordionMeta>{packageSectionOpen ? 'Hide' : 'Show'}</AccordionMeta>
+        </AccordionToggle>
 
-        <AssetGrid>
-          <Field>
-            <Label htmlFor="intake-update-images">Image Folder</Label>
-            <FileInput
-              id="intake-update-images"
-              ref={updateImagesRef}
-              type="file"
-              multiple
-              accept=".jpg,.jpeg,.png,.webp,.heic,image/jpeg,image/png,image/webp,image/heic"
-              onChange={onUpdateImagesChange}
-            />
-            <StatusLine>{summarizeAssetSelection(updateImages)}</StatusLine>
-          </Field>
-
-          <Field>
-            <Label htmlFor="intake-update-json">AI JSON</Label>
-            <FileInput
-              id="intake-update-json"
-              type="file"
-              accept=".json,application/json,text/json"
-              onChange={onUpdateJsonChange}
-            />
-            <StatusLine>{updateJsonFile?.name || 'Keep current JSON.'}</StatusLine>
-          </Field>
-
-          <Field>
-            <Label htmlFor="intake-update-csv">Image-Order CSV</Label>
-            <FileInput
-              id="intake-update-csv"
-              type="file"
-              accept=".csv,text/csv"
-              onChange={onUpdateCsvChange}
-            />
-            <StatusLine>{updateCsvFile?.name || 'Keep current CSV.'}</StatusLine>
-          </Field>
-
-          <Field>
-            <Label htmlFor="intake-update-collage">Collage / Reference</Label>
-            <FileInput
-              id="intake-update-collage"
-              type="file"
-              accept=".jpg,.jpeg,.png,.webp,.heic,image/jpeg,image/png,image/webp,image/heic"
-              onChange={onUpdateCollageChange}
-            />
-            <StatusLine>{updateCollageFile?.name || 'Keep current collage.'}</StatusLine>
-          </Field>
-        </AssetGrid>
-      </Block>
-
-      <ActionCluster>
-        <BlockHeader>
-          <BlockTitle>Actions</BlockTitle>
-          <BlockText>
-            Validate before import. Batches with `imageKey` values will rebuild staged matches from the CSV during import.
-          </BlockText>
-        </BlockHeader>
-
+        {packageSectionOpen ? (
+          <>
         <ButtonRow>
-          <Button
-            type="button"
-            onClick={onUpdateAssets}
-            disabled={busyAction === 'update-assets'}
-          >
-            {busyAction === 'update-assets' ? 'Saving…' : 'Save Assets'}
-          </Button>
-          <Button type="button" onClick={onValidate} disabled={busyAction === 'validate'}>
-            {busyAction === 'validate' ? 'Validating…' : 'Validate Batch'}
-          </Button>
-          <Button type="button" onClick={onStage} disabled={busyAction === 'stage'}>
-            {busyAction === 'stage' ? 'Staging…' : 'Stage Images'}
-          </Button>
-          <Button
-            type="button"
-            $tone="primary"
-            onClick={onImport}
-            disabled={busyAction === 'import' || !selectedBatchValidationOk}
-          >
-            {busyAction === 'import' ? 'Importing…' : 'Import Validated Batch'}
+          <Button type="button" onClick={handleCopyProvenance}>
+            Copy Provenance
           </Button>
         </ButtonRow>
+        {copyFeedback ? <StatusLine>{copyFeedback}</StatusLine> : null}
+        <FactList>
+          {packageSummaryLines.length ? (
+            <FactLine>
+              <SummaryLabel>Package:</SummaryLabel> <FactValue>{packageSummaryLines.join(' · ')}</FactValue>
+            </FactLine>
+          ) : null}
+          <FactLine>
+            <SummaryLabel>AI Intake JSON:</SummaryLabel> <FactValue>{aiJsonStatus.label}</FactValue>
+            {aiJsonStatus.detail ? <FactNote>{` · ${aiJsonStatus.detail}`}</FactNote> : null}
+          </FactLine>
+          <FactLine>
+            <SummaryLabel>Image Mapping CSV:</SummaryLabel> <FactValue>{mappingCsvStatus.label}</FactValue>
+            {mappingCsvStatus.detail ? <FactNote>{` · ${mappingCsvStatus.detail}`}</FactNote> : null}
+          </FactLine>
+          <FactLine>
+            <SummaryLabel>Images:</SummaryLabel> <FactValue>{imagesStatus.label}</FactValue>
+            {imagesStatus.detail ? <FactNote>{` · ${imagesStatus.detail}`}</FactNote> : null}
+          </FactLine>
+          <FactLine>
+            <SummaryLabel>Archive State:</SummaryLabel> <FactValue>{archiveStatus.label}</FactValue>
+            {archiveStatus.detail ? <FactNote>{` · ${archiveStatus.detail}`}</FactNote> : null}
+          </FactLine>
+          <FactLine>
+            <SummaryLabel>Local Receipt:</SummaryLabel> <FactValue>{receiptStatus.label}</FactValue>
+            {receiptStatus.detail ? <FactNote>{` · ${receiptStatus.detail}`}</FactNote> : null}
+          </FactLine>
+          {packageStructureSummary ? (
+            <FactLine>
+              <SummaryLabel>Observed Package Structure:</SummaryLabel>{' '}
+              <FactValue>
+                {[
+                  packageStructureSummary.hasManifest ? 'manifest present' : 'manifest missing',
+                  packageStructureSummary.hasAiJson ? 'AI JSON present' : 'AI JSON missing',
+                  packageStructureSummary.hasMappingCsv
+                    ? 'mapping CSV present'
+                    : selectedBatch.imagesIncluded
+                      ? 'mapping CSV missing'
+                      : 'mapping CSV optional',
+                  packageStructureSummary.imagesIncluded
+                    ? `${packageStructureSummary.imageCount || 0} image file(s)`
+                    : 'no images included',
+                ].join(' · ')}
+              </FactValue>
+            </FactLine>
+          ) : null}
+          {hasLegacyReferenceAsset ? (
+            <FactLine>
+              <SummaryLabel>Legacy Reference Asset:</SummaryLabel> <FactValue>{legacyReferenceStatus.label}</FactValue>
+              {legacyReferenceStatus.detail ? <FactNote>{` · ${legacyReferenceStatus.detail}`}</FactNote> : null}
+            </FactLine>
+          ) : null}
+        </FactList>
+
+        {sourceImageNames.length ? (
+          <Block>
+            <BlockText>Original image filenames</BlockText>
+            <FilenameCount>{sourceImageNames.length} recorded file(s)</FilenameCount>
+            <FilenameList>
+              {sourceImageNames.map((name) => (
+                <Filename key={`${selectedBatch.id}-${name}`}>{name}</Filename>
+              ))}
+            </FilenameList>
+          </Block>
+        ) : null}
+          </>
+        ) : null}
 
         <ButtonRow>
-          <Button type="button" $tone="danger" onClick={onDelete} disabled={busyAction === 'delete'}>
-            {busyAction === 'delete' ? 'Deleting…' : 'Delete Batch'}
-          </Button>
+          {!isArchived && localFolderMissing ? (
+            <Button
+              type="button"
+              onClick={onRecreateLocalFolder}
+              disabled={busyAction === 'recreate-local-folder'}
+            >
+              {busyAction === 'recreate-local-folder' ? 'Recreating…' : 'Recreate Local Folder'}
+            </Button>
+          ) : null}
+          {!isArchived && canArchiveBatch ? (
+            <Button
+              type="button"
+              $tone="primary"
+              onClick={onDelete}
+              disabled={busyAction === 'archive' || !canArchiveBatch}
+              aria-disabled={busyAction === 'archive' || !canArchiveBatch}
+            >
+              {busyAction === 'archive' ? 'Archiving…' : 'Archive Batch'}
+            </Button>
+          ) : null}
+          {!isArchived ? (
+            <SecondaryDangerButton
+              type="button"
+              onClick={onDeletePermanently}
+              disabled={busyAction === 'delete-permanent' || busyAction === 'archive'}
+              aria-disabled={busyAction === 'delete-permanent' || busyAction === 'archive'}
+            >
+              {busyAction === 'delete-permanent' ? 'Deleting…' : 'Delete Batch'}
+            </SecondaryDangerButton>
+          ) : null}
         </ButtonRow>
-      </ActionCluster>
 
-      <Block>
-        <BlockHeader>
-          <BlockTitle>Validation</BlockTitle>
-          <BlockText>
-            {selectedBatchValidationOk
-              ? selectedBatchHasImageLinkedJson
-                ? 'Ready. Import will restage from the validated CSV.'
-                : 'Ready. This batch can be imported.'
-              : 'Run validation before import.'}
-          </BlockText>
-        </BlockHeader>
+        {canArchiveBatch && !isArchived ? (
+          <GuidanceCard>
+            <StatusLine $tone="success">
+              Import completed successfully. Archive is the normal completion path for this batch.
+            </StatusLine>
+            <StatusLine>
+              Delete is only for corrective cleanup when you need to remove imported items and associated media.
+            </StatusLine>
+          </GuidanceCard>
+        ) : null}
+
+        {isArchived ? (
+          <StatusLine>
+            This batch is now an archived provenance record. Source assets remain recorded here even though the active workspace files are gone.
+          </StatusLine>
+        ) : localFolderMissing ? (
+          <StatusLine>
+            The legacy local staging folder is missing. This batch still exists as durable provenance in Mongo. Package provenance, validation history, and import history remain readable.
+          </StatusLine>
+        ) : !canArchiveBatch ? (
+          <StatusLine>
+            Archive remains disabled until this staged batch has been imported successfully.
+          </StatusLine>
+        ) : null}
+      </AccordionBlock>
+
+      <AccordionBlock>
+        <AccordionToggle
+          type="button"
+          onClick={() => setValidationSectionOpen((current) => !current)}
+        >
+          <BlockHeader>
+            <BlockTitle>Validation</BlockTitle>
+            <BlockText>
+              Validate intake data before import. Images remain optional.
+            </BlockText>
+          </BlockHeader>
+          <AccordionMeta>
+            {getAccordionMeta({
+              completed: validationCompleted,
+              collapsed: !validationSectionOpen,
+              idleLabel: 'Pending',
+            })}
+          </AccordionMeta>
+        </AccordionToggle>
+
+        {validationSectionOpen ? (
+          <>
+
+        <ChipRow>
+          <Chip $tone={validationTone}>
+            {String(selectedBatch.validationStatus || 'not_validated').replace(/_/g, ' ')}
+          </Chip>
+          <Chip>
+            {validationSnapshot?.validatedAt
+              ? `Validated ${toDisplayDate(validationSnapshot.validatedAt)}`
+              : 'Not yet validated'}
+          </Chip>
+        </ChipRow>
+
+        <ValidationText>
+          {validationSnapshot?.rowCount || 0} rows • {validationSnapshot?.readyCount || 0} ready •{' '}
+          {validationSnapshot?.missingCount || 0} missing • {validationSnapshot?.ambiguousCount || 0} ambiguous •{' '}
+          {validationSnapshot?.warningCount || 0} warnings • {validationSnapshot?.errorCount || 0} errors
+        </ValidationText>
+
+        {!validationCompleted ? (
+          <ButtonRow>
+            <Button type="button" onClick={onValidate} disabled={busyAction === 'validate' || isArchived}>
+              {busyAction === 'validate' ? 'Validating…' : 'Validate Batch'}
+            </Button>
+          </ButtonRow>
+        ) : null}
 
         {validation ? (
-          <ValidationCard $ok={validation.ok}>
+          <ValidationCard $ok={selectedBatch.validationStatus === 'passed'}>
             <ValidationTop>
-              <ValidationTitle>{validation.ok ? 'Validation passed' : 'Validation failed'}</ValidationTitle>
+              <ValidationTitle>
+                {selectedBatch.validationStatus === 'passed'
+                  ? 'Validation passed'
+                  : selectedBatch.validationStatus === 'failed'
+                    ? 'Validation failed'
+                    : 'Validation not run'}
+              </ValidationTitle>
               <ValidationText>
-                {validation.validatedAt ? toDisplayDate(validation.validatedAt) : 'No timestamp'}
+                {validationSnapshot?.validatedAt ? toDisplayDate(validationSnapshot.validatedAt) : 'No timestamp'}
               </ValidationText>
             </ValidationTop>
 
             <ValidationText>
-              {validation.totalItems} items • {validation.itemsWithImageKeysCount} with imageKey •{' '}
-              {validation.csvSourceFilesCount} CSV rows • {validation.originalImageFilesCount} original images
+              {validationSnapshot?.totalItems || 0} items • {validationSnapshot?.itemsWithImageKeysCount || 0} with imageKey •{' '}
+              {validationSnapshot?.csvSourceFilesCount || 0} CSV rows • {validationSnapshot?.originalImageFilesCount || 0} source images found
             </ValidationText>
+
+            {validation.validationWarnings?.length ? (
+              <IssueList>
+                {validation.validationWarnings.map((warning, index) => (
+                  <Issue key={`${selectedBatch.id}-validation-warning-${index}`} $tone="warning">{warning}</Issue>
+                ))}
+              </IssueList>
+            ) : null}
 
             {validation.errors.length ? (
               <IssueList>
@@ -518,7 +1026,139 @@ export default function IntakeBatchDetailsPanel({
         ) : (
           <StatusLine>Validation has not run yet.</StatusLine>
         )}
-      </Block>
+          </>
+        ) : null}
+      </AccordionBlock>
+
+      <AccordionBlock>
+        <AccordionToggle
+          type="button"
+          onClick={() => setImportSectionOpen((current) => !current)}
+        >
+          <BlockHeader>
+            <BlockTitle>Import</BlockTitle>
+            <BlockText>Import creates or updates items from validated intake data. Processing remains optional later.</BlockText>
+          </BlockHeader>
+          <AccordionMeta>
+            {getAccordionMeta({
+              completed: importCompleted,
+              collapsed: !importSectionOpen,
+              idleLabel: validationCompleted ? 'Ready' : 'Waiting on validation',
+            })}
+          </AccordionMeta>
+        </AccordionToggle>
+
+        {importSectionOpen ? (
+          <>
+
+        <ChipRow>
+          <Chip $tone={importTone}>
+            {String(selectedBatch.importLifecycleStatus || 'not_imported').replace(/_/g, ' ')}
+          </Chip>
+          <Chip>
+            {importSnapshot?.importedAt
+              ? `Imported ${toDisplayDate(importSnapshot.importedAt)}`
+              : 'Not yet imported'}
+          </Chip>
+          <Chip>Processing optional</Chip>
+        </ChipRow>
+
+        <ValidationText>
+          {importSnapshot?.createdItemCount || 0} created • {importSnapshot?.updatedItemCount || 0} updated •{' '}
+          {importSnapshot?.skippedItemCount || 0} skipped • {importSnapshot?.failedItemCount || 0} failed
+        </ValidationText>
+
+        {importSnapshot?.importErrorSummary ? (
+          <StatusLine $tone="error">{importSnapshot.importErrorSummary}</StatusLine>
+        ) : null}
+
+        {!importCompleted ? (
+          <ButtonRow>
+            <Button
+              type="button"
+              $tone="primary"
+              onClick={onImport}
+              disabled={busyAction === 'import' || !selectedBatchValidationOk || isArchived}
+            >
+              {busyAction === 'import' ? 'Importing…' : 'Import Validated Batch'}
+            </Button>
+          </ButtonRow>
+        ) : null}
+
+        {isArchived ? (
+          <StatusLine>
+            Archived batches stay readable for provenance and import history, but validation and import actions are disabled.
+          </StatusLine>
+        ) : null}
+          </>
+        ) : null}
+      </AccordionBlock>
+
+      {(validationCompleted || importCompleted) && !isArchived ? (
+        <FooterResetRow>
+          <BlockText>
+            Completed steps are collapsed to keep this view smaller. Use the reset actions below only if you need to run validation or import again.
+          </BlockText>
+          <ButtonRow>
+            {validationCompleted ? (
+              <Button
+                type="button"
+                onClick={onValidate}
+                disabled={busyAction === 'validate'}
+              >
+                {busyAction === 'validate' ? 'Revalidating…' : 'Re-run Validation'}
+              </Button>
+            ) : null}
+            {importCompleted ? (
+              <Button
+                type="button"
+                $tone="primary"
+                onClick={onImport}
+                disabled={busyAction === 'import'}
+              >
+                {busyAction === 'import' ? 'Re-importing…' : 'Re-import Batch'}
+              </Button>
+            ) : null}
+          </ButtonRow>
+        </FooterResetRow>
+      ) : null}
+
+      <ProcessingEntryCard>
+        <BlockHeader>
+          <BlockTitle>Processing</BlockTitle>
+          <BlockText>
+            Processing stays optional and operator-driven. Turn on Processing Mode to pin the console above and reveal the imported-item selection ledger below.
+          </BlockText>
+        </BlockHeader>
+        <ButtonRow>
+          <Button
+            type="button"
+            $active={processingModeEnabled}
+            onClick={onToggleProcessingMode}
+          >
+            {processingModeEnabled ? 'Disable Processing Mode' : 'Enable Processing Mode'}
+          </Button>
+        </ButtonRow>
+      </ProcessingEntryCard>
+
+      {processingModeEnabled ? (
+        <ImportedItemsAnchor ref={importedItemsAnchorRef}>
+          <IntakeBatchImportedItemsPanel
+            importedItemsPage={selectedBatch.importedItemsPage || null}
+            pageState={importedItemsPageState}
+            processingModeEnabled={processingModeEnabled}
+            selectedItemIds={selectedItemIds}
+            processingSummary={selectedBatch.processingSummary || null}
+            liveBatchJobSummary={liveBatchJobSummary}
+            liveJobProgressByMediaId={liveJobProgressByMediaId}
+            isArchived={isArchived}
+            detailLoading={detailLoading}
+            onToggleProcessingMode={onToggleProcessingMode}
+            onSelectedItemIdsChange={onSelectedItemIdsChange}
+            onSortChange={onImportedItemsSortChange}
+          />
+        </ImportedItemsAnchor>
+      ) : null}
     </Panel>
   );
 }

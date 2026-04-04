@@ -50,6 +50,16 @@ const OBJECT_GLOW_TIMEOUT_MS = toPositiveInteger(
   process.env.OBJECT_GLOW_TIMEOUT_MS,
   120000
 );
+const OBJECT_GLOW_PROGRESS_EVENTS = new Set([
+  'job_queued',
+  'job_started',
+  'stage_started',
+  'stage_progress',
+  'stage_completed',
+  'warning',
+  'job_completed',
+  'job_failed',
+]);
 
 function toTrimmed(value) {
   return value == null ? '' : String(value).trim();
@@ -88,6 +98,137 @@ function normalizeDimensions(raw) {
   const height = coerceNumber(raw.height);
   if (width == null || height == null) return null;
   return { width, height };
+}
+
+function clampProgressPercent(value) {
+  const parsed = coerceNumber(value);
+  if (parsed == null) return null;
+  if (parsed < 0) return 0;
+  if (parsed > 100) return 100;
+  return parsed;
+}
+
+function normalizeObjectGlowProgressEvent(rawEvent = {}, fallbackContext = {}) {
+  if (!rawEvent || typeof rawEvent !== 'object' || Array.isArray(rawEvent)) return null;
+
+  const event = toTrimmed(rawEvent.event).toLowerCase();
+  if (!OBJECT_GLOW_PROGRESS_EVENTS.has(event)) return null;
+
+  const stage = toTrimmed(rawEvent.stage).toLowerCase();
+  const message = toTrimmed(rawEvent.message);
+  const runId = toTrimmed(rawEvent.runId || rawEvent.run_id || fallbackContext.runId);
+  const mediaId = toTrimmed(rawEvent.mediaId || rawEvent.media_id || fallbackContext.mediaId);
+  const batchId = toTrimmed(rawEvent.batchId || rawEvent.batch_id || fallbackContext.batchId);
+  const timestamp = normalizeOptionalDate(rawEvent.timestamp)?.toISOString() || new Date().toISOString();
+  const protocolVersion = Number.parseInt(String(rawEvent.protocolVersion ?? rawEvent.protocol_version ?? 1), 10);
+  const warningCode = toTrimmed(rawEvent.warningCode || rawEvent.warning_code);
+  const errorCode = toTrimmed(rawEvent.errorCode || rawEvent.error_code);
+  const outputPath = toTrimmed(rawEvent.outputPath || rawEvent.output_path);
+
+  return {
+    protocolVersion: Number.isFinite(protocolVersion) && protocolVersion > 0 ? protocolVersion : 1,
+    event,
+    timestamp,
+    runId,
+    mediaId,
+    batchId,
+    stage,
+    message,
+    progressPercent: clampProgressPercent(rawEvent.progressPercent ?? rawEvent.progress_percent),
+    stageCurrent: coerceNumber(rawEvent.stageCurrent ?? rawEvent.stage_current),
+    stageTotal: coerceNumber(rawEvent.stageTotal ?? rawEvent.stage_total),
+    etaSeconds: coerceNumber(
+      rawEvent.etaSeconds ??
+      rawEvent.eta_seconds ??
+      rawEvent.etaSecondsRemaining ??
+      rawEvent.eta_seconds_remaining
+    ),
+    outputPath,
+    warningCode,
+    errorCode,
+    elapsedSeconds: coerceNumber(rawEvent.elapsedSeconds ?? rawEvent.elapsed_seconds),
+    inputDimensions: normalizeDimensions(rawEvent.inputDimensions ?? rawEvent.input_dimensions),
+    outputDimensions: normalizeDimensions(rawEvent.outputDimensions ?? rawEvent.output_dimensions),
+    glowApplied: coerceBoolean(rawEvent.glowApplied ?? rawEvent.glow_applied),
+    glowColor:
+      rawEvent.glowColor != null
+        ? rawEvent.glowColor
+        : rawEvent.glow_color != null
+          ? rawEvent.glow_color
+          : null,
+    details:
+      rawEvent.details && typeof rawEvent.details === 'object' && !Array.isArray(rawEvent.details)
+        ? rawEvent.details
+        : null,
+  };
+}
+
+function createObjectGlowLineParser({
+  onEvent,
+  context = {},
+} = {}) {
+  let buffer = '';
+  let lastCompletedEvent = null;
+  let lastFailedEvent = null;
+
+  const processLine = (line) => {
+    const trimmedLine = toTrimmed(line);
+    if (!trimmedLine) return;
+
+    let parsed = null;
+    try {
+      parsed = JSON.parse(trimmedLine);
+    } catch (_error) {
+      logMediaProcessingEvent('objectGlow non-json progress line ignored', {
+        line: trimmedLine.slice(0, 240),
+      });
+      return;
+    }
+
+    const normalizedEvent = normalizeObjectGlowProgressEvent(parsed, context);
+    if (!normalizedEvent) {
+      logMediaProcessingEvent('objectGlow unsupported progress event ignored', {
+        line: trimmedLine.slice(0, 240),
+      });
+      return;
+    }
+
+    if (normalizedEvent.event === 'job_completed') {
+      lastCompletedEvent = normalizedEvent;
+    }
+    if (normalizedEvent.event === 'job_failed') {
+      lastFailedEvent = normalizedEvent;
+    }
+
+    onEvent?.(normalizedEvent);
+  };
+
+  return {
+    append(chunk) {
+      buffer += String(chunk || '');
+      let newlineIndex = buffer.indexOf('\n');
+      while (newlineIndex !== -1) {
+        const line = buffer.slice(0, newlineIndex);
+        buffer = buffer.slice(newlineIndex + 1);
+        processLine(line);
+        newlineIndex = buffer.indexOf('\n');
+      }
+    },
+    flush() {
+      processLine(buffer);
+      buffer = '';
+      return {
+        lastCompletedEvent,
+        lastFailedEvent,
+      };
+    },
+    getState() {
+      return {
+        lastCompletedEvent,
+        lastFailedEvent,
+      };
+    },
+  };
 }
 
 function normalizeActiveVariant(value, fallback = 'original') {
@@ -619,12 +760,14 @@ async function isExecutableFile(candidatePath) {
   }
 }
 
-function buildObjectGlowCliArgs(inputPath, outputPath, renderTokens) {
+function buildObjectGlowCliArgs(inputPath, outputPath, renderTokens, progressContext = {}) {
   const normalized = normalizeRenderTokensForState(renderTokens, DEFAULT_RENDER_TOKENS);
-  return [
+  const args = [
     inputPath,
     '--output',
     outputPath,
+    '--progress-format',
+    'jsonl',
     '--background-token',
     normalized.background,
     '--glow-token',
@@ -632,13 +775,28 @@ function buildObjectGlowCliArgs(inputPath, outputPath, renderTokens) {
     '--accent-token',
     normalized.accent,
   ];
+  const runId = toTrimmed(progressContext?.runId);
+  const mediaId = toTrimmed(progressContext?.mediaId);
+  const batchId = toTrimmed(progressContext?.batchId);
+
+  if (runId) {
+    args.push('--run-id', runId);
+  }
+  if (mediaId) {
+    args.push('--media-id', mediaId);
+  }
+  if (batchId) {
+    args.push('--batch-id', batchId);
+  }
+
+  return args;
 }
 
-async function resolveObjectGlowInvocation(inputPath, outputPath, renderTokens) {
+async function resolveObjectGlowInvocation(inputPath, outputPath, renderTokens, progressContext = {}) {
   const repoRoot = path.resolve(OBJECT_GLOW_REPO);
   const launcherPath = path.join(repoRoot, 'bin', 'objectglow');
   const venvPythonPath = path.join(repoRoot, '.venv', 'bin', 'python');
-  const cliArgs = buildObjectGlowCliArgs(inputPath, outputPath, renderTokens);
+  const cliArgs = buildObjectGlowCliArgs(inputPath, outputPath, renderTokens, progressContext);
   const normalizedRenderTokens = normalizeRenderTokensForState(renderTokens, DEFAULT_RENDER_TOKENS);
 
   if (await isExecutableFile(launcherPath)) {
@@ -728,9 +886,24 @@ function logMediaProcessingEvent(event, details = {}) {
   console.info(`[mediaProcessingService] ${event}`, details);
 }
 
-async function runObjectGlowSubprocess({ inputPath, outputPath, renderTokens }) {
-  const invocation = await resolveObjectGlowInvocation(inputPath, outputPath, renderTokens);
+async function runObjectGlowSubprocess({
+  inputPath,
+  outputPath,
+  renderTokens,
+  progressContext = {},
+  onEvent,
+}) {
+  const invocation = await resolveObjectGlowInvocation(
+    inputPath,
+    outputPath,
+    renderTokens,
+    progressContext
+  );
   const { strategy, executable, args, cwd, env, debugEnv } = invocation;
+  const lineParser = createObjectGlowLineParser({
+    onEvent,
+    context: progressContext,
+  });
 
   logObjectGlowInvocation({ strategy, executable, args, cwd, debugEnv });
 
@@ -764,7 +937,9 @@ async function runObjectGlowSubprocess({ inputPath, outputPath, renderTokens }) 
     }, Math.max(1000, OBJECT_GLOW_TIMEOUT_MS));
 
     child.stdout.on('data', (chunk) => {
-      stdout += chunk.toString();
+      const text = chunk.toString();
+      stdout += text;
+      lineParser.append(text);
     });
 
     child.stderr.on('data', (chunk) => {
@@ -793,6 +968,7 @@ async function runObjectGlowSubprocess({ inputPath, outputPath, renderTokens }) 
       if (settled) return;
       settled = true;
       clearTimeout(timeoutHandle);
+      const parserState = lineParser.flush();
       console.info('[mediaProcessingService] objectGlow result', {
         strategy,
         executable,
@@ -808,6 +984,8 @@ async function runObjectGlowSubprocess({ inputPath, outputPath, renderTokens }) 
         signal: signal || null,
         stdout,
         stderr,
+        lastCompletedEvent: parserState.lastCompletedEvent,
+        lastFailedEvent: parserState.lastFailedEvent,
       });
     });
   });
@@ -1165,7 +1343,7 @@ async function enqueueMediaProcessingById(mediaId, outputPath, renderTokens, opt
   return queueMediaProcessingById(mediaId, outputPath, renderTokens, options);
 }
 
-async function processImageWithObjectGlowById(mediaId, outputPath, renderTokens) {
+async function processImageWithObjectGlowById(mediaId, outputPath, renderTokens, options = {}) {
   const state = await getMediaStateById(mediaId);
   if (!state?.originalPath) {
     throw createMediaError(
@@ -1187,6 +1365,11 @@ async function processImageWithObjectGlowById(mediaId, outputPath, renderTokens)
 
   return processImageWithObjectGlow(state.originalPath, outputPath, {
     renderTokens: materializedTokens,
+    progressContext: {
+      ...(options?.progressContext || {}),
+      mediaId: toTrimmed(options?.progressContext?.mediaId || mediaId),
+    },
+    onProgress: options?.onProgress,
   });
 }
 
@@ -1249,17 +1432,33 @@ async function processImageWithObjectGlow(inputPath, outputPath, options = {}) {
 
     await fs.mkdir(path.dirname(normalizedOutputPath), { recursive: true });
 
+    let lastCompletedEvent = null;
+    let lastFailedEvent = null;
     const { exitCode, signal, stdout, stderr } = await objectGlowRunner({
       inputPath: normalizedInputPath,
       outputPath: normalizedOutputPath,
       renderTokens,
+      progressContext: {
+        runId: toTrimmed(options?.progressContext?.runId),
+        mediaId: toTrimmed(options?.progressContext?.mediaId || existingState?.mediaId),
+        batchId: toTrimmed(options?.progressContext?.batchId),
+      },
+      onEvent: (event) => {
+        if (event?.event === 'job_completed') {
+          lastCompletedEvent = event;
+        } else if (event?.event === 'job_failed') {
+          lastFailedEvent = event;
+        }
+        options?.onProgress?.(event);
+      },
     });
 
     if (exitCode !== 0) {
       const reason =
-        exitCode == null && signal
+        toTrimmed(lastFailedEvent?.message) ||
+        (exitCode == null && signal
           ? `objectGlow terminated by signal ${signal}`
-          : `objectGlow exited with code ${exitCode}`;
+          : `objectGlow exited with code ${exitCode}`);
 
       throw createMediaError(
         MEDIA_ERROR_CODES.OBJECT_GLOW_PROCESS_FAILED,
@@ -1270,6 +1469,7 @@ async function processImageWithObjectGlow(inputPath, outputPath, options = {}) {
           stdoutSnippet: toStdoutSnippet(stdout),
           inputPath: normalizedInputPath,
           outputPath: normalizedOutputPath,
+          objectGlowErrorCode: toTrimmed(lastFailedEvent?.errorCode),
         }
       );
     }
@@ -1278,12 +1478,15 @@ async function processImageWithObjectGlow(inputPath, outputPath, options = {}) {
     const normalizedSuccess = {
       status: 'ok',
       inputPath: normalizedInputPath,
-      outputPath: finalOutputPath,
-      elapsedSeconds: null,
-      inputDimensions: null,
-      outputDimensions: null,
-      glowApplied: null,
-      glowColor: null,
+      outputPath: toTrimmed(lastCompletedEvent?.outputPath) || finalOutputPath,
+      elapsedSeconds: coerceNumber(lastCompletedEvent?.elapsedSeconds),
+      inputDimensions: normalizeDimensions(lastCompletedEvent?.inputDimensions),
+      outputDimensions: normalizeDimensions(lastCompletedEvent?.outputDimensions),
+      glowApplied: coerceBoolean(lastCompletedEvent?.glowApplied),
+      glowColor:
+        lastCompletedEvent?.glowColor != null
+          ? lastCompletedEvent.glowColor
+          : null,
     };
 
     await assertOutputArtifact(finalOutputPath, {
@@ -1451,4 +1654,6 @@ module.exports = {
   toErrorPayload: toMediaErrorPayload,
   __setObjectGlowRunnerForTests,
   __resetObjectGlowRunnerForTests,
+  __normalizeObjectGlowProgressEventForTests: normalizeObjectGlowProgressEvent,
+  __createObjectGlowLineParserForTests: createObjectGlowLineParser,
 };

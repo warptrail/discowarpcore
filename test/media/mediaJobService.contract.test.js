@@ -442,3 +442,135 @@ test('recovery reconciles stale queued records with existing output instead of r
   assert.equal(summary.failedCount, 0);
   assert.equal(queuedCalls.length, 0);
 });
+
+test('media job progress snapshots update while processing and subscriptions receive ordered events', async (t) => {
+  mediaJobService.__resetMediaJobServiceForTests();
+  t.after(() => mediaJobService.__resetMediaJobServiceForTests());
+
+  mediaJobService.__setMediaJobConfigForTests({
+    concurrency: 1,
+    maxQueueLength: 10,
+  });
+
+  let resolveProgressSeen;
+  const progressSeen = new Promise((resolve) => {
+    resolveProgressSeen = resolve;
+  });
+  const receivedEvents = [];
+  let observedProgressContext = null;
+
+  mediaJobService.__setMediaJobHandlersForTests({
+    queueMediaProcessingById: async (mediaId, outputPath) => ({
+      mediaId,
+      inputPath: '/tmp/progress.jpg',
+      outputPath: outputPath || '/tmp/progress.webp',
+      processingState: {
+        mediaId,
+        originalPath: '/tmp/progress.jpg',
+        processedPath: outputPath || '/tmp/progress.webp',
+        processingStatus: 'queued',
+      },
+    }),
+    processImageWithObjectGlowById: async (mediaId, outputPath, renderTokens, options = {}) => {
+      observedProgressContext = options?.progressContext || null;
+      options?.onProgress?.({
+        event: 'job_queued',
+        timestamp: '2026-04-02T18:10:11.500Z',
+        runId: options?.progressContext?.runId,
+        mediaId,
+        batchId: options?.progressContext?.batchId,
+        stage: 'queued',
+        message: 'Loading objectGlow worker',
+        etaSecondsRemaining: 8,
+      });
+      options?.onProgress?.({
+        event: 'stage_started',
+        timestamp: '2026-04-02T18:10:12.000Z',
+        runId: options?.progressContext?.runId,
+        mediaId,
+        batchId: options?.progressContext?.batchId,
+        stage: 'segment',
+        message: 'Starting segmentation',
+      });
+      options?.onProgress?.({
+        event: 'stage_progress',
+        timestamp: '2026-04-02T18:10:13.000Z',
+        runId: options?.progressContext?.runId,
+        mediaId,
+        batchId: options?.progressContext?.batchId,
+        stage: 'segment',
+        message: 'Generating mask',
+        progressPercent: 55,
+        elapsedSeconds: 1.25,
+        etaSeconds: 4.5,
+        stageCurrent: 11,
+        stageTotal: 20,
+      });
+      resolveProgressSeen();
+      await delay(40);
+      return {
+        result: {
+          status: 'ok',
+          inputPath: '/tmp/progress.jpg',
+          outputPath,
+          renderTokens,
+        },
+        processingState: {
+          mediaId,
+          originalPath: '/tmp/progress.jpg',
+          processedPath: outputPath,
+          processingStatus: 'completed',
+          renderTokens,
+        },
+      };
+    },
+    getMediaStateById: async (mediaId) => ({
+      mediaId,
+      originalPath: '/tmp/progress.jpg',
+      processingStatus: 'processing',
+    }),
+  });
+
+  const enqueue = await mediaJobService.enqueueMediaProcessingJob({
+    mediaId: 'med_progress_job',
+    outputPath: '/tmp/progress.webp',
+    batchId: 'batch_progress_job',
+  });
+
+  const unsubscribe = mediaJobService.subscribeToMediaJobEvents(enqueue.job.id, (payload) => {
+    receivedEvents.push({
+      type: payload.type,
+      status: payload.job.status,
+      stage: payload.job.currentStage,
+      progressPercent: payload.job.progressPercent,
+    });
+  });
+  t.after(() => unsubscribe());
+
+  await progressSeen;
+
+  const midFlight = await mediaJobService.getMediaJobStatus(enqueue.job.id);
+  assert.equal(midFlight.job.status, 'running');
+  assert.equal(midFlight.job.currentStage, 'segment');
+  assert.equal(midFlight.job.progressPercent, 55);
+  assert.equal(midFlight.job.progress.stageCurrent, 11);
+  assert.equal(midFlight.job.progress.elapsedSeconds, 1.25);
+  assert.equal(midFlight.job.progress.etaSeconds, 4.5);
+  assert.equal(midFlight.job.batchId, 'batch_progress_job');
+  assert.deepEqual(observedProgressContext, {
+    runId: enqueue.job.id,
+    mediaId: 'med_progress_job',
+    batchId: 'batch_progress_job',
+  });
+
+  const idle = await mediaJobService.__waitForIdleForTests(2000);
+  assert.equal(idle, true);
+
+  const completed = await mediaJobService.getMediaJobStatus(enqueue.job.id);
+  assert.equal(completed.job.status, 'completed');
+  assert.equal(completed.job.progressPercent, 100);
+  assert.ok(receivedEvents.some((event) => event.type === 'job.progress' && event.stage === 'queued'));
+  assert.ok(receivedEvents.some((event) => event.type === 'job.started'));
+  assert.ok(receivedEvents.some((event) => event.type === 'job.progress' && event.progressPercent === 55));
+  assert.ok(receivedEvents.some((event) => event.type === 'job.completed' && event.status === 'completed'));
+});

@@ -21,6 +21,7 @@ export default function EditBoxDetailsForm({
   processImageStatus = 'idle',
   processImageBusy = false,
   processImageError = '',
+  processImageProgressLabel = '',
   processImageJobId = '',
   processImageMediaId = '',
   persistedRenderTokens = null,
@@ -311,6 +312,7 @@ export default function EditBoxDetailsForm({
                     box={initial}
                     boxId={boxMongoId}
                     disabled={busy || destroyBusy}
+                    mobileHeaderPreview
                     title="Box Image"
                     showVariantLabel={false}
                     placeholder="No box image uploaded."
@@ -328,6 +330,7 @@ export default function EditBoxDetailsForm({
                     processImageStatus={processImageStatus}
                     processImageBusy={processImageBusy}
                     processImageError={processImageError}
+                    processImageProgressLabel={processImageProgressLabel}
                     processImageJobId={processImageJobId}
                     processImageMediaId={processImageMediaId}
                     persistedRenderTokens={persistedRenderTokens}
@@ -373,6 +376,7 @@ export default function EditBoxDetailsForm({
                 boxId={boxMongoId}
                 compact
                 disabled={busy || destroyBusy}
+                mobileHeaderPreview
                 title="Box Image"
                 showVariantLabel={false}
                 placeholder="No photo"
@@ -390,6 +394,7 @@ export default function EditBoxDetailsForm({
                 processImageStatus={processImageStatus}
                 processImageBusy={processImageBusy}
                 processImageError={processImageError}
+                processImageProgressLabel={processImageProgressLabel}
                 processImageJobId={processImageJobId}
                 processImageMediaId={processImageMediaId}
                 persistedRenderTokens={persistedRenderTokens}

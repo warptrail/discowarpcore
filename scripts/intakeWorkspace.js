@@ -1,9 +1,17 @@
 const fs = require('fs/promises');
 const path = require('path');
+const os = require('os');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const INTAKE_ROOT = path.join(REPO_ROOT, 'var', 'intake');
 const BATCHES_ROOT = path.join(INTAKE_ROOT, 'batches');
+const DEFAULT_EXTERNAL_INTAKE_ROOT = path.join(os.homedir(), 'Intake', 'discowarpcore');
+const RECEIPT_FILENAME = 'discowarpcore_batch_receipt.json';
+
+function getExternalIntakeRoot() {
+  const raw = toTrimmed(process.env.DISCOWARPCORE_INTAKE_ROOT);
+  return raw ? path.resolve(raw) : DEFAULT_EXTERNAL_INTAKE_ROOT;
+}
 
 function toTrimmed(value) {
   return value == null ? '' : String(value).trim();
@@ -93,6 +101,9 @@ module.exports = {
   REPO_ROOT,
   INTAKE_ROOT,
   BATCHES_ROOT,
+  DEFAULT_EXTERNAL_INTAKE_ROOT,
+  RECEIPT_FILENAME,
+  getExternalIntakeRoot,
   toTrimmed,
   slugify,
   parseArgs,

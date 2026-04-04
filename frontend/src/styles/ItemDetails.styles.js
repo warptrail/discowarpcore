@@ -1,4 +1,5 @@
 import styled, { css, keyframes } from 'styled-components';
+import { Link } from 'react-router-dom';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_FONT_SM,
@@ -252,7 +253,7 @@ export const FeaturedImage = styled.img`
   }
 `;
 
-export const ViewSummaryGrid = styled.div`
+export const TopSectionGrid = styled.div`
   position: relative;
   z-index: 1;
   display: grid;
@@ -261,8 +262,8 @@ export const ViewSummaryGrid = styled.div`
 
   @media (min-width: ${SUMMARY_DESKTOP_BREAKPOINT}) {
     grid-template-columns: ${({ $hasImage }) =>
-      $hasImage ? 'minmax(240px, 320px) minmax(0, 1fr)' : 'minmax(0, 1fr)'};
-    grid-template-areas: ${({ $hasImage }) => ($hasImage ? '"media info"' : '"info"')};
+      $hasImage ? 'minmax(280px, 380px) minmax(0, 1fr)' : 'minmax(0, 1fr)'};
+    grid-template-areas: ${({ $hasImage }) => ($hasImage ? '"media context"' : '"context"')};
     align-items: start;
   }
 
@@ -271,9 +272,9 @@ export const ViewSummaryGrid = styled.div`
   }
 `;
 
-export const SummaryMediaColumn = styled.div`
+export const TopSectionMedia = styled.div`
   min-width: 0;
-  order: 2;
+  order: 1;
 
   @media (min-width: ${SUMMARY_DESKTOP_BREAKPOINT}) {
     order: initial;
@@ -281,34 +282,16 @@ export const SummaryMediaColumn = styled.div`
   }
 `;
 
-export const SummaryInfoColumn = styled.div`
-  min-width: 0;
-  display: contents;
-
-  @media (min-width: ${SUMMARY_DESKTOP_BREAKPOINT}) {
-    display: grid;
-    gap: 0.72rem;
-    grid-area: info;
-  }
-`;
-
-export const SummaryCardsGrid = styled.div`
+export const TopSectionContext = styled.div`
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0.75rem;
-  order: 3;
-
-  @media (min-width: 1320px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  gap: 0.72rem;
+  align-content: start;
+  order: 2;
 
   @media (min-width: ${SUMMARY_DESKTOP_BREAKPOINT}) {
     order: initial;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    gap: 0.52rem;
+    grid-area: context;
   }
 `;
 
@@ -335,6 +318,10 @@ export const IdentityField = styled.article`
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(8, 14, 22, 0.14));
   display: grid;
   gap: 0.2rem;
+`;
+
+export const IdentityFieldRow = styled(IdentityField)`
+  grid-column: 1 / -1;
 `;
 
 export const IdentityFieldLabel = styled.div`
@@ -374,6 +361,18 @@ export const IdentityFieldValue = styled.div`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_SM};
     line-height: 1.3;
+    display: block;
+    -webkit-line-clamp: unset;
+    -webkit-box-orient: initial;
+    overflow: visible;
+    text-overflow: initial;
+  }
+`;
+
+export const IdentityFieldRowValue = styled(IdentityFieldValue)`
+  display: block;
+
+  @media (min-width: ${SUMMARY_DESKTOP_BREAKPOINT}) {
     display: block;
     -webkit-line-clamp: unset;
     -webkit-box-orient: initial;
@@ -442,7 +441,7 @@ export const SectionGrid = styled.div`
   gap: 0.75rem;
   min-width: 0;
 
-  @media (max-width: 860px) {
+  @media (max-width: 980px) {
     grid-template-columns: 1fr;
   }
 
@@ -516,8 +515,12 @@ export const SectionBody = styled.div`
 
 export const DetailRow = styled.div`
   display: grid;
-  grid-template-columns: ${({ $nowrap }) =>
-    $nowrap ? 'minmax(120px, 184px) minmax(0, 1fr)' : rowGridColumns};
+  grid-template-columns: ${({ $nowrap, $stackLabel }) =>
+    $stackLabel
+      ? 'minmax(0, 1fr)'
+      : $nowrap
+        ? 'minmax(120px, 184px) minmax(0, 1fr)'
+        : rowGridColumns};
   align-items: ${({ $stretch }) => ($stretch ? 'start' : 'center')};
   gap: 0.62rem;
   padding: 0.42rem 0.2rem 0.38rem 0.45rem;
@@ -546,6 +549,12 @@ export const RowLabel = styled.div`
   font-weight: 740;
   letter-spacing: 0.09em;
   text-transform: uppercase;
+
+  ${({ $stackLabel }) =>
+    $stackLabel &&
+    css`
+      margin-bottom: 0.08rem;
+    `}
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
@@ -578,6 +587,14 @@ export const RowValue = styled.div`
     font-size: ${MOBILE_FONT_SM};
     line-height: 1.32;
   }
+
+  ${({ $stackLabel }) =>
+    $stackLabel &&
+    css`
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    `}
 
   ${({ $nowrap }) =>
     $nowrap &&
@@ -679,6 +696,17 @@ export const ExternalLinkAnchor = styled.a`
   &:hover {
     color: #9ff0eb;
     text-decoration-color: rgba(159, 240, 235, 0.84);
+  }
+`;
+
+export const RouteLink = styled(Link)`
+  color: ${LCARS.teal};
+  text-decoration: none;
+  font-weight: 620;
+
+  &:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 `;
 

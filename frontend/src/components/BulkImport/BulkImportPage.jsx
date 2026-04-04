@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import {
   MOBILE_BREAKPOINT,
@@ -75,11 +76,43 @@ const TabSubtext = styled.div`
 `;
 
 export default function BulkImportPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const linkedBatchId = String(searchParams.get('batch') || '').trim();
   const [activeTab, setActiveTab] = useState('ai');
+
+  useEffect(() => {
+    if (linkedBatchId) {
+      setActiveTab('ai');
+    }
+  }, [linkedBatchId]);
+
+  const syncBatchParam = useCallback((nextBatchId) => {
+    const normalizedBatchId = String(nextBatchId || '').trim();
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (normalizedBatchId) {
+        next.set('batch', normalizedBatchId);
+      } else {
+        next.delete('batch');
+      }
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const clearInvalidBatchParam = useCallback((invalidBatchId) => {
+    const normalizedBatchId = String(invalidBatchId || '').trim();
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (String(next.get('batch') || '').trim() === normalizedBatchId) {
+        next.delete('batch');
+      }
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   const tabSubtext = useMemo(() => {
     if (activeTab === 'ai') {
-      return 'AI JSON mode now includes repo-local batch setup, JSON/CSV validation, image staging, and direct import from validated intake batches.';
+      return 'AI JSON mode now runs as a simple sequence: upload one batch zip, stage it, validate it, then import it.';
     }
     return 'Text mode imports one item name per line exactly as before.';
   }, [activeTab]);
@@ -117,7 +150,15 @@ export default function BulkImportPage() {
 
       <TabSubtext>{tabSubtext}</TabSubtext>
 
-      {activeTab === 'text' ? <BulkImportTextPanel /> : <BulkImportAiJsonPanel />}
+      {activeTab === 'text' ? (
+        <BulkImportTextPanel />
+      ) : (
+        <BulkImportAiJsonPanel
+          selectedBatchIdOverride={linkedBatchId}
+          onSelectedBatchIdChange={syncBatchParam}
+          onSelectedBatchIdInvalid={clearInvalidBatchParam}
+        />
+      )}
     </Wrap>
   );
 }

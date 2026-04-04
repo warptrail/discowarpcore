@@ -62,6 +62,7 @@ export default function BoxImageField({
   processImageStatus = 'idle',
   processImageBusy = false,
   processImageError = '',
+  processImageProgressLabel = '',
   persistedRenderTokens = null,
   processActionLabels = {},
   processTone = 'default',
@@ -76,6 +77,7 @@ export default function BoxImageField({
   imageRefreshToken = 0,
   hintWhenImage = '',
   hintWhenEmpty = '',
+  mobileHeaderPreview = false,
 }) {
   const resolvedBoxId = toTrimmed(boxId || box?._id);
   const [previewUrl, setPreviewUrl] = useState(() => pickEntityImageUrl(box));
@@ -176,6 +178,9 @@ export default function BoxImageField({
 
   const statusLines = [
     ...(busy ? [{ key: 'busy', text: 'Working...' }] : []),
+    ...(processImageProgressLabel && normalizedProcessingStatus !== 'completed'
+      ? [{ key: 'processing-progress', text: processImageProgressLabel }]
+      : []),
     ...(status ? [{ key: 'status', tone: 'success', text: status }] : []),
     ...(error ? [{ key: 'error', tone: 'error', text: error }] : []),
     ...(switchVariantError
@@ -445,6 +450,7 @@ export default function BoxImageField({
       onRenderTokenChange={updateRenderToken}
       renderTokensDisabled={mutationBusy}
       hint={hint}
+      mobileHeaderPreview={mobileHeaderPreview}
     />
   );
 }

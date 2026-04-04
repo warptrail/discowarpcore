@@ -1,11 +1,9 @@
 import * as S from './Retrieval.styles';
-import BoxBadge from './BoxBadge';
 import RetrievalExpandedPanel from './RetrievalExpandedPanel';
-import { getBoxColorTones } from './boxColors';
 
 function shouldSkipRowToggle(target) {
   if (!(target instanceof Element)) return false;
-  return Boolean(target.closest('a, button, [data-thumb-surface="true"]'));
+  return Boolean(target.closest('a, button, [data-thumb-surface="true"], [data-expand-toggle="true"]'));
 }
 
 export default function RetrievalResultRow({
@@ -19,9 +17,7 @@ export default function RetrievalResultRow({
   const panelId = `retrieval-row-panel-${item.id}`;
 
   const handleToggle = () => {
-    if (typeof onToggle === 'function') {
-      onToggle(item.id);
-    }
+    if (typeof onToggle === 'function') onToggle(item.id);
   };
 
   const handleSummaryClick = (event) => {
@@ -38,9 +34,18 @@ export default function RetrievalResultRow({
 
   const imageUrl = String(item?.imageUrl || '').trim();
   const previewImageUrl = String(item?.previewImageUrl || imageUrl).trim();
-  const boxGroupLabel = String(item?.boxGroupLabel || item?.groupLabel || '').trim();
+  const boxName = String(item?.boxName || '').trim();
+  const boxNumber = String(item?.boxNumber || '').trim();
   const locationLabel = String(item?.locationLabel || '').trim();
-  const boxTones = getBoxColorTones(item?.boxNumber || item?.boxId || 0);
+  const locationPath = String(item?.locationPath || '').trim();
+  const ownerName = String(item?.primaryOwnerName || '').trim();
+  const shortBoxName = boxName.length > 34 ? `${boxName.slice(0, 33).trimEnd()}…` : boxName;
+  const unresolved =
+    !boxNumber ||
+    !boxName ||
+    !locationLabel ||
+    /^unknown/i.test(locationLabel) ||
+    /^unknown/i.test(locationPath);
   const hasImage = Boolean(imageUrl);
 
   const handleThumbClick = (event) => {
@@ -52,7 +57,7 @@ export default function RetrievalResultRow({
   };
 
   return (
-    <S.ResultCard>
+    <S.ResultCard $expanded={isExpanded}>
       <S.SummaryButton
         onClick={handleSummaryClick}
         onKeyDown={handleSummaryKeyDown}
@@ -64,20 +69,24 @@ export default function RetrievalResultRow({
         $expanded={isExpanded}
       >
         <S.SummaryTop>
-          <S.RowMain>
-            {hasImage ? (
-              <S.ThumbPreviewButton
-                type="button"
-                onClick={handleThumbClick}
-                aria-label={`Preview image for ${item.name}`}
-                data-thumb-surface="true"
-              >
-                <S.ThumbImage src={imageUrl} alt={`${item.name} thumbnail`} loading="lazy" />
-              </S.ThumbPreviewButton>
+          <S.RowMain $expanded={isExpanded}>
+            {!isExpanded ? (
+              hasImage ? (
+                <S.ThumbPreviewButton
+                  type="button"
+                  onClick={handleThumbClick}
+                  aria-label={`Preview image for ${item.name}`}
+                  data-thumb-surface="true"
+                >
+                  <S.ThumbImage src={imageUrl} alt={`${item.name} thumbnail`} loading="lazy" />
+                </S.ThumbPreviewButton>
+              ) : (
+                <S.ThumbFrame data-thumb-surface="true">
+                  <S.ThumbPlaceholder>No Image</S.ThumbPlaceholder>
+                </S.ThumbFrame>
+              )
             ) : (
-              <S.ThumbFrame data-thumb-surface="true">
-                <S.ThumbPlaceholder>No Image</S.ThumbPlaceholder>
-              </S.ThumbFrame>
+              <S.ExpandedRowMarker aria-hidden="true" />
             )}
 
             <S.BadgeStack>
@@ -86,6 +95,7 @@ export default function RetrievalResultRow({
                   <S.ItemLineLink
                     to={item.itemHref}
                     onClick={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => event.stopPropagation()}
                   >
                     {item.name}
                   </S.ItemLineLink>
@@ -94,46 +104,48 @@ export default function RetrievalResultRow({
                 )}
               </S.ItemLineSlot>
 
-              <S.CompactMetaLine>
-                <BoxBadge boxNumber={item.boxNumber} boxName={item.boxName} compact />
-                {locationLabel ? (
-                  <S.CompactLocation
-                    title={locationLabel}
-                    $boxMutedRgb={boxTones.mutedRgb}
-                    $hideOnMobile
-                  >
-                    {locationLabel}
-                  </S.CompactLocation>
-                ) : null}
-              </S.CompactMetaLine>
+              <S.LocatorPathLine title={locationPath || locationLabel}>
+                {unresolved
+                  ? 'No box assigned · Needs placement'
+                  : `In: ${locationPath || locationLabel}`}
+              </S.LocatorPathLine>
 
-              {boxGroupLabel || locationLabel ? (
-                <S.CompactSecondaryMetaLine>
-                  {boxGroupLabel ? (
-                    <S.CompactContextChip
-                      title={`Group: ${boxGroupLabel}`}
-                      $tone="group"
-                      $boxMutedRgb={boxTones.mutedRgb}
-                    >
-                      Group: {boxGroupLabel}
-                    </S.CompactContextChip>
-                  ) : null}
-                  {locationLabel ? (
-                    <S.CompactContextChip
-                      title={`Location: ${locationLabel}`}
-                      $tone="location"
-                      $boxMutedRgb={boxTones.mutedRgb}
-                    >
-                      Location: {locationLabel}
-                    </S.CompactContextChip>
-                  ) : null}
-                </S.CompactSecondaryMetaLine>
-              ) : null}
+              {unresolved ? (
+                <S.UnresolvedHint>Unresolved location</S.UnresolvedHint>
+              ) : (
+                <S.BoxAnchorLine title={`${boxNumber ? `#${boxNumber}` : ''} ${boxName}`.trim()}>
+                  <S.BoxAnchorId>{`#${boxNumber}`}</S.BoxAnchorId>
+                  <S.BoxAnchorDivider />
+                  <S.BoxAnchorSnippet>{shortBoxName || 'Unnamed box'}</S.BoxAnchorSnippet>
+                </S.BoxAnchorLine>
+              )}
+
+              <S.LocatorMetaLine>
+                {locationLabel ? (
+                  <S.LocatorMetaText title={`Room: ${locationLabel}`}>Room: {locationLabel}</S.LocatorMetaText>
+                ) : null}
+                {ownerName ? (
+                  <S.LocatorMetaText title={`Owner: ${ownerName}`}>Owner: {ownerName}</S.LocatorMetaText>
+                ) : null}
+              </S.LocatorMetaLine>
             </S.BadgeStack>
           </S.RowMain>
 
-          <S.ExpandControl $expanded={isExpanded} aria-hidden="true">
+          <S.ExpandControl
+            as="button"
+            type="button"
+            data-expand-toggle="true"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleToggle();
+            }}
+            aria-expanded={isExpanded}
+            aria-controls={panelId}
+            aria-label={isExpanded ? 'Hide quick details' : 'Show quick details'}
+            $expanded={isExpanded}
+          >
             <S.ExpandCaret aria-hidden="true">{isExpanded ? '▾' : '▸'}</S.ExpandCaret>
+            <S.CardOpenHint>{isExpanded ? 'Hide' : 'Quick view'}</S.CardOpenHint>
           </S.ExpandControl>
         </S.SummaryTop>
       </S.SummaryButton>
@@ -143,6 +155,7 @@ export default function RetrievalResultRow({
           item={item}
           panelId={panelId}
           onLifecycleAction={onLifecycleAction}
+          onPreviewImage={onPreviewImage}
         />
       ) : null}
     </S.ResultCard>

@@ -1,6 +1,10 @@
 // services/itemService.js
 const Item = require('../models/Item');
 const Box = require('../models/Box');
+const Batch = require('../models/Batch');
+const MediaState = require('../models/MediaState');
+const path = require('path');
+const { MEDIA_ROOT, toMediaUrl } = require('../config/media');
 const {
   normalizeItemCategory,
   withNormalizedItemCategory,
@@ -50,6 +54,86 @@ function toItemRef(item) {
     id: toIdString(item._id || item.id),
     label: formatItemLabel(item),
   };
+}
+
+function toSourceBatchId(value) {
+  const normalized = toIdString(value);
+  return normalized ? String(normalized) : null;
+}
+
+function mediaPathToClientUrl(pathValue) {
+  const normalized = String(pathValue || '').trim();
+  if (!normalized) return '';
+
+  const relativePath = path.isAbsolute(normalized)
+    ? path.relative(MEDIA_ROOT, normalized)
+    : normalized.replace(/^\/+/, '');
+
+  if (!relativePath || relativePath.startsWith('..')) return '';
+  return toMediaUrl(relativePath);
+}
+
+function toSourceBatchSummary(batch) {
+  if (!batch) return null;
+
+  const id = toSourceBatchId(batch._id || batch.id);
+  const batchId = String(batch?.identity?.batchId || '').trim();
+  const batchName = String(batch?.identity?.batchName || batchId || '').trim();
+  const archiveStatus = String(batch?.archiveState?.status || 'active').trim() || 'active';
+
+  return {
+    id,
+    batchId,
+    batchName,
+    label: batchName || batchId || 'Batch',
+    archiveStatus,
+    isArchived: archiveStatus === 'archived',
+    importedAt: batch?.importSnapshot?.importedAt || null,
+    archivedAt: batch?.archiveState?.archivedAt || null,
+    createdAt: batch?.identity?.createdAt || batch?.createdAt || null,
+    updatedAt: batch?.identity?.updatedAt || batch?.updatedAt || null,
+  };
+}
+
+async function attachSourceBatchSummaries(rawItems = []) {
+  const items = Array.isArray(rawItems) ? rawItems : [];
+  if (!items.length) return [];
+
+  const sourceBatchIds = Array.from(new Set(
+    items
+      .map((item) => toSourceBatchId(item?.sourceBatchId))
+      .filter(Boolean)
+  ));
+
+  if (!sourceBatchIds.length) {
+    return items.map((item) => ({
+      ...item,
+      sourceBatchId: toSourceBatchId(item?.sourceBatchId),
+      sourceBatch: null,
+    }));
+  }
+
+  const batchDocs = await Batch.find({ _id: { $in: sourceBatchIds } })
+    .select(
+      '_id identity.batchId identity.batchName identity.createdAt identity.updatedAt archiveState importSnapshot'
+    )
+    .lean();
+
+  const summaryById = new Map(
+    (Array.isArray(batchDocs) ? batchDocs : []).map((batch) => [
+      toSourceBatchId(batch?._id),
+      toSourceBatchSummary(batch),
+    ])
+  );
+
+  return items.map((item) => {
+    const sourceBatchId = toSourceBatchId(item?.sourceBatchId);
+    return {
+      ...item,
+      sourceBatchId,
+      sourceBatch: sourceBatchId ? summaryById.get(sourceBatchId) || null : null,
+    };
+  });
 }
 
 function toBoxRef(box, fallback = ORPHANED_LABEL) {
@@ -105,7 +189,7 @@ async function enrichItemsWithBoxContext(rawItems = []) {
   const { buildBoxMaps, makeBreadcrumb } = require('../utils/boxHelpers');
   const maps = buildBoxMaps(boxes);
 
-  return items.map((i) => {
+  const itemsWithBoxContext = items.map((i) => {
     const leafId = itemToLeafId.get(String(i._id));
     const { breadcrumb, depth, rootBox, leafBox } = makeBreadcrumb(
       leafId,
@@ -123,6 +207,90 @@ async function enrichItemsWithBoxContext(rawItems = []) {
         : null;
 
     return withNormalizedItemCategory({ ...i, box, breadcrumb, depth, topBox: rootBox });
+  });
+
+  const itemsWithMedia = await attachMediaStateSummaries(itemsWithBoxContext);
+  return attachSourceBatchSummaries(itemsWithMedia);
+}
+
+async function attachMediaStateSummaries(rawItems = []) {
+  const items = Array.isArray(rawItems) ? rawItems : [];
+  if (!items.length) return [];
+
+  const mediaIds = Array.from(
+    new Set(
+      items
+        .map((item) => String(item?.image?.mediaId || '').trim())
+        .filter(Boolean),
+    ),
+  );
+  const originalPaths = Array.from(
+    new Set(
+      items.flatMap((item) => collectImageStoragePaths(item)).filter(Boolean),
+    ),
+  );
+
+  if (!mediaIds.length && !originalPaths.length) {
+    return items;
+  }
+
+  const mediaStateClauses = [];
+  if (mediaIds.length) {
+    mediaStateClauses.push({ mediaId: { $in: mediaIds } });
+  }
+  if (originalPaths.length) {
+    mediaStateClauses.push({ originalPath: { $in: originalPaths } });
+  }
+
+  const mediaStates = mediaStateClauses.length
+    ? await MediaState.find(mediaStateClauses.length === 1 ? mediaStateClauses[0] : { $or: mediaStateClauses })
+      .select('mediaId originalPath processedPath displayPath thumbPath activeVariant')
+      .lean()
+    : [];
+
+  const mediaStateByMediaId = new Map();
+  const mediaStateByOriginalPath = new Map();
+
+  for (const state of Array.isArray(mediaStates) ? mediaStates : []) {
+    const mediaId = String(state?.mediaId || '').trim();
+    const originalPath = String(state?.originalPath || '').trim();
+    if (mediaId) mediaStateByMediaId.set(mediaId, state);
+    if (originalPath) mediaStateByOriginalPath.set(originalPath, state);
+  }
+
+  return items.map((item) => {
+    const mediaId = String(item?.image?.mediaId || '').trim();
+    const matchedState =
+      (mediaId ? mediaStateByMediaId.get(mediaId) : null) ||
+      collectImageStoragePaths(item)
+        .map((pathValue) => mediaStateByOriginalPath.get(pathValue))
+        .find(Boolean) ||
+      null;
+
+    if (!matchedState) return item;
+
+    const processedUrl = mediaPathToClientUrl(matchedState?.processedPath);
+    const displayUrl = mediaPathToClientUrl(matchedState?.displayPath);
+    const thumbUrl = mediaPathToClientUrl(matchedState?.thumbPath);
+
+    return {
+      ...item,
+      image: {
+        ...(item?.image || {}),
+        display: {
+          ...(item?.image?.display || {}),
+          url: displayUrl || item?.image?.display?.url || '',
+        },
+        thumb: {
+          ...(item?.image?.thumb || {}),
+          url: thumbUrl || item?.image?.thumb?.url || '',
+        },
+        processed: {
+          url: processedUrl,
+        },
+        activeVariant: String(matchedState?.activeVariant || '').trim().toLowerCase() || 'original',
+      },
+    };
   });
 }
 
@@ -296,13 +464,14 @@ async function getItemById(id, { select, perf = false } = {}) {
   const perfEnabled = perf === true;
   const startNs = perfEnabled ? process.hrtime.bigint() : null;
   const item = await Item.findItemById(id, { select, perf: perfEnabled });
+  const [itemWithSourceBatch] = await attachSourceBatchSummaries(item ? [item] : []);
   if (perfEnabled && startNs) {
     const totalMs = Number(process.hrtime.bigint() - startNs) / 1e6;
     console.log(
       `[perf][item-detail] service.getItemById itemId=${String(id)} totalMs=${totalMs.toFixed(2)}`
     );
   }
-  return withNormalizedItemCategory(item);
+  return withNormalizedItemCategory(itemWithSourceBatch || item);
 }
 
 /**
@@ -366,8 +535,11 @@ async function getOrphanedItemsPage({
     .skip(safeOffset)
     .limit(safeLimit)
     .lean();
+  const itemsWithSourceBatch = await attachSourceBatchSummaries(
+    items.map((item) => withNormalizedItemCategory(item))
+  );
   return {
-    items: items.map((item) => withNormalizedItemCategory(item)),
+    items: itemsWithSourceBatch,
     total,
     limit: safeLimit,
     offset: safeOffset,

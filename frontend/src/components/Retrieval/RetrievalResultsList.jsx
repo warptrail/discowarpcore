@@ -3,7 +3,7 @@ import RetrievalResultRow from './RetrievalResultRow';
 
 export default function RetrievalResultsList({
   items = [],
-  expandedIds = new Set(),
+  activeExpandedId = '',
   onToggleRow,
   onPreviewImage,
   onLifecycleAction,
@@ -23,7 +23,7 @@ export default function RetrievalResultsList({
         <RetrievalResultRow
           key={item.id}
           item={item}
-          isExpanded={expandedIds.has(item.id)}
+          isExpanded={activeExpandedId === item.id}
           onToggle={onToggleRow}
           onPreviewImage={onPreviewImage}
           onLifecycleAction={onLifecycleAction}
