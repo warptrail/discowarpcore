@@ -8,6 +8,8 @@ import {
   permanentlyDeleteIntakeBatch,
   processIntakeBatchSelectedItems,
   recreateIntakeBatchLocalFolder,
+  renameIntakeBatch,
+  updateIntakeBatchDestination,
   uploadIntakeBatchPackage,
   validateIntakeBatch,
 } from '../../api/intakeBatches';
@@ -21,12 +23,20 @@ import IntakeBatchDetailsPanel from './IntakeBatchDetailsPanel';
 const Wrap = styled.section`
   display: grid;
   gap: 0.84rem;
+  min-width: 0;
 `;
 
 const Grid = styled.div`
   display: grid;
   grid-template-columns: minmax(270px, 0.72fr) minmax(0, 1.28fr);
   gap: 0.84rem;
+  align-items: start;
+  min-width: 0;
+  min-height: 0;
+
+  > * {
+    min-width: 0;
+  }
 
   @media (max-width: 820px) {
     grid-template-columns: 1fr;
@@ -592,6 +602,90 @@ export default function IntakeBatchManager({
     }
   };
 
+  const handleApplyDestination = async ({ location = null, box = null } = {}) => {
+    if (!selectedBatch) return;
+    setBusyAction('destination');
+    setFeedback({ tone: 'info', message: '' });
+    showToastRef.current?.({
+      title: 'Updating batch destination',
+      message: `${selectedBatch.name}...`,
+      variant: 'info',
+      loading: true,
+    });
+    try {
+      const batch = await updateIntakeBatchDestination(selectedBatch.id, { location, box });
+      replaceBatch(batch);
+      await loadSelectedBatchDetail(batch.id, { silent: true });
+      const destinationLabel = [
+        batch.destinationDefaults?.location ? `location ${batch.destinationDefaults.location}` : 'unknown location',
+        batch.destinationDefaults?.box ? `box ${batch.destinationDefaults.box}` : 'orphaned',
+      ].join(' · ');
+      setFeedback({
+        tone: 'success',
+        message: `Destination reviewed for ${batch.name}: ${destinationLabel}.`,
+      });
+      showToastRef.current?.({
+        title: 'Destination reviewed',
+        message: destinationLabel,
+        variant: 'success',
+      });
+    } catch (error) {
+      setFeedback({
+        tone: 'error',
+        message: error?.message || 'Failed to update intake batch destination.',
+      });
+      showToastRef.current?.({
+        title: 'Destination update failed',
+        message: error?.message || 'Failed to update intake batch destination.',
+        variant: 'danger',
+        sticky: true,
+      });
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const handleRenameBatch = async (name) => {
+    if (!selectedBatch) return null;
+    setBusyAction('rename');
+    setFeedback({ tone: 'info', message: '' });
+    showToastRef.current?.({
+      title: 'Renaming batch',
+      message: `${selectedBatch.name}...`,
+      variant: 'info',
+      loading: true,
+    });
+    try {
+      const batch = await renameIntakeBatch(selectedBatch.id, name);
+      replaceBatch(batch);
+      await loadSelectedBatchDetail(batch.id, { silent: true });
+      setFeedback({
+        tone: 'success',
+        message: `Renamed batch to ${batch.name}.`,
+      });
+      showToastRef.current?.({
+        title: 'Batch renamed',
+        message: batch.name,
+        variant: 'success',
+      });
+      return batch;
+    } catch (error) {
+      setFeedback({
+        tone: 'error',
+        message: error?.message || 'Failed to rename intake batch.',
+      });
+      showToastRef.current?.({
+        title: 'Rename failed',
+        message: error?.message || 'Failed to rename intake batch.',
+        variant: 'danger',
+        sticky: true,
+      });
+      throw error;
+    } finally {
+      setBusyAction('');
+    }
+  };
+
   const handleArchive = async () => {
     if (!selectedBatch) return;
     const confirmed = window.confirm(
@@ -850,6 +944,8 @@ export default function IntakeBatchManager({
           detailLoading={detailLoading}
           onValidate={handleValidate}
           onImport={handleImport}
+          onRenameBatch={handleRenameBatch}
+          onApplyDestination={handleApplyDestination}
           onToggleProcessingMode={handleToggleProcessingMode}
           onSelectedItemIdsChange={handleSelectionChange}
           onImportedItemsPageChange={handleImportedItemsPageChange}

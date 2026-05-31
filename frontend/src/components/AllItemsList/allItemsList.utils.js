@@ -3,6 +3,7 @@ import {
   formatItemCategory,
   normalizeItemCategory,
 } from '../../util/itemCategories';
+import { deriveImageProcessingEligibility } from '../Processing/imageProcessingEligibility';
 import {
   formatKeepPriorityLabel,
   KEEP_PRIORITY_ORDER,
@@ -56,8 +57,34 @@ export const SORT_OPTIONS = [
   { value: 'dispositionAt', label: 'Disposition Date' },
 ];
 
+export const COLOR_BY_OPTIONS = [
+  { value: 'none', label: 'None' },
+  { value: 'batch', label: 'Batch' },
+  { value: 'location', label: 'Location' },
+  { value: 'box', label: 'Box' },
+  { value: 'status', label: 'Status' },
+];
+
+export const BATCH_ACTION_MODE_OPTIONS = [
+  { value: 'process', label: 'Process' },
+  { value: 'reprocess', label: 'Re-process' },
+  { value: 'revert', label: 'Revert' },
+];
+
 const BASE_FILTER_VALUES = new Set(BASE_FILTER_OPTIONS.map((option) => option.value));
 const SORT_VALUES = new Set(SORT_OPTIONS.map((option) => option.value));
+const COLOR_BY_VALUES = new Set(COLOR_BY_OPTIONS.map((option) => option.value));
+const BATCH_ACTION_MODE_VALUES = new Set(BATCH_ACTION_MODE_OPTIONS.map((option) => option.value));
+
+export function normalizeColorBy(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return COLOR_BY_VALUES.has(normalized) ? normalized : 'none';
+}
+
+export function normalizeBatchActionMode(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return BATCH_ACTION_MODE_VALUES.has(normalized) ? normalized : 'process';
+}
 
 function isFiniteDate(date) {
   return date instanceof Date && Number.isFinite(date.getTime());
@@ -242,24 +269,185 @@ export function getVisibleTags(tags, maxVisible = 4) {
 
 export function getItemThumbnailUrl(item) {
   const activeVariant = String(item?.image?.activeVariant || '').trim().toLowerCase();
+  const processingStatus = String(item?.image?.processingStatus || '').trim().toLowerCase();
   const processedUrl = String(item?.image?.processed?.url || '').trim();
   const displayUrl = String(item?.image?.display?.url || '').trim();
   const thumbUrl = String(item?.image?.thumb?.url || '').trim();
   const originalUrl = String(
     item?.image?.original?.url || item?.image?.url || item?.imagePath || '',
   ).trim();
+  const revision = buildImageRevisionToken(item, {
+    activeVariant,
+    processingStatus,
+    processedUrl,
+    displayUrl,
+    thumbUrl,
+  });
 
   if (activeVariant === 'processed') {
-    return displayUrl || thumbUrl || processedUrl || originalUrl;
+    return withImageRevision(displayUrl || thumbUrl || processedUrl || originalUrl, revision);
   }
 
-  return String(
-    processedUrl ||
-      displayUrl ||
+  return withImageRevision(String(
+    displayUrl ||
       thumbUrl ||
       originalUrl ||
+      processedUrl ||
       '',
+  ).trim(), revision);
+}
+
+export function getItemLightboxUrl(item) {
+  const activeVariant = String(item?.image?.activeVariant || '').trim().toLowerCase();
+  const processingStatus = String(item?.image?.processingStatus || '').trim().toLowerCase();
+  const processedUrl = String(item?.image?.processed?.url || '').trim();
+  const displayUrl = String(item?.image?.display?.url || '').trim();
+  const thumbUrl = String(item?.image?.thumb?.url || '').trim();
+  const originalUrl = String(
+    item?.image?.original?.url || item?.image?.url || item?.imagePath || '',
   ).trim();
+  const revision = buildImageRevisionToken(item, {
+    activeVariant,
+    processingStatus,
+    processedUrl,
+    displayUrl,
+    thumbUrl,
+  });
+
+  if (activeVariant === 'processed') {
+    return withImageRevision(
+      String(displayUrl || processedUrl || originalUrl || thumbUrl || '').trim(),
+      revision,
+    );
+  }
+
+  return withImageRevision(
+    String(displayUrl || originalUrl || processedUrl || thumbUrl || '').trim(),
+    revision,
+  );
+}
+
+function buildImageRevisionToken(
+  item,
+  { activeVariant, processingStatus, processedUrl, displayUrl, thumbUrl },
+) {
+  const candidates = [
+    item?.image?.updatedAt,
+    item?.image?.processedAt,
+    item?.image?.processed?.updatedAt,
+    item?.image?.display?.updatedAt,
+    item?.image?.thumb?.updatedAt,
+    item?.updatedAt,
+    item?.lastMaintainedAt,
+    activeVariant,
+    processingStatus,
+    processedUrl,
+    displayUrl,
+    thumbUrl,
+  ];
+
+  const serialized = candidates
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+    .join('|');
+
+  return serialized || String(item?._id || '').trim();
+}
+
+function withImageRevision(url, revision) {
+  const normalizedUrl = String(url || '').trim();
+  const normalizedRevision = String(revision || '').trim();
+  if (!normalizedUrl || !normalizedRevision) return normalizedUrl;
+  if (normalizedUrl.startsWith('data:') || normalizedUrl.startsWith('blob:')) {
+    return normalizedUrl;
+  }
+
+  const hashIndex = normalizedUrl.indexOf('#');
+  const baseUrl = hashIndex >= 0 ? normalizedUrl.slice(0, hashIndex) : normalizedUrl;
+  const hash = hashIndex >= 0 ? normalizedUrl.slice(hashIndex) : '';
+  const separator = baseUrl.includes('?') ? '&' : '?';
+  return `${baseUrl}${separator}v=${encodeURIComponent(normalizedRevision)}${hash}`;
+}
+
+function getItemProcessingMeta(item) {
+  const activeVariant = String(item?.image?.activeVariant || '').trim().toLowerCase();
+  const processingStatus = String(item?.image?.processingStatus || '').trim().toLowerCase();
+  const processedUrl = String(item?.image?.processed?.url || item?.image?.processed?.path || '').trim();
+  const hasProcessableImage = hasProcessableImageSource(item);
+  const eligibility = deriveImageProcessingEligibility({
+    activeVariant,
+    processingStatus,
+    hasProcessedOutput: Boolean(processedUrl),
+    hasProcessableImage,
+  });
+
+  return {
+    ...eligibility,
+    isBatchProcessable: eligibility.canProcessImage,
+  };
+}
+
+export function getBatchActionEligibility(meta, mode = 'process') {
+  const normalizedMode = normalizeBatchActionMode(mode);
+  const safeMeta = meta || {};
+
+  if (safeMeta.isProcessingInFlight) {
+    return {
+      selectable: false,
+      reason: 'Image is currently processing',
+    };
+  }
+
+  if (normalizedMode === 'revert') {
+    if (safeMeta.canRevertImage) {
+      return {
+        selectable: true,
+        reason: '',
+      };
+    }
+    return {
+      selectable: false,
+      reason: 'Image is not processed',
+    };
+  }
+
+  if (normalizedMode === 'reprocess') {
+    if (!safeMeta.hasProcessableImage) {
+      return {
+        selectable: false,
+        reason: 'No source image available',
+      };
+    }
+    if (safeMeta.canReprocessImage) {
+      return {
+        selectable: true,
+        reason: '',
+      };
+    }
+    return {
+      selectable: false,
+      reason: 'Image is not processed yet',
+    };
+  }
+
+  if (!safeMeta.hasProcessableImage) {
+    return {
+      selectable: false,
+      reason: 'No source image available',
+    };
+  }
+
+  if (safeMeta.canProcessImage) {
+    return {
+      selectable: true,
+      reason: '',
+    };
+  }
+
+  return {
+    selectable: false,
+    reason: 'Already processed',
+  };
 }
 
 function hasProcessableImageSource(item) {
@@ -274,30 +462,6 @@ function hasProcessableImageSource(item) {
         '',
     ).trim(),
   );
-}
-
-function getItemProcessingMeta(item) {
-  const activeVariant = String(item?.image?.activeVariant || '').trim().toLowerCase();
-  const processingStatus = String(item?.image?.processingStatus || '').trim().toLowerCase();
-  const processedUrl = String(item?.image?.processed?.url || item?.image?.processed?.path || '').trim();
-  const hasProcessableImage = hasProcessableImageSource(item);
-  const hasProcessedOutput = Boolean(processedUrl);
-  const isAlreadyProcessed =
-    activeVariant === 'processed' ||
-    processingStatus === 'completed' ||
-    hasProcessedOutput;
-  const isInFlight = processingStatus === 'queued' || processingStatus === 'processing';
-  const isBatchProcessable = hasProcessableImage && !isAlreadyProcessed && !isInFlight;
-
-  return {
-    hasProcessableImage,
-    hasProcessedOutput,
-    isAlreadyProcessed,
-    isInFlight,
-    isBatchProcessable,
-    processingStatus,
-    activeVariant,
-  };
 }
 
 export function prepareItemForList(item) {
@@ -379,8 +543,8 @@ export function prepareItemForList(item) {
       boxLabel,
       boxDescription,
       boxHref: boxId ? `/boxes/${encodeURIComponent(boxId)}` : '',
-      sourceBatchHref: sourceBatchId
-        ? `/import?batch=${encodeURIComponent(sourceBatchId)}`
+      sourceBatchHref: sourceBatch?.batchId || sourceBatchId
+        ? `/import?batch=${encodeURIComponent(sourceBatch?.batchId || sourceBatchId)}`
         : '',
       hasHistoricalBox: Boolean(!isBoxed && (boxId || boxLabel || boxDescription)),
       locationLabel: ownership.inheritedLocation || String(item?.location || '').trim(),
@@ -406,10 +570,14 @@ export function prepareItemForList(item) {
         : -1,
       quantityLabel,
       thumbnailUrl: getItemThumbnailUrl(item),
+      lightboxImageUrl: getItemLightboxUrl(item),
       hasProcessableImage: processingMeta.hasProcessableImage,
       hasProcessedOutput: processingMeta.hasProcessedOutput,
       isAlreadyProcessed: processingMeta.isAlreadyProcessed,
       isProcessingInFlight: processingMeta.isInFlight,
+      canProcessImage: processingMeta.canProcessImage,
+      canReprocessImage: processingMeta.canReprocessImage,
+      canRevertImage: processingMeta.canRevertImage,
       isBatchProcessable: processingMeta.isBatchProcessable,
       processingStatus: processingMeta.processingStatus,
       activeVariant: processingMeta.activeVariant,

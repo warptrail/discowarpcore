@@ -5,7 +5,7 @@
  * /Users/moonshade/Developer/objectiglow/COLOR_SCHEME.js
  *
  * Generated at:
- * 2026-04-02T00:28:23.032Z
+ * 2026-05-22T00:00:00.000Z
  */
 
 export const RENDER_TOKEN_KEYS = {
@@ -42,26 +42,8 @@ export const RENDER_TOKEN_KEYS = {
     "reactor",
     "sunset",
     "dream"
-  ],
-  "accents": [
-    "cyanCore",
-    "neonPink",
-    "warpBlue",
-    "plasmaPurple",
-    "toxicGreen",
-    "amber",
-    "lcarsOrange",
-    "softViolet",
-    "iceBlue",
-    "crimson",
-    "mint",
-    "electric",
-    "gold",
-    "lavender",
-    "coral"
   ]
 };
 
 export const BACKGROUND_TOKEN_KEYS = RENDER_TOKEN_KEYS.backgrounds;
 export const GLOW_TOKEN_KEYS = RENDER_TOKEN_KEYS.glows;
-export const ACCENT_TOKEN_KEYS = RENDER_TOKEN_KEYS.accents;

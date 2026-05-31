@@ -704,6 +704,7 @@ function buildRetrievalBoxes(boxDocs = []) {
         boxId ? `Box ${boxId}` : '',
         UNKNOWN_BOX_NAME
       );
+      const description = firstNonEmpty(box?.description);
       const notes = firstNonEmpty(box?.notes);
       const groupLabel = firstNonEmpty(
         box?.group,
@@ -724,6 +725,7 @@ function buildRetrievalBoxes(boxDocs = []) {
       const searchText = buildSearchText([
         boxId,
         boxLabel,
+        description,
         notes,
         groupLabel,
         locationLabel,
@@ -734,6 +736,7 @@ function buildRetrievalBoxes(boxDocs = []) {
         id: mongoId,
         boxId,
         boxLabel,
+        description,
         notes,
         groupLabel,
         groupKey,
@@ -812,6 +815,7 @@ function toClientBox(item) {
     id: item.id,
     boxId: item.boxId,
     boxLabel: item.boxLabel,
+    description: item.description,
     notes: item.notes,
     groupLabel: item.groupLabel,
     locationLabel: item.locationLabel,
@@ -838,7 +842,7 @@ async function getRetrievalItemsPage(params = {}) {
         '_id name description notes maintenanceNotes category tags location image imagePath primaryOwnerName keepPriority orphanedAt isConsumable usageHistory checkHistory maintenanceHistory'
       )
       .lean(),
-    Box.find().select('_id box_id label group notes location parentBox items').lean(),
+    Box.find().select('_id box_id label group description notes location parentBox items').lean(),
   ]);
   const itemDocs = await attachMediaStateSummariesForRetrieval(rawItemDocs);
 
@@ -876,7 +880,7 @@ async function getRetrievalBoxesPage(params = {}) {
   const offset = parseOffset(params.offset);
 
   const boxDocs = await Box.find()
-    .select('_id box_id label name group notes location parentBox items')
+    .select('_id box_id label name group description notes location parentBox items')
     .lean();
 
   const retrievalBoxes = buildRetrievalBoxes(boxDocs);

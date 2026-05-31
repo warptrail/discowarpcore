@@ -14,6 +14,8 @@ export default function ItemsFlatList({
   onTogglePulse,
   collapseDurMs,
   refreshBox,
+  onItemSaved,
+  triggerFlash,
 }) {
   const list = Array.isArray(items) ? items : [];
   return (
@@ -43,6 +45,8 @@ export default function ItemsFlatList({
               pulsing={isPulsing}
               onTogglePulse={() => onTogglePulse?.(it._id)}
               collapseDurMs={collapseDurMs}
+              triggerFlash={triggerFlash}
+              onSaved={(updated) => onItemSaved?.(updated)}
               refreshBox={refreshBox}
             />
           );

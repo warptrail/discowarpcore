@@ -2,6 +2,11 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import { ToastContext } from '../Toast';
 import useBoxImageProcessing from '../../hooks/useBoxImageProcessing';
 import BoxImageField from '../ImageFields/BoxImageField';
+import ImageProcessingToastContent from '../Processing/ImageProcessingToastContent';
+import {
+  getImageProcessingToastSignature,
+  isImageProcessingInFlight,
+} from '../Processing/imageProcessingToastUtils';
 
 function toTrimmed(value) {
   return value == null ? '' : String(value).trim();
@@ -38,6 +43,8 @@ export default function IntakeCurrentBoxImagePanel({
     processingState,
     processingError,
     jobProgressLabel,
+    jobProgressPercent,
+    jobId,
     isBusy: processBusy,
     isSwitchingVariant,
     variantSwitchError,
@@ -94,19 +101,43 @@ export default function IntakeCurrentBoxImagePanel({
 
   useEffect(() => {
     const nextStatus = toTrimmed(processingStatus).toLowerCase();
-    if (!nextStatus) return;
-    if (lastLifecycleStatusRef.current === nextStatus) return;
-    lastLifecycleStatusRef.current = nextStatus;
+    if (!isImageProcessingInFlight(nextStatus)) return;
 
-    if (nextStatus === 'processing') {
-      showToast?.({
-        variant: 'info',
-        title: 'Glow processing in progress',
-        message: jobProgressLabel || `Processing box #${boxShortId} image.`,
-        sticky: true,
-      });
-    }
-  }, [boxShortId, jobProgressLabel, processingStatus, showToast]);
+    const entityLabel = `Box #${boxShortId}`;
+    const signature = getImageProcessingToastSignature({
+      status: nextStatus,
+      label: jobProgressLabel,
+      progressPercent: jobProgressPercent,
+      entityLabel,
+      jobId,
+    });
+    if (lastLifecycleStatusRef.current === signature) return;
+    lastLifecycleStatusRef.current = signature;
+
+    showToast?.({
+      variant: 'info',
+      title: 'Glow processing',
+      message: jobProgressLabel || `Processing box #${boxShortId} image.`,
+      content: (
+        <ImageProcessingToastContent
+          status={nextStatus}
+          label={jobProgressLabel || `Processing box #${boxShortId} image.`}
+          progressPercent={jobProgressPercent}
+          entityLabel={entityLabel}
+          jobId={jobId}
+        />
+      ),
+      loading: true,
+      sticky: true,
+    });
+  }, [
+    boxShortId,
+    jobId,
+    jobProgressLabel,
+    jobProgressPercent,
+    processingStatus,
+    showToast,
+  ]);
 
   const normalizedActiveVariant = useMemo(() => {
     return toTrimmed(activeVariant).toLowerCase() === 'processed'

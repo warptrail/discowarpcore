@@ -6,9 +6,21 @@ import {
   MOBILE_FONT_XS,
   MOBILE_NARROW_BREAKPOINT,
 } from './tokens';
-import { SectionTitle } from './Lists.shared.styles';
+import { RailFront as SharedRailFront, SectionTitle } from './Lists.shared.styles';
 
 export * from './Lists.shared.styles';
+
+export const RailFront = styled(SharedRailFront)`
+  padding-left: ${({ $isRoot }) => ($isRoot ? '0.58rem' : '0.48rem')};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding-left: ${({ $isRoot }) => ($isRoot ? '0.36rem' : '0.32rem')};
+  }
+
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    padding-left: ${({ $isRoot }) => ($isRoot ? '0.32rem' : '0.28rem')};
+  }
+`;
 
 export const TreeSectionTitle = styled(SectionTitle)`
   display: inline-flex;

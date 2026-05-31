@@ -19,6 +19,11 @@ import {
   ItemMarkGoneConsolePanel,
   ItemReclaimConsolePanel,
 } from './ItemLifecycleConsolePanels';
+import ImageProcessingToastContent from './Processing/ImageProcessingToastContent';
+import {
+  getImageProcessingToastSignature,
+  isImageProcessingInFlight,
+} from './Processing/imageProcessingToastUtils';
 import { getItemOwnershipContext } from '../util/itemOwnership';
 import * as S from '../styles/ItemPage.styles';
 
@@ -413,7 +418,7 @@ export default function ItemPage() {
   const handleToggleConsumable = useCallback(async () => {
     if (!item?._id) return false;
 
-    const nextConsumable = !Boolean(item?.isConsumable);
+    const nextConsumable = !item?.isConsumable;
     const itemName = getItemName(item);
 
     try {
@@ -512,6 +517,8 @@ export default function ItemPage() {
     processingState: processImageState,
     processingError: processImageError,
     jobProgressLabel: processImageProgressLabel,
+    jobProgressPercent: processImageProgressPercent,
+    jobId: processImageJobId,
     isBusy: processImageBusy,
     activeVariant,
     hasProcessedVariant,
@@ -577,23 +584,50 @@ export default function ItemPage() {
 
   useEffect(() => {
     const nextStatus = String(processImageStatus || '').trim().toLowerCase();
-    if (!nextStatus || nextStatus === lastImageLifecycleStatusRef.current) return;
-    lastImageLifecycleStatusRef.current = nextStatus;
+    if (!isImageProcessingInFlight(nextStatus)) return;
 
-    if (nextStatus === 'processing') {
-      showToast?.({
-        variant: 'info',
-        title: 'Image processing in progress',
-        message: processImageProgressLabel || 'ObjectGlow/media processing is running.',
-        sticky: true,
-      });
-    }
-  }, [processImageProgressLabel, processImageStatus, showToast]);
+    const signature = getImageProcessingToastSignature({
+      status: nextStatus,
+      label: processImageProgressLabel,
+      progressPercent: processImageProgressPercent,
+      entityLabel: getItemName(item),
+      jobId: processImageJobId,
+    });
+    if (signature === lastImageLifecycleStatusRef.current) return;
+    lastImageLifecycleStatusRef.current = signature;
+
+    showToast?.({
+      variant: 'info',
+      title: 'Image processing',
+      message: processImageProgressLabel || 'ObjectGlow/media processing is running.',
+      content: (
+        <ImageProcessingToastContent
+          status={nextStatus}
+          label={processImageProgressLabel}
+          progressPercent={processImageProgressPercent}
+          entityLabel={getItemName(item)}
+          jobId={processImageJobId}
+        />
+      ),
+      loading: true,
+      sticky: true,
+    });
+  }, [
+    item,
+    processImageJobId,
+    processImageProgressLabel,
+    processImageProgressPercent,
+    processImageStatus,
+    showToast,
+  ]);
 
   const handleSwitchItemVariant = useCallback(async (nextVariant) => {
     try {
       const updatedState = await switchActiveVariant(nextVariant);
       const latestState = updatedState || await refreshMediaState().catch(() => null);
+      const normalizedVariant = String(
+        latestState?.activeVariant || nextVariant || ''
+      ).trim().toLowerCase();
       const nextPreviewUrl = String(
         latestState?.preferredImageUrl ||
         latestState?.displayUrl ||
@@ -602,7 +636,7 @@ export default function ItemPage() {
         ''
       ).trim();
 
-      setProcessedPreviewUrl(nextPreviewUrl || '');
+      setProcessedPreviewUrl(normalizedVariant === 'processed' ? (nextPreviewUrl || '') : '');
 
       await loadItem({ preserveLoading: true });
       setImageRefreshToken(Date.now());
@@ -907,6 +941,7 @@ export default function ItemPage() {
           processImageBusy={processImageBusy}
           processImageError={processImageError}
           processImageProgressLabel={processImageProgressLabel}
+          processImageProgressPercent={processImageProgressPercent}
           persistedRenderTokens={processImageState?.renderTokens || null}
           activeVariant={activeVariant}
           hasProcessedVariant={hasProcessedVariant}

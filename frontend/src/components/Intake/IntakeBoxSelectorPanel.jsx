@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import {
   MOBILE_BREAKPOINT,
@@ -123,11 +123,70 @@ const Select = styled.select`
 const Results = styled.div`
   display: grid;
   gap: 0.42rem;
+  max-height: min(540px, 56vh);
+  overflow-y: auto;
+  padding-right: 0.18rem;
+  overscroll-behavior: contain;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    max-height: min(460px, 52vh);
+  }
+`;
+
+const PaginationBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.48rem;
+  border: 1px solid rgba(76, 128, 143, 0.44);
+  border-radius: 9px;
+  background: rgba(8, 18, 23, 0.72);
+  padding: 0.36rem 0.44rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+`;
+
+const PageSummary = styled.div`
+  color: #a7c6d1;
+  font-size: 0.72rem;
+  line-height: 1.35;
+`;
+
+const PageActions = styled.div`
+  display: flex;
+  gap: 0.34rem;
+`;
+
+const PageButton = styled.button`
+  min-height: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(123, 162, 177, 0.55);
+  background: rgba(15, 30, 37, 0.92);
+  color: #d3e8f1;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 0.55rem;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.48;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+    flex: 1;
+  }
 `;
 
 const ResultButton = styled.button`
   width: 100%;
-  min-height: 74px;
+  min-height: 96px;
   border-radius: 10px;
   border: 1px solid
     ${({ $active }) => ($active ? 'rgba(124, 222, 194, 0.82)' : 'rgba(84, 133, 150, 0.52)')};
@@ -136,20 +195,21 @@ const ResultButton = styled.button`
       ? 'linear-gradient(180deg, rgba(21, 47, 44, 0.96) 0%, rgba(14, 35, 31, 0.96) 100%)'
       : 'rgba(9, 17, 23, 0.9)'};
   color: #e5f2f6;
-  padding: 0.48rem 0.54rem;
+  padding: 0.62rem 0.6rem;
   text-align: left;
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr);
   gap: 0.54rem;
-  align-items: center;
+  align-items: start;
   cursor: pointer;
+  overflow: visible;
 
   &:hover {
     filter: brightness(1.06);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: calc(${MOBILE_CONTROL_MIN_HEIGHT} + 18px);
+    min-height: 104px;
   }
 `;
 
@@ -166,6 +226,7 @@ const Thumb = styled.div`
   font-size: 0.66rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  align-self: start;
 `;
 
 const ThumbImage = styled.img`
@@ -191,12 +252,14 @@ const Name = styled.div`
 const Meta = styled.div`
   color: #9fc2cf;
   font-size: 0.73rem;
+  line-height: 1.3;
 `;
 
 const TagRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 0.24rem;
+  padding-top: 0.08rem;
 `;
 
 const Tag = styled.span`
@@ -216,6 +279,8 @@ const EmptyState = styled.div`
   color: #9fc2ce;
   font-size: 0.75rem;
 `;
+
+const BOXES_PER_PAGE = 50;
 
 function normalize(value) {
   return String(value || '').trim().toLowerCase();
@@ -252,6 +317,8 @@ export default function IntakeBoxSelectorPanel({
   const [searchTerm, setSearchTerm] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
   const [tagFilter, setTagFilter] = useState('');
+  const [pageIndex, setPageIndex] = useState(0);
+  const resultsRef = useRef(null);
 
   const locationOptions = useMemo(
     () => getUniqueValues(boxes, (box) => box?.location),
@@ -293,6 +360,25 @@ export default function IntakeBoxSelectorPanel({
       return true;
     });
   }, [boxes, locationFilter, searchTerm, tagFilter]);
+
+  useEffect(() => {
+    setPageIndex(0);
+  }, [locationFilter, searchTerm, tagFilter]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredBoxes.length / BOXES_PER_PAGE));
+  const safePageIndex = Math.min(pageIndex, pageCount - 1);
+  const pageStart = safePageIndex * BOXES_PER_PAGE;
+  const pageEnd = Math.min(pageStart + BOXES_PER_PAGE, filteredBoxes.length);
+  const pagedBoxes = filteredBoxes.slice(pageStart, pageEnd);
+
+  useEffect(() => {
+    if (pageIndex === safePageIndex) return;
+    setPageIndex(safePageIndex);
+  }, [pageIndex, safePageIndex]);
+
+  useEffect(() => {
+    resultsRef.current?.scrollTo({ top: 0 });
+  }, [safePageIndex, searchTerm, locationFilter, tagFilter]);
 
   return (
     <Panel>
@@ -348,11 +434,40 @@ export default function IntakeBoxSelectorPanel({
         </Field>
       </FilterGrid>
 
-      <Results>
+      {filteredBoxes.length > 0 ? (
+        <PaginationBar>
+          <PageSummary>
+            Showing {pageStart + 1}-{pageEnd} of {filteredBoxes.length} boxes
+            {pageCount > 1 ? ` · page ${safePageIndex + 1} of ${pageCount}` : ''}
+          </PageSummary>
+          {pageCount > 1 ? (
+            <PageActions>
+              <PageButton
+                type="button"
+                onClick={() => setPageIndex((prev) => Math.max(0, prev - 1))}
+                disabled={safePageIndex === 0}
+              >
+                Prev
+              </PageButton>
+              <PageButton
+                type="button"
+                onClick={() =>
+                  setPageIndex((prev) => Math.min(pageCount - 1, prev + 1))
+                }
+                disabled={safePageIndex >= pageCount - 1}
+              >
+                Next
+              </PageButton>
+            </PageActions>
+          ) : null}
+        </PaginationBar>
+      ) : null}
+
+      <Results ref={resultsRef}>
         {filteredBoxes.length === 0 ? (
           <EmptyState>No boxes match your filters.</EmptyState>
         ) : (
-          filteredBoxes.map((box) => {
+          pagedBoxes.map((box) => {
             const key = String(box?._id || '');
             const imageUrl = getBoxImageUrl(box);
             const tags = Array.isArray(box?.tags) ? box.tags : [];

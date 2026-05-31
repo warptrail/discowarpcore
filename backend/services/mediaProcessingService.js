@@ -261,8 +261,7 @@ function renderTokensEqual(leftTokens, rightTokens) {
   const right = normalizeRenderTokensForState(rightTokens, DEFAULT_RENDER_TOKENS);
   return left.mode === right.mode
     && left.background === right.background
-    && left.glow === right.glow
-    && left.accent === right.accent;
+    && left.glow === right.glow;
 }
 
 function hasAnyRenderTokenValue(tokens) {
@@ -270,7 +269,7 @@ function hasAnyRenderTokenValue(tokens) {
   const mode = toTrimmed(tokens.mode).toLowerCase();
   if (mode === 'random') return true;
   return Boolean(
-    toTrimmed(tokens.background) || toTrimmed(tokens.glow) || toTrimmed(tokens.accent)
+    toTrimmed(tokens.background) || toTrimmed(tokens.glow)
   );
 }
 
@@ -285,7 +284,6 @@ function normalizeRenderTokensForState(tokens, fallbackTokens = DEFAULT_RENDER_T
     mode,
     background: toTrimmed(resolved.background),
     glow: toTrimmed(resolved.glow),
-    accent: toTrimmed(resolved.accent),
   };
 }
 
@@ -321,7 +319,6 @@ function materializeRenderTokensForProcessing(tokens, {
     mode: 'random',
     background: pickRandomToken(RENDER_TOKEN_KEYS.backgrounds, resolved.background),
     glow: pickRandomToken(RENDER_TOKEN_KEYS.glows, resolved.glow),
-    accent: pickRandomToken(RENDER_TOKEN_KEYS.accents, resolved.accent),
   };
 }
 
@@ -772,8 +769,6 @@ function buildObjectGlowCliArgs(inputPath, outputPath, renderTokens, progressCon
     normalized.background,
     '--glow-token',
     normalized.glow,
-    '--accent-token',
-    normalized.accent,
   ];
   const runId = toTrimmed(progressContext?.runId);
   const mediaId = toTrimmed(progressContext?.mediaId);
@@ -816,7 +811,6 @@ async function resolveObjectGlowInvocation(inputPath, outputPath, renderTokens, 
         OBJECT_GLOW_MODULE,
         OBJECT_GLOW_RENDER_BACKGROUND: normalizedRenderTokens.background,
         OBJECT_GLOW_RENDER_GLOW: normalizedRenderTokens.glow,
-        OBJECT_GLOW_RENDER_ACCENT: normalizedRenderTokens.accent,
       },
     };
   }
@@ -842,7 +836,6 @@ async function resolveObjectGlowInvocation(inputPath, outputPath, renderTokens, 
         OBJECT_GLOW_MODULE,
         OBJECT_GLOW_RENDER_BACKGROUND: normalizedRenderTokens.background,
         OBJECT_GLOW_RENDER_GLOW: normalizedRenderTokens.glow,
-        OBJECT_GLOW_RENDER_ACCENT: normalizedRenderTokens.accent,
       },
     };
   }
@@ -877,7 +870,6 @@ function logObjectGlowInvocation({ strategy, executable, args, cwd, debugEnv }) 
       OBJECT_GLOW_MODULE: toTrimmed(debugEnv?.OBJECT_GLOW_MODULE),
       OBJECT_GLOW_RENDER_BACKGROUND: toTrimmed(debugEnv?.OBJECT_GLOW_RENDER_BACKGROUND),
       OBJECT_GLOW_RENDER_GLOW: toTrimmed(debugEnv?.OBJECT_GLOW_RENDER_GLOW),
-      OBJECT_GLOW_RENDER_ACCENT: toTrimmed(debugEnv?.OBJECT_GLOW_RENDER_ACCENT),
     },
   });
 }
@@ -922,16 +914,23 @@ async function runObjectGlowSubprocess({
       if (settled) return;
       settled = true;
       child.kill('SIGKILL');
+      const timeoutDetails = {
+        strategy,
+        executable,
+        argv: [executable, ...(Array.isArray(args) ? args : [])],
+        cwd,
+        renderTokens,
+        inputPath,
+        outputPath,
+        stderr,
+        stdoutSnippet: toStdoutSnippet(stdout),
+      };
+      logMediaProcessingEvent('objectGlow timeout', timeoutDetails);
       reject(
         createMediaError(
           MEDIA_ERROR_CODES.OBJECT_GLOW_TIMEOUT,
           `objectGlow timed out after ${OBJECT_GLOW_TIMEOUT_MS}ms`,
-          {
-            inputPath,
-            outputPath,
-            stderr,
-            stdoutSnippet: toStdoutSnippet(stdout),
-          }
+          timeoutDetails
         )
       );
     }, Math.max(1000, OBJECT_GLOW_TIMEOUT_MS));

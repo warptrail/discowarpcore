@@ -48,6 +48,25 @@ function statusErrorMessage(state, fallbackMessage) {
   return toTrimmed(message) || fallbackMessage;
 }
 
+function isInFlightStatus(status) {
+  const normalized = normalizeStatus(status, '');
+  return normalized === 'queued' || normalized === 'processing';
+}
+
+function isMissingMediaJobError(error) {
+  return Number(error?.status) === 404 || /media job not found/i.test(toTrimmed(error?.message));
+}
+
+function createFailedStateFromStaleJob(state, message) {
+  return {
+    ...(state && typeof state === 'object' ? state : {}),
+    processingStatus: 'failed',
+    processingError: {
+      message,
+    },
+  };
+}
+
 function titleCaseStage(stage) {
   return toTrimmed(stage)
     .split(/[_\s-]+/)
@@ -105,6 +124,25 @@ function buildJobProgressLabel(job) {
     return 'Processing complete.';
   }
   return message;
+}
+
+function getJobProgressPercent(job) {
+  if (!job || typeof job !== 'object') return null;
+
+  const directPercent =
+    typeof job.progressPercent === 'number'
+      ? job.progressPercent
+      : typeof job.progress?.progressPercent === 'number'
+        ? job.progress.progressPercent
+        : null;
+
+  if (typeof directPercent === 'number' && Number.isFinite(directPercent)) {
+    return directPercent;
+  }
+
+  const normalizedStatus = normalizeJobStatus(job.status, '');
+  if (normalizedStatus === 'completed') return 100;
+  return null;
 }
 
 export default function useBoxImageProcessing({
@@ -281,13 +319,15 @@ export default function useBoxImageProcessing({
     inFlightRef.current = true;
     try {
       const targetJobId = toTrimmed(jobIdRef.current);
+      let activeJobMissing = false;
       if (targetJobId) {
         try {
           const nextJob = await refreshJobStatus();
           if (isTerminalMediaJobStatus(nextJob?.status)) {
             return nextJob?.processingState || null;
           }
-        } catch {
+        } catch (error) {
+          activeJobMissing = isMissingMediaJobError(error);
           // Fall back to media-state polling if job polling is unavailable.
         }
       }
@@ -308,6 +348,17 @@ export default function useBoxImageProcessing({
 
       const nextStatus = normalizeStatus(latestState?.processingStatus, 'idle');
       setProcessingStatus(nextStatus);
+
+      if (activeJobMissing && isInFlightStatus(nextStatus)) {
+        const message =
+          'Image processing job is no longer available. Start processing again.';
+        const failedState = createFailedStateFromStaleJob(latestState, message);
+        setProcessingState(failedState);
+        setProcessingError(message);
+        setProcessingStatus('failed');
+        handleTerminalStatus('failed', failedState, message);
+        return failedState;
+      }
 
       if (nextStatus === 'failed') {
         const message = statusErrorMessage(latestState, 'Image processing failed.');
@@ -556,6 +607,7 @@ export default function useBoxImageProcessing({
     jobId,
     job,
     jobProgress: job?.progress || null,
+    jobProgressPercent: getJobProgressPercent(job),
     jobStageLabel: titleCaseStage(job?.currentStage || job?.progress?.stage),
     jobProgressLabel,
     isStarting,

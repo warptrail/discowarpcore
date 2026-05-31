@@ -1,6 +1,11 @@
 import { getItemHomeHref } from '../../api/itemDetails';
 import { formatItemCategory, normalizeItemCategory } from '../../util/itemCategories';
-import { formatKeepPriorityLabel, normalizeKeepPriority } from '../../util/keepPriority';
+import {
+  formatKeepPriorityLabel,
+  KEEP_PRIORITY_REMOVAL_OPTIONS,
+  KEEP_PRIORITY_SCALE_OPTIONS,
+  normalizeKeepPriority,
+} from '../../util/keepPriority';
 import { getItemOwnershipContext } from '../../util/itemOwnership';
 
 const UNKNOWN_LOCATION_LABEL = 'Unknown Location';
@@ -567,13 +572,29 @@ function normalizeOptionRows(rows) {
     .sort((a, b) => compareLabel(a.label, b.label));
 }
 
+function getCanonicalKeepPriorityOptions() {
+  const options = [
+    ...KEEP_PRIORITY_SCALE_OPTIONS,
+    ...KEEP_PRIORITY_REMOVAL_OPTIONS,
+  ];
+
+  return options
+    .map((option) => {
+      const key = normalizeKeepPriority(option?.value);
+      const label = firstNonEmpty(option?.label, formatKeepPriorityLabel(key));
+      if (!key || !label) return null;
+      return { key, label };
+    })
+    .filter(Boolean);
+}
+
 export function normalizeRetrievalFilterOptions(rawFilters) {
   const categories = normalizeOptionRows(rawFilters?.categories);
   const tags = normalizeOptionRows(rawFilters?.tags);
   const groups = normalizeOptionRows(rawFilters?.groups);
   const locations = normalizeOptionRows(rawFilters?.locations);
   const owners = normalizeOptionRows(rawFilters?.owners);
-  const keepPriorities = normalizeOptionRows(rawFilters?.keepPriorities);
+  const keepPriorities = getCanonicalKeepPriorityOptions();
 
   const categoryLabelByKey = new Map(categories.map((option) => [option.key, option.label]));
   const tagLabelByKey = new Map(tags.map((option) => [option.key, option.label]));
@@ -680,6 +701,7 @@ export function normalizeRetrievalBoxesPage(rawBoxes) {
 
       const boxId = firstNonEmpty(rawBox?.boxId, rawBox?.box_id);
       const boxLabel = firstNonEmpty(rawBox?.boxLabel, rawBox?.label, UNKNOWN_BOX_NAME);
+      const description = firstNonEmpty(rawBox?.description);
       const notes = firstNonEmpty(rawBox?.notes);
       const groupLabel = firstNonEmpty(rawBox?.groupLabel, rawBox?.group);
       const locationLabel = firstNonEmpty(rawBox?.locationLabel, rawBox?.location, UNKNOWN_LOCATION_LABEL);
@@ -695,6 +717,7 @@ export function normalizeRetrievalBoxesPage(rawBoxes) {
         id,
         boxId,
         boxLabel,
+        description,
         notes,
         groupLabel,
         locationLabel,

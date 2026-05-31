@@ -39,6 +39,7 @@ const RECEIPT_VERSION = 1;
 const RECEIPT_APP_NAME = 'discowarpcore';
 const PRODUCTION_TARGET = 'mongo-batch-provenance-and-server-media';
 const PACKAGE_FILES = Object.freeze({
+  batchManifest: 'batch_manifest.json',
   manifest: 'manifest.json',
   aiIntakeJson: 'ai_intake.json',
   importReadyJson: 'import_ready.json',
@@ -176,6 +177,51 @@ async function safeReadJson(filePath, fallback = null) {
   } catch {
     return fallback;
   }
+}
+
+function hasTextValue(value) {
+  return Boolean(toTrimmed(value));
+}
+
+function summarizeIntakeDestinationDefaults(payload = null, { reviewEnabled = false } = {}) {
+  if (!isPlainObject(payload)) {
+    return {
+      location: '',
+      box: '',
+      reviewed: false,
+      itemLocationCount: 0,
+      itemBoxCount: 0,
+      itemCount: 0,
+      reviewRequired: false,
+    };
+  }
+
+  const batchContext = isPlainObject(payload.batchContext) ? payload.batchContext : {};
+  const items = Array.isArray(payload.items) ? payload.items : [];
+  const itemLocationCount = items.filter((item) => hasTextValue(item?.location)).length;
+  const itemBoxCount = items.filter((item) => hasTextValue(item?.box)).length;
+  const location = toTrimmed(batchContext.location);
+  const box = toTrimmed(batchContext.box);
+  const reviewed = Boolean(batchContext.destinationReviewed);
+  const hasManifestDestination = Boolean(location || box || itemLocationCount || itemBoxCount);
+
+  return {
+    location,
+    box,
+    reviewed,
+    itemLocationCount,
+    itemBoxCount,
+    itemCount: items.length,
+    reviewRequired: Boolean(reviewEnabled) && items.length > 0 && !reviewed && !hasManifestDestination,
+  };
+}
+
+async function readBatchDestinationDefaults(paths = {}, { reviewEnabled = false } = {}) {
+  if (!paths.aiJsonPath || !await fileExists(paths.aiJsonPath)) {
+    return summarizeIntakeDestinationDefaults(null, { reviewEnabled });
+  }
+  const payload = await safeReadJson(paths.aiJsonPath, null);
+  return summarizeIntakeDestinationDefaults(payload, { reviewEnabled });
 }
 
 function deepMerge(baseValue, patchValue) {
@@ -502,7 +548,17 @@ async function writeBatchStateMirror(batchDir, state) {
 }
 
 async function findBatchRecordByBatchId(batchId) {
-  const record = await batchModel.findOne({ 'identity.batchId': batchId });
+  const normalizedBatchId = toTrimmed(batchId);
+  if (!normalizedBatchId) return null;
+
+  const lookupClauses = [{ 'identity.batchId': normalizedBatchId }];
+  if (mongoose.Types.ObjectId.isValid(normalizedBatchId)) {
+    lookupClauses.push({ _id: normalizedBatchId });
+  }
+
+  const record = await batchModel.findOne(
+    lookupClauses.length > 1 ? { $or: lookupClauses } : lookupClauses[0]
+  );
   if (!record) return null;
   return normalizeBatchState(toPlainObject(record), record.batchDir || path.join(BATCHES_ROOT, batchId));
 }
@@ -1388,6 +1444,9 @@ async function summarizeIntakeBatch(
       imageKeyMappingCsvPath: toRepoRelativePath(layout.imageKeyMappingCsv),
     },
   };
+  const destinationDefaults = await readBatchDestinationDefaults(paths, {
+    reviewEnabled: Boolean(state.packageSnapshot?.structureSummary?.hasBatchManifest),
+  });
   const summary = {
     id: state.identity.batchId,
     batchId: state.identity.batchId,
@@ -1403,6 +1462,7 @@ async function summarizeIntakeBatch(
       updatedAt,
     },
     sourceManifest,
+    destinationDefaults,
     validationSnapshot: state.validationSnapshot,
     importSnapshot: state.importSnapshot,
     archiveState: state.archiveState,
@@ -1576,6 +1636,99 @@ async function updateIntakeBatchAssets(batchId, uploadedFiles = {}) {
   return saveUploadedAssetsToBatch(batch.batchDir, uploadedFiles);
 }
 
+async function updateIntakeBatchDestination(batchId, { location = null, box = null } = {}) {
+  const batch = await getIntakeBatchById(batchId);
+  assertBatchActive(batch);
+
+  if (batch.importSnapshot?.status === 'success') {
+    throw new Error('Destination defaults cannot be changed after a successful import.');
+  }
+
+  const paths = await resolveBatchOperationalPaths(batch);
+  if (!paths.aiJsonPath || !await fileExists(paths.aiJsonPath)) {
+    throw new Error('AI Intake Engine JSON is required before destination defaults can be reviewed.');
+  }
+
+  const payload = await safeReadJson(paths.aiJsonPath, null);
+  if (!isPlainObject(payload)) {
+    throw new Error('AI Intake Engine JSON must be an object before destination defaults can be reviewed.');
+  }
+
+  const normalizedLocation = toTrimmed(location) || null;
+  const normalizedBox = toTrimmed(box) || null;
+  const batchContext = isPlainObject(payload.batchContext) ? { ...payload.batchContext } : {};
+  const items = Array.isArray(payload.items) ? payload.items : [];
+  const nextItems = items.map((item) => {
+    if (!isPlainObject(item)) return item;
+    return {
+      ...item,
+      ...(normalizedLocation && !hasTextValue(item.location) ? { location: normalizedLocation } : {}),
+      ...(normalizedBox && !hasTextValue(item.box) ? { box: normalizedBox } : {}),
+    };
+  });
+  const nextPayload = {
+    ...payload,
+    batchContext: {
+      ...batchContext,
+      location: normalizedLocation,
+      box: normalizedBox,
+      destinationReviewed: true,
+    },
+    items: nextItems,
+  };
+
+  await fs.writeFile(paths.aiJsonPath, `${JSON.stringify(nextPayload, null, 2)}\n`, 'utf8');
+
+  const defaults = defaultBatchState(batch.batchDir);
+  await writeBatchState(batch.batchDir, {
+    validationSnapshot: defaults.validationSnapshot,
+    importSnapshot: defaults.importSnapshot,
+  });
+
+  logIntakeBatchEvent('batch destination reviewed', {
+    batchId: batch.batchId,
+    location: normalizedLocation,
+    box: normalizedBox,
+  });
+
+  return getIntakeBatchById(batch.batchId, {
+    includeImportedItems: true,
+  });
+}
+
+async function updateIntakeBatchName(batchId, { name = '' } = {}) {
+  const batch = await getIntakeBatchById(batchId);
+  const nextName = toTrimmed(name);
+  if (!nextName) {
+    throw new Error('Batch name is required.');
+  }
+
+  await writeBatchState(batch.batchDir, {
+    identity: {
+      ...batch.identity,
+      batchName: nextName,
+    },
+  });
+
+  logIntakeBatchEvent('batch renamed', {
+    batchId: batch.batchId,
+    batchName: nextName,
+  });
+
+  return getIntakeBatchById(batch.batchId, {
+    includeImportedItems: true,
+  });
+}
+
+async function assertDestinationReviewResolved(batch, paths) {
+  const destinationDefaults = await readBatchDestinationDefaults(paths, {
+    reviewEnabled: Boolean(batch?.packageSnapshot?.structureSummary?.hasBatchManifest),
+  });
+  if (destinationDefaults.reviewRequired) {
+    throw new Error('Batch destination must be reviewed before validation or import.');
+  }
+}
+
 function buildFailedValidationSnapshot({
   existingSnapshot,
   errors = [],
@@ -1612,6 +1765,7 @@ async function validateIntakeBatch(batchId) {
   const batch = await getIntakeBatchById(batchId);
   assertBatchActive(batch);
   const paths = await resolveBatchOperationalPaths(batch);
+  await assertDestinationReviewResolved(batch, paths);
   const startedAt = Date.now();
   logIntakeBatchEvent('batch validated start', {
     batchId: batch.batchId,
@@ -1735,6 +1889,7 @@ async function stageIntakeBatch(batchId) {
   const batch = await getIntakeBatchById(batchId);
   assertBatchActive(batch);
   const paths = await resolveBatchOperationalPaths(batch);
+  await assertDestinationReviewResolved(batch, paths);
   const layout = paths.layout;
   const startedAt = Date.now();
   logIntakeBatchEvent('stage start', {
@@ -1796,6 +1951,7 @@ async function importIntakeBatch(batchId) {
   const batch = await getIntakeBatchById(batchId);
   assertBatchActive(batch);
   const paths = await resolveBatchOperationalPaths(batch);
+  await assertDestinationReviewResolved(batch, paths);
   const layout = paths.layout;
   const startedAt = Date.now();
   const payload = await safeReadJson(paths.aiJsonPath, null);
@@ -2005,6 +2161,7 @@ function validateObservedPackageStructure(entries = []) {
   }
 
   const normalizedSet = new Set(safeEntries);
+  const hasBatchManifest = normalizedSet.has(PACKAGE_FILES.batchManifest);
   const hasManifest = normalizedSet.has(PACKAGE_FILES.manifest);
   const hasAiIntakeJson = normalizedSet.has(PACKAGE_FILES.aiIntakeJson);
   const hasImportReadyJson = normalizedSet.has(PACKAGE_FILES.importReadyJson);
@@ -2013,34 +2170,33 @@ function validateObservedPackageStructure(entries = []) {
   const hasImageOrderCsv = normalizedSet.has(PACKAGE_FILES.imageOrderCsv);
   const hasOrderCsv = normalizedSet.has(PACKAGE_FILES.orderCsv);
   const imageEntries = safeEntries.filter((entry) => (
-    (entry.startsWith(`${PACKAGE_FILES.legacyImagesDir}/`)
-      || entry.startsWith(`${PACKAGE_FILES.rawImagesDir}/`)
-      || entry.startsWith(`${PACKAGE_FILES.originalImagesDir}/`))
+    entry.startsWith(`${PACKAGE_FILES.legacyImagesDir}/`)
       && !entry.endsWith('/')
   ));
-  const resolvedImagesDir = imageEntries.some((entry) => entry.startsWith(`${PACKAGE_FILES.rawImagesDir}/`))
-    ? PACKAGE_FILES.rawImagesDir
-    : imageEntries.some((entry) => entry.startsWith(`${PACKAGE_FILES.originalImagesDir}/`))
-      ? PACKAGE_FILES.originalImagesDir
-    : imageEntries.some((entry) => entry.startsWith(`${PACKAGE_FILES.legacyImagesDir}/`))
-      ? PACKAGE_FILES.legacyImagesDir
-      : '';
+  const resolvedImagesDir = imageEntries.length ? PACKAGE_FILES.legacyImagesDir : '';
 
-  if (!hasManifest) {
-    errors.push(`Missing required package file: ${PACKAGE_FILES.manifest}`);
+  if (!hasBatchManifest) {
+    errors.push(`Missing required package file: ${PACKAGE_FILES.batchManifest}`);
   }
-  if (!hasAiIntakeJson && !hasImportReadyJson) {
-    errors.push(`Package must include ${PACKAGE_FILES.aiIntakeJson} or ${PACKAGE_FILES.importReadyJson}`);
-  }
-  if (imageEntries.length > 0 && !hasLegacyMappingCsv && !hasImageOrderCsv && !hasOrderCsv) {
+
+  const obsoleteRootEntries = [
+    hasManifest ? PACKAGE_FILES.manifest : '',
+    hasAiIntakeJson ? PACKAGE_FILES.aiIntakeJson : '',
+    hasImportReadyJson ? PACKAGE_FILES.importReadyJson : '',
+    hasLegacyMappingCsv ? PACKAGE_FILES.legacyCsv : '',
+    hasImageOrderCsv ? PACKAGE_FILES.imageOrderCsv : '',
+    hasOrderCsv ? PACKAGE_FILES.orderCsv : '',
+  ].filter(Boolean);
+  if (obsoleteRootEntries.length) {
     errors.push(
-      `Package includes images but is missing required ${PACKAGE_FILES.legacyCsv}, ${PACKAGE_FILES.imageOrderCsv}, or ${PACKAGE_FILES.orderCsv}`
+      `Obsolete package files are no longer accepted: ${obsoleteRootEntries.join(', ')}. Use ${PACKAGE_FILES.batchManifest}.`
     );
   }
 
   const unexpectedRootEntries = safeEntries.filter((entry) => {
     const root = entry.split('/')[0];
     return ![
+      PACKAGE_FILES.batchManifest,
       PACKAGE_FILES.manifest,
       PACKAGE_FILES.aiIntakeJson,
       PACKAGE_FILES.importReadyJson,
@@ -2049,9 +2205,6 @@ function validateObservedPackageStructure(entries = []) {
       PACKAGE_FILES.imageOrderCsv,
       PACKAGE_FILES.orderCsv,
       PACKAGE_FILES.legacyImagesDir,
-      PACKAGE_FILES.rawImagesDir,
-      PACKAGE_FILES.originalImagesDir,
-      'collage.jpg',
     ].includes(root);
   });
 
@@ -2064,6 +2217,7 @@ function validateObservedPackageStructure(entries = []) {
     errors,
     summary: {
       entries: safeEntries,
+      hasBatchManifest,
       hasManifest,
       hasAiJson: hasAiIntakeJson || hasImportReadyJson,
       hasAiIntakeJson,
@@ -2077,131 +2231,154 @@ function validateObservedPackageStructure(entries = []) {
       imageCount: imageEntries.length,
       imageEntries,
       imagesDir: resolvedImagesDir,
-      intakeJsonFile: hasImportReadyJson ? PACKAGE_FILES.importReadyJson : hasAiIntakeJson ? PACKAGE_FILES.aiIntakeJson : '',
-      mappingCsvFile: hasOrderCsv
-        ? PACKAGE_FILES.orderCsv
-        : hasImageOrderCsv
-          ? PACKAGE_FILES.imageOrderCsv
-          : hasLegacyMappingCsv
-            ? PACKAGE_FILES.legacyCsv
-            : '',
+      intakeJsonFile: '',
+      mappingCsvFile: '',
       ignoredEntryCount: warnings.length,
     },
   };
 }
 
-function validatePackageManifest(manifest = {}, structureSummary = {}) {
-  const warnings = [];
-  const errors = [];
+function csvEscape(value) {
+  return `"${String(value ?? '').replace(/"/g, '""')}"`;
+}
 
-  if (!isPlainObject(manifest)) {
-    return {
-      warnings,
-      errors: ['Package manifest.json must be a JSON object.'],
-    };
+async function writePackageImageOrderCsv(items = [], csvPath) {
+  const header = 'index,file_name\n';
+  const body = items
+    .map((item, index) => [
+      index + 1,
+      toTrimmed(item.imageFile),
+    ].map(csvEscape).join(','))
+    .join('\n');
+  await fs.writeFile(csvPath, `${header}${body}${body ? '\n' : ''}`, 'utf8');
+}
+
+function normalizeBatchManifestItem(rawItem = {}, index = 0, defaults = {}) {
+  if (!isPlainObject(rawItem)) {
+    throw new Error(`batch_manifest.items[${index}] must be an object.`);
   }
 
-  const usesLegacyContract =
-    toTrimmed(manifest.app) || manifest.packageVersion != null || isPlainObject(manifest.files);
+  const imageFile = toTrimmed(rawItem.imageFile || rawItem.sourceFile);
+  const imageKey = toTrimmed(rawItem.imageKey) || (imageFile ? path.basename(imageFile, path.extname(imageFile)) : '');
+  const expectedImageKey = imageFile ? path.basename(imageFile, path.extname(imageFile)) : imageKey;
+  const name = toTrimmed(rawItem.name);
 
-  if (usesLegacyContract) {
-    if (toTrimmed(manifest.app) !== 'discowarpcore') {
-      errors.push(`manifest.app must be "discowarpcore", got "${toTrimmed(manifest.app)}"`);
-    }
-
-    if (Number(manifest.packageVersion) !== 1) {
-      errors.push(`manifest.packageVersion must be 1, got "${manifest.packageVersion}"`);
-    }
-
-    const files = isPlainObject(manifest.files) ? manifest.files : {};
-    const expectedJson = structureSummary.intakeJsonFile || PACKAGE_FILES.aiIntakeJson;
-    const expectedCsv = structureSummary.mappingCsvFile || PACKAGE_FILES.legacyCsv;
-    const expectedImagesDir = structureSummary.imagesDir || PACKAGE_FILES.legacyImagesDir;
-
-    if (toTrimmed(files.aiIntakeJson) !== expectedJson) {
-      errors.push(`manifest.files.aiIntakeJson must be "${expectedJson}"`);
-    }
-    if (structureSummary.hasMappingCsv && toTrimmed(files.imageMappingCsv) !== expectedCsv) {
-      errors.push(`manifest.files.imageMappingCsv must be "${expectedCsv}"`);
-    }
-    if (structureSummary.imagesIncluded && toTrimmed(files.imagesDir) !== expectedImagesDir) {
-      errors.push(`manifest.files.imagesDir must be "${expectedImagesDir}"`);
-    }
-
-    const declaredImageCount = Number(manifest?.images?.count);
-    if (structureSummary.imagesIncluded && Number.isFinite(declaredImageCount) && declaredImageCount !== structureSummary.imageCount) {
-      warnings.push(
-        `manifest.images.count (${declaredImageCount}) does not match observed image count (${structureSummary.imageCount}).`
-      );
-    }
-    return { warnings, errors };
+  if (!imageFile) {
+    throw new Error(`batch_manifest.items[${index}].imageFile is required.`);
   }
-
-  if (!toTrimmed(manifest.batchId) && !toTrimmed(manifest.displayName)) {
-    errors.push('manifest.batchId or manifest.displayName is required.');
+  if (!IMAGE_EXTENSIONS.has(path.extname(imageFile).toLowerCase())) {
+    throw new Error(`batch_manifest.items[${index}].imageFile must be a supported image filename.`);
   }
-  if (!isPlainObject(manifest.status)) {
-    warnings.push('manifest.status should be an object.');
-  }
-  if (!isPlainObject(manifest.artifacts)) {
-    warnings.push('manifest.artifacts should be an object.');
-  } else {
-    const artifacts = manifest.artifacts;
-    const importReadyName = toTrimmed(artifacts.importReady);
-    const orderCsvName = toTrimmed(artifacts.orderCsv);
-    const collageManifestName = toTrimmed(artifacts.collageManifest);
-    const collageImageName = toTrimmed(artifacts.collageImage);
-
-    if (
-      structureSummary.hasImportReadyJson
-      && importReadyName
-      && importReadyName !== structureSummary.intakeJsonFile
-    ) {
-      warnings.push(
-        `manifest.artifacts.importReady is "${importReadyName}" but package contains "${structureSummary.intakeJsonFile}".`
-      );
-    }
-    if (
-      structureSummary.hasMappingCsv
-      && orderCsvName
-      && orderCsvName !== structureSummary.mappingCsvFile
-    ) {
-      warnings.push(
-        `manifest.artifacts.orderCsv is "${orderCsvName}" but package contains "${structureSummary.mappingCsvFile}".`
-      );
-    }
-    if (
-      structureSummary.hasCollageManifestJson
-      && collageManifestName
-      && collageManifestName !== PACKAGE_FILES.collageManifestJson
-    ) {
-      warnings.push(
-        `manifest.artifacts.collageManifest is "${collageManifestName}" but package contains "${PACKAGE_FILES.collageManifestJson}".`
-      );
-    }
-    if (
-      collageImageName
-      && !collageImageName.toLowerCase().endsWith('.jpg')
-      && !collageImageName.toLowerCase().endsWith('.jpeg')
-    ) {
-      warnings.push(`manifest.artifacts.collageImage is "${collageImageName}". Expected a JPG/JPEG artifact name.`);
-    }
-  }
-
-  const declaredImageCount = Array.isArray(manifest.sourceImages) ? manifest.sourceImages.length : null;
-  if (structureSummary.imagesIncluded && Number.isInteger(declaredImageCount) && declaredImageCount !== structureSummary.imageCount) {
-    warnings.push(
-      `manifest.sourceImages.length (${declaredImageCount}) does not match observed image count (${structureSummary.imageCount}).`
+  if (imageKey !== expectedImageKey) {
+    throw new Error(
+      `batch_manifest.items[${index}].imageKey must match image filename basename "${expectedImageKey}".`
     );
   }
-  if (Array.isArray(manifest.sourceImages)) {
-    const invalidEntries = manifest.sourceImages.filter((entry) => !toTrimmed(entry?.filename));
-    if (invalidEntries.length > 0) {
-      warnings.push('manifest.sourceImages contains entries without filename values.');
-    }
+  if (!name) {
+    throw new Error(`batch_manifest.items[${index}].name is required.`);
   }
 
-  return { warnings, errors };
+  return {
+    imageFile,
+    item: {
+      name,
+      description: toTrimmed(rawItem.description),
+      category: toTrimmed(rawItem.category) || 'miscellaneous',
+      tags: Array.isArray(rawItem.tags) ? rawItem.tags : [],
+      quantity: rawItem.quantity == null ? 1 : rawItem.quantity,
+      location: toTrimmed(rawItem.location) || defaults.location || null,
+      box: toTrimmed(rawItem.box) || defaults.box || null,
+      imageKey,
+    },
+  };
+}
+
+async function materializeBatchManifestPackage(extractionDir, structureSummary = {}) {
+  const batchManifestPath = path.join(extractionDir, PACKAGE_FILES.batchManifest);
+  const batchManifest = await safeReadJson(batchManifestPath, null);
+
+  if (!isPlainObject(batchManifest)) {
+    throw new Error(`${PACKAGE_FILES.batchManifest} must be a JSON object.`);
+  }
+  if (toTrimmed(batchManifest.app || 'discowarpcore') !== 'discowarpcore') {
+    throw new Error('batch_manifest.app must be "discowarpcore" when provided.');
+  }
+  if (batchManifest.packageVersion != null && Number(batchManifest.packageVersion) !== 2) {
+    throw new Error(`batch_manifest.packageVersion must be 2, got "${batchManifest.packageVersion}".`);
+  }
+
+  const rawItems = Array.isArray(batchManifest.items) ? batchManifest.items : [];
+  if (!rawItems.length) {
+    throw new Error('batch_manifest.items must contain at least one item.');
+  }
+
+  const defaults = {
+    location: toTrimmed(batchManifest?.target?.location || batchManifest?.batchContext?.location),
+    box: toTrimmed(batchManifest?.target?.box || batchManifest?.batchContext?.box),
+  };
+  const normalized = rawItems.map((item, index) => normalizeBatchManifestItem(item, index, defaults));
+  const declaredImageFiles = normalized.map((entry) => entry.imageFile);
+  const observedImageFiles = new Set(
+    (structureSummary.imageEntries || []).map((entry) => path.basename(entry))
+  );
+  const missingImages = declaredImageFiles.filter((imageFile) => !observedImageFiles.has(imageFile));
+  if (missingImages.length) {
+    throw new Error(`batch_manifest references missing image file(s): ${missingImages.join(', ')}`);
+  }
+
+  const payload = {
+    batchContext: {
+      source: toTrimmed(batchManifest?.batchContext?.source || batchManifest?.source?.createdByTool) || 'vision_intake',
+      itemCount: normalized.length,
+      location: defaults.location || null,
+      box: defaults.box || null,
+    },
+    items: normalized.map((entry) => entry.item),
+  };
+  await fs.writeFile(path.join(extractionDir, PACKAGE_FILES.aiIntakeJson), `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+  await writePackageImageOrderCsv(normalized, path.join(extractionDir, PACKAGE_FILES.legacyCsv));
+
+  const manifest = {
+    packageVersion: 1,
+    app: 'discowarpcore',
+    batchLabel:
+      toTrimmed(batchManifest.batchLabel)
+      || toTrimmed(batchManifest.displayName)
+      || toTrimmed(batchManifest.batchId)
+      || path.basename(extractionDir),
+    createdAt: toTrimmed(batchManifest.createdAt) || new Date().toISOString(),
+    sourceMachine: toTrimmed(batchManifest.sourceMachine || batchManifest?.source?.sourceMachine),
+    operator: toTrimmed(batchManifest.operator || batchManifest?.source?.operator),
+    files: {
+      aiIntakeJson: PACKAGE_FILES.aiIntakeJson,
+      imageMappingCsv: PACKAGE_FILES.legacyCsv,
+      imagesDir: structureSummary.imagesDir || PACKAGE_FILES.legacyImagesDir,
+    },
+    images: {
+      included: true,
+      count: normalized.length,
+    },
+    metadata: {
+      createdByTool: toTrimmed(batchManifest?.source?.createdByTool) || 'batch_manifest',
+      sourceFormat: PACKAGE_FILES.batchManifest,
+    },
+  };
+
+  return {
+    manifest,
+    structureSummary: {
+      ...structureSummary,
+      hasManifest: true,
+      hasAiJson: true,
+      hasAiIntakeJson: true,
+      hasMappingCsv: true,
+      hasLegacyMappingCsv: true,
+      intakeJsonFile: PACKAGE_FILES.aiIntakeJson,
+      mappingCsvFile: PACKAGE_FILES.legacyCsv,
+      hasBatchManifest: true,
+      batchManifestFile: PACKAGE_FILES.batchManifest,
+    },
+  };
 }
 
 async function stageBatchFromPackageExtraction({
@@ -2380,25 +2557,23 @@ async function ingestIntakeBatchPackageArchiveFromFile(zipFilePath, {
       extractDir,
     });
 
-    const manifest = await safeReadJson(path.join(extractDir, PACKAGE_FILES.manifest), null);
-    if (!isPlainObject(manifest)) {
-      throw new Error('Package manifest.json is missing or invalid.');
-    }
-    const manifestValidation = validatePackageManifest(manifest, structureValidation.summary);
-    if (manifestValidation.errors.length > 0) {
+    let materializedPackage;
+    try {
+      materializedPackage = await materializeBatchManifestPackage(extractDir, structureValidation.summary);
+    } catch (error) {
       logIntakeBatchEvent('package manifest validation failed', {
         zipFilePath: absoluteZipPath,
-        errors: manifestValidation.errors,
+        errors: [error?.message || 'Invalid batch manifest.'],
       });
       return {
         ok: false,
         batchId: '',
-        batchLabel: toTrimmed(manifest.batchLabel),
+        batchLabel: '',
         packageStructureSummary: structureValidation.summary,
         requiredAssetsFound: false,
         imagePresenceCount: structureValidation.summary.imageCount,
-        warnings: [...structureValidation.warnings, ...manifestValidation.warnings],
-        errors: manifestValidation.errors,
+        warnings: structureValidation.warnings,
+        errors: [error?.message || 'Invalid batch manifest.'],
         nextStepSuggestion: 'Fix the manifest contents and try uploading again.',
       };
     }
@@ -2406,8 +2581,8 @@ async function ingestIntakeBatchPackageArchiveFromFile(zipFilePath, {
     const batch = await stageBatchFromPackageExtraction({
       extractionDir: extractDir,
       originalPackageFilename: toTrimmed(originalPackageFilename) || path.basename(absoluteZipPath),
-      structureSummary: structureValidation.summary,
-      manifest,
+      structureSummary: materializedPackage.structureSummary,
+      manifest: materializedPackage.manifest,
     });
 
     cleanupSafe = true;
@@ -2422,10 +2597,10 @@ async function ingestIntakeBatchPackageArchiveFromFile(zipFilePath, {
       batchId: batch.batchId,
       batchLabel: batch.batchName,
       batch,
-      packageStructureSummary: structureValidation.summary,
+      packageStructureSummary: materializedPackage.structureSummary,
       requiredAssetsFound: true,
-      imagePresenceCount: structureValidation.summary.imageCount,
-      warnings: [...structureValidation.warnings, ...manifestValidation.warnings],
+      imagePresenceCount: materializedPackage.structureSummary.imageCount,
+      warnings: structureValidation.warnings,
       errors: [],
       nextStepSuggestion: 'Package staged successfully. Validate the batch before import.',
     };
@@ -2755,6 +2930,8 @@ module.exports = {
   getIntakeBatchById,
   createIntakeBatch,
   updateIntakeBatchAssets,
+  updateIntakeBatchDestination,
+  updateIntakeBatchName,
   validateIntakeBatch,
   stageIntakeBatch,
   importIntakeBatch,

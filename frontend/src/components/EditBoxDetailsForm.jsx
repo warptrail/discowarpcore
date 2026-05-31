@@ -22,6 +22,7 @@ export default function EditBoxDetailsForm({
   processImageBusy = false,
   processImageError = '',
   processImageProgressLabel = '',
+  processImageProgressPercent = null,
   processImageJobId = '',
   processImageMediaId = '',
   persistedRenderTokens = null,
@@ -40,6 +41,7 @@ export default function EditBoxDetailsForm({
   const [shortId, setShortId] = useState(initial?.box_id ?? '');
   const [label, setLabel] = useState(initial?.label ?? '');
   const [group, setGroup] = useState(initial?.group ?? '');
+  const [description, setDescription] = useState(initial?.description ?? '');
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [locationId, setLocationId] = useState(
     initialLocationId ? String(initialLocationId) : '',
@@ -72,6 +74,7 @@ export default function EditBoxDetailsForm({
     setShortId(initial?.box_id ?? '');
     setLabel(initial?.label ?? '');
     setGroup(initial?.group ?? '');
+    setDescription(initial?.description ?? '');
     setNotes(initial?.notes ?? '');
     const nextLocationId =
       initial?.locationId?._id ??
@@ -85,6 +88,7 @@ export default function EditBoxDetailsForm({
     initial?.box_id,
     initial?.label,
     initial?.group,
+    initial?.description,
     initial?.notes,
     initial?.locationId,
     initial?.tags,
@@ -110,6 +114,8 @@ export default function EditBoxDetailsForm({
     const sameLabel = String(label || '') === String(initial?.label || '');
     const sameGroup =
       String(group || '').trim() === String(initial?.group || '').trim();
+    const sameDescription =
+      String(description || '').trim() === String(initial?.description || '').trim();
     const sameNotes =
       String(notes || '').trim() === String(initial?.notes || '').trim();
     const sameLocation =
@@ -117,8 +123,16 @@ export default function EditBoxDetailsForm({
     const sameTags =
       JSON.stringify([...tags].sort()) ===
       JSON.stringify([...(initial?.tags || [])].sort());
-    return !(sameId && sameLabel && sameGroup && sameNotes && sameLocation && sameTags);
-  }, [shortId, label, group, notes, locationId, tags, initial]);
+    return !(
+      sameId &&
+      sameLabel &&
+      sameGroup &&
+      sameDescription &&
+      sameNotes &&
+      sameLocation &&
+      sameTags
+    );
+  }, [shortId, label, group, description, notes, locationId, tags, initial]);
 
   const canSave =
     !busy &&
@@ -177,6 +191,7 @@ export default function EditBoxDetailsForm({
         box_id: shortId,
         label: label.trim(),
         group: group.trim() || null,
+        description: description.trim() || null,
         notes: notes.trim() || null,
         locationId: locationId || null,
         tags,
@@ -186,6 +201,7 @@ export default function EditBoxDetailsForm({
         box_id: shortId,
         label,
         group,
+        description,
         notes,
         tags,
       });
@@ -280,6 +296,18 @@ export default function EditBoxDetailsForm({
                     {...identityFieldProps}
                   />
                   <S.Field $compact={compact}>
+                    <S.Label htmlFor="box-description" $compact={compact}>
+                      Physical Description
+                    </S.Label>
+                    <S.Textarea
+                      id="box-description"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Describe the physical box, color, size, markings, or condition..."
+                      $compact={compact}
+                    />
+                  </S.Field>
+                  <S.Field $compact={compact}>
                     <S.Label htmlFor="box-notes" $compact={compact}>Notes</S.Label>
                     <S.Textarea
                       id="box-notes"
@@ -331,6 +359,7 @@ export default function EditBoxDetailsForm({
                     processImageBusy={processImageBusy}
                     processImageError={processImageError}
                     processImageProgressLabel={processImageProgressLabel}
+                    processImageProgressPercent={processImageProgressPercent}
                     processImageJobId={processImageJobId}
                     processImageMediaId={processImageMediaId}
                     persistedRenderTokens={persistedRenderTokens}
@@ -352,6 +381,18 @@ export default function EditBoxDetailsForm({
               <S.SectionTitle>Context</S.SectionTitle>
             </S.SectionHeader>
             <S.SectionBody>
+              <S.Field $compact>
+                <S.Label htmlFor="box-description-compact" $compact>
+                  Physical Description
+                </S.Label>
+                <S.Textarea
+                  id="box-description-compact"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe the physical box, color, size, markings, or condition..."
+                  $compact
+                />
+              </S.Field>
               <S.Field $compact>
                 <S.Label htmlFor="box-notes-compact" $compact>Notes</S.Label>
                 <S.Textarea
@@ -395,6 +436,7 @@ export default function EditBoxDetailsForm({
                 processImageBusy={processImageBusy}
                 processImageError={processImageError}
                 processImageProgressLabel={processImageProgressLabel}
+                processImageProgressPercent={processImageProgressPercent}
                 processImageJobId={processImageJobId}
                 processImageMediaId={processImageMediaId}
                 persistedRenderTokens={persistedRenderTokens}

@@ -808,6 +808,10 @@ export default function IntakePage({ boxes = [] }) {
     handleItemMutation(payload);
   }, [handleItemMutation]);
 
+  const handleClearCurrentBox = () => {
+    handleSelectBox('');
+  };
+
   const handleBoxPhotoMutation = ({ boxId, image, imagePath, message } = {}) => {
     if (boxId) {
       setBoxImageOverrides((prev) => ({
@@ -895,7 +899,10 @@ export default function IntakePage({ boxes = [] }) {
         <Column>
           <Section>
             <IntakeQuickItemMaker
+              mode={currentBox ? 'inBox' : 'orphan'}
+              targetBox={currentBox}
               onItemCreated={handleQuickOrphanCreated}
+              onClearTargetBox={handleClearCurrentBox}
             />
           </Section>
 

@@ -44,6 +44,70 @@ const Hint = styled.p`
   line-height: 1.35;
 `;
 
+const DestinationBar = styled.div`
+  border: 1px solid rgba(105, 166, 143, 0.5);
+  border-radius: 10px;
+  background: rgba(13, 32, 27, 0.82);
+  padding: 0.34rem 0.42rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.44rem;
+  align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+`;
+
+const DestinationText = styled.div`
+  min-width: 0;
+  color: #dff7ee;
+  font-size: 0.72rem;
+  line-height: 1.35;
+`;
+
+const DestinationLabel = styled.span`
+  color: #8fb8a8;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.64rem;
+  font-weight: 700;
+  margin-right: 0.28rem;
+`;
+
+const DestinationValue = styled.span`
+  font-weight: 700;
+  overflow-wrap: anywhere;
+`;
+
+const ClearDestinationButton = styled.button`
+  min-height: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(119, 171, 202, 0.58);
+  background: rgba(16, 30, 41, 0.92);
+  color: #d6eaff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 0.5rem;
+  cursor: pointer;
+
+  &:hover {
+    filter: brightness(1.08);
+  }
+
+  &:disabled {
+    opacity: 0.56;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+  }
+`;
+
 const Form = styled.form`
   display: grid;
   gap: 0.4rem;
@@ -231,6 +295,7 @@ export default function IntakeQuickItemMaker({
   title = 'Quick Item Maker',
   hint,
   submitLabel,
+  onClearTargetBox,
 }) {
   const normalizedMode = mode === 'inBox' ? 'inBox' : 'orphan';
   const isInBoxMode = normalizedMode === 'inBox';
@@ -460,6 +525,25 @@ export default function IntakeQuickItemMaker({
     <Panel>
       <Heading>{title}</Heading>
       <Hint>{resolvedHint}</Hint>
+
+      {isInBoxMode && hasTargetBox ? (
+        <DestinationBar>
+          <DestinationText>
+            <DestinationLabel>Destination</DestinationLabel>
+            <DestinationValue>
+              {targetBoxLabel || 'Selected Box'}
+              {targetBoxShortId ? ` #${targetBoxShortId}` : ''}
+            </DestinationValue>
+          </DestinationText>
+          <ClearDestinationButton
+            type="button"
+            onClick={onClearTargetBox}
+            disabled={busy}
+          >
+            No Box
+          </ClearDestinationButton>
+        </DestinationBar>
+      ) : null}
 
       <Form onSubmit={handleSubmit}>
         <TopRow>

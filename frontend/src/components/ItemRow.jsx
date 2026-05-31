@@ -5,10 +5,11 @@ import React, {
   useEffect,
   useCallback,
   useContext,
+  useMemo,
 } from 'react';
-import { useNavigate } from 'react-router-dom';
 import * as S from '../styles/ItemRow.styles';
 import ItemDetails from './ItemDetails';
+import EditItemDetailsForm from './EditItemDetailsForm';
 import MoveItemToOtherBox from './MoveItemToOtherBox';
 import { getItemHomeHref } from '../api/itemDetails';
 import { moveBoxedItem, orphanBoxedItem } from '../api/boxedItems';
@@ -17,6 +18,14 @@ import { API_BASE } from '../api/API_BASE';
 import { ToastContext } from './Toast';
 import { getItemOwnershipContext } from '../util/itemOwnership';
 import useItemTimestampActions from '../hooks/useItemTimestampActions';
+import useItemImageProcessing from '../hooks/useItemImageProcessing';
+import AddItemToDeclutterSessionToastContent from './Declutter/AddItemToDeclutterSessionToastContent';
+import { fetchDeclutterSessionsForItem } from '../api/declutterSessions';
+import ImageProcessingToastContent from './Processing/ImageProcessingToastContent';
+import {
+  getImageProcessingToastSignature,
+  isImageProcessingInFlight,
+} from './Processing/imageProcessingToastUtils';
 
 export default function ItemRow({
   item,
@@ -28,9 +37,9 @@ export default function ItemRow({
   collapseDurMs = 300,
   flashing = false,
   flashColor = 'blue',
+  triggerFlash,
   refreshBox,
 }) {
-  const navigate = useNavigate();
   const isMobile = useIsMobile(768);
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
@@ -41,6 +50,9 @@ export default function ItemRow({
     tags = [],
     description,
   } = item;
+  const hasQuantity =
+    item?.quantity !== null && item?.quantity !== undefined && item?.quantity !== '';
+  const quantityLabel = hasQuantity ? `Qty ${item.quantity}` : '';
   const ownership = getItemOwnershipContext(item);
   const sourceBoxMongoId = String(
     ownership?.boxMongoId ||
@@ -75,6 +87,11 @@ export default function ItemRow({
   const [localImagePath, setLocalImagePath] = useState(item?.imagePath || '');
   const [expandedMode, setExpandedMode] = useState('overview');
   const [movePending, setMovePending] = useState(false);
+  const [activeDeclutterSessions, setActiveDeclutterSessions] = useState([]);
+  const [declutterMembershipLoading, setDeclutterMembershipLoading] = useState(false);
+  const [imageRefreshToken, setImageRefreshToken] = useState(0);
+  const [processedPreviewUrl, setProcessedPreviewUrl] = useState('');
+  const lastImageLifecycleStatusRef = useRef('');
   const collapsedThumbUrl =
     localImage?.thumb?.url ||
     localImage?.display?.url ||
@@ -82,18 +99,18 @@ export default function ItemRow({
     localImage?.url ||
     localImagePath ||
     '';
-  const itemForView = {
-    ...item,
-    image: localImage,
-    imagePath: localImagePath,
-  };
+  const itemForView = useMemo(
+    () => ({
+      ...item,
+      image: localImage,
+      imagePath: localImagePath,
+    }),
+    [item, localImage, localImagePath]
+  );
 
   const [targetHeight, setTargetHeight] = useState(0);
   const contentRef = useRef(null);
   const itemHomeHref = _id ? getItemHomeHref(_id) : null;
-  const itemEditHref = itemHomeHref
-    ? `${itemHomeHref}${itemHomeHref.includes('?') ? '&' : '?'}mode=edit`
-    : null;
   const rowIsOpen = isOpen;
   const showExpandedMoveAction = true;
   const showItemNameLink = Boolean(itemHomeHref) && (!isMobile || rowIsOpen);
@@ -102,6 +119,71 @@ export default function ItemRow({
     onSaved,
     showToast,
     hideToast,
+  });
+  const activeDeclutterSessionCount = activeDeclutterSessions.length;
+  const declutterButtonDisabled =
+    !_id || declutterMembershipLoading || activeDeclutterSessionCount > 0;
+  const declutterButtonTitle = declutterMembershipLoading
+    ? 'Checking active declutter sessions...'
+    : activeDeclutterSessionCount > 0
+      ? `Already in active Declutter Session: ${
+          activeDeclutterSessions
+            .map((session) => session?.name || 'Declutter Session')
+            .join(', ')
+        }`
+      : 'Add this item to a Declutter Session';
+
+  const handleImageProcessingCompleted = useCallback(async ({ state } = {}) => {
+    const nextPreviewUrl = String(
+      state?.preferredImageUrl ||
+      state?.displayUrl ||
+      state?.thumbUrl ||
+      state?.processedUrl ||
+      ''
+    ).trim();
+
+    if (nextPreviewUrl) {
+      setProcessedPreviewUrl(nextPreviewUrl);
+    }
+
+    await refreshBox?.();
+    setImageRefreshToken(Date.now());
+    showToast?.({
+      variant: 'success',
+      title: 'Image processing complete',
+      message: 'Updated processed image is ready.',
+      sticky: true,
+    });
+  }, [refreshBox, showToast]);
+
+  const handleImageProcessingFailed = useCallback(({ error }) => {
+    showToast?.({
+      variant: 'danger',
+      title: 'Image processing failed',
+      message: error || 'Could not process this image.',
+      sticky: true,
+    });
+  }, [showToast]);
+
+  const {
+    processingStatus: processImageStatus,
+    processingState: processImageState,
+    processingError: processImageError,
+    jobProgressLabel: processImageProgressLabel,
+    jobProgressPercent: processImageProgressPercent,
+    jobId: processImageJobId,
+    isBusy: processImageBusy,
+    activeVariant,
+    hasProcessedVariant,
+    isSwitchingVariant,
+    variantSwitchError,
+    refreshMediaState,
+    switchActiveVariant,
+    startProcessing: startItemImageProcessing,
+  } = useItemImageProcessing({
+    itemId: _id,
+    onCompleted: handleImageProcessingCompleted,
+    onFailed: handleImageProcessingFailed,
   });
 
   // ---- measure helpers
@@ -144,10 +226,111 @@ export default function ItemRow({
   }, [_id, item?.image, item?.imagePath]);
 
   useEffect(() => {
+    setProcessedPreviewUrl('');
+    setImageRefreshToken(0);
+    lastImageLifecycleStatusRef.current = '';
+  }, [_id]);
+
+  useEffect(() => {
+    const normalizedVariant = String(processImageState?.activeVariant || '').trim().toLowerCase();
+    const nextPreviewUrl = String(
+      processImageState?.preferredImageUrl ||
+      processImageState?.displayUrl ||
+      processImageState?.thumbUrl ||
+      processImageState?.processedUrl ||
+      ''
+    ).trim();
+
+    if (normalizedVariant === 'processed' && nextPreviewUrl) {
+      setProcessedPreviewUrl((current) => (current === nextPreviewUrl ? current : nextPreviewUrl));
+      return;
+    }
+
+    if (normalizedVariant === 'original') {
+      setProcessedPreviewUrl((current) => (current ? '' : current));
+    }
+  }, [
+    processImageState?.activeVariant,
+    processImageState?.preferredImageUrl,
+    processImageState?.displayUrl,
+    processImageState?.thumbUrl,
+    processImageState?.processedUrl,
+  ]);
+
+  useEffect(() => {
+    const nextStatus = String(processImageStatus || '').trim().toLowerCase();
+    if (!isImageProcessingInFlight(nextStatus)) return;
+
+    const signature = getImageProcessingToastSignature({
+      status: nextStatus,
+      label: processImageProgressLabel,
+      progressPercent: processImageProgressPercent,
+      entityLabel: name || 'Item',
+      jobId: processImageJobId,
+    });
+    if (signature === lastImageLifecycleStatusRef.current) return;
+    lastImageLifecycleStatusRef.current = signature;
+
+    showToast?.({
+      variant: 'info',
+      title: 'Image processing',
+      message: processImageProgressLabel || 'ObjectGlow/media processing is running.',
+      content: (
+        <ImageProcessingToastContent
+          status={nextStatus}
+          label={processImageProgressLabel}
+          progressPercent={processImageProgressPercent}
+          entityLabel={name || 'Item'}
+          jobId={processImageJobId}
+        />
+      ),
+      loading: true,
+      sticky: true,
+    });
+  }, [
+    name,
+    processImageJobId,
+    processImageProgressLabel,
+    processImageProgressPercent,
+    processImageStatus,
+    showToast,
+  ]);
+
+  useEffect(() => {
     if (!rowIsOpen) {
       setExpandedMode('overview');
     }
   }, [rowIsOpen]);
+
+  useEffect(() => {
+    let alive = true;
+
+    if (!rowIsOpen || !_id) {
+      setActiveDeclutterSessions([]);
+      setDeclutterMembershipLoading(false);
+      return () => {
+        alive = false;
+      };
+    }
+
+    setDeclutterMembershipLoading(true);
+    fetchDeclutterSessionsForItem(_id, { status: 'active' })
+      .then((sessions) => {
+        if (!alive) return;
+        setActiveDeclutterSessions(Array.isArray(sessions) ? sessions : []);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setActiveDeclutterSessions([]);
+      })
+      .finally(() => {
+        if (alive) setDeclutterMembershipLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [_id, rowIsOpen]);
 
   useEffect(() => {
     setExpandedMode('overview');
@@ -195,14 +378,111 @@ export default function ItemRow({
     setExpandedMode('overview');
   }, []);
 
-  const handleEditNavigation = useCallback(
+  const handleEditModeToggle = useCallback(
     (event) => {
       event?.stopPropagation?.();
-      if (!itemEditHref) return;
-      navigate(itemEditHref);
+      if (!_id) return;
+
+      if (rowIsOpen && expandedMode === 'edit') {
+        setExpandedMode('overview');
+        return;
+      }
+
+      setExpandedMode('edit');
+      if (!rowIsOpen) {
+        onOpen?.(_id);
+      }
     },
-    [itemEditHref, navigate]
+    [_id, expandedMode, onOpen, rowIsOpen]
   );
+
+  const handleInlineEditSaved = useCallback(
+    (updated) => {
+      if (updated && typeof updated === 'object') {
+        setLocalImage(updated?.image || null);
+        setLocalImagePath(updated?.imagePath || '');
+        onSaved?.(updated);
+      }
+
+      void refreshBox?.();
+    },
+    [onSaved, refreshBox]
+  );
+
+  const handleInlineImageUpdated = useCallback(
+    ({ image, imagePath } = {}) => {
+      setProcessedPreviewUrl('');
+      setLocalImage(image || null);
+      setLocalImagePath(imagePath || '');
+      void refreshBox?.();
+      void refreshMediaState().catch(() => {
+        // Media state may not exist yet after image mutation.
+      });
+    },
+    [refreshBox, refreshMediaState]
+  );
+
+  const handleProcessItemImage = useCallback(async (renderTokens) => {
+    try {
+      const queued = await startItemImageProcessing({ renderTokens });
+      showToast?.({
+        variant: 'info',
+        title: 'Image processing queued',
+        message: queued?.jobId
+          ? `Queued job ${queued.jobId}.`
+          : 'Image processing request accepted.',
+        sticky: true,
+      });
+      return queued;
+    } catch (error) {
+      showToast?.({
+        variant: 'danger',
+        title: 'Image processing start failed',
+        message: error?.message || 'Failed to enqueue image processing.',
+        sticky: true,
+      });
+      throw error;
+    }
+  }, [showToast, startItemImageProcessing]);
+
+  const handleSwitchItemVariant = useCallback(async (nextVariant) => {
+    try {
+      const updatedState = await switchActiveVariant(nextVariant);
+      const latestState = updatedState || await refreshMediaState().catch(() => null);
+      const normalizedVariant = String(
+        latestState?.activeVariant || nextVariant || ''
+      ).trim().toLowerCase();
+      const nextPreviewUrl = String(
+        latestState?.preferredImageUrl ||
+        latestState?.displayUrl ||
+        latestState?.thumbUrl ||
+        latestState?.processedUrl ||
+        ''
+      ).trim();
+
+      setProcessedPreviewUrl(normalizedVariant === 'processed' ? (nextPreviewUrl || '') : '');
+
+      await refreshBox?.();
+      setImageRefreshToken(Date.now());
+
+      showToast?.({
+        variant: 'success',
+        title: 'Active variant updated',
+        message: `Switched to ${nextVariant} variant.`,
+        timeoutMs: 3000,
+      });
+
+      return latestState;
+    } catch (error) {
+      showToast?.({
+        variant: 'danger',
+        title: 'Variant switch failed',
+        message: error?.message || 'Could not switch active variant.',
+        timeoutMs: 5000,
+      });
+      throw error;
+    }
+  }, [refreshBox, refreshMediaState, showToast, switchActiveVariant]);
 
   const handleMoveToSelectedBox = useCallback(
     async ({
@@ -289,6 +569,48 @@ export default function ItemRow({
     ]
   );
 
+  const handleAddToDeclutterSession = useCallback(
+    (event) => {
+      event?.stopPropagation?.();
+      if (!_id) return;
+
+      showToast?.({
+        variant: 'info',
+        sticky: true,
+        title: 'Add to Declutter Session',
+        message: `Choose a review queue for "${name || 'item'}".`,
+        content: (
+          <AddItemToDeclutterSessionToastContent
+            itemId={_id}
+            itemName={name || 'Item'}
+            onCancel={() => hideToast?.()}
+            onAdded={({ message, sessionId, sessionName }) => {
+              setActiveDeclutterSessions((current) =>
+                current.length
+                  ? current
+                  : [
+                      {
+                        id: sessionId || 'active',
+                        name: sessionName || 'Declutter Session',
+                      },
+                    ]
+              );
+              hideToast?.();
+              showToast?.({
+                variant: 'success',
+                title: 'Review queue updated',
+                message,
+                timeoutMs: 3600,
+              });
+            }}
+          />
+        ),
+        onClose: () => hideToast?.(),
+      });
+    },
+    [_id, hideToast, name, showToast]
+  );
+
   return (
     <S.Wrapper
       $accent={accent}
@@ -324,6 +646,9 @@ export default function ItemRow({
               ) : (
                 <S.Title $mobileCollapsed={!rowIsOpen}>{name}</S.Title>
               )}
+              {!rowIsOpen && quantityLabel ? (
+                <S.QuantitySubtext>{quantityLabel}</S.QuantitySubtext>
+              ) : null}
             </S.TitleGroup>
           </S.RowMain>
 
@@ -380,15 +705,14 @@ export default function ItemRow({
             {expandedMode !== 'move' && (
               <S.ExpandedActionStrip>
                 <S.ExpandedActionCluster>
-                  {itemEditHref ? (
-                    <S.QuickActionButton
-                      type="button"
-                      $tone="edit"
-                      onClick={handleEditNavigation}
-                    >
-                      Edit
-                    </S.QuickActionButton>
-                  ) : null}
+                  <S.QuickActionButton
+                    type="button"
+                    $tone="edit"
+                    $active={expandedMode === 'edit'}
+                    onClick={handleEditModeToggle}
+                  >
+                    {expandedMode === 'edit' ? 'View' : 'Edit'}
+                  </S.QuickActionButton>
                   {showExpandedMoveAction ? (
                     <S.QuickActionButton
                       type="button"
@@ -409,6 +733,15 @@ export default function ItemRow({
                       {action.label}
                     </S.QuickActionButton>
                   ))}
+                  <S.QuickActionButton
+                    type="button"
+                    $tone="declutter"
+                    disabled={declutterButtonDisabled}
+                    title={declutterButtonTitle}
+                    onClick={handleAddToDeclutterSession}
+                  >
+                    Declutter
+                  </S.QuickActionButton>
                 </S.ExpandedActionCluster>
               </S.ExpandedActionStrip>
             )}
@@ -433,12 +766,49 @@ export default function ItemRow({
                   onBoxSelected={handleMoveToSelectedBox}
                 />
               </S.MoveWorkspace>
+            ) : expandedMode === 'edit' ? (
+              <S.EditWorkspace>
+                <S.MoveWorkspaceHeader>
+                  <S.MoveWorkspaceTitle>
+                    Editing {name || '(Unnamed Item)'}
+                  </S.MoveWorkspaceTitle>
+                  <S.MoveWorkspaceClose
+                    type="button"
+                    onClick={() => setExpandedMode('overview')}
+                  >
+                    View
+                  </S.MoveWorkspaceClose>
+                </S.MoveWorkspaceHeader>
+                <EditItemDetailsForm
+                  item={itemForView}
+                  triggerFlash={triggerFlash}
+                  onItemImageUpdated={handleInlineImageUpdated}
+                  onProcessImage={handleProcessItemImage}
+                  processImageStatus={processImageStatus}
+                  processImageBusy={processImageBusy}
+                  processImageError={processImageError}
+                  processImageProgressLabel={processImageProgressLabel}
+                  processImageProgressPercent={processImageProgressPercent}
+                  persistedRenderTokens={processImageState?.renderTokens || null}
+                  activeVariant={activeVariant}
+                  hasProcessedVariant={hasProcessedVariant}
+                  onSwitchActiveVariant={handleSwitchItemVariant}
+                  switchVariantBusy={isSwitchingVariant}
+                  switchVariantError={variantSwitchError}
+                  processedPreviewUrl={processedPreviewUrl}
+                  imageRefreshToken={imageRefreshToken}
+                  onCancel={() => setExpandedMode('overview')}
+                  onSaved={handleInlineEditSaved}
+                />
+              </S.EditWorkspace>
             ) : (
               <ItemDetails
                 itemId={_id}
                 itemData={itemForView}
                 enableImageLightbox
                 variant="operationsOverview"
+                imageUrlOverride={processedPreviewUrl}
+                imageRefreshToken={imageRefreshToken}
               />
             )}
           </S.DetailsCard>

@@ -17,7 +17,7 @@ const Bar = styled.div`
     }
   }
   @media (min-width: 640px) {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 10px;
   }
   margin: 12px 0;
@@ -113,8 +113,8 @@ const DangerBtn = styled(Btn)`
 
 /*
  * Props:
- * - active: null | 'empty' | 'nest' | 'edit' | 'export' | 'destroy'
- * - onClickEmpty, onClickNest, onClickEdit, onClickExport, onClickDestroy
+ * - active: null | 'empty' | 'nest' | 'export' | 'destroy'
+ * - onClickEmpty, onClickNest, onClickExport, onClickDestroy
  * - busy?: boolean
  */
 
@@ -122,7 +122,6 @@ export default function BoxControlBar({
   active,
   onClickEmpty,
   onClickNest,
-  onClickEdit,
   onClickExport,
   onClickDestroy,
   busy = false,
@@ -151,18 +150,6 @@ export default function BoxControlBar({
         title="Nest in another box"
       >
         Nest in another box
-      </Btn>
-
-      <Btn
-        type="button"
-        disabled={busy || !onClickEdit}
-        onClick={onClickEdit}
-        $active={active === 'edit'}
-        aria-pressed={active === 'edit'}
-        aria-label="Edit box details"
-        title="Edit box details"
-      >
-        Edit details
       </Btn>
 
       <Btn

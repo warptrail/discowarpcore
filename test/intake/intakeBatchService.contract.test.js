@@ -22,11 +22,32 @@ function createInMemoryBatchModel() {
     return String(filter?.['identity.batchId'] || '').trim();
   }
 
+  function findRecordByFilter(filter = {}) {
+    if (Array.isArray(filter?.$or)) {
+      for (const clause of filter.$or) {
+        const match = findRecordByFilter(clause);
+        if (match) return match;
+      }
+      return null;
+    }
+
+    const batchId = getBatchIdFromFilter(filter);
+    if (batchId && records.has(batchId)) {
+      return records.get(batchId);
+    }
+
+    const objectId = String(filter?._id || '').trim();
+    if (objectId) {
+      return Array.from(records.values()).find((record) => String(record?._id || '') === objectId) || null;
+    }
+
+    return null;
+  }
+
   return {
     async findOne(filter = {}) {
-      const batchId = getBatchIdFromFilter(filter);
-      if (!batchId || !records.has(batchId)) return null;
-      return clone(records.get(batchId));
+      const record = findRecordByFilter(filter);
+      return record ? clone(record) : null;
     },
     async find() {
       return Array.from(records.values()).map((entry) => clone(entry));
@@ -279,6 +300,35 @@ test('createIntakeBatch captures durable source filename provenance', async (t) 
   assert.equal(batch.importStatus, 'not_imported');
 });
 
+test('updateIntakeBatchName persists renamed batch label', async (t) => {
+  intakeBatchService.__resetIntakeBatchServiceHandlersForTests();
+  await withExternalIntakeRoot(t);
+  intakeBatchService.__setIntakeBatchServiceHandlersForTests({
+    batchModel: createInMemoryBatchModel(),
+  });
+  t.after(() => intakeBatchService.__resetIntakeBatchServiceHandlersForTests());
+
+  const batch = await intakeBatchService.createIntakeBatch({
+    name: 'simple',
+  });
+  t.after(async () => {
+    await fs.rm(batch.batchDir, { recursive: true, force: true });
+  });
+
+  const renamed = await intakeBatchService.updateIntakeBatchName(batch.batchId, {
+    name: 'Astrometrics shelf',
+  });
+  const reloaded = await intakeBatchService.getIntakeBatchById(batch.batchId);
+
+  assert.equal(renamed.name, 'Astrometrics shelf');
+  assert.equal(renamed.batchName, 'Astrometrics shelf');
+  assert.equal(reloaded.name, 'Astrometrics shelf');
+  await assert.rejects(
+    () => intakeBatchService.updateIntakeBatchName(batch.batchId, { name: '   ' }),
+    /Batch name is required/
+  );
+});
+
 test('validateIntakeBatch passes with JSON and CSV only while treating images as optional', async (t) => {
   intakeBatchService.__resetIntakeBatchServiceHandlersForTests();
   intakeBatchService.__setIntakeBatchServiceHandlersForTests({
@@ -462,6 +512,37 @@ test('getIntakeBatchById normalizes legacy flat batch state for backward compati
   assert.equal(batch.validation.ok, true);
   assert.equal(batch.importSnapshot.createdItemCount, 3);
   assert.deepEqual(batch.importSnapshot.importedItemIds, ['item_1', 'item_2', 'item_3']);
+});
+
+test('getIntakeBatchById accepts a Mongo batch record id for imported item source links', async (t) => {
+  intakeBatchService.__resetIntakeBatchServiceHandlersForTests();
+  await withExternalIntakeRoot(t);
+  const batchModel = createInMemoryBatchModel();
+  intakeBatchService.__setIntakeBatchServiceHandlersForTests({
+    batchModel,
+  });
+  t.after(() => intakeBatchService.__resetIntakeBatchServiceHandlersForTests());
+
+  const batch = await intakeBatchService.createIntakeBatch({
+    name: 'source-link-batch',
+  });
+  const mongoRecordId = '6600000000000000000000aa';
+  await batchModel.findOneAndUpdate(
+    { 'identity.batchId': batch.batchId },
+    {
+      $set: {
+        ...batchModel.__getRecord(batch.batchId),
+        _id: mongoRecordId,
+      },
+    },
+    { new: true, upsert: true }
+  );
+
+  const resolved = await intakeBatchService.getIntakeBatchById(mongoRecordId);
+
+  assert.equal(resolved.databaseId, mongoRecordId);
+  assert.equal(resolved.batchId, batch.batchId);
+  assert.equal(resolved.batchName, 'source-link-batch');
 });
 
 test('deleteIntakeBatch archives the batch record and removes it from active listings', async (t) => {
@@ -959,7 +1040,6 @@ test('processIntakeBatchSelectedItems queues only eligible imported items and pr
     mode: 'explicit',
     background: 'midnight',
     glow: 'arc',
-    accent: 'cyanCore',
   });
   assert.deepEqual(observedQueueRequests, [{
     mediaId: 'media-1',
@@ -967,7 +1047,6 @@ test('processIntakeBatchSelectedItems queues only eligible imported items and pr
       mode: 'explicit',
       background: 'midnight',
       glow: 'arc',
-      accent: 'cyanCore',
     },
     context: {
       batchId: path.basename(batchDir),
@@ -1138,38 +1217,7 @@ test('ingestIntakeBatchPackage creates, validates, imports, and returns receipt 
   assert.match(String(receivedSourceBatchId || ''), /^batch_record_/);
 });
 
-test('ingestIntakeBatchPackageArchiveFromFile stages the real sample zip fixture', async (t) => {
-  intakeBatchService.__resetIntakeBatchServiceHandlersForTests();
-  await withExternalIntakeRoot(t);
-  intakeBatchService.__setIntakeBatchServiceHandlersForTests({
-    batchModel: createInMemoryBatchModel(),
-  });
-  t.after(() => intakeBatchService.__resetIntakeBatchServiceHandlersForTests());
-
-  const sampleZipPath = path.resolve(
-    process.cwd(),
-    'test/2026-04-03_1751_garage-shelf-pass.zip'
-  );
-
-  const result = await intakeBatchService.ingestIntakeBatchPackageArchiveFromFile(sampleZipPath, {
-    originalPackageFilename: '2026-04-03_1751_garage-shelf-pass.zip',
-  });
-
-  assert.equal(result.ok, true);
-  assert.equal(result.requiredAssetsFound, true);
-  assert.equal(result.batch.packageSnapshot.originalPackageFilename, '2026-04-03_1751_garage-shelf-pass.zip');
-  assert.equal(result.batch.packageSnapshot.manifest.app, 'discowarpcore');
-  assert.equal(result.batch.packageSnapshot.structureSummary.hasManifest, true);
-  assert.equal(result.batch.packageSnapshot.structureSummary.hasAiJson, true);
-  assert.equal(result.batch.packageSnapshot.structureSummary.hasMappingCsv, true);
-  assert.equal(result.batch.packageSnapshot.structureSummary.imageCount, 12);
-  assert.equal(result.batch.sourceManifest.aiJsonOriginalFilename, 'batch_1_AI.json');
-  assert.equal(result.batch.sourceManifest.mappingCsvOriginalFilename, 'image_order.csv');
-  assert.equal(result.batch.imagesIncluded, true);
-  assert.equal(result.nextStepSuggestion, 'Package staged successfully. Validate the batch before import.');
-});
-
-test('ingestIntakeBatchPackageArchiveFromFile accepts staged bundle manifest/import_ready/raw_images layout', async (t) => {
+test('ingestIntakeBatchPackageArchiveFromFile stages batch_manifest package', async (t) => {
   intakeBatchService.__resetIntakeBatchServiceHandlersForTests();
   await withExternalIntakeRoot(t);
   intakeBatchService.__setIntakeBatchServiceHandlersForTests({
@@ -1178,87 +1226,43 @@ test('ingestIntakeBatchPackageArchiveFromFile accepts staged bundle manifest/imp
   t.after(() => intakeBatchService.__resetIntakeBatchServiceHandlersForTests());
 
   const fixtureDir = await createTempDir(t, 'dwc-package-fixture-');
-  const rawImagesDir = path.join(fixtureDir, 'raw_images');
-  await fs.mkdir(rawImagesDir, { recursive: true });
-
+  const imagesDir = path.join(fixtureDir, 'images');
+  await fs.mkdir(imagesDir, { recursive: true });
+  await fs.writeFile(path.join(imagesDir, 'IMG_1001.jpg'), 'img-1', 'utf8');
+  await fs.writeFile(path.join(imagesDir, 'IMG_1002.jpg'), 'img-2', 'utf8');
   await fs.writeFile(
-    path.join(fixtureDir, 'manifest.json'),
+    path.join(fixtureDir, 'batch_manifest.json'),
     JSON.stringify({
-      batchId: '2026-04-04_garage-shelf-1',
-      displayName: 'garage shelf 1',
-      createdAt: '2026-04-04T12:00:00.000Z',
-      updatedAt: '2026-04-04T12:00:05.000Z',
-      sourceImages: [
-        { index: 1, filename: 'IMG_1001.jpg', originalFilename: 'IMG_1001.jpg' },
-        { index: 2, filename: 'IMG_1002.jpg', originalFilename: 'IMG_1002.jpg' },
+      packageVersion: 2,
+      app: 'discowarpcore',
+      batchLabel: 'garage shelf 1',
+      target: {
+        location: 'garage',
+        box: '701',
+      },
+      items: [
+        {
+          imageFile: 'IMG_1001.jpg',
+          imageKey: 'IMG_1001',
+          name: 'Lamp',
+          description: 'desk lamp',
+          category: 'miscellaneous',
+          tags: [],
+          quantity: 1,
+        },
+        {
+          imageFile: 'IMG_1002.jpg',
+          imageKey: 'IMG_1002',
+          name: 'Cable',
+          description: 'coiled cable',
+          category: 'electronics',
+          tags: ['cable'],
+          quantity: 1,
+        },
       ],
-      status: {
-        imagesAdded: true,
-        collageGenerated: true,
-        jsonCaptured: true,
-        validated: true,
-        built: true,
-        shipped: false,
-      },
-      artifacts: {
-        collageImage: 'collage.jpg',
-        orderCsv: 'order.csv',
-        collageManifest: 'collage_manifest.json',
-        importReady: 'import_ready.json',
-        uploadBundle: 'garage-shelf-1.zip',
-      },
     }),
     'utf8'
   );
-  await fs.writeFile(
-    path.join(fixtureDir, 'ai_intake.json'),
-    JSON.stringify({
-      batchContext: { source: 'ai_json_import' },
-      items: [{ name: 'Lamp', category: 'household', notes: 'top shelf' }],
-    }),
-    'utf8'
-  );
-  await fs.writeFile(
-    path.join(fixtureDir, 'import_ready.json'),
-    JSON.stringify({
-      batchContext: {
-        location: 'garage',
-        box: '701',
-        source: 'ai_json_import',
-        itemCount: 1,
-      },
-      items: [{
-        index: 0,
-        name: 'Lamp',
-        description: 'desk lamp',
-        category: 'miscellaneous',
-        tags: [],
-        quantity: 1,
-        imageKey: 'IMG_1001',
-        location: 'garage',
-        box: '701',
-      }],
-    }),
-    'utf8'
-  );
-  await fs.writeFile(
-    path.join(fixtureDir, 'collage_manifest.json'),
-    JSON.stringify({
-      version: 1,
-      outputImage: 'collage.jpg',
-      outputCsv: 'order.csv',
-      outputJson: 'import_ready.json',
-      imageCount: 2,
-    }),
-    'utf8'
-  );
-  await fs.writeFile(
-    path.join(fixtureDir, 'order.csv'),
-    'index,file_name\n1,IMG_1001.jpg\n2,IMG_1002.jpg\n',
-    'utf8'
-  );
-  await fs.writeFile(path.join(rawImagesDir, 'IMG_1001.jpg'), 'img-1', 'utf8');
-  await fs.writeFile(path.join(rawImagesDir, 'IMG_1002.jpg'), 'img-2', 'utf8');
 
   const zipDir = await createTempDir(t, 'dwc-package-zip-');
   const zipPath = path.join(zipDir, 'garage-shelf-1.zip');
@@ -1270,15 +1274,122 @@ test('ingestIntakeBatchPackageArchiveFromFile accepts staged bundle manifest/imp
 
   assert.equal(result.ok, true);
   assert.equal(result.requiredAssetsFound, true);
-  assert.equal(result.batch.batchName, 'garage shelf 1');
   assert.equal(result.batch.packageSnapshot.originalPackageFilename, 'garage-shelf-1.zip');
+  assert.equal(result.batch.packageSnapshot.manifest.app, 'discowarpcore');
+  assert.equal(result.batch.packageSnapshot.manifest.packageVersion, 1);
+  assert.equal(result.batch.packageSnapshot.structureSummary.hasBatchManifest, true);
   assert.equal(result.batch.packageSnapshot.structureSummary.hasManifest, true);
-  assert.equal(result.batch.packageSnapshot.structureSummary.hasImportReadyJson, true);
-  assert.equal(result.batch.packageSnapshot.structureSummary.hasCollageManifestJson, true);
-  assert.equal(result.batch.packageSnapshot.structureSummary.mappingCsvFile, 'order.csv');
-  assert.equal(result.batch.packageSnapshot.structureSummary.imagesDir, 'raw_images');
+  assert.equal(result.batch.packageSnapshot.structureSummary.hasAiJson, true);
+  assert.equal(result.batch.packageSnapshot.structureSummary.hasMappingCsv, true);
   assert.equal(result.batch.packageSnapshot.structureSummary.imageCount, 2);
-  assert.equal(result.batch.sourceManifest.aiJsonOriginalFilename, 'import_ready.json');
-  assert.equal(result.batch.sourceManifest.mappingCsvOriginalFilename, 'order.csv');
+  assert.equal(result.batch.sourceManifest.aiJsonOriginalFilename, 'ai_intake.json');
+  assert.equal(result.batch.sourceManifest.mappingCsvOriginalFilename, 'image_mapping.csv');
   assert.equal(result.batch.imagesIncluded, true);
+  assert.equal(result.nextStepSuggestion, 'Package staged successfully. Validate the batch before import.');
+});
+
+test('batch_manifest package without destination requires explicit destination review', async (t) => {
+  intakeBatchService.__resetIntakeBatchServiceHandlersForTests();
+  await withExternalIntakeRoot(t);
+  intakeBatchService.__setIntakeBatchServiceHandlersForTests({
+    batchModel: createInMemoryBatchModel(),
+  });
+  t.after(() => intakeBatchService.__resetIntakeBatchServiceHandlersForTests());
+
+  const fixtureDir = await createTempDir(t, 'dwc-package-fixture-');
+  const imagesDir = path.join(fixtureDir, 'images');
+  await fs.mkdir(imagesDir, { recursive: true });
+  await fs.writeFile(path.join(imagesDir, 'IMG_2001.jpg'), 'img-1', 'utf8');
+  await fs.writeFile(
+    path.join(fixtureDir, 'batch_manifest.json'),
+    JSON.stringify({
+      packageVersion: 2,
+      app: 'discowarpcore',
+      batchLabel: 'garage unknowns',
+      items: [
+        {
+          imageFile: 'IMG_2001.jpg',
+          imageKey: 'IMG_2001',
+          name: 'Unknown cable',
+          category: 'electronics',
+          quantity: 1,
+        },
+      ],
+    }),
+    'utf8'
+  );
+
+  const zipDir = await createTempDir(t, 'dwc-package-zip-');
+  const zipPath = path.join(zipDir, 'garage-unknowns.zip');
+  await createZipFromDir(fixtureDir, zipPath);
+
+  const result = await intakeBatchService.ingestIntakeBatchPackageArchiveFromFile(zipPath, {
+    originalPackageFilename: 'garage-unknowns.zip',
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.batch.destinationDefaults.reviewRequired, true);
+  await assert.rejects(
+    () => intakeBatchService.validateIntakeBatch(result.batch.batchId),
+    /destination must be reviewed/i
+  );
+
+  const reviewedBatch = await intakeBatchService.updateIntakeBatchDestination(result.batch.batchId, {
+    location: '',
+    box: '',
+  });
+  assert.equal(reviewedBatch.destinationDefaults.reviewed, true);
+  assert.equal(reviewedBatch.destinationDefaults.reviewRequired, false);
+  assert.equal(reviewedBatch.destinationDefaults.location, '');
+  assert.equal(reviewedBatch.destinationDefaults.box, '');
+
+  const validation = await intakeBatchService.validateIntakeBatch(result.batch.batchId);
+  assert.equal(validation.batch.validationStatus, 'passed');
+});
+
+test('ingestIntakeBatchPackageArchiveFromFile rejects obsolete three-file package layout', async (t) => {
+  intakeBatchService.__resetIntakeBatchServiceHandlersForTests();
+  await withExternalIntakeRoot(t);
+  intakeBatchService.__setIntakeBatchServiceHandlersForTests({
+    batchModel: createInMemoryBatchModel(),
+  });
+  t.after(() => intakeBatchService.__resetIntakeBatchServiceHandlersForTests());
+
+  const fixtureDir = await createTempDir(t, 'dwc-package-fixture-');
+  const imagesDir = path.join(fixtureDir, 'images');
+  await fs.mkdir(imagesDir, { recursive: true });
+  await fs.writeFile(
+    path.join(fixtureDir, 'manifest.json'),
+    JSON.stringify({
+      packageVersion: 1,
+      app: 'discowarpcore',
+      batchLabel: 'obsolete package',
+      files: { aiIntakeJson: 'ai_intake.json', imageMappingCsv: 'image_mapping.csv', imagesDir: 'images' },
+    }),
+    'utf8'
+  );
+  await fs.writeFile(
+    path.join(fixtureDir, 'ai_intake.json'),
+    JSON.stringify({
+      batchContext: { source: 'ai_json_import' },
+      items: [{ name: 'Lamp', category: 'household', notes: 'top shelf' }],
+    }),
+    'utf8'
+  );
+  await fs.writeFile(path.join(fixtureDir, 'image_mapping.csv'), 'index,file_name\n1,IMG_1001.jpg\n', 'utf8');
+  await fs.writeFile(path.join(imagesDir, 'IMG_1001.jpg'), 'img-1', 'utf8');
+
+  const zipDir = await createTempDir(t, 'dwc-package-zip-');
+  const zipPath = path.join(zipDir, 'obsolete-package.zip');
+  await createZipFromDir(fixtureDir, zipPath);
+
+  const result = await intakeBatchService.ingestIntakeBatchPackageArchiveFromFile(zipPath, {
+    originalPackageFilename: 'obsolete-package.zip',
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.requiredAssetsFound, false);
+  assert.equal(result.packageStructureSummary.hasBatchManifest, false);
+  assert.match(result.errors.join(' '), /batch_manifest\.json/);
+  assert.match(result.errors.join(' '), /Obsolete package files/);
 });

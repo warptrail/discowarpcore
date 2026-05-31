@@ -1,12 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
-import {
-  MOBILE_BREAKPOINT,
-  MOBILE_CONTROL_MIN_HEIGHT,
-  MOBILE_FONT_SM,
-} from '../../styles/tokens';
-import BulkImportTextPanel from './BulkImportTextPanel';
 import BulkImportAiJsonPanel from './BulkImportAiJsonPanel';
 
 const Wrap = styled.div`
@@ -36,55 +30,9 @@ const IntroText = styled.p`
   line-height: 1.45;
 `;
 
-const TabRow = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.52rem;
-`;
-
-const TabButton = styled.button`
-  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-  border-radius: 11px;
-  border: 1px solid
-    ${({ $active }) =>
-      $active ? 'rgba(106, 177, 225, 0.86)' : 'rgba(95, 145, 182, 0.56)'};
-  background: ${({ $active }) =>
-    $active
-      ? 'linear-gradient(180deg, rgba(24, 66, 94, 0.96) 0%, rgba(16, 44, 65, 0.96) 100%)'
-      : 'linear-gradient(180deg, rgba(14, 27, 40, 0.95) 0%, rgba(10, 20, 31, 0.96) 100%)'};
-  color: ${({ $active }) => ($active ? '#e5f4ff' : '#a8c0d8')};
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  font-weight: ${({ $active }) => ($active ? 800 : 700)};
-  cursor: pointer;
-
-  &:disabled {
-    opacity: 0.58;
-    cursor: not-allowed;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${MOBILE_FONT_SM};
-  }
-`;
-
-const TabSubtext = styled.div`
-  min-height: 1rem;
-  font-size: 0.76rem;
-  color: #a6c0d8;
-`;
-
 export default function BulkImportPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const linkedBatchId = String(searchParams.get('batch') || '').trim();
-  const [activeTab, setActiveTab] = useState('ai');
-
-  useEffect(() => {
-    if (linkedBatchId) {
-      setActiveTab('ai');
-    }
-  }, [linkedBatchId]);
 
   const syncBatchParam = useCallback((nextBatchId) => {
     const normalizedBatchId = String(nextBatchId || '').trim();
@@ -110,55 +58,25 @@ export default function BulkImportPage() {
     }, { replace: true });
   }, [setSearchParams]);
 
-  const tabSubtext = useMemo(() => {
-    if (activeTab === 'ai') {
-      return 'AI JSON mode now runs as a simple sequence: upload one batch zip, stage it, validate it, then import it.';
-    }
-    return 'Text mode imports one item name per line exactly as before.';
-  }, [activeTab]);
-
   return (
     <Wrap>
       <Intro>
-        <Title>Bulk Import</Title>
+        <Title>AI Bulk Import</Title>
         <IntroText>
-          Choose a mode: plain-text item names or AI JSON intake/import.
-          All modes import into the existing item system and preserve the current app contracts.
+          Upload one AI-assisted intake package, validate its JSON manifest against the current
+          item schema, then import it into the existing item system.
+        </IntroText>
+        <IntroText>
+          For local AI-assisted capture, use <code>npm run intake:tui</code>. This screen remains
+          available for manual upload, recovery, provenance review, and fallback imports.
         </IntroText>
       </Intro>
 
-      <TabRow role="tablist" aria-label="Import mode">
-        <TabButton
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'text'}
-          $active={activeTab === 'text'}
-          onClick={() => setActiveTab('text')}
-        >
-          Text Import
-        </TabButton>
-        <TabButton
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'ai'}
-          $active={activeTab === 'ai'}
-          onClick={() => setActiveTab('ai')}
-        >
-          AI JSON Import
-        </TabButton>
-      </TabRow>
-
-      <TabSubtext>{tabSubtext}</TabSubtext>
-
-      {activeTab === 'text' ? (
-        <BulkImportTextPanel />
-      ) : (
-        <BulkImportAiJsonPanel
-          selectedBatchIdOverride={linkedBatchId}
-          onSelectedBatchIdChange={syncBatchParam}
-          onSelectedBatchIdInvalid={clearInvalidBatchParam}
-        />
-      )}
+      <BulkImportAiJsonPanel
+        selectedBatchIdOverride={linkedBatchId}
+        onSelectedBatchIdChange={syncBatchParam}
+        onSelectedBatchIdInvalid={clearInvalidBatchParam}
+      />
     </Wrap>
   );
 }

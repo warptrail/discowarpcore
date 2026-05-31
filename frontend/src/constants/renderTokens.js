@@ -13,7 +13,7 @@ function pickDefaultToken(tokens, preferred) {
   return tokens[0] || '';
 }
 
-function formatTokenLabel(tokenId) {
+export function formatTokenLabel(tokenId) {
   const normalized = toTrimmed(tokenId);
   if (!normalized) return '';
 
@@ -46,9 +46,6 @@ const BACKGROUND_TOKEN_KEYS = Object.freeze(
 const GLOW_TOKEN_KEYS = Object.freeze(
   Array.isArray(RENDER_TOKEN_KEYS?.glows) ? [...RENDER_TOKEN_KEYS.glows] : []
 );
-const ACCENT_TOKEN_KEYS = Object.freeze(
-  Array.isArray(RENDER_TOKEN_KEYS?.accents) ? [...RENDER_TOKEN_KEYS.accents] : []
-);
 const RENDER_TOKEN_MODES = Object.freeze(['explicit', 'random']);
 
 function normalizeRenderTokenMode(value, fallback = 'explicit') {
@@ -66,13 +63,11 @@ export const DEFAULT_RENDER_TOKENS = Object.freeze({
   mode: 'explicit',
   background: pickDefaultToken(BACKGROUND_TOKEN_KEYS, 'midnight'),
   glow: pickDefaultToken(GLOW_TOKEN_KEYS, 'standard'),
-  accent: pickDefaultToken(ACCENT_TOKEN_KEYS, 'cyanCore'),
 });
 
 export const RENDER_TOKEN_OPTIONS = Object.freeze({
   background: createTokenOptions(BACKGROUND_TOKEN_KEYS),
   glow: createTokenOptions(GLOW_TOKEN_KEYS),
-  accent: createTokenOptions(ACCENT_TOKEN_KEYS),
 });
 
 function resolveTokenValue(rawValue, allowedTokens, fallbackValue) {
@@ -105,11 +100,6 @@ export function normalizeRenderTokens(renderTokens, fallbackTokens = DEFAULT_REN
       GLOW_TOKEN_KEYS,
       fallback.glow || DEFAULT_RENDER_TOKENS.glow
     ),
-    accent: resolveTokenValue(
-      renderTokens?.accent,
-      ACCENT_TOKEN_KEYS,
-      fallback.accent || DEFAULT_RENDER_TOKENS.accent
-    ),
   };
 }
 
@@ -119,8 +109,7 @@ export function hasProvidedRenderTokens(renderTokens) {
 
   return Boolean(
     toTrimmed(renderTokens.background) ||
-    toTrimmed(renderTokens.glow) ||
-    toTrimmed(renderTokens.accent)
+    toTrimmed(renderTokens.glow)
   );
 }
 
@@ -130,6 +119,5 @@ export function formatRenderTokenSummary(renderTokens) {
     `Mode: ${normalized.mode === 'random' ? 'Random' : 'Explicit'}`,
     `Background: ${formatTokenLabel(normalized.background)}`,
     `Glow: ${formatTokenLabel(normalized.glow)}`,
-    `Accent: ${formatTokenLabel(normalized.accent)}`,
   ].join(' | ');
 }

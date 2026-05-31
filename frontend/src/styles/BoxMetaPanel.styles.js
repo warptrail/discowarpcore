@@ -102,7 +102,7 @@ export const SummaryGrid = styled.div`
 
 export const SummaryInfo = styled.div`
   display: grid;
-  gap: 9px;
+  gap: 10px;
   min-width: 0;
 
   @media (min-width: ${DESKTOP_SUMMARY_BREAKPOINT}) {
@@ -120,6 +120,19 @@ export const IdentityHeader = styled.div`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     flex-wrap: wrap;
     gap: 6px;
+  }
+`;
+
+export const IdentityActions = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 7px;
+    margin-left: auto;
   }
 `;
 
@@ -172,6 +185,50 @@ export const DepthHint = styled.span`
   }
 `;
 
+export const EditBoxButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 7px 13px;
+  border-radius: 9px;
+  border: 1px solid ${LCARS.teal}7a;
+  background: linear-gradient(110deg, ${LCARS.teal}2e, ${LCARS.lilac}1f),
+    ${LCARS.panelSoft};
+  color: ${LCARS.text};
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045);
+  transition: border-color ${FAST}, background ${FAST}, transform ${FAST},
+    box-shadow ${FAST};
+
+  &:hover {
+    border-color: ${LCARS.teal};
+    background: linear-gradient(110deg, ${LCARS.teal}42, ${LCARS.lilac}2b),
+      ${LCARS.panelSoft};
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.055),
+      0 0 12px ${LCARS.teal}26;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 31px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.04em;
+  }
+`;
+
 export const CurrentBox = styled.div`
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -182,9 +239,15 @@ export const CurrentBox = styled.div`
   border: 1px solid ${LCARS.teal}52;
   border-radius: ${NODE_RADIUS};
   color: ${LCARS.text};
-  background: linear-gradient(105deg, ${LCARS.teal}26, transparent 58%),
+  background: linear-gradient(
+      105deg,
+      ${LCARS.teal}2b,
+      rgba(167, 182, 255, 0.08) 48%,
+      transparent 72%
+    ),
     ${LCARS.panelSoft};
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045),
+    0 10px 22px rgba(0, 0, 0, 0.16);
   cursor: default;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -494,38 +557,61 @@ export const MetaZone = styled.div`
   border-bottom: 1px solid ${LCARS.line};
 `;
 
-export const DesktopSummaryMeta = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 7px 10px;
-  border: 1px solid ${LCARS.line};
-  border-radius: 10px;
-  background: linear-gradient(96deg, rgba(76, 198, 193, 0.11), transparent 58%),
+export const NotesZone = styled.section`
+  position: relative;
+  display: grid;
+  gap: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(232, 177, 92, 0.38);
+  border-radius: 12px;
+  background: linear-gradient(
+      135deg,
+      rgba(232, 177, 92, 0.18),
+      rgba(76, 198, 193, 0.08) 54%,
+      rgba(167, 182, 255, 0.08)
+    ),
     ${LCARS.panelSoft};
+  padding: 11px 13px 12px 15px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 12px 26px rgba(0, 0, 0, 0.2);
+
+  &:before {
+    content: '';
+    position: absolute;
+    inset: 10px auto 10px 0;
+    width: 3px;
+    border-radius: 0 999px 999px 0;
+    background: linear-gradient(180deg, ${LCARS.amber}, ${LCARS.teal});
+    box-shadow: 0 0 16px rgba(232, 177, 92, 0.34);
+  }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 5px;
+    gap: 7px;
+    padding: 10px 11px 11px 13px;
+    border-radius: 10px;
   }
 `;
 
-export const NotesZone = styled.section`
-  display: grid;
-  gap: 6px;
-  border: 1px solid ${LCARS.line};
-  border-radius: 10px;
-  background: ${LCARS.panelSoft};
-  padding: 8px 10px;
+export const NotesHeader = styled.div`
+  display: flex;
+  align-items: center;
+  min-width: 0;
+`;
+
+export const NotesLabel = styled.span`
+  color: #ffe3a8;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
 `;
 
 export const NotesBody = styled.p`
   margin: 0;
   color: ${LCARS.text};
-  font-size: 0.84rem;
-  line-height: 1.5;
+  font-size: 0.92rem;
+  line-height: 1.55;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 
@@ -585,6 +671,15 @@ export const StatValue = styled.span`
 export const ChildrenZone = styled.div`
   display: grid;
   gap: 10px;
+  padding: 12px;
+  border: 1px solid ${LCARS.line};
+  border-radius: 12px;
+  background: rgba(14, 15, 18, 0.22);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 10px;
+    border-radius: 10px;
+  }
 `;
 
 export const SectionHeader = styled.div`
@@ -592,6 +687,7 @@ export const SectionHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  padding-bottom: 2px;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     flex-direction: column;
@@ -615,6 +711,7 @@ export const Label = styled.span`
 export const SectionHint = styled.span`
   color: ${LCARS.textDim};
   font-size: 0.8rem;
+  margin-top: -4px;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_SM};

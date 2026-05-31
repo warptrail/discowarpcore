@@ -57,6 +57,7 @@ export default function useBoxDetailData(shortId) {
 
   const handleItemSaved = (updated) => {
     if (!updated?._id) return;
+    const updatedId = String(updated._id);
 
     setTree((prev) => {
       if (!prev) return prev;
@@ -65,7 +66,7 @@ export default function useBoxDetailData(shortId) {
         if (!node) return node;
 
         const items = (node.items || []).map((it) =>
-          String(it._id) === String(updated._id) ? updated : it,
+          String(it._id) === updatedId ? updated : it,
         );
 
         const childBoxes = (node.childBoxes || []).map(replaceItemInNode);
@@ -75,6 +76,12 @@ export default function useBoxDetailData(shortId) {
 
       return replaceItemInNode(prev);
     });
+
+    setFlatItems((prev) =>
+      (Array.isArray(prev) ? prev : []).map((it) =>
+        String(it?._id) === updatedId ? { ...it, ...updated } : it,
+      ),
+    );
   };
 
   return {

@@ -302,7 +302,7 @@ test('media processing forwards render tokens and persists them', async (t) => {
     return {
       exitCode: 0,
       signal: null,
-      stdout: `render_key=${renderTokens.background}-${renderTokens.glow}-${renderTokens.accent}\n`,
+      stdout: `render_key=${renderTokens.background}-${renderTokens.glow}\n`,
       stderr: '',
     };
   });
@@ -323,13 +323,11 @@ test('media processing forwards render tokens and persists them', async (t) => {
     mode: 'explicit',
     background: 'midnight',
     glow: 'arc',
-    accent: 'cyanCore',
   });
   assert.deepEqual(outcome.processingState.renderTokens, {
     mode: 'explicit',
     background: 'midnight',
     glow: 'arc',
-    accent: 'cyanCore',
   });
 });
 
@@ -380,7 +378,6 @@ test('queueMediaProcessing reconciles stale queued state to completed when artif
       mode: 'explicit',
       background: 'midnight',
       glow: 'arc',
-      accent: 'cyanCore',
     },
     activeVariant: 'original',
     displayDerivedFrom: null,
@@ -396,7 +393,6 @@ test('queueMediaProcessing reconciles stale queued state to completed when artif
     {
       background: 'midnight',
       glow: 'arc',
-      accent: 'cyanCore',
     }
   );
 

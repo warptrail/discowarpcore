@@ -118,7 +118,6 @@ test('enqueue + polling completes queued media job', async (t) => {
     mode: 'explicit',
     background: 'midnight',
     glow: 'arc',
-    accent: 'cyanCore',
   });
 
   const idle = await mediaJobService.__waitForIdleForTests(2000);
@@ -133,13 +132,11 @@ test('enqueue + polling completes queued media job', async (t) => {
     mode: 'explicit',
     background: 'midnight',
     glow: 'arc',
-    accent: 'cyanCore',
   });
   assert.deepEqual(observed.processRenderTokens, {
     mode: 'explicit',
     background: 'midnight',
     glow: 'arc',
-    accent: 'cyanCore',
   });
 });
 
@@ -154,7 +151,6 @@ test('enqueue rejects invalid render tokens with MEDIA_INVALID_INPUT', async (t)
       renderTokens: {
         background: 'not-a-real-token',
         glow: 'arc',
-        accent: 'cyanCore',
       },
     }),
     (error) => {
@@ -196,7 +192,6 @@ test('enqueue accepts random render-token mode and preserves mode in job record'
   assert.equal(enqueue.job.renderTokens.mode, 'random');
   assert.ok(enqueue.job.renderTokens.background);
   assert.ok(enqueue.job.renderTokens.glow);
-  assert.ok(enqueue.job.renderTokens.accent);
 });
 
 test('worker concurrency is bounded', async (t) => {
@@ -421,7 +416,6 @@ test('recovery reconciles stale queued records with existing output instead of r
               mode: 'explicit',
               background: 'midnight',
               glow: 'arc',
-              accent: 'cyanCore',
             },
           },
         ];

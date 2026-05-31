@@ -436,12 +436,19 @@ function Branch({ node, depth = 0 }) {
 
             <S.BoxContent>
               <S.BoxHeader>
+                <S.ShortId $isRoot={isRoot} $depth={depth} $isSystem={isSystemContainer}>
+                  {isSystemContainer ? (
+                    'SYS'
+                  ) : (
+                    <>
+                      <S.ShortIdMarker>#</S.ShortIdMarker>
+                      <S.ShortIdDigits>{node.box_id}</S.ShortIdDigits>
+                    </>
+                  )}
+                </S.ShortId>
                 <S.BoxTitle $isRoot={isRoot} $depth={depth} $isSystem={isSystemContainer}>
                   {node.label || node.name || 'Untitled'}
                 </S.BoxTitle>
-                <S.ShortId $isRoot={isRoot} $depth={depth} $isSystem={isSystemContainer}>
-                  {isSystemContainer ? 'SYS' : `#${node.box_id}`}
-                </S.ShortId>
               </S.BoxHeader>
 
               {group || node.location ? (

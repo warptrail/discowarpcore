@@ -17,6 +17,7 @@ const retrievalRoutes = require('./routes/retrieval');
 const logRoutes = require('./routes/logs');
 const mediaRoutes = require('./routes/media');
 const intakeBatchRoutes = require('./routes/intakeBatches');
+const declutterSessionRoutes = require('./routes/declutterSessions');
 const { backfillBoxLocations } = require('./services/locationService');
 const { recoverQueuedMediaJobs } = require('./services/mediaJobService');
 const { backfillMissingMediaIds } = require('./services/mediaProcessingService');
@@ -41,6 +42,7 @@ app.use('/api/retrieval', retrievalRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/intake-batches', intakeBatchRoutes);
+app.use('/api/declutter-sessions', declutterSessionRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true });

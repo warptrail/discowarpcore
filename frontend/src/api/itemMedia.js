@@ -11,14 +11,12 @@ function normalizeRenderTokens(tokens) {
     mode,
     background: toTrimmed(tokens.background),
     glow: toTrimmed(tokens.glow),
-    accent: toTrimmed(tokens.accent),
   };
 
   if (
     mode !== 'random' &&
     !normalized.background &&
-    !normalized.glow &&
-    !normalized.accent
+    !normalized.glow
   ) {
     return null;
   }
@@ -405,7 +403,9 @@ export async function fetchMediaJobStatus(jobId, { signal } = {}) {
       response,
       `Failed to fetch media job (${response.status})`
     );
-    throw new Error(message);
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
   }
 
   const json = await response.json().catch(() => ({}));

@@ -66,3 +66,40 @@ export async function orphanBoxedItem({
 
   return body;
 }
+
+export async function addItemsToBox({
+  itemIds,
+  destBoxId,
+  baseUrl = '',
+}) {
+  const normalizedItemIds = Array.isArray(itemIds)
+    ? itemIds.map((entry) => String(entry || '').trim()).filter(Boolean)
+    : [];
+  const normalizedDestBoxId = String(destBoxId || '').trim();
+
+  if (!normalizedDestBoxId) {
+    throw new Error('destBoxId is required');
+  }
+  if (!normalizedItemIds.length) {
+    throw new Error('itemIds must be a non-empty array');
+  }
+
+  const endpoint = joinBaseAndPath(
+    baseUrl,
+    `/api/boxed-items/${encodeURIComponent(normalizedDestBoxId)}/addItems`
+  );
+  const response = await fetch(endpoint, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ itemIds: normalizedItemIds }),
+  });
+
+  const body = await parseMoveBody(response);
+  if (!response.ok) {
+    throw new Error(
+      body?.message || body?.error || `Bulk move failed (${response.status})`
+    );
+  }
+
+  return body;
+}

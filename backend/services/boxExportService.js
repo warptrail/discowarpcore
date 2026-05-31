@@ -211,6 +211,7 @@ function formatExportChildBox(box) {
     mongoId: String(box?._id || ''),
     boxId: shortId,
     label: normalizeBoxLabel(box),
+    description: String(box?.description || ''),
     notes: String(box?.notes || ''),
     location: resolveLocationName(box),
     tags: normalizeTags(box?.tags),
@@ -928,7 +929,7 @@ async function buildBoxJsonExport(
 
   const root = await Box.findById(boxMongoId)
     .populate('locationId', 'name')
-    .select('_id box_id label name notes location locationId tags parentBox items')
+    .select('_id box_id label name description notes location locationId tags parentBox items')
     .lean();
 
   if (!root) {
@@ -937,7 +938,7 @@ async function buildBoxJsonExport(
 
   const directChildBoxesDocs = await Box.find({ parentBox: root._id })
     .populate('locationId', 'name')
-    .select('_id box_id label name notes location locationId tags')
+    .select('_id box_id label name description notes location locationId tags')
     .sort({ box_id: 1, _id: 1 })
     .lean();
 
@@ -984,6 +985,7 @@ async function buildBoxJsonExport(
       mongoId: String(root._id),
       boxId: shortId,
       label: normalizeBoxLabel(root),
+      description: String(root?.description || ''),
       notes: String(root?.notes || ''),
       generatedAt,
       canonicalPath,

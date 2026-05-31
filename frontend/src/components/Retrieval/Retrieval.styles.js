@@ -677,6 +677,25 @@ export const FilterComboboxInput = styled.input`
   min-height: 36px;
   padding-right: 2rem;
   font-size: 0.84rem;
+  border-color: ${({ $variant }) =>
+    $variant === 'sort' ? 'rgba(111, 196, 255, 0.52)' : RETRIEVAL.borderStrong};
+  background: ${({ $variant }) =>
+    $variant === 'sort'
+      ? 'linear-gradient(180deg, rgba(16, 44, 68, 0.78), rgba(12, 27, 43, 0.86))'
+      : RETRIEVAL.bg};
+
+  &:focus {
+    border-color: ${({ $variant }) =>
+      $variant === 'sort' ? 'rgba(143, 214, 255, 0.84)' : 'rgba(119, 213, 255, 0.8)'};
+    box-shadow: ${({ $variant }) =>
+      $variant === 'sort'
+        ? '0 0 0 2px rgba(111, 196, 255, 0.34)'
+        : '0 0 0 2px rgba(119, 213, 255, 0.24)'};
+    background: ${({ $variant }) =>
+      $variant === 'sort'
+        ? 'linear-gradient(180deg, rgba(20, 55, 84, 0.84), rgba(13, 31, 49, 0.9))'
+        : RETRIEVAL.panelAlt};
+  }
 `;
 
 export const FilterComboboxCaret = styled.span`
@@ -685,28 +704,34 @@ export const FilterComboboxCaret = styled.span`
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
-  color: ${RETRIEVAL.textMuted};
+  color: ${({ $variant }) =>
+    $variant === 'sort' ? 'rgba(168, 221, 255, 0.94)' : RETRIEVAL.textMuted};
   font-size: 0.8rem;
 `;
 
 export const FilterComboboxDropdown = styled.ul`
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  z-index: 25;
+  position: fixed;
+  z-index: 2200;
   list-style: none;
   margin: 0;
   padding: 0.32rem;
-  border: 1px solid ${RETRIEVAL.borderStrong};
+  border: 1px solid
+    ${({ $variant }) =>
+      $variant === 'sort' ? 'rgba(111, 196, 255, 0.54)' : RETRIEVAL.borderStrong};
   border-radius: 10px;
   background:
-    linear-gradient(180deg, rgba(17, 24, 34, 0.96), rgba(12, 18, 26, 0.98)),
-    ${RETRIEVAL.bg};
+    ${({ $variant }) =>
+      $variant === 'sort'
+        ? 'linear-gradient(180deg, rgba(15, 35, 53, 0.98), rgba(10, 24, 37, 0.99))'
+        : 'linear-gradient(180deg, rgba(17, 24, 34, 0.96), rgba(12, 18, 26, 0.98))'},
+    ${({ $variant }) => ($variant === 'sort' ? '#0d1622' : RETRIEVAL.bg)};
   box-shadow:
-    0 12px 24px rgba(0, 0, 0, 0.42),
+    ${({ $variant }) =>
+      $variant === 'sort'
+        ? '0 14px 30px rgba(0, 0, 0, 0.48)'
+        : '0 12px 24px rgba(0, 0, 0, 0.42)'},
     0 0 0 1px rgba(10, 16, 24, 0.38) inset;
-  max-height: min(280px, 45vh);
+  max-height: 320px;
   overflow: auto;
 `;
 
@@ -718,27 +743,47 @@ export const FilterComboboxOption = styled.li`
   padding: 0.44rem 0.58rem;
   border: 1px solid transparent;
   border-radius: 8px;
-  background: ${({ $selected, $active }) =>
+  background: ${({ $selected, $active, $variant }) =>
     $selected
-      ? 'rgba(76, 198, 193, 0.24)'
+      ? $variant === 'sort'
+        ? 'rgba(111, 196, 255, 0.24)'
+        : 'rgba(76, 198, 193, 0.24)'
       : $active
-        ? 'rgba(119, 213, 255, 0.14)'
+        ? $variant === 'sort'
+          ? 'rgba(111, 196, 255, 0.16)'
+          : 'rgba(119, 213, 255, 0.14)'
         : 'transparent'};
-  border-color: ${({ $selected, $active }) =>
+  border-color: ${({ $selected, $active, $variant }) =>
     $selected
-      ? 'rgba(76, 198, 193, 0.48)'
+      ? $variant === 'sort'
+        ? 'rgba(111, 196, 255, 0.54)'
+        : 'rgba(76, 198, 193, 0.48)'
       : $active
-        ? 'rgba(119, 213, 255, 0.35)'
+        ? $variant === 'sort'
+          ? 'rgba(111, 196, 255, 0.42)'
+          : 'rgba(119, 213, 255, 0.35)'
         : 'transparent'};
   color: ${({ $selected }) => ($selected ? '#e5fffb' : RETRIEVAL.text)};
   cursor: pointer;
   transition: background 100ms ease, border-color 100ms ease;
 
   &:hover {
-    background: ${({ $selected }) =>
-      $selected ? 'rgba(76, 198, 193, 0.28)' : 'rgba(119, 213, 255, 0.16)'};
-    border-color: ${({ $selected }) =>
-      $selected ? 'rgba(76, 198, 193, 0.54)' : 'rgba(119, 213, 255, 0.42)'};
+    background: ${({ $selected, $variant }) =>
+      $selected
+        ? $variant === 'sort'
+          ? 'rgba(111, 196, 255, 0.3)'
+          : 'rgba(76, 198, 193, 0.28)'
+        : $variant === 'sort'
+          ? 'rgba(111, 196, 255, 0.2)'
+          : 'rgba(119, 213, 255, 0.16)'};
+    border-color: ${({ $selected, $variant }) =>
+      $selected
+        ? $variant === 'sort'
+          ? 'rgba(111, 196, 255, 0.62)'
+          : 'rgba(76, 198, 193, 0.54)'
+        : $variant === 'sort'
+          ? 'rgba(111, 196, 255, 0.5)'
+          : 'rgba(119, 213, 255, 0.42)'};
   }
 `;
 
@@ -1266,7 +1311,7 @@ export const SummaryButton = styled.div`
   color: inherit;
   text-align: left;
   cursor: pointer;
-  padding: 0.56rem;
+  padding: ${({ $expanded }) => ($expanded ? '0.42rem 0.56rem' : '0.56rem')};
   display: grid;
   gap: 0.2rem;
   transition: background 140ms ease;
@@ -1284,7 +1329,7 @@ export const SummaryButton = styled.div`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: 0.58rem 0.52rem;
+    padding: ${({ $expanded }) => ($expanded ? '0.42rem 0.52rem' : '0.58rem 0.52rem')};
   }
 `;
 
@@ -1304,7 +1349,7 @@ export const RowMain = styled.div`
   display: grid;
   grid-template-columns: ${({ $expanded }) =>
     $expanded ? '12px minmax(0, 1fr)' : '60px minmax(0, 1fr)'};
-  align-items: start;
+  align-items: ${({ $expanded }) => ($expanded ? 'center' : 'start')};
   gap: 0.62rem;
   min-width: 0;
   flex: 1 1 auto;
@@ -1382,7 +1427,7 @@ export const ThumbPlaceholder = styled.span`
 
 export const BadgeStack = styled.div`
   display: grid;
-  gap: 0.2rem;
+  gap: ${({ $expanded }) => ($expanded ? '0' : '0.2rem')};
   min-width: 0;
 `;
 
@@ -1524,6 +1569,90 @@ export const LocatorMetaText = styled.span`
   font-size: 0.7rem;
   line-height: 1.2;
   letter-spacing: 0.02em;
+`;
+
+export const CollapsedPlacementTable = styled.div`
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+`;
+
+export const CollapsedPlacementRow = styled.div`
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.4rem;
+  min-width: 0;
+`;
+
+export const CollapsedPlacementLabel = styled.span`
+  color: rgba(214, 226, 241, 0.58);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.15;
+`;
+
+export const CollapsedPlacementValue = styled.span`
+  min-width: 0;
+  ${({ $stack }) =>
+    $stack
+      ? css`
+          display: flex;
+          width: 100%;
+        `
+      : ''}
+`;
+
+export const CollapsedBoxValueChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: ${({ $orphaned }) => ($orphaned ? 'center' : 'flex-start')};
+  max-width: 100%;
+  min-height: 1.3rem;
+  border-radius: 8px;
+  padding: 0.2rem 0.58rem;
+  border: 1px solid
+    ${({ $orphaned, $boxNeonRgb }) =>
+      $orphaned ? 'rgba(214, 194, 122, 0.94)' : `rgba(${$boxNeonRgb}, 0.44)`};
+  background: ${({ $orphaned, $boxColorRgb }) =>
+    $orphaned ? '#d7c27a' : `rgba(${$boxColorRgb}, 0.2)`};
+  color: ${({ $orphaned, $boxMutedRgb }) =>
+    $orphaned ? '#0d1116' : `rgba(${$boxMutedRgb}, 0.96)`};
+  font-size: 0.72rem;
+  font-weight: 760;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+export const CollapsedLocationValue = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: ${({ $unknown }) => ($unknown ? 'center' : 'flex-start')};
+  width: fit-content;
+  min-height: 1.3rem;
+  border-radius: 8px;
+  padding: 0.2rem 0.58rem;
+  border: 1px solid
+    ${({ $unknown }) =>
+      $unknown ? 'rgba(127, 215, 219, 0.62)' : 'rgba(214, 226, 241, 0.28)'};
+  background: ${({ $unknown }) =>
+    $unknown ? 'rgba(127, 207, 213, 0.6)' : 'rgba(214, 226, 241, 0.1)'};
+  max-width: 100%;
+  color: ${({ $unknown }) => ($unknown ? '#0d1116' : 'rgba(228, 236, 245, 0.9)')};
+  font-size: 0.72rem;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  font-weight: 760;
+  text-transform: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export const BoxAnchorLine = styled.div`

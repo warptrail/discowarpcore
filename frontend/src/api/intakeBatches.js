@@ -311,6 +311,26 @@ function normalizeBatch(batch = {}) {
     packageSnapshot?.structureSummary && typeof packageSnapshot.structureSummary === 'object'
       ? packageSnapshot.structureSummary
       : null;
+  const destinationDefaults =
+    batch.destinationDefaults && typeof batch.destinationDefaults === 'object'
+      ? {
+          location: toTrimmed(batch.destinationDefaults.location),
+          box: toTrimmed(batch.destinationDefaults.box),
+          reviewed: Boolean(batch.destinationDefaults.reviewed),
+          itemLocationCount: Number(batch.destinationDefaults.itemLocationCount) || 0,
+          itemBoxCount: Number(batch.destinationDefaults.itemBoxCount) || 0,
+          itemCount: Number(batch.destinationDefaults.itemCount) || 0,
+          reviewRequired: Boolean(batch.destinationDefaults.reviewRequired),
+        }
+      : {
+          location: '',
+          box: '',
+          reviewed: false,
+          itemLocationCount: 0,
+          itemBoxCount: 0,
+          itemCount: 0,
+          reviewRequired: false,
+        };
 
   const hasImageCount =
     Number(sourceManifest.imageCount) > 0
@@ -368,6 +388,7 @@ function normalizeBatch(batch = {}) {
     localFolderName: toTrimmed(batch.localFolderName),
     localFolderPath: toTrimmed(batch.localFolderPath),
     sourceManifest,
+    destinationDefaults,
     validationSnapshot,
     importSnapshot,
     processingSummary,
@@ -522,6 +543,44 @@ export async function updateIntakeBatchAssets(
   return normalizeBatch(body?.batch || null);
 }
 
+export async function updateIntakeBatchDestination(
+  batchId,
+  { location = null, box = null } = {},
+  { signal } = {}
+) {
+  const body = await fetchJson(`/api/intake-batches/${encodeURIComponent(batchId)}/destination`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    signal,
+    body: JSON.stringify({
+      location: toTrimmed(location) || null,
+      box: toTrimmed(box) || null,
+    }),
+  }, 'Failed to update intake batch destination');
+  return normalizeBatch(body?.batch || null);
+}
+
+export async function renameIntakeBatch(batchId, name, { signal } = {}) {
+  const normalizedBatchId = toTrimmed(batchId);
+  const normalizedName = toTrimmed(name);
+  if (!normalizedBatchId) throw new Error('batchId is required');
+  if (!normalizedName) throw new Error('Batch name is required');
+
+  const body = await fetchJson(`/api/intake-batches/${encodeURIComponent(normalizedBatchId)}/name`, {
+    method: 'PATCH',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    signal,
+    body: JSON.stringify({ name: normalizedName }),
+  }, 'Failed to rename intake batch');
+  return normalizeBatch(body?.batch || null);
+}
+
 async function postBatchAction(batchId, action, { signal } = {}) {
   const body = await fetchJson(`/api/intake-batches/${encodeURIComponent(batchId)}/${action}`, {
     method: 'POST',
@@ -594,11 +653,10 @@ export async function processIntakeBatchSelectedItems(
             renderTokens:
               body.processingRequest.renderTokens &&
               typeof body.processingRequest.renderTokens === 'object'
-                ? {
+                  ? {
                     mode: toTrimmed(body.processingRequest.renderTokens.mode) || 'explicit',
                     background: toTrimmed(body.processingRequest.renderTokens.background),
                     glow: toTrimmed(body.processingRequest.renderTokens.glow),
-                    accent: toTrimmed(body.processingRequest.renderTokens.accent),
                   }
                 : null,
             jobIds: Array.isArray(body.processingRequest.jobIds)

@@ -9,7 +9,6 @@ import {
   MOBILE_BREAKPOINT,
   MOBILE_CONTROL_MIN_HEIGHT,
   MOBILE_FONT_SM,
-  MOBILE_FONT_XS,
   MOBILE_MAX_WIDTH,
   MOBILE_NARROW_BREAKPOINT,
 } from '../styles/tokens';
@@ -18,7 +17,18 @@ import {
 // LCARS-ish Styles
 // ===============
 
+const HEADER_SCROLL_RANGE = 120;
+const MIN_HEADER_SCROLL_RANGE = 72;
+const SHORT_PAGE_SCROLL_COMPLETION_RATIO = 0.42;
+
+const clamp = (value, min = 0, max = 1) =>
+  Math.min(max, Math.max(min, value));
+
 const HeaderShell = styled.header`
+  --header-progress: 0;
+  --header-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --header-duration: 280ms;
+
   position: sticky;
   top: 0;
   z-index: 200;
@@ -26,19 +36,25 @@ const HeaderShell = styled.header`
   /* Make it feel like a “panel” that’s part of the page, not an overlay. */
   background: linear-gradient(
     180deg,
-    rgba(8, 12, 18, 0.98),
-    rgba(8, 12, 18, 0.92)
+    rgba(8, 12, 18, calc(0.92 + (0.07 * var(--header-progress)))),
+    rgba(8, 12, 18, calc(0.84 + (0.12 * var(--header-progress))))
   );
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(calc(6px + (6px * var(--header-progress))));
 
-  border: 1px solid rgba(0, 255, 200, 0.22);
-  border-radius: 14px;
+  border: 1px solid rgba(0, 255, 200, calc(0.14 + (0.12 * var(--header-progress))));
+  border-radius: calc(14px - (4px * var(--header-progress)));
   box-shadow:
-    0 0 0 2px rgba(0, 255, 200, 0.08),
-    0 10px 30px rgba(0, 0, 0, 0.35);
+    0 0 0 2px rgba(0, 255, 200, calc(0.05 + (0.04 * var(--header-progress)))),
+    0 calc(10px - (4px * var(--header-progress))) calc(30px - (10px * var(--header-progress))) rgba(0, 0, 0, 0.35);
 
   /* Prevent content behind header from peeking through around rounded corners */
   overflow: hidden;
+  transition:
+    background var(--header-duration) var(--header-ease),
+    backdrop-filter var(--header-duration) var(--header-ease),
+    border-color var(--header-duration) var(--header-ease),
+    border-radius var(--header-duration) var(--header-ease),
+    box-shadow var(--header-duration) var(--header-ease);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     border-radius: 10px;
@@ -46,17 +62,27 @@ const HeaderShell = styled.header`
       0 0 0 1px rgba(0, 255, 200, 0.09),
       0 4px 14px rgba(0, 0, 0, 0.28);
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 const Inner = styled.div`
   position: relative;
-  padding: ${({ $condensed }) =>
-    $condensed ? '0.85rem 1rem' : '1.35rem 1.25rem'};
-  transition: padding 180ms ease;
+  padding-block: calc(1rem - (0.68rem * var(--header-progress)));
+  padding-inline: calc(1.25rem - (0.53rem * var(--header-progress)));
+  transition:
+    padding-block var(--header-duration) var(--header-ease),
+    padding-inline var(--header-duration) var(--header-ease);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: ${({ $condensed }) =>
-      $condensed ? '0.42rem 0.58rem' : '0.56rem 0.64rem'};
+    padding-block: calc(0.5rem - (0.22rem * var(--header-progress)));
+    padding-inline: calc(0.58rem - (0.16rem * var(--header-progress)));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 
@@ -65,12 +91,17 @@ const TopRow = styled.div`
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 0.9rem;
+  gap: calc(0.9rem - (0.28rem * var(--header-progress)));
   justify-content: space-between;
+  transition: gap var(--header-duration) var(--header-ease);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    gap: 0.45rem;
+    gap: calc(0.45rem - (0.08rem * var(--header-progress)));
     align-items: flex-start;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 
@@ -268,48 +299,35 @@ const Big = styled.div`
   font-weight: 800;
   color: rgba(240, 240, 240, 0.98);
 
-  font-size: ${({ $condensed }) => ($condensed ? '1.15rem' : '1.65rem')};
-  transition: font-size 180ms ease;
+  font-size: calc(1.28rem - (0.33rem * var(--header-progress)));
+  transform: scale(calc(1 - (0.025 * var(--header-progress))));
+  transform-origin: left center;
+  transition:
+    font-size var(--header-duration) var(--header-ease),
+    transform var(--header-duration) var(--header-ease);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${({ $condensed }) => ($condensed ? '0.92rem' : '1.02rem')};
+    font-size: calc(0.96rem - (0.18rem * var(--header-progress)));
     letter-spacing: 0.045em;
     line-height: 1.08;
   }
-`;
 
-const Sub = styled.div`
-  margin-top: 0.2rem;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-  letter-spacing: 0.12em;
-  font-size: 0.78rem;
-  opacity: 0.8;
-
-  /* neon-ish accent */
-  color: rgba(0, 255, 200, 0.85);
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    margin-top: 0.08rem;
-    font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.06em;
-    max-width: min(58vw, 280px);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
-    display: none;
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 
 const LcarsPips = styled.div`
   display: flex;
-  gap: 0.35rem;
+  gap: calc(0.35rem - (0.08rem * var(--header-progress)));
   align-items: center;
-  opacity: 0.9;
+  opacity: calc(0.9 - (0.38 * var(--header-progress)));
+  transform: translateY(calc(-2px * var(--header-progress))) scale(calc(1 - (0.04 * var(--header-progress))));
+  transform-origin: right center;
+  transition:
+    gap var(--header-duration) var(--header-ease),
+    opacity 220ms ease,
+    transform var(--header-duration) var(--header-ease);
 
   @media (min-width: calc(${MOBILE_BREAKPOINT} + 1px)) {
     & > span:nth-child(1) {
@@ -379,11 +397,15 @@ const LcarsPips = styled.div`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.24rem;
-    opacity: 0.75;
+    opacity: calc(0.75 - (0.28 * var(--header-progress)));
   }
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
     display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 
@@ -459,12 +481,16 @@ const pipHueDrift = keyframes`
 
 const Pip = styled.span`
   position: relative;
-  width: 10px;
-  height: 10px;
+  width: calc(10px - (2px * var(--header-progress)));
+  height: calc(10px - (2px * var(--header-progress)));
   border-radius: 999px;
   color: ${({ $c }) => $c};
   background: currentColor;
   box-shadow: 0 0 12px currentColor;
+  transition:
+    width var(--header-duration) var(--header-ease),
+    height var(--header-duration) var(--header-ease),
+    opacity 220ms ease;
 
   @media (min-width: calc(${MOBILE_BREAKPOINT} + 1px)) {
     animation:
@@ -495,13 +521,14 @@ const Pip = styled.span`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    width: 8px;
-    height: 8px;
+    width: calc(8px - (1px * var(--header-progress)));
+    height: calc(8px - (1px * var(--header-progress)));
     box-shadow: 0 0 7px currentColor;
   }
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
+    transition: none;
 
     &::after {
       animation: none;
@@ -586,28 +613,49 @@ const MobileMenuGlyph = styled.span`
 `;
 
 const NavRow = styled.nav`
-  margin-top: ${({ $condensed }) => ($condensed ? '0.7rem' : '1.1rem')};
-  transition: margin-top 180ms ease;
+  --nav-progress: min(1, calc(var(--header-progress) * 1.12));
+  --nav-icon-size: 2.05rem;
+  --nav-readable-size: 10rem;
+  --nav-gap: calc(0.56rem - (0.24rem * var(--nav-progress)));
+  --nav-expanded-size: calc((100% - (1.68rem - (0.72rem * var(--nav-progress)))) / 4);
 
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.56rem;
+  margin-top: calc(0.72rem - (0.44rem * var(--header-progress)));
+  transition:
+    margin-top var(--header-duration) var(--header-ease),
+    gap var(--header-duration) var(--header-ease);
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--nav-gap);
   align-items: stretch;
+  justify-content: flex-start;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   @media (min-width: 1220px) {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 0.6rem;
+    --nav-gap: calc(0.6rem - (0.26rem * var(--nav-progress)));
+    --nav-expanded-size: calc((100% - (4.2rem - (1.82rem * var(--nav-progress)))) / 8);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    margin-top: 0.45rem;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.38rem;
+    --nav-icon-size: 1.86rem;
+    --nav-readable-size: 9.5rem;
+    --nav-gap: calc(0.38rem - (0.14rem * var(--nav-progress)));
+    --nav-expanded-size: calc((100% - (0.76rem - (0.28rem * var(--nav-progress)))) / 3);
+
+    margin-top: calc(0.42rem - (0.18rem * var(--header-progress)));
   }
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    --nav-expanded-size: calc((100% - (0.38rem - (0.14rem * var(--nav-progress)))) / 2);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 
@@ -631,12 +679,13 @@ const navControlStyles = css`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(0.32rem, 0.24rem + 0.18vw, 0.48rem);
-  padding-block: 0.55rem;
-  padding-inline: clamp(0.95rem, 0.78rem + 0.22vw, 1.1rem);
-  width: 100%;
-  min-width: 0;
-  min-height: 2.35rem;
+  gap: calc(0.48rem - (0.48rem * var(--nav-progress)));
+  padding-block: calc(0.55rem - (0.55rem * var(--nav-progress)));
+  padding-inline: calc(1rem - (1rem * var(--nav-progress)));
+  flex: 0 1 calc(max(var(--nav-expanded-size), var(--nav-readable-size)) - ((max(var(--nav-expanded-size), var(--nav-readable-size)) - var(--nav-icon-size)) * var(--nav-progress)));
+  width: calc(max(var(--nav-expanded-size), var(--nav-readable-size)) - ((max(var(--nav-expanded-size), var(--nav-readable-size)) - var(--nav-icon-size)) * var(--nav-progress)));
+  min-width: calc(var(--nav-readable-size) - ((var(--nav-readable-size) - var(--nav-icon-size)) * var(--nav-progress)));
+  min-height: calc(2.35rem - (0.3rem * var(--header-progress)));
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -651,7 +700,7 @@ const navControlStyles = css`
     'Courier New', monospace;
   letter-spacing: clamp(0.018em, 0.01em + 0.03vw, 0.04em);
   font-weight: 700;
-  font-size: clamp(0.74rem, 0.54rem + 0.25vw, 0.84rem);
+  font-size: calc(0.84rem + (0.16rem * var(--nav-progress)));
 
   color: rgba(240, 240, 240, 0.95);
   background: rgba(20, 34, 46, 0.9);
@@ -659,6 +708,11 @@ const navControlStyles = css`
   box-shadow: 0 0 0 2px rgba(0, 255, 200, 0.06);
 
   transition:
+    width var(--header-duration) var(--header-ease),
+    min-height var(--header-duration) var(--header-ease),
+    padding var(--header-duration) var(--header-ease),
+    gap var(--header-duration) var(--header-ease),
+    font-size var(--header-duration) var(--header-ease),
     transform 120ms ease,
     box-shadow 120ms ease,
     background 120ms ease;
@@ -677,12 +731,43 @@ const navControlStyles = css`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     justify-content: center;
-    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-    padding: 0.36rem 0.34rem;
+    min-height: calc(${MOBILE_CONTROL_MIN_HEIGHT} - (0.64rem * var(--nav-progress)));
+    padding-block: calc(0.36rem - (0.36rem * var(--nav-progress)));
+    padding-inline: calc(0.34rem - (0.34rem * var(--nav-progress)));
     border-radius: 8px;
-    font-size: ${MOBILE_FONT_SM};
+    font-size: calc(${MOBILE_FONT_SM} + (0.12rem * var(--nav-progress)));
     letter-spacing: 0.035em;
     box-shadow: 0 0 0 1px rgba(0, 255, 200, 0.08);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition:
+      transform 120ms ease,
+      box-shadow 120ms ease,
+      background 120ms ease;
+  }
+`;
+
+const NavIcon = styled.span`
+  line-height: 1;
+`;
+
+const NavLabel = styled.span`
+  --nav-label-progress: min(1, calc(var(--header-progress) * 1.35));
+
+  display: inline-block;
+  max-width: calc(6.8rem - (6.8rem * var(--nav-label-progress)));
+  opacity: calc(1 - var(--nav-label-progress));
+  overflow: hidden;
+  transform: translateY(calc(-4px * var(--nav-label-progress)));
+  transition:
+    max-width var(--header-duration) var(--header-ease),
+    opacity 220ms ease,
+    transform var(--header-duration) var(--header-ease);
+  vertical-align: bottom;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 
@@ -707,15 +792,24 @@ const Divider = styled.div`
 `;
 
 const ToastRow = styled.div`
-  padding: 0 1.25rem 1rem 1.25rem;
+  padding-block: 0 calc(0.86rem - (0.44rem * var(--header-progress)));
+  padding-inline: calc(1.25rem - (0.53rem * var(--header-progress)));
+  transition:
+    padding-block var(--header-duration) var(--header-ease),
+    padding-inline var(--header-duration) var(--header-ease);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: 0 0.58rem 0.58rem;
+    padding-block: 0 calc(0.5rem - (0.18rem * var(--header-progress)));
+    padding-inline: calc(0.58rem - (0.16rem * var(--header-progress)));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 
 export default function Header() {
-  const [condensed, setCondensed] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile(MOBILE_MAX_WIDTH);
   const mobileControlsId = 'mobile-header-controls';
@@ -738,10 +832,47 @@ export default function Header() {
   };
 
   useEffect(() => {
-    const onScroll = () => setCondensed(window.scrollY > 36);
-    onScroll();
+    let frameId = null;
+    const scheduleFrame =
+      typeof window.requestAnimationFrame === 'function'
+        ? (callback) => window.requestAnimationFrame(callback)
+        : (callback) => window.setTimeout(callback, 16);
+    const cancelFrame =
+      typeof window.cancelAnimationFrame === 'function'
+        ? (id) => window.cancelAnimationFrame(id)
+        : (id) => window.clearTimeout(id);
+
+    const updateProgress = () => {
+      frameId = null;
+      setScrollProgress((previousProgress) => {
+        const maxScrollable =
+          document.documentElement.scrollHeight - window.innerHeight;
+        const scrollRange = clamp(
+          maxScrollable * SHORT_PAGE_SCROLL_COMPLETION_RATIO,
+          MIN_HEADER_SCROLL_RANGE,
+          HEADER_SCROLL_RANGE
+        );
+        const nextProgress = clamp(window.scrollY / scrollRange);
+        return Math.abs(nextProgress - previousProgress) < 0.01
+          ? previousProgress
+          : nextProgress;
+      });
+    };
+
+    const onScroll = () => {
+      if (frameId === null) {
+        frameId = scheduleFrame(updateProgress);
+      }
+    };
+
+    updateProgress();
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (frameId !== null) {
+        cancelFrame(frameId);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -767,16 +898,18 @@ export default function Header() {
     }
   };
 
+  const headerStyle = {
+    '--header-progress': scrollProgress.toFixed(3),
+  };
+  const isHeaderCondensed = scrollProgress >= 0.98;
+
   return (
-    <HeaderShell>
-      <Inner $condensed={condensed}>
+    <HeaderShell style={headerStyle}>
+      <Inner>
         <TopRow>
           <Brand to="/">
             <Title>
-              <Big $condensed={condensed}>DISCO WARP CORE</Big>
-              <Sub>
-                CARGO NETWORK // INVENTORY MATRIX // ONLINE
-              </Sub>
+              <Big>DISCO WARP CORE</Big>
             </Title>
           </Brand>
 
@@ -812,15 +945,78 @@ export default function Header() {
           aria-hidden={isMobile ? !isMobileMenuOpen : undefined}
           inert={isMobile && !isMobileMenuOpen ? true : undefined}
         >
-          <NavRow $condensed={condensed}>
-            <NavButton to="/" onClick={handleNavSelection}>🚀 Operations</NavButton>
-            <NavButton to="/retrieval" onClick={handleNavSelection}>🔎 Retrieval</NavButton>
-            <NavButton to="/intake" onClick={handleNavSelection}>📲 Intake</NavButton>
-            <NavButton to="/import" onClick={handleNavSelection}>📥 Import</NavButton>
-            <NavButton to="/all-items" onClick={handleNavSelection}>🧾 All Items</NavButton>
-            <NavButton to="/logs" onClick={handleNavSelection}>🛰️ Logs</NavButton>
-            <NavActionButton type="button" onClick={handleRandomSelection}>
-              🎲 Random
+          <NavRow>
+            <NavButton
+              to="/"
+              aria-label="Operations"
+              title="Operations"
+              onClick={handleNavSelection}
+            >
+              <NavIcon aria-hidden="true">🚀</NavIcon>
+              <NavLabel>Operations</NavLabel>
+            </NavButton>
+            <NavButton
+              to="/retrieval"
+              aria-label="Retrieval"
+              title="Retrieval"
+              onClick={handleNavSelection}
+            >
+              <NavIcon aria-hidden="true">🔎</NavIcon>
+              <NavLabel>Retrieval</NavLabel>
+            </NavButton>
+            <NavButton
+              to="/intake"
+              aria-label="Intake"
+              title="Intake"
+              onClick={handleNavSelection}
+            >
+              <NavIcon aria-hidden="true">📲</NavIcon>
+              <NavLabel>Intake</NavLabel>
+            </NavButton>
+            <NavButton
+              to="/import"
+              aria-label="Import"
+              title="Import"
+              onClick={handleNavSelection}
+            >
+              <NavIcon aria-hidden="true">📥</NavIcon>
+              <NavLabel>Import</NavLabel>
+            </NavButton>
+            <NavButton
+              to="/all-items"
+              aria-label="All Items"
+              title="All Items"
+              onClick={handleNavSelection}
+            >
+              <NavIcon aria-hidden="true">🧾</NavIcon>
+              <NavLabel>All Items</NavLabel>
+            </NavButton>
+            <NavButton
+              to="/declutter"
+              aria-label="Declutter"
+              title="Declutter"
+              onClick={handleNavSelection}
+            >
+              <NavIcon aria-hidden="true">🧹</NavIcon>
+              <NavLabel>Declutter</NavLabel>
+            </NavButton>
+            <NavButton
+              to="/logs"
+              aria-label="Logs"
+              title="Logs"
+              onClick={handleNavSelection}
+            >
+              <NavIcon aria-hidden="true">🛰️</NavIcon>
+              <NavLabel>Logs</NavLabel>
+            </NavButton>
+            <NavActionButton
+              type="button"
+              aria-label="Random"
+              title="Random"
+              onClick={handleRandomSelection}
+            >
+              <NavIcon aria-hidden="true">🎲</NavIcon>
+              <NavLabel>Random</NavLabel>
             </NavActionButton>
           </NavRow>
         </MobileNavPanel>
@@ -848,6 +1044,8 @@ export default function Header() {
           idleIcon="📦"
           idleText="Console ready. Awaiting orders…"
           activeRetrievalItem={activeRetrievalItem}
+          compact={isHeaderCondensed}
+          compactProgress={scrollProgress}
         />
       </ToastRow>
     </HeaderShell>

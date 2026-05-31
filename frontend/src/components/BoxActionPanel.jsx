@@ -18,6 +18,11 @@ import { DetailsPanel, PanelContainer } from './BoxActionPanel/BoxActionPanel.st
 import { ToastContext } from './Toast';
 import { destroyBoxById, releaseChildrenToFloor, updateBoxById } from '../api/boxes';
 import useBoxImageProcessing from '../hooks/useBoxImageProcessing';
+import ImageProcessingToastContent from './Processing/ImageProcessingToastContent';
+import {
+  getImageProcessingToastSignature,
+  isImageProcessingInFlight,
+} from './Processing/imageProcessingToastUtils';
 
 const DESTROY_CONFIRM_PHRASE = 'DESTROY';
 
@@ -109,6 +114,8 @@ export default function BoxActionPanel({
     processingState: processImageState,
     processingError: processImageError,
     jobProgressLabel: processImageProgressLabel,
+    jobProgressPercent: processImageProgressPercent,
+    jobId: processImageJobId,
     isBusy: processImageBusy,
     startProcessing: startBoxImageProcessing,
   } = useBoxImageProcessing({
@@ -142,18 +149,43 @@ export default function BoxActionPanel({
 
   useEffect(() => {
     const nextStatus = String(processImageStatus || '').trim().toLowerCase();
-    if (!nextStatus || nextStatus === lastImageLifecycleStatusRef.current) return;
-    lastImageLifecycleStatusRef.current = nextStatus;
+    if (!isImageProcessingInFlight(nextStatus)) return;
 
-    if (nextStatus === 'processing') {
-      showToast?.({
-        variant: 'info',
-        title: 'Box image processing in progress',
-        message: processImageProgressLabel || 'ObjectGlow/media processing is running.',
-        sticky: true,
-      });
-    }
-  }, [processImageProgressLabel, processImageStatus, showToast]);
+    const entityLabel = routeShortId ? `Box #${routeShortId}` : 'Box image';
+    const signature = getImageProcessingToastSignature({
+      status: nextStatus,
+      label: processImageProgressLabel,
+      progressPercent: processImageProgressPercent,
+      entityLabel,
+      jobId: processImageJobId,
+    });
+    if (signature === lastImageLifecycleStatusRef.current) return;
+    lastImageLifecycleStatusRef.current = signature;
+
+    showToast?.({
+      variant: 'info',
+      title: 'Box image processing',
+      message: processImageProgressLabel || 'ObjectGlow/media processing is running.',
+      content: (
+        <ImageProcessingToastContent
+          status={nextStatus}
+          label={processImageProgressLabel}
+          progressPercent={processImageProgressPercent}
+          entityLabel={entityLabel}
+          jobId={processImageJobId}
+        />
+      ),
+      loading: true,
+      sticky: true,
+    });
+  }, [
+    processImageJobId,
+    processImageProgressLabel,
+    processImageProgressPercent,
+    processImageStatus,
+    routeShortId,
+    showToast,
+  ]);
 
   const resetDestroyConfirmState = useCallback(() => {
     setDestroyConfirmInput('');
@@ -244,11 +276,6 @@ export default function BoxActionPanel({
   const handleNestClick = () => {
     if (isDestroyConfirmMode) resetDestroyConfirmState();
     togglePanel('nest');
-  };
-
-  const handleEditClick = () => {
-    if (isDestroyConfirmMode) resetDestroyConfirmState();
-    togglePanel('edit');
   };
 
   const handleExportClick = () => {
@@ -412,7 +439,6 @@ export default function BoxActionPanel({
         active={isDestroyConfirmMode ? 'destroy' : activePanel}
         onClickEmpty={handleEmptyTabClick}
         onClickNest={handleNestClick}
-        onClickEdit={handleEditClick}
         onClickExport={handleExportClick}
         onClickDestroy={handleEnterDestroyConfirm}
         busy={isDestroyBusy}
@@ -449,6 +475,7 @@ export default function BoxActionPanel({
             processImageBusy={processImageBusy}
             processImageError={processImageError}
             processImageProgressLabel={processImageProgressLabel}
+            processImageProgressPercent={processImageProgressPercent}
             persistedRenderTokens={processImageState?.renderTokens || null}
             processedPreviewUrl={processedPreviewUrl}
             imageRefreshToken={imageRefreshToken}

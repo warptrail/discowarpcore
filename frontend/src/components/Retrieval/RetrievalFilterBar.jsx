@@ -9,22 +9,12 @@ export default function RetrievalFilterBar({
   locationOptions = [],
   ownerOptions = [],
   keepPriorityOptions = [],
-  selectedCategory = '',
-  selectedTag = '',
-  selectedLocation = '',
-  selectedOwner = '',
-  selectedKeepPriority = '',
   onCategoryChange,
   onSortChange,
   onTagChange,
   onLocationChange,
   onOwnerChange,
   onKeepPriorityChange,
-  onAddCategory,
-  onAddTag,
-  onAddLocation,
-  onAddOwner,
-  onAddKeepPriority,
 }) {
   const safeSortOptions = Array.isArray(sortOptions) ? sortOptions : [];
 
@@ -33,17 +23,17 @@ export default function RetrievalFilterBar({
       <S.FilterControl>
         <S.FilterLabel>Sort</S.FilterLabel>
         <S.FilterRow>
-          <S.SortSelect
-            value={selectedSort}
-            onChange={(event) => onSortChange?.(event.target.value)}
-            aria-label="Retrieval sort order"
-          >
-            {safeSortOptions.map((option) => (
-              <option key={option.key} value={option.key}>
-                {option.label}
-              </option>
-            ))}
-          </S.SortSelect>
+          <FilterCombobox
+            id="retrieval-filter-sort"
+            name="retrieval_filter_sort"
+            ariaLabel="Retrieval sort order"
+            variant="sort"
+            options={safeSortOptions}
+            selectedKey={selectedSort}
+            onSelectedKeyChange={onSortChange}
+            emptyMessage="No sort options match"
+            clearSelectedOnInput={false}
+          />
         </S.FilterRow>
       </S.FilterControl>
 
@@ -56,17 +46,10 @@ export default function RetrievalFilterBar({
             ariaLabel="Category filter options"
             placeholder="Select category..."
             options={categoryOptions}
-            selectedKey={selectedCategory}
             onSelectedKeyChange={onCategoryChange}
             emptyMessage="No categories match"
+            clearInputOnSelect
           />
-          <S.AddFilterButton
-            type="button"
-            onClick={onAddCategory}
-            disabled={!selectedCategory}
-          >
-            Add
-          </S.AddFilterButton>
         </S.FilterRow>
       </S.FilterControl>
 
@@ -79,17 +62,10 @@ export default function RetrievalFilterBar({
             ariaLabel="Tag filter options"
             placeholder="Select tag..."
             options={tagOptions}
-            selectedKey={selectedTag}
             onSelectedKeyChange={onTagChange}
             emptyMessage="No tags match"
+            clearInputOnSelect
           />
-          <S.AddFilterButton
-            type="button"
-            onClick={onAddTag}
-            disabled={!selectedTag}
-          >
-            Add
-          </S.AddFilterButton>
         </S.FilterRow>
       </S.FilterControl>
 
@@ -102,17 +78,10 @@ export default function RetrievalFilterBar({
             ariaLabel="Location filter options"
             placeholder="Select location..."
             options={locationOptions}
-            selectedKey={selectedLocation}
             onSelectedKeyChange={onLocationChange}
             emptyMessage="No locations match"
+            clearInputOnSelect
           />
-          <S.AddFilterButton
-            type="button"
-            onClick={onAddLocation}
-            disabled={!selectedLocation}
-          >
-            Add
-          </S.AddFilterButton>
         </S.FilterRow>
       </S.FilterControl>
 
@@ -125,17 +94,10 @@ export default function RetrievalFilterBar({
             ariaLabel="Primary owner filter options"
             placeholder="Select owner..."
             options={ownerOptions}
-            selectedKey={selectedOwner}
             onSelectedKeyChange={onOwnerChange}
             emptyMessage="No owners match"
+            clearInputOnSelect
           />
-          <S.AddFilterButton
-            type="button"
-            onClick={onAddOwner}
-            disabled={!selectedOwner}
-          >
-            Add
-          </S.AddFilterButton>
         </S.FilterRow>
       </S.FilterControl>
 
@@ -148,17 +110,10 @@ export default function RetrievalFilterBar({
             ariaLabel="Keep priority filter options"
             placeholder="Select keep priority..."
             options={keepPriorityOptions}
-            selectedKey={selectedKeepPriority}
             onSelectedKeyChange={onKeepPriorityChange}
             emptyMessage="No keep priorities match"
+            clearInputOnSelect
           />
-          <S.AddFilterButton
-            type="button"
-            onClick={onAddKeepPriority}
-            disabled={!selectedKeepPriority}
-          >
-            Add
-          </S.AddFilterButton>
         </S.FilterRow>
       </S.FilterControl>
     </S.FilterGrid>

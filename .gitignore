@@ -1,4 +1,4 @@
-# macOS system files
+# macOS / Windows filesystem noise
 .DS_Store
 .AppleDouble
 .LSOverride
@@ -6,82 +6,85 @@ Icon?
 ._*
 .Spotlight-V100
 .Trashes
-*.swp
+Desktop.ini
 
-# Node.js modules and logs
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-*.log
-
-# Environment variables
-.env
-.env.*.local
-
-# Build output
-dist/
-build/
-.vite/
-.cache/
-coverage/
-
-# IDE/editor stuff
-.vscode/
+# Editor / IDE files
+.vscode/*
+!.vscode/extensions.json
 .idea/
 *.sublime-workspace
 *.sublime-project
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
 
-# MongoDB data (if dumped locally)
-dump/
-*.tar.gz
-*.lock
+# Dependencies
+node_modules/
 
-# Custom
-backend/scripts/seed_boxes.js # if you don't want this uploaded
-frontend/.DS_Store
-frontend/node_modules/
-frontend/dist/
-repo_context.txt
-v2_repo_context.txt
-
-# macOS folder view settings
-Desktop.ini
-
-# Logs
-logs
+# Logs and local diagnostics
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+*_crash_log.txt
+disco_scratchpad.txt
 
-node_modules
-dist
-dist-ssr
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+!*.env.example
 *.local
+*.pem
+*.key
+*.p12
+*.pfx
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# Build, cache, and coverage output
+dist/
+dist-ssr/
+build/
+.vite/
+.cache/
+coverage/
+
+# Local database / backup artifacts
+dump/
+*.tar.gz
+*.tgz
+*.sqlite
+*.sqlite3
+*.db
+*.lock
+
+# Generated repo context dumps
+repo_context.txt
+v2_repo_context.txt
 
 # Uploaded/generated media files
 backend/media/items/original/*
 backend/media/items/display/*
 backend/media/items/thumb/*
+backend/media/items/processed/*
 backend/media/boxes/original/*
 backend/media/boxes/display/*
 backend/media/boxes/thumb/*
+backend/media/boxes/processed/*
 
 # Runtime intake staging workspace
+/var/intake/_uploads/*
+!/var/intake/_uploads/.gitkeep
 /var/intake/batches/*
 !/var/intake/batches/.gitkeep
+
+# Local frontend scratch space
+/frontend/temp/
+
+# Test-generated output
+/test/output/

@@ -10,6 +10,16 @@ export default function useBatchImageProcessingConsole({
   contextId = '',
   contextLabel = '',
   processingModeEnabled = false,
+  actionMode = 'process',
+  onActionModeChange = null,
+  actionModeOptions = null,
+  sourceBatchOptions = null,
+  pendingSourceBatchId = '',
+  appliedSourceBatchId = '',
+  onPendingSourceBatchChange = null,
+  onApplySourceBatch = null,
+  sourceBatchApplyLabel = 'Select Batch',
+  sourceBatchSummary = null,
   setProcessingModeEnabled = null,
   renderTokens = null,
   busyAction = '',
@@ -23,6 +33,8 @@ export default function useBatchImageProcessingConsole({
   selectUnprocessedLabel = 'Select Unprocessed',
   showSelectUnprocessed = true,
   showFailedSelector = true,
+  primaryActionLabel = 'Process Selected',
+  primaryBusyActionLabel = 'Processing…',
   onSelectAllLoaded = null,
   onSelectNoneLoaded = null,
   onSelectUnprocessedLoaded = null,
@@ -42,8 +54,15 @@ export default function useBatchImageProcessingConsole({
   const showToastRef = useRef(showToast);
   const hideToastRef = useRef(hideToast);
   const onJobsCompletedRef = useRef(onJobsCompleted);
+  const [consoleStage, setConsoleStage] = useState('setup');
   const [trackedJobIds, setTrackedJobIds] = useState([]);
   const [trackedJobsById, setTrackedJobsById] = useState({});
+
+  useEffect(() => {
+    if (!processingModeEnabled) {
+      setConsoleStage('setup');
+    }
+  }, [processingModeEnabled]);
 
   useEffect(() => {
     showToastRef.current = showToast;
@@ -172,6 +191,17 @@ export default function useBatchImageProcessingConsole({
         renderTokens={renderTokens}
         pageLabel={pageLabel}
         processingModeEnabled={processingModeEnabled}
+        consoleStage={consoleStage}
+        actionMode={actionMode}
+        onActionModeChange={onActionModeChange}
+        actionModeOptions={actionModeOptions}
+        sourceBatchOptions={sourceBatchOptions}
+        pendingSourceBatchId={pendingSourceBatchId}
+        appliedSourceBatchId={appliedSourceBatchId}
+        onPendingSourceBatchChange={onPendingSourceBatchChange}
+        onApplySourceBatch={onApplySourceBatch}
+        sourceBatchApplyLabel={sourceBatchApplyLabel}
+        sourceBatchSummary={sourceBatchSummary}
         busyAction={busyAction}
         failedSelectableCount={failedSelectableCount}
         selectionScopeMessage={selectionScopeMessage}
@@ -181,19 +211,27 @@ export default function useBatchImageProcessingConsole({
         selectUnprocessedLabel={selectUnprocessedLabel}
         showSelectUnprocessed={showSelectUnprocessed}
         showFailedSelector={showFailedSelector}
-        onToggleProcessingMode={() =>
-          setProcessingModeEnabled?.((current) => !current)
-        }
+        primaryActionLabel={primaryActionLabel}
+        primaryBusyActionLabel={primaryBusyActionLabel}
         onSelectAllLoaded={onSelectAllLoaded}
         onSelectNoneLoaded={onSelectNoneLoaded}
         onSelectUnprocessedLoaded={onSelectUnprocessedLoaded}
         onSelectFailedLoaded={onSelectFailedLoaded}
         onProcessSelected={onProcessSelectedOverride || onProcessSelected}
+        onEnterSelectionStage={() => setConsoleStage('select')}
+        onReturnToSetupStage={() => setConsoleStage('setup')}
         onRenderTokenChange={onRenderTokenChange}
       />
     ),
     [
       busyAction,
+      consoleStage,
+      actionMode,
+      actionModeOptions,
+      appliedSourceBatchId,
+      onActionModeChange,
+      onApplySourceBatch,
+      onPendingSourceBatchChange,
       contextLabel,
       failedSelectableCount,
       onProcessSelected,
@@ -211,9 +249,14 @@ export default function useBatchImageProcessingConsole({
       selectUnprocessedLabel,
       selectedCount,
       selectionScopeMessage,
-      setProcessingModeEnabled,
       showSelectUnprocessed,
       showFailedSelector,
+      primaryActionLabel,
+      primaryBusyActionLabel,
+      pendingSourceBatchId,
+      sourceBatchApplyLabel,
+      sourceBatchOptions,
+      sourceBatchSummary,
       trackedProgressSummary.completed,
       trackedProgressSummary.failed,
       trackedProgressSummary.queued,
@@ -423,6 +466,8 @@ export default function useBatchImageProcessingConsole({
     const consoleSignature = [
       contextId,
       processingModeEnabled ? 'mode:on' : 'mode:off',
+      `stage:${consoleStage}`,
+      `action:${String(actionMode || '').trim().toLowerCase() || 'process'}`,
       selectedCount,
       pageLabel,
       busyAction,
@@ -451,14 +496,16 @@ export default function useBatchImageProcessingConsole({
             ? 'warning'
             : 'success',
       sticky: true,
-      loading: liveInFlightCount > 0 || busyAction === 'process-selected',
+      loading: liveInFlightCount > 0 || Boolean(busyAction),
       onClose: () => {
         closeProcessingMode({ dismissToast: true });
       },
       content: renderConsoleContent(),
     });
   }, [
+    actionMode,
     busyAction,
+    consoleStage,
     closeProcessingMode,
     contextId,
     contextLabel,
@@ -479,6 +526,7 @@ export default function useBatchImageProcessingConsole({
     trackedJobsById,
     trackedJobByMediaId,
     trackedProgressSummary,
+    consoleStage,
     upsertTrackedJob,
     trackJobIds,
     beginTrackedRun,

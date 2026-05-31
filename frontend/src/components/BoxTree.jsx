@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import * as S from '../styles/BoxTree.styles';
 import ItemRow from './ItemRow';
 import ItemBrowseControlPanel from './ItemBrowseControlPanel';
+import CondensedBoxItemList from './CondensedBoxItemList';
 import {
   compareItemsByMode,
   matchesItemQuery,
@@ -150,6 +151,7 @@ export default function BoxTree({
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortMode, setSortMode] = useState(DEFAULT_SORT);
+  const [viewMode, setViewMode] = useState('full');
   const rootKey = String(node?._id ?? node?.box_id ?? node?.shortId ?? '');
 
   useEffect(() => {
@@ -169,6 +171,7 @@ export default function BoxTree({
     [node, normalizedQuery, sortMode],
   );
   const visibleItemCount = useMemo(() => countItemsInTree(displayTree), [displayTree]);
+  const condensedItems = useMemo(() => flattenItemsInTree(displayTree), [displayTree]);
 
   if (!node) return null;
 
@@ -187,25 +190,54 @@ export default function BoxTree({
         statusText={`${visibleItemCount} ${visibleItemCount === 1 ? 'item' : 'items'} shown`}
       />
 
-      {displayTree && visibleItemCount === 0 && normalizedQuery ? (
+      <S.ViewModeBar>
+        <S.ViewModeLabel htmlFor="box-tree-condensed-view">
+          <S.ViewModeLabelText>Full view</S.ViewModeLabelText>
+          <S.ViewModeSwitch>
+            <S.ViewModeCheckbox
+              id="box-tree-condensed-view"
+              type="checkbox"
+              checked={viewMode === 'condensed'}
+              onChange={(event) =>
+                setViewMode(event.target.checked ? 'condensed' : 'full')
+              }
+            />
+            <S.ViewModeSlider aria-hidden="true" />
+          </S.ViewModeSwitch>
+          <S.ViewModeLabelText>Condensed</S.ViewModeLabelText>
+        </S.ViewModeLabel>
+      </S.ViewModeBar>
+
+      {viewMode !== 'condensed' && displayTree && visibleItemCount === 0 && normalizedQuery ? (
         <S.MetaRow>
           <S.Count>No items match the current search.</S.Count>
         </S.MetaRow>
       ) : null}
 
-      <BoxSection
-        node={displayTree}
-        depth={0}
-        openItemId={openItemId}
-        onOpenItem={onOpenItem}
-        accent={accent}
-        pulsing={pulsing}
-        effectsById={effectsById}
-        collapseDurMs={collapseDurMs}
-        triggerFlash={triggerFlash}
-        onItemSaved={onItemSaved}
-        refreshBox={refreshBox}
-      />
+      {viewMode === 'condensed' ? (
+        <CondensedBoxItemList
+          items={condensedItems}
+          emptyMessage={
+            normalizedQuery
+              ? 'No items match the current search.'
+              : 'This box has no items.'
+          }
+        />
+      ) : (
+        <BoxSection
+          node={displayTree}
+          depth={0}
+          openItemId={openItemId}
+          onOpenItem={onOpenItem}
+          accent={accent}
+          pulsing={pulsing}
+          effectsById={effectsById}
+          collapseDurMs={collapseDurMs}
+          triggerFlash={triggerFlash}
+          onItemSaved={onItemSaved}
+          refreshBox={refreshBox}
+        />
+      )}
     </S.TreeRoot>
   );
 }
@@ -257,4 +289,23 @@ function countItemsInTree(node) {
     0,
   );
   return localCount + childCount;
+}
+
+function flattenItemsInTree(node) {
+  if (!node || typeof node !== 'object') return [];
+
+  const parentBoxLabel = node.label ?? node.name ?? 'Box';
+  const parentBoxId = node.box_id ?? node.shortId ?? '';
+  const parentBoxMongoId = node._id ?? node.id ?? '';
+  const localItems = (Array.isArray(node.items) ? node.items : []).map((item) => ({
+    ...item,
+    parentBoxLabel,
+    parentBoxId,
+    parentBoxMongoId,
+  }));
+  const childItems = (Array.isArray(node.childBoxes) ? node.childBoxes : []).flatMap(
+    (child) => flattenItemsInTree(child),
+  );
+
+  return [...localItems, ...childItems];
 }

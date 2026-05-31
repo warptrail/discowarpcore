@@ -126,6 +126,15 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
     [activeTab, searchParams, setSearchParams],
   );
 
+  const handleEditBox = useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    next.set('tab', 'edit');
+    next.set('panel', 'edit');
+
+    if (next.toString() === searchParams.toString()) return;
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
   const handleNavigateBox = useCallback(
     (boxId) => {
       const nextShortId = String(boxId ?? '').trim();
@@ -151,6 +160,7 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
               box={tree}
               parentPath={resolvedParentPath}
               onNavigateBox={handleNavigateBox}
+              onEditBox={handleEditBox}
               stats={stats}
               imageRefreshToken={boxImageRefreshToken}
             />

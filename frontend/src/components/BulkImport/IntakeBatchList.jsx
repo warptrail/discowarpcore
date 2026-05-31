@@ -1,5 +1,8 @@
+import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { MOBILE_BREAKPOINT } from '../../styles/tokens';
+
+const BATCHES_PER_PAGE = 50;
 
 const Panel = styled.section`
   border: 1px solid rgba(96, 152, 189, 0.36);
@@ -7,10 +10,14 @@ const Panel = styled.section`
   background: linear-gradient(180deg, rgba(12, 20, 29, 0.95) 0%, rgba(8, 14, 22, 0.98) 100%);
   padding: 0.82rem;
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 0.64rem;
-  align-content: start;
+  max-height: min(72vh, 820px);
+  min-height: 0;
+  min-width: 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
+    max-height: min(68vh, 680px);
     padding: 0.68rem;
     gap: 0.6rem;
   }
@@ -21,11 +28,13 @@ const Header = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 0.72rem;
+  min-width: 0;
 `;
 
 const HeaderText = styled.div`
   display: grid;
   gap: 0.2rem;
+  min-width: 0;
 `;
 
 const Title = styled.h3`
@@ -40,6 +49,7 @@ const Text = styled.p`
   margin: 0;
   font-size: 0.75rem;
   color: #90aac1;
+  line-height: 1.4;
 `;
 
 const CountChip = styled.div`
@@ -51,17 +61,22 @@ const CountChip = styled.div`
   font-size: 0.68rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
+  white-space: nowrap;
+  flex: 0 0 auto;
 `;
 
 const List = styled.div`
   display: grid;
   gap: 0.34rem;
   align-content: start;
+  min-width: 0;
 `;
 
 const Section = styled.div`
   display: grid;
   gap: 0.34rem;
+  min-height: 0;
+  min-width: 0;
 `;
 
 const SectionHeader = styled.div`
@@ -69,6 +84,7 @@ const SectionHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 0.48rem;
+  min-width: 0;
 `;
 
 const SectionTitle = styled.div`
@@ -81,6 +97,7 @@ const SectionTitle = styled.div`
 const QueueRow = styled.button`
   text-align: left;
   width: 100%;
+  min-width: 0;
   border-radius: 10px;
   border: 1px solid
     ${({ $selected }) =>
@@ -160,6 +177,7 @@ const RowTop = styled.div`
   justify-content: space-between;
   gap: 0.5rem;
   align-items: center;
+  min-width: 0;
 `;
 
 const BatchName = styled.div`
@@ -167,6 +185,8 @@ const BatchName = styled.div`
   font-weight: 700;
   color: #e9f5ff;
   line-height: 1.2;
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 const StatePill = styled.div`
@@ -200,6 +220,8 @@ const StatePill = styled.div`
   font-size: 0.64rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  flex: 0 0 auto;
+  white-space: nowrap;
 `;
 
 const SelectedLine = styled.div`
@@ -213,17 +235,22 @@ const SecondaryLine = styled.div`
   font-size: 0.73rem;
   color: #b3cade;
   line-height: 1.35;
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 const SubduedLine = styled.div`
   font-size: 0.68rem;
   color: #819cb4;
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 const StageRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 0.28rem;
+  min-width: 0;
 `;
 
 const StageChip = styled.div`
@@ -264,6 +291,69 @@ const Empty = styled.div`
   color: #9fb8cf;
   font-size: 0.8rem;
   padding: 0.78rem;
+  min-width: 0;
+`;
+
+const ScrollArea = styled.div`
+  display: grid;
+  gap: 0.64rem;
+  align-content: start;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.18rem;
+`;
+
+const Pagination = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.56rem;
+  min-width: 0;
+  border-top: 1px solid rgba(88, 143, 184, 0.22);
+  padding-top: 0.56rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+`;
+
+const PageMeta = styled.div`
+  color: #9fb8cf;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  min-width: 0;
+`;
+
+const PageActions = styled.div`
+  display: flex;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+`;
+
+const PageButton = styled.button`
+  min-height: 2rem;
+  border-radius: 8px;
+  border: 1px solid rgba(102, 167, 212, 0.58);
+  background: rgba(18, 39, 57, 0.82);
+  color: #cfe8fb;
+  padding: 0 0.62rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex: 1 1 0;
+  }
 `;
 
 function toDisplayDate(value) {
@@ -286,10 +376,10 @@ function toImportState(batch) {
 }
 
 function toSourceLine(batch) {
-  const mappingLine = batch.mappingRequired
-    ? `Mapping CSV ${batch.mappingCsvPresent ? 'present' : 'missing'}`
-    : `Mapping CSV ${batch.mappingCsvPresent ? 'present' : 'optional'}`;
-  return `AI JSON ${batch.aiJsonPresent ? 'present' : 'missing'} · ${mappingLine}`;
+  const hasBatchManifest = Boolean(batch.packageSnapshot?.structureSummary?.hasBatchManifest);
+  const manifestLine = hasBatchManifest ? 'Batch manifest accepted' : 'Batch manifest not recorded';
+  const payloadLine = batch.aiJsonPresent ? 'schema payload ready' : 'schema payload missing';
+  return `${manifestLine} · ${payloadLine}`;
 }
 
 function toCountsLine(batch) {
@@ -335,9 +425,38 @@ function toBatchAccentTone(batch) {
 }
 
 export default function IntakeBatchList({ batches, selectedBatchId, onSelect }) {
-  const safeBatches = Array.isArray(batches) ? batches : [];
-  const activeBatches = safeBatches.filter((batch) => !batch?.isArchived);
-  const archivedBatches = safeBatches.filter((batch) => batch?.isArchived);
+  const safeBatches = useMemo(() => (Array.isArray(batches) ? batches : []), [batches]);
+  const { activeBatches, archivedBatches, orderedBatches } = useMemo(() => {
+    const nextActiveBatches = safeBatches.filter((batch) => !batch?.isArchived);
+    const nextArchivedBatches = safeBatches.filter((batch) => batch?.isArchived);
+    return {
+      activeBatches: nextActiveBatches,
+      archivedBatches: nextArchivedBatches,
+      orderedBatches: [...nextActiveBatches, ...nextArchivedBatches],
+    };
+  }, [safeBatches]);
+  const totalPages = Math.max(1, Math.ceil(orderedBatches.length / BATCHES_PER_PAGE));
+  const [pageIndex, setPageIndex] = useState(0);
+  const currentPage = Math.min(pageIndex, totalPages - 1);
+  const pageStart = currentPage * BATCHES_PER_PAGE;
+  const pageEnd = Math.min(pageStart + BATCHES_PER_PAGE, orderedBatches.length);
+  const currentPageBatches = orderedBatches.slice(pageStart, pageEnd);
+  const currentPageBatchIds = new Set(currentPageBatches.map((batch) => batch.id));
+  const visibleActiveBatches = activeBatches.filter((batch) => currentPageBatchIds.has(batch.id));
+  const visibleArchivedBatches = archivedBatches.filter((batch) => currentPageBatchIds.has(batch.id));
+  const hasPagination = orderedBatches.length > BATCHES_PER_PAGE;
+
+  useEffect(() => {
+    setPageIndex((current) => Math.min(current, totalPages - 1));
+  }, [totalPages]);
+
+  useEffect(() => {
+    if (!selectedBatchId || !orderedBatches.length) return;
+    const selectedIndex = orderedBatches.findIndex((batch) => batch.id === selectedBatchId);
+    if (selectedIndex === -1) return;
+    const selectedPage = Math.floor(selectedIndex / BATCHES_PER_PAGE);
+    setPageIndex((current) => (current === selectedPage ? current : selectedPage));
+  }, [orderedBatches, selectedBatchId]);
 
   function renderBatchList(rows, { emptyMessage, selectedLabel }) {
     if (!rows.length) {
@@ -414,27 +533,63 @@ export default function IntakeBatchList({ batches, selectedBatchId, onSelect }) 
         <CountChip>{safeBatches.length} batch{safeBatches.length === 1 ? '' : 'es'}</CountChip>
       </Header>
 
-      <Section>
-        <SectionHeader>
-          <SectionTitle>Active Batches</SectionTitle>
-          <CountChip>{activeBatches.length}</CountChip>
-        </SectionHeader>
-        {renderBatchList(activeBatches, {
-          emptyMessage: 'No active staged packages yet. Upload a Disco Warp Core batch zip to begin.',
-          selectedLabel: 'Selected active batch',
-        })}
-      </Section>
+      <ScrollArea>
+        <Section>
+          <SectionHeader>
+            <SectionTitle>Active Batches</SectionTitle>
+            <CountChip>
+              {visibleActiveBatches.length} of {activeBatches.length}
+            </CountChip>
+          </SectionHeader>
+          {renderBatchList(visibleActiveBatches, {
+            emptyMessage: hasPagination
+              ? 'No active batches on this page.'
+              : 'No active staged packages yet. Upload a Disco Warp Core batch zip to begin.',
+            selectedLabel: 'Selected active batch',
+          })}
+        </Section>
 
-      <Section>
-        <SectionHeader>
-          <SectionTitle>Archived Provenance</SectionTitle>
-          <CountChip>{archivedBatches.length}</CountChip>
-        </SectionHeader>
-        {renderBatchList(archivedBatches, {
-          emptyMessage: 'No archived batches yet.',
-          selectedLabel: 'Selected archived batch',
-        })}
-      </Section>
+        <Section>
+          <SectionHeader>
+            <SectionTitle>Archived Provenance</SectionTitle>
+            <CountChip>
+              {visibleArchivedBatches.length} of {archivedBatches.length}
+            </CountChip>
+          </SectionHeader>
+          {renderBatchList(visibleArchivedBatches, {
+            emptyMessage: hasPagination ? 'No archived batches on this page.' : 'No archived batches yet.',
+            selectedLabel: 'Selected archived batch',
+          })}
+        </Section>
+      </ScrollArea>
+
+      <Pagination aria-label="Batch selector pagination">
+        <PageMeta>
+          {orderedBatches.length
+            ? `Showing ${pageStart + 1}-${pageEnd} of ${orderedBatches.length} batches · Page ${currentPage + 1} of ${totalPages}`
+            : 'No batches to paginate'}
+        </PageMeta>
+        {hasPagination ? (
+          <PageActions>
+            <PageButton
+              type="button"
+              onClick={() => setPageIndex((current) => Math.max(0, current - 1))}
+              disabled={currentPage <= 0}
+              aria-label="Show previous batch page"
+            >
+              Previous
+            </PageButton>
+            <PageButton
+              type="button"
+              onClick={() => setPageIndex((current) => Math.min(totalPages - 1, current + 1))}
+              disabled={currentPage >= totalPages - 1}
+              aria-label="Show next batch page"
+            >
+              Next
+            </PageButton>
+          </PageActions>
+        ) : null}
+      </Pagination>
     </Panel>
   );
 }

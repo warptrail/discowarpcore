@@ -243,6 +243,7 @@ function BoxCreate({
   const [boxId, setBoxId] = useState('');
   const [label, setLabel] = useState('');
   const [group, setGroup] = useState('');
+  const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
   const [locationId, setLocationId] = useState('');
   const [tags, setTags] = useState([]);
@@ -313,6 +314,7 @@ function BoxCreate({
         box_id: boxId,
         label: label.trim(),
         group: group.trim() || undefined,
+        description: description.trim() || undefined,
         notes: notes.trim() || undefined,
         locationId: locationId || null,
         tags: normalizeTags(tags),
@@ -418,6 +420,17 @@ function BoxCreate({
             Optional larger furniture/unit grouping, e.g. Entertainment Center
             or Tool Chest.
           </Hint>
+        </Field>
+
+        <Field>
+          <Label htmlFor="description">Physical Description</Label>
+          <Textarea
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe the physical box, color, size, markings, or condition..."
+          />
+          <Hint>Optional physical details that help identify the box itself.</Hint>
         </Field>
 
         <Field>

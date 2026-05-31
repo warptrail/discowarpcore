@@ -43,7 +43,6 @@ const mediaStateSchema = new mongoose.Schema(
       mode: { type: String, default: 'explicit', trim: true },
       background: { type: String, default: '', trim: true },
       glow: { type: String, default: '', trim: true },
-      accent: { type: String, default: '', trim: true },
     },
     activeVariant: {
       type: String,
@@ -122,7 +121,6 @@ mediaStateSchema.pre('validate', function normalizePathFields(next) {
     this.renderTokens.mode = toTrimmed(this.renderTokens.mode).toLowerCase() || 'explicit';
     this.renderTokens.background = toTrimmed(this.renderTokens.background);
     this.renderTokens.glow = toTrimmed(this.renderTokens.glow);
-    this.renderTokens.accent = toTrimmed(this.renderTokens.accent);
   }
   this.sourceType = toTrimmed(this.sourceType).toLowerCase();
   next();

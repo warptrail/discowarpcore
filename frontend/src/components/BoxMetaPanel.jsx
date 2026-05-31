@@ -11,6 +11,7 @@ import * as S from '../styles/BoxMetaPanel.styles';
  * - parentPath: optional array of ancestors in order root → … → parent
  *               e.g. [{ id: '001', label: 'Root' }, { id: '120', label: 'Storage' }]
  * - onNavigateBox: (shortId: string) => void   // navigate to a different box scope
+ * - onEditBox: () => void                      // open box edit panel
  * - stats:      optional { boxes, uniqueItems, totalItems } from backend; if omitted, computed here
  */
 
@@ -154,12 +155,14 @@ export default function BoxMetaPanel({
   box,
   parentPath = [],
   onNavigateBox,
+  onEditBox,
   stats,
   imageRefreshToken = 0,
 }) {
   const shortId = String(box?.box_id ?? box?.shortId ?? '');
   const title = box?.label ?? box?.name ?? 'Box';
   const group = String(box?.group ?? '').trim();
+  const description = String(box?.description ?? '').trim();
   const notes = String(box?.notes ?? '').trim();
   const location = String(
     box?.location ?? box?.locationName ?? box?.locationId?.name ?? ''
@@ -240,7 +243,19 @@ export default function BoxMetaPanel({
       <S.IdentityZone>
         <S.IdentityHeader>
           <S.ScopeBadge $tone={scope.tone}>{scope.text}</S.ScopeBadge>
-          {!!depth && <S.DepthHint>level {depth}</S.DepthHint>}
+          <S.IdentityActions>
+            {!!depth && <S.DepthHint>level {depth}</S.DepthHint>}
+            {typeof onEditBox === 'function' ? (
+              <S.EditBoxButton
+                type="button"
+                onClick={onEditBox}
+                aria-label={`Edit ${title}`}
+                title="Edit box details"
+              >
+                Edit Box
+              </S.EditBoxButton>
+            ) : null}
+          </S.IdentityActions>
         </S.IdentityHeader>
 
         {ancestorCrumbs.length > 0 && (
@@ -314,6 +329,24 @@ export default function BoxMetaPanel({
               </S.CurrentBoxMain>
             </S.CurrentBox>
 
+            {description ? (
+              <S.NotesZone>
+                <S.NotesHeader>
+                  <S.NotesLabel>Physical Description</S.NotesLabel>
+                </S.NotesHeader>
+                <S.NotesBody>{description}</S.NotesBody>
+              </S.NotesZone>
+            ) : null}
+
+            {notes ? (
+              <S.NotesZone>
+                <S.NotesHeader>
+                  <S.NotesLabel>Notes</S.NotesLabel>
+                </S.NotesHeader>
+                <S.NotesBody>{notes}</S.NotesBody>
+              </S.NotesZone>
+            ) : null}
+
             <S.MetaZone>
               <S.StatGroup>
                 <S.StatItem>
@@ -330,20 +363,6 @@ export default function BoxMetaPanel({
                 </S.StatItem>
               </S.StatGroup>
             </S.MetaZone>
-
-            <S.DesktopSummaryMeta>
-              <S.Label>Descendants</S.Label>
-              <S.MetaCount>
-                {descendantCount} total • {children.length} direct
-              </S.MetaCount>
-            </S.DesktopSummaryMeta>
-
-            {notes ? (
-              <S.NotesZone>
-                <S.Label>Notes</S.Label>
-                <S.NotesBody>{notes}</S.NotesBody>
-              </S.NotesZone>
-            ) : null}
           </S.SummaryInfo>
 
         {boxImageSrc ? (

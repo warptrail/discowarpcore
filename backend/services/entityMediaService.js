@@ -24,6 +24,15 @@ function firstNonEmpty(...values) {
   return '';
 }
 
+function normalizeRenderTokensForRequest(tokens) {
+  if (!tokens || typeof tokens !== 'object') return undefined;
+  const mode = toTrimmed(tokens.mode).toLowerCase() === 'random' ? 'random' : 'explicit';
+  const background = toTrimmed(tokens.background);
+  const glow = toTrimmed(tokens.glow);
+  if (mode !== 'random' && !background && !glow) return undefined;
+  return { mode, background, glow };
+}
+
 function normalizePathForComparison(value) {
   const normalized = toTrimmed(value).replace(/\\/g, '/').replace(/\/+/g, '/');
   if (!normalized) return '';
@@ -63,7 +72,6 @@ function normalizeMediaStateForResponse(state) {
       mode: toTrimmed(state?.renderTokens?.mode).toLowerCase() || 'explicit',
       background: toTrimmed(state?.renderTokens?.background),
       glow: toTrimmed(state?.renderTokens?.glow),
-      accent: toTrimmed(state?.renderTokens?.accent),
     },
     processedAt: state.processedAt ?? null,
   };
@@ -239,36 +247,34 @@ async function ensureBoxMediaState(boxId) {
 
 function toEnqueueResponse(state, enqueueResult) {
   const job = enqueueResult?.job || null;
+  const processingState = normalizeMediaStateForResponse(
+    job?.processingState || enqueueResult?.processingState || state
+  );
   return {
-    mediaId: toTrimmed(state?.mediaId),
+    mediaId: toTrimmed(processingState?.mediaId || state?.mediaId),
     jobId: toTrimmed(job?.id),
     processingStatus:
-      toTrimmed(job?.processingState?.processingStatus) ||
-      toTrimmed(state?.processingStatus) ||
+      toTrimmed(processingState?.processingStatus) ||
       'queued',
     renderTokens: {
       mode: firstNonEmpty(
         job?.renderTokens?.mode,
-        job?.processingState?.renderTokens?.mode,
+        processingState?.renderTokens?.mode,
         state?.renderTokens?.mode,
         'explicit'
       ).toLowerCase() === 'random' ? 'random' : 'explicit',
       background: firstNonEmpty(
         job?.renderTokens?.background,
-        job?.processingState?.renderTokens?.background,
+        processingState?.renderTokens?.background,
         state?.renderTokens?.background
       ),
       glow: firstNonEmpty(
         job?.renderTokens?.glow,
-        job?.processingState?.renderTokens?.glow,
+        processingState?.renderTokens?.glow,
         state?.renderTokens?.glow
       ),
-      accent: firstNonEmpty(
-        job?.renderTokens?.accent,
-        job?.processingState?.renderTokens?.accent,
-        state?.renderTokens?.accent
-      ),
     },
+    processingState,
     job,
     queueStatus: enqueueResult?.queueStatus || null,
   };
@@ -279,7 +285,7 @@ async function enqueueItemMediaProcessing(itemId, options = {}) {
   const enqueueResult = await enqueueMediaProcessingJobByIdRunner(
     state.mediaId,
     undefined,
-    options?.renderTokens,
+    normalizeRenderTokensForRequest(options?.renderTokens),
     true
   );
   return toEnqueueResponse(state, enqueueResult);
@@ -290,7 +296,7 @@ async function enqueueBoxMediaProcessing(boxId, options = {}) {
   const enqueueResult = await enqueueMediaProcessingJobByIdRunner(
     state.mediaId,
     undefined,
-    options?.renderTokens,
+    normalizeRenderTokensForRequest(options?.renderTokens),
     true
   );
   return toEnqueueResponse(state, enqueueResult);

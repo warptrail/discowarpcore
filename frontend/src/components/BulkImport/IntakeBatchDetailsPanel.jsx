@@ -14,6 +14,8 @@ const Panel = styled.section`
   padding: 0.82rem;
   display: grid;
   gap: 0.78rem;
+  align-content: start;
+  min-width: 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 0.68rem;
@@ -24,6 +26,7 @@ const Panel = styled.section`
 const Header = styled.div`
   display: grid;
   gap: 0.22rem;
+  min-width: 0;
 `;
 
 const Title = styled.h3`
@@ -39,6 +42,7 @@ const Text = styled.p`
   color: #9fb8cf;
   font-size: 0.78rem;
   line-height: 1.42;
+  min-width: 0;
 `;
 
 const Empty = styled.div`
@@ -48,6 +52,7 @@ const Empty = styled.div`
   color: #9fb8cf;
   font-size: 0.8rem;
   padding: 0.8rem;
+  min-width: 0;
 `;
 
 const SummaryCard = styled.div`
@@ -57,6 +62,7 @@ const SummaryCard = styled.div`
   padding: 0.72rem;
   display: grid;
   gap: 0.56rem;
+  min-width: 0;
 `;
 
 const SummaryTop = styled.div`
@@ -64,23 +70,74 @@ const SummaryTop = styled.div`
   justify-content: space-between;
   gap: 0.6rem;
   align-items: flex-start;
+  min-width: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+  }
+`;
+
+const BatchTitleArea = styled.div`
+  display: grid;
+  gap: 0.28rem;
+  min-width: 0;
+`;
+
+const BatchNameRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  flex-wrap: wrap;
+  min-width: 0;
 `;
 
 const BatchName = styled.div`
   font-size: 0.9rem;
   font-weight: 700;
   color: #e9f5ff;
+  min-width: 0;
+  overflow-wrap: anywhere;
+`;
+
+const InlineButton = styled.button`
+  min-height: 1.72rem;
+  border-radius: 8px;
+  border: 1px solid rgba(102, 167, 212, 0.58);
+  background: rgba(18, 39, 57, 0.82);
+  color: #cfe8fb;
+  padding: 0 0.54rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.56;
+    cursor: not-allowed;
+  }
+`;
+
+const RenameForm = styled.form`
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
 `;
 
 const SummaryMeta = styled.div`
   font-size: 0.74rem;
   color: #9fb8cf;
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 const ChipRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 0.34rem;
+  min-width: 0;
 `;
 
 const Chip = styled.div`
@@ -103,6 +160,8 @@ const Chip = styled.div`
   padding: 0.18rem 0.44rem;
   font-size: 0.69rem;
   letter-spacing: 0.04em;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 `;
 
 const SummaryGrid = styled.div`
@@ -145,6 +204,7 @@ const SequenceCard = styled.div`
   padding: 0.6rem;
   display: grid;
   gap: 0.18rem;
+  min-width: 0;
 `;
 
 const SequenceStep = styled.div`
@@ -165,17 +225,23 @@ const SequenceValue = styled.div`
   font-size: 0.82rem;
   font-weight: 700;
   color: #e9f5ff;
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 const SequenceMeta = styled.div`
   font-size: 0.73rem;
   color: #a7bed3;
   line-height: 1.35;
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 const SummaryLine = styled.div`
   font-size: 0.77rem;
   color: #bdd2e8;
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 const SummaryLabel = styled.span`
@@ -185,6 +251,7 @@ const SummaryLabel = styled.span`
 const Block = styled.div`
   display: grid;
   gap: 0.46rem;
+  min-width: 0;
 `;
 
 const AccordionBlock = styled(Block)`
@@ -279,6 +346,59 @@ const ButtonRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 0.52rem;
+`;
+
+const DestinationPanel = styled.div`
+  border-radius: 12px;
+  border: 1px solid rgba(207, 170, 101, 0.46);
+  background: rgba(45, 32, 16, 0.72);
+  padding: 0.72rem;
+  display: grid;
+  gap: 0.62rem;
+`;
+
+const DestinationGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.56rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const Field = styled.label`
+  display: grid;
+  gap: 0.28rem;
+`;
+
+const FieldLabel = styled.span`
+  color: #d9c79c;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+`;
+
+const TextInput = styled.input`
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+  border-radius: 10px;
+  border: 1px solid rgba(207, 170, 101, 0.44);
+  background: rgba(8, 14, 22, 0.86);
+  color: #f5ead0;
+  padding: 0 0.68rem;
+  font-size: 0.8rem;
+  outline: none;
+
+  &:focus {
+    border-color: rgba(238, 202, 135, 0.82);
+    box-shadow: 0 0 0 2px rgba(238, 202, 135, 0.12);
+  }
+`;
+
+const RenameInput = styled(TextInput)`
+  min-height: 2rem;
+  min-width: min(100%, 18rem);
+  color: #e9f5ff;
 `;
 
 const Button = styled.button`
@@ -447,7 +567,6 @@ function buildProvenanceClipboardText({
   selectedBatch,
   packageSummaryLines,
   aiJsonStatus,
-  mappingCsvStatus,
   imagesStatus,
   archiveStatus,
   receiptStatus,
@@ -467,7 +586,6 @@ function buildProvenanceClipboardText({
   }
 
   lines.push(`AI Intake JSON: ${aiJsonStatus.label}${aiJsonStatus.detail ? ` · ${aiJsonStatus.detail}` : ''}`);
-  lines.push(`Image Mapping CSV: ${mappingCsvStatus.label}${mappingCsvStatus.detail ? ` · ${mappingCsvStatus.detail}` : ''}`);
   lines.push(`Images: ${imagesStatus.label}${imagesStatus.detail ? ` · ${imagesStatus.detail}` : ''}`);
   lines.push(`Archive State: ${archiveStatus.label}${archiveStatus.detail ? ` · ${archiveStatus.detail}` : ''}`);
   lines.push(`Local Receipt: ${receiptStatus.label}${receiptStatus.detail ? ` · ${receiptStatus.detail}` : ''}`);
@@ -475,13 +593,7 @@ function buildProvenanceClipboardText({
   if (packageStructureSummary) {
     lines.push(
       `Observed Package Structure: ${[
-        packageStructureSummary.hasManifest ? 'manifest present' : 'manifest missing',
-        packageStructureSummary.hasAiJson ? 'AI JSON present' : 'AI JSON missing',
-        packageStructureSummary.hasMappingCsv
-          ? 'mapping CSV present'
-          : selectedBatch?.imagesIncluded
-            ? 'mapping CSV missing'
-            : 'mapping CSV optional',
+        packageStructureSummary.hasBatchManifest ? 'batch manifest present' : 'batch manifest missing',
         packageStructureSummary.imagesIncluded
           ? `${packageStructureSummary.imageCount || 0} image file(s)`
           : 'no images included',
@@ -516,6 +628,8 @@ export default function IntakeBatchDetailsPanel({
   detailLoading = false,
   onValidate,
   onImport,
+  onRenameBatch,
+  onApplyDestination,
   onToggleProcessingMode,
   onSelectedItemIdsChange,
   onImportedItemsSortChange,
@@ -530,6 +644,10 @@ export default function IntakeBatchDetailsPanel({
   const [validationSectionOpen, setValidationSectionOpen] = useState(true);
   const [importSectionOpen, setImportSectionOpen] = useState(true);
   const [copyFeedback, setCopyFeedback] = useState('');
+  const [destinationLocation, setDestinationLocation] = useState('');
+  const [destinationBox, setDestinationBox] = useState('');
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
 
   useEffect(() => {
     const wasEnabled = previousProcessingModeRef.current;
@@ -547,7 +665,18 @@ export default function IntakeBatchDetailsPanel({
     setPackageSectionOpen(false);
     setValidationSectionOpen(selectedBatch?.validationStatus !== 'passed');
     setImportSectionOpen(selectedBatch?.importLifecycleStatus !== 'success');
-  }, [selectedBatch?.id, selectedBatch?.validationStatus, selectedBatch?.importLifecycleStatus]);
+    setRenameOpen(false);
+    setRenameValue(selectedBatch?.name || '');
+  }, [selectedBatch?.id, selectedBatch?.name, selectedBatch?.validationStatus, selectedBatch?.importLifecycleStatus]);
+
+  useEffect(() => {
+    setDestinationLocation(selectedBatch?.destinationDefaults?.location || '');
+    setDestinationBox(selectedBatch?.destinationDefaults?.box || '');
+  }, [
+    selectedBatch?.id,
+    selectedBatch?.destinationDefaults?.location,
+    selectedBatch?.destinationDefaults?.box,
+  ]);
 
   if (!selectedBatch) {
     return (
@@ -591,6 +720,8 @@ export default function IntakeBatchDetailsPanel({
   const canArchiveBatch = selectedBatch.importLifecycleStatus === 'success' && !isArchived;
   const validationCompleted = selectedBatch.validationStatus === 'passed';
   const importCompleted = selectedBatch.importLifecycleStatus === 'success';
+  const destinationDefaults = selectedBatch.destinationDefaults || null;
+  const destinationReviewRequired = Boolean(destinationDefaults?.reviewRequired) && !importCompleted;
   const sourceImageNames = Array.isArray(sourceManifest?.imageOriginalFilenames)
     ? sourceManifest.imageOriginalFilenames
     : [];
@@ -613,13 +744,6 @@ export default function IntakeBatchDetailsPanel({
     required: true,
     archivedLabel: 'Archived provenance recorded',
     optionalLabel: 'No active attachment recorded',
-  });
-  const mappingCsvStatus = getRecordedAssetStatus({
-    active: selectedBatch.mappingCsvPresent,
-    filename: sourceManifest?.mappingCsvOriginalFilename,
-    required: Boolean(selectedBatch.mappingRequired),
-    archivedLabel: 'Archived provenance recorded',
-    optionalLabel: selectedBatch.mappingRequired ? 'No active attachment recorded' : 'Optional, not included',
   });
   const receiptStatus = selectedBatch.localReceipt
     ? {
@@ -668,7 +792,6 @@ export default function IntakeBatchDetailsPanel({
     selectedBatch,
     packageSummaryLines,
     aiJsonStatus,
-    mappingCsvStatus,
     imagesStatus,
     archiveStatus,
     receiptStatus,
@@ -690,19 +813,83 @@ export default function IntakeBatchDetailsPanel({
     }
   };
 
+  const handleStartRename = () => {
+    setRenameValue(selectedBatch?.name || '');
+    setRenameOpen(true);
+  };
+
+  const handleCancelRename = () => {
+    setRenameValue(selectedBatch?.name || '');
+    setRenameOpen(false);
+  };
+
+  const handleSubmitRename = async (event) => {
+    event.preventDefault();
+    const nextName = String(renameValue || '').trim();
+    if (!nextName || nextName === selectedBatch.name) {
+      setRenameValue(selectedBatch.name);
+      setRenameOpen(false);
+      return;
+    }
+
+    try {
+      await onRenameBatch?.(nextName);
+      setRenameOpen(false);
+    } catch {
+      // The manager owns user-facing error feedback; keep the form open for correction/retry.
+    }
+  };
+
   return (
     <Panel>
       <Header>
         <Title>Selected Batch</Title>
-        <Text>Zip upload, batch staging, validation, then import. This screen is now the package-staging and batch-import console for the intake workflow.</Text>
+        <Text>
+          Review the staged AI intake package, validate the manifest-derived item payload, then
+          import it into inventory.
+        </Text>
       </Header>
 
       <SummaryCard>
         <SummaryTop>
-          <div>
-            <BatchName>{selectedBatch.name}</BatchName>
+          <BatchTitleArea>
+            {renameOpen ? (
+              <RenameForm onSubmit={handleSubmitRename}>
+                <RenameInput
+                  value={renameValue}
+                  onChange={(event) => setRenameValue(event.target.value)}
+                  autoFocus
+                  aria-label="Batch name"
+                  disabled={busyAction === 'rename'}
+                />
+                <InlineButton
+                  type="submit"
+                  disabled={busyAction === 'rename' || !String(renameValue || '').trim()}
+                >
+                  {busyAction === 'rename' ? 'Saving...' : 'Save'}
+                </InlineButton>
+                <InlineButton
+                  type="button"
+                  onClick={handleCancelRename}
+                  disabled={busyAction === 'rename'}
+                >
+                  Cancel
+                </InlineButton>
+              </RenameForm>
+            ) : (
+              <BatchNameRow>
+                <BatchName>{selectedBatch.name}</BatchName>
+                <InlineButton
+                  type="button"
+                  onClick={handleStartRename}
+                  disabled={busyAction === 'rename'}
+                >
+                  Rename
+                </InlineButton>
+              </BatchNameRow>
+            )}
             <SummaryMeta>{selectedBatch.id}</SummaryMeta>
-          </div>
+          </BatchTitleArea>
           <ChipRow>
             <Chip $tone={validationTone}>
               {String(selectedBatch.validationStatus || 'not_validated').replace(/_/g, ' ')}
@@ -721,13 +908,13 @@ export default function IntakeBatchDetailsPanel({
 
         <ChipRow>
           <Chip $tone={selectedBatch.aiJsonPresent ? 'success' : 'error'}>
-            AI Intake JSON {selectedBatch.aiJsonPresent ? 'present' : 'missing'}
-          </Chip>
-          <Chip $tone={selectedBatch.mappingRequired && !selectedBatch.mappingCsvPresent ? 'error' : selectedBatch.mappingCsvPresent ? 'success' : 'default'}>
-            Mapping CSV {selectedBatch.mappingCsvPresent ? 'present' : selectedBatch.mappingRequired ? 'missing' : 'optional'}
+            Schema Payload {selectedBatch.aiJsonPresent ? 'ready' : 'missing'}
           </Chip>
           <Chip $tone={selectedBatch.imagesIncluded ? 'success' : 'default'}>
             Images {selectedBatch.imagesIncluded ? 'included' : 'not included'}
+          </Chip>
+          <Chip $tone={destinationReviewRequired ? 'error' : 'success'}>
+            Destination {destinationReviewRequired ? 'needs review' : 'reviewed'}
           </Chip>
           <Chip $tone={isArchived ? 'error' : 'default'}>
             {archiveStatus.label}
@@ -746,7 +933,16 @@ export default function IntakeBatchDetailsPanel({
             {importSnapshot?.importedAt ? toDisplayDate(importSnapshot.importedAt) : 'Not yet'}
           </SummaryLine>
           <SummaryLine>
-            <SummaryLabel>Rows:</SummaryLabel> {validationSnapshot?.rowCount || 0}
+            <SummaryLabel>Mapped Images:</SummaryLabel> {validationSnapshot?.rowCount || 0}
+          </SummaryLine>
+          <SummaryLine>
+            <SummaryLabel>Destination:</SummaryLabel>{' '}
+            {destinationReviewRequired
+              ? 'Needs review'
+              : [
+                  destinationDefaults?.location || 'Unknown location',
+                  destinationDefaults?.box ? `Box ${destinationDefaults.box}` : 'Orphaned',
+                ].join(' · ')}
           </SummaryLine>
           <SummaryLine>
             <SummaryLabel>Archive State:</SummaryLabel> {archiveStatus.detail}
@@ -774,6 +970,8 @@ export default function IntakeBatchDetailsPanel({
                 ? `Passed ${toDisplayDate(validationSnapshot?.validatedAt)}`
                 : selectedBatch.validationStatus === 'failed'
                   ? 'Validation failed'
+                  : destinationReviewRequired
+                    ? 'Destination review required'
                   : 'Pending validation'}
             </SequenceMeta>
           </SequenceCard>
@@ -820,12 +1018,8 @@ export default function IntakeBatchDetailsPanel({
             </FactLine>
           ) : null}
           <FactLine>
-            <SummaryLabel>AI Intake JSON:</SummaryLabel> <FactValue>{aiJsonStatus.label}</FactValue>
+            <SummaryLabel>Schema Payload:</SummaryLabel> <FactValue>{aiJsonStatus.label}</FactValue>
             {aiJsonStatus.detail ? <FactNote>{` · ${aiJsonStatus.detail}`}</FactNote> : null}
-          </FactLine>
-          <FactLine>
-            <SummaryLabel>Image Mapping CSV:</SummaryLabel> <FactValue>{mappingCsvStatus.label}</FactValue>
-            {mappingCsvStatus.detail ? <FactNote>{` · ${mappingCsvStatus.detail}`}</FactNote> : null}
           </FactLine>
           <FactLine>
             <SummaryLabel>Images:</SummaryLabel> <FactValue>{imagesStatus.label}</FactValue>
@@ -844,13 +1038,7 @@ export default function IntakeBatchDetailsPanel({
               <SummaryLabel>Observed Package Structure:</SummaryLabel>{' '}
               <FactValue>
                 {[
-                  packageStructureSummary.hasManifest ? 'manifest present' : 'manifest missing',
-                  packageStructureSummary.hasAiJson ? 'AI JSON present' : 'AI JSON missing',
-                  packageStructureSummary.hasMappingCsv
-                    ? 'mapping CSV present'
-                    : selectedBatch.imagesIncluded
-                      ? 'mapping CSV missing'
-                      : 'mapping CSV optional',
+                  packageStructureSummary.hasBatchManifest ? 'batch manifest present' : 'batch manifest missing',
                   packageStructureSummary.imagesIncluded
                     ? `${packageStructureSummary.imageCount || 0} image file(s)`
                     : 'no images included',
@@ -939,6 +1127,55 @@ export default function IntakeBatchDetailsPanel({
         ) : null}
       </AccordionBlock>
 
+      {destinationReviewRequired ? (
+        <DestinationPanel>
+          <BlockHeader>
+            <BlockTitle>Destination Review</BlockTitle>
+            <BlockText>
+              This package did not include a batch location or box. Set either value now, or confirm unknown location and orphaned items.
+            </BlockText>
+          </BlockHeader>
+          <DestinationGrid>
+            <Field>
+              <FieldLabel>Location</FieldLabel>
+              <TextInput
+                type="text"
+                value={destinationLocation}
+                onChange={(event) => setDestinationLocation(event.target.value)}
+                placeholder="Unknown location"
+                disabled={busyAction === 'destination' || isArchived}
+              />
+            </Field>
+            <Field>
+              <FieldLabel>Box</FieldLabel>
+              <TextInput
+                type="text"
+                value={destinationBox}
+                onChange={(event) => setDestinationBox(event.target.value)}
+                placeholder="No box; import as orphaned"
+                disabled={busyAction === 'destination' || isArchived}
+              />
+            </Field>
+          </DestinationGrid>
+          <ButtonRow>
+            <Button
+              type="button"
+              $tone="primary"
+              onClick={() => onApplyDestination?.({
+                location: destinationLocation,
+                box: destinationBox,
+              })}
+              disabled={busyAction === 'destination' || isArchived}
+            >
+              {busyAction === 'destination' ? 'Saving…' : 'Confirm Destination'}
+            </Button>
+          </ButtonRow>
+          <StatusLine>
+            Empty location imports as unknown. Empty box imports these items without a box.
+          </StatusLine>
+        </DestinationPanel>
+      ) : null}
+
       <AccordionBlock>
         <AccordionToggle
           type="button"
@@ -981,10 +1218,20 @@ export default function IntakeBatchDetailsPanel({
 
         {!validationCompleted ? (
           <ButtonRow>
-            <Button type="button" onClick={onValidate} disabled={busyAction === 'validate' || isArchived}>
+            <Button
+              type="button"
+              onClick={onValidate}
+              disabled={busyAction === 'validate' || isArchived || destinationReviewRequired}
+            >
               {busyAction === 'validate' ? 'Validating…' : 'Validate Batch'}
             </Button>
           </ButtonRow>
+        ) : null}
+
+        {destinationReviewRequired ? (
+          <StatusLine>
+            Validation is paused until the batch destination has been reviewed.
+          </StatusLine>
         ) : null}
 
         {validation ? (
@@ -1078,7 +1325,7 @@ export default function IntakeBatchDetailsPanel({
               type="button"
               $tone="primary"
               onClick={onImport}
-              disabled={busyAction === 'import' || !selectedBatchValidationOk || isArchived}
+              disabled={busyAction === 'import' || !selectedBatchValidationOk || isArchived || destinationReviewRequired}
             >
               {busyAction === 'import' ? 'Importing…' : 'Import Validated Batch'}
             </Button>
@@ -1104,7 +1351,7 @@ export default function IntakeBatchDetailsPanel({
               <Button
                 type="button"
                 onClick={onValidate}
-                disabled={busyAction === 'validate'}
+                disabled={busyAction === 'validate' || destinationReviewRequired}
               >
                 {busyAction === 'validate' ? 'Revalidating…' : 'Re-run Validation'}
               </Button>
@@ -1114,7 +1361,7 @@ export default function IntakeBatchDetailsPanel({
                 type="button"
                 $tone="primary"
                 onClick={onImport}
-                disabled={busyAction === 'import'}
+                disabled={busyAction === 'import' || destinationReviewRequired}
               >
                 {busyAction === 'import' ? 'Re-importing…' : 'Re-import Batch'}
               </Button>

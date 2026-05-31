@@ -1,9 +1,14 @@
 import * as S from './Retrieval.styles';
 import RetrievalExpandedPanel from './RetrievalExpandedPanel';
+import { getBoxColorTones } from './boxColors';
 
 function shouldSkipRowToggle(target) {
   if (!(target instanceof Element)) return false;
-  return Boolean(target.closest('a, button, [data-thumb-surface="true"], [data-expand-toggle="true"]'));
+  return Boolean(
+    target.closest(
+      'a, button, [data-thumb-surface="true"], [data-expand-toggle="true"]',
+    ),
+  );
 }
 
 export default function RetrievalResultRow({
@@ -37,15 +42,15 @@ export default function RetrievalResultRow({
   const boxName = String(item?.boxName || '').trim();
   const boxNumber = String(item?.boxNumber || '').trim();
   const locationLabel = String(item?.locationLabel || '').trim();
-  const locationPath = String(item?.locationPath || '').trim();
-  const ownerName = String(item?.primaryOwnerName || '').trim();
-  const shortBoxName = boxName.length > 34 ? `${boxName.slice(0, 33).trimEnd()}…` : boxName;
-  const unresolved =
-    !boxNumber ||
-    !boxName ||
-    !locationLabel ||
-    /^unknown/i.test(locationLabel) ||
-    /^unknown/i.test(locationPath);
+  const hasKnownLocation =
+    Boolean(locationLabel) && !/^unknown/i.test(locationLabel);
+  const hasKnownBox = Boolean(boxNumber) || Boolean(boxName);
+  const boxColorTones = getBoxColorTones(boxNumber || 0);
+  const boxSummary = hasKnownBox
+    ? `${boxNumber ? `#${boxNumber}` : ''}${boxNumber && boxName ? ' · ' : ''}${boxName}`
+    : 'Orphaned';
+  const locationSummary = hasKnownLocation ? locationLabel : 'Unknown';
+
   const hasImage = Boolean(imageUrl);
 
   const handleThumbClick = (event) => {
@@ -78,7 +83,11 @@ export default function RetrievalResultRow({
                   aria-label={`Preview image for ${item.name}`}
                   data-thumb-surface="true"
                 >
-                  <S.ThumbImage src={imageUrl} alt={`${item.name} thumbnail`} loading="lazy" />
+                  <S.ThumbImage
+                    src={imageUrl}
+                    alt={`${item.name} thumbnail`}
+                    loading="lazy"
+                  />
                 </S.ThumbPreviewButton>
               ) : (
                 <S.ThumbFrame data-thumb-surface="true">
@@ -89,45 +98,43 @@ export default function RetrievalResultRow({
               <S.ExpandedRowMarker aria-hidden="true" />
             )}
 
-            <S.BadgeStack>
+            <S.BadgeStack $expanded={isExpanded}>
               <S.ItemLineSlot>
-                {item.itemHref ? (
-                  <S.ItemLineLink
-                    to={item.itemHref}
-                    onClick={(event) => event.stopPropagation()}
-                    onKeyDown={(event) => event.stopPropagation()}
-                  >
-                    {item.name}
-                  </S.ItemLineLink>
-                ) : (
-                  <S.ItemLine>{item.name}</S.ItemLine>
-                )}
+                <S.ItemLine>{item.name}</S.ItemLine>
               </S.ItemLineSlot>
 
-              <S.LocatorPathLine title={locationPath || locationLabel}>
-                {unresolved
-                  ? 'No box assigned · Needs placement'
-                  : `In: ${locationPath || locationLabel}`}
-              </S.LocatorPathLine>
+              {!isExpanded ? (
+                <S.CollapsedPlacementTable>
+                  <S.CollapsedPlacementRow>
+                    <S.CollapsedPlacementLabel>Box</S.CollapsedPlacementLabel>
+                    <S.CollapsedPlacementValue $stack>
+                      <S.CollapsedBoxValueChip
+                        title={`Box: ${boxSummary}`}
+                        $orphaned={!hasKnownBox}
+                        $boxColorRgb={boxColorTones.baseRgb}
+                        $boxNeonRgb={boxColorTones.neonRgb}
+                        $boxMutedRgb={boxColorTones.mutedRgb}
+                      >
+                        {boxSummary}
+                      </S.CollapsedBoxValueChip>
+                    </S.CollapsedPlacementValue>
+                  </S.CollapsedPlacementRow>
 
-              {unresolved ? (
-                <S.UnresolvedHint>Unresolved location</S.UnresolvedHint>
-              ) : (
-                <S.BoxAnchorLine title={`${boxNumber ? `#${boxNumber}` : ''} ${boxName}`.trim()}>
-                  <S.BoxAnchorId>{`#${boxNumber}`}</S.BoxAnchorId>
-                  <S.BoxAnchorDivider />
-                  <S.BoxAnchorSnippet>{shortBoxName || 'Unnamed box'}</S.BoxAnchorSnippet>
-                </S.BoxAnchorLine>
-              )}
-
-              <S.LocatorMetaLine>
-                {locationLabel ? (
-                  <S.LocatorMetaText title={`Room: ${locationLabel}`}>Room: {locationLabel}</S.LocatorMetaText>
-                ) : null}
-                {ownerName ? (
-                  <S.LocatorMetaText title={`Owner: ${ownerName}`}>Owner: {ownerName}</S.LocatorMetaText>
-                ) : null}
-              </S.LocatorMetaLine>
+                  <S.CollapsedPlacementRow>
+                    <S.CollapsedPlacementLabel>
+                      Location
+                    </S.CollapsedPlacementLabel>
+                    <S.CollapsedPlacementValue
+                      $stack
+                      title={`Location: ${locationSummary}`}
+                    >
+                      <S.CollapsedLocationValue $unknown={!hasKnownLocation}>
+                        {locationSummary}
+                      </S.CollapsedLocationValue>
+                    </S.CollapsedPlacementValue>
+                  </S.CollapsedPlacementRow>
+                </S.CollapsedPlacementTable>
+              ) : null}
             </S.BadgeStack>
           </S.RowMain>
 
@@ -141,11 +148,17 @@ export default function RetrievalResultRow({
             }}
             aria-expanded={isExpanded}
             aria-controls={panelId}
-            aria-label={isExpanded ? 'Hide quick details' : 'Show quick details'}
+            aria-label={
+              isExpanded ? 'Hide quick details' : 'Show quick details'
+            }
             $expanded={isExpanded}
           >
-            <S.ExpandCaret aria-hidden="true">{isExpanded ? '▾' : '▸'}</S.ExpandCaret>
-            <S.CardOpenHint>{isExpanded ? 'Hide' : 'Quick view'}</S.CardOpenHint>
+            <S.ExpandCaret aria-hidden="true">
+              {isExpanded ? '▾' : '▸'}
+            </S.ExpandCaret>
+            <S.CardOpenHint>
+              {isExpanded ? 'Hide' : 'Quick view'}
+            </S.CardOpenHint>
           </S.ExpandControl>
         </S.SummaryTop>
       </S.SummaryButton>

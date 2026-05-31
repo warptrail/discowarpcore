@@ -262,6 +262,8 @@ export default function MoveItemToOtherBox({
   itemId,
   currentBoxId, // owning/source box id
   onBoxSelected, // ({ destBoxId, destLabel, destShortId, isOrphanedDestination, toState }) => void
+  showOrphanOption = true,
+  showRecentDestinations = true,
 }) {
   const [otherBoxes, setOtherBoxes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -341,7 +343,7 @@ export default function MoveItemToOtherBox({
 
   useEffect(() => {
     const id = String(itemId || '').trim();
-    if (!id) {
+    if (!id || !showRecentDestinations) {
       setRecentDestinations([]);
       setRecentLoading(false);
       return;
@@ -396,7 +398,7 @@ export default function MoveItemToOtherBox({
       isAlive = false;
       controller.abort();
     };
-  }, [currentBoxId, itemId]);
+  }, [currentBoxId, itemId, showRecentDestinations]);
 
   const handleSelect = (box) => {
     onBoxSelected?.({
@@ -545,27 +547,29 @@ export default function MoveItemToOtherBox({
         />
       </FilterPanel>
 
-      <BoxList>
-        <OrphanItem
-          key="__orphan-option__"
-          role="button"
-          tabIndex={0}
-          onClick={handleSelectOrphaned}
-          onKeyDown={(e) => {
-            if (e.key !== 'Enter' && e.key !== ' ') return;
-            e.preventDefault();
-            handleSelectOrphaned();
-          }}
-        >
-          <BoxIdentityLane $depth={0}>
-            <OrphanIdChip>—</OrphanIdChip>
-            <BoxName>No Box (Orphan)</BoxName>
-          </BoxIdentityLane>
-          <MetaLane>
-            <OrphanPill>ORPHAN</OrphanPill>
-          </MetaLane>
-        </OrphanItem>
-      </BoxList>
+      {showOrphanOption ? (
+        <BoxList>
+          <OrphanItem
+            key="__orphan-option__"
+            role="button"
+            tabIndex={0}
+            onClick={handleSelectOrphaned}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter' && e.key !== ' ') return;
+              e.preventDefault();
+              handleSelectOrphaned();
+            }}
+          >
+            <BoxIdentityLane $depth={0}>
+              <OrphanIdChip>—</OrphanIdChip>
+              <BoxName>No Box (Orphan)</BoxName>
+            </BoxIdentityLane>
+            <MetaLane>
+              <OrphanPill>ORPHAN</OrphanPill>
+            </MetaLane>
+          </OrphanItem>
+        </BoxList>
+      ) : null}
 
       {recentLoading && !recentBoxes.length ? (
         <StatusHint>Loading recent destinations…</StatusHint>

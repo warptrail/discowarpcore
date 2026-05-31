@@ -13,6 +13,8 @@ import ItemPage from './components/ItemPage';
 import IntakePage from './components/Intake/IntakePage';
 import BulkImportPage from './components/BulkImport/BulkImportPage';
 import RetrievalPage from './components/Retrieval/RetrievalPage';
+import DeclutterPage from './components/Declutter/DeclutterPage';
+import DeclutterSessionPage from './components/Declutter/DeclutterSessionPage';
 import LogsPage from './components/SystemLogsPage';
 import { API_BASE } from './api/API_BASE';
 import { MOBILE_BREAKPOINT, MOBILE_PAGE_GAP } from './styles/tokens';
@@ -304,6 +306,8 @@ function App() {
         <Route path="/intake" element={<IntakePage boxes={boxes} />} />
         <Route path="/import" element={<BulkImportPage />} />
         <Route path="/all-items" element={<AllItemsList />} />
+        <Route path="/declutter" element={<DeclutterPage />} />
+        <Route path="/declutter/:sessionId" element={<DeclutterSessionPage />} />
         <Route path="/logs" element={<LogsPage />} />
         <Route path="/retrieval" element={<RetrievalPage />} />
         <Route path="/items/:itemId" element={<ItemPage />} />

@@ -31,25 +31,25 @@ const MOBILE_RAIL_W = '2px';
 const RADIUS = '14px';
 const radiusL = '12px';
 const railBaseX = '-0.74rem';
+const BOX_DEPTH_INDENT_PX = 22;
+const BOX_DEPTH_INDENT_MOBILE_PX = 12;
 
 const railTone = ({ $isRoot, $depth = 0 }) =>
   $isRoot ? ROOT_RAIL : BRACKET_COLORS[$depth % BRACKET_COLORS.length];
 const toneAlpha = (hex, alpha = 'ff') => `${hex}${alpha}`;
 const depthStep = ({ $depth = 0 }) => Math.min(Math.max($depth, 0), 4);
-const railTop = ({ $isRoot }) => ($isRoot ? '0.22rem' : '0.3rem');
-const mobileDepthCostPx = ({ $depth = 1 }) => {
-  const d = Math.max(1, Number($depth) || 1);
-  if (d <= 1) return 4;
-  if (d === 2) return 6;
-  if (d === 3) return 7;
-  return 8;
+const childIndent = ({ $depth = 1, $mobile = false }) => {
+  const depth = Math.max(Number($depth) || 0, 0);
+  if (depth < 1 || depth > 3) return '0px';
+  return `${$mobile ? BOX_DEPTH_INDENT_MOBILE_PX : BOX_DEPTH_INDENT_PX}px`;
 };
+const railTop = ({ $isRoot }) => ($isRoot ? '0.22rem' : '0.3rem');
 
 const mobileRailInset = ({ $isRoot, $depth = 0 }) => {
-  if ($isRoot) return '1.06rem';
-  if ($depth <= 1) return '0.86rem';
-  if ($depth === 2) return '0.72rem';
-  return '0.62rem';
+  if ($isRoot) return '0.36rem';
+  if ($depth <= 1) return '0.32rem';
+  if ($depth === 2) return '0.28rem';
+  return '0.24rem';
 };
 
 const mobileRailBaseOffset = ({ $depth = 0 }) => {
@@ -192,7 +192,7 @@ const RailFront = styled.div`
   margin-bottom: ${RAIL_W};
   padding-top: 0.38rem;
   padding-right: 0.45rem;
-  padding-left: ${({ $isRoot }) => ($isRoot ? '1.94rem' : '1.72rem')};
+  padding-left: ${({ $isRoot }) => ($isRoot ? '0' : '0.48rem')};
   padding-bottom: 0.35rem;
   border-radius: ${({ $isRoot, $depth = 0 }) =>
     railInnerCorners({ $isRoot, $depth })};
@@ -209,7 +209,8 @@ const RailFront = styled.div`
     margin-top: ${({ $isRoot }) => `calc(${railTop({ $isRoot })} + ${MOBILE_RAIL_W})`};
     margin-bottom: ${MOBILE_RAIL_W};
     padding-right: 0.2rem;
-    padding-left: ${({ $isRoot, $depth = 0 }) => mobileRailInset({ $isRoot, $depth })};
+    padding-left: ${({ $isRoot, $depth = 0 }) =>
+      $isRoot ? '0' : mobileRailInset({ $isRoot, $depth })};
   }
 `;
 
@@ -217,6 +218,7 @@ const BoxCard = styled.div`
   ${panelBase};
   position: relative;
   display: block;
+  min-width: 0;
   overflow: hidden;
   cursor: pointer;
   animation: ${breatheIn} 140ms ease both;
@@ -250,7 +252,7 @@ const BoxCard = styled.div`
     inset: 0 auto 0 0;
     width: 5px;
     background: ${({ $isRoot, $depth = 0 }) => railTone({ $isRoot, $depth })};
-    opacity: 0.28;
+    opacity: ${({ $isRoot }) => ($isRoot ? 0 : 0.28)};
     ${({ $isSystem }) =>
       $isSystem &&
       css`
@@ -289,9 +291,9 @@ const BoxCard = styled.div`
 
 const BoxHeader = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 0.52rem;
+  gap: 0.58rem;
   padding: 0;
 `;
 
@@ -316,12 +318,14 @@ const BoxTitle = styled.div`
 const ShortId = styled.span`
   display: inline-flex;
   align-items: center;
-  justify-self: end;
-  padding: 0.2rem 0.44rem;
+  justify-self: start;
+  gap: 0.08rem;
+  padding: 0.16rem 0.48rem 0.18rem;
   border-radius: 999px;
   font-weight: 900;
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
+  font-size: 0.92rem;
+  letter-spacing: 0.04em;
+  line-height: 1;
   color: ${({ $isRoot, $depth = 0 }) =>
     toneAlpha(railTone({ $isRoot, $depth }), 'f0')};
   background: transparent;
@@ -338,6 +342,17 @@ const ShortId = styled.span`
         transparent 90%
       );
     `}
+`;
+
+const ShortIdMarker = styled.span`
+  font-size: 0.6em;
+  line-height: 1;
+  opacity: 0.82;
+`;
+
+const ShortIdDigits = styled.span`
+  font-size: 1.22em;
+  line-height: 1;
 `;
 
 const Meta = styled.span`
@@ -642,6 +657,7 @@ const BoxBodyRow = styled.div`
   grid-template-columns: auto minmax(0, 1fr);
   gap: 0.72rem;
   align-items: start;
+  min-width: 0;
   padding: 0.68rem 0.78rem 0.74rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
@@ -723,17 +739,19 @@ const StatPill = styled.span`
 `;
 
 const NodeChildren = styled.div`
-  margin-left: ${({ $depth = 1 }) => Math.min(Math.max($depth, 1) * 8, 32)}px;
+  --box-depth-indent: ${({ $depth = 1 }) => childIndent({ $depth })};
+  margin-left: var(--box-depth-indent);
   margin-top: 2px;
   display: flex;
   flex-direction: column;
   gap: 0.72rem;
-  padding-left: 0.24rem;
+  min-width: 0;
+  padding-left: 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
-    margin-left: ${({ $depth = 1 }) => `${mobileDepthCostPx({ $depth })}px`};
+    --box-depth-indent: ${({ $depth = 1 }) =>
+      childIndent({ $depth, $mobile: true })};
     gap: 0.54rem;
-    padding-left: 0.08rem;
   }
 `;
 
@@ -828,6 +846,8 @@ export const styledComponents = {
   BoxTitle,
   Meta,
   ShortId,
+  ShortIdMarker,
+  ShortIdDigits,
   BoxMetaStack,
   BoxMetaLine,
   BoxMetaLabel,

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
+import { keyframes } from 'styled-components';
 import ImageSourcePicker from '../ImageSourcePicker';
 import RetrievalImageLightbox from '../Retrieval/RetrievalImageLightbox';
 import {
@@ -16,12 +17,15 @@ import RenderTokenControls from '../Processing/RenderTokenControls';
 
 const Field = styled.section`
   border: 1px solid rgba(105, 154, 176, 0.44);
-  border-radius: 10px;
-  background: linear-gradient(180deg, rgba(11, 22, 30, 0.9) 0%, rgba(9, 17, 24, 0.94) 100%);
-  padding: ${({ $compact }) => ($compact ? '0.4rem' : '0.52rem')};
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(74, 185, 207, 0.1), transparent 38%),
+    linear-gradient(180deg, rgba(11, 22, 30, 0.92) 0%, rgba(9, 17, 24, 0.96) 100%);
+  padding: ${({ $compact }) => ($compact ? '0.48rem' : '0.72rem')};
   display: grid;
-  gap: ${({ $compact }) => ($compact ? '0.3rem' : '0.38rem')};
+  gap: ${({ $compact }) => ($compact ? '0.4rem' : '0.62rem')};
   min-width: 0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025);
 `;
 
 const HeaderRow = styled.div`
@@ -29,6 +33,7 @@ const HeaderRow = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  flex-wrap: wrap;
 `;
 
 const Title = styled.h4`
@@ -57,30 +62,45 @@ const VariantBadge = styled.span`
 
 const BodyRow = styled.div`
   display: grid;
-  grid-template-columns: ${({ $compact }) => ($compact ? '66px minmax(0, 1fr)' : '74px minmax(0, 1fr)')};
-  gap: ${({ $compact }) => ($compact ? '0.34rem' : '0.42rem')};
+  grid-template-columns: ${({ $compact }) =>
+    ($compact ? 'minmax(112px, 150px) minmax(0, 1fr)' : 'minmax(220px, 0.34fr) minmax(0, 1fr)')};
+  gap: ${({ $compact }) => ($compact ? '0.5rem' : '0.8rem')};
+  align-items: stretch;
   min-width: 0;
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
+  @media (max-width: 860px) {
     grid-template-columns: ${({ $compact, $mobileHeaderPreview }) =>
-      $mobileHeaderPreview ? '1fr' : ($compact ? '62px minmax(0, 1fr)' : '68px minmax(0, 1fr)')};
+      $mobileHeaderPreview ? '1fr' : ($compact ? 'minmax(96px, 128px) minmax(0, 1fr)' : 'minmax(180px, 0.38fr) minmax(0, 1fr)')};
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: 1fr;
   }
 `;
 
 const previewFrameStyles = `
-  width: ${({ $compact }) => ($compact ? '66px' : '74px')};
-  height: ${({ $compact }) => ($compact ? '66px' : '74px')};
-  border-radius: 10px;
+  width: 100%;
+  min-height: ${({ $compact }) => ($compact ? '136px' : '232px')};
+  height: 100%;
+  max-height: ${({ $compact }) => ($compact ? '172px' : '320px')};
+  aspect-ratio: ${({ $compact }) => ($compact ? '1 / 1' : '4 / 3')};
+  border-radius: 14px;
   border: 1px solid rgba(99, 154, 175, 0.54);
   overflow: hidden;
-  background: rgba(10, 17, 23, 0.92);
+  background:
+    radial-gradient(circle at 50% 42%, rgba(56, 104, 126, 0.22), transparent 48%),
+    rgba(7, 13, 19, 0.96);
   display: grid;
   place-items: center;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+    0 12px 22px rgba(0, 0, 0, 0.2);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    width: ${({ $compact, $mobileHeaderPreview }) => $mobileHeaderPreview ? '100%' : ($compact ? '62px' : '68px')};
-    height: ${({ $compact, $mobileHeaderPreview }) => $mobileHeaderPreview ? '132px' : ($compact ? '62px' : '68px')};
-    border-radius: ${({ $mobileHeaderPreview }) => ($mobileHeaderPreview ? '12px' : '10px')};
+    min-height: ${({ $compact, $mobileHeaderPreview }) =>
+      ($mobileHeaderPreview ? '180px' : ($compact ? '132px' : '168px'))};
+    max-height: ${({ $mobileHeaderPreview }) => ($mobileHeaderPreview ? '240px' : '220px')};
+    border-radius: 12px;
   }
 `;
 
@@ -120,23 +140,23 @@ const PreviewImage = styled.img`
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: ${({ $mobileHeaderPreview }) => ($mobileHeaderPreview ? 'cover' : 'contain')};
+  object-fit: contain;
   object-position: center;
   background: rgba(5, 10, 16, 0.96);
 `;
 
 const Placeholder = styled.div`
   color: #93adbe;
-  font-size: 0.6rem;
-  line-height: 1.15;
+  font-size: ${({ $compact }) => ($compact ? '0.62rem' : '0.7rem')};
+  line-height: 1.25;
   text-align: center;
-  padding: 0.24rem;
+  padding: ${({ $compact }) => ($compact ? '0.4rem' : '0.72rem')};
   text-transform: uppercase;
 `;
 
 const ActionStack = styled.div`
   display: grid;
-  gap: 0.3rem;
+  gap: ${({ $compact }) => ($compact ? '0.42rem' : '0.62rem')};
   min-width: 0;
   align-content: start;
   container-type: inline-size;
@@ -145,7 +165,8 @@ const ActionStack = styled.div`
 const ActionGrid = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 0.28rem;
+  gap: ${({ $compact }) => ($compact ? '0.32rem' : '0.42rem')};
+  align-items: center;
 `;
 
 const ActionButton = styled.button`
@@ -194,6 +215,65 @@ const StatusLine = styled.div`
   }};
   font-size: 0.68rem;
   line-height: 1.3;
+`;
+
+const spin = keyframes`
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+const ActivityLine = styled(StatusLine)`
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  flex-wrap: wrap;
+`;
+
+const ActivitySpinner = styled.span`
+  width: 0.82rem;
+  height: 0.82rem;
+  border-radius: 999px;
+  border: 2px solid rgba(151, 189, 210, 0.25);
+  border-top-color: rgba(224, 244, 255, 0.96);
+  animation: ${spin} 0.8s linear infinite;
+  flex: 0 0 auto;
+`;
+
+const ActivityBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  padding: 0.08rem 0.34rem;
+  border-radius: 999px;
+  border: 1px solid
+    ${({ $tone }) => {
+    if ($tone === 'error') return 'rgba(221, 146, 146, 0.58)';
+    if ($tone === 'success') return 'rgba(118, 214, 179, 0.62)';
+    return 'rgba(103, 157, 183, 0.52)';
+  }};
+  background: ${({ $tone }) => {
+    if ($tone === 'error') return 'rgba(71, 28, 28, 0.88)';
+    if ($tone === 'success') return 'rgba(20, 58, 45, 0.92)';
+    return 'rgba(14, 26, 36, 0.84)';
+  }};
+  color: ${({ $tone }) => {
+    if ($tone === 'error') return '#ffdede';
+    if ($tone === 'success') return '#c8f6e5';
+    return '#c5dfed';
+  }};
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+`;
+
+const ActivityText = styled.span`
+  min-width: 0;
 `;
 
 function renderStandardAction(action, compact) {
@@ -306,12 +386,12 @@ export default function ImageAssetField({
           </PreviewButton>
         ) : (
           <PreviewFrame $compact={compact} $mobileHeaderPreview={mobileHeaderPreview}>
-            <Placeholder>{placeholder}</Placeholder>
+            <Placeholder $compact={compact}>{placeholder}</Placeholder>
           </PreviewFrame>
         )}
 
-        <ActionStack>
-          <ActionGrid>
+        <ActionStack $compact={compact}>
+          <ActionGrid $compact={compact}>
             {renderUploadAction(uploadAction, compact)}
             {renderStandardAction(clearAction, compact)}
             {renderStandardAction(chooseExistingAction, compact)}
@@ -332,11 +412,23 @@ export default function ImageAssetField({
         </ActionStack>
       </BodyRow>
 
-      {lines.map((line) => (
-        <StatusLine key={line.key} $tone={line.tone}>
-          {line.text}
-        </StatusLine>
-      ))}
+      {lines.map((line) => {
+        if (line.loading || line.badge) {
+          return (
+            <ActivityLine key={line.key} $tone={line.tone}>
+              {line.loading ? <ActivitySpinner aria-hidden="true" /> : null}
+              {line.badge ? <ActivityBadge $tone={line.tone}>{line.badge}</ActivityBadge> : null}
+              <ActivityText>{line.text}</ActivityText>
+            </ActivityLine>
+          );
+        }
+
+        return (
+          <StatusLine key={line.key} $tone={line.tone}>
+            {line.text}
+          </StatusLine>
+        );
+      })}
 
       {toTrimmed(hint) ? <StatusLine>{toTrimmed(hint)}</StatusLine> : null}
 

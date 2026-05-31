@@ -12,6 +12,7 @@ export default function ItemImageField({
   processImageBusy = false,
   processImageError = '',
   processImageProgressLabel = '',
+  processImageProgressPercent = null,
   persistedRenderTokens = null,
   activeVariant = 'original',
   hasProcessedVariant = false,
@@ -63,6 +64,7 @@ export default function ItemImageField({
       processImageBusy={processImageBusy}
       processImageError={processImageError}
       processImageProgressLabel={processImageProgressLabel}
+      processImageProgressPercent={processImageProgressPercent}
       persistedRenderTokens={persistedRenderTokens}
       processActionLabels={{
         idle: 'Process Item Image',
@@ -75,8 +77,6 @@ export default function ItemImageField({
       switchVariantError={switchVariantError}
       processedPreviewUrl={processedPreviewUrl}
       imageRefreshToken={imageRefreshToken}
-      hintWhenImage={`Active variant: ${toTrimmed(activeVariant) || 'original'}`}
-      hintWhenEmpty="Upload a square photo for best results."
     />
   );
 }

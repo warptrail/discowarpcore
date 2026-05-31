@@ -625,6 +625,26 @@ export const ItemNameChip = styled(Link)`
   }
 `;
 
+export const QuantitySubtext = styled.span`
+  display: block;
+  justify-self: start;
+  max-width: 100%;
+  color: rgba(231, 236, 243, 0.5);
+  font-size: 0.64rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_XS};
+    letter-spacing: 0.04em;
+  }
+`;
+
 export const Breadcrumb = styled.div`
   color: rgba(231, 236, 243, 0.74);
   font-size: 0.72rem;
@@ -771,11 +791,13 @@ export const QuickActionButton = styled.button`
         ? 'rgba(232, 177, 92, 0.74)'
         : $tone === 'consumed'
           ? 'rgba(242, 98, 98, 0.76)'
-          : $tone === 'maintained'
-            ? 'rgba(84, 208, 151, 0.72)'
-            : $tone === 'checked'
-              ? 'rgba(160, 151, 255, 0.72)'
-              : 'rgba(76, 198, 193, 0.72)'};
+          : $tone === 'declutter'
+            ? 'rgba(167, 182, 255, 0.76)'
+            : $tone === 'maintained'
+              ? 'rgba(84, 208, 151, 0.72)'
+              : $tone === 'checked'
+                ? 'rgba(160, 151, 255, 0.72)'
+                : 'rgba(76, 198, 193, 0.72)'};
   background: ${({ $tone, $active }) =>
     $tone === 'move'
       ? $active
@@ -783,11 +805,13 @@ export const QuickActionButton = styled.button`
         : 'linear-gradient(180deg, rgba(73, 53, 22, 0.94), rgba(58, 42, 17, 0.92))'
       : $tone === 'consumed'
         ? 'linear-gradient(180deg, rgba(92, 29, 29, 0.94), rgba(67, 22, 22, 0.92))'
-        : $tone === 'maintained'
-          ? 'linear-gradient(180deg, rgba(25, 71, 50, 0.92), rgba(19, 56, 40, 0.9))'
-          : $tone === 'checked'
-            ? 'linear-gradient(180deg, rgba(45, 43, 93, 0.92), rgba(34, 33, 70, 0.9))'
-            : 'linear-gradient(180deg, rgba(31, 72, 88, 0.92), rgba(24, 56, 69, 0.9))'};
+        : $tone === 'declutter'
+          ? 'linear-gradient(180deg, rgba(47, 50, 105, 0.94), rgba(35, 38, 81, 0.92))'
+          : $tone === 'maintained'
+            ? 'linear-gradient(180deg, rgba(25, 71, 50, 0.92), rgba(19, 56, 40, 0.9))'
+            : $tone === 'checked'
+              ? 'linear-gradient(180deg, rgba(45, 43, 93, 0.92), rgba(34, 33, 70, 0.9))'
+              : 'linear-gradient(180deg, rgba(31, 72, 88, 0.92), rgba(24, 56, 69, 0.9))'};
   color: #eff7ff;
   border-radius: 8px;
   padding: 0.24rem 0.52rem;
@@ -801,7 +825,7 @@ export const QuickActionButton = styled.button`
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
   transition: filter 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
 
-  &:hover {
+  &:hover:not(:disabled) {
     filter: brightness(1.08);
     box-shadow: 0 0 10px
       ${({ $tone }) =>
@@ -809,7 +833,9 @@ export const QuickActionButton = styled.button`
           ? 'rgba(242, 98, 98, 0.26)'
           : $tone === 'move'
             ? 'rgba(232, 177, 92, 0.24)'
-            : 'rgba(127, 215, 255, 0.18)'};
+            : $tone === 'declutter'
+              ? 'rgba(167, 182, 255, 0.24)'
+              : 'rgba(127, 215, 255, 0.18)'};
   }
 
   ${({ $tone, $active }) =>
@@ -820,7 +846,13 @@ export const QuickActionButton = styled.button`
       box-shadow: 0 0 0 1px rgba(232, 177, 92, 0.25);
     `}
 
-  &:active {
+  &:disabled {
+    opacity: 0.52;
+    cursor: not-allowed;
+    filter: saturate(0.72);
+  }
+
+  &:active:not(:disabled) {
     transform: translateY(1px);
   }
 
@@ -851,6 +883,20 @@ export const MoveWorkspace = styled.section`
     border-radius: ${MOBILE_PANEL_RADIUS};
     padding: 0.56rem;
     box-shadow: 0 0 0 1px rgba(78, 199, 123, 0.09);
+  }
+`;
+
+export const EditWorkspace = styled.section`
+  border-radius: 10px;
+  border: 1px solid rgba(76, 198, 193, 0.42);
+  background: #11161f;
+  padding: 0.78rem;
+  box-shadow: 0 0 0 1px rgba(76, 198, 193, 0.12);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: ${MOBILE_PANEL_RADIUS};
+    padding: 0.56rem;
+    box-shadow: 0 0 0 1px rgba(76, 198, 193, 0.08);
   }
 `;
 

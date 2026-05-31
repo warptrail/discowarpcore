@@ -1,5 +1,9 @@
 # Intake Staging Workspace
 
+> Legacy/manual reference: the preferred current operator workflow is
+> `npm run intake:tui`, documented in `docs/batch-import-workflow.html`.
+> Use this page only when maintaining the older project-local staging scripts.
+
 Disco Warp Core now uses a project-local runtime workspace for multi-step intake artifacts:
 
 ```text

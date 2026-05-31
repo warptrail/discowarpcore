@@ -19,7 +19,7 @@ const boxSchema = new mongoose.Schema({
     default: null,
     index: true,
   },
-  description: String,
+  description: { type: String, trim: true, set: normalizeOptionalString },
   notes: { type: String, trim: true, set: normalizeOptionalString },
   tags: [String],
   imagePath: { type: String, default: '' },

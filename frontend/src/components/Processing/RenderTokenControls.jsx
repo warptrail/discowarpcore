@@ -1,10 +1,14 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
+import tokenColorsCsv from '../../assets/token-colors.csv?raw';
+import { formatTokenLabel, normalizeRenderTokens } from '../../constants/renderTokens';
+import { ensureTokenColorMapLoaded, getTokenSurfaceColors } from '../../util/tokenColorMap';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_CONTROL_MIN_HEIGHT,
   MOBILE_FONT_SM,
 } from '../../styles/tokens';
+import RenderTokenOptionPicker from './RenderTokenOptionPicker';
 
 function toTrimmed(value) {
   return value == null ? '' : String(value).trim();
@@ -20,22 +24,12 @@ function normalizeSelectOptions(options = []) {
     .filter((entry) => entry.id && entry.label);
 }
 
-function normalizeModeOptions(options = []) {
-  const source = Array.isArray(options) ? options : [];
-  const normalized = source
-    .map((entry) => ({
-      id: toTrimmed(entry?.id).toLowerCase(),
-      label: toTrimmed(entry?.label),
-    }))
-    .filter((entry) => (entry.id === 'explicit' || entry.id === 'random') && entry.label);
-  if (!normalized.length) {
-    return [
-      { id: 'explicit', label: 'Explicit Tokens' },
-      { id: 'random', label: 'Random Tokens' },
-    ];
-  }
-  return normalized;
-}
+const FIELD_ORDER = ['background', 'glow'];
+
+const FIELD_LABELS = {
+  background: 'Background',
+  glow: 'Glow',
+};
 
 const Panel = styled.div`
   border: 1px solid rgba(91, 133, 156, 0.5);
@@ -46,6 +40,14 @@ const Panel = styled.div`
   gap: ${({ $compact }) => ($compact ? '0.4rem' : '0.56rem')};
 `;
 
+const HeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+
 const Label = styled.div`
   color: #95b7cb;
   font-size: 0.68rem;
@@ -53,70 +55,18 @@ const Label = styled.div`
   text-transform: uppercase;
 `;
 
-const ModeBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  min-height: 18px;
-  padding: 0.08rem 0.34rem;
-  border-radius: 999px;
-  border: 1px solid rgba(118, 214, 179, 0.62);
-  background: rgba(20, 58, 45, 0.92);
-  color: #c8f6e5;
-  font-size: 0.56rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-`;
-
-const Field = styled.label`
-  display: grid;
-  gap: 0.24rem;
+const SummaryText = styled.span`
   min-width: 0;
+  color: #d9ecf6;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-family: 'SFMono-Regular', Menlo, Consolas, Monaco, 'Liberation Mono', monospace;
 `;
 
-const Grid = styled.div`
+const ModeSection = styled.div`
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: ${({ $compact }) => ($compact ? '0.42rem' : '0.56rem')};
-
-  ${Field}:nth-child(1) {
-    grid-column: span 3;
-  }
-
-  ${Field}:nth-child(2) {
-    grid-column: span 3;
-  }
-
-  ${Field}:nth-child(3) {
-    grid-column: span 3;
-  }
-
-  ${Field}:nth-child(4) {
-    grid-column: span 3;
-  }
-
-  @media (max-width: 980px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-
-    ${Field}:nth-child(1),
-    ${Field}:nth-child(2),
-    ${Field}:nth-child(3),
-    ${Field}:nth-child(4) {
-      grid-column: auto;
-    }
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: 1fr;
-
-    ${Field}:nth-child(1),
-    ${Field}:nth-child(2),
-    ${Field}:nth-child(3),
-    ${Field}:nth-child(4) {
-      grid-column: auto;
-    }
-  }
+  gap: 0.26rem;
 `;
 
 const FieldLabel = styled.span`
@@ -126,140 +76,221 @@ const FieldLabel = styled.span`
   text-transform: uppercase;
 `;
 
-const Select = styled.select`
-  min-height: ${({ $compact }) => ($compact ? '36px' : '40px')};
-  border-radius: 10px;
+const Segmented = styled.div`
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: fit-content;
   border: 1px solid rgba(88, 136, 162, 0.62);
-  background: rgba(11, 24, 33, 0.95);
-  color: #d9ecf6;
-  padding: 0 0.78rem;
-  font-size: 0.72rem;
-  line-height: 1.2;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  background: rgba(8, 17, 24, 0.96);
+  overflow: hidden;
+`;
+
+const SegmentButton = styled.button`
+  min-height: ${({ $compact }) => ($compact ? '30px' : '32px')};
+  padding: 0 0.72rem;
+  border: 0;
+  border-right: ${({ $isLast }) => ($isLast ? '0' : '1px solid rgba(88, 136, 162, 0.45)')};
+  background: ${({ $active }) =>
+    $active
+      ? 'linear-gradient(180deg, rgba(34, 92, 126, 0.95) 0%, rgba(20, 60, 84, 0.95) 100%)'
+      : 'rgba(8, 17, 24, 0.96)'};
+  color: ${({ $active }) => ($active ? '#eaf6ff' : '#9fbece')};
+  font-size: 0.68rem;
+  font-weight: 760;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
 
   &:disabled {
     opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const TokenGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: ${({ $compact }) => ($compact ? '0.42rem' : '0.56rem')};
+
+  @media (max-width: 980px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-    font-size: ${MOBILE_FONT_SM};
+    grid-template-columns: 1fr;
   }
+`;
+
+const TokenTile = styled.button`
+  min-height: ${({ $compact }) => ($compact ? '52px' : '58px')};
+  border-radius: 10px;
+  border: 1px solid ${({ $borderColor }) => $borderColor};
+  background:
+    linear-gradient(180deg, ${({ $gradientStart }) => $gradientStart} 0%, ${({ $gradientEnd }) => $gradientEnd} 100%);
+  color: ${({ $textColor }) => $textColor};
+  padding: 0.42rem 0.5rem;
+  text-align: left;
+  display: grid;
+  align-content: space-between;
+  gap: 0.22rem;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+
+  &:disabled {
+    opacity: 0.56;
+    cursor: not-allowed;
+  }
+`;
+
+const TokenTileLabel = styled.span`
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.82;
+`;
+
+const TokenTileValue = styled.span`
+  font-size: 0.76rem;
+  font-weight: 760;
+  line-height: 1.15;
+`;
+
+const RandomModeNote = styled.div`
+  color: #95b7cb;
+  font-size: 0.68rem;
+  line-height: 1.3;
 `;
 
 export default function RenderTokenControls({
   renderTokens = null,
   renderTokenOptions = null,
-  renderTokenModeOptions = null,
   onRenderTokenChange = null,
   disabled = false,
   compact = false,
   title = 'Render Tokens',
-  randomBadgeText = 'Random mode active',
+  showModeControl = true,
 }) {
-  const normalizedRenderTokenOptions = useMemo(() => ({
-    background: normalizeSelectOptions(renderTokenOptions?.background),
-    glow: normalizeSelectOptions(renderTokenOptions?.glow),
-    accent: normalizeSelectOptions(renderTokenOptions?.accent),
-  }), [renderTokenOptions]);
+  ensureTokenColorMapLoaded(tokenColorsCsv);
 
-  const normalizedRenderTokenModeOptions = useMemo(
-    () => normalizeModeOptions(renderTokenModeOptions),
-    [renderTokenModeOptions]
+  const [pickerField, setPickerField] = useState('');
+  const normalizedRenderTokenOptions = useMemo(
+    () => ({
+      background: normalizeSelectOptions(renderTokenOptions?.background),
+      glow: normalizeSelectOptions(renderTokenOptions?.glow),
+    }),
+    [renderTokenOptions],
   );
 
   const hasSelectors = Boolean(
     normalizedRenderTokenOptions.background.length &&
     normalizedRenderTokenOptions.glow.length &&
-    normalizedRenderTokenOptions.accent.length &&
     renderTokens &&
-    typeof onRenderTokenChange === 'function'
+    typeof onRenderTokenChange === 'function',
   );
+
+  const normalizedRenderTokens = useMemo(
+    () => normalizeRenderTokens(renderTokens || {}),
+    [renderTokens],
+  );
+
+  const normalizedTokenMode = normalizedRenderTokens.mode === 'random' ? 'random' : 'explicit';
+  const pickerOptions = pickerField ? normalizedRenderTokenOptions[pickerField] || [] : [];
+  const pickerValue = pickerField ? normalizedRenderTokens[pickerField] || '' : '';
+  const summaryLabel =
+    normalizedTokenMode === 'random'
+      ? 'Randomized'
+      : FIELD_ORDER.map((fieldKey) => formatTokenLabel(normalizedRenderTokens[fieldKey])).join(' · ');
+
+  useEffect(() => {
+    if (normalizedTokenMode !== 'explicit') {
+      setPickerField('');
+    }
+  }, [normalizedTokenMode]);
 
   if (!hasSelectors) return null;
 
-  const normalizedTokenMode = toTrimmed(renderTokens?.mode).toLowerCase() === 'random'
-    ? 'random'
-    : 'explicit';
-  const showExplicitSelectors = normalizedTokenMode !== 'random';
+  if (pickerField) {
+    return (
+      <Panel $compact={compact}>
+        <Label>{title}</Label>
+        <RenderTokenOptionPicker
+          fieldKey={pickerField}
+          fieldLabel={FIELD_LABELS[pickerField] || formatTokenLabel(pickerField)}
+          currentValue={pickerValue}
+          options={pickerOptions}
+          disabled={disabled}
+          onBack={() => setPickerField('')}
+          onSelect={(value) => {
+            onRenderTokenChange?.(pickerField, value);
+            setPickerField('');
+          }}
+        />
+      </Panel>
+    );
+  }
 
   return (
     <Panel $compact={compact}>
-      <Label>{title}</Label>
-      {normalizedTokenMode === 'random' ? (
-        <ModeBadge>{randomBadgeText}</ModeBadge>
+      <HeaderRow>
+        <Label>{title}</Label>
+        <SummaryText>{summaryLabel}</SummaryText>
+      </HeaderRow>
+
+      {showModeControl ? (
+        <ModeSection>
+          <FieldLabel>Token Mode</FieldLabel>
+          <Segmented role="group" aria-label="Token mode">
+            <SegmentButton
+              type="button"
+              $compact={compact}
+              $active={normalizedTokenMode === 'explicit'}
+              onClick={() => onRenderTokenChange?.('mode', 'explicit')}
+              disabled={disabled}
+            >
+              Custom
+            </SegmentButton>
+            <SegmentButton
+              type="button"
+              $compact={compact}
+              $active={normalizedTokenMode === 'random'}
+              $isLast
+              onClick={() => onRenderTokenChange?.('mode', 'random')}
+              disabled={disabled}
+            >
+              Randomized
+            </SegmentButton>
+          </Segmented>
+        </ModeSection>
       ) : null}
-      <Grid $compact={compact}>
-        <Field>
-          <FieldLabel>Mode</FieldLabel>
-          <Select
-            $compact={compact}
-            value={normalizedTokenMode}
-            onChange={(event) => onRenderTokenChange('mode', event.target.value)}
-            disabled={disabled}
-          >
-            {normalizedRenderTokenModeOptions.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
-        </Field>
 
-        {showExplicitSelectors ? (
-          <Field>
-            <FieldLabel>Background</FieldLabel>
-            <Select
-              $compact={compact}
-              value={toTrimmed(renderTokens?.background)}
-              onChange={(event) => onRenderTokenChange('background', event.target.value)}
-              disabled={disabled}
-            >
-              {normalizedRenderTokenOptions.background.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        ) : null}
-
-        {showExplicitSelectors ? (
-          <Field>
-            <FieldLabel>Glow</FieldLabel>
-            <Select
-              $compact={compact}
-              value={toTrimmed(renderTokens?.glow)}
-              onChange={(event) => onRenderTokenChange('glow', event.target.value)}
-              disabled={disabled}
-            >
-              {normalizedRenderTokenOptions.glow.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        ) : null}
-
-        {showExplicitSelectors ? (
-          <Field>
-            <FieldLabel>Accent</FieldLabel>
-            <Select
-              $compact={compact}
-              value={toTrimmed(renderTokens?.accent)}
-              onChange={(event) => onRenderTokenChange('accent', event.target.value)}
-              disabled={disabled}
-            >
-              {normalizedRenderTokenOptions.accent.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        ) : null}
-      </Grid>
+      {normalizedTokenMode === 'explicit' ? (
+        <TokenGrid $compact={compact}>
+          {FIELD_ORDER.map((fieldKey) => {
+            const surface = getTokenSurfaceColors(normalizedRenderTokens[fieldKey], fieldKey);
+            return (
+              <TokenTile
+                key={fieldKey}
+                type="button"
+                $compact={compact}
+                $borderColor={surface.borderColor}
+                $gradientStart={surface.gradientStart}
+                $gradientEnd={surface.gradientEnd}
+                $textColor={surface.textColor}
+                disabled={disabled}
+                onClick={() => setPickerField(fieldKey)}
+              >
+                <TokenTileLabel>{FIELD_LABELS[fieldKey]}</TokenTileLabel>
+                <TokenTileValue>{formatTokenLabel(normalizedRenderTokens[fieldKey])}</TokenTileValue>
+              </TokenTile>
+            );
+          })}
+        </TokenGrid>
+      ) : (
+        <RandomModeNote>
+          Tokens will be chosen automatically for this render.
+        </RandomModeNote>
+      )}
     </Panel>
   );
 }

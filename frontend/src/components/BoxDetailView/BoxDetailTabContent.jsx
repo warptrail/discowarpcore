@@ -135,6 +135,8 @@ export default function BoxDetailTabContent({
           effectsById={effectsById}
           onFlash={handleFlash}
           showHeader={false}
+          triggerFlash={triggerFlash}
+          onItemSaved={handleItemSaved}
           refreshBox={refreshBox}
         />
 

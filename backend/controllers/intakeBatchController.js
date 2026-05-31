@@ -3,6 +3,8 @@ const {
   getIntakeBatchById,
   createIntakeBatch,
   updateIntakeBatchAssets,
+  updateIntakeBatchDestination,
+  updateIntakeBatchName,
   validateIntakeBatch,
   stageIntakeBatch,
   importIntakeBatch,
@@ -115,6 +117,29 @@ async function postUpdateIntakeBatchAssetsApi(req, res) {
   }
 }
 
+async function postUpdateIntakeBatchDestinationApi(req, res) {
+  try {
+    const batch = await updateIntakeBatchDestination(req.params.batchId, {
+      location: req.body?.location,
+      box: req.body?.box,
+    });
+    return res.status(200).json({ ok: true, batch });
+  } catch (error) {
+    return sendError(res, error, 'Failed to update intake batch destination.');
+  }
+}
+
+async function patchRenameIntakeBatchApi(req, res) {
+  try {
+    const batch = await updateIntakeBatchName(req.params.batchId, {
+      name: req.body?.name,
+    });
+    return res.status(200).json({ ok: true, batch });
+  } catch (error) {
+    return sendError(res, error, 'Failed to rename intake batch.');
+  }
+}
+
 async function postValidateIntakeBatchApi(req, res) {
   try {
     const result = await validateIntakeBatch(req.params.batchId);
@@ -215,6 +240,8 @@ module.exports = {
   postIngestIntakeBatchPackageApi,
   postCreateIntakeBatchApi,
   postUpdateIntakeBatchAssetsApi,
+  postUpdateIntakeBatchDestinationApi,
+  patchRenameIntakeBatchApi,
   postValidateIntakeBatchApi,
   postStageIntakeBatchApi,
   postImportIntakeBatchApi,

@@ -21,6 +21,7 @@ import {
   withCacheBuster,
 } from './imageAssetState';
 import { cropImageToSquare } from '../../util/cropImageToSquare';
+import { deriveImageProcessingEligibility } from '../Processing/imageProcessingEligibility';
 
 function createDefaultMessage(action, { hasImage, messageSubject, source } = {}) {
   const subject = toTrimmed(messageSubject) || 'Image';
@@ -62,7 +63,6 @@ export default function BoxImageField({
   processImageStatus = 'idle',
   processImageBusy = false,
   processImageError = '',
-  processImageProgressLabel = '',
   persistedRenderTokens = null,
   processActionLabels = {},
   processTone = 'default',
@@ -149,38 +149,55 @@ export default function BoxImageField({
 
   const hasImage = Boolean(imageState.activeUrl);
   const mutationBusy = busy || processImageBusy || switchVariantBusy;
+  const processingEligibility = useMemo(
+    () =>
+      deriveImageProcessingEligibility({
+        activeVariant: normalizedActiveVariant,
+        processingStatus: normalizedProcessingStatus,
+        hasProcessedOutput: hasProcessedVariant || Boolean(toTrimmed(processedPreviewUrl)),
+        hasProcessableImage: hasImage,
+      }),
+    [hasImage, hasProcessedVariant, normalizedActiveVariant, normalizedProcessingStatus, processedPreviewUrl]
+  );
 
   const canProcess = Boolean(
     resolvedBoxId &&
-    hasImage &&
     typeof onProcessImage === 'function' &&
     !disabled &&
-    !mutationBusy
+    !mutationBusy &&
+    (processingEligibility.canProcessImage || processingEligibility.canReprocessImage)
   );
 
   const canRevert = Boolean(
     resolvedBoxId &&
-    hasImage &&
-    hasProcessedVariant &&
-    normalizedActiveVariant === 'processed' &&
+    processingEligibility.canRevertImage &&
     !disabled &&
     !mutationBusy &&
     (typeof onRevertToOriginal === 'function' || typeof onSwitchActiveVariant === 'function')
   );
 
-  const processLabel = formatProcessActionLabel(normalizedProcessingStatus, {
-    idle: processActionLabels.idle || 'Process Image',
+  const processActionLabelOverrides = useMemo(() => ({
+    idle:
+      processingEligibility.canReprocessImage && !processingEligibility.canProcessImage
+        ? processActionLabels.completed || 'Reprocess Image'
+        : processActionLabels.idle || 'Process Image',
+    ready_for_processing:
+      processingEligibility.canReprocessImage && !processingEligibility.canProcessImage
+        ? processActionLabels.completed || 'Reprocess Image'
+        : processActionLabels.ready_for_processing || processActionLabels.idle || 'Process Image',
     queued: processActionLabels.queued,
     processing: processActionLabels.processing,
-    completed: processActionLabels.completed || 'Reprocess Image',
+    completed:
+      processingEligibility.canReprocessImage && !processingEligibility.canProcessImage
+        ? processActionLabels.completed || 'Reprocess Image'
+        : processActionLabels.idle || 'Process Image',
     failed: processActionLabels.failed,
-  });
+  }), [processActionLabels, processingEligibility.canProcessImage, processingEligibility.canReprocessImage]);
+
+  const processLabel = formatProcessActionLabel(normalizedProcessingStatus, processActionLabelOverrides);
 
   const statusLines = [
     ...(busy ? [{ key: 'busy', text: 'Working...' }] : []),
-    ...(processImageProgressLabel && normalizedProcessingStatus !== 'completed'
-      ? [{ key: 'processing-progress', text: processImageProgressLabel }]
-      : []),
     ...(status ? [{ key: 'status', tone: 'success', text: status }] : []),
     ...(error ? [{ key: 'error', tone: 'error', text: error }] : []),
     ...(switchVariantError

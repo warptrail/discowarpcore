@@ -112,11 +112,6 @@ export const ConsoleHint = styled.p`
 export const ConsoleGrid = styled.div`
   display: grid;
   gap: 10px;
-
-  @media (min-width: 900px) {
-    grid-template-columns: minmax(0, 1.35fr) minmax(250px, 0.95fr);
-    align-items: start;
-  }
 `;
 
 export const ConsoleMain = styled.div`

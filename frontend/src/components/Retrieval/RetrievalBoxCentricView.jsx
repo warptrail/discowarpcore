@@ -7,9 +7,6 @@ import {
 import { compareNumericBoxIds, normalizeBoxId } from '../../util/boxLocator';
 import { MOBILE_BREAKPOINT } from '../../styles/tokens';
 import * as S from './Retrieval.styles';
-import FilterCombobox from './FilterCombobox';
-import RetrievalModeToggle from './RetrievalModeToggle';
-import RetrievalSearchBar from './RetrievalSearchBar';
 import { getBoxGroupColorTones } from './boxColors';
 import {
   normalizeRetrievalBoxesPage,
@@ -95,6 +92,7 @@ function BoxInspectContent({
   selectedLocationLabel,
   selectedGroupLabel,
   selectedPath,
+  selectedDescription,
   selectedNotes,
   boxDetailsLoading,
   boxDetailsError,
@@ -102,6 +100,7 @@ function BoxInspectContent({
   childBoxes,
   selectedBoxHref,
 }) {
+  const description = String(selectedDescription || '').trim();
   const notes = String(selectedNotes || '').trim();
 
   return (
@@ -113,6 +112,13 @@ function BoxInspectContent({
         ) : null}
         {selectedPath ? <S.BoxInspectPath>{selectedPath}</S.BoxInspectPath> : null}
       </S.BoxInspectHeader>
+
+      {description ? (
+        <S.BoxInspectNotes>
+          <S.BoxInspectNotesLabel>Physical Description</S.BoxInspectNotesLabel>
+          <S.BoxInspectNotesText>{description}</S.BoxInspectNotesText>
+        </S.BoxInspectNotes>
+      ) : null}
 
       {notes ? (
         <S.BoxInspectNotes>
@@ -204,6 +210,7 @@ export default function RetrievalBoxCentricView({
   onModeChange,
   persistedState,
   onStateSnapshotChange,
+  setActiveRetrievalItem,
 }) {
   const initialPersistedState = persistedState && typeof persistedState === 'object'
     ? persistedState
@@ -249,6 +256,14 @@ export default function RetrievalBoxCentricView({
 
   const queryKey = useMemo(() => JSON.stringify(queryState), [queryState]);
 
+  const handleClearGroup = useCallback(() => {
+    setSelectedGroup('');
+  }, []);
+
+  const handleClearLocation = useCallback(() => {
+    setSelectedLocation('');
+  }, []);
+
   useEffect(() => {
     onStateSnapshotChange?.({
       searchValue,
@@ -257,6 +272,43 @@ export default function RetrievalBoxCentricView({
       selectedBoxId,
     });
   }, [onStateSnapshotChange, searchValue, selectedGroup, selectedLocation, selectedBoxId]);
+
+  useEffect(() => {
+    if (typeof setActiveRetrievalItem !== 'function') return undefined;
+
+    setActiveRetrievalItem({
+      mode: 'controls',
+      retrievalMode: mode,
+      onModeChange,
+      searchValue: String(searchValue || ''),
+      onSearchChange: setSearchValue,
+      searchLabel: 'Find Boxes',
+      searchPlaceholder: 'Search by box ID prefix, label, group, or location',
+      searchHint:
+        'Use ID prefix (e.g. 1, 10, 107) for fast lookup, or search label/group/location text.',
+      boxGroupOptions: filterOptions.groups,
+      selectedBoxGroup: selectedGroup,
+      boxLocationOptions: filterOptions.locations,
+      selectedBoxLocation: selectedLocation,
+      onBoxGroupChange: setSelectedGroup,
+      onBoxLocationChange: setSelectedLocation,
+      onClearBoxGroup: handleClearGroup,
+      onClearBoxLocation: handleClearLocation,
+    });
+
+    return undefined;
+  }, [
+    filterOptions.groups,
+    filterOptions.locations,
+    handleClearGroup,
+    handleClearLocation,
+    mode,
+    onModeChange,
+    searchValue,
+    selectedGroup,
+    selectedLocation,
+    setActiveRetrievalItem,
+  ]);
 
   useEffect(() => {
     queryKeyRef.current = queryKey;
@@ -547,6 +599,9 @@ export default function RetrievalBoxCentricView({
   const selectedNotes = String(
     selectedTree?.notes || selectedBoxSummary?.notes || '',
   ).trim();
+  const selectedDescription = String(
+    selectedTree?.description || selectedBoxSummary?.description || '',
+  ).trim();
   const directItems = Array.isArray(selectedTree?.items) ? selectedTree.items : [];
   const childBoxes = Array.isArray(selectedTree?.childBoxes) ? selectedTree.childBoxes : [];
   const selectedBoxHref = selectedBoxSummary?.boxHref || (selectedBoxId ? `/boxes/${selectedBoxId}` : '');
@@ -554,80 +609,6 @@ export default function RetrievalBoxCentricView({
 
   return (
     <S.PageShell>
-      <S.ControlsPanel>
-        <S.HeadingRow>
-          <S.HeadingGroup>
-            <S.TitleRow>
-              <S.TitlePip aria-hidden="true" />
-              <S.Title>Retrieval Mode</S.Title>
-            </S.TitleRow>
-            <S.Subtitle>
-              Box-first retrieval for answering “what’s in this box?” and “where are these boxes?”
-            </S.Subtitle>
-          </S.HeadingGroup>
-          <S.CountPill>{total}</S.CountPill>
-        </S.HeadingRow>
-
-        <RetrievalModeToggle mode={mode} onChange={onModeChange} />
-
-        <RetrievalSearchBar
-          id="retrieval-box-search"
-          value={searchValue}
-          onChange={setSearchValue}
-          label="Find Boxes"
-          placeholder="Search by box ID prefix, label, group, or location"
-          hint="Use ID prefix (e.g. 1, 10, 107) for fast lookup, or search label/group/location text."
-        />
-
-        <S.BoxFilterGrid>
-          <S.FilterControl>
-            <S.FilterLabel>Group</S.FilterLabel>
-            <S.FilterRow>
-              <FilterCombobox
-                id="retrieval-box-group"
-                name="retrieval_box_group"
-                ariaLabel="Box group filter options"
-                placeholder="All Groups"
-                options={filterOptions.groups}
-                selectedKey={selectedGroup}
-                onSelectedKeyChange={setSelectedGroup}
-                emptyMessage="No groups match"
-              />
-              <S.AddFilterButton
-                type="button"
-                onClick={() => setSelectedGroup('')}
-                disabled={!selectedGroup}
-              >
-                Clear
-              </S.AddFilterButton>
-            </S.FilterRow>
-          </S.FilterControl>
-
-          <S.FilterControl>
-            <S.FilterLabel>Location</S.FilterLabel>
-            <S.FilterRow>
-              <FilterCombobox
-                id="retrieval-box-location"
-                name="retrieval_box_location"
-                ariaLabel="Box location filter options"
-                placeholder="Filter by location..."
-                options={filterOptions.locations}
-                selectedKey={selectedLocation}
-                onSelectedKeyChange={setSelectedLocation}
-                emptyMessage="No locations match"
-              />
-              <S.AddFilterButton
-                type="button"
-                onClick={() => setSelectedLocation('')}
-                disabled={!selectedLocation}
-              >
-                Clear
-              </S.AddFilterButton>
-            </S.FilterRow>
-          </S.FilterControl>
-        </S.BoxFilterGrid>
-      </S.ControlsPanel>
-
       {error ? <S.ErrorState role="alert">{error}</S.ErrorState> : null}
 
       <S.ResultsPanel>
@@ -699,6 +680,7 @@ export default function RetrievalBoxCentricView({
                                 selectedLocationLabel={selectedLocationLabel}
                                 selectedGroupLabel={selectedGroupLabel}
                                 selectedPath={selectedPath}
+                                selectedDescription={selectedDescription}
                                 selectedNotes={selectedNotes}
                                 boxDetailsLoading={boxDetailsLoading}
                                 boxDetailsError={boxDetailsError}
@@ -725,6 +707,7 @@ export default function RetrievalBoxCentricView({
                     selectedLocationLabel={selectedLocationLabel}
                     selectedGroupLabel={selectedGroupLabel}
                     selectedPath={selectedPath}
+                    selectedDescription={selectedDescription}
                     selectedNotes={selectedNotes}
                     boxDetailsLoading={boxDetailsLoading}
                     boxDetailsError={boxDetailsError}

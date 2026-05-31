@@ -1,20 +1,30 @@
 // Toast.jsx
 import styled from 'styled-components';
+import { Link } from 'react-router-dom';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_CONTROL_MIN_HEIGHT,
   MOBILE_NARROW_BREAKPOINT,
 } from '../../styles/tokens';
 import { keyframes } from 'styled-components';
+import RetrievalConsoleControls from '../Retrieval/RetrievalConsoleControls';
 
 const Wrap = styled.div`
+  --toast-compact-progress: 0;
+  --toast-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --toast-duration: 280ms;
+
   position: relative;
   display: flex;
-  gap: 0.75rem;
+  gap: calc(0.75rem - (0.3rem * var(--toast-compact-progress)));
   align-items: ${({ $hasContent }) => ($hasContent ? 'flex-start' : 'center')};
   width: 100%;
-  margin: 10px 0;
-  min-height: 56px;
+  margin-block: calc(10px - (6px * var(--toast-compact-progress)));
+  margin-inline: 0;
+  min-height: ${({ $idle }) =>
+    $idle
+      ? 'calc(56px - (26px * var(--toast-compact-progress)))'
+      : 'calc(56px - (12px * var(--toast-compact-progress)))'};
   background: ${({ $variant, $idle }) =>
     $idle
       ? '#0f141a'
@@ -37,10 +47,25 @@ const Wrap = styled.div`
               ? '#e03131'
               : '#228be6'};
   color: ${({ $idle }) => ($idle ? 'rgba(234,234,234,0.82)' : '#eaeaea')};
-  padding: 0.75rem 1rem;
-  padding-right: ${({ $hasClose }) => ($hasClose ? '3rem' : '1rem')};
-  border-radius: 10px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  padding-block: ${({ $idle }) =>
+    $idle
+      ? 'calc(0.75rem - (0.49rem * var(--toast-compact-progress)))'
+      : 'calc(0.75rem - (0.29rem * var(--toast-compact-progress)))'};
+  padding-left: calc(1rem - (0.28rem * var(--toast-compact-progress)));
+  padding-right: ${({ $hasClose }) =>
+    $hasClose
+      ? 'calc(3rem - (0.55rem * var(--toast-compact-progress)))'
+      : 'calc(1rem - (0.42rem * var(--toast-compact-progress)))'};
+  border-radius: calc(10px - (2px * var(--toast-compact-progress)));
+  box-shadow:
+    0 calc(8px - (4px * var(--toast-compact-progress))) calc(20px - (8px * var(--toast-compact-progress))) rgba(0, 0, 0, calc(0.25 - (0.03 * var(--toast-compact-progress))));
+  transition:
+    gap var(--toast-duration) var(--toast-ease),
+    margin var(--toast-duration) var(--toast-ease),
+    min-height var(--toast-duration) var(--toast-ease),
+    padding var(--toast-duration) var(--toast-ease),
+    border-radius var(--toast-duration) var(--toast-ease),
+    box-shadow var(--toast-duration) var(--toast-ease);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.5rem;
@@ -56,31 +81,58 @@ const Wrap = styled.div`
     flex-direction: column;
     align-items: stretch;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 const Body = styled.div`
   flex: 1;
   min-width: 0;
   display: grid;
-  gap: ${({ $hasContent }) => ($hasContent ? '0.55rem' : '0.2rem')};
+  gap: ${({ $hasContent }) =>
+    $hasContent
+      ? 'calc(0.55rem - (0.19rem * var(--toast-compact-progress)))'
+      : 'calc(0.2rem - (0.12rem * var(--toast-compact-progress)))'};
+  transition: gap var(--toast-duration) var(--toast-ease);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 0.88rem;
     gap: ${({ $hasContent }) => ($hasContent ? '0.4rem' : '0.15rem')};
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 const Title = styled.div`
   font-weight: 600;
+  font-size: calc(1rem - (0.18rem * var(--toast-compact-progress)));
+  transition: font-size var(--toast-duration) var(--toast-ease);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 0.86rem;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 const Msg = styled.div`
   opacity: 0.9;
+  font-size: calc(1rem - (0.22rem * var(--toast-compact-progress)));
+  line-height: calc(1.35 - (0.15 * var(--toast-compact-progress)));
+  transition:
+    font-size var(--toast-duration) var(--toast-ease),
+    line-height var(--toast-duration) var(--toast-ease);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 0.82rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 const ContentWrap = styled.div`
@@ -89,61 +141,164 @@ const ContentWrap = styled.div`
 const Idle = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: calc(0.6rem - (0.2rem * var(--toast-compact-progress)));
   opacity: 0.9;
+  font-size: calc(1rem - (0.22rem * var(--toast-compact-progress)));
+  line-height: 1.1;
+  min-width: 0;
+  transition:
+    gap var(--toast-duration) var(--toast-ease),
+    font-size var(--toast-duration) var(--toast-ease);
+
+  span:last-child {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.4rem;
     font-size: 0.82rem;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 const RetrievalStateWrap = styled.div`
   display: grid;
-  gap: 0.2rem;
+  gap: 0.42rem;
   min-width: 0;
 `;
 
-const RetrievalTop = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
+const RetrievalConsoleKicker = styled.span`
+  color: rgba(165, 218, 198, 0.78);
+  font-size: 0.62rem;
+  font-weight: 760;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+`;
+
+const RetrievalNameBase = `
+  color: #eaf4ff;
+  font-size: clamp(1.18rem, 2.8vw, 1.48rem);
+  font-weight: 860;
+  line-height: 1.12;
+  letter-spacing: 0.01em;
   min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 const RetrievalName = styled.span`
-  color: #eaf4ff;
-  font-size: 0.86rem;
-  font-weight: 760;
-  line-height: 1.2;
+  ${RetrievalNameBase}
+`;
+
+const RetrievalNameLink = styled(Link)`
+  ${RetrievalNameBase}
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  justify-self: start;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+    text-decoration-color: rgba(119, 213, 255, 0.86);
+    text-underline-offset: 2px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(119, 213, 255, 0.64);
+    outline-offset: 1px;
+    border-radius: 4px;
+  }
+`;
+
+const RetrievalBoxRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.38rem;
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex-wrap: wrap;
+  margin-top: 0.06rem;
 `;
 
 const RetrievalBoxId = styled.span`
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
-  border: 1px solid rgba(119, 213, 255, 0.52);
-  background: rgba(119, 213, 255, 0.18);
-  color: #c8eeff;
+  color: rgba(189, 231, 255, 0.98);
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
     'Courier New', monospace;
-  font-weight: 820;
-  font-size: 0.78rem;
-  line-height: 1;
-  letter-spacing: 0.04em;
-  padding: 0.18rem 0.42rem;
+  font-weight: 840;
+  font-size: 0.93rem;
+  line-height: 1.2;
+  letter-spacing: 0.03em;
   flex: 0 0 auto;
 `;
 
-const RetrievalOrphaned = styled(RetrievalBoxId)`
-  border-color: rgba(224, 49, 49, 0.62);
-  background: rgba(224, 49, 49, 0.2);
-  color: #ffd7d7;
+const RetrievalBoxIdLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  color: rgba(189, 231, 255, 0.98);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  font-weight: 840;
+  font-size: 0.93rem;
+  line-height: 1.2;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  flex: 0 0 auto;
+
+  &:hover {
+    text-decoration: underline;
+    text-decoration-color: rgba(119, 213, 255, 0.72);
+    text-underline-offset: 2px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(119, 213, 255, 0.64);
+    outline-offset: 1px;
+  }
+`;
+
+const RetrievalBoxNameBase = `
+  color: rgba(226, 236, 247, 0.9);
+  font-size: 0.93rem;
+  font-weight: 690;
+  line-height: 1.25;
+  min-width: 0;
+  overflow-wrap: anywhere;
+`;
+
+const RetrievalBoxName = styled.span`
+  ${RetrievalBoxNameBase}
+`;
+
+const RetrievalBoxNameLink = styled(Link)`
+  ${RetrievalBoxNameBase}
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+    text-decoration-color: rgba(119, 213, 255, 0.72);
+    text-underline-offset: 2px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(119, 213, 255, 0.64);
+    outline-offset: 1px;
+    border-radius: 3px;
+  }
+`;
+
+const RetrievalBoxSeparator = styled.span`
+  color: rgba(168, 206, 232, 0.84);
+  font-size: 0.9rem;
+  line-height: 1.1;
 `;
 
 const RetrievalMeta = styled.span`
@@ -190,10 +345,10 @@ const Btn = styled.button`
 
 const CloseBtn = styled(Btn)`
   position: absolute;
-  top: 0.5rem;
-  right: 0.55rem;
-  min-height: 30px;
-  min-width: 30px;
+  top: calc(0.5rem - (0.14rem * var(--toast-compact-progress)));
+  right: calc(0.55rem - (0.13rem * var(--toast-compact-progress)));
+  min-height: calc(30px - (4px * var(--toast-compact-progress)));
+  min-width: calc(30px - (4px * var(--toast-compact-progress)));
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -201,6 +356,12 @@ const CloseBtn = styled(Btn)`
   border-radius: 8px;
   font-size: 0.92rem;
   line-height: 1;
+  transition:
+    top var(--toast-duration) var(--toast-ease),
+    right var(--toast-duration) var(--toast-ease),
+    min-height var(--toast-duration) var(--toast-ease),
+    min-width var(--toast-duration) var(--toast-ease),
+    opacity 120ms ease;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     top: 0.38rem;
@@ -208,6 +369,10 @@ const CloseBtn = styled(Btn)`
     min-height: 28px;
     min-width: 28px;
     border-radius: 7px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: opacity 120ms ease;
   }
 `;
 
@@ -251,61 +416,167 @@ export default function Toast({
   idleIcon = '📦',
   idleText = 'Standing by…',
   activeRetrievalItem = null,
+  compact = false,
+  compactProgress,
 }) {
+  const resolvedCompactProgress = Number.isFinite(Number(compactProgress))
+    ? Math.min(1, Math.max(0, Number(compactProgress)))
+    : compact
+      ? 1
+      : 0;
   const hasActiveRetrieval =
     !open && activeRetrievalItem && typeof activeRetrievalItem === 'object';
+  const retrievalMode = String(activeRetrievalItem?.mode || '').trim();
+  const hasRetrievalControls = hasActiveRetrieval && retrievalMode === 'controls';
+  const hasRetrievalActive = hasActiveRetrieval && retrievalMode === 'active';
   const isIdle = !open && !hasActiveRetrieval;
   const hasContent = !isIdle && !!content;
+  const retrievalItemsMode = String(activeRetrievalItem?.retrievalMode || 'items').trim();
+  const retrievalSearchValue = String(activeRetrievalItem?.searchValue || '');
+  const retrievalSearchLabel = activeRetrievalItem?.searchLabel;
+  const retrievalSearchPlaceholder = activeRetrievalItem?.searchPlaceholder;
+  const retrievalSearchHint = activeRetrievalItem?.searchHint;
+  const retrievalShowRefine = Boolean(activeRetrievalItem?.showRefine);
+  const retrievalSortOptions = Array.isArray(activeRetrievalItem?.sortOptions)
+    ? activeRetrievalItem.sortOptions
+    : [];
+  const retrievalSelectedSort = String(activeRetrievalItem?.selectedSort || '').trim();
+  const retrievalCategoryOptions = Array.isArray(activeRetrievalItem?.categoryOptions)
+    ? activeRetrievalItem.categoryOptions
+    : [];
+  const retrievalTagOptions = Array.isArray(activeRetrievalItem?.tagOptions)
+    ? activeRetrievalItem.tagOptions
+    : [];
+  const retrievalLocationOptions = Array.isArray(activeRetrievalItem?.locationOptions)
+    ? activeRetrievalItem.locationOptions
+    : [];
+  const retrievalOwnerOptions = Array.isArray(activeRetrievalItem?.ownerOptions)
+    ? activeRetrievalItem.ownerOptions
+    : [];
+  const retrievalKeepPriorityOptions = Array.isArray(activeRetrievalItem?.keepPriorityOptions)
+    ? activeRetrievalItem.keepPriorityOptions
+    : [];
+  const retrievalChips = Array.isArray(activeRetrievalItem?.chips)
+    ? activeRetrievalItem.chips
+    : [];
+  const retrievalBoxGroupOptions = Array.isArray(activeRetrievalItem?.boxGroupOptions)
+    ? activeRetrievalItem.boxGroupOptions
+    : [];
+  const retrievalSelectedBoxGroup = String(activeRetrievalItem?.selectedBoxGroup || '');
+  const retrievalBoxLocationOptions = Array.isArray(activeRetrievalItem?.boxLocationOptions)
+    ? activeRetrievalItem.boxLocationOptions
+    : [];
+  const retrievalSelectedBoxLocation = String(activeRetrievalItem?.selectedBoxLocation || '');
   const retrievalName = String(activeRetrievalItem?.name || '').trim();
   const retrievalBoxId = String(activeRetrievalItem?.boxNumber || '').trim();
   const retrievalBoxName = String(activeRetrievalItem?.boxName || '').trim();
+  const retrievalBoxHref = String(activeRetrievalItem?.boxHref || '').trim();
   const retrievalLocation = String(activeRetrievalItem?.locationLabel || '').trim();
-  const retrievalIsOrphaned = !retrievalBoxId;
+  const retrievalItemHref = String(activeRetrievalItem?.itemHref || '').trim();
+  const retrievalBoxIdText = retrievalBoxId ? `#${retrievalBoxId}` : 'No Box ID';
+  const retrievalBoxNameText = retrievalBoxName || 'Unknown box';
 
   return (
     <Wrap
       $variant={variant}
       $idle={isIdle}
+      $compact={compact}
       $hasContent={hasContent}
       $hasClose={!isIdle && !!onClose}
+      style={{ '--toast-compact-progress': resolvedCompactProgress.toFixed(3) }}
       role={variant === 'danger' ? 'alert' : 'status'}
       aria-live={variant === 'danger' ? 'assertive' : 'polite'}
     >
-      <Body $hasContent={hasContent}>
+      <Body $hasContent={hasContent} $compact={compact}>
         {isIdle ? (
           showIdle ? (
-            <Idle>
+            <Idle $compact={compact}>
               <span aria-hidden="true">{idleIcon}</span>
               <span>{idleText}</span>
             </Idle>
           ) : null
-        ) : hasActiveRetrieval ? (
+        ) : hasRetrievalControls ? (
+          <RetrievalConsoleControls
+            mode={retrievalItemsMode}
+            onModeChange={activeRetrievalItem?.onModeChange}
+            searchValue={retrievalSearchValue}
+            onSearchChange={activeRetrievalItem?.onSearchChange}
+            searchLabel={retrievalSearchLabel}
+            searchPlaceholder={retrievalSearchPlaceholder}
+            searchHint={retrievalSearchHint}
+            showRefine={retrievalShowRefine}
+            onToggleRefine={activeRetrievalItem?.onToggleRefine}
+            chips={retrievalChips}
+            sortOptions={retrievalSortOptions}
+            selectedSort={retrievalSelectedSort}
+            categoryOptions={retrievalCategoryOptions}
+            tagOptions={retrievalTagOptions}
+            locationOptions={retrievalLocationOptions}
+            ownerOptions={retrievalOwnerOptions}
+            keepPriorityOptions={retrievalKeepPriorityOptions}
+            onSortChange={activeRetrievalItem?.onSortChange}
+            onCategoryChange={activeRetrievalItem?.onCategoryChange}
+            onTagChange={activeRetrievalItem?.onTagChange}
+            onLocationChange={activeRetrievalItem?.onLocationChange}
+            onOwnerChange={activeRetrievalItem?.onOwnerChange}
+            onKeepPriorityChange={activeRetrievalItem?.onKeepPriorityChange}
+            onRemoveChip={activeRetrievalItem?.onRemoveChip}
+            onClearAllChips={activeRetrievalItem?.onClearAllChips}
+            boxGroupOptions={retrievalBoxGroupOptions}
+            selectedBoxGroup={retrievalSelectedBoxGroup}
+            boxLocationOptions={retrievalBoxLocationOptions}
+            selectedBoxLocation={retrievalSelectedBoxLocation}
+            onBoxGroupChange={activeRetrievalItem?.onBoxGroupChange}
+            onBoxLocationChange={activeRetrievalItem?.onBoxLocationChange}
+            onClearBoxGroup={activeRetrievalItem?.onClearBoxGroup}
+            onClearBoxLocation={activeRetrievalItem?.onClearBoxLocation}
+          />
+        ) : hasRetrievalActive ? (
           <RetrievalStateWrap>
-            <RetrievalTop>
-              {retrievalIsOrphaned ? (
-                <RetrievalOrphaned>ORPHANED</RetrievalOrphaned>
-              ) : (
-                <RetrievalBoxId>{`#${retrievalBoxId}`}</RetrievalBoxId>
-              )}
+            <RetrievalConsoleKicker>Active Item</RetrievalConsoleKicker>
+            {retrievalItemHref ? (
+              <RetrievalNameLink to={retrievalItemHref}>
+                {retrievalName || 'Expanded item'}
+              </RetrievalNameLink>
+            ) : (
               <RetrievalName>{retrievalName || 'Expanded item'}</RetrievalName>
-            </RetrievalTop>
-            {retrievalLocation ? <RetrievalMeta>{`Location: ${retrievalLocation}`}</RetrievalMeta> : null}
-            {retrievalBoxName ? <RetrievalMeta>{retrievalBoxName}</RetrievalMeta> : null}
+            )}
+            <RetrievalBoxRow>
+              {retrievalBoxHref ? (
+                <RetrievalBoxIdLink to={retrievalBoxHref}>
+                  {retrievalBoxIdText}
+                </RetrievalBoxIdLink>
+              ) : (
+                <RetrievalBoxId>{retrievalBoxIdText}</RetrievalBoxId>
+              )}
+              <RetrievalBoxSeparator aria-hidden="true">·</RetrievalBoxSeparator>
+
+              {retrievalBoxHref ? (
+                <RetrievalBoxNameLink to={retrievalBoxHref}>
+                  {retrievalBoxNameText}
+                </RetrievalBoxNameLink>
+              ) : (
+                <RetrievalBoxName>{retrievalBoxNameText}</RetrievalBoxName>
+              )}
+            </RetrievalBoxRow>
+            {retrievalLocation ? (
+              <RetrievalMeta>{`Location: ${retrievalLocation}`}</RetrievalMeta>
+            ) : null}
           </RetrievalStateWrap>
         ) : (
           <>
             {title ? (
               <TitleRow>
                 {loading ? <Spinner aria-hidden="true" /> : null}
-                <Title>{title}</Title>
+                <Title $compact={compact}>{title}</Title>
               </TitleRow>
             ) : null}
-            {message && <Msg>{message}</Msg>}
+            {message && <Msg $compact={compact}>{message}</Msg>}
             {hasContent && <ContentWrap>{content}</ContentWrap>}
           </>
         )}
       </Body>
-      {!isIdle && (
+      {!isIdle && actions.length ? (
         <Controls>
           {actions.map((a, i) => (
             <Btn
@@ -329,8 +600,8 @@ export default function Toast({
             </Btn>
           ))}
         </Controls>
-      )}
-      {!isIdle && onClose ? <CloseBtn onClick={onClose}>✕</CloseBtn> : null}
+      ) : null}
+      {!isIdle && onClose ? <CloseBtn $compact={compact} onClick={onClose}>✕</CloseBtn> : null}
     </Wrap>
   );
 }

@@ -126,13 +126,12 @@ test('POST item process-image endpoint enqueues media job with mediaId', async (
     mode: 'explicit',
     background: 'midnight',
     glow: 'arc',
-    accent: 'cyanCore',
   });
   assert.equal(updates.length, 1);
   assert.deepEqual(seenRenderTokens[0], {
+    mode: 'explicit',
     background: 'midnight',
     glow: 'arc',
-    accent: 'cyanCore',
   });
   assert.deepEqual(updates[0], {
     itemId: '507f191e810c19729de860eb',

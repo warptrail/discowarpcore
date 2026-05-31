@@ -30,7 +30,6 @@ function normalizeRenderTokens(tokens) {
     mode,
     background: toTrimmed(tokens?.background),
     glow: toTrimmed(tokens?.glow),
-    accent: toTrimmed(tokens?.accent),
   };
 }
 
@@ -61,8 +60,7 @@ function renderTokensEqual(leftTokens, rightTokens) {
   const right = normalizeRenderTokens(rightTokens);
   return left.mode === right.mode
     && left.background === right.background
-    && left.glow === right.glow
-    && left.accent === right.accent;
+    && left.glow === right.glow;
 }
 
 function toBoundedPositiveInteger(value, fallback, { min = 1, max = 1000 } = {}) {

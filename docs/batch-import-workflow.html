@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Disco Warp Core Batch Import Workflow</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #111315;
+      --panel: #181b1f;
+      --panel-soft: #20242a;
+      --text: #f1f4f8;
+      --muted: #aab3bf;
+      --line: #353b44;
+      --accent: #67d6c0;
+      --accent-strong: #8df2d8;
+      --warn: #f6c96b;
+      --bad: #f28482;
+      --code: #0b0d0f;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #15181c;
+    }
+
+    main,
+    .header-inner {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .header-inner {
+      padding: 40px 0 28px;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 10px 0 8px;
+      font-size: clamp(2rem, 4vw, 4rem);
+      line-height: 1.02;
+    }
+
+    .lede {
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 1.08rem;
+    }
+
+    main {
+      padding: 28px 0 56px;
+    }
+
+    section {
+      margin: 0 0 28px;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 1.35rem;
+    }
+
+    h3 {
+      margin: 22px 0 10px;
+      font-size: 1rem;
+      color: var(--accent-strong);
+    }
+
+    p {
+      margin: 0 0 12px;
+    }
+
+    ul,
+    ol {
+      margin: 10px 0 0;
+      padding-left: 1.25rem;
+    }
+
+    li {
+      margin: 6px 0;
+    }
+
+    code,
+    pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    code {
+      padding: 0.12rem 0.28rem;
+      border-radius: 4px;
+      background: var(--code);
+      color: #d9f7ef;
+    }
+
+    pre {
+      overflow-x: auto;
+      padding: 14px;
+      border: 1px solid #2a3038;
+      border-radius: 8px;
+      background: var(--code);
+      color: #d9f7ef;
+    }
+
+    pre code {
+      padding: 0;
+      background: transparent;
+    }
+
+    a {
+      color: var(--accent-strong);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .tile {
+      min-height: 100%;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+    }
+
+    .tile strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+
+    .tile span {
+      color: var(--muted);
+    }
+
+    .callout {
+      padding: 14px 16px;
+      border-left: 4px solid var(--accent);
+      border-radius: 6px;
+      background: #14211f;
+    }
+
+    .warning {
+      border-left-color: var(--warn);
+      background: #261f11;
+    }
+
+    .danger {
+      border-left-color: var(--bad);
+      background: #271818;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--panel-soft);
+      color: var(--text);
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    @media (max-width: 760px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      section {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="eyebrow">Current local workflow</div>
+      <h1>Batch Import Workflow</h1>
+      <p class="lede">
+        Use the Vision Intake TUI for AI-assisted item photo batches. Raw photos go into
+        <code>~/Intake/inbox</code>, the TUI prepares the batch, Codex fills item JSON, and
+        the TUI validates, packages, and optionally imports directly into Disco Warp Core.
+      </p>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <h2>What To Use</h2>
+      <div class="grid">
+        <div class="tile">
+          <strong>Default workflow</strong>
+          <span><code>npm run intake:tui</code> from the repository root.</span>
+        </div>
+        <div class="tile">
+          <strong>Input folder</strong>
+          <span>Drop raw item photos in <code>~/Intake/inbox</code>.</span>
+        </div>
+        <div class="tile">
+          <strong>Direct import backend</strong>
+          <span>Run the backend at <code>http://127.0.0.1:5002</code>.</span>
+        </div>
+      </div>
+      <p class="callout">
+        The old Desktop folders <code>/Users/moonshade/Desktop/item_staging_1</code> and
+        <code>/Users/moonshade/Desktop/item_staging_2</code> are deprecated. Do not use them
+        for new batches.
+      </p>
+    </section>
+
+    <section>
+      <h2>One-Time Setup</h2>
+      <ol>
+        <li>Confirm dependencies are installed with <code>npm install</code> from the repository root.</li>
+        <li>Confirm objectGlow is available. The TUI defaults to <code>~/Developer/objectiglow</code>.</li>
+        <li>Start MongoDB and the Disco Warp Core backend when using direct import.</li>
+      </ol>
+      <pre><code>cd /Users/moonshade/Developer/discowarpcore
+npm run dev</code></pre>
+      <p class="muted">
+        If objectGlow lives somewhere else, launch the TUI with
+        <code>OBJECTGLOW_REPO=/path/to/objectGlow npm run intake:tui</code>.
+      </p>
+    </section>
+
+    <section>
+      <h2>Start A New Batch</h2>
+      <ol>
+        <li>Copy raw item photos into <code>~/Intake/inbox</code>.</li>
+        <li>Open a terminal at <code>/Users/moonshade/Developer/discowarpcore</code>.</li>
+        <li>Run the TUI.</li>
+      </ol>
+      <pre><code>npm run intake:tui</code></pre>
+      <p>The TUI shows the current inbox count and any active processing batches.</p>
+      <pre><code>DISCO WARP CORE VISION INTAKE
+Inbox: N images
+Processing: active/empty</code></pre>
+      <p>Choose <code>Start New Batch</code>, then enter:</p>
+      <ul>
+        <li><strong>Batch name</strong>: human-readable label for this group of photos.</li>
+        <li><strong>Destination location</strong>: optional default location.</li>
+        <li><strong>Destination box id</strong>: optional default box. Leave empty for orphaned items.</li>
+        <li><strong>Import mode</strong>: direct import, export zip only, or validate/package only.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Import Modes</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Mode</th>
+            <th>Use When</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>Direct database import</code></td>
+            <td>The backend is running locally and you want the normal end-to-end path.</td>
+            <td>The TUI uploads the package, validates it through backend intake endpoints, imports it, then archives the local batch in <code>~/Intake/completed</code>.</td>
+          </tr>
+          <tr>
+            <td><code>Export zip only</code></td>
+            <td>You want a manual fallback or need to upload through the GUI.</td>
+            <td>The TUI copies a zip to <code>~/Intake/exports</code>.</td>
+          </tr>
+          <tr>
+            <td><code>Validate/package only, no import</code></td>
+            <td>You want to inspect the generated package before any import call.</td>
+            <td>The TUI validates and packages inside the processing workspace.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="muted">
+        Override the backend URL with
+        <code>DWC_API_BASE=http://127.0.0.1:5002 npm run intake:tui</code>.
+      </p>
+    </section>
+
+    <section>
+      <h2>What The TUI Does</h2>
+      <ol>
+        <li>Moves supported images from <code>~/Intake/inbox</code> into a new batch <code>raw/</code> folder.</li>
+        <li>Runs background removal with <code>scripts/preprocess_vision_images.js</code>.</li>
+        <li>Writes cleaned transparent cutouts to <code>processed/</code>.</li>
+        <li>Runs the vision intake builder in init mode to create JSON stubs in <code>item_artifacts/</code>.</li>
+        <li>Writes <code>CODEX_AGENT_PROMPT.md</code> and copies it to the macOS clipboard when possible.</li>
+        <li>Pauses while Codex fills the JSON artifacts.</li>
+        <li>Validates the filled artifacts.</li>
+        <li>Packages, exports, or imports according to the selected import mode.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Codex Annotation Step</h2>
+      <p>When the TUI pauses, run the AI agent using the prompt it generated:</p>
+      <pre><code>&lt;batchRoot&gt;/CODEX_AGENT_PROMPT.md</code></pre>
+      <p>The prompt instructs Codex to inspect cleaned images and edit only JSON files in:</p>
+      <pre><code>&lt;batchRoot&gt;/item_artifacts/</code></pre>
+      <p class="warning">
+        Codex must not rename, move, delete, or copy images. It must not write to backend media folders
+        or call backend APIs during annotation.
+      </p>
+      <p>After Codex finishes, return to the TUI and press Enter.</p>
+    </section>
+
+    <section>
+      <h2>Folder Model</h2>
+      <pre><code>~/Intake/
+  inbox/        raw photos waiting to become a batch
+  processing/   active resumable batch workspaces
+  completed/    successfully imported batch archives
+  failed/       reserved for failed batch recovery
+  exports/      zip files created for manual GUI upload</code></pre>
+      <p>A processing batch looks like this:</p>
+      <pre><code>~/Intake/processing/&lt;batchId&gt;/
+  raw/
+  processed/
+  item_artifacts/
+  package/
+  logs/
+  batch.json
+  CODEX_AGENT_PROMPT.md</code></pre>
+      <p>Raw images are moved into the batch workspace. They are not permanently deleted by the TUI.</p>
+    </section>
+
+    <section>
+      <h2>Validation Rules</h2>
+      <p>Validation must pass before packaging or import continues. The key invariant is:</p>
+      <pre><code>image filename basename === JSON imageKey</code></pre>
+      <p>Example:</p>
+      <pre><code>processed/IMG_9506.png
+item_artifacts/IMG_9506.json
+
+{
+  "imageKey": "IMG_9506",
+  "sourceFile": "IMG_9506.png",
+  "name": "Cordless Drill",
+  "description": "Black and yellow cordless drill.",
+  "category": "tools",
+  "tags": ["drill", "cordless"],
+  "quantity": 1
+}</code></pre>
+      <p>Validation logs are written to <code>&lt;batchRoot&gt;/logs/validation.log</code>.</p>
+    </section>
+
+    <section>
+      <h2>Resume And Recovery</h2>
+      <p>Rerun the TUI and choose <code>Resume Existing Batch</code> for active workspaces under <code>~/Intake/processing</code>.</p>
+      <ul>
+        <li><code>awaiting_annotation</code>: continues from validation after Codex has filled JSON.</li>
+        <li><code>packaged</code>: offers direct import or opening the batch folder.</li>
+        <li><code>failed</code>: shows the last error and offers retry, validation, or open-folder actions.</li>
+      </ul>
+      <p>Use <code>Review Failed Batch</code> to inspect recoverable failures.</p>
+    </section>
+
+    <section>
+      <h2>Manual GUI Fallback</h2>
+      <p>
+        The Bulk Import screen remains available for manual zip upload, validation review, recovery,
+        provenance inspection, and archived import inspection.
+      </p>
+      <ol>
+        <li>Run a batch with <code>Export zip only</code>.</li>
+        <li>Open the GUI Bulk Import page.</li>
+        <li>Upload the zip from <code>~/Intake/exports</code>.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Current Reference Docs</h2>
+      <ul>
+        <li><a href="./VISION_INTAKE_TUI.md">VISION_INTAKE_TUI.md</a>: concise TUI technical reference.</li>
+        <li><a href="./intake_json_schema.md">intake_json_schema.md</a>: backend JSON contract for agents.</li>
+        <li><a href="../backend/docs/ai_json_batch_import_images.md">ai_json_batch_import_images.md</a>: image matching and media lifecycle notes.</li>
+      </ul>
+      <p class="danger">
+        Do not revive old Desktop staging docs for new operator workflows. Use <code>~/Intake</code> and
+        <code>npm run intake:tui</code>.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

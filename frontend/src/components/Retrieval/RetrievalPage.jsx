@@ -7,12 +7,8 @@ import {
 import { API_BASE } from '../../api/API_BASE';
 import { markItemGone, restoreItemToActive } from '../../api/itemLifecycle';
 import * as S from './Retrieval.styles';
-import RetrievalSearchBar from './RetrievalSearchBar';
-import RetrievalFilterBar from './RetrievalFilterBar';
-import ActiveFilterChips from './ActiveFilterChips';
 import RetrievalResultsList from './RetrievalResultsList';
 import RetrievalImageLightbox from './RetrievalImageLightbox';
-import RetrievalModeToggle from './RetrievalModeToggle';
 import RetrievalBoxCentricView from './RetrievalBoxCentricView';
 import { ToastContext } from '../Toast';
 import {
@@ -337,11 +333,6 @@ export default function RetrievalPage() {
     sanitizeFilters(initialItemState?.activeFilters),
   );
   const [filterOptions, setFilterOptions] = useState(EMPTY_FILTER_OPTIONS);
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedTag, setSelectedTag] = useState('');
-  const [selectedLocation, setSelectedLocation] = useState('');
-  const [selectedOwner, setSelectedOwner] = useState('');
-  const [selectedKeepPriority, setSelectedKeepPriority] = useState('');
   const [sortOptions, setSortOptions] = useState(DEFAULT_SORT_OPTIONS);
   const [selectedSort, setSelectedSort] = useState(() =>
     sanitizeSort(initialItemState?.selectedSort, DEFAULT_SORT_OPTIONS),
@@ -354,8 +345,6 @@ export default function RetrievalPage() {
     sanitizeBoxModeState(initialSnapshot?.boxes),
   );
   const [lightboxImage, setLightboxImage] = useState(null);
-  const [showMobileSearch, setShowMobileSearch] = useState(false);
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const isItemsMode = retrievalMode === 'items';
 
   const debouncedSearchValue = useDebouncedValue(searchValue, 220);
@@ -443,6 +432,10 @@ export default function RetrievalPage() {
     if (!Number.isFinite(targetScrollY)) return;
 
     if (isItemsMode && loading) return;
+    if (isItemsMode && activeExpandedId) {
+      const hasRestoredActiveItem = items.some((item) => item.id === activeExpandedId);
+      if (!hasRestoredActiveItem) return;
+    }
 
     let frame = 0;
     let cancelled = false;
@@ -472,7 +465,7 @@ export default function RetrievalPage() {
       cancelled = true;
       window.cancelAnimationFrame(startFrame);
     };
-  }, [isItemsMode, loading, retrievalMode, items.length]);
+  }, [activeExpandedId, isItemsMode, items, loading, retrievalMode]);
 
   useEffect(
     () => () => {
@@ -484,35 +477,15 @@ export default function RetrievalPage() {
   );
 
   useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-
-    const mediaQuery = window.matchMedia('(max-width: 760px)');
-    const update = () => {
-      setIsMobileViewport(Boolean(mediaQuery.matches));
-      if (!mediaQuery.matches) {
-        setShowMobileSearch(false);
-      }
-    };
-
-    update();
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', update);
-      return () => mediaQuery.removeEventListener('change', update);
-    }
-    mediaQuery.addListener(update);
-    return () => mediaQuery.removeListener(update);
-  }, []);
-
-  useEffect(() => {
     setActiveFilters((current) => pruneFilters(current, filterOptions));
   }, [filterOptions]);
 
   useEffect(() => {
-    if (!isItemsMode) return;
+    if (!isItemsMode || loading) return;
     const validIds = new Set(items.map((item) => item.id));
 
     setActiveExpandedId((current) => (current && validIds.has(current) ? current : ''));
-  }, [isItemsMode, items]);
+  }, [isItemsMode, items, loading]);
 
   useEffect(() => {
     if (!isItemsMode) return;
@@ -624,35 +597,43 @@ export default function RetrievalPage() {
     setActiveFilters(EMPTY_FILTERS);
   }, []);
 
-  const handleAddCategory = useCallback(() => {
-    addFilter('categories', selectedCategory);
-    setSelectedCategory('');
-  }, [addFilter, selectedCategory]);
+  const handleCategoryFilterChange = useCallback(
+    (value) => addFilter('categories', value),
+    [addFilter],
+  );
 
-  const handleAddTag = useCallback(() => {
-    addFilter('tags', selectedTag);
-    setSelectedTag('');
-  }, [addFilter, selectedTag]);
+  const handleTagFilterChange = useCallback(
+    (value) => addFilter('tags', value),
+    [addFilter],
+  );
 
-  const handleAddLocation = useCallback(() => {
-    addFilter('locations', selectedLocation);
-    setSelectedLocation('');
-  }, [addFilter, selectedLocation]);
+  const handleLocationFilterChange = useCallback(
+    (value) => addFilter('locations', value),
+    [addFilter],
+  );
 
-  const handleAddOwner = useCallback(() => {
-    addFilter('owners', selectedOwner);
-    setSelectedOwner('');
-  }, [addFilter, selectedOwner]);
+  const handleOwnerFilterChange = useCallback(
+    (value) => addFilter('owners', value),
+    [addFilter],
+  );
 
-  const handleAddKeepPriority = useCallback(() => {
-    addFilter('keepPriorities', selectedKeepPriority);
-    setSelectedKeepPriority('');
-  }, [addFilter, selectedKeepPriority]);
+  const handleKeepPriorityFilterChange = useCallback(
+    (value) => addFilter('keepPriorities', value),
+    [addFilter],
+  );
+
+  const handleToggleRefine = useCallback(() => {
+    setShowRefine((current) => !current);
+  }, []);
 
   const toggleExpanded = useCallback((itemId) => {
     const resolvedId = String(itemId || '').trim();
     if (!resolvedId) return;
     setActiveExpandedId((current) => (current === resolvedId ? '' : resolvedId));
+  }, []);
+
+  const handleConsoleSearchChange = useCallback((nextValue) => {
+    setSearchValue(String(nextValue || ''));
   }, []);
 
   useEffect(() => {
@@ -666,22 +647,71 @@ export default function RetrievalPage() {
     const activeItem = activeId ? items.find((entry) => entry.id === activeId) : null;
 
     if (!activeItem) {
-      setActiveRetrievalItem(null);
+      setActiveRetrievalItem({
+        mode: 'controls',
+        retrievalMode,
+        onModeChange: setRetrievalMode,
+        searchValue: String(searchValue || ''),
+        onSearchChange: handleConsoleSearchChange,
+        showRefine,
+        onToggleRefine: handleToggleRefine,
+        chips: activeChips,
+        sortOptions,
+        selectedSort,
+        categoryOptions: filterOptions.categories,
+        tagOptions: filterOptions.tags,
+        locationOptions: filterOptions.locations,
+        ownerOptions: filterOptions.owners,
+        keepPriorityOptions: filterOptions.keepPriorities,
+        onSortChange: setSelectedSort,
+        onCategoryChange: handleCategoryFilterChange,
+        onTagChange: handleTagFilterChange,
+        onLocationChange: handleLocationFilterChange,
+        onOwnerChange: handleOwnerFilterChange,
+        onKeepPriorityChange: handleKeepPriorityFilterChange,
+        onRemoveChip: removeFilter,
+        onClearAllChips: clearAllFilters,
+      });
       return;
     }
 
-    const boxName = String(activeItem?.boxName || '').trim();
-    const boxSnippet = boxName.length > 42 ? `${boxName.slice(0, 41).trimEnd()}…` : boxName;
-
     setActiveRetrievalItem({
+      mode: 'active',
       id: activeItem.id,
       name: String(activeItem?.name || '').trim(),
+      itemHref: String(activeItem?.itemHref || `/items/${activeItem.id}`).trim(),
       boxNumber: String(activeItem?.boxNumber || '').trim(),
-      boxName: boxSnippet,
+      boxName: String(activeItem?.boxName || '').trim(),
+      boxHref: String(activeItem?.boxHref || '').trim(),
       locationLabel: String(activeItem?.locationLabel || '').trim(),
       onCollapse: () => setActiveExpandedId((current) => (current === activeItem.id ? '' : current)),
     });
-  }, [activeExpandedId, isItemsMode, items, setActiveRetrievalItem]);
+  }, [
+    activeExpandedId,
+    activeChips,
+    clearAllFilters,
+    filterOptions.categories,
+    filterOptions.keepPriorities,
+    filterOptions.locations,
+    filterOptions.owners,
+    filterOptions.tags,
+    handleConsoleSearchChange,
+    handleCategoryFilterChange,
+    handleKeepPriorityFilterChange,
+    handleLocationFilterChange,
+    handleOwnerFilterChange,
+    handleTagFilterChange,
+    handleToggleRefine,
+    isItemsMode,
+    items,
+    removeFilter,
+    retrievalMode,
+    searchValue,
+    selectedSort,
+    setActiveRetrievalItem,
+    showRefine,
+    sortOptions,
+  ]);
 
   useEffect(
     () => () => {
@@ -1082,83 +1112,13 @@ export default function RetrievalPage() {
         onModeChange={setRetrievalMode}
         persistedState={boxModeState}
         onStateSnapshotChange={setBoxModeState}
+        setActiveRetrievalItem={setActiveRetrievalItem}
       />
     );
   }
 
   return (
     <S.PageShell>
-      <S.ControlsPanel>
-        <S.HeadingRow>
-          <S.HeadingGroup>
-            <S.TitleRow>
-              <S.TitlePip aria-hidden="true" />
-              <S.Title>Retrieval Mode</S.Title>
-            </S.TitleRow>
-            <S.Subtitle>
-              Fast, read-only lookup for answering “where is this item?”
-            </S.Subtitle>
-          </S.HeadingGroup>
-          <S.CountPill>{total}</S.CountPill>
-        </S.HeadingRow>
-
-        <RetrievalModeToggle mode={retrievalMode} onChange={setRetrievalMode} />
-
-        <S.DesktopSearchWrap>
-          <RetrievalSearchBar value={searchValue} onChange={setSearchValue} />
-        </S.DesktopSearchWrap>
-
-        <S.RefineHeaderRow>
-          <S.RefineToggle
-            type="button"
-            onClick={() => setShowRefine((current) => !current)}
-            aria-expanded={showRefine}
-            aria-controls="retrieval-refine-panel"
-          >
-            {showRefine ? 'Hide Refine' : 'Refine'}
-          </S.RefineToggle>
-          {activeChips.length ? (
-            <S.RefineCount>{activeChips.length} active filters</S.RefineCount>
-          ) : null}
-        </S.RefineHeaderRow>
-
-        {showRefine ? (
-          <S.RefinePanel id="retrieval-refine-panel">
-            <RetrievalFilterBar
-              sortOptions={sortOptions}
-              selectedSort={selectedSort}
-              categoryOptions={filterOptions.categories}
-              tagOptions={filterOptions.tags}
-              locationOptions={filterOptions.locations}
-              ownerOptions={filterOptions.owners}
-              keepPriorityOptions={filterOptions.keepPriorities}
-              selectedCategory={selectedCategory}
-              selectedTag={selectedTag}
-              selectedLocation={selectedLocation}
-              selectedOwner={selectedOwner}
-              selectedKeepPriority={selectedKeepPriority}
-              onSortChange={setSelectedSort}
-              onCategoryChange={setSelectedCategory}
-              onTagChange={setSelectedTag}
-              onLocationChange={setSelectedLocation}
-              onOwnerChange={setSelectedOwner}
-              onKeepPriorityChange={setSelectedKeepPriority}
-              onAddCategory={handleAddCategory}
-              onAddTag={handleAddTag}
-              onAddLocation={handleAddLocation}
-              onAddOwner={handleAddOwner}
-              onAddKeepPriority={handleAddKeepPriority}
-            />
-
-            <ActiveFilterChips
-              chips={activeChips}
-              onRemove={removeFilter}
-              onClearAll={clearAllFilters}
-            />
-          </S.RefinePanel>
-        ) : null}
-      </S.ControlsPanel>
-
       {error ? <S.ErrorState role="alert">{error}</S.ErrorState> : null}
 
       <S.ResultsPanel>
@@ -1200,40 +1160,6 @@ export default function RetrievalPage() {
         itemName={lightboxImage?.name || ''}
         onClose={handleCloseLightbox}
       />
-
-      {isMobileViewport ? (
-        <>
-          {showMobileSearch ? (
-            <S.MobileSearchPanel role="dialog" aria-label="Retrieval search">
-              <S.MobileSearchHeader>
-                <S.MobileSearchTitle>Search inventory</S.MobileSearchTitle>
-                <S.MobileSearchClose
-                  type="button"
-                  onClick={() => setShowMobileSearch(false)}
-                >
-                  Close
-                </S.MobileSearchClose>
-              </S.MobileSearchHeader>
-              <S.SearchInput
-                id="retrieval-mobile-search"
-                type="search"
-                value={searchValue}
-                onChange={(event) => setSearchValue(event.target.value)}
-                placeholder="Search by item, box, notes, or location"
-                autoComplete="off"
-                autoFocus
-              />
-            </S.MobileSearchPanel>
-          ) : null}
-          <S.MobileSearchTrigger
-            type="button"
-            aria-label="Open retrieval search"
-            onClick={() => setShowMobileSearch((current) => !current)}
-          >
-            <span aria-hidden="true">🔎</span>
-          </S.MobileSearchTrigger>
-        </>
-      ) : null}
     </S.PageShell>
   );
 }

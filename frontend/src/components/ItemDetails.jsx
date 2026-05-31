@@ -320,8 +320,8 @@ export default function ItemDetails({
   const valueLabel = fmtUsdValue(value, valueCents);
   const purchasePriceLabel = fmtUsdFromCents(purchasePriceCents);
   const sourceBatchSummary = formatSourceBatchSummary(sourceBatch);
-  const sourceBatchLink = sourceBatchId || sourceBatch?.id
-    ? getImportBatchHref(sourceBatch?.id || sourceBatchId)
+  const sourceBatchLink = sourceBatch?.batchId || sourceBatch?.id || sourceBatchId
+    ? getImportBatchHref(sourceBatch?.batchId || sourceBatch?.id || sourceBatchId)
     : '';
 
   return (
