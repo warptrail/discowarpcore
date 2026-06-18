@@ -6,7 +6,6 @@ import { fetchRandomItem } from '../api/randomItem';
 import RandomItemToastContent from '../components/Toast/RandomItemToastContent';
 
 const RANDOM_REVEAL_DELAY_MS = 700;
-const ORPHANED_LABEL = 'Orphaned inventory';
 const SCANNING_MESSAGES = [
   'Scanning inventory matrix...',
   'Routing through cargo manifest...',
@@ -26,14 +25,6 @@ function getItemName(item) {
   return String(item?.name || '').trim() || 'Unnamed item';
 }
 
-function getItemLocationLabel(item) {
-  const explicitLabel = String(item?.locationLabel || '').trim();
-  if (explicitLabel) return explicitLabel;
-  const boxLabel = String(item?.box?.label || '').trim();
-  if (boxLabel) return boxLabel;
-  return ORPHANED_LABEL;
-}
-
 function getItemBoxIdLabel(item) {
   const boxId = String(item?.box?.box_id || '').trim();
   if (boxId) return `#${boxId}`;
@@ -42,6 +33,10 @@ function getItemBoxIdLabel(item) {
 
 function getItemThumbUrl(item) {
   return String(item?.image?.thumbUrl || '').trim();
+}
+
+function getItemDisplayUrl(item) {
+  return String(item?.image?.displayUrl || item?.image?.thumbUrl || '').trim();
 }
 
 export default function useRandomItemFlow() {
@@ -91,37 +86,28 @@ export default function useRandomItemFlow() {
       }
 
       const itemName = getItemName(item);
-      const locationLabel = getItemLocationLabel(item);
       const boxIdLabel = getItemBoxIdLabel(item);
       const thumbUrl = getItemThumbUrl(item);
+      const displayUrl = getItemDisplayUrl(item);
 
       showToast?.({
-        variant: 'success',
+        variant: 'info',
         title: `Selected: ${itemName}`,
-        message: `Located in: ${locationLabel}`,
         content: createElement(RandomItemToastContent, {
           boxIdLabel,
+          itemName,
+          item,
           thumbUrl,
+          imageUrl: displayUrl,
+          onOpenItem: () => {
+            hideToast?.();
+            navigate(getItemHomeHref(itemId));
+          },
+          onRandomAgain: () => {
+            runRandomItem();
+          },
         }),
         sticky: true,
-        actions: [
-          {
-            id: `open-random-item-${itemId}`,
-            label: 'Open Item',
-            kind: 'primary',
-            onClick: () => {
-              hideToast?.();
-              navigate(getItemHomeHref(itemId));
-            },
-          },
-          {
-            id: `random-again-${Date.now()}`,
-            label: 'Another Random Item',
-            onClick: () => {
-              runRandomItem();
-            },
-          },
-        ],
       });
     } catch (error) {
       if (latestRunRef.current !== runId) return;

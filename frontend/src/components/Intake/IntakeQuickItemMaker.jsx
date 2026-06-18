@@ -7,6 +7,12 @@ import {
   MOBILE_FONT_SM,
   MOBILE_FONT_XS,
 } from '../../styles/tokens';
+import {
+  DEFAULT_ITEM_CATEGORY,
+  ITEM_CATEGORIES,
+  formatItemCategory,
+  normalizeItemCategory,
+} from '../../util/itemCategories';
 import ImageSourcePicker from '../ImageSourcePicker';
 import { uploadCroppedItemImage } from './intakeImageHelpers';
 import BoxTagsField from '../BoxForms/BoxTagsField';
@@ -130,6 +136,10 @@ const Field = styled.div`
   min-width: 0;
 `;
 
+const FullRowField = styled(Field)`
+  grid-column: 1 / -1;
+`;
+
 const Label = styled.label`
   margin: 0;
   font-size: 0.68rem;
@@ -152,6 +162,33 @@ const Input = styled.input`
     outline: none;
     border-color: rgba(145, 187, 255, 0.9);
     box-shadow: 0 0 0 2px rgba(91, 141, 236, 0.22);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+    font-size: 16px;
+  }
+`;
+
+const Select = styled.select`
+  width: 100%;
+  min-height: 34px;
+  border-radius: 9px;
+  border: 1px solid rgba(116, 145, 198, 0.5);
+  background: rgba(7, 11, 18, 0.9);
+  color: #eaf2ff;
+  font-size: 0.84rem;
+  padding: 0 0.52rem;
+
+  &:focus {
+    outline: none;
+    border-color: rgba(145, 187, 255, 0.9);
+    box-shadow: 0 0 0 2px rgba(91, 141, 236, 0.22);
+  }
+
+  &:disabled {
+    opacity: 0.64;
+    cursor: not-allowed;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -318,6 +355,7 @@ export default function IntakeQuickItemMaker({
   const nameRef = useRef(null);
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState(1);
+  const [category, setCategory] = useState(DEFAULT_ITEM_CATEGORY);
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
   const [tags, setTags] = useState([]);
@@ -366,6 +404,7 @@ export default function IntakeQuickItemMaker({
     const orphanedAt = new Date().toISOString();
     const trimmedName = name.trim();
     const normalizedQuantity = Number(quantity);
+    const normalizedCategory = normalizeItemCategory(category);
     const normalizedDescription = description.trim();
     const normalizedNotes = notes.trim();
     const normalizedTags = tagsToPayload(tags);
@@ -378,6 +417,7 @@ export default function IntakeQuickItemMaker({
         ? {
             name: trimmedName,
             quantity: normalizedQuantity,
+            category: normalizedCategory,
             description: normalizedDescription,
             notes: normalizedNotes,
             tags: normalizedTags,
@@ -385,6 +425,7 @@ export default function IntakeQuickItemMaker({
         : {
             name: trimmedName,
             quantity: normalizedQuantity,
+            category: normalizedCategory,
             description: normalizedDescription,
             notes: normalizedNotes,
             tags: normalizedTags,
@@ -439,6 +480,7 @@ export default function IntakeQuickItemMaker({
               label: targetBoxLabel || '',
             },
             boxId: targetBoxId,
+            category: normalizeItemCategory(createdItem?.category || normalizedCategory),
             orphanedAt: null,
             image: uploadedImage || createdItem?.image || null,
             imagePath:
@@ -451,6 +493,7 @@ export default function IntakeQuickItemMaker({
             ...createdItem,
             createdAt,
             created_at: createdItem?.created_at || createdAt,
+            category: normalizeItemCategory(createdItem?.category || normalizedCategory),
             orphanedAt: createdItem?.orphanedAt || orphanedAt,
             box: null,
             boxId: '',
@@ -472,6 +515,7 @@ export default function IntakeQuickItemMaker({
       setStatus(message);
       setName('');
       setQuantity(1);
+      setCategory(DEFAULT_ITEM_CATEGORY);
       setDescription('');
       setNotes('');
       setTags([]);
@@ -499,10 +543,12 @@ export default function IntakeQuickItemMaker({
                   label: targetBoxLabel || '',
                 },
                 boxId: targetBoxId,
+                category: normalizeItemCategory(createdItem?.category || normalizedCategory),
                 orphanedAt: null,
               }
             : {
                 ...createdItem,
+                category: normalizeItemCategory(createdItem?.category || normalizedCategory),
                 orphanedAt: createdItem?.orphanedAt || orphanedAt,
                 box: null,
                 boxId: '',
@@ -547,7 +593,7 @@ export default function IntakeQuickItemMaker({
 
       <Form onSubmit={handleSubmit}>
         <TopRow>
-          <Field>
+          <FullRowField>
             <Label htmlFor={`${fieldIdPrefix}-name`}>Item name</Label>
             <Input
               id={`${fieldIdPrefix}-name`}
@@ -561,6 +607,22 @@ export default function IntakeQuickItemMaker({
               disabled={busy}
               required
             />
+          </FullRowField>
+
+          <Field>
+            <Label htmlFor={`${fieldIdPrefix}-category`}>Category</Label>
+            <Select
+              id={`${fieldIdPrefix}-category`}
+              value={category}
+              onChange={(event) => setCategory(normalizeItemCategory(event.target.value))}
+              disabled={busy}
+            >
+              {ITEM_CATEGORIES.map((value) => (
+                <option key={value} value={value}>
+                  {formatItemCategory(value)}
+                </option>
+              ))}
+            </Select>
           </Field>
 
           <Field>

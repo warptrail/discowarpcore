@@ -101,6 +101,7 @@ const dispositionLabelMap = {
   recycled: 'Recycled',
   gifted: 'Gifted',
   donated: 'Donated',
+  sold: 'Sold',
 };
 
 export function ItemHardDeleteConsolePanel({

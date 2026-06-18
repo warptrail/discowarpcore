@@ -12,9 +12,9 @@ const {
   openFolder,
 } = require('./vision-intake-tui/intakePaths');
 const {
+  archiveFailedBatch,
   archiveCompletedBatch,
   exportZip,
-  markFailed,
   runDirectImport,
   runInit,
   runPackage,
@@ -29,6 +29,10 @@ const {
   askText,
   createPromptSession,
 } = require('./vision-intake-tui/tuiPrompts');
+const {
+  ensureDestinationBox,
+  normalizeTuiBoxNumber,
+} = require('./vision-intake-tui/boxProvisioning');
 
 const IMPORT_MODES = Object.freeze({
   direct: 'direct',
@@ -72,7 +76,21 @@ async function chooseBatch(rl, batches, message) {
   return readBatchState(selectedRoot);
 }
 
-async function runPreprocessInitAndPrompt(rl, batch) {
+async function recordFailedBatch(batch, intakePaths, error, fallbackStage) {
+  try {
+    return await archiveFailedBatch(
+      batch,
+      intakePaths,
+      error,
+      fallbackStage || batch.pipelineStage || batch.status || 'failed'
+    );
+  } catch (archiveError) {
+    console.error(`Failed to move batch to failed folder: ${archiveError?.message || archiveError}`);
+    return batch;
+  }
+}
+
+async function runPreprocessInitAndPrompt(rl, batch, intakePaths) {
   let current = batch;
   try {
     current = await runPreprocess(current);
@@ -85,13 +103,14 @@ async function runPreprocessInitAndPrompt(rl, batch) {
     await askEnter(rl);
     return readBatchState(current.paths.root);
   } catch (error) {
-    await markFailed(current.paths.root, error, current.pipelineStage || current.status || 'preprocessing');
+    await recordFailedBatch(current, intakePaths, error, 'preprocessing');
     throw error;
   }
 }
 
 async function validateAndFinish(rl, batch, intakePaths) {
   let current = batch;
+  let failureStage = 'validating';
   try {
     current = await runValidation(current);
 
@@ -110,12 +129,13 @@ async function validateAndFinish(rl, batch, intakePaths) {
       return packaged;
     }
 
+    failureStage = 'importing';
     const imported = await runDirectImport(current);
     const archived = await archiveCompletedBatch(imported, intakePaths);
     console.log(`Direct import completed. Batch archived at: ${archived.paths.root}`);
     return archived;
   } catch (error) {
-    await markFailed(current.paths.root, error, current.pipelineStage || current.status || 'validating');
+    await recordFailedBatch(current, intakePaths, error, failureStage);
     throw error;
   }
 }
@@ -129,12 +149,24 @@ async function startNewBatch(rl, intakePaths) {
 
   const batchName = await askText(rl, 'Batch name');
   const location = await askText(rl, 'Destination location (optional)', { optional: true });
-  const box = await askText(rl, 'Destination box id (optional)', { optional: true });
+  const box = await askText(rl, 'Destination box id (optional)', {
+    optional: true,
+    validate: normalizeTuiBoxNumber,
+  });
   const importMode = await askSelect(rl, 'Import mode', [
     { label: 'Direct database import', value: IMPORT_MODES.direct },
     { label: 'Export zip only', value: IMPORT_MODES.export },
     { label: 'Validate/package only, no import', value: IMPORT_MODES.validateOnly },
   ]);
+
+  if (box && importMode === IMPORT_MODES.direct) {
+    const ensured = await ensureDestinationBox({ box, location });
+    console.log(
+      ensured.created
+        ? `Created destination box #${ensured.boxNumber}.`
+        : `Using existing destination box #${ensured.boxNumber}.`
+    );
+  }
 
   const { batch } = await createBatchWorkspace({
     intakePaths,
@@ -145,7 +177,7 @@ async function startNewBatch(rl, intakePaths) {
   });
 
   console.log(`Created batch workspace: ${batch.paths.root}`);
-  const afterPrompt = await runPreprocessInitAndPrompt(rl, batch);
+  const afterPrompt = await runPreprocessInitAndPrompt(rl, batch, intakePaths);
   await validateAndFinish(rl, afterPrompt, intakePaths);
 }
 
@@ -166,8 +198,13 @@ async function resumeBatch(rl, intakePaths) {
       { label: 'Cancel', value: 'cancel' },
     ]);
     if (action === 'import') {
-      const imported = await runDirectImport(batch);
-      await archiveCompletedBatch(imported, intakePaths);
+      try {
+        const imported = await runDirectImport(batch);
+        await archiveCompletedBatch(imported, intakePaths);
+      } catch (error) {
+        await recordFailedBatch(batch, intakePaths, error, 'importing');
+        throw error;
+      }
     } else if (action === 'open') {
       await openFolder(batch.paths.root);
     }
@@ -183,7 +220,7 @@ async function resumeBatch(rl, intakePaths) {
       { label: 'Cancel', value: 'cancel' },
     ]);
     if (action === 'preprocess') {
-      const afterPrompt = await runPreprocessInitAndPrompt(rl, batch);
+      const afterPrompt = await runPreprocessInitAndPrompt(rl, batch, intakePaths);
       await validateAndFinish(rl, afterPrompt, intakePaths);
     } else if (action === 'validate') {
       await validateAndFinish(rl, batch, intakePaths);
@@ -197,7 +234,7 @@ async function resumeBatch(rl, intakePaths) {
     defaultValue: true,
   });
   if (restart) {
-    const afterPrompt = await runPreprocessInitAndPrompt(rl, batch);
+    const afterPrompt = await runPreprocessInitAndPrompt(rl, batch, intakePaths);
     await validateAndFinish(rl, afterPrompt, intakePaths);
   }
 }
@@ -224,7 +261,7 @@ async function reviewFailedBatch(rl, intakePaths) {
   if (action === 'open') {
     await openFolder(batch.paths.root);
   } else if (action === 'preprocess') {
-    const afterPrompt = await runPreprocessInitAndPrompt(rl, batch);
+    const afterPrompt = await runPreprocessInitAndPrompt(rl, batch, intakePaths);
     await validateAndFinish(rl, afterPrompt, intakePaths);
   } else if (action === 'validate') {
     await validateAndFinish(rl, batch, intakePaths);

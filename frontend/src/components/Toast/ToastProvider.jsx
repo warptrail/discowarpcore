@@ -15,15 +15,25 @@ export function ToastProvider({ children }) {
     }
   };
 
-  const hideToast = useCallback(() => {
-    clearTimer();
-    setToast(null);
+  const hideToast = useCallback((toastId = null) => {
+    if (!toastId) {
+      clearTimer();
+      setToast(null);
+      return;
+    }
+
+    setToast((current) => {
+      if (toastId && current?.id !== toastId) return current;
+      clearTimer();
+      return null;
+    });
   }, []);
 
   const showToast = useCallback((config) => {
     clearTimer();
 
     const {
+      id,
       title,
       message,
       variant = 'info',
@@ -36,6 +46,7 @@ export function ToastProvider({ children }) {
     } = config;
 
     setToast({
+      id,
       title,
       message,
       variant,

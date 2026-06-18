@@ -20,13 +20,6 @@ import { API_BASE } from './api/API_BASE';
 import { MOBILE_BREAKPOINT, MOBILE_PAGE_GAP } from './styles/tokens';
 
 const OPERATIONS_PAGE_LIMIT = 50;
-const INVENTORY_SORT_OPTIONS = new Set([
-  'boxId',
-  'name',
-  'group',
-  'location',
-  'itemCount',
-]);
 
 // ! STYLES
 const AppContainer = styled.div`
@@ -120,16 +113,6 @@ function collectGroupOptionsFromTree(nodes) {
   );
 }
 
-function normalizeInventoryQuery(input = {}) {
-  const q = String(input?.q || '').trim();
-  const rawGroup = String(input?.group || '').trim();
-  const group = rawGroup || 'all';
-  const rawSort = String(input?.sortBy || '').trim();
-  const sortBy = INVENTORY_SORT_OPTIONS.has(rawSort) ? rawSort : 'boxId';
-
-  return { q, group, sortBy };
-}
-
 function App() {
   const [boxes, setBoxes] = useState([]);
   const [boxGroups, setBoxGroups] = useState([]);
@@ -140,23 +123,9 @@ function App() {
   const [orphanedCount, setOrphanedCount] = useState(0);
   const [orphanedItems, setOrphanedItems] = useState([]);
   const [locations, setLocations] = useState([]);
-  const [inventoryQuery, setInventoryQuery] = useState(() =>
-    normalizeInventoryQuery()
-  );
 
   // for refreshing the home page on location change
   const location = useLocation();
-
-  const handleInventoryQueryChange = useCallback((next) => {
-    const normalized = normalizeInventoryQuery(next);
-    setInventoryQuery((prev) =>
-      prev.q === normalized.q &&
-      prev.group === normalized.group &&
-      prev.sortBy === normalized.sortBy
-        ? prev
-        : normalized
-    );
-  }, []);
 
   const handleOperationsDataRefreshRequest = useCallback(() => {
     setOperationsRefreshTick((prev) => prev + 1);
@@ -167,42 +136,51 @@ function App() {
 
     const loadHomeData = async () => {
       try {
-        const boxesQuery = new URLSearchParams({
-          page: String(boxesPage),
-          limit: String(OPERATIONS_PAGE_LIMIT),
-        });
-        if (inventoryQuery.q) {
-          boxesQuery.set('q', inventoryQuery.q);
-        }
-        if (inventoryQuery.group && inventoryQuery.group !== 'all') {
-          boxesQuery.set('group', inventoryQuery.group);
-        }
-        if (inventoryQuery.sortBy) {
-          boxesQuery.set('sortBy', inventoryQuery.sortBy);
-        }
+        const buildBoxesQuery = (page) =>
+          new URLSearchParams({
+            page: String(page),
+            limit: String(OPERATIONS_PAGE_LIMIT),
+          });
 
         const [boxesRes, orphanedRes, locationsRes] = await Promise.all([
-          fetch(`${API_BASE}/api/boxes/tree?${boxesQuery}`),
+          fetch(`${API_BASE}/api/boxes/tree?${buildBoxesQuery(1)}`),
           fetch(`${API_BASE}/api/items/orphaned?sort=recent&limit=10000`),
           fetch(`${API_BASE}/api/locations`),
         ]);
 
         const boxesBody = await boxesRes.json();
-        const boxesData = Array.isArray(boxesBody?.items)
+        const firstPageBoxes = Array.isArray(boxesBody?.items)
           ? boxesBody.items
           : Array.isArray(boxesBody)
             ? boxesBody
             : [];
         const apiTotal = Number(boxesBody?.total);
-        const total = Number.isFinite(apiTotal) ? apiTotal : boxesData.length;
         const apiTotalPages = Number(boxesBody?.totalPages);
-        const totalPages = Number.isFinite(apiTotalPages)
+        let totalPages = Number.isFinite(apiTotalPages)
           ? Math.max(1, apiTotalPages)
-          : Math.max(1, Math.ceil(total / OPERATIONS_PAGE_LIMIT));
-        const apiPage = Number(boxesBody?.page);
-        const currentPage = Number.isFinite(apiPage)
-          ? Math.max(1, Math.min(apiPage, totalPages))
-          : boxesPage;
+          : Math.max(1, Math.ceil(firstPageBoxes.length / OPERATIONS_PAGE_LIMIT));
+        let boxesData = firstPageBoxes;
+
+        if (totalPages > 1) {
+          const remainingPages = await Promise.all(
+            Array.from({ length: totalPages - 1 }, async (_, index) => {
+              const page = index + 2;
+              const response = await fetch(
+                `${API_BASE}/api/boxes/tree?${buildBoxesQuery(page)}`,
+              );
+              const body = await response.json();
+              return Array.isArray(body?.items)
+                ? body.items
+                : Array.isArray(body)
+                  ? body
+                  : [];
+            }),
+          );
+          boxesData = [firstPageBoxes, ...remainingPages].flat();
+        }
+
+        const total = Number.isFinite(apiTotal) ? apiTotal : boxesData.length;
+        totalPages = Math.max(1, Math.ceil(total / OPERATIONS_PAGE_LIMIT));
         const apiGroups = Array.isArray(boxesBody?.filters?.groups)
           ? boxesBody.filters.groups
           : null;
@@ -222,7 +200,6 @@ function App() {
         setBoxGroups(groups);
         setBoxesTotal(total);
         setBoxesTotalPages(totalPages);
-        if (currentPage !== boxesPage) setBoxesPage(currentPage);
         setOrphanedCount(orphanedData.length);
         setOrphanedItems(orphanedData);
         setLocations(
@@ -246,11 +223,7 @@ function App() {
       isAlive = false;
     };
   }, [
-    location,
-    boxesPage,
-    inventoryQuery.q,
-    inventoryQuery.group,
-    inventoryQuery.sortBy,
+    location.pathname,
     operationsRefreshTick,
   ]);
 
@@ -296,7 +269,6 @@ function App() {
                 totalPages: boxesTotalPages,
               }}
               onPageChange={setBoxesPage}
-              onInventoryQueryChange={handleInventoryQueryChange}
               onOperationsDataRefreshRequest={handleOperationsDataRefreshRequest}
             />
           }

@@ -9,6 +9,7 @@ import {
 } from '../api/itemLifecycle';
 import { editItem } from '../api/editItem';
 import ItemDetails from './ItemDetails';
+import ItemPageConsoleActions from './ItemPageConsoleActions';
 import ItemPageBreadcrumb from './ItemPageBreadcrumb';
 import EditItemDetailsForm from './EditItemDetailsForm';
 import ItemContainerSection from './ItemContainerSection';
@@ -41,6 +42,7 @@ export default function ItemPage() {
   const navigate = useNavigate();
 
   const toastCtx = useContext(ToastContext);
+  const activeToastId = toastCtx?.toast?.id ?? '';
   const showToast = toastCtx?.showToast;
   const hideToast = toastCtx?.hideToast;
 
@@ -480,6 +482,38 @@ export default function ItemPage() {
     hideToast,
   });
 
+  useEffect(() => {
+    if (loading || error || notFound || !item?._id || isEditing) return undefined;
+    if (activeToastId && activeToastId !== 'item-page-actions') return undefined;
+
+    showToast?.({
+      id: 'item-page-actions',
+      variant: 'command',
+      title: 'Item console',
+      message: 'View mode',
+      sticky: true,
+      content: (
+        <ItemPageConsoleActions
+          itemName={getItemName(item)}
+          onEdit={() => setIsEditing(true)}
+        />
+      ),
+    });
+
+    return () => {
+      hideToast?.('item-page-actions');
+    };
+  }, [
+    activeToastId,
+    error,
+    hideToast,
+    isEditing,
+    item,
+    loading,
+    notFound,
+    showToast,
+  ]);
+
   const handleImageProcessingCompleted = useCallback(async ({ state } = {}) => {
     const nextPreviewUrl = String(
       state?.preferredImageUrl ||
@@ -892,7 +926,7 @@ export default function ItemPage() {
   }
 
   return (
-    <S.Page $reserveBottomDock={!isEditing}>
+    <S.Page>
       <ItemPageBreadcrumb item={item} itemId={itemId} />
 
       <S.TitleBar>
@@ -917,7 +951,6 @@ export default function ItemPage() {
       {isEditing ? (
         <EditItemDetailsForm
           item={item}
-          actionDocked
           lifecycleBusy={lifecycleBusy}
           onMarkGoneRequest={() => setLifecycleDialog('markGone')}
           onDeletePermanentlyRequest={() => setLifecycleDialog('delete')}
@@ -977,21 +1010,6 @@ export default function ItemPage() {
         />
       )}
 
-      {!isEditing ? (
-        <S.StickyActionBar>
-          <S.StickyActionInner>
-            <S.StickyActionMeta>
-              View mode
-            </S.StickyActionMeta>
-            <S.StickyPrimaryButton
-              type="button"
-              onClick={() => setIsEditing(true)}
-            >
-              Edit
-            </S.StickyPrimaryButton>
-          </S.StickyActionInner>
-        </S.StickyActionBar>
-      ) : null}
     </S.Page>
   );
 }

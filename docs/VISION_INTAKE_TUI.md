@@ -59,13 +59,15 @@ The wizard asks for:
 
 - batch name
 - optional destination location
-- optional destination box id
+- optional destination box id; when provided it must be exactly 3 digits
 - import mode
 
 Import modes:
 
 - `Direct database import`: packages the batch, uploads it to the local backend,
-  validates it, and imports it through existing backend intake endpoints.
+  validates it, and imports it through existing backend intake endpoints. If a
+  3-digit destination box does not already exist, the TUI creates it through the
+  existing box API before import.
 - `Export zip only`: packages the batch and copies the zip to `~/Intake/exports`.
 - `Validate/package only, no import`: validates and packages into the batch workspace
   but does not call the backend import endpoints.
@@ -162,8 +164,9 @@ Minimal supported resume behavior:
 - `failed`: show the last error and offer retry/open-folder actions
 - `packaged`: offer direct import or open folder
 
-Failed batches are left recoverable in `processing/` for the first pass. The
-`failed/` directory exists for future archival/recovery flows.
+When a pipeline step fails, the TUI marks the batch as `failed` and moves it to
+`~/Intake/failed` when possible. Failed batches remain visible through
+`Review Failed Batch`.
 
 ## GUI Relationship
 

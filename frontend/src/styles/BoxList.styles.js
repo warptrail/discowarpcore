@@ -1,4 +1,5 @@
 // src/styles/BoxList.styles.js
+import { Link } from 'react-router-dom';
 import styled, { css, keyframes } from 'styled-components';
 
 const LCARS = {
@@ -769,6 +770,271 @@ const OrphanedRevealShell = styled.div`
   will-change: max-height, opacity, transform;
 `;
 
+const TerminalTable = styled.div`
+  ${panelBase};
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  border-color: ${toneAlpha(LCARS.ice, '6f')};
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(4, 10, 15, 0.96), rgba(7, 12, 16, 0.98)),
+    ${LCARS.bg};
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+`;
+
+const terminalGrid = css`
+  display: grid;
+  grid-template-columns:
+    minmax(230px, 1.55fr)
+    minmax(120px, 0.78fr)
+    minmax(150px, 1fr)
+    minmax(72px, 0.34fr)
+    minmax(62px, 0.28fr)
+    34px;
+  align-items: center;
+  gap: 0.42rem;
+
+  @media (max-width: 780px) {
+    grid-template-columns: minmax(0, 1fr) 34px;
+  }
+`;
+
+const TerminalHeader = styled.div`
+  ${terminalGrid};
+  padding: 0.48rem 0.62rem;
+  border-bottom: 1px solid ${toneAlpha(LCARS.ice, '42')};
+  background:
+    linear-gradient(90deg, ${toneAlpha(LCARS.ice, '22')}, transparent 70%),
+    rgba(11, 20, 27, 0.92);
+`;
+
+const TerminalHeadCell = styled.span`
+  color: ${toneAlpha(LCARS.textDim, 'd5')};
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+
+  @media (max-width: 780px) {
+    &:nth-child(n + 2) {
+      display: none;
+    }
+  }
+`;
+
+const TerminalBranch = styled.div`
+  display: grid;
+  min-width: 0;
+`;
+
+const TerminalRow = styled.div`
+  ${terminalGrid};
+  position: relative;
+  min-width: 0;
+  min-height: 38px;
+  padding: 0.34rem 0.62rem;
+  border-bottom: 1px solid rgba(127, 215, 255, 0.1);
+  background:
+    linear-gradient(
+      90deg,
+      ${({ $depth = 0 }) => toneAlpha(railTone({ $depth }), $depth ? '13' : '1e')} 0%,
+      rgba(255, 255, 255, 0.01) 52%,
+      transparent 100%
+    ),
+    rgba(10, 15, 18, 0.82);
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    box-shadow 140ms ease,
+    color 140ms ease;
+
+  ${({ $isSystem }) =>
+    $isSystem &&
+    css`
+      border-bottom-style: dashed;
+      background:
+        linear-gradient(90deg, ${toneAlpha(LCARS.teal, '20')}, transparent 70%),
+        rgba(9, 18, 20, 0.86);
+    `}
+
+  &:hover {
+    background:
+      linear-gradient(
+        90deg,
+        ${({ $depth = 0 }) => toneAlpha(railTone({ $depth }), '28')} 0%,
+        rgba(127, 215, 255, 0.05) 60%,
+        transparent 100%
+      ),
+      rgba(14, 23, 28, 0.94);
+    box-shadow: inset 0 0 0 1px ${toneAlpha(LCARS.ice, '2b')};
+  }
+`;
+
+const TerminalBoxCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  min-width: 0;
+  padding-left: ${({ $depth = 0 }) => `${Math.min($depth, 6) * 18}px`};
+`;
+
+const TreeGlyph = styled.span`
+  flex: 0 0 auto;
+  width: 1.15rem;
+  color: ${({ $depth = 0 }) => toneAlpha(railTone({ $depth }), 'ca')};
+  font-size: 0.92rem;
+`;
+
+const TerminalShortId = styled.span`
+  flex: 0 0 auto;
+  color: ${({ $depth = 0 }) => toneAlpha(railTone({ $depth }), 'f0')};
+  border: 1px solid ${({ $depth = 0 }) => toneAlpha(railTone({ $depth }), '85')};
+  border-radius: 999px;
+  padding: 0.1rem 0.38rem;
+  font-size: 0.7rem;
+  font-weight: 900;
+  line-height: 1.2;
+
+  ${({ $isSystem }) =>
+    $isSystem &&
+    css`
+      color: ${toneAlpha(LCARS.teal, 'f0')};
+      border-color: ${toneAlpha(LCARS.teal, '92')};
+    `}
+`;
+
+const TerminalTitle = styled.span`
+  min-width: 0;
+  color: ${toneAlpha(LCARS.text, 'f2')};
+  font-size: 0.82rem;
+  font-weight: 780;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const TerminalCell = styled.span`
+  min-width: 0;
+  color: ${toneAlpha(LCARS.textDim, 'd4')};
+  font-size: 0.72rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @media (max-width: 780px) {
+    display: none;
+  }
+`;
+
+const TerminalMetric = styled.span`
+  color: ${toneAlpha(LCARS.ice, 'e2')};
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-align: right;
+
+  @media (max-width: 780px) {
+    display: none;
+  }
+`;
+
+const TerminalMoreButton = styled.button`
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 1px solid ${toneAlpha(LCARS.ice, '66')};
+  color: ${toneAlpha(LCARS.ice, 'e2')};
+  background: linear-gradient(180deg, rgba(11, 26, 38, 0.94), rgba(7, 16, 24, 0.96));
+  font-size: 0.92rem;
+  font-weight: 900;
+  cursor: pointer;
+
+  &:hover:enabled {
+    border-color: ${toneAlpha(LCARS.lime, '8c')};
+    color: ${toneAlpha(LCARS.lime, 'f0')};
+    box-shadow: 0 0 12px ${toneAlpha(LCARS.lime, '24')};
+  }
+
+  &:disabled {
+    opacity: 0.34;
+    cursor: default;
+  }
+`;
+
+const TerminalDetailPanel = styled.div`
+  overflow: hidden;
+  max-height: ${({ $open }) => ($open ? '260px' : '0')};
+  opacity: ${({ $open }) => ($open ? 1 : 0)};
+  transform: translateY(${({ $open }) => ($open ? '0' : '-6px')});
+  transition:
+    max-height 260ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    opacity 180ms ease,
+    transform 180ms ease;
+`;
+
+const TerminalDetailInner = styled.div`
+  display: grid;
+  gap: 0.44rem;
+  margin: 0.22rem 0.62rem 0.52rem;
+  padding: 0.56rem 0.62rem;
+  border: 1px solid ${toneAlpha(LCARS.line, 'd8')};
+  border-radius: 10px;
+  background:
+    linear-gradient(90deg, ${toneAlpha(LCARS.ice, '12')}, transparent 64%),
+    rgba(7, 13, 18, 0.92);
+`;
+
+const TerminalDetailText = styled.p`
+  margin: 0;
+  color: ${toneAlpha(LCARS.text, 'dc')};
+  font-size: 0.74rem;
+  line-height: 1.42;
+`;
+
+const TerminalDetailNote = styled(TerminalDetailText)`
+  white-space: pre-wrap;
+`;
+
+const TerminalDetailLabel = styled.span`
+  display: block;
+  color: ${toneAlpha(LCARS.textDim, 'd0')};
+  font-size: 0.64rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.18rem;
+`;
+
+const TerminalTagRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+`;
+
+const TerminalLink = styled(Link)`
+  justify-self: start;
+  color: ${toneAlpha(LCARS.lime, 'eb')};
+  font-size: 0.72rem;
+  font-weight: 820;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-decoration: none;
+
+  &:hover {
+    color: ${toneAlpha(LCARS.text, 'f2')};
+    text-decoration: underline;
+  }
+`;
+
+const TerminalChildren = styled.div`
+  display: grid;
+  min-width: 0;
+`;
+
 const EmptyMessage = styled.div`
   ${panelBase};
   padding: 16px;
@@ -875,6 +1141,26 @@ export const styledComponents = {
 
   NodeChildren,
   OrphanedRevealShell,
+  TerminalTable,
+  TerminalHeader,
+  TerminalHeadCell,
+  TerminalBranch,
+  TerminalRow,
+  TerminalBoxCell,
+  TreeGlyph,
+  TerminalShortId,
+  TerminalTitle,
+  TerminalCell,
+  TerminalMetric,
+  TerminalMoreButton,
+  TerminalDetailPanel,
+  TerminalDetailInner,
+  TerminalDetailText,
+  TerminalDetailNote,
+  TerminalDetailLabel,
+  TerminalTagRow,
+  TerminalLink,
+  TerminalChildren,
   EmptyMessage,
   PaginationBar,
   PaginationButton,

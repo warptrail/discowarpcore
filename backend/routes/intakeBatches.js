@@ -3,6 +3,7 @@ const {
   getIntakeBatchesApi,
   getIntakeBatchApi,
   postIngestIntakeBatchPackageApi,
+  postCreateSimpleJsonIntakeBatchApi,
   postCreateIntakeBatchApi,
   postUpdateIntakeBatchAssetsApi,
   postUpdateIntakeBatchDestinationApi,
@@ -15,13 +16,18 @@ const {
   deleteIntakeBatchPermanentlyApi,
   postRecreateIntakeBatchLocalFolderApi,
 } = require('../controllers/intakeBatchController');
-const { uploadIntakeBatchAssets, uploadIntakeBatchPackage } = require('../middleware/intakeBatchUpload');
+const {
+  uploadIntakeBatchAssets,
+  uploadIntakeBatchPackage,
+  uploadSimpleIntakeBatchJson,
+} = require('../middleware/intakeBatchUpload');
 
 const router = express.Router();
 
 router.get('/', getIntakeBatchesApi);
-router.get('/:batchId', getIntakeBatchApi);
 router.post('/package', uploadIntakeBatchPackage, postIngestIntakeBatchPackageApi);
+router.post('/simple-json', uploadSimpleIntakeBatchJson, postCreateSimpleJsonIntakeBatchApi);
+router.get('/:batchId', getIntakeBatchApi);
 router.post('/', uploadIntakeBatchAssets, postCreateIntakeBatchApi);
 router.post('/:batchId/assets', uploadIntakeBatchAssets, postUpdateIntakeBatchAssetsApi);
 router.post('/:batchId/destination', postUpdateIntakeBatchDestinationApi);

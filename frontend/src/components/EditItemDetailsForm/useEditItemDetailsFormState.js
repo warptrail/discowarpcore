@@ -211,7 +211,9 @@ export default function useEditItemDetailsFormState({ item, triggerFlash, onSave
   };
 
   const handleSave = async (e) => {
-    e.preventDefault();
+    e?.preventDefault?.();
+    if (saving || !isDirty) return;
+
     setSaving(true);
 
     try {
@@ -271,7 +273,9 @@ export default function useEditItemDetailsFormState({ item, triggerFlash, onSave
   };
 
   const handleRevert = (e) => {
-    e.preventDefault();
+    e?.preventDefault?.();
+    if (saving || !isDirty) return;
+
     setFormData(buildFormState(initialData));
     triggerFlash?.(item._id, 'blue');
   };

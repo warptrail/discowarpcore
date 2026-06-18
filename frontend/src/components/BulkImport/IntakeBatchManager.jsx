@@ -11,6 +11,7 @@ import {
   renameIntakeBatch,
   updateIntakeBatchDestination,
   uploadIntakeBatchPackage,
+  uploadSimpleIntakeBatchJson,
   validateIntakeBatch,
 } from '../../api/intakeBatches';
 import { DEFAULT_RENDER_TOKENS, normalizeRenderTokens } from '../../constants/renderTokens';
@@ -107,6 +108,7 @@ export default function IntakeBatchManager({
   const hideToast = toastCtx?.hideToast;
   const showToastRef = useRef(showToast);
   const createPackageInputRef = useRef(null);
+  const simpleJsonInputRef = useRef(null);
   const [batches, setBatches] = useState([]);
   const [selectedBatchId, setSelectedBatchId] = useState(() =>
     String(selectedBatchIdOverride || '').trim()
@@ -122,6 +124,7 @@ export default function IntakeBatchManager({
   const [detailLoading, setDetailLoading] = useState(false);
   const [busyAction, setBusyAction] = useState('');
   const [createPackageFile, setCreatePackageFile] = useState(null);
+  const [simpleJsonFile, setSimpleJsonFile] = useState(null);
   const [feedback, setFeedback] = useState({ tone: 'info', message: '' });
   const refreshTimeoutRef = useRef(null);
   const selectedBatchIdRef = useRef('');
@@ -496,6 +499,53 @@ export default function IntakeBatchManager({
       });
       showToastRef.current?.({
         title: 'Batch package staging failed',
+        message: formattedError,
+        variant: 'danger',
+        sticky: true,
+      });
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const handleUploadSimpleJson = async () => {
+    if (!simpleJsonFile) return;
+    setBusyAction('upload-simple-json');
+    setFeedback({ tone: 'info', message: '' });
+    showToastRef.current?.({
+      title: 'Staging simple JSON',
+      message: `${simpleJsonFile.name}...`,
+      variant: 'info',
+      loading: true,
+    });
+    try {
+      const result = await uploadSimpleIntakeBatchJson(simpleJsonFile);
+      const batch = result.batch;
+      if (!batch) {
+        throw new Error('Simple JSON staging did not return a batch record.');
+      }
+      replaceBatch(batch);
+      setSimpleJsonFile(null);
+      if (simpleJsonInputRef.current) {
+        simpleJsonInputRef.current.value = '';
+      }
+      setFeedback({
+        tone: 'success',
+        message: result.nextStepSuggestion || `Staged simple JSON ${batch.name}.`,
+      });
+      showToastRef.current?.({
+        title: 'Simple JSON staged',
+        message: result.nextStepSuggestion || `${batch.name} is ready for validation.`,
+        variant: 'success',
+      });
+    } catch (error) {
+      const formattedError = formatPackageUploadError(error);
+      setFeedback({
+        tone: 'error',
+        message: formattedError,
+      });
+      showToastRef.current?.({
+        title: 'Simple JSON staging failed',
         message: formattedError,
         variant: 'danger',
         sticky: true,
@@ -921,6 +971,10 @@ export default function IntakeBatchManager({
         packageInputRef={createPackageInputRef}
         onPackageFileChange={(event) => setCreatePackageFile(event.target.files?.[0] || null)}
         onUploadPackage={handleUploadPackage}
+        simpleJsonFile={simpleJsonFile}
+        simpleJsonInputRef={simpleJsonInputRef}
+        onSimpleJsonFileChange={(event) => setSimpleJsonFile(event.target.files?.[0] || null)}
+        onUploadSimpleJson={handleUploadSimpleJson}
         onRefresh={() => void refreshBatches()}
         busyAction={busyAction}
         loading={loading}

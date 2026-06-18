@@ -200,6 +200,10 @@ export default function IntakeBatchCreatePanel({
   packageInputRef,
   onPackageFileChange,
   onUploadPackage,
+  simpleJsonFile,
+  simpleJsonInputRef,
+  onSimpleJsonFileChange,
+  onUploadSimpleJson,
   onRefresh,
   busyAction,
   loading,
@@ -210,8 +214,8 @@ export default function IntakeBatchCreatePanel({
         <HeaderText>
           <Title>AI Intake Package</Title>
           <Text>
-            Upload one generated Disco Warp Core package zip. The package must contain
-            `batch_manifest.json` and the referenced files in `images/`.
+            Stage either a generated package zip with `batch_manifest.json` and images,
+            or a single no-image JSON item for quick manual imports.
           </Text>
         </HeaderText>
 
@@ -223,6 +227,14 @@ export default function IntakeBatchCreatePanel({
             disabled={busyAction === 'upload-package' || !packageFile}
           >
             {busyAction === 'upload-package' ? 'Staging…' : 'Stage Package'}
+          </Button>
+          <Button
+            type="button"
+            $tone="primary"
+            onClick={onUploadSimpleJson}
+            disabled={busyAction === 'upload-simple-json' || !simpleJsonFile}
+          >
+            {busyAction === 'upload-simple-json' ? 'Staging…' : 'Stage JSON'}
           </Button>
           <Button type="button" onClick={onRefresh} disabled={loading}>
             {loading ? 'Refreshing…' : 'Refresh'}
@@ -244,16 +256,30 @@ export default function IntakeBatchCreatePanel({
         </StatusLine>
       </Section>
 
+      <Section>
+        <Label htmlFor="simple-intake-json-file">Simple Item JSON</Label>
+        <FileInput
+          id="simple-intake-json-file"
+          ref={simpleJsonInputRef}
+          type="file"
+          accept=".json,application/json"
+          onChange={onSimpleJsonFileChange}
+        />
+        <StatusLine>
+          {simpleJsonFile?.name || 'Select one unzipped .json file with item fields and no images.'}
+        </StatusLine>
+      </Section>
+
       <SequenceGrid>
         <SequenceCard $tone="stage">
           <SequenceStep $tone="stage">Step 1</SequenceStep>
-          <SequenceTitle>Upload Zip</SequenceTitle>
-          <SequenceText>Choose one generated package zip and stage it to the backend.</SequenceText>
+          <SequenceTitle>Upload Source</SequenceTitle>
+          <SequenceText>Choose a package zip or simple item JSON and stage it to the backend.</SequenceText>
         </SequenceCard>
         <SequenceCard $tone="validate">
           <SequenceStep $tone="validate">Step 2</SequenceStep>
           <SequenceTitle>Validate Batch</SequenceTitle>
-          <SequenceText>Confirm the manifest items match the import schema before any item records are created.</SequenceText>
+          <SequenceText>Confirm the staged items match the import schema before any item records are created.</SequenceText>
         </SequenceCard>
         <SequenceCard $tone="import">
           <SequenceStep $tone="import">Step 3</SequenceStep>
@@ -263,9 +289,9 @@ export default function IntakeBatchCreatePanel({
       </SequenceGrid>
 
       <FactList>
-        <Fact>Zip upload only. The canonical JSON source is `batch_manifest.json`.</Fact>
-        <Fact>Each manifest item must include `imageFile`, `imageKey`, and `name`.</Fact>
-        <Fact>`imageKey` must equal the referenced image filename basename.</Fact>
+        <Fact>Package zip mode requires `batch_manifest.json` plus referenced files in `images/`.</Fact>
+        <Fact>Simple JSON mode accepts one item object, an item array, or {'{ items: [...] }'} with no images.</Fact>
+        <Fact>Simple item JSON should include `name`, `description`, `category`, `tags`, `quantity`, and optional `location` or `box`.</Fact>
       </FactList>
     </Panel>
   );

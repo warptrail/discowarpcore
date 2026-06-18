@@ -579,6 +579,16 @@ function summarizeRandomItem(item) {
     _id: itemId,
     name: String(item.name || '').trim() || 'Unnamed item',
     item_status: String(item.item_status || 'active').trim().toLowerCase() || 'active',
+    description: String(item.description || '').trim(),
+    notes: String(item.notes || '').trim(),
+    quantity:
+      item.quantity != null && Number.isFinite(Number(item.quantity))
+        ? Number(item.quantity)
+        : 1,
+    tags: Array.isArray(item.tags)
+      ? item.tags.map((tag) => String(tag || '').trim()).filter(Boolean)
+      : [],
+    category: normalizeItemCategory(item.category),
     locationLabel,
     box,
     breadcrumb: breadcrumbSummary,
@@ -587,6 +597,12 @@ function summarizeRandomItem(item) {
         item?.image?.thumb?.url ||
         item?.image?.display?.url ||
         item?.image?.original?.url ||
+        item?.imagePath ||
+        '',
+      displayUrl:
+        item?.image?.display?.url ||
+        item?.image?.original?.url ||
+        item?.image?.thumb?.url ||
         item?.imagePath ||
         '',
     },
@@ -908,7 +924,7 @@ async function markItemGone(id, payload = {}) {
   );
   if (!disposition) {
     const err = new Error(
-      'A valid disposition is required: consumed, lost, stolen, trashed, recycled, gifted, or donated.'
+      'A valid disposition is required: consumed, lost, stolen, trashed, recycled, gifted, donated, or sold.'
     );
     err.status = 400;
     throw err;

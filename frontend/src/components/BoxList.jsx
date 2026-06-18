@@ -1,11 +1,15 @@
 // src/views/BoxList.jsx
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { styledComponents as S } from '../styles/BoxList.styles';
 import InventoryGridHeader from './InventoryGridHeader';
 import BoxLocatorInspectorPanel from './BoxLocatorInspectorPanel';
 import { normalizeItemCategory } from '../util/itemCategories';
 import { fetchBoxTreeByShortId } from '../api/boxes';
+import {
+  filterBoxTreeByPrefix,
+  normalizeBoxPrefix,
+} from '../util/boxPrefixFilter';
 import {
   compareNumericBoxIds,
   matchesBoxIdPrefix,
@@ -33,10 +37,15 @@ export default function BoxList({
   onInventoryQueryChange,
   onOperationsDataRefreshRequest,
 }) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [quickCreatedBoxes, setQuickCreatedBoxes] = useState([]);
   const [quickOrphanedDelta, setQuickOrphanedDelta] = useState(0);
   const [showOrphanedVirtual, setShowOrphanedVirtual] = useState(false);
+  const [viewMode, setViewMode] = useState('cards');
   const [searchQuery, setSearchQuery] = useState('');
+  const [boxPrefix, setBoxPrefix] = useState(() =>
+    normalizeBoxPrefix(searchParams.get('boxPrefix')),
+  );
   const [boxLocatorQuery, setBoxLocatorQuery] = useState('');
   const [boxLocatorSelection, setBoxLocatorSelection] = useState(null);
   const [boxLocatorDetails, setBoxLocatorDetails] = useState(null);
@@ -49,7 +58,6 @@ export default function BoxList({
   const [groupFilter, setGroupFilter] = useState('all');
   const [ownerFilter, setOwnerFilter] = useState('all');
   const currentPage = Math.max(1, Number(pagination?.page) || 1);
-  const totalPages = Math.max(1, Number(pagination?.totalPages) || 1);
   const totalCount = Number.isFinite(Number(pagination?.total))
     ? Number(pagination.total)
     : 0;
@@ -64,10 +72,6 @@ export default function BoxList({
     [boxes, quickCreatedBoxes],
   );
   const effectiveTotalCount = Math.max(0, totalCount + quickCreatedCountDelta);
-  const effectiveTotalPages = Math.max(
-    totalPages,
-    Math.max(1, Math.ceil(effectiveTotalCount / pageLimit)),
-  );
   const ownerOptions = useMemo(() => collectOwnerOptions(mergedBoxes), [mergedBoxes]);
   const groupOptions = useMemo(
     () => collectGroupOptions(mergedBoxes, groups),
@@ -99,9 +103,14 @@ export default function BoxList({
     [boxLocatorIndex, boxLocatorQuery],
   );
 
-  const visibleBoxes = useMemo(
+  const prefixFilteredBoxes = useMemo(
+    () => filterBoxTreeByPrefix(mergedBoxes, boxPrefix),
+    [mergedBoxes, boxPrefix],
+  );
+
+  const controlledBoxes = useMemo(
     () =>
-      applyTreeControls(mergedBoxes, {
+      applyTreeControls(prefixFilteredBoxes, {
         searchQuery,
         sortBy,
         filterBy,
@@ -111,7 +120,7 @@ export default function BoxList({
         ownerFilter,
       }),
     [
-      mergedBoxes,
+      prefixFilteredBoxes,
       searchQuery,
       sortBy,
       filterBy,
@@ -121,6 +130,21 @@ export default function BoxList({
       ownerFilter,
     ],
   );
+
+  const visibleBoxCount = useMemo(
+    () => summarizeTree(controlledBoxes).totalBoxes,
+    [controlledBoxes],
+  );
+  const visibleTopLevelCount = controlledBoxes.length;
+  const filteredTotalPages = Math.max(
+    1,
+    Math.ceil(visibleTopLevelCount / pageLimit),
+  );
+  const safeCurrentPage = Math.min(currentPage, filteredTotalPages);
+  const pagedVisibleBoxes = useMemo(() => {
+    const start = (safeCurrentPage - 1) * pageLimit;
+    return controlledBoxes.slice(start, start + pageLimit);
+  }, [controlledBoxes, pageLimit, safeCurrentPage]);
 
   const orphanedMatchesControls = useMemo(
     () =>
@@ -155,6 +179,21 @@ export default function BoxList({
   }, [groupFilter, groupOptions]);
 
   useEffect(() => {
+    const rawParam = searchParams.get('boxPrefix');
+    const normalizedParam = normalizeBoxPrefix(rawParam);
+    if (rawParam && normalizedParam === 'all') {
+      const next = new URLSearchParams(searchParams);
+      next.delete('boxPrefix');
+      setSearchParams(next, { replace: true });
+      return;
+    }
+
+    if (normalizedParam !== boxPrefix) {
+      setBoxPrefix(normalizedParam);
+    }
+  }, [boxPrefix, searchParams, setSearchParams]);
+
+  useEffect(() => {
     onInventoryQueryChange?.({
       q: searchQuery,
       group: groupFilter,
@@ -167,7 +206,7 @@ export default function BoxList({
   const noData = !hasAnyData;
   const hasNoMatches =
     hasAnyData &&
-    visibleBoxes.length === 0 &&
+    pagedVisibleBoxes.length === 0 &&
     !showOrphanedContainer &&
     !orphanedMatchesControls;
 
@@ -287,6 +326,7 @@ export default function BoxList({
     searchQuery,
     sortBy,
     filterBy,
+    boxPrefix,
     categoryFilter,
     locationFilter,
     groupFilter,
@@ -294,10 +334,28 @@ export default function BoxList({
     onPageChange,
   ]);
 
+  useEffect(() => {
+    if (currentPage <= filteredTotalPages) return;
+    onPageChange?.(filteredTotalPages);
+  }, [currentPage, filteredTotalPages, onPageChange]);
+
   const handleClearBoxLocatorResult = () => {
     setBoxLocatorSelection(null);
     setBoxLocatorDetails(null);
     setBoxLocatorError('');
+  };
+
+  const handleBoxPrefixChange = (nextPrefix) => {
+    const normalizedPrefix = normalizeBoxPrefix(nextPrefix);
+    setBoxPrefix(normalizedPrefix);
+
+    const next = new URLSearchParams(searchParams);
+    if (normalizedPrefix === 'all') {
+      next.delete('boxPrefix');
+    } else {
+      next.set('boxPrefix', normalizedPrefix);
+    }
+    setSearchParams(next, { replace: true });
   };
 
   return (
@@ -316,6 +374,8 @@ export default function BoxList({
         onSortChange={setSortBy}
         filterBy={filterBy}
         onFilterChange={setFilterBy}
+        boxPrefix={boxPrefix}
+        onBoxPrefixChange={handleBoxPrefixChange}
         categoryFilter={categoryFilter}
         onCategoryFilterChange={setCategoryFilter}
         locationFilter={locationFilter}
@@ -330,6 +390,8 @@ export default function BoxList({
         onToggleOrphanedVirtual={() =>
           setShowOrphanedVirtual((prev) => !prev)
         }
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
         onQuickBoxCreated={handleQuickBoxCreated}
         onQuickOrphanCreated={handleQuickOrphanCreated}
         locations={locations}
@@ -349,14 +411,44 @@ export default function BoxList({
         <S.EmptyMessage>No boxes match the current search/filter.</S.EmptyMessage>
       ) : (
         <>
-          {orphanedMatchesControls ? (
-            <S.OrphanedRevealShell $open={showOrphanedContainer}>
-              <Branch key={orphanedContainer._id} node={orphanedContainer} depth={0} />
-            </S.OrphanedRevealShell>
-          ) : null}
-          {visibleBoxes.map((node) => (
-            <Branch key={node._id || node.box_id} node={node} depth={0} />
-          ))}
+          {viewMode === 'terminal' ? (
+            <S.TerminalTable role="tree" aria-label="Condensed box tree">
+              <S.TerminalHeader role="row">
+                <S.TerminalHeadCell>Box</S.TerminalHeadCell>
+                <S.TerminalHeadCell>Location</S.TerminalHeadCell>
+                <S.TerminalHeadCell>Signal</S.TerminalHeadCell>
+                <S.TerminalHeadCell>Children</S.TerminalHeadCell>
+                <S.TerminalHeadCell>Items</S.TerminalHeadCell>
+              </S.TerminalHeader>
+              {orphanedMatchesControls ? (
+                <S.OrphanedRevealShell $open={showOrphanedContainer}>
+                  <CompactBranch
+                    key={orphanedContainer._id}
+                    node={orphanedContainer}
+                    depth={0}
+                  />
+                </S.OrphanedRevealShell>
+              ) : null}
+              {pagedVisibleBoxes.map((node) => (
+                <CompactBranch key={node._id || node.box_id} node={node} depth={0} />
+              ))}
+            </S.TerminalTable>
+          ) : (
+            <>
+              {orphanedMatchesControls ? (
+                <S.OrphanedRevealShell $open={showOrphanedContainer}>
+                  <Branch
+                    key={orphanedContainer._id}
+                    node={orphanedContainer}
+                    depth={0}
+                  />
+                </S.OrphanedRevealShell>
+              ) : null}
+              {pagedVisibleBoxes.map((node) => (
+                <Branch key={node._id || node.box_id} node={node} depth={0} />
+              ))}
+            </>
+          )}
         </>
       )}
 
@@ -371,22 +463,122 @@ export default function BoxList({
           </S.PaginationButton>
 
           <S.PaginationInfo>
-            Page {currentPage} of {effectiveTotalPages}
-            {Number.isFinite(effectiveTotalCount)
-              ? ` // ${effectiveTotalCount} total boxes`
-              : ''}
+            Page {safeCurrentPage} of {filteredTotalPages}
+            {` // ${visibleTopLevelCount} matching top-level boxes`}
+            {` // ${visibleBoxCount} / ${telemetry.totalBoxes} boxes shown`}
           </S.PaginationInfo>
 
           <S.PaginationButton
             type="button"
             onClick={() => onPageChange?.(currentPage + 1)}
-            disabled={currentPage >= effectiveTotalPages}
+            disabled={safeCurrentPage >= filteredTotalPages}
           >
             Next
           </S.PaginationButton>
         </S.PaginationBar>
       ) : null}
     </S.Container>
+  );
+}
+
+function CompactBranch({ node, depth = 0 }) {
+  const navigate = useNavigate();
+  const [expanded, setExpanded] = useState(false);
+  const childBoxes = Array.isArray(node.childBoxes) ? node.childBoxes : [];
+  const tags = getRenderableBoxTags(node);
+  const group = String(node?.group || '').trim();
+  const description = String(node?.description || '').trim();
+  const notes = String(node?.notes || '').trim();
+  const isSystemContainer = !!node?.isSystemContainer;
+  const isOrphanedContainer = node?.systemType === 'orphaned';
+  const itemQtyTotal = getNodeItemCount(node);
+  const title = node.label || node.name || 'Untitled';
+  const route = isOrphanedContainer ? ORPHANED_CONTAINER_ROUTE : `/boxes/${node.box_id}`;
+  const hasMoreInfo =
+    !!group || !!description || !!notes || tags.length > 0 || isSystemContainer;
+
+  const go = () => {
+    navigate(route);
+  };
+
+  const stopAndToggle = (event) => {
+    event.stopPropagation();
+    setExpanded((prev) => !prev);
+  };
+
+  return (
+    <S.TerminalBranch $depth={depth}>
+      <S.TerminalRow
+        role="treeitem"
+        aria-expanded={hasMoreInfo ? expanded : undefined}
+        $depth={depth}
+        $isSystem={isSystemContainer}
+        onClick={go}
+      >
+        <S.TerminalBoxCell $depth={depth}>
+          <S.TreeGlyph aria-hidden="true" $depth={depth}>
+            {childBoxes.length > 0 ? '>' : '-'}
+          </S.TreeGlyph>
+          <S.TerminalShortId $depth={depth} $isSystem={isSystemContainer}>
+            {isSystemContainer ? 'SYS' : `#${node.box_id}`}
+          </S.TerminalShortId>
+          <S.TerminalTitle>{title}</S.TerminalTitle>
+        </S.TerminalBoxCell>
+        <S.TerminalCell>{node.location || '-'}</S.TerminalCell>
+        <S.TerminalCell>{group || description || '-'}</S.TerminalCell>
+        <S.TerminalMetric>{isOrphanedContainer ? 'virtual' : childBoxes.length}</S.TerminalMetric>
+        <S.TerminalMetric>{itemQtyTotal}</S.TerminalMetric>
+        <S.TerminalMoreButton
+          type="button"
+          disabled={!hasMoreInfo}
+          aria-label={`${expanded ? 'Hide' : 'Show'} details for ${title}`}
+          aria-expanded={expanded}
+          onClick={stopAndToggle}
+        >
+          {expanded ? '-' : '+'}
+        </S.TerminalMoreButton>
+      </S.TerminalRow>
+
+      <S.TerminalDetailPanel $open={expanded}>
+        <S.TerminalDetailInner>
+          {isSystemContainer ? (
+            <S.TerminalDetailText>Virtual system container.</S.TerminalDetailText>
+          ) : null}
+          {description ? (
+            <S.TerminalDetailText>{description}</S.TerminalDetailText>
+          ) : null}
+          {notes ? (
+            <S.TerminalDetailNote>
+              <S.TerminalDetailLabel>Notes</S.TerminalDetailLabel>
+              {notes}
+            </S.TerminalDetailNote>
+          ) : null}
+          {tags.length > 0 ? (
+            <S.TerminalTagRow>
+              {tags.map((tag, index) => (
+                <S.TagBubble
+                  $tiny
+                  $depth={depth}
+                  $isSystem={isSystemContainer}
+                  key={`${node._id || node.box_id}-terminal-tag-${index}`}
+                >
+                  {tag}
+                </S.TagBubble>
+              ))}
+            </S.TerminalTagRow>
+          ) : null}
+          <S.TerminalLink to={route}>Open box page</S.TerminalLink>
+        </S.TerminalDetailInner>
+      </S.TerminalDetailPanel>
+
+      {childBoxes.length > 0 ? (
+        <S.TerminalChildren>
+          {childBoxes.map((child) => (
+            <CompactBranch key={child._id || child.box_id} node={child} depth={depth + 1} />
+          ))}
+        </S.TerminalChildren>
+      ) : null}
+    </S.TerminalBranch>
   );
 }
 

@@ -20,6 +20,14 @@ const FILTER_OPTIONS = [
   { value: 'inGroups', label: 'Boxes In Groups' },
 ];
 
+const BOX_PREFIX_OPTIONS = [
+  { value: 'all', label: 'All Boxes' },
+  ...Array.from({ length: 10 }, (_, index) => ({
+    value: String(index),
+    label: `${index}xx`,
+  })),
+];
+
 const plural = (count, singular, pluralWord) =>
   `${count} ${count === 1 ? singular : pluralWord}`;
 
@@ -37,6 +45,8 @@ export default function InventoryGridHeader({
   onSortChange,
   filterBy = 'all',
   onFilterChange,
+  boxPrefix = 'all',
+  onBoxPrefixChange,
   categoryFilter = 'all',
   onCategoryFilterChange,
   locationFilter = 'all',
@@ -50,6 +60,8 @@ export default function InventoryGridHeader({
   owners = [],
   showOrphanedVirtual = false,
   onToggleOrphanedVirtual,
+  viewMode = 'cards',
+  onViewModeChange,
   onQuickBoxCreated,
   onQuickOrphanCreated,
 }) {
@@ -91,6 +103,25 @@ export default function InventoryGridHeader({
       </S.TelemetryRow>
 
       <S.UtilityRow>
+        <S.ViewModeToggle role="group" aria-label="Box list view mode">
+          <S.ViewModeButton
+            type="button"
+            $active={viewMode === 'cards'}
+            aria-pressed={viewMode === 'cards'}
+            onClick={() => onViewModeChange?.('cards')}
+          >
+            Cards
+          </S.ViewModeButton>
+          <S.ViewModeButton
+            type="button"
+            $active={viewMode === 'terminal'}
+            aria-pressed={viewMode === 'terminal'}
+            onClick={() => onViewModeChange?.('terminal')}
+          >
+            Terminal
+          </S.ViewModeButton>
+        </S.ViewModeToggle>
+
         <S.OrphanToggleButton
           type="button"
           $active={showOrphanedVirtual}
@@ -119,6 +150,21 @@ export default function InventoryGridHeader({
           matches={boxLocatorMatches}
           onSelect={onBoxLocatorSelect}
         />
+
+        <S.ControlGroup $tone="#9BE564" $active={boxPrefix !== 'all'}>
+          <S.ControlLabel>Box Group</S.ControlLabel>
+          <S.Select
+            value={boxPrefix}
+            onChange={(e) => onBoxPrefixChange?.(e.target.value)}
+            aria-label="Filter by box group"
+          >
+            {BOX_PREFIX_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </S.Select>
+        </S.ControlGroup>
 
         <S.ControlGroup $tone="#E8B15C">
           <S.ControlLabel>Sort</S.ControlLabel>

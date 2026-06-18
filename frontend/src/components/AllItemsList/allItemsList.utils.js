@@ -20,6 +20,7 @@ const DISPOSITION_LABELS = {
   recycled: 'Recycled',
   gifted: 'Gifted',
   donated: 'Donated',
+  sold: 'Sold',
 };
 
 const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
@@ -203,7 +204,7 @@ function getDispositionTone(value) {
   if (key === 'lost' || key === 'stolen') return 'coral';
   if (key === 'gifted' || key === 'donated') return 'lilac';
   if (key === 'recycled') return 'teal';
-  if (key === 'trashed') return 'amber';
+  if (key === 'trashed' || key === 'sold') return 'amber';
   return 'muted';
 }
 

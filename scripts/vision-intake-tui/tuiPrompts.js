@@ -16,13 +16,28 @@ function createPromptSession() {
   return readline.createInterface({ input, output });
 }
 
-async function askText(rl, message, { defaultValue = '', optional = false } = {}) {
+async function askText(
+  rl,
+  message,
+  { defaultValue = '', optional = false, validate = null } = {}
+) {
   while (true) {
     const suffix = defaultValue ? ` (${defaultValue})` : '';
     const answer = String(await rl.question(`${message}${suffix}: `)).trim();
     const value = answer || defaultValue;
-    if (value || optional) return value;
-    console.log('Required.');
+    if (!value && optional) return value;
+    if (!value) {
+      console.log('Required.');
+      continue;
+    }
+
+    if (!validate) return value;
+
+    try {
+      return await validate(value);
+    } catch (error) {
+      console.log(error?.message || String(error));
+    }
   }
 }
 

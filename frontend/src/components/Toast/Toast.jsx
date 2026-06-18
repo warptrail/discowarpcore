@@ -1,13 +1,59 @@
 // Toast.jsx
-import styled from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import { Link } from 'react-router-dom';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_CONTROL_MIN_HEIGHT,
   MOBILE_NARROW_BREAKPOINT,
 } from '../../styles/tokens';
-import { keyframes } from 'styled-components';
 import RetrievalConsoleControls from '../Retrieval/RetrievalConsoleControls';
+
+const commandAmbientDrift = keyframes`
+  0% {
+    background-position:
+      9% 50%,
+      92% 50%,
+      42% 50%;
+    opacity: 0.52;
+  }
+  34% {
+    background-position:
+      21% 50%,
+      78% 50%,
+      48% 50%;
+    opacity: 0.76;
+  }
+  62% {
+    background-position:
+      37% 50%,
+      64% 50%,
+      58% 50%;
+    opacity: 0.92;
+  }
+  100% {
+    background-position:
+      9% 50%,
+      92% 50%,
+      42% 50%;
+    opacity: 0.52;
+  }
+`;
+
+const commandSweep = keyframes`
+  0%,
+  68% {
+    opacity: 0;
+    transform: translateX(-118%);
+  }
+  74% {
+    opacity: 0.18;
+  }
+  82%,
+  100% {
+    opacity: 0;
+    transform: translateX(118%);
+  }
+`;
 
 const Wrap = styled.div`
   --toast-compact-progress: 0;
@@ -15,6 +61,7 @@ const Wrap = styled.div`
   --toast-duration: 280ms;
 
   position: relative;
+  isolation: isolate;
   display: flex;
   gap: calc(0.75rem - (0.3rem * var(--toast-compact-progress)));
   align-items: ${({ $hasContent }) => ($hasContent ? 'flex-start' : 'center')};
@@ -28,24 +75,32 @@ const Wrap = styled.div`
   background: ${({ $variant, $idle }) =>
     $idle
       ? '#0f141a'
-      : $variant === 'success'
-        ? '#10361f'
-        : $variant === 'warning'
-          ? '#3a2f10'
-          : $variant === 'danger'
-            ? '#3a1010'
-            : '#102633'};
+      : $variant === 'command'
+        ? `
+          radial-gradient(80% 170% at 12% 0%, rgba(34, 211, 238, 0.16), transparent 68%),
+          radial-gradient(74% 170% at 86% 12%, rgba(167, 139, 250, 0.16), transparent 70%),
+          linear-gradient(180deg, rgba(18, 31, 45, 0.98), rgba(8, 13, 23, 0.98))
+        `
+        : $variant === 'success'
+          ? '#10361f'
+          : $variant === 'warning'
+            ? '#3a2f10'
+            : $variant === 'danger'
+              ? '#3a1010'
+              : '#102633'};
   border: 1px solid
     ${({ $variant, $idle }) =>
       $idle
         ? 'rgba(255,255,255,0.12)'
-        : $variant === 'success'
-          ? '#2f9e44'
-          : $variant === 'warning'
-            ? '#e0a800'
-            : $variant === 'danger'
-              ? '#e03131'
-              : '#228be6'};
+        : $variant === 'command'
+          ? 'rgba(91, 215, 244, 0.42)'
+          : $variant === 'success'
+            ? '#2f9e44'
+            : $variant === 'warning'
+              ? '#e0a800'
+              : $variant === 'danger'
+                ? '#e03131'
+                : '#228be6'};
   color: ${({ $idle }) => ($idle ? 'rgba(234,234,234,0.82)' : '#eaeaea')};
   padding-block: ${({ $idle }) =>
     $idle
@@ -59,6 +114,7 @@ const Wrap = styled.div`
   border-radius: calc(10px - (2px * var(--toast-compact-progress)));
   box-shadow:
     0 calc(8px - (4px * var(--toast-compact-progress))) calc(20px - (8px * var(--toast-compact-progress))) rgba(0, 0, 0, calc(0.25 - (0.03 * var(--toast-compact-progress))));
+  overflow: hidden;
   transition:
     gap var(--toast-duration) var(--toast-ease),
     margin var(--toast-duration) var(--toast-ease),
@@ -66,6 +122,82 @@ const Wrap = styled.div`
     padding var(--toast-duration) var(--toast-ease),
     border-radius var(--toast-duration) var(--toast-ease),
     box-shadow var(--toast-duration) var(--toast-ease);
+
+  ${({ $variant, $idle }) =>
+    !$idle && $variant === 'command'
+      ? css`
+          color: rgba(237, 247, 255, 0.98);
+          box-shadow:
+            0 0 0 1px rgba(0, 255, 200, 0.08),
+            0 calc(10px - (4px * var(--toast-compact-progress))) calc(28px - (8px * var(--toast-compact-progress))) rgba(0, 0, 0, 0.34),
+            inset 0 0 30px rgba(34, 211, 238, 0.06);
+
+          &::before,
+          &::after {
+            content: '';
+            position: absolute;
+            pointer-events: none;
+            z-index: 0;
+          }
+
+          &::before {
+            inset: 0;
+            background:
+              radial-gradient(
+                88% 150% at 16% 50%,
+                rgba(34, 211, 238, 0.22) 0%,
+                rgba(34, 211, 238, 0) 72%
+              ),
+              radial-gradient(
+                82% 150% at 84% 52%,
+                rgba(167, 139, 250, 0.2) 0%,
+                rgba(167, 139, 250, 0) 74%
+              ),
+              linear-gradient(
+                94deg,
+                rgba(0, 255, 200, 0.03) 0%,
+                rgba(94, 226, 255, 0.16) 47%,
+                rgba(153, 124, 246, 0.14) 63%,
+                rgba(0, 255, 200, 0.03) 100%
+              );
+            background-size:
+              148% 100%,
+              142% 100%,
+              174% 100%;
+            mix-blend-mode: screen;
+            animation: ${commandAmbientDrift} 7.8s linear infinite;
+          }
+
+          &::after {
+            top: calc(0.44rem - (0.18rem * var(--toast-compact-progress)));
+            left: calc(0.78rem - (0.24rem * var(--toast-compact-progress)));
+            right: calc(0.78rem - (0.24rem * var(--toast-compact-progress)));
+            height: 1px;
+            background:
+              linear-gradient(
+                90deg,
+                rgba(0, 255, 200, 0),
+                rgba(0, 255, 200, 0.44) 34%,
+                rgba(167, 139, 250, 0.42) 68%,
+                rgba(0, 255, 200, 0)
+              ),
+              linear-gradient(
+                104deg,
+                rgba(0, 0, 0, 0) 38%,
+                rgba(88, 226, 255, 0.52) 50%,
+                rgba(162, 134, 255, 0.42) 55%,
+                rgba(0, 0, 0, 0) 66%
+              );
+            background-size:
+              100% 100%,
+              180% 100%;
+            box-shadow:
+              0 0 12px rgba(34, 211, 238, 0.22),
+              0 0 18px rgba(167, 139, 250, 0.14);
+            animation: ${commandSweep} 9.8s linear infinite;
+          }
+        `
+      : ''}
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.5rem;
@@ -84,10 +216,17 @@ const Wrap = styled.div`
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+
+    &::before,
+    &::after {
+      animation: none;
+    }
   }
 `;
 
 const Body = styled.div`
+  position: relative;
+  z-index: 1;
   flex: 1;
   min-width: 0;
   display: grid;
@@ -311,25 +450,140 @@ const RetrievalMeta = styled.span`
   text-overflow: ellipsis;
 `;
 const Controls = styled.div`
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: flex-start;
   gap: 0.45rem;
   flex-wrap: wrap;
 
+  ${({ $variant }) =>
+    $variant === 'command'
+      ? css`
+          align-self: center;
+          align-items: stretch;
+          gap: 0.24rem;
+          flex-wrap: nowrap;
+          padding: 0.22rem;
+          border: 1px solid rgba(91, 215, 244, 0.24);
+          border-radius: 11px;
+          background:
+            linear-gradient(180deg, rgba(19, 32, 48, 0.88), rgba(8, 13, 23, 0.86)),
+            rgba(10, 19, 30, 0.86);
+          box-shadow:
+            inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+            0 0 16px rgba(34, 211, 238, 0.08);
+        `
+      : ''}
+
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
     width: 100%;
     justify-content: flex-start;
+
+    ${({ $variant }) =>
+      $variant === 'command'
+        ? css`
+            flex-wrap: wrap;
+          `
+        : ''}
   }
 `;
 const Btn = styled.button`
-  background: transparent;
-  color: inherit;
-  border: 1px solid currentColor;
-  border-radius: 8px;
-  padding: 0.35rem 0.6rem;
+  appearance: none;
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
   cursor: pointer;
   white-space: nowrap;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease,
+    color 140ms ease,
+    transform 120ms ease,
+    opacity 120ms ease;
+
+  ${({ $toastVariant, $kind }) =>
+    $toastVariant === 'command'
+      ? css`
+          min-width: calc(4.8rem - (0.5rem * var(--toast-compact-progress)));
+          border: 1px solid rgba(91, 215, 244, 0.34);
+          border-radius: 8px;
+          padding: calc(0.38rem - (0.06rem * var(--toast-compact-progress))) calc(0.76rem - (0.12rem * var(--toast-compact-progress)));
+          color: rgba(230, 244, 255, 0.92);
+          background:
+            linear-gradient(180deg, rgba(28, 49, 70, 0.86), rgba(10, 17, 28, 0.92)),
+            rgba(20, 34, 46, 0.9);
+          box-shadow:
+            inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+            0 0 0 1px rgba(0, 255, 200, 0.045);
+          font-family:
+            ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+            'Courier New', monospace;
+          font-size: calc(0.78rem - (0.04rem * var(--toast-compact-progress)));
+          font-weight: 760;
+          letter-spacing: 0.045em;
+          text-transform: uppercase;
+
+          ${$kind === 'primary'
+            ? css`
+                color: #f4fdff;
+                border-color: rgba(126, 223, 255, 0.7);
+                background:
+                  linear-gradient(
+                    180deg,
+                    rgba(72, 224, 255, 0.42),
+                    rgba(74, 89, 212, 0.26) 48%,
+                    rgba(17, 29, 55, 0.96)
+                  ),
+                  rgba(13, 29, 44, 0.96);
+                box-shadow:
+                  0 0 0 1px rgba(0, 255, 200, 0.1),
+                  0 0 18px rgba(34, 211, 238, 0.2),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.18);
+              `
+            : ''}
+
+          ${$kind === 'danger'
+            ? css`
+                color: #ffe7e3;
+                border-color: rgba(240, 138, 123, 0.62);
+                background:
+                  linear-gradient(180deg, rgba(119, 50, 58, 0.72), rgba(58, 22, 31, 0.94)),
+                  rgba(58, 22, 31, 0.94);
+              `
+            : ''}
+
+          ${$kind === 'mode'
+            ? css`
+                border-color: rgba(167, 139, 250, 0.46);
+                background:
+                  linear-gradient(180deg, rgba(58, 74, 109, 0.82), rgba(17, 24, 42, 0.95)),
+                  rgba(17, 24, 42, 0.95);
+              `
+            : ''}
+        `
+      : css`
+          background: transparent;
+          color: inherit;
+          border: 1px solid currentColor;
+          border-radius: 8px;
+          padding: 0.35rem 0.6rem;
+
+          ${$kind === 'primary'
+            ? css`
+                background: #fff;
+                color: #111;
+                border-color: #fff;
+              `
+            : ''}
+
+          ${$kind === 'danger'
+            ? css`
+                background: #e03131;
+                color: #fff;
+                border-color: #e03131;
+              `
+            : ''}
+        `}
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     border-radius: 7px;
@@ -339,11 +593,62 @@ const Btn = styled.button`
   }
 
   &:hover {
-    opacity: 0.9;
+    opacity: 0.92;
+
+    ${({ $toastVariant }) =>
+      $toastVariant === 'command'
+        ? css`
+            border-color: rgba(126, 223, 255, 0.72);
+            background:
+              linear-gradient(180deg, rgba(40, 70, 98, 0.92), rgba(14, 24, 40, 0.96)),
+              rgba(20, 34, 46, 0.92);
+            box-shadow:
+              0 0 0 1px rgba(0, 255, 200, 0.08),
+              0 0 18px rgba(34, 211, 238, 0.18);
+            transform: translateY(-1px);
+          `
+        : ''}
+  }
+
+  &:active:enabled {
+    transform: translateY(0);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(119, 213, 255, 0.72);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: ${({ $toastVariant }) => ($toastVariant === 'command' ? 0.44 : 0.48)};
+    transform: none;
+
+    ${({ $toastVariant }) =>
+      $toastVariant === 'command'
+        ? css`
+            border-color: rgba(129, 157, 181, 0.22);
+            color: rgba(224, 235, 245, 0.62);
+            background:
+              linear-gradient(180deg, rgba(35, 45, 58, 0.7), rgba(13, 18, 27, 0.82)),
+              rgba(13, 18, 27, 0.82);
+            box-shadow: none;
+          `
+        : ''}
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition:
+      border-color 140ms ease,
+      background 140ms ease,
+      box-shadow 140ms ease,
+      color 140ms ease,
+      opacity 120ms ease;
   }
 `;
 
 const CloseBtn = styled(Btn)`
+  z-index: 2;
   position: absolute;
   top: calc(0.5rem - (0.14rem * var(--toast-compact-progress)));
   right: calc(0.55rem - (0.13rem * var(--toast-compact-progress)));
@@ -577,31 +882,28 @@ export default function Toast({
         )}
       </Body>
       {!isIdle && actions.length ? (
-        <Controls>
+        <Controls $variant={variant}>
           {actions.map((a, i) => (
             <Btn
+              type="button"
               key={
                 a?.id ?? `${a?.label ?? 'action'}-${a?.kind ?? 'default'}-${i}`
               }
               onClick={a.onClick}
-              style={
-                a.kind === 'primary'
-                  ? { background: '#fff', color: '#111', borderColor: '#fff' }
-                  : a.kind === 'danger'
-                    ? {
-                        background: '#e03131',
-                        color: '#fff',
-                        borderColor: '#e03131',
-                      }
-                    : {}
-              }
+              disabled={!!a.disabled}
+              $kind={a.kind}
+              $toastVariant={variant}
             >
               {a.label}
             </Btn>
           ))}
         </Controls>
       ) : null}
-      {!isIdle && onClose ? <CloseBtn $compact={compact} onClick={onClose}>✕</CloseBtn> : null}
+      {!isIdle && onClose ? (
+        <CloseBtn $compact={compact} $toastVariant={variant} onClick={onClose}>
+          ✕
+        </CloseBtn>
+      ) : null}
     </Wrap>
   );
 }

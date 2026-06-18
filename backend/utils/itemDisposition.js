@@ -8,6 +8,7 @@ const ITEM_DISPOSITIONS = Object.freeze([
   'recycled',
   'gifted',
   'donated',
+  'sold',
 ]);
 
 function normalizeItemStatus(value) {

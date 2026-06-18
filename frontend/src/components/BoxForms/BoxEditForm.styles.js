@@ -397,6 +397,14 @@ export const LocationDropdown = styled.ul`
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.38);
   max-height: 240px;
   overflow: auto;
+
+  ${({ $portal }) =>
+    $portal &&
+    css`
+      right: auto;
+      z-index: 10000;
+      max-height: none;
+    `}
 `;
 
 export const LocationOption = styled.li`

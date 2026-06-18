@@ -525,6 +525,32 @@ export async function uploadIntakeBatchPackage(
   };
 }
 
+export async function uploadSimpleIntakeBatchJson(
+  jsonFile,
+  { signal } = {}
+) {
+  if (!jsonFile) {
+    throw new Error('A simple .json file is required.');
+  }
+
+  const formData = new FormData();
+  appendAsset(formData, 'jsonFile', jsonFile);
+
+  const body = await fetchJson('/api/intake-batches/simple-json', {
+    method: 'POST',
+    body: formData,
+    signal,
+  }, 'Failed to upload simple intake JSON');
+
+  return {
+    ok: Boolean(body?.ok),
+    batch: normalizeBatch(body?.batch || null),
+    itemCount: Number(body?.itemCount) || 0,
+    warnings: Array.isArray(body?.warnings) ? body.warnings : [],
+    nextStepSuggestion: toTrimmed(body?.nextStepSuggestion),
+  };
+}
+
 export async function updateIntakeBatchAssets(
   batchId,
   { imageFiles = [], jsonFile = null, csvFile = null } = {},

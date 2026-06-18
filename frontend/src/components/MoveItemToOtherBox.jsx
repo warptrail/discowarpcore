@@ -260,6 +260,7 @@ const RecentPill = styled(MetaPill)`
 
 export default function MoveItemToOtherBox({
   itemId,
+  itemIds,
   currentBoxId, // owning/source box id
   onBoxSelected, // ({ destBoxId, destLabel, destShortId, isOrphanedDestination, toState }) => void
   showOrphanOption = true,
@@ -273,6 +274,15 @@ export default function MoveItemToOtherBox({
   const filterInputIdRef = useRef(
     `move-item-box-filter-${Math.random().toString(36).slice(2, 10)}`,
   );
+  const normalizedItemIds = useMemo(
+    () =>
+      (Array.isArray(itemIds) ? itemIds : [itemId])
+        .map((entry) => String(entry || '').trim())
+        .filter(Boolean),
+    [itemId, itemIds],
+  );
+  const shouldLoadRecentDestinations =
+    showRecentDestinations && normalizedItemIds.length === 1;
 
   useEffect(() => {
     let isAlive = true; // if component unmounts or id changes, ignore late responses
@@ -342,8 +352,8 @@ export default function MoveItemToOtherBox({
   }, [currentBoxId]);
 
   useEffect(() => {
-    const id = String(itemId || '').trim();
-    if (!id || !showRecentDestinations) {
+    const id = normalizedItemIds[0] || '';
+    if (!id || !shouldLoadRecentDestinations) {
       setRecentDestinations([]);
       setRecentLoading(false);
       return;
@@ -398,7 +408,7 @@ export default function MoveItemToOtherBox({
       isAlive = false;
       controller.abort();
     };
-  }, [currentBoxId, itemId, showRecentDestinations]);
+  }, [currentBoxId, normalizedItemIds, shouldLoadRecentDestinations]);
 
   const handleSelect = (box) => {
     onBoxSelected?.({

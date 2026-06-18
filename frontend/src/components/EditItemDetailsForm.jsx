@@ -7,9 +7,9 @@ import EditItemQuantitySection from './EditItemDetailsForm/EditItemQuantitySecti
 import EditItemStructuredFieldsSection from './EditItemDetailsForm/EditItemStructuredFieldsSection';
 import EditItemExternalLinksSection from './EditItemDetailsForm/EditItemExternalLinksSection';
 import EditItemImageSection from './EditItemDetailsForm/EditItemImageSection';
-import EditItemFormActions from './EditItemDetailsForm/EditItemFormActions';
 import EditItemLifecycleSection from './EditItemDetailsForm/EditItemLifecycleSection';
 import useEditItemDetailsFormState from './EditItemDetailsForm/useEditItemDetailsFormState';
+import useEditItemActionToast from './EditItemDetailsForm/useEditItemActionToast';
 
 export default function EditItemDetailsForm({
   item,
@@ -31,7 +31,6 @@ export default function EditItemDetailsForm({
   processedPreviewUrl = '',
   imageRefreshToken = 0,
   onCancel,
-  actionDocked = false,
   lifecycleBusy = false,
   onMarkGoneRequest,
   onDeletePermanentlyRequest,
@@ -60,9 +59,18 @@ export default function EditItemDetailsForm({
     triggerFlash,
     onSaved,
   });
+  useEditItemActionToast({
+    item,
+    isDirty,
+    saving,
+    lifecycleBusy,
+    onCancel,
+    onSave: handleSave,
+    onRevert: handleRevert,
+  });
 
   return (
-    <S.Form onSubmit={handleSave} $actionDocked={actionDocked}>
+    <S.Form onSubmit={handleSave}>
       <S.Fieldset disabled={saving || lifecycleBusy}>
         <EditItemImageSection
           item={item}
@@ -121,13 +129,6 @@ export default function EditItemDetailsForm({
           onReclaimRequest={onReclaimRequest}
         />
 
-        <EditItemFormActions
-          saving={saving}
-          isDirty={isDirty}
-          docked={actionDocked}
-          onRevert={handleRevert}
-          onCancel={onCancel}
-        />
       </S.Fieldset>
     </S.Form>
   );

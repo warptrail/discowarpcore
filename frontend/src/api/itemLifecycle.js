@@ -8,6 +8,7 @@ export const GONE_DISPOSITIONS = Object.freeze([
   'recycled',
   'gifted',
   'donated',
+  'sold',
 ]);
 
 async function readApiError(response, fallbackMessage) {

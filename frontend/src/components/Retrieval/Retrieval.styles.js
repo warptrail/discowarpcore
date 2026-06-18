@@ -2174,6 +2174,58 @@ export const ExpandedBoxIdentityStatus = styled.span`
   text-transform: uppercase;
 `;
 
+export const ExpandedBoxLocator = styled.div`
+  display: grid;
+  gap: 0.16rem;
+  border: 1px solid rgba(119, 213, 255, 0.28);
+  border-radius: 9px;
+  background:
+    linear-gradient(180deg, rgba(20, 39, 54, 0.82), rgba(10, 22, 32, 0.86)),
+    rgba(10, 18, 27, 0.8);
+  padding: 0.42rem 0.48rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+`;
+
+export const ExpandedBoxLocatorLabel = styled.p`
+  margin: 0;
+  color: rgba(169, 234, 212, 0.88);
+  font-size: 0.62rem;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+`;
+
+export const ExpandedBoxLocatorLink = styled(Link)`
+  color: #dff7ff;
+  font-size: 0.92rem;
+  font-weight: 820;
+  line-height: 1.28;
+  text-decoration: underline;
+  text-decoration-color: rgba(119, 213, 255, 0.62);
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+
+  &:hover {
+    color: #ffffff;
+    text-decoration-color: rgba(103, 239, 200, 0.82);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(119, 213, 255, 0.72);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+`;
+
+export const ExpandedBoxLocatorText = styled.p`
+  margin: 0;
+  color: #dff7ff;
+  font-size: 0.92rem;
+  font-weight: 760;
+  line-height: 1.28;
+  overflow-wrap: anywhere;
+`;
+
 export const ExpandedBoxPanel = styled.section`
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -2187,7 +2239,7 @@ export const ExpandedBoxPanel = styled.section`
 
   @media (min-width: 980px) {
     height: 100%;
-    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto minmax(0, 1fr);
   }
 `;
 

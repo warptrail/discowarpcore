@@ -43,9 +43,13 @@ function getBoxContext(item) {
 export default function CondensedBoxItemList({
   items,
   emptyMessage = 'This box has no items.',
+  selectionEnabled = false,
+  selectedItemIds,
+  onSelectionChange,
 }) {
   const [expandedImage, setExpandedImage] = useState(null);
   const list = Array.isArray(items) ? items : [];
+  const selectedIds = selectedItemIds instanceof Set ? selectedItemIds : new Set();
 
   if (!list.length) {
     return <EmptyState>{emptyMessage}</EmptyState>;
@@ -62,6 +66,7 @@ export default function CondensedBoxItemList({
           const thumbnailUrl = getItemThumbnailUrl(item);
           const itemHref = getItemHomeHref(id);
           const boxContext = getBoxContext(item);
+          const isSelected = selectedIds.has(id);
           const quantity =
             item?.quantity !== null &&
             item?.quantity !== undefined &&
@@ -70,7 +75,20 @@ export default function CondensedBoxItemList({
               : null;
 
           return (
-            <Row key={id}>
+            <Row key={id} $selectionEnabled={selectionEnabled}>
+              {selectionEnabled ? (
+                <SelectCell>
+                  <SelectCheckbox
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={(event) =>
+                      onSelectionChange?.(id, event.target.checked)
+                    }
+                    aria-label={`Select ${itemName}`}
+                  />
+                </SelectCell>
+              ) : null}
+
               {thumbnailUrl ? (
                 <ThumbButton
                   type="button"
@@ -93,7 +111,11 @@ export default function CondensedBoxItemList({
                 {boxContext ? <ItemContext>{boxContext}</ItemContext> : null}
               </ItemText>
 
-              {quantity !== null ? <QuantityPill>Qty {quantity}</QuantityPill> : null}
+              {quantity !== null ? (
+                <QuantityPill $selectionEnabled={selectionEnabled}>
+                  Qty {quantity}
+                </QuantityPill>
+              ) : null}
             </Row>
           );
         })}
@@ -123,7 +145,8 @@ const List = styled.ul`
 
 const Row = styled.li`
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) auto;
+  grid-template-columns: ${({ $selectionEnabled }) =>
+    $selectionEnabled ? '34px 64px minmax(0, 1fr) auto' : '64px minmax(0, 1fr) auto'};
   align-items: center;
   gap: 0.75rem;
   min-width: 0;
@@ -139,9 +162,28 @@ const Row = styled.li`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: 54px minmax(0, 1fr);
+    grid-template-columns: ${({ $selectionEnabled }) =>
+      $selectionEnabled ? '30px 54px minmax(0, 1fr)' : '54px minmax(0, 1fr)'};
     gap: 0.52rem;
     padding: 0.42rem 0.5rem;
+  }
+`;
+
+const SelectCell = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const SelectCheckbox = styled.input`
+  width: 18px;
+  height: 18px;
+  accent-color: #4ec77b;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid rgba(127, 215, 255, 0.52);
+    outline-offset: 2px;
   }
 `;
 
@@ -256,7 +298,7 @@ const QuantityPill = styled.span`
   white-space: nowrap;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-column: 2;
+    grid-column: ${({ $selectionEnabled }) => ($selectionEnabled ? '3' : '2')};
     justify-self: start;
     min-height: 24px;
     padding: 0 0.4rem;

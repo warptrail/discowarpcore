@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import * as S from './BoxEditForm.styles';
 
 const normalize = (value) =>
@@ -37,6 +38,8 @@ export default function BoxSelectableField({
 }) {
   const [inputValue, setInputValue] = useState('');
   const [open, setOpen] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState(null);
+  const inputRef = useRef(null);
   const selectingFromDropdownRef = useRef(false);
 
   const safeOptions = useMemo(
@@ -142,11 +145,104 @@ export default function BoxSelectableField({
     }
   };
 
+  const updateDropdownPosition = useCallback(() => {
+    const input = inputRef.current;
+    if (!input) return;
+
+    const rect = input.getBoundingClientRect();
+    const viewportPadding = 12;
+    const top = rect.bottom + 6;
+    const maxHeight = Math.max(160, window.innerHeight - top - viewportPadding);
+
+    setDropdownStyle({
+      position: 'fixed',
+      top: `${top}px`,
+      left: `${rect.left}px`,
+      width: `${rect.width}px`,
+      maxHeight: `${Math.min(280, maxHeight)}px`,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    updateDropdownPosition();
+    window.addEventListener('resize', updateDropdownPosition);
+    window.addEventListener('scroll', updateDropdownPosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updateDropdownPosition);
+      window.removeEventListener('scroll', updateDropdownPosition, true);
+    };
+  }, [open, updateDropdownPosition]);
+
+  const dropdown = open && dropdownStyle ? (
+    <S.LocationDropdown
+      role="listbox"
+      aria-label={dropdownAriaLabel || `${label} options`}
+      style={dropdownStyle}
+      $portal
+    >
+      {includeNoneOption ? (
+        <S.LocationOption
+          onMouseDown={() => {
+            selectingFromDropdownRef.current = true;
+            handleSelectNone();
+          }}
+          $active={!value}
+        >
+          <S.LocationOptionName>{noneLabel}</S.LocationOptionName>
+        </S.LocationOption>
+      ) : null}
+
+      {filteredOptions.map((option) => (
+        <S.LocationOption
+          key={option.key}
+          onMouseDown={() => {
+            selectingFromDropdownRef.current = true;
+            handleSelectExisting(option);
+          }}
+          $active={option.key === String(value || '')}
+        >
+          <S.LocationOptionName>{option.label}</S.LocationOptionName>
+          {option.meta ? (
+            <S.LocationOptionMeta>{option.meta}</S.LocationOptionMeta>
+          ) : null}
+        </S.LocationOption>
+      ))}
+
+      {canCreate ? (
+        <S.LocationOption
+          onMouseDown={() => {
+            selectingFromDropdownRef.current = true;
+            handleCreate();
+          }}
+        >
+          <S.LocationOptionName>
+            {createLabelBuilder(inputValue)}
+          </S.LocationOptionName>
+          <S.CreateBadge>
+            {createBusy ? createBusyText : createBadgeText}
+          </S.CreateBadge>
+        </S.LocationOption>
+      ) : null}
+
+      {!canCreate && filteredOptions.length === 0 ? (
+        <S.LocationOption $muted>
+          <S.LocationOptionName>
+            {loading ? loadingMessage : emptyMessage}
+          </S.LocationOptionName>
+        </S.LocationOption>
+      ) : null}
+    </S.LocationDropdown>
+  ) : null;
+
   return (
     <S.LocationSection $compact={compact}>
       <S.Label htmlFor={inputId} $compact={compact}>{label}</S.Label>
       <S.LocationShell>
         <S.LocationInput
+          ref={inputRef}
           id={inputId}
           value={inputValue}
           onChange={(event) => {
@@ -224,61 +320,7 @@ export default function BoxSelectableField({
           $compact={compact}
         />
 
-        {open ? (
-          <S.LocationDropdown role="listbox" aria-label={dropdownAriaLabel || `${label} options`}>
-            {includeNoneOption ? (
-              <S.LocationOption
-                onMouseDown={() => {
-                  selectingFromDropdownRef.current = true;
-                  handleSelectNone();
-                }}
-                $active={!value}
-              >
-                <S.LocationOptionName>{noneLabel}</S.LocationOptionName>
-              </S.LocationOption>
-            ) : null}
-
-            {filteredOptions.map((option) => (
-              <S.LocationOption
-                key={option.key}
-                onMouseDown={() => {
-                  selectingFromDropdownRef.current = true;
-                  handleSelectExisting(option);
-                }}
-                $active={option.key === String(value || '')}
-              >
-                <S.LocationOptionName>{option.label}</S.LocationOptionName>
-                {option.meta ? (
-                  <S.LocationOptionMeta>{option.meta}</S.LocationOptionMeta>
-                ) : null}
-              </S.LocationOption>
-            ))}
-
-            {canCreate ? (
-              <S.LocationOption
-                onMouseDown={() => {
-                  selectingFromDropdownRef.current = true;
-                  handleCreate();
-                }}
-              >
-                <S.LocationOptionName>
-                  {createLabelBuilder(inputValue)}
-                </S.LocationOptionName>
-                <S.CreateBadge>
-                  {createBusy ? createBusyText : createBadgeText}
-                </S.CreateBadge>
-              </S.LocationOption>
-            ) : null}
-
-            {!canCreate && filteredOptions.length === 0 ? (
-              <S.LocationOption $muted>
-                <S.LocationOptionName>
-                  {loading ? loadingMessage : emptyMessage}
-                </S.LocationOptionName>
-              </S.LocationOption>
-            ) : null}
-          </S.LocationDropdown>
-        ) : null}
+        {dropdown ? createPortal(dropdown, document.body) : null}
       </S.LocationShell>
 
       {helperText ? <S.Hint $compact={compact}>{helperText}</S.Hint> : null}

@@ -17,6 +17,7 @@ const {
   runCommand,
 } = require('./commandRunner');
 const { openFolder } = require('./intakePaths');
+const { ensureDestinationBox } = require('./boxProvisioning');
 
 function destinationArgs(batch) {
   return {
@@ -39,6 +40,26 @@ async function markFailed(batchRoot, error, pipelineStage) {
     pipelineStage,
     lastError: message,
   });
+}
+
+async function archiveFailedBatch(batch, intakePaths, error, pipelineStage) {
+  const marked = await markFailed(batch.paths.root, error, pipelineStage);
+  const failedParent = intakePaths?.failed;
+  if (!failedParent) return marked;
+
+  const currentParent = path.resolve(path.dirname(marked.paths.root));
+  const failedRoot = path.resolve(failedParent);
+  if (currentParent === failedRoot) return marked;
+
+  const moved = await moveBatchFolder(marked, failedRoot);
+  const nextBatch = {
+    ...moved.batch,
+    status: BATCH_STATUS.failed,
+    pipelineStage,
+    lastError: error?.message || String(error || 'Unknown error'),
+  };
+  await writeBatchState(moved.layout.root, nextBatch);
+  return nextBatch;
 }
 
 async function runPreprocess(batch) {
@@ -231,6 +252,14 @@ async function uploadPackage(apiBase, archivePath) {
 async function runDirectImport(batch, { apiBase = process.env.DWC_API_BASE || 'http://127.0.0.1:5002' } = {}) {
   const batchRoot = batch.paths.root;
   let current = batch;
+  if (current.destination?.box) {
+    await ensureDestinationBox({
+      box: current.destination.box,
+      location: current.destination.location,
+      apiBase,
+    });
+  }
+
   if (!current.archivePath) {
     current = await runPackage(current);
   }
@@ -294,6 +323,7 @@ async function exportZip(batch, intakePaths) {
 }
 
 module.exports = {
+  archiveFailedBatch,
   archiveCompletedBatch,
   buildAgentPrompt,
   exportZip,

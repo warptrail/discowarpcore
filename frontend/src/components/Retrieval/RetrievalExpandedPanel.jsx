@@ -21,6 +21,8 @@ export default function RetrievalExpandedPanel({
   const categoryLabel = String(resolvedItem?.categoryLabel || '').trim();
   const tags = Array.isArray(resolvedItem?.tags) ? resolvedItem.tags.filter(Boolean) : [];
   const locationLabel = String(resolvedItem?.locationLabel || '').trim();
+  const boxNumber = String(resolvedItem?.boxNumber || '').trim();
+  const boxName = String(resolvedItem?.boxName || '').trim();
   const boxGroupLabel = String(
     resolvedItem?.boxGroupLabel || resolvedItem?.groupLabel || ''
   ).trim();
@@ -33,8 +35,15 @@ export default function RetrievalExpandedPanel({
   const hasMetadata = Boolean(
     categoryLabel || keepPriorityLabel || tags.length || locationLabel || boxGroupLabel
   );
+  const boxLocatorParts = [
+    boxNumber ? `#${boxNumber}` : '',
+    boxName,
+    locationLabel,
+  ].filter(Boolean);
+  const boxLocatorText = boxLocatorParts.join(' - ');
+  const hasBoxLocator = Boolean(boxLocatorText || resolvedItem?.boxHref);
   const hasSiblings = Array.isArray(resolvedItem?.siblingItems) && resolvedItem.siblingItems.length > 0;
-  const hasContext = Boolean(hasMetadata || hasSiblings || resolvedItem?.boxHref);
+  const hasContext = Boolean(hasBoxLocator || hasMetadata || hasSiblings);
   const isConsumable = Boolean(resolvedItem?.isConsumable);
   const maintenanceActionType = isConsumable ? 'consumed' : 'maintained';
   const maintenanceActionLabel = isConsumable ? 'Consumed' : 'Maintained';
@@ -129,6 +138,24 @@ export default function RetrievalExpandedPanel({
         <S.ExpandedBoxPanel>
           <S.ExpandedPanelTitle>Related context</S.ExpandedPanelTitle>
 
+          {hasBoxLocator ? (
+            <S.ExpandedBoxLocator>
+              <S.ExpandedBoxLocatorLabel>Box location</S.ExpandedBoxLocatorLabel>
+              {resolvedItem.boxHref ? (
+                <S.ExpandedBoxLocatorLink
+                  to={resolvedItem.boxHref}
+                  aria-label={`Open box page for ${boxLocatorText || 'this item'}`}
+                >
+                  {boxLocatorText || 'Open box page'}
+                </S.ExpandedBoxLocatorLink>
+              ) : (
+                <S.ExpandedBoxLocatorText>
+                  {boxLocatorText || 'Box page unavailable for this item.'}
+                </S.ExpandedBoxLocatorText>
+              )}
+            </S.ExpandedBoxLocator>
+          ) : null}
+
           <S.ExpandedActionRow role="group" aria-label={`Quick actions for ${resolvedItem.name}`}>
             <S.ExpandedActionButton
               type="button"
@@ -205,12 +232,6 @@ export default function RetrievalExpandedPanel({
               <S.SiblingLabel>Other items in this box:</S.SiblingLabel>
               <S.ExpandedMuted>No other tracked items in this box.</S.ExpandedMuted>
             </S.SiblingSection>
-          )}
-
-          {resolvedItem.boxHref ? (
-            <S.ExpandedBoxLink to={resolvedItem.boxHref}>Open box page</S.ExpandedBoxLink>
-          ) : (
-            <S.ExpandedMuted>Box page unavailable for this item.</S.ExpandedMuted>
           )}
         </S.ExpandedBoxPanel>
       ) : null}

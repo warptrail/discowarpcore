@@ -41,6 +41,73 @@ const Counter = styled.span`
   font-size: 0.73rem;
 `;
 
+const Controls = styled.div`
+  border-bottom: 1px solid rgba(76, 106, 132, 0.32);
+  padding: 0.46rem 0.5rem;
+  display: grid;
+  gap: 0.38rem;
+  background: rgba(10, 16, 24, 0.72);
+`;
+
+const ControlRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.34rem;
+`;
+
+const ToggleButton = styled.button`
+  min-height: 28px;
+  border-radius: 8px;
+  border: 1px solid ${({ $active }) => ($active ? 'rgba(218, 194, 122, 0.72)' : 'rgba(80, 113, 143, 0.52)')};
+  background: ${({ $active }) => ($active ? 'rgba(85, 67, 28, 0.64)' : 'rgba(13, 22, 33, 0.86)')};
+  color: ${({ $active }) => ($active ? '#f4e5b8' : '#afc4d8')};
+  padding: 0.2rem 0.45rem;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  &:hover {
+    filter: brightness(1.08);
+  }
+`;
+
+const BatchChip = styled.button`
+  min-height: 30px;
+  border-radius: 8px;
+  border: 1px solid ${({ $active, $accentRgb }) =>
+    $active ? `rgba(${$accentRgb}, 0.82)` : 'rgba(80, 113, 143, 0.5)'};
+  background: ${({ $active, $accentRgb }) =>
+    $active ? `rgba(${$accentRgb}, 0.22)` : 'rgba(13, 22, 33, 0.82)'};
+  color: ${({ $active, $accentRgb }) =>
+    $active ? `rgb(${$accentRgb})` : '#a9bed4'};
+  padding: 0.22rem 0.46rem;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 780;
+  cursor: pointer;
+  max-width: 100%;
+
+  &:hover {
+    filter: brightness(1.08);
+  }
+`;
+
+const ChipLabel = styled.span`
+  min-width: 0;
+  overflow-wrap: anywhere;
+`;
+
+const ChipCount = styled.span`
+  color: #879db3;
+  font-size: 0.62rem;
+  white-space: nowrap;
+`;
+
 const Body = styled.div`
   padding: 0.5rem;
   display: grid;
@@ -63,15 +130,24 @@ const Row = styled.div`
   align-items: center;
   gap: 0.42rem;
   background: rgba(13, 20, 31, 0.87);
+  background:
+    linear-gradient(90deg, ${({ $batchRgb }) => ($batchRgb ? `rgba(${$batchRgb}, 0.22)` : 'rgba(13, 20, 31, 0.87)')} 0%, rgba(13, 20, 31, 0.87) 38%),
+    rgba(13, 20, 31, 0.87);
   cursor: ${({ $clickable }) => ($clickable ? 'pointer' : 'default')};
-  border-color: ${({ $active, $clickable }) =>
+  border-color: ${({ $active, $batchRgb, $clickable }) =>
     $active
       ? 'rgba(223, 180, 96, 0.72)'
+      : $batchRgb
+        ? `rgba(${$batchRgb}, 0.58)`
       : $clickable
         ? 'rgba(94, 126, 158, 0.5)'
         : 'rgba(79, 105, 136, 0.4)'};
-  box-shadow: ${({ $active }) =>
-    $active ? '0 0 0 1px rgba(223, 180, 96, 0.24)' : 'none'};
+  box-shadow: ${({ $active, $batchRgb }) =>
+    $active
+      ? '0 0 0 1px rgba(223, 180, 96, 0.24)'
+      : $batchRgb
+        ? `inset 3px 0 0 rgb(${$batchRgb})`
+        : 'none'};
 
   &:hover {
     ${({ $clickable }) => ($clickable ? 'filter: brightness(1.07);' : '')}
@@ -174,6 +250,14 @@ const LocatorToken = styled.span`
   white-space: nowrap;
 `;
 
+const BatchToken = styled.span`
+  color: ${({ $batchRgb }) => ($batchRgb ? `rgb(${$batchRgb})` : '#9db2c7')};
+  font-size: 0.62rem;
+  line-height: 1.2;
+  font-weight: 780;
+  overflow-wrap: anywhere;
+`;
+
 const StateText = styled.div`
   color: ${({ $error }) => ($error ? '#efc2c2' : '#95acc3')};
   font-size: 0.78rem;
@@ -268,6 +352,22 @@ function getItemDestination(item, boxLookup) {
   };
 }
 
+function getItemBatchId(item) {
+  return String(item?.sourceBatchId || item?.sourceBatch?.id || '').trim();
+}
+
+function getItemBatchLabel(item) {
+  const sourceBatch = item?.sourceBatch && typeof item.sourceBatch === 'object'
+    ? item.sourceBatch
+    : null;
+  return (
+    String(sourceBatch?.label || '').trim() ||
+    String(sourceBatch?.batchName || '').trim() ||
+    String(sourceBatch?.batchId || '').trim() ||
+    getItemBatchId(item)
+  );
+}
+
 function getItemImageUrl(item) {
   return (
     item?.image?.thumb?.url ||
@@ -286,7 +386,26 @@ export default function IntakeRecentActivity({
   error = '',
   onMoveItem,
   selectedItemId = '',
+  batchOptions = [],
+  selectedBatchIds = [],
+  onlyOrphanedItems = false,
+  onToggleBatch,
+  onToggleOnlyOrphaned,
+  onClearFilters,
 }) {
+  const selectedBatchSet = new Set(
+    (Array.isArray(selectedBatchIds) ? selectedBatchIds : [])
+      .map((batchId) => String(batchId || '').trim())
+      .filter(Boolean),
+  );
+  const batchToneMap = new Map(
+    (Array.isArray(batchOptions) ? batchOptions : []).map((batch, index) => {
+      const tones = getBoxColorTones(index + 1);
+      return [String(batch?.id || '').trim(), tones.neonRgb];
+    }),
+  );
+  const filtersActive = selectedBatchSet.size > 0 || onlyOrphanedItems;
+
   return (
     <Panel>
       <Header>
@@ -294,12 +413,64 @@ export default function IntakeRecentActivity({
         <Counter>{items.length}</Counter>
       </Header>
 
+      <Controls>
+        <ControlRow>
+          <ToggleButton
+            type="button"
+            $active={onlyOrphanedItems}
+            onClick={onToggleOnlyOrphaned}
+          >
+            Orphaned Only
+          </ToggleButton>
+
+          {filtersActive ? (
+            <ToggleButton type="button" onClick={onClearFilters}>
+              Clear Filters
+            </ToggleButton>
+          ) : null}
+        </ControlRow>
+
+        {batchOptions.length > 0 ? (
+          <ControlRow>
+            {batchOptions.map((batch, index) => {
+              const batchId = String(batch?.id || '').trim();
+              const accentRgb = batchToneMap.get(batchId) || getBoxColorTones(index + 1).neonRgb;
+              const active = selectedBatchSet.has(batchId);
+              const batchLabel = batch?.label || batchId;
+              const countLabel = onlyOrphanedItems
+                ? `${batch?.orphanedCount || 0} orphaned of ${batch?.count || 0} total`
+                : `${batch?.count || 0} items`;
+
+              return (
+                <BatchChip
+                  key={batchId}
+                  type="button"
+                  $active={active}
+                  $accentRgb={accentRgb}
+                  aria-pressed={active}
+                  aria-label={`Toggle batch ${batchLabel}, ${countLabel}`}
+                  title={`${batchLabel} · ${countLabel}`}
+                  onClick={() => onToggleBatch?.(batchId)}
+                >
+                  <ChipLabel>{batchLabel}</ChipLabel>
+                  <ChipCount>
+                    {onlyOrphanedItems ? `${batch?.orphanedCount || 0}/${batch?.count || 0}` : batch?.count || 0}
+                  </ChipCount>
+                </BatchChip>
+              );
+            })}
+          </ControlRow>
+        ) : null}
+      </Controls>
+
       <Body>
         {loading ? <StateText>Loading recent activity…</StateText> : null}
         {!loading && error ? <StateText $error>{error}</StateText> : null}
 
         {!loading && !error && items.length === 0 ? (
-          <StateText>No recent intake activity yet.</StateText>
+          <StateText>
+            {filtersActive ? 'No intake activity matches the active filters.' : 'No recent intake activity yet.'}
+          </StateText>
         ) : null}
 
         {!loading &&
@@ -316,12 +487,16 @@ export default function IntakeRecentActivity({
             const boxIdLabel = String(destination?.boxId || '').trim();
             const boxToken = boxIdLabel ? `#${boxIdLabel}` : '';
             const boxTones = getBoxColorTones(boxIdLabel || 0);
+            const batchId = getItemBatchId(item);
+            const batchLabel = getItemBatchLabel(item);
+            const batchRgb = batchId ? batchToneMap.get(batchId) || '' : '';
 
             return (
               <Row
                 key={item?._id || `${item?.name || 'item'}-${timestamp}`}
                 $clickable={clickable}
                 $active={isActive}
+                $batchRgb={batchRgb}
                 role={clickable ? 'button' : undefined}
                 tabIndex={clickable ? 0 : undefined}
                 onClick={() => {
@@ -359,6 +534,14 @@ export default function IntakeRecentActivity({
                         <LocatorToken $boxNeonRgb={boxTones.neonRgb}>
                           {boxToken}
                         </LocatorToken>
+                      </>
+                    ) : null}
+                    {batchLabel ? (
+                      <>
+                        <MetaSep>•</MetaSep>
+                        <BatchToken $batchRgb={batchRgb}>
+                          {batchLabel}
+                        </BatchToken>
                       </>
                     ) : null}
                   </Meta>

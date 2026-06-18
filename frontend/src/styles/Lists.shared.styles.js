@@ -263,6 +263,8 @@ export const MetaRow = styled.div`
 export const ViewModeBar = styled.div`
   display: flex;
   justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
   margin-top: -0.35rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {

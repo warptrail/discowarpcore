@@ -38,6 +38,14 @@ const packageUpload = multer({
   },
 });
 
+const simpleJsonUpload = multer({
+  storage,
+  limits: {
+    files: 1,
+    fileSize: 2 * 1024 * 1024,
+  },
+});
+
 function uploadIntakeBatchAssets(req, res, next) {
   return assetUpload.fields([
     { name: 'images', maxCount: 1000 },
@@ -62,7 +70,18 @@ function uploadIntakeBatchPackage(req, res, next) {
   });
 }
 
+function uploadSimpleIntakeBatchJson(req, res, next) {
+  return simpleJsonUpload.single('jsonFile')(req, res, (error) => {
+    if (!error) return next();
+    return res.status(400).json({
+      ok: false,
+      error: error?.message || 'Failed to upload simple intake JSON.',
+    });
+  });
+}
+
 module.exports = {
   uploadIntakeBatchAssets,
   uploadIntakeBatchPackage,
+  uploadSimpleIntakeBatchJson,
 };

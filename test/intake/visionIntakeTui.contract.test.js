@@ -20,6 +20,16 @@ const {
   listImageFiles,
 } = require('../../scripts/vision-intake-tui/intakePaths');
 const {
+  archiveFailedBatch,
+} = require('../../scripts/vision-intake-tui/intakePipeline');
+const {
+  ensureDestinationBox,
+  normalizeTuiBoxNumber,
+} = require('../../scripts/vision-intake-tui/boxProvisioning');
+const {
+  askText,
+} = require('../../scripts/vision-intake-tui/tuiPrompts');
+const {
   validateArtifacts,
 } = require('../../scripts/build_vision_intake_batch');
 
@@ -76,6 +86,109 @@ test('createBatchWorkspace moves inbox images and writes resumable batch state',
   assert.equal(updated.status, 'awaiting_annotation');
   assert.equal(updated.counts.rawImages, 1);
   assert.equal(updated.counts.jsonArtifacts, 1);
+});
+
+test('normalizeTuiBoxNumber accepts only optional exact 3-digit box numbers', () => {
+  assert.equal(normalizeTuiBoxNumber('701'), '701');
+  assert.equal(normalizeTuiBoxNumber(' 001 '), '001');
+  assert.equal(normalizeTuiBoxNumber(''), '');
+  assert.throws(() => normalizeTuiBoxNumber('71'), /exactly 3 digits/);
+  assert.throws(() => normalizeTuiBoxNumber('box 701'), /exactly 3 digits/);
+});
+
+test('askText reprompts until destination box id validation passes', async () => {
+  const answers = ['71', 'box 701', '701'];
+  const originalLog = console.log;
+  const rl = {
+    async question() {
+      return answers.shift();
+    },
+  };
+
+  let value = '';
+  try {
+    console.log = () => {};
+    value = await askText(rl, 'Destination box id (optional)', {
+      optional: true,
+      validate: normalizeTuiBoxNumber,
+    });
+  } finally {
+    console.log = originalLog;
+  }
+
+  assert.equal(value, '701');
+  assert.equal(answers.length, 0);
+});
+
+test('ensureDestinationBox creates a missing destination box through existing box API', async () => {
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url, options });
+    if (calls.length === 1) {
+      return {
+        ok: false,
+        status: 404,
+        async json() {
+          return { ok: false, error: 'Box not found' };
+        },
+      };
+    }
+    return {
+      ok: true,
+      status: 201,
+      async json() {
+        return { _id: 'mongo-777', box_id: '777', label: 'Box 777' };
+      },
+    };
+  };
+
+  const result = await ensureDestinationBox({
+    box: '777',
+    location: 'garage',
+    apiBase: 'http://dwc.local/',
+    fetchImpl,
+  });
+
+  assert.equal(result.created, true);
+  assert.equal(result.boxNumber, '777');
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].url, 'http://dwc.local/api/boxes/resolve-short-id/777');
+  assert.equal(calls[1].url, 'http://dwc.local/api/boxes');
+  assert.equal(calls[1].options.method, 'POST');
+  assert.deepEqual(JSON.parse(calls[1].options.body), {
+    box_id: '777',
+    label: 'Box 777',
+    location: 'garage',
+  });
+});
+
+test('archiveFailedBatch marks and moves a failed processing batch', async (t) => {
+  const root = await makeTempRoot(t);
+  const paths = await ensureIntakeDirs(root);
+  await fs.writeFile(path.join(paths.inbox, 'IMG_1.png'), 'image', 'utf8');
+  const images = await listImageFiles(paths.inbox);
+  const { batch } = await createBatchWorkspace({
+    intakePaths: paths,
+    batchName: 'Garage Shelf',
+    destination: { location: 'garage', box: '701' },
+    importMode: 'direct',
+    inboxImages: images,
+  });
+
+  const originalRoot = batch.paths.root;
+  const archived = await archiveFailedBatch(
+    batch,
+    paths,
+    new Error('Backend import did not complete successfully.'),
+    'importing'
+  );
+
+  await assert.rejects(fs.stat(originalRoot));
+  assert.equal(path.dirname(archived.paths.root), paths.failed);
+  const saved = await readBatchState(archived.paths.root);
+  assert.equal(saved.status, 'failed');
+  assert.equal(saved.pipelineStage, 'importing');
+  assert.match(saved.lastError, /Backend import/);
 });
 
 test('command builders compose existing script calls with batch paths', () => {

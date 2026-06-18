@@ -2,6 +2,7 @@ const {
   listIntakeBatches,
   getIntakeBatchById,
   createIntakeBatch,
+  createSimpleJsonIntakeBatch,
   updateIntakeBatchAssets,
   updateIntakeBatchDestination,
   updateIntakeBatchName,
@@ -105,6 +106,17 @@ async function postIngestIntakeBatchPackageApi(req, res) {
     return res.status(result?.ok ? 201 : 400).json(result);
   } catch (error) {
     return sendError(res, error, 'Failed to ingest intake batch package.');
+  }
+}
+
+async function postCreateSimpleJsonIntakeBatchApi(req, res) {
+  try {
+    const result = await createSimpleJsonIntakeBatch({
+      uploadedJsonFile: req.file,
+    });
+    return res.status(201).json(result);
+  } catch (error) {
+    return sendError(res, error, 'Failed to create simple JSON intake batch.');
   }
 }
 
@@ -238,6 +250,7 @@ module.exports = {
   getIntakeBatchesApi,
   getIntakeBatchApi,
   postIngestIntakeBatchPackageApi,
+  postCreateSimpleJsonIntakeBatchApi,
   postCreateIntakeBatchApi,
   postUpdateIntakeBatchAssetsApi,
   postUpdateIntakeBatchDestinationApi,
@@ -245,7 +258,6 @@ module.exports = {
   postValidateIntakeBatchApi,
   postStageIntakeBatchApi,
   postImportIntakeBatchApi,
-  postIngestIntakeBatchPackageApi,
   postProcessIntakeBatchSelectedItemsApi,
   deleteIntakeBatchApi,
   deleteIntakeBatchPermanentlyApi,

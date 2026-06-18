@@ -300,6 +300,46 @@ test('createIntakeBatch captures durable source filename provenance', async (t) 
   assert.equal(batch.importStatus, 'not_imported');
 });
 
+test('createSimpleJsonIntakeBatch stages a plain single-item JSON without images', async (t) => {
+  intakeBatchService.__resetIntakeBatchServiceHandlersForTests();
+  await withExternalIntakeRoot(t);
+  intakeBatchService.__setIntakeBatchServiceHandlersForTests({
+    batchModel: createInMemoryBatchModel(),
+  });
+  t.after(() => intakeBatchService.__resetIntakeBatchServiceHandlersForTests());
+
+  const jsonPath = await createTempFile(t, 'massage-roller.json', JSON.stringify({
+    name: 'Stainless Steel Therapy Massage Roller Ball',
+    description: 'Phyya Rehab handheld massage roller ball with protective carrying case.',
+    category: 'medical',
+    tags: ['phyya rehab', 'massage roller', 'cold therapy'],
+    quantity: 1,
+    location: null,
+    box: '115',
+  }));
+
+  const result = await intakeBatchService.createSimpleJsonIntakeBatch({
+    uploadedJsonFile: makeUpload(jsonPath, 'massage-roller.json'),
+  });
+
+  const layout = getBatchLayout(result.batch.batchDir);
+  const storedPayload = JSON.parse(await fs.readFile(layout.mergedInventoryJson, 'utf8'));
+
+  assert.equal(result.ok, true);
+  assert.equal(result.itemCount, 1);
+  assert.equal(result.batch.batchName, 'Stainless Steel Therapy Massage Roller Ball');
+  assert.equal(result.batch.sourceManifest.aiJsonOriginalFilename, 'massage-roller.json');
+  assert.equal(result.batch.imagesIncluded, false);
+  assert.equal(storedPayload.batchContext.source, 'simple_json_upload');
+  assert.equal(storedPayload.batchContext.itemCount, 1);
+  assert.equal(storedPayload.batchContext.box, '115');
+  assert.equal(storedPayload.items[0].name, 'Stainless Steel Therapy Massage Roller Ball');
+  assert.equal(storedPayload.items[0].box, '115');
+
+  const validation = await intakeBatchService.validateIntakeBatch(result.batch.batchId);
+  assert.equal(validation.batch.validationStatus, 'passed');
+});
+
 test('updateIntakeBatchName persists renamed batch label', async (t) => {
   intakeBatchService.__resetIntakeBatchServiceHandlersForTests();
   await withExternalIntakeRoot(t);

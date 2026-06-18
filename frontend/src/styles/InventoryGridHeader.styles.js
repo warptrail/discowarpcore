@@ -91,10 +91,14 @@ export const Sep = styled.span`
 export const SearchSortRow = styled.div`
   display: grid;
   min-width: 0;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) minmax(0, 3fr);
+  grid-template-columns:
+    minmax(280px, 2.2fr)
+    minmax(200px, 1.35fr)
+    minmax(126px, 0.72fr)
+    minmax(126px, 0.72fr);
   gap: 0.55rem;
 
-  @media (max-width: 760px) {
+  @media (max-width: 880px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -106,8 +110,12 @@ export const SearchSortRow = styled.div`
 export const FilterRow = styled.div`
   display: grid;
   min-width: 0;
-  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.55rem;
+
+  @media (max-width: 820px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 
   @media (max-width: 560px) {
     grid-template-columns: 1fr;
@@ -116,10 +124,74 @@ export const FilterRow = styled.div`
 
 export const UtilityRow = styled.div`
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
+  gap: 0.55rem;
   min-height: 30px;
   margin-top: -0.08rem;
+
+  @media (max-width: 560px) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+`;
+
+export const ViewModeToggle = styled.div`
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, auto));
+  gap: 0.18rem;
+  padding: 0.18rem;
+  border: 1px solid ${toneAlpha(LCARS.root, '54')};
+  border-radius: 11px;
+  background:
+    linear-gradient(180deg, rgba(5, 12, 19, 0.92), rgba(7, 17, 27, 0.96)),
+    ${LCARS.bg};
+  box-shadow:
+    inset 0 0 0 1px ${toneAlpha(LCARS.root, '18')},
+    0 0 16px ${toneAlpha(LCARS.root, '12')};
+
+  @media (max-width: 560px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+`;
+
+export const ViewModeButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  min-width: 84px;
+  border: 1px solid
+    ${({ $active }) =>
+      $active ? toneAlpha(LCARS.root, 'b8') : 'rgba(104, 154, 186, 0.24)'};
+  border-radius: 8px;
+  padding: 0 0.58rem;
+  color: ${({ $active }) =>
+    $active ? toneAlpha(LCARS.root, 'f2') : toneAlpha(LCARS.textDim, 'd2')};
+  background: ${({ $active }) =>
+    $active
+      ? 'linear-gradient(180deg, rgba(22, 61, 84, 0.92), rgba(10, 34, 52, 0.96))'
+      : 'linear-gradient(180deg, rgba(10, 19, 29, 0.74), rgba(7, 14, 22, 0.88))'};
+  font-size: 0.66rem;
+  font-weight: 820;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease;
+
+  &:hover {
+    border-color: ${toneAlpha(LCARS.teal, '9a')};
+    color: ${toneAlpha(LCARS.text, 'f2')};
+    box-shadow: 0 0 12px ${toneAlpha(LCARS.teal, '22')};
+  }
+
+  @media (max-width: 560px) {
+    min-width: 0;
+  }
 `;
 
 export const OrphanToggleButton = styled.button`
@@ -189,6 +261,20 @@ export const ControlGroup = styled.label`
     ),
     linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 70%),
     ${LCARS.panel};
+
+  ${({ $active, $tone = LCARS.root }) =>
+    $active &&
+    css`
+      border-color: ${toneAlpha($tone, 'c8')};
+      box-shadow:
+        inset 0 0 0 1px ${toneAlpha($tone, '42')},
+        0 10px 24px rgba(2, 9, 16, 0.52),
+        0 0 18px ${toneAlpha($tone, '32')};
+      background:
+        linear-gradient(94deg, ${toneAlpha($tone, '32')} 0%, transparent 62%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 70%),
+        ${LCARS.panel};
+    `}
 `;
 
 export const ControlLabel = styled.span`
@@ -508,6 +594,18 @@ export const Select = styled.select`
   background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
   padding-right: 1.8rem;
+`;
+
+export const ControlHint = styled.span`
+  color: ${({ $active }) =>
+    $active ? toneAlpha(LCARS.lime, 'ed') : toneAlpha(LCARS.textDim, 'cf')};
+  font-size: 0.68rem;
+  font-weight: ${({ $active }) => ($active ? 760 : 650)};
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export const QuickActionsRow = styled.div`

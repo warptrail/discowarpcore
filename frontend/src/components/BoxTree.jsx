@@ -4,6 +4,8 @@ import * as S from '../styles/BoxTree.styles';
 import ItemRow from './ItemRow';
 import ItemBrowseControlPanel from './ItemBrowseControlPanel';
 import CondensedBoxItemList from './CondensedBoxItemList';
+import CondensedBatchMovePanel from './CondensedBatchMovePanel';
+import CondensedBatchDispositionPanel from './CondensedBatchDispositionPanel';
 import {
   compareItemsByMode,
   matchesItemQuery,
@@ -152,11 +154,19 @@ export default function BoxTree({
   const [searchQuery, setSearchQuery] = useState('');
   const [sortMode, setSortMode] = useState(DEFAULT_SORT);
   const [viewMode, setViewMode] = useState('full');
+  const [condensedSelectionEnabled, setCondensedSelectionEnabled] = useState(false);
+  const [selectedCondensedItemIds, setSelectedCondensedItemIds] = useState(() => new Set());
+  const [condensedMovePickerOpen, setCondensedMovePickerOpen] = useState(false);
+  const [condensedDispositionOpen, setCondensedDispositionOpen] = useState(false);
   const rootKey = String(node?._id ?? node?.box_id ?? node?.shortId ?? '');
 
   useEffect(() => {
     setSearchQuery('');
     setSortMode(DEFAULT_SORT);
+    setCondensedSelectionEnabled(false);
+    setSelectedCondensedItemIds(new Set());
+    setCondensedMovePickerOpen(false);
+    setCondensedDispositionOpen(false);
   }, [rootKey]);
 
   const normalizedQuery = normalizeItemQuery(searchQuery);
@@ -172,6 +182,84 @@ export default function BoxTree({
   );
   const visibleItemCount = useMemo(() => countItemsInTree(displayTree), [displayTree]);
   const condensedItems = useMemo(() => flattenItemsInTree(displayTree), [displayTree]);
+  const visibleCondensedItemIds = useMemo(
+    () =>
+      condensedItems
+        .map((item) => String(item?._id ?? item?.id ?? '').trim())
+        .filter(Boolean),
+    [condensedItems],
+  );
+  const selectedCondensedItems = useMemo(() => {
+    if (!selectedCondensedItemIds.size) return [];
+    return condensedItems.filter((item) => {
+      const id = String(item?._id ?? item?.id ?? '').trim();
+      return id && selectedCondensedItemIds.has(id);
+    });
+  }, [condensedItems, selectedCondensedItemIds]);
+
+  useEffect(() => {
+    if (viewMode !== 'condensed') {
+      setCondensedSelectionEnabled(false);
+      setSelectedCondensedItemIds(new Set());
+      setCondensedMovePickerOpen(false);
+      setCondensedDispositionOpen(false);
+    }
+  }, [viewMode]);
+
+  useEffect(() => {
+    setSelectedCondensedItemIds((current) => {
+      if (!current.size) return current;
+      const visibleIds = new Set(visibleCondensedItemIds);
+      const next = new Set([...current].filter((id) => visibleIds.has(id)));
+      return next.size === current.size ? current : next;
+    });
+  }, [visibleCondensedItemIds]);
+
+  useEffect(() => {
+    if (!selectedCondensedItems.length) {
+      setCondensedMovePickerOpen(false);
+      setCondensedDispositionOpen(false);
+    }
+  }, [selectedCondensedItems.length]);
+
+  const handleCondensedItemSelectionChange = (itemId, isSelected) => {
+    setSelectedCondensedItemIds((current) => {
+      const next = new Set(current);
+      if (isSelected) {
+        next.add(itemId);
+      } else {
+        next.delete(itemId);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAllCondensedItems = () => {
+    setSelectedCondensedItemIds(new Set(visibleCondensedItemIds));
+  };
+
+  const handleClearCondensedSelection = () => {
+    setSelectedCondensedItemIds(new Set());
+    setCondensedMovePickerOpen(false);
+    setCondensedDispositionOpen(false);
+  };
+
+  const handleCondensedBatchMoved = async () => {
+    handleClearCondensedSelection();
+    await refreshBox?.();
+  };
+
+  const handleCondensedBatchDisposed = async () => {
+    handleClearCondensedSelection();
+    await refreshBox?.();
+  };
+
+  const handleCondensedSelectionEnabledChange = (isEnabled) => {
+    setCondensedSelectionEnabled(isEnabled);
+    if (!isEnabled) {
+      handleClearCondensedSelection();
+    }
+  };
 
   if (!node) return null;
 
@@ -208,6 +296,68 @@ export default function BoxTree({
         </S.ViewModeLabel>
       </S.ViewModeBar>
 
+      {viewMode === 'condensed' ? (
+        <S.CondensedControlsPanel>
+          <S.ViewModeLabel htmlFor="box-tree-condensed-selection">
+            <S.ViewModeLabelText>Select items</S.ViewModeLabelText>
+            <S.ViewModeSwitch>
+              <S.ViewModeCheckbox
+                id="box-tree-condensed-selection"
+                type="checkbox"
+                checked={condensedSelectionEnabled}
+                onChange={(event) =>
+                  handleCondensedSelectionEnabledChange(event.target.checked)
+                }
+              />
+              <S.ViewModeSlider aria-hidden="true" />
+            </S.ViewModeSwitch>
+          </S.ViewModeLabel>
+
+          <S.SelectionCount>
+            {selectedCondensedItems.length} selected
+          </S.SelectionCount>
+
+          <S.SelectionActions>
+            <S.SelectionButton
+              type="button"
+              onClick={handleSelectAllCondensedItems}
+              disabled={!condensedSelectionEnabled || !visibleCondensedItemIds.length}
+            >
+              Select shown
+            </S.SelectionButton>
+            <S.SelectionButton
+              type="button"
+              $tone="move"
+              onClick={() => {
+                setCondensedMovePickerOpen((current) => !current);
+                setCondensedDispositionOpen(false);
+              }}
+              disabled={!condensedSelectionEnabled || !selectedCondensedItems.length}
+            >
+              {condensedMovePickerOpen ? 'Hide destinations' : 'Move selected'}
+            </S.SelectionButton>
+            <S.SelectionButton
+              type="button"
+              $tone="dispose"
+              onClick={() => {
+                setCondensedDispositionOpen((current) => !current);
+                setCondensedMovePickerOpen(false);
+              }}
+              disabled={!condensedSelectionEnabled || !selectedCondensedItems.length}
+            >
+              {condensedDispositionOpen ? 'Hide dispose' : 'Dispose selected'}
+            </S.SelectionButton>
+            <S.SelectionButton
+              type="button"
+              onClick={handleClearCondensedSelection}
+              disabled={!selectedCondensedItemIds.size}
+            >
+              Clear
+            </S.SelectionButton>
+          </S.SelectionActions>
+        </S.CondensedControlsPanel>
+      ) : null}
+
       {viewMode !== 'condensed' && displayTree && visibleItemCount === 0 && normalizedQuery ? (
         <S.MetaRow>
           <S.Count>No items match the current search.</S.Count>
@@ -215,14 +365,33 @@ export default function BoxTree({
       ) : null}
 
       {viewMode === 'condensed' ? (
-        <CondensedBoxItemList
-          items={condensedItems}
-          emptyMessage={
-            normalizedQuery
-              ? 'No items match the current search.'
-              : 'This box has no items.'
-          }
-        />
+        <>
+          <CondensedBatchMovePanel
+            selectedItems={selectedCondensedItems}
+            isOpen={condensedMovePickerOpen}
+            onOpenChange={setCondensedMovePickerOpen}
+            onMoved={handleCondensedBatchMoved}
+          />
+
+          <CondensedBatchDispositionPanel
+            selectedItems={selectedCondensedItems}
+            isOpen={condensedDispositionOpen}
+            onOpenChange={setCondensedDispositionOpen}
+            onDisposed={handleCondensedBatchDisposed}
+          />
+
+          <CondensedBoxItemList
+            items={condensedItems}
+            emptyMessage={
+              normalizedQuery
+                ? 'No items match the current search.'
+                : 'This box has no items.'
+            }
+            selectionEnabled={condensedSelectionEnabled}
+            selectedItemIds={selectedCondensedItemIds}
+            onSelectionChange={handleCondensedItemSelectionChange}
+          />
+        </>
       ) : (
         <BoxSection
           node={displayTree}

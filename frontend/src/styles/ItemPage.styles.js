@@ -25,18 +25,10 @@ export const Page = styled.section`
   display: grid;
   gap: 0.8rem;
   padding: 0.2rem 0;
-  padding-bottom: ${({ $reserveBottomDock }) =>
-    $reserveBottomDock
-      ? 'calc(5.8rem + env(safe-area-inset-bottom))'
-      : '0.2rem'};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.58rem;
     padding: 0.05rem 0;
-    padding-bottom: ${({ $reserveBottomDock }) =>
-      $reserveBottomDock
-        ? 'calc(6.1rem + env(safe-area-inset-bottom))'
-        : '0.05rem'};
   }
 `;
 
@@ -193,93 +185,6 @@ export const Meta = styled.div`
   text-transform: uppercase;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.05em;
-  }
-`;
-
-export const StickyActionBar = styled.div`
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 55;
-  padding-bottom: max(0.52rem, env(safe-area-inset-bottom));
-  pointer-events: none;
-  display: flex;
-  justify-content: center;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding-bottom: max(0.4rem, env(safe-area-inset-bottom));
-  }
-`;
-
-export const StickyActionInner = styled.div`
-  width: min(960px, calc(100vw - 4rem));
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.56rem;
-  pointer-events: auto;
-  border: 1px solid rgba(130, 168, 196, 0.44);
-  border-radius: 12px;
-  padding: 0.52rem 0.62rem;
-  background:
-    linear-gradient(180deg, rgba(27, 33, 43, 0.96), rgba(20, 25, 32, 0.96)),
-    ${LCARS.panel};
-  box-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.42),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(8px);
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    width: calc(100vw - (var(--mobile-gap) * 2));
-    padding: 0.42rem;
-    gap: 0.44rem;
-    border-radius: 10px;
-  }
-`;
-
-export const StickyActionMeta = styled.span`
-  color: ${LCARS.textMuted};
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.04em;
-  }
-`;
-
-export const StickyPrimaryButton = styled.button`
-  border: 1px solid ${LCARS.teal}86;
-  border-radius: 999px;
-  background: linear-gradient(180deg, rgba(76, 198, 193, 0.3), rgba(76, 198, 193, 0.18));
-  color: ${LCARS.text};
-  min-height: 38px;
-  padding: 0.36rem 1.05rem;
-  font-size: 0.78rem;
-  font-weight: 720;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
-
-  &:hover {
-    border-color: ${LCARS.teal};
-    background: linear-gradient(180deg, rgba(76, 198, 193, 0.38), rgba(76, 198, 193, 0.24));
-    transform: translateY(-1px);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 36px;
-    padding: 0.3rem 0.86rem;
     font-size: ${MOBILE_FONT_XS};
     letter-spacing: 0.05em;
   }

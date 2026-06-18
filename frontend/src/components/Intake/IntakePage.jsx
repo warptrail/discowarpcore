@@ -14,6 +14,8 @@ import IntakeQuickItemMaker from './IntakeQuickItemMaker';
 import BoxCreate from '../BoxCreate';
 
 const CURRENT_BOX_STORAGE_KEY = 'intake.currentBoxId';
+const BATCH_FILTER_STORAGE_KEY = 'intake.selectedBatchIds';
+const ORPHAN_FILTER_STORAGE_KEY = 'intake.onlyOrphanedItems';
 
 const Wrap = styled.div`
   display: grid;
@@ -124,6 +126,30 @@ function readStoredCurrentBoxId() {
   }
 }
 
+function readStoredBatchIds() {
+  if (typeof window === 'undefined') return [];
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(BATCH_FILTER_STORAGE_KEY) || '[]');
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((value) => String(value || '').trim()).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function readStoredBoolean(key, fallback = false) {
+  if (typeof window === 'undefined') return fallback;
+
+  try {
+    const value = window.localStorage.getItem(key);
+    if (value == null) return fallback;
+    return value === 'true';
+  } catch {
+    return fallback;
+  }
+}
+
 function persistCurrentBoxId(value) {
   if (typeof window === 'undefined') return;
 
@@ -134,6 +160,44 @@ function persistCurrentBoxId(value) {
     }
 
     window.localStorage.removeItem(CURRENT_BOX_STORAGE_KEY);
+  } catch {
+    // localStorage unavailable in some private browsing modes.
+  }
+}
+
+function persistBatchIds(values) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const normalized = Array.from(
+      new Set(
+        (Array.isArray(values) ? values : [])
+          .map((value) => String(value || '').trim())
+          .filter(Boolean),
+      ),
+    );
+
+    if (normalized.length > 0) {
+      window.localStorage.setItem(BATCH_FILTER_STORAGE_KEY, JSON.stringify(normalized));
+      return;
+    }
+
+    window.localStorage.removeItem(BATCH_FILTER_STORAGE_KEY);
+  } catch {
+    // localStorage unavailable in some private browsing modes.
+  }
+}
+
+function persistBoolean(key, value) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    if (value) {
+      window.localStorage.setItem(key, 'true');
+      return;
+    }
+
+    window.localStorage.removeItem(key);
   } catch {
     // localStorage unavailable in some private browsing modes.
   }
@@ -241,6 +305,27 @@ function normalizeActivityItem(item, fallbackBox = null) {
   };
 }
 
+function getActivityBatchId(item) {
+  return String(item?.sourceBatchId || item?.sourceBatch?.id || '').trim();
+}
+
+function getActivityBatchLabel(item) {
+  const sourceBatch = item?.sourceBatch && typeof item.sourceBatch === 'object'
+    ? item.sourceBatch
+    : null;
+  return (
+    String(sourceBatch?.label || '').trim() ||
+    String(sourceBatch?.batchName || '').trim() ||
+    String(sourceBatch?.batchId || '').trim() ||
+    getActivityBatchId(item)
+  );
+}
+
+function isActivityItemOrphaned(item) {
+  if (item?.orphanedAt || item?.isOrphaned || item?.orphaned) return true;
+  return !item?.box && !String(item?.boxId || '').trim();
+}
+
 function toQuantityValue(item) {
   const numeric = Number(item?.quantity);
   return Number.isFinite(numeric) ? numeric : 1;
@@ -282,6 +367,10 @@ export default function IntakePage({ boxes = [] }) {
   const [moveSeedItemId, setMoveSeedItemId] = useState('');
   const [boxImageOverrides, setBoxImageOverrides] = useState({});
   const [createdBoxes, setCreatedBoxes] = useState([]);
+  const [selectedBatchIds, setSelectedBatchIds] = useState(() => readStoredBatchIds());
+  const [onlyOrphanedItems, setOnlyOrphanedItems] = useState(() =>
+    readStoredBoolean(ORPHAN_FILTER_STORAGE_KEY, false),
+  );
 
   const [items, setItems] = useState([]);
   const [intakeActivity, setIntakeActivity] = useState([]);
@@ -468,6 +557,14 @@ export default function IntakePage({ boxes = [] }) {
     persistCurrentBoxId(selectedBoxId);
   }, [selectedBoxId]);
 
+  useEffect(() => {
+    persistBatchIds(selectedBatchIds);
+  }, [selectedBatchIds]);
+
+  useEffect(() => {
+    persistBoolean(ORPHAN_FILTER_STORAGE_KEY, onlyOrphanedItems);
+  }, [onlyOrphanedItems]);
+
   const loadItems = useCallback(async () => {
     setLoadingItems(true);
     setItemsError('');
@@ -541,11 +638,81 @@ export default function IntakePage({ boxes = [] }) {
     })
   ), [scopedCurrentBoxItems]);
 
-  const recentActivityItems = useMemo(() => (
-    [...mergedIntakeItems]
+  const batchFilterOptions = useMemo(() => {
+    const optionMap = new Map();
+
+    for (const item of mergedIntakeItems) {
+      const batchId = getActivityBatchId(item);
+      if (!batchId) continue;
+
+      const existing = optionMap.get(batchId);
+      if (existing) {
+        optionMap.set(batchId, {
+          ...existing,
+          count: existing.count + 1,
+          orphanedCount: existing.orphanedCount + (isActivityItemOrphaned(item) ? 1 : 0),
+        });
+        continue;
+      }
+
+      optionMap.set(batchId, {
+        id: batchId,
+        label: getActivityBatchLabel(item),
+        count: 1,
+        orphanedCount: isActivityItemOrphaned(item) ? 1 : 0,
+      });
+    }
+
+    return [...optionMap.values()].sort((a, b) =>
+      String(a.label || '').localeCompare(String(b.label || ''), undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      }),
+    );
+  }, [mergedIntakeItems]);
+
+  useEffect(() => {
+    if (selectedBatchIds.length === 0) return;
+
+    const availableIds = new Set(batchFilterOptions.map((option) => option.id));
+    const nextIds = selectedBatchIds.filter((batchId) => availableIds.has(batchId));
+    if (nextIds.length === selectedBatchIds.length) return;
+
+    setSelectedBatchIds(nextIds);
+  }, [batchFilterOptions, selectedBatchIds]);
+
+  const filteredRecentActivityItems = useMemo(() => {
+    const selectedBatches = new Set(selectedBatchIds);
+
+    return [...mergedIntakeItems]
+      .filter((item) => {
+        if (onlyOrphanedItems && !isActivityItemOrphaned(item)) return false;
+        if (selectedBatches.size === 0) return true;
+        return selectedBatches.has(getActivityBatchId(item));
+      })
       .sort((a, b) => getItemCreatedTimestamp(b) - getItemCreatedTimestamp(a))
-      .slice(0, 10)
-  ), [mergedIntakeItems]);
+      .slice(0, 10);
+  }, [mergedIntakeItems, onlyOrphanedItems, selectedBatchIds]);
+
+  const handleToggleBatchFilter = useCallback((batchId) => {
+    const normalized = String(batchId || '').trim();
+    if (!normalized) return;
+
+    setSelectedBatchIds((prev) => {
+      const current = new Set(Array.isArray(prev) ? prev : []);
+      if (current.has(normalized)) {
+        current.delete(normalized);
+      } else {
+        current.add(normalized);
+      }
+      return [...current];
+    });
+  }, []);
+
+  const handleClearActivityFilters = useCallback(() => {
+    setSelectedBatchIds([]);
+    setOnlyOrphanedItems(false);
+  }, []);
 
   const selectedRoutingItem = useMemo(
     () =>
@@ -966,12 +1133,18 @@ export default function IntakePage({ boxes = [] }) {
 
           <Section>
             <IntakeRecentActivity
-              items={recentActivityItems}
+              items={filteredRecentActivityItems}
               boxLookup={boxesById}
               loading={loadingItems}
               error={itemsError}
               onMoveItem={handleMoveFromRecent}
               selectedItemId={moveSeedItemId}
+              batchOptions={batchFilterOptions}
+              selectedBatchIds={selectedBatchIds}
+              onlyOrphanedItems={onlyOrphanedItems}
+              onToggleBatch={handleToggleBatchFilter}
+              onToggleOnlyOrphaned={() => setOnlyOrphanedItems((prev) => !prev)}
+              onClearFilters={handleClearActivityFilters}
             />
           </Section>
         </Column>

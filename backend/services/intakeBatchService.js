@@ -1631,6 +1631,140 @@ async function createIntakeBatch({ name = '', uploadedFiles = {} } = {}) {
   return batch;
 }
 
+function normalizeSimpleJsonItem(rawItem = {}) {
+  if (!isPlainObject(rawItem)) {
+    throw new Error('Simple intake JSON item must be an object.');
+  }
+
+  const name = toTrimmed(rawItem.name);
+  if (!name) {
+    throw new Error('Simple intake JSON item name is required.');
+  }
+
+  return {
+    name,
+    description: toTrimmed(rawItem.description),
+    category: toTrimmed(rawItem.category) || 'miscellaneous',
+    tags: Array.isArray(rawItem.tags) ? rawItem.tags : [],
+    quantity: rawItem.quantity == null ? 1 : rawItem.quantity,
+    location: toTrimmed(rawItem.location) || null,
+    box: toTrimmed(rawItem.box) || null,
+  };
+}
+
+function normalizeSimpleJsonPayload(rawPayload = {}) {
+  if (Array.isArray(rawPayload)) {
+    const items = rawPayload.map((item) => normalizeSimpleJsonItem(item));
+    if (!items.length) {
+      throw new Error('Simple intake JSON array must contain at least one item.');
+    }
+    return {
+      batchContext: {
+        source: 'simple_json_upload',
+        itemCount: items.length,
+        location: null,
+        box: null,
+      },
+      items,
+    };
+  }
+
+  if (!isPlainObject(rawPayload)) {
+    throw new Error('Simple intake JSON must be an object or an array of item objects.');
+  }
+
+  if (Array.isArray(rawPayload.items)) {
+    const batchContext = isPlainObject(rawPayload.batchContext) ? rawPayload.batchContext : {};
+    const items = rawPayload.items.map((item) => normalizeSimpleJsonItem(item));
+    if (!items.length) {
+      throw new Error('Simple intake JSON items must contain at least one item.');
+    }
+    const defaultLocation = toTrimmed(batchContext.location) || null;
+    const defaultBox = toTrimmed(batchContext.box) || null;
+
+    return {
+      ...rawPayload,
+      batchContext: {
+        ...batchContext,
+        source: toTrimmed(batchContext.source) || 'simple_json_upload',
+        itemCount: items.length,
+        location: defaultLocation,
+        box: defaultBox,
+      },
+      items: items.map((item) => ({
+        ...item,
+        location: item.location || defaultLocation,
+        box: item.box || defaultBox,
+      })),
+    };
+  }
+
+  const item = normalizeSimpleJsonItem(rawPayload);
+  return {
+    batchContext: {
+      source: 'simple_json_upload',
+      itemCount: 1,
+      location: item.location,
+      box: item.box,
+    },
+    items: [item],
+  };
+}
+
+async function createSimpleJsonIntakeBatch({ uploadedJsonFile = null } = {}) {
+  if (!uploadedJsonFile?.path) {
+    throw new Error('jsonFile upload is required.');
+  }
+
+  try {
+    const ext = path.extname(String(uploadedJsonFile.originalname || '')).toLowerCase();
+    if (!JSON_EXTENSIONS.has(ext)) {
+      throw new Error('Simple intake upload must be a .json file.');
+    }
+
+    let rawPayload;
+    try {
+      rawPayload = JSON.parse(await fs.readFile(uploadedJsonFile.path, 'utf8'));
+    } catch (error) {
+      throw new Error(`Invalid simple intake JSON: ${error?.message || 'Unable to parse JSON.'}`);
+    }
+
+    const payload = normalizeSimpleJsonPayload(rawPayload);
+    const firstItemName = toTrimmed(payload.items?.[0]?.name);
+    const itemCount = Array.isArray(payload.items) ? payload.items.length : 0;
+    const batchName =
+      itemCount === 1 && firstItemName
+        ? firstItemName
+        : path.basename(String(uploadedJsonFile.originalname || 'simple-json'), ext);
+
+    await fs.writeFile(uploadedJsonFile.path, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+
+    const batch = await createIntakeBatch({
+      name: batchName,
+      uploadedFiles: {
+        jsonFile: [uploadedJsonFile],
+      },
+    });
+
+    logIntakeBatchEvent('simple json batch created', {
+      batchId: batch.batchId,
+      batchName: batch.batchName,
+      itemCount,
+    });
+
+    return {
+      ok: true,
+      batch,
+      itemCount,
+      warnings: [],
+      nextStepSuggestion: 'Simple JSON staged successfully. Validate the batch before import.',
+    };
+  } catch (error) {
+    await cleanupUploadedFiles([uploadedJsonFile]);
+    throw error;
+  }
+}
+
 async function updateIntakeBatchAssets(batchId, uploadedFiles = {}) {
   const batch = await getIntakeBatchById(batchId);
   return saveUploadedAssetsToBatch(batch.batchDir, uploadedFiles);
@@ -2929,6 +3063,7 @@ module.exports = {
   listIntakeBatches,
   getIntakeBatchById,
   createIntakeBatch,
+  createSimpleJsonIntakeBatch,
   updateIntakeBatchAssets,
   updateIntakeBatchDestination,
   updateIntakeBatchName,
