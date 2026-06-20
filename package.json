@@ -26,6 +26,7 @@
     "test:media-job-contract": "node --test test/media/mediaJobService.contract.test.js",
     "test:entity-media-contract": "node --test test/media/entityMedia.contract.test.js",
     "test:batch-import-media-contract": "node --test test/media/batchImportedMedia.contract.test.js test/media/batchImportImageService.contract.test.js",
+    "smoke:objectglow": "node backend/scripts/objectglow-smoke.js",
     "intake:create-batch": "node scripts/create_intake_batch.js",
     "intake:build-package": "node scripts/dwc_batch_send.js",
     "intake:tui": "node scripts/intake_tui.js",
@@ -45,7 +46,9 @@
     "intake:stage-images": "node scripts/stage_imagekey_files.js",
     "deploy:neonazoth": "rsync -avz --delete --exclude 'node_modules/' --exclude 'dist/' --exclude '.git/' --exclude '.vite/' --exclude 'frontend/node_modules/' --exclude 'frontend/dist/' --exclude 'backend/media/' ./ warptrail@neonazoth:~/discowarpcore/",
     "deploy:neonazoth:dry": "rsync -avzn --delete --exclude 'node_modules/' --exclude 'dist/' --exclude '.git/' --exclude '.vite/' --exclude 'frontend/node_modules/' --exclude 'frontend/dist/' --exclude 'backend/media/' ./ warptrail@neonazoth:~/discowarpcore/",
-    "install:neonazoth": "ssh warptrail@neonazoth 'cd ~/discowarpcore && npm install && cd frontend && npm install'"
+    "install:neonazoth": "ssh warptrail@neonazoth 'cd ~/discowarpcore && npm install && cd frontend && npm install'",
+    "neonazoth:tui": "node scripts/neonazoth/control_station.js",
+    "merge:staged-db": "node backend/scripts/merge-staged-db.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

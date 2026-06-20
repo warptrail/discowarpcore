@@ -1404,7 +1404,7 @@ async function processImageWithObjectGlow(inputPath, outputPath, options = {}) {
       priorStatus: toTrimmed(existingState?.processingStatus),
     });
 
-    await upsertMediaStateByOriginalPath(
+    const processingStartState = await upsertMediaStateByOriginalPath(
       normalizedInputPath,
       {
         processedPath: normalizedOutputPath,
@@ -1421,6 +1421,11 @@ async function processImageWithObjectGlow(inputPath, outputPath, options = {}) {
         processedAt: null,
       }
     );
+    const progressMediaId = toTrimmed(options?.progressContext?.mediaId)
+      || toTrimmed(processingStartState?.mediaId)
+      || toTrimmed(existingState?.mediaId);
+    const progressRunId = toTrimmed(options?.progressContext?.runId)
+      || (progressMediaId ? `process-${progressMediaId}` : '');
 
     await ensureReadableFile(normalizedInputPath, {
       code: MEDIA_ERROR_CODES.MEDIA_SOURCE_NOT_FOUND,
@@ -1438,8 +1443,8 @@ async function processImageWithObjectGlow(inputPath, outputPath, options = {}) {
       outputPath: normalizedOutputPath,
       renderTokens,
       progressContext: {
-        runId: toTrimmed(options?.progressContext?.runId),
-        mediaId: toTrimmed(options?.progressContext?.mediaId || existingState?.mediaId),
+        runId: progressRunId,
+        mediaId: progressMediaId,
         batchId: toTrimmed(options?.progressContext?.batchId),
       },
       onEvent: (event) => {
