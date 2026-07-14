@@ -782,7 +782,15 @@ async function resolveBatchOperationalPaths(state) {
 
 async function moveUploadedFile(sourcePath, destinationPath) {
   await fs.mkdir(path.dirname(destinationPath), { recursive: true });
-  await fs.rename(sourcePath, destinationPath);
+  try {
+    await fs.rename(sourcePath, destinationPath);
+  } catch (error) {
+    if (error?.code !== 'EXDEV') {
+      throw error;
+    }
+    await fs.copyFile(sourcePath, destinationPath);
+    await fs.rm(sourcePath, { force: true });
+  }
 }
 
 async function cleanupUploadedFiles(files = []) {
@@ -815,8 +823,28 @@ function shouldIgnoreZipEntry(entryPath) {
   return normalized.split('/').some((segment) => segment.startsWith('.'));
 }
 
+async function execFirstAvailable(candidates = []) {
+  let missingError = null;
+  for (const candidate of candidates) {
+    try {
+      return await execFileAsync(candidate.command, candidate.args, candidate.options || {});
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+      missingError = error;
+    }
+  }
+  throw missingError || new Error('No archive tool candidate was provided.');
+}
+
 async function listZipEntries(zipFilePath) {
-  const { stdout } = await execFileAsync('/usr/bin/zipinfo', ['-1', zipFilePath]);
+  const { stdout } = await execFirstAvailable([
+    { command: '/usr/bin/zipinfo', args: ['-1', zipFilePath] },
+    { command: 'zipinfo', args: ['-1', zipFilePath] },
+    { command: '/usr/bin/unzip', args: ['-Z1', zipFilePath] },
+    { command: 'unzip', args: ['-Z1', zipFilePath] },
+    { command: '/usr/bin/bsdtar', args: ['-tf', zipFilePath] },
+    { command: 'bsdtar', args: ['-tf', zipFilePath] },
+  ]);
   return String(stdout || '')
     .split('\n')
     .map((line) => normalizeZipEntryPath(line))
@@ -825,7 +853,12 @@ async function listZipEntries(zipFilePath) {
 
 async function unzipArchive(zipFilePath, destinationDir) {
   await fs.mkdir(destinationDir, { recursive: true });
-  await execFileAsync('/usr/bin/unzip', ['-qq', zipFilePath, '-d', destinationDir]);
+  await execFirstAvailable([
+    { command: '/usr/bin/unzip', args: ['-qq', zipFilePath, '-d', destinationDir] },
+    { command: 'unzip', args: ['-qq', zipFilePath, '-d', destinationDir] },
+    { command: '/usr/bin/bsdtar', args: ['-xf', zipFilePath, '-C', destinationDir] },
+    { command: 'bsdtar', args: ['-xf', zipFilePath, '-C', destinationDir] },
+  ]);
 }
 
 function flattenUploadedFiles(uploadedFiles = {}) {

@@ -139,7 +139,7 @@ test('config normalization and box format validation are explicit', () => {
   assert.deepEqual(normalizeConfig({ batchName: ' Shelf Batch ', box: ' 701 ', apiBase: ' http://localhost:5002/ ' }), {
     batchName: 'Shelf Batch',
     box: '701',
-    apiBase: 'http://localhost:5002/',
+    apiBase: 'http://localhost:5002',
   });
   assert.equal(defaultConfig({ batchName: 'simple fixture' }).batchName, 'simple fixture');
   assert.match(createDefaultSimpleBatchName(new Date(2026, 4, 27, 16, 31)), /^simple 2026-05-27 1631$/);

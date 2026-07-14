@@ -202,13 +202,13 @@ function resolveItemImageUrls(item) {
 
   if (activeVariant === 'processed' || (!activeVariant && processedUrl)) {
     return {
-      imageUrl: firstNonEmpty(thumbUrl, displayUrl, processedUrl, originalUrl),
+      imageUrl: firstNonEmpty(thumbUrl, displayUrl, processedUrl),
       previewImageUrl: firstNonEmpty(processedUrl, displayUrl, originalUrl, thumbUrl),
     };
   }
 
   return {
-    imageUrl: firstNonEmpty(thumbUrl, displayUrl, originalUrl, processedUrl),
+    imageUrl: firstNonEmpty(thumbUrl, displayUrl, processedUrl),
     previewImageUrl: firstNonEmpty(originalUrl, displayUrl, thumbUrl, processedUrl),
   };
 }

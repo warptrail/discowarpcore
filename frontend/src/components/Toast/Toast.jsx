@@ -247,7 +247,10 @@ const Body = styled.div`
 `;
 const Title = styled.div`
   font-weight: 600;
-  font-size: calc(1rem - (0.18rem * var(--toast-compact-progress)));
+  font-size: ${({ $size }) =>
+    $size === 'hero'
+      ? 'calc(1.32rem - (0.18rem * var(--toast-compact-progress)))'
+      : 'calc(1rem - (0.18rem * var(--toast-compact-progress)))'};
   transition: font-size var(--toast-duration) var(--toast-ease);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -257,6 +260,9 @@ const Title = styled.div`
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
+`;
+const TitleDetailsWrap = styled.div`
+  min-width: 0;
 `;
 const Msg = styled.div`
   opacity: 0.9;
@@ -694,6 +700,7 @@ const spin = keyframes`
 const TitleRow = styled.div`
   display: flex;
   align-items: center;
+  justify-content: ${({ $align }) => ($align === 'center' ? 'center' : 'flex-start')};
   gap: 0.5rem;
   min-width: 0;
 `;
@@ -711,12 +718,15 @@ const Spinner = styled.span`
 export default function Toast({
   open,
   title,
+  titleDetails,
   message,
   content,
   variant = 'info', // 'success' | 'warning' | 'danger' | 'info'
   loading = false,
   actions = [], // [{id?, label, onClick, kind}] kind 'primary'|'ghost'
   onClose,
+  titleAlign = 'start',
+  titleSize = 'default',
   showIdle = true,
   idleIcon = '📦',
   idleText = 'Standing by…',
@@ -871,11 +881,12 @@ export default function Toast({
         ) : (
           <>
             {title ? (
-              <TitleRow>
+              <TitleRow $align={titleAlign}>
                 {loading ? <Spinner aria-hidden="true" /> : null}
-                <Title $compact={compact}>{title}</Title>
+                <Title $compact={compact} $size={titleSize}>{title}</Title>
               </TitleRow>
             ) : null}
+            {titleDetails ? <TitleDetailsWrap>{titleDetails}</TitleDetailsWrap> : null}
             {message && <Msg $compact={compact}>{message}</Msg>}
             {hasContent && <ContentWrap>{content}</ContentWrap>}
           </>

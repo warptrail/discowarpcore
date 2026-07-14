@@ -244,7 +244,7 @@ async function attachMediaStateSummaries(rawItems = []) {
 
   const mediaStates = mediaStateClauses.length
     ? await MediaState.find(mediaStateClauses.length === 1 ? mediaStateClauses[0] : { $or: mediaStateClauses })
-      .select('mediaId originalPath processedPath displayPath thumbPath activeVariant')
+      .select('mediaId originalPath processedPath displayPath thumbPath activeVariant processedAt updatedAt')
       .lean()
     : [];
 
@@ -289,9 +289,81 @@ async function attachMediaStateSummaries(rawItems = []) {
           url: processedUrl,
         },
         activeVariant: String(matchedState?.activeVariant || '').trim().toLowerCase() || 'original',
+        updatedAt: matchedState?.updatedAt || matchedState?.processedAt || item?.image?.updatedAt || null,
       },
     };
   });
+}
+
+function toListImage(image = {}) {
+  const toUrlOnly = (variant) => {
+    const url = String(variant?.url || '').trim();
+    return url ? { url } : undefined;
+  };
+
+  return {
+    activeVariant: String(image?.activeVariant || '').trim().toLowerCase(),
+    processingStatus: String(image?.processingStatus || '').trim().toLowerCase(),
+    updatedAt: image?.updatedAt || null,
+    original: toUrlOnly(image?.original),
+    display: toUrlOnly(image?.display),
+    thumb: toUrlOnly(image?.thumb),
+    processed: toUrlOnly(image?.processed),
+  };
+}
+
+function toItemListSummary(item = {}) {
+  const sourceBatch = item?.sourceBatch;
+
+  return {
+    _id: item?._id,
+    name: item?.name,
+    quantity: item?.quantity,
+    description: item?.description,
+    notes: item?.notes,
+    tags: item?.tags,
+    links: item?.links,
+    imagePath: item?.imagePath,
+    image: toListImage(item?.image),
+    location: item?.location,
+    sourceBatchId: item?.sourceBatchId,
+    sourceBatch: sourceBatch
+      ? {
+          id: sourceBatch.id,
+          batchId: sourceBatch.batchId,
+          batchName: sourceBatch.batchName,
+          label: sourceBatch.label,
+          archiveStatus: sourceBatch.archiveStatus,
+          importedAt: sourceBatch.importedAt,
+          createdAt: sourceBatch.createdAt,
+          updatedAt: sourceBatch.updatedAt,
+        }
+      : null,
+    orphanedAt: item?.orphanedAt,
+    item_status: item?.item_status,
+    disposition: item?.disposition,
+    disposition_at: item?.disposition_at,
+    disposition_notes: item?.disposition_notes,
+    last_active_box: item?.last_active_box,
+    dateAcquired: item?.dateAcquired,
+    dateLastUsed: item?.dateLastUsed,
+    valueCents: item?.valueCents,
+    keepPriority: item?.keepPriority,
+    primaryOwnerName: item?.primaryOwnerName,
+    condition: item?.condition,
+    category: item?.category,
+    isConsumable: item?.isConsumable,
+    lastCheckedAt: item?.lastCheckedAt,
+    acquisitionType: item?.acquisitionType,
+    purchasePriceCents: item?.purchasePriceCents,
+    lastMaintainedAt: item?.lastMaintainedAt,
+    maintenanceNotes: item?.maintenanceNotes,
+    box: item?.box,
+    breadcrumb: item?.breadcrumb,
+    depth: item?.depth,
+    topBox: item?.topBox,
+    updatedAt: item?.updatedAt,
+  };
 }
 
 function buildItemListFilter({
@@ -355,9 +427,10 @@ function buildPagedSort(sort = 'alphabetical') {
  * Get all items with breadcrumb + box info.
  * (This one still builds maps — fine for bulk fetch.)
  */
-async function getAllItems({ statusScope = 'active' } = {}) {
+async function getAllItems({ statusScope = 'active', listView = false } = {}) {
   const itemDocs = await Item.find(buildItemStatusFilter(statusScope)).lean();
-  return enrichItemsWithBoxContext(itemDocs);
+  const items = await enrichItemsWithBoxContext(itemDocs);
+  return listView ? items.map(toItemListSummary) : items;
 }
 
 async function getItemsPage({
@@ -596,8 +669,6 @@ function summarizeRandomItem(item) {
       thumbUrl:
         item?.image?.thumb?.url ||
         item?.image?.display?.url ||
-        item?.image?.original?.url ||
-        item?.imagePath ||
         '',
       displayUrl:
         item?.image?.display?.url ||

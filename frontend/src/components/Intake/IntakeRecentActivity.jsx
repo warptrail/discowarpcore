@@ -372,9 +372,6 @@ function getItemImageUrl(item) {
   return (
     item?.image?.thumb?.url ||
     item?.image?.display?.url ||
-    item?.image?.original?.url ||
-    item?.image?.url ||
-    item?.imagePath ||
     ''
   );
 }

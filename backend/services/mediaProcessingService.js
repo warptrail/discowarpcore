@@ -465,6 +465,7 @@ function normalizeMediaStateRecord(record) {
     sourceType: toTrimmed(source?.sourceType).toLowerCase(),
     processingError: source?.processingError ?? null,
     processedAt: source?.processedAt ? new Date(source.processedAt).toISOString() : null,
+    updatedAt: source?.updatedAt ? new Date(source.updatedAt).toISOString() : null,
   };
 }
 
@@ -1092,8 +1093,12 @@ async function syncDerivedVariantsForMedia(originalPath) {
     outputPath: baseState.processedPath,
   });
 
-  const displayPath = computeDerivedPathFromSource(normalizedSourcePath, 'display');
-  const thumbPath = computeDerivedPathFromSource(normalizedSourcePath, 'thumb');
+  // Derivatives belong to the immutable original's media identity. The active
+  // variant supplies pixels, but must never create a second derivative path.
+  const displayPath = computeDerivedPathFromSource(baseState.originalPath, 'display');
+  const thumbPath = computeDerivedPathFromSource(baseState.originalPath, 'thumb');
+  const displayTempPath = `${displayPath}.tmp-${process.pid}-${Date.now()}`;
+  const thumbTempPath = `${thumbPath}.tmp-${process.pid}-${Date.now()}`;
 
   await fs.mkdir(path.dirname(displayPath), { recursive: true });
   await fs.mkdir(path.dirname(thumbPath), { recursive: true });
@@ -1113,7 +1118,7 @@ async function syncDerivedVariantsForMedia(originalPath) {
         .toFormat(DERIVATIVE_FORMAT.sharpFormat, {
           quality: DERIVATIVE_FORMAT.displayQuality,
         })
-        .toFile(displayPath),
+        .toFile(displayTempPath),
       source
         .clone()
         .resize({
@@ -1125,9 +1130,33 @@ async function syncDerivedVariantsForMedia(originalPath) {
         .toFormat(DERIVATIVE_FORMAT.sharpFormat, {
           quality: DERIVATIVE_FORMAT.thumbQuality,
         })
-        .toFile(thumbPath),
+        .toFile(thumbTempPath),
     ]);
+
+    await Promise.all([
+      assertOutputArtifact(displayTempPath, {
+        code: MEDIA_ERROR_CODES.MEDIA_DERIVATIVE_SYNC_FAILED,
+        message: 'Temporary display derivative is missing after generation',
+        inputPath: baseState.originalPath,
+        outputPath: displayTempPath,
+      }),
+      assertOutputArtifact(thumbTempPath, {
+        code: MEDIA_ERROR_CODES.MEDIA_DERIVATIVE_SYNC_FAILED,
+        message: 'Temporary thumbnail derivative is missing after generation',
+        inputPath: baseState.originalPath,
+        outputPath: thumbTempPath,
+      }),
+    ]);
+
+    // POSIX rename replaces each visible file atomically, so readers never see
+    // a partially-written image while ObjectGlow refreshes derivatives.
+    await fs.rename(displayTempPath, displayPath);
+    await fs.rename(thumbTempPath, thumbPath);
   } catch (error) {
+    await Promise.allSettled([
+      fs.unlink(displayTempPath),
+      fs.unlink(thumbTempPath),
+    ]);
     if (isMediaError(error)) throw error;
     throw createMediaError(
       MEDIA_ERROR_CODES.MEDIA_DERIVATIVE_SYNC_FAILED,
@@ -1153,12 +1182,20 @@ async function syncDerivedVariantsForMedia(originalPath) {
     outputPath: thumbPath,
   });
 
-  return upsertMediaStateByOriginalPath(baseState.originalPath, {
+  const nextState = await upsertMediaStateByOriginalPath(baseState.originalPath, {
     displayPath,
     thumbPath,
     displayDerivedFrom: activeVariant,
     thumbDerivedFrom: activeVariant,
   });
+
+  const supersededDerivativePaths = [baseState.displayPath, baseState.thumbPath]
+    .map((entry) => toTrimmed(entry))
+    .filter(Boolean)
+    .filter((entry) => ![displayPath, thumbPath].includes(entry));
+  await Promise.allSettled(supersededDerivativePaths.map((entry) => fs.unlink(entry)));
+
+  return nextState;
 }
 
 async function setActiveVariant(originalPath, nextActiveVariant) {

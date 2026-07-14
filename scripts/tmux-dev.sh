@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 SESSION="dev"
-PROJECT="$HOME/discowarpcore"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 
 # If session exists → attach
 if tmux has-session -t "$SESSION" 2>/dev/null; then

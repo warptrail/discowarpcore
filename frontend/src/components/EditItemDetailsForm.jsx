@@ -31,6 +31,7 @@ export default function EditItemDetailsForm({
   processedPreviewUrl = '',
   imageRefreshToken = 0,
   onCancel,
+  preserveToastOnCancel = false,
   lifecycleBusy = false,
   onMarkGoneRequest,
   onDeletePermanentlyRequest,
@@ -67,6 +68,7 @@ export default function EditItemDetailsForm({
     onCancel,
     onSave: handleSave,
     onRevert: handleRevert,
+    preserveToastOnCancel,
   });
 
   return (

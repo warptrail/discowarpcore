@@ -97,11 +97,8 @@ export default function AllItemsList() {
 
     try {
       const apiRoot = String(API_BASE || '').replace(/\/+$/, '');
-      const requestUrl = `${apiRoot}/api/items?status=all&_ts=${encodeURIComponent(String(Date.now()))}`;
-      const res = await fetch(requestUrl, {
-        signal,
-        cache: 'no-store',
-      });
+      const requestUrl = `${apiRoot}/api/items?status=all&view=list`;
+      const res = await fetch(requestUrl, { signal });
       if (!res.ok) {
         throw new Error(`Failed to fetch items (${res.status})`);
       }
@@ -132,30 +129,6 @@ export default function AllItemsList() {
     void loadItems({ signal: controller.signal });
 
     return () => controller.abort();
-  }, [loadItems]);
-
-  useEffect(() => {
-    const revalidate = () => {
-      void loadItems({ silent: true });
-    };
-
-    const handlePageShow = (event) => {
-      if (event?.persisted) revalidate();
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') revalidate();
-    };
-
-    window.addEventListener('focus', revalidate);
-    window.addEventListener('pageshow', handlePageShow);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener('focus', revalidate);
-      window.removeEventListener('pageshow', handlePageShow);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
   }, [loadItems]);
 
   useEffect(() => {

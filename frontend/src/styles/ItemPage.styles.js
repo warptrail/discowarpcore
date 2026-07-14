@@ -205,141 +205,6 @@ export const StateCard = styled.div`
   }
 `;
 
-export const ContainerCard = styled.section`
-  position: relative;
-  display: grid;
-  gap: 0.7rem;
-  padding: 0.76rem 0.84rem;
-  border: 1px solid ${LCARS.line};
-  border-radius: 12px;
-  background:
-    radial-gradient(circle at 92% 10%, rgba(76, 198, 193, 0.09) 0%, transparent 42%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.012), transparent 40%),
-    ${LCARS.panel};
-  box-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.26),
-    0 8px 22px rgba(0, 0, 0, 0.22);
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0.84rem;
-    right: 0.84rem;
-    top: 0.52rem;
-    height: 3px;
-    border-radius: 999px;
-    background: linear-gradient(
-      90deg,
-      rgba(240, 138, 123, 0.62) 0 14%,
-      transparent 14% 19%,
-      rgba(76, 198, 193, 0.78) 19% 72%,
-      transparent 72% 78%,
-      rgba(167, 182, 255, 0.65) 78% 100%
-    );
-    opacity: 0.45;
-    pointer-events: none;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    gap: 0.5rem;
-    padding: 0.56rem 0.6rem;
-    border-radius: ${MOBILE_PANEL_RADIUS};
-
-    &::before {
-      left: 0.6rem;
-      right: 0.6rem;
-      top: 0.4rem;
-      height: 2px;
-      opacity: 0.38;
-    }
-  }
-`;
-
-export const ContainerTitle = styled.h3`
-  margin: 0;
-  color: ${LCARS.text};
-  font-size: 0.88rem;
-  font-weight: 760;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${MOBILE_FONT_SM};
-    letter-spacing: 0.06em;
-  }
-`;
-
-export const ContainerBody = styled.div`
-  display: grid;
-  gap: 0;
-  padding: 0.48rem 0.56rem 0.44rem;
-  border: 1px solid ${LCARS.line};
-  border-radius: 10px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.022), rgba(255, 255, 255, 0.006));
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: 0.34rem 0.38rem;
-    border-radius: 8px;
-  }
-`;
-
-export const ContainerRow = styled.div`
-  display: grid;
-  grid-template-columns: minmax(112px, 146px) minmax(0, 1fr);
-  gap: 0.56rem;
-  align-items: start;
-  padding: 0.42rem 0.18rem 0.4rem;
-  border-radius: 8px;
-
-  ${({ $prominent }) =>
-    $prominent
-      ? `
-    background: linear-gradient(90deg, rgba(76, 198, 193, 0.12), rgba(76, 198, 193, 0.02));
-    box-shadow: inset 0 0 0 1px rgba(76, 198, 193, 0.2);
-  `
-      : ''}
-
-  &:not(:first-child) {
-    border-top: 1px solid rgba(255, 255, 255, 0.07);
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: 1fr;
-    gap: 0.18rem;
-    padding: 0.32rem 0.06rem 0.3rem;
-  }
-`;
-
-export const ContainerLabel = styled.div`
-  color: ${LCARS.textMuted};
-  font-size: 0.68rem;
-  font-weight: 760;
-  letter-spacing: 0.1em;
-  line-height: 1.2;
-  text-transform: uppercase;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${MOBILE_FONT_XS};
-  }
-`;
-
-export const ContainerValue = styled.div`
-  color: ${LCARS.textDim};
-  font-size: 0.88rem;
-  line-height: 1.34;
-  min-width: 0;
-`;
-
-export const ContainerLink = styled(Link)`
-  color: ${LCARS.teal};
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
 export const ContainerMuted = styled.span`
   color: ${LCARS.textMuted};
 `;
@@ -349,6 +214,21 @@ export const ContainerActions = styled.div`
   gap: 0.48rem;
   flex-wrap: wrap;
   padding-top: 0.08rem;
+`;
+
+export const ItemButtonBar = styled.section`
+  display: grid;
+  gap: 0.42rem;
+  padding: 0.46rem 0.56rem;
+  border: 1px solid ${LCARS.line};
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.022), rgba(255, 255, 255, 0.006));
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.34rem 0.38rem;
+    border-radius: 8px;
+    gap: 0.3rem;
+  }
 `;
 
 export const ContainerTimestampSection = styled.section`
@@ -383,67 +263,6 @@ export const ContainerTimestampActions = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 0.38rem;
-`;
-
-export const ContainerBoxValueGroup = styled.div`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.44rem;
-`;
-
-export const ContainerPrimaryValue = styled.span`
-  color: ${LCARS.text};
-  font-size: 0.98rem;
-  font-weight: 700;
-  line-height: 1.24;
-  overflow-wrap: anywhere;
-`;
-
-export const ContainerPrimaryLink = styled(Link)`
-  color: #97e5df;
-  text-decoration: none;
-  font-size: 0.98rem;
-  font-weight: 700;
-  line-height: 1.24;
-  overflow-wrap: anywhere;
-  transition: color 120ms ease, text-decoration-color 120ms ease;
-
-  &:hover {
-    color: #c6f8f4;
-    text-decoration: underline;
-    text-decoration-color: rgba(198, 248, 244, 0.72);
-    text-underline-offset: 2px;
-  }
-`;
-
-export const ContainerChipLink = styled(Link)`
-  text-decoration: none;
-`;
-
-export const ContainerBoxIdChip = styled.span`
-  display: inline-flex;
-  align-items: center;
-  min-height: 26px;
-  border-radius: 999px;
-  border: 1px solid ${LCARS.teal}70;
-  background: ${LCARS.teal}1f;
-  color: #c5f4f1;
-  padding: 0.14rem 0.5rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  font-size: 0.7rem;
-  font-weight: 760;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  line-height: 1;
-`;
-
-export const ContainerSecondaryValue = styled.span`
-  color: ${LCARS.textMuted};
-  font-size: 0.8rem;
-  font-weight: 560;
-  line-height: 1.28;
 `;
 
 export const ContainerButton = styled.button`

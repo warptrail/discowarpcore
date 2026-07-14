@@ -163,11 +163,11 @@ export const ViewModeButton = styled.button`
   min-width: 84px;
   border: 1px solid
     ${({ $active }) =>
-      $active ? toneAlpha(LCARS.root, 'b8') : 'rgba(104, 154, 186, 0.24)'};
+      $active ? toneAlpha(LCARS.root, 'b8') : 'rgba(104, 154, 186, 0.42)'};
   border-radius: 8px;
   padding: 0 0.58rem;
   color: ${({ $active }) =>
-    $active ? toneAlpha(LCARS.root, 'f2') : toneAlpha(LCARS.textDim, 'd2')};
+    $active ? toneAlpha(LCARS.root, 'f2') : 'rgba(230, 237, 243, 0.92)'};
   background: ${({ $active }) =>
     $active
       ? 'linear-gradient(180deg, rgba(22, 61, 84, 0.92), rgba(10, 34, 52, 0.96))'
@@ -176,6 +176,8 @@ export const ViewModeButton = styled.button`
   font-weight: 820;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  text-shadow: ${({ $active }) =>
+    $active ? '0 0 8px rgba(127, 215, 255, 0.16)' : '0 0 5px rgba(230, 237, 243, 0.08)'};
   cursor: pointer;
   transition:
     border-color 140ms ease,

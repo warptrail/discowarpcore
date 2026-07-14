@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Disco Warp Core Fresh Install Runbook</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101316;
+      --panel: #171c21;
+      --panel-soft: #20262d;
+      --text: #f1f5f8;
+      --muted: #a9b5bf;
+      --line: #33404a;
+      --accent: #69d6c4;
+      --warn: #f4c76b;
+      --bad: #ef7e7e;
+      --code: #090c0f;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #14191e;
+    }
+
+    main,
+    .header-inner {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .header-inner {
+      padding: 40px 0 28px;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 10px 0 8px;
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      line-height: 1.05;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 1.35rem;
+    }
+
+    h3 {
+      margin: 20px 0 8px;
+      font-size: 1rem;
+      color: var(--accent);
+    }
+
+    .lede {
+      max-width: 820px;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    main {
+      padding: 28px 0 56px;
+    }
+
+    section {
+      margin: 0 0 24px;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .note,
+    .warn {
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      color: var(--muted);
+    }
+
+    .warn {
+      border-color: rgba(244, 199, 107, 0.55);
+      color: #f7df9d;
+    }
+
+    ol,
+    ul {
+      margin: 10px 0 0;
+      padding-left: 1.35rem;
+    }
+
+    li + li {
+      margin-top: 8px;
+    }
+
+    code {
+      padding: 0.12rem 0.32rem;
+      border-radius: 5px;
+      background: var(--code);
+      color: #dce8ef;
+    }
+
+    pre {
+      overflow-x: auto;
+      margin: 12px 0 0;
+      padding: 14px 16px;
+      border: 1px solid #27333d;
+      border-radius: 8px;
+      background: var(--code);
+      color: #e7f2f5;
+    }
+
+    pre code {
+      padding: 0;
+      background: transparent;
+    }
+
+    .checklist li {
+      list-style: square;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="eyebrow">Reset recovery</div>
+      <h1>Fresh Mac Install Runbook</h1>
+      <p class="lede">
+        Use this after wiping the MacBook to reinstall Disco Warp Core, restore local data from Neon Azoth,
+        and verify the Vision Intake TUI plus Neon Azoth control panel TUI still work.
+      </p>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <h2>What Survives From Git</h2>
+      <div class="grid">
+        <div class="note">
+          <strong>Vision Intake TUI</strong><br>
+          Tracked in git and launched with <code>npm run intake:tui</code>.
+        </div>
+        <div class="note">
+          <strong>Neon Azoth Control Panel</strong><br>
+          Tracked in git and launched with <code>npm run neonazoth:tui</code>.
+        </div>
+        <div class="note">
+          <strong>Sync Tooling</strong><br>
+          Database merge, smoke test, and overwrite helpers are tracked in git.
+        </div>
+      </div>
+      <p class="warn">
+        Git does not preserve machine state: <code>backend/.env</code>, SSH keys, MongoDB service data,
+        Homebrew packages, Node dependencies, ObjectGlow installation, and <code>~/Intake</code> contents
+        must be recreated or restored.
+      </p>
+    </section>
+
+    <section>
+      <h2>1. Install System Tools</h2>
+      <ol>
+        <li>Install Apple command line tools.</li>
+      </ol>
+      <pre><code>xcode-select --install</code></pre>
+
+      <ol start="2">
+        <li>Install Homebrew if it is not already present.</li>
+      </ol>
+      <pre><code>/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</code></pre>
+
+      <ol start="3">
+        <li>Install runtime tools.</li>
+      </ol>
+      <pre><code>brew install node mongodb-community mongodb-database-tools mongosh rsync git</code></pre>
+
+      <ol start="4">
+        <li>Start MongoDB locally.</li>
+      </ol>
+      <pre><code>brew services start mongodb-community</code></pre>
+    </section>
+
+    <section>
+      <h2>2. Clone And Install Disco Warp Core</h2>
+      <pre><code>mkdir -p ~/Developer
+cd ~/Developer
+git clone git@github.com:warptrail/discowarpcore.git
+cd discowarpcore
+npm run install:all</code></pre>
+
+      <h3>Create backend/.env</h3>
+      <pre><code>cp backend/example_env.txt backend/.env</code></pre>
+      <p class="small">Minimum local values:</p>
+      <pre><code>MONGO_URI=mongodb://127.0.0.1:27017/discowarpcore
+PORT=5002
+HOST=0.0.0.0
+OBJECT_GLOW_REPO=/Users/moonshade/Developer/objectiglow</code></pre>
+    </section>
+
+    <section>
+      <h2>3. Restore SSH Access To Neon Azoth</h2>
+      <p>
+        If your SSH key and <code>~/.ssh/config</code> were restored from backup, test first:
+      </p>
+      <pre><code>ssh neonazoth 'hostname &amp;&amp; whoami'</code></pre>
+
+      <p>If key access is missing, run the helper and follow its printed remote instructions:</p>
+      <pre><code>cd ~/Developer/discowarpcore
+scripts/neonazoth/install-codex-ssh-access.sh</code></pre>
+
+      <p>After running the remote setup command in an existing Neon Azoth session, verify:</p>
+      <pre><code>TEST_ONLY=1 scripts/neonazoth/install-codex-ssh-access.sh</code></pre>
+    </section>
+
+    <section>
+      <h2>4. Restore Local Database And Media From Neon Azoth</h2>
+      <p>
+        This is the full reset recovery path. It overwrites this MacBook's local MongoDB database and
+        local <code>backend/media</code> so the fresh install matches Neon Azoth.
+      </p>
+      <pre><code>cd ~/Developer/discowarpcore
+npm run neonazoth:tui</code></pre>
+
+      <ol>
+        <li>Select <code>Overwrite local DB + media from NeonAzoth</code>.</li>
+        <li>Confirm backup and preview.</li>
+        <li>Review the <code>rsync --delete</code> dry run.</li>
+        <li>Type the exact confirmation phrase only when ready: <code>OVERWRITE LOCAL FROM NEONAZOTH</code>.</li>
+      </ol>
+
+      <p class="warn">
+        This option is intentionally destructive. It creates rollback artifacts under <code>dump/</code>,
+        but it still removes local-only records and media from the active app state.
+      </p>
+    </section>
+
+    <section>
+      <h2>5. Install Or Verify ObjectGlow</h2>
+      <p>
+        The local image processor expects ObjectGlow at <code>/Users/moonshade/Developer/objectiglow</code>
+        unless <code>OBJECT_GLOW_REPO</code> says otherwise.
+      </p>
+
+      <ul class="checklist">
+        <li>Restore or clone ObjectGlow into <code>~/Developer/objectiglow</code>.</li>
+        <li>Create or restore its Python virtual environment.</li>
+        <li>Confirm <code>bin/objectglow</code> exists and is executable.</li>
+      </ul>
+
+      <pre><code>cd ~/Developer/discowarpcore
+npm run smoke:objectglow</code></pre>
+
+      <p class="small">
+        If ObjectGlow reports a missing rembg backend, install the CPU extra in the ObjectGlow venv:
+      </p>
+      <pre><code>~/Developer/objectiglow/.venv/bin/python -m pip install "rembg[cpu]"</code></pre>
+    </section>
+
+    <section>
+      <h2>6. Verify The Local App</h2>
+      <pre><code>cd ~/Developer/discowarpcore
+npm start</code></pre>
+
+      <p>Open the app from this Mac or another LAN device:</p>
+      <pre><code>http://127.0.0.1:5002
+http://&lt;macbook-lan-ip&gt;:5002</code></pre>
+
+      <ul class="checklist">
+        <li>Open an item with an image.</li>
+        <li>Run <code>Retry Process</code> on an image.</li>
+        <li>Confirm the image status becomes completed.</li>
+        <li>Confirm the processed, display, and thumb images render.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>7. Verify Vision Intake TUI</h2>
+      <pre><code>mkdir -p ~/Intake/inbox ~/Intake/processing ~/Intake/completed ~/Intake/failed ~/Intake/exports
+cd ~/Developer/discowarpcore
+npm run intake:tui</code></pre>
+
+      <ul class="checklist">
+        <li>Confirm the TUI opens and shows inbox/processing counts.</li>
+        <li>Drop test photos into <code>~/Intake/inbox</code>.</li>
+        <li>Start a small test batch.</li>
+        <li>Use a 3-digit destination box when needed.</li>
+        <li>Choose direct database import only when the backend is running on port <code>5002</code>.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>8. Verify Neon Azoth Control Panel TUI</h2>
+      <pre><code>cd ~/Developer/discowarpcore
+npm run neonazoth:tui -- --overwrite-local-check
+npm run neonazoth:tui -- --merge-check
+npm run neonazoth:tui -- --status
+npm run neonazoth:tui</code></pre>
+
+      <ul class="checklist">
+        <li><code>Status and health check</code> should show the remote process and health endpoint.</li>
+        <li><code>Merge Moonshade DB + media into NeonAzoth</code> pushes local-only data into production.</li>
+        <li><code>Overwrite local DB + media from NeonAzoth</code> restores this MacBook from production.</li>
+        <li><code>Protected sync + install + build + restart</code> deploys source code to Neon Azoth, preserving media and env files.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>9. Quick Recovery Commands</h2>
+      <div class="grid">
+        <div>
+          <h3>Local restore from Neon Azoth</h3>
+          <pre><code>npm run neonazoth:tui</code></pre>
+          <p class="small">Choose <code>Overwrite local DB + media from NeonAzoth</code>.</p>
+        </div>
+        <div>
+          <h3>Push local source to Neon Azoth</h3>
+          <pre><code>npm run neonazoth:tui</code></pre>
+          <p class="small">Choose <code>Protected sync + install + build + restart</code>.</p>
+        </div>
+        <div>
+          <h3>Run image smoke test</h3>
+          <pre><code>npm run smoke:objectglow</code></pre>
+        </div>
+        <div>
+          <h3>Start app</h3>
+          <pre><code>npm start</code></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,5 +1,7 @@
-import { useContext, useEffect, useMemo, useRef } from 'react';
+import { createElement, useContext, useEffect, useMemo, useRef } from 'react';
 import { ToastContext } from '../Toast';
+import ItemPageConsoleActions from '../ItemPageConsoleActions';
+import ItemPageConsoleDetails from '../ItemPageConsoleDetails';
 
 export default function useEditItemActionToast({
   item,
@@ -9,6 +11,7 @@ export default function useEditItemActionToast({
   onCancel,
   onSave,
   onRevert,
+  preserveToastOnCancel = false,
 }) {
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
@@ -16,9 +19,9 @@ export default function useEditItemActionToast({
   const saveRef = useRef(onSave);
   const revertRef = useRef(onRevert);
   const cancelRef = useRef(onCancel);
+  const cancelRequestedRef = useRef(false);
   const itemId = String(item?._id || item?.id || '');
   const itemName = String(item?.name || '').trim();
-  const hasCancelAction = typeof onCancel === 'function';
   const editActionToastId = useMemo(
     () => `edit-item-actions:${itemId}`,
     [itemId]
@@ -37,47 +40,38 @@ export default function useEditItemActionToast({
       id: editActionToastId,
       sticky: true,
       variant: 'command',
-      title: itemName ? `Editing ${itemName}` : 'Editing item',
-      message: isDirty ? 'Unsaved changes' : 'All changes saved',
-      onClose: hasCancelAction ? () => cancelRef.current?.() : undefined,
-      actions: [
-        ...(hasCancelAction
-          ? [{
-              id: 'view',
-              label: 'View',
-              kind: 'mode',
-              disabled: saving,
-              onClick: () => cancelRef.current?.(),
-            }]
-          : []),
-        {
-          id: 'save',
-          label: saving ? 'Saving...' : 'Save',
-          kind: 'primary',
-          disabled: !isDirty || saving || lifecycleBusy,
-          onClick: () => saveRef.current?.(),
+      title: itemName || 'Item',
+      titleDetails: createElement(ItemPageConsoleDetails, { item }),
+      titleAlign: 'start',
+      titleSize: 'hero',
+      content: createElement(ItemPageConsoleActions, {
+        isEditing: true,
+        onView: () => {
+          if (preserveToastOnCancel) cancelRequestedRef.current = true;
+          return cancelRef.current?.();
         },
-        {
-          id: 'revert',
-          label: 'Revert',
-          disabled: !isDirty || saving || lifecycleBusy,
-          onClick: () => revertRef.current?.(),
-        },
-      ],
+        onSave: () => saveRef.current?.(),
+        onRevert: () => revertRef.current?.(),
+        saving,
+        isDirty,
+        lifecycleBusy,
+      }),
     });
   }, [
     editActionToastId,
-    hasCancelAction,
     isDirty,
     itemId,
     itemName,
     lifecycleBusy,
+    preserveToastOnCancel,
     saving,
     showToast,
   ]);
 
   useEffect(() => {
     if (!hideToast || !itemId) return undefined;
-    return () => hideToast(editActionToastId);
+    return () => {
+      if (!cancelRequestedRef.current) hideToast(editActionToastId);
+    };
   }, [editActionToastId, hideToast, itemId]);
 }

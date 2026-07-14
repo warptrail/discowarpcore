@@ -54,6 +54,7 @@ function parseNonNegativeInt(raw, fallback) {
 async function getAllItemsApi(req, res) {
   try {
     const statusScope = toItemStatusScope(req.query.status);
+    const listView = String(req.query.view || '').trim().toLowerCase() === 'list';
     const hasPaginationRequest =
       req.query.limit != null || req.query.offset != null || req.query.page != null;
     const hasFilterRequest =
@@ -81,7 +82,8 @@ async function getAllItemsApi(req, res) {
       return res.json(payload);
     }
 
-    const items = await getAllItems({ statusScope });
+    const items = await getAllItems({ statusScope, listView });
+    res.set('Cache-Control', 'private, no-cache');
     return res.json(items);
   } catch (err) {
     console.error('❌ Error fetching items:', err);

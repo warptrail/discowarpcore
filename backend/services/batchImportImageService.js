@@ -3,9 +3,18 @@ const path = require('path');
 const crypto = require('crypto');
 const sharp = require('sharp');
 
-const { ITEM_MEDIA_SUBDIRS, toAbsoluteMediaPath, toMediaUrl } = require('../config/media');
+const {
+  ITEM_MEDIA_SUBDIRS,
+  DERIVATIVE_FORMAT,
+  toAbsoluteMediaPath,
+  toMediaUrl,
+} = require('../config/media');
 const { setItemImage } = require('./itemService');
-const { upsertMediaStateByOriginalPath } = require('./mediaProcessingService');
+const {
+  upsertMediaStateByOriginalPath,
+  syncDerivedVariantsForMedia,
+  toErrorPayload,
+} = require('./mediaProcessingService');
 
 const MATCHABLE_IMPORT_EXTENSIONS = new Set([
   '.jpg',
@@ -22,6 +31,10 @@ const MIME_BY_EXTENSION = {
   '.webp': 'image/webp',
   '.heic': 'image/heic',
 };
+
+let setItemImageRunner = setItemImage;
+let upsertMediaStateRunner = upsertMediaStateByOriginalPath;
+let syncDerivedVariantsRunner = syncDerivedVariantsForMedia;
 
 function toTrimmed(value) {
   return value == null ? '' : String(value).trim();
@@ -141,6 +154,30 @@ async function copyMatchedImportImage(match) {
   };
 }
 
+function absoluteMediaPathToStoragePath(absolutePath) {
+  const relativePath = path.relative(toAbsoluteMediaPath(''), absolutePath);
+  if (!relativePath || relativePath.startsWith('..')) {
+    throw new Error(`Derivative path is outside managed media storage: ${absolutePath}`);
+  }
+  return relativePath.replace(/\\/g, '/');
+}
+
+async function readDerivativeMetadata(absolutePath) {
+  const [stats, metadata] = await Promise.all([
+    fs.stat(absolutePath),
+    sharp(absolutePath).metadata(),
+  ]);
+  const storagePath = absoluteMediaPathToStoragePath(absolutePath);
+  return {
+    storagePath,
+    url: toMediaUrl(storagePath),
+    mimeType: DERIVATIVE_FORMAT.mimeType,
+    width: metadata?.width ?? null,
+    height: metadata?.height ?? null,
+    sizeBytes: stats?.size ?? null,
+  };
+}
+
 async function attachBatchImportImageToItem({
   itemId,
   imageKey,
@@ -153,7 +190,7 @@ async function attachBatchImportImageToItem({
   }
 
   const original = await copyMatchedImportImage(resolution.match);
-  const mediaState = await upsertMediaStateByOriginalPath(original.absolutePath, {
+  let mediaState = await upsertMediaStateRunner(original.absolutePath, {
     processedPath: '',
     displayPath: '',
     thumbPath: '',
@@ -165,6 +202,31 @@ async function attachBatchImportImageToItem({
     processingError: null,
     processedAt: null,
   });
+
+  let display;
+  let thumb;
+  try {
+    mediaState = await syncDerivedVariantsRunner(original.absolutePath);
+    [display, thumb] = await Promise.all([
+      readDerivativeMetadata(mediaState.displayPath),
+      readDerivativeMetadata(mediaState.thumbPath),
+    ]);
+  } catch (error) {
+    const processingError = toErrorPayload(error);
+    mediaState = await upsertMediaStateRunner(original.absolutePath, {
+      processingStatus: 'failed',
+      processingError,
+    });
+    return {
+      status: 'derivative_failed',
+      imageKey: resolution.imageKey,
+      mediaId: mediaState.mediaId,
+      storagePath: original.storagePath,
+      originalPath: mediaState.originalPath,
+      processingStatus: mediaState.processingStatus,
+      error: processingError,
+    };
+  }
 
   const image = {
     mediaId: mediaState.mediaId,
@@ -178,25 +240,11 @@ async function attachBatchImportImageToItem({
       height: original.height,
       sizeBytes: original.sizeBytes,
     },
-    display: {
-      storagePath: '',
-      url: '',
-      mimeType: '',
-      width: null,
-      height: null,
-      sizeBytes: null,
-    },
-    thumb: {
-      storagePath: '',
-      url: '',
-      mimeType: '',
-      width: null,
-      height: null,
-      sizeBytes: null,
-    },
+    display,
+    thumb,
   };
 
-  await setItemImage(itemId, image);
+  await setItemImageRunner(itemId, image);
 
   return {
     status: 'attached',
@@ -209,9 +257,29 @@ async function attachBatchImportImageToItem({
   };
 }
 
+function __setBatchImportImageHandlersForTests(handlers = {}) {
+  if (typeof handlers.setItemImage === 'function') {
+    setItemImageRunner = handlers.setItemImage;
+  }
+  if (typeof handlers.upsertMediaStateByOriginalPath === 'function') {
+    upsertMediaStateRunner = handlers.upsertMediaStateByOriginalPath;
+  }
+  if (typeof handlers.syncDerivedVariantsForMedia === 'function') {
+    syncDerivedVariantsRunner = handlers.syncDerivedVariantsForMedia;
+  }
+}
+
+function __resetBatchImportImageHandlersForTests() {
+  setItemImageRunner = setItemImage;
+  upsertMediaStateRunner = upsertMediaStateByOriginalPath;
+  syncDerivedVariantsRunner = syncDerivedVariantsForMedia;
+}
+
 module.exports = {
   MATCHABLE_IMPORT_EXTENSIONS,
   buildImportImageLookup,
   resolveImportImageMatch,
   attachBatchImportImageToItem,
+  __setBatchImportImageHandlersForTests,
+  __resetBatchImportImageHandlersForTests,
 };

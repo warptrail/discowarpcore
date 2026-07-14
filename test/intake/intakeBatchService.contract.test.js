@@ -1328,6 +1328,67 @@ test('ingestIntakeBatchPackageArchiveFromFile stages batch_manifest package', as
   assert.equal(result.nextStepSuggestion, 'Package staged successfully. Validate the batch before import.');
 });
 
+test('ingestIntakeBatchPackageArchiveFromFile falls back when temp files cross devices', async (t) => {
+  intakeBatchService.__resetIntakeBatchServiceHandlersForTests();
+  await withExternalIntakeRoot(t);
+  intakeBatchService.__setIntakeBatchServiceHandlersForTests({
+    batchModel: createInMemoryBatchModel(),
+  });
+  t.after(() => intakeBatchService.__resetIntakeBatchServiceHandlersForTests());
+
+  const fixtureDir = await createTempDir(t, 'dwc-package-fixture-');
+  const imagesDir = path.join(fixtureDir, 'images');
+  await fs.mkdir(imagesDir, { recursive: true });
+  await fs.writeFile(path.join(imagesDir, 'IMG_2001.png'), 'img-1', 'utf8');
+  await fs.writeFile(
+    path.join(fixtureDir, 'batch_manifest.json'),
+    JSON.stringify({
+      packageVersion: 2,
+      app: 'discowarpcore',
+      batchLabel: 'cross device shelf',
+      items: [
+        {
+          imageFile: 'IMG_2001.png',
+          imageKey: 'IMG_2001',
+          name: 'Storage bag',
+          description: 'clear storage bag',
+          category: 'storage',
+          tags: [],
+          quantity: 1,
+        },
+      ],
+    }),
+    'utf8'
+  );
+
+  const zipDir = await createTempDir(t, 'dwc-package-zip-');
+  const zipPath = path.join(zipDir, 'cross-device-shelf.zip');
+  await createZipFromDir(fixtureDir, zipPath);
+
+  const originalRename = fs.rename;
+  let renameAttempts = 0;
+  fs.rename = async () => {
+    renameAttempts += 1;
+    const error = new Error('cross-device link not permitted');
+    error.code = 'EXDEV';
+    throw error;
+  };
+  t.after(() => {
+    fs.rename = originalRename;
+  });
+
+  const result = await intakeBatchService.ingestIntakeBatchPackageArchiveFromFile(zipPath, {
+    originalPackageFilename: 'cross-device-shelf.zip',
+  });
+
+  assert.equal(result.ok, true);
+  assert.ok(renameAttempts > 0);
+  assert.equal(await fs.readFile(path.join(result.batch.batchDir, 'original_images', 'IMG_2001.png'), 'utf8'), 'img-1');
+  const layout = getBatchLayout(result.batch.batchDir);
+  assert.equal(await fs.stat(layout.mergedInventoryJson).then(() => true), true);
+  assert.equal(await fs.stat(layout.imageOrderCsv).then(() => true), true);
+});
+
 test('batch_manifest package without destination requires explicit destination review', async (t) => {
   intakeBatchService.__resetIntakeBatchServiceHandlersForTests();
   await withExternalIntakeRoot(t);

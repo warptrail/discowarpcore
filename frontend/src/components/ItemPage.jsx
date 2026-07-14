@@ -12,7 +12,8 @@ import ItemDetails from './ItemDetails';
 import ItemPageConsoleActions from './ItemPageConsoleActions';
 import ItemPageBreadcrumb from './ItemPageBreadcrumb';
 import EditItemDetailsForm from './EditItemDetailsForm';
-import ItemContainerSection from './ItemContainerSection';
+import ItemButtonBar from './ItemButtonBar';
+import ItemPageConsoleDetails from './ItemPageConsoleDetails';
 import useItemTimestampActions from '../hooks/useItemTimestampActions';
 import useItemImageProcessing from '../hooks/useItemImageProcessing';
 import {
@@ -483,18 +484,29 @@ export default function ItemPage() {
   });
 
   useEffect(() => {
-    if (loading || error || notFound || !item?._id || isEditing) return undefined;
-    if (activeToastId && activeToastId !== 'item-page-actions') return undefined;
+    if (loading || error || notFound || !item?._id) return undefined;
+    const editActionToastId = `edit-item-actions:${item._id}`;
+    const handingOffFromEdit = !isEditing && activeToastId === editActionToastId;
+    if (
+      activeToastId &&
+      activeToastId !== 'item-page-actions' &&
+      !handingOffFromEdit
+    ) {
+      return undefined;
+    }
 
     showToast?.({
       id: 'item-page-actions',
       variant: 'command',
-      title: 'Item console',
-      message: 'View mode',
+      title: getItemName(item),
+      titleDetails: <ItemPageConsoleDetails item={item} />,
+      titleAlign: 'start',
+      titleSize: 'hero',
       sticky: true,
       content: (
         <ItemPageConsoleActions
-          itemName={getItemName(item)}
+          isEditing={isEditing}
+          onView={() => setIsEditing(false)}
           onEdit={() => setIsEditing(true)}
         />
       ),
@@ -929,17 +941,9 @@ export default function ItemPage() {
     <S.Page>
       <ItemPageBreadcrumb item={item} itemId={itemId} />
 
-      <S.TitleBar>
-        <S.TitleRow>
-          <S.TitleInfo>
-            <S.Title>{item?.name || 'Unnamed Item'}</S.Title>
-            <S.Meta>Item ID {item?._id || itemId}</S.Meta>
-          </S.TitleInfo>
-        </S.TitleRow>
-      </S.TitleBar>
-
-      <ItemContainerSection
+      <ItemButtonBar
         item={item}
+        isEditing={isEditing}
         pending={containerPending}
         error={containerError}
         onMoveItem={handleMoveItem}
@@ -984,10 +988,11 @@ export default function ItemPage() {
           processedPreviewUrl={processedPreviewUrl}
           imageRefreshToken={imageRefreshToken}
           onCancel={async () => {
+            setIsEditing(false);
             try {
               await loadItem({ preserveLoading: true });
-            } finally {
-              setIsEditing(false);
+            } catch {
+              // loadItem reports failures through the page state.
             }
           }}
           onSaved={async (updated) => {
@@ -999,6 +1004,7 @@ export default function ItemPage() {
               setIsEditing(false);
             }
           }}
+          preserveToastOnCancel
         />
       ) : (
         <ItemDetails

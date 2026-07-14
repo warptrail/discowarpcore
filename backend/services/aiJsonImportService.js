@@ -677,6 +677,7 @@ async function logAiImportBatchEvent({
               attached_count: Number(imageImportSummary.attachedCount) || 0,
               missing_count: Number(imageImportSummary.missingCount) || 0,
               ambiguous_count: Number(imageImportSummary.ambiguousCount) || 0,
+              derivative_failed_count: Number(imageImportSummary.derivativeFailedCount) || 0,
               ready_count: Number(imageImportSummary.readyCount) || 0,
             }
           : null,
@@ -881,6 +882,7 @@ async function importAiJsonItems(body = {}) {
     attachedCount: 0,
     missingCount: 0,
     ambiguousCount: 0,
+    derivativeFailedCount: 0,
     readyCount: 0,
   };
 
@@ -964,6 +966,11 @@ async function importAiJsonItems(body = {}) {
           if (attachment.status === 'attached') {
             imageImportSummary.attachedCount += 1;
             imageImportSummary.readyCount += 1;
+          } else if (attachment.status === 'derivative_failed') {
+            imageImportSummary.derivativeFailedCount += 1;
+            warnings.push(
+              `Retained import image for imageKey "${normalizedItem.imageKey}" but derivative generation failed for item "${createdItemRef.label}": ${attachment?.error?.message || 'Unknown derivative error.'}`
+            );
           } else if (attachment.status === 'missing') {
             imageImportSummary.missingCount += 1;
             warnings.push(

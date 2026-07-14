@@ -33,6 +33,11 @@ const {
   ensureDestinationBox,
   normalizeTuiBoxNumber,
 } = require('./vision-intake-tui/boxProvisioning');
+const {
+  checkApiHealth,
+  printApiConfig,
+  resolveApiConfig,
+} = require('./vision-intake-tui/apiConfig');
 
 const IMPORT_MODES = Object.freeze({
   direct: 'direct',
@@ -97,8 +102,22 @@ async function runPreprocessInitAndPrompt(rl, batch, intakePaths) {
     current = await runInit(current);
     const prompt = await writeAndCopyAgentPrompt(current);
     console.log('');
-    console.log(prompt.copied ? 'Agent prompt copied to clipboard.' : 'Agent prompt written. Clipboard copy failed.');
+    if (prompt.copied && prompt.method === 'terminal') {
+      console.log('Agent prompt copied to terminal clipboard.');
+    } else if (prompt.copied && prompt.method === 'ssh-pbcopy') {
+      console.log(`Agent prompt copied to MacBook clipboard over SSH: ${prompt.target}`);
+    } else if (prompt.copied) {
+      console.log('Agent prompt copied to macOS clipboard.');
+    } else {
+      console.log('Agent prompt written. Clipboard copy failed.');
+    }
     console.log(`Prompt file: ${prompt.promptPath}`);
+    if (prompt.scp?.attempted && prompt.scp.ok) {
+      console.log(`Agent prompt copied with scp to: ${prompt.scp.target}`);
+    } else if (prompt.scp?.attempted) {
+      console.log(`Agent prompt scp failed: ${prompt.scp.error || 'unknown error'}`);
+    }
+    console.log(`MacBook pull command: ${prompt.pullCommand}`);
     console.log('Run Codex now. Return here when complete.');
     await askEnter(rl);
     return readBatchState(current.paths.root);
@@ -108,7 +127,7 @@ async function runPreprocessInitAndPrompt(rl, batch, intakePaths) {
   }
 }
 
-async function validateAndFinish(rl, batch, intakePaths) {
+async function validateAndFinish(rl, batch, intakePaths, { apiBase } = {}) {
   let current = batch;
   let failureStage = 'validating';
   try {
@@ -130,7 +149,7 @@ async function validateAndFinish(rl, batch, intakePaths) {
     }
 
     failureStage = 'importing';
-    const imported = await runDirectImport(current);
+    const imported = await runDirectImport(current, { apiBase });
     const archived = await archiveCompletedBatch(imported, intakePaths);
     console.log(`Direct import completed. Batch archived at: ${archived.paths.root}`);
     return archived;
@@ -140,7 +159,7 @@ async function validateAndFinish(rl, batch, intakePaths) {
   }
 }
 
-async function startNewBatch(rl, intakePaths) {
+async function startNewBatch(rl, intakePaths, { apiBase } = {}) {
   const inboxImages = await listImageFiles(intakePaths.inbox);
   if (!inboxImages.length) {
     console.log(`No supported images found in ${intakePaths.inbox}`);
@@ -160,7 +179,7 @@ async function startNewBatch(rl, intakePaths) {
   ]);
 
   if (box && importMode === IMPORT_MODES.direct) {
-    const ensured = await ensureDestinationBox({ box, location });
+    const ensured = await ensureDestinationBox({ box, location, apiBase });
     console.log(
       ensured.created
         ? `Created destination box #${ensured.boxNumber}.`
@@ -178,16 +197,16 @@ async function startNewBatch(rl, intakePaths) {
 
   console.log(`Created batch workspace: ${batch.paths.root}`);
   const afterPrompt = await runPreprocessInitAndPrompt(rl, batch, intakePaths);
-  await validateAndFinish(rl, afterPrompt, intakePaths);
+  await validateAndFinish(rl, afterPrompt, intakePaths, { apiBase });
 }
 
-async function resumeBatch(rl, intakePaths) {
+async function resumeBatch(rl, intakePaths, { apiBase } = {}) {
   const batches = await listBatchStates(intakePaths.processing);
   const batch = await chooseBatch(rl, batches, 'Resume Existing Batch');
   if (!batch) return;
 
   if (batch.status === 'awaiting_annotation' || batch.pipelineStage === 'awaiting_annotation') {
-    await validateAndFinish(rl, batch, intakePaths);
+    await validateAndFinish(rl, batch, intakePaths, { apiBase });
     return;
   }
 
@@ -199,8 +218,9 @@ async function resumeBatch(rl, intakePaths) {
     ]);
     if (action === 'import') {
       try {
-        const imported = await runDirectImport(batch);
-        await archiveCompletedBatch(imported, intakePaths);
+        const imported = await runDirectImport(batch, { apiBase });
+        const archived = await archiveCompletedBatch(imported, intakePaths);
+        console.log(`Direct import completed. Batch archived at: ${archived.paths.root}`);
       } catch (error) {
         await recordFailedBatch(batch, intakePaths, error, 'importing');
         throw error;
@@ -221,9 +241,9 @@ async function resumeBatch(rl, intakePaths) {
     ]);
     if (action === 'preprocess') {
       const afterPrompt = await runPreprocessInitAndPrompt(rl, batch, intakePaths);
-      await validateAndFinish(rl, afterPrompt, intakePaths);
+      await validateAndFinish(rl, afterPrompt, intakePaths, { apiBase });
     } else if (action === 'validate') {
-      await validateAndFinish(rl, batch, intakePaths);
+      await validateAndFinish(rl, batch, intakePaths, { apiBase });
     } else if (action === 'open') {
       await openFolder(batch.paths.root);
     }
@@ -235,11 +255,11 @@ async function resumeBatch(rl, intakePaths) {
   });
   if (restart) {
     const afterPrompt = await runPreprocessInitAndPrompt(rl, batch, intakePaths);
-    await validateAndFinish(rl, afterPrompt, intakePaths);
+    await validateAndFinish(rl, afterPrompt, intakePaths, { apiBase });
   }
 }
 
-async function reviewFailedBatch(rl, intakePaths) {
+async function reviewFailedBatch(rl, intakePaths, { apiBase } = {}) {
   const failedInProcessing = (await listBatchStates(intakePaths.processing))
     .filter((batch) => batch.status === 'failed');
   const failedArchived = await listBatchStates(intakePaths.failed);
@@ -262,13 +282,18 @@ async function reviewFailedBatch(rl, intakePaths) {
     await openFolder(batch.paths.root);
   } else if (action === 'preprocess') {
     const afterPrompt = await runPreprocessInitAndPrompt(rl, batch, intakePaths);
-    await validateAndFinish(rl, afterPrompt, intakePaths);
+    await validateAndFinish(rl, afterPrompt, intakePaths, { apiBase });
   } else if (action === 'validate') {
-    await validateAndFinish(rl, batch, intakePaths);
+    await validateAndFinish(rl, batch, intakePaths, { apiBase });
   }
 }
 
 async function main() {
+  const apiConfig = resolveApiConfig();
+  printApiConfig(apiConfig);
+  await checkApiHealth(apiConfig.apiBase);
+  console.log('Backend API health check passed.');
+
   const intakePaths = await ensureIntakeDirs();
   const rl = createPromptSession();
 
@@ -287,11 +312,11 @@ async function main() {
       ]);
 
       if (action === 'start') {
-        await startNewBatch(rl, intakePaths);
+        await startNewBatch(rl, intakePaths, apiConfig);
       } else if (action === 'resume') {
-        await resumeBatch(rl, intakePaths);
+        await resumeBatch(rl, intakePaths, apiConfig);
       } else if (action === 'failed') {
-        await reviewFailedBatch(rl, intakePaths);
+        await reviewFailedBatch(rl, intakePaths, apiConfig);
       } else if (action === 'open') {
         await openFolder(intakePaths.root);
       } else {
@@ -308,5 +333,9 @@ async function main() {
 }
 
 if (require.main === module) {
-  main();
+  main().catch((error) => {
+    console.error('');
+    console.error(error?.message || error);
+    process.exit(1);
+  });
 }

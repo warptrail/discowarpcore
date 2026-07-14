@@ -95,9 +95,6 @@ export default function ItemRow({
   const collapsedThumbUrl =
     localImage?.thumb?.url ||
     localImage?.display?.url ||
-    localImage?.original?.url ||
-    localImage?.url ||
-    localImagePath ||
     '';
   const itemForView = useMemo(
     () => ({
