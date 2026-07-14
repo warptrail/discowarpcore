@@ -1,8 +1,4 @@
-const DEFAULT_API_BASE = 'http://127.0.0.1:5002';
-
-function normalizeApiBase(apiBase = process.env.DWC_API_BASE || DEFAULT_API_BASE) {
-  return String(apiBase || DEFAULT_API_BASE).replace(/\/+$/, '');
-}
+const { normalizeApiBase } = require('./apiConfig');
 
 function normalizeTuiBoxNumber(value) {
   const normalized = String(value || '').trim();
@@ -115,7 +111,6 @@ async function ensureDestinationBox({
 module.exports = {
   createDestinationBox,
   ensureDestinationBox,
-  normalizeApiBase,
   normalizeTuiBoxNumber,
   resolveDestinationBox,
 };

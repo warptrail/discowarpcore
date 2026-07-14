@@ -1028,13 +1028,18 @@ export default function Header() {
         <Toast
           open={!!toast}
           title={toast?.title}
+          titleDetails={toast?.titleDetails}
+          titleAlign={toast?.titleAlign}
+          titleSize={toast?.titleSize}
           message={toast?.message}
           content={toast?.content}
           variant={toast?.variant ?? 'info'}
           loading={!!toast?.loading}
           actions={toast?.actions ?? []}
           onClose={
-            toast
+            toast &&
+            toast.id !== 'item-page-actions' &&
+            !String(toast.id || '').startsWith('edit-item-actions:')
               ? handleToastClose
               : typeof activeRetrievalItem?.onCollapse === 'function'
                 ? activeRetrievalItem.onCollapse

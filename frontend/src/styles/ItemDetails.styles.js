@@ -175,6 +175,20 @@ export const Panel = styled.section`
   }
 `;
 
+export const ItemIdFooter = styled.div`
+  margin-top: 0.7rem;
+  padding: 0.55rem 0.15rem 0.05rem;
+  border-top: 1px solid ${LCARS.line};
+  color: ${LCARS.textMuted};
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  text-align: right;
+`;
+
 export const HeaderBand = styled.header`
   position: relative;
   z-index: 1;

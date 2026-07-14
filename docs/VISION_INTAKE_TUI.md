@@ -2,6 +2,7 @@
 
 `npm run intake:tui` is the preferred local workflow for AI-assisted vision intake.
 For the operator-facing workflow guide, open `docs/batch-import-workflow.html`.
+For MacBook-to-production intake, see `docs/tui-production-intake.md`.
 The old Desktop staging-folder workflow has been removed from current docs.
 
 ## Folder Model
@@ -72,17 +73,22 @@ Import modes:
 - `Validate/package only, no import`: validates and packages into the batch workspace
   but does not call the backend import endpoints.
 
-Direct import expects the backend dev server to be running at:
+Direct import uses the backend API target printed at TUI startup. In development,
+the default is:
 
 ```text
-http://127.0.0.1:5002
+http://localhost:5002
 ```
 
 Override with:
 
 ```bash
-DWC_API_BASE=http://127.0.0.1:5002 npm run intake:tui
+DISCO_API_BASE=http://localhost:5002 npm run intake:tui
 ```
+
+For production, run with `DISCO_ENV=production` and set `DISCO_API_BASE` to the
+production backend API or an SSH tunnel URL. The TUI refuses to start in
+production mode without `DISCO_API_BASE`.
 
 ## Pipeline
 
@@ -103,9 +109,10 @@ Background removal uses the existing script:
 node scripts/preprocess_vision_images.js
 ```
 
-The TUI defaults `OBJECTGLOW_REPO` to:
+The TUI defaults `OBJECTGLOW_REPO` to the first available checkout from:
 
 ```text
+/Volumes/Luna/Developer-Luna/objectiglow
 ~/Developer/objectiglow
 ```
 
@@ -120,7 +127,8 @@ When init succeeds, the TUI writes:
 <batchRoot>/CODEX_AGENT_PROMPT.md
 ```
 
-It also copies that prompt to the macOS clipboard with `pbcopy` when available.
+It copies that prompt through the terminal clipboard when running over SSH, or
+to the local macOS clipboard with `pbcopy` when running directly on the Mac.
 
 The prompt tells Codex to:
 

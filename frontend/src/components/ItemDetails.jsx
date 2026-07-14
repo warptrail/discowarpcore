@@ -579,6 +579,7 @@ export default function ItemDetails({
           </DetailSection>
 
           </S.SectionGrid>
+          <S.ItemIdFooter>Item ID {resolvedItemData?._id || itemId}</S.ItemIdFooter>
         </>
       )}
 

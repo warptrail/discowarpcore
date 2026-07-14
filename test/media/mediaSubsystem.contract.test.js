@@ -502,7 +502,7 @@ test('syncDerivedVariantsForMedia uses activeVariant source path', async (t) => 
   });
 
   const originalPath = path.join(tempDir, 'items', 'original', 'variant-check.jpg');
-  const processedPath = path.join(tempDir, 'items', 'processed', 'variant-check.webp');
+  const processedPath = path.join(tempDir, 'items', 'processed', 'different-processed-name.webp');
 
   await createTestImage(originalPath, { width: 120, height: 80, rgb: [255, 0, 0] });
   await fs.mkdir(path.dirname(processedPath), { recursive: true });
@@ -530,7 +530,10 @@ test('syncDerivedVariantsForMedia uses activeVariant source path', async (t) => 
 
   const fromProcessed = await mediaProcessingService.syncDerivedVariantsForMedia(originalPath);
   const displayFromProcessed = await sharp(fromProcessed.displayPath).metadata();
+  const processedThumbBytes = await fs.readFile(fromProcessed.thumbPath);
   assert.equal(displayFromProcessed.width, 40);
+  assert.equal(path.basename(fromProcessed.displayPath), 'variant-check.webp');
+  assert.equal(path.basename(fromProcessed.thumbPath), 'variant-check.webp');
 
   stateMock.store.set(originalPath, {
     ...stateMock.store.get(originalPath),
@@ -539,7 +542,49 @@ test('syncDerivedVariantsForMedia uses activeVariant source path', async (t) => 
 
   const fromOriginal = await mediaProcessingService.syncDerivedVariantsForMedia(originalPath);
   const displayFromOriginal = await sharp(fromOriginal.displayPath).metadata();
+  const originalThumbBytes = await fs.readFile(fromOriginal.thumbPath);
   assert.equal(displayFromOriginal.width, 120);
+  assert.equal(fromOriginal.thumbPath, fromProcessed.thumbPath);
+  assert.notDeepEqual(originalThumbBytes, processedThumbBytes);
+});
+
+test('syncDerivedVariantsForMedia preserves alpha in canonical thumbnail', async (t) => {
+  const stateMock = installMediaStateMock();
+  t.after(() => stateMock.restore());
+
+  const tempDir = await createTempMediaDir();
+  t.after(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  const originalPath = path.join(tempDir, 'items', 'original', 'transparent.png');
+  await fs.mkdir(path.dirname(originalPath), { recursive: true });
+  await sharp({
+    create: {
+      width: 500,
+      height: 300,
+      channels: 4,
+      background: { r: 80, g: 160, b: 240, alpha: 0.25 },
+    },
+  }).png().toFile(originalPath);
+
+  stateMock.store.set(originalPath, {
+    originalPath,
+    processedPath: '',
+    activeVariant: 'original',
+    processingStatus: 'ready_for_processing',
+    displayPath: '',
+    thumbPath: '',
+    displayDerivedFrom: null,
+    thumbDerivedFrom: null,
+  });
+
+  const state = await mediaProcessingService.syncDerivedVariantsForMedia(originalPath);
+  const thumbMeta = await sharp(state.thumbPath).metadata();
+  assert.equal(thumbMeta.format, 'webp');
+  assert.equal(thumbMeta.hasAlpha, true);
+  assert.ok(thumbMeta.width <= 320);
+  assert.equal(state.thumbDerivedFrom, 'original');
 });
 
 test('runMediaBatchOperation dryRun returns planned records without mutation', async (t) => {

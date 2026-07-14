@@ -211,7 +211,7 @@ async function attachMediaStateSummariesForRetrieval(rawItems = []) {
 
   const mediaStates = clauses.length
     ? await MediaState.find(clauses.length === 1 ? clauses[0] : { $or: clauses })
-        .select('mediaId originalPath processedPath displayPath thumbPath activeVariant')
+        .select('mediaId originalPath processedPath displayPath thumbPath activeVariant processedAt updatedAt')
         .lean()
     : [];
 
@@ -258,6 +258,7 @@ async function attachMediaStateSummariesForRetrieval(rawItems = []) {
         },
         activeVariant: firstNonEmpty(activeVariant, item?.image?.activeVariant, 'original')
           .toLowerCase(),
+        updatedAt: matchedState?.updatedAt || matchedState?.processedAt || item?.image?.updatedAt || null,
       },
     };
   });
@@ -279,13 +280,13 @@ function resolveItemImageUrls(item) {
 
   if (activeVariant === 'processed' || (!activeVariant && processedUrl)) {
     return {
-      imageUrl: firstNonEmpty(thumbUrl, displayUrl, processedUrl, originalUrl),
+      imageUrl: firstNonEmpty(thumbUrl, displayUrl, processedUrl),
       previewImageUrl: firstNonEmpty(processedUrl, displayUrl, originalUrl, thumbUrl),
     };
   }
 
   return {
-    imageUrl: firstNonEmpty(thumbUrl, displayUrl, originalUrl, processedUrl),
+    imageUrl: firstNonEmpty(thumbUrl, displayUrl, processedUrl),
     previewImageUrl: firstNonEmpty(originalUrl, displayUrl, thumbUrl, processedUrl),
   };
 }

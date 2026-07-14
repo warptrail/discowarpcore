@@ -22,6 +22,10 @@ const {
   RENDER_TOKEN_KEYS,
   validateRenderTokens,
 } = require('../backend/services/renderTokenContract');
+const {
+  DEFAULT_API_BASE,
+  normalizeApiBase,
+} = require('./vision-intake-tui/apiConfig');
 
 const execFileAsync = promisify(execFile);
 
@@ -46,8 +50,6 @@ const IGNORED_WORKSPACE_FILES = new Set([
   INTAKE_FILENAME,
   BATCH_MANIFEST_FILENAME,
 ]);
-const DEFAULT_API_BASE = 'http://127.0.0.1:5002';
-
 const naturalCollator = new Intl.Collator(undefined, {
   numeric: true,
   sensitivity: 'base',
@@ -490,7 +492,7 @@ function normalizeConfig(rawConfig = {}) {
   return {
     batchName: toTrimmed(source.batchName),
     box: toTrimmed(source.box),
-    apiBase: toTrimmed(source.apiBase || process.env.DWC_API_BASE || DEFAULT_API_BASE),
+    apiBase: normalizeApiBase(source.apiBase || process.env.DISCO_API_BASE || process.env.DWC_API_BASE || DEFAULT_API_BASE),
   };
 }
 

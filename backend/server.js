@@ -2,6 +2,7 @@ require('dotenv').config({ path: './backend/.env' });
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 const connectDB = require('./config/db');
 const {
   MEDIA_ROOT,
@@ -29,8 +30,9 @@ const FRONTEND_DIST = path.join(__dirname, '../frontend/dist');
 const FRONTEND_INDEX = path.join(FRONTEND_DIST, 'index.html');
 
 app.use(cors());
+app.use(compression());
 app.use(express.json());
-app.use(MEDIA_URL_BASE, express.static(MEDIA_ROOT));
+app.use(MEDIA_URL_BASE, express.static(MEDIA_ROOT, { maxAge: '1h' }));
 
 // Connect to Mongo
 app.use('/api/boxes', boxRoutes);

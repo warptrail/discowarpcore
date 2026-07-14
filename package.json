@@ -51,6 +51,7 @@
     "merge:staged-db": "node backend/scripts/merge-staged-db.js"
   },
   "dependencies": {
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dayjs": "^1.11.18",
     "dotenv": "^16.5.0",

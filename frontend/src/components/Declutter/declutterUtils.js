@@ -100,8 +100,6 @@ export function getItemThumbnailUrl(item) {
       item?.image?.thumb?.url ||
       item?.image?.display?.url ||
       item?.image?.processed?.url ||
-      item?.image?.original?.url ||
-      item?.imagePath ||
       ''
   ).trim();
 }

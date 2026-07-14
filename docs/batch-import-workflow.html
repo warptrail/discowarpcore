@@ -243,7 +243,7 @@
         </div>
         <div class="tile">
           <strong>Direct import backend</strong>
-          <span>Run the backend at <code>http://127.0.0.1:5002</code>.</span>
+          <span>Run the backend at <code>http://localhost:5002</code> for development, or set <code>DISCO_API_BASE</code>.</span>
         </div>
       </div>
       <p class="callout">
@@ -257,7 +257,7 @@
       <h2>One-Time Setup</h2>
       <ol>
         <li>Confirm dependencies are installed with <code>npm install</code> from the repository root.</li>
-        <li>Confirm objectGlow is available. The TUI defaults to <code>~/Developer/objectiglow</code>.</li>
+        <li>Confirm objectGlow is available. The TUI prefers <code>/Volumes/Luna/Developer-Luna/objectiglow</code>, then falls back to <code>~/Developer/objectiglow</code>.</li>
         <li>Start MongoDB and the Disco Warp Core backend when using direct import.</li>
       </ol>
       <pre><code>cd /Users/moonshade/Developer/discowarpcore
@@ -302,7 +302,7 @@ Processing: active/empty</code></pre>
         <tbody>
           <tr>
             <td><code>Direct database import</code></td>
-            <td>The backend is running locally and you want the normal end-to-end path.</td>
+            <td>The configured backend API is reachable and you want the normal end-to-end path.</td>
             <td>The TUI uploads the package, validates it through backend intake endpoints, imports it, then archives the local batch in <code>~/Intake/completed</code>.</td>
           </tr>
           <tr>
@@ -319,7 +319,8 @@ Processing: active/empty</code></pre>
       </table>
       <p class="muted">
         Override the backend URL with
-        <code>DWC_API_BASE=http://127.0.0.1:5002 npm run intake:tui</code>.
+        <code>DISCO_API_BASE=http://localhost:5002 npm run intake:tui</code>. For production usage, see
+        <code>docs/tui-production-intake.md</code>.
       </p>
     </section>
 
@@ -330,7 +331,7 @@ Processing: active/empty</code></pre>
         <li>Runs background removal with <code>scripts/preprocess_vision_images.js</code>.</li>
         <li>Writes cleaned transparent cutouts to <code>processed/</code>.</li>
         <li>Runs the vision intake builder in init mode to create JSON stubs in <code>item_artifacts/</code>.</li>
-        <li>Writes <code>CODEX_AGENT_PROMPT.md</code> and copies it to the macOS clipboard when possible.</li>
+        <li>Writes <code>CODEX_AGENT_PROMPT.md</code> and copies it through the SSH terminal clipboard or local macOS clipboard when possible.</li>
         <li>Pauses while Codex fills the JSON artifacts.</li>
         <li>Validates the filled artifacts.</li>
         <li>Packages, exports, or imports according to the selected import mode.</li>

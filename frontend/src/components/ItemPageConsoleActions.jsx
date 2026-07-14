@@ -9,44 +9,9 @@ const Wrap = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
   gap: calc(0.7rem - (0.18rem * var(--toast-compact-progress, 0)));
   min-width: 0;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    align-items: stretch;
-    gap: 0.5rem;
-    flex-direction: column;
-  }
-`;
-
-const Meta = styled.div`
-  display: grid;
-  gap: 0.12rem;
-  min-width: 0;
-`;
-
-const Kicker = styled.span`
-  color: rgba(159, 224, 255, 0.82);
-  font-size: calc(0.64rem - (0.04rem * var(--toast-compact-progress, 0)));
-  font-weight: 760;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
-`;
-
-const Name = styled.span`
-  color: rgba(234, 244, 255, 0.96);
-  font-size: calc(0.94rem - (0.1rem * var(--toast-compact-progress, 0)));
-  font-weight: 760;
-  line-height: 1.2;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
 `;
 
 const Actions = styled.div`
@@ -65,9 +30,6 @@ const Actions = styled.div`
     inset 0 0 0 1px rgba(255, 255, 255, 0.035),
     0 0 16px rgba(34, 211, 238, 0.08);
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    justify-content: flex-start;
-  }
 `;
 
 const ModeButton = styled.button`
@@ -146,20 +108,48 @@ const ModeButton = styled.button`
   }
 `;
 
-export default function ItemPageConsoleActions({ itemName, onEdit }) {
+export default function ItemPageConsoleActions({
+  isEditing = false,
+  onView,
+  onEdit,
+  onSave,
+  onRevert,
+  saving = false,
+  isDirty = false,
+  lifecycleBusy = false,
+}) {
   return (
     <Wrap>
-      <Meta>
-        <Kicker>Item actions</Kicker>
-        <Name>{itemName || 'Unnamed Item'}</Name>
-      </Meta>
+      <span aria-hidden="true" />
       <Actions>
-        <ModeButton type="button" $active aria-pressed="true" disabled>
+        <ModeButton
+          type="button"
+          $active={!isEditing}
+          aria-pressed={!isEditing}
+          onClick={onView}
+          disabled={!isEditing}
+        >
           View
         </ModeButton>
-        <ModeButton type="button" aria-pressed="false" onClick={onEdit}>
-          Edit
-        </ModeButton>
+        {isEditing ? (
+          <>
+            <ModeButton type="button" onClick={onSave} disabled={!isDirty || saving || lifecycleBusy}>
+              {saving ? 'Saving...' : 'Save'}
+            </ModeButton>
+            <ModeButton type="button" onClick={onRevert} disabled={!isDirty || saving || lifecycleBusy}>
+              Revert
+            </ModeButton>
+          </>
+        ) : (
+          <ModeButton
+            type="button"
+            $active={false}
+            aria-pressed={false}
+            onClick={onEdit}
+          >
+            Edit
+          </ModeButton>
+        )}
       </Actions>
     </Wrap>
   );
