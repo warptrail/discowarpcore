@@ -11,6 +11,8 @@ import * as S from './Declutter.styles';
 import DeclutterCounts from './DeclutterCounts';
 import DeclutterReviewCard from './DeclutterReviewCard';
 import DeclutterSessionItemList from './DeclutterSessionItemList';
+import DeclutterPlayerPicker from './DeclutterPlayerPicker';
+import { getStoredDeclutterPlayer } from './declutterPlayers';
 import {
   countSessionItems,
   getReviewedCount,
@@ -47,6 +49,7 @@ export default function DeclutterSessionPage() {
   const [resettingSession, setResettingSession] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [player, setPlayer] = useState(getStoredDeclutterPlayer);
 
   const refreshSession = useCallback(async () => {
     if (!sessionId) return;
@@ -54,7 +57,7 @@ export default function DeclutterSessionPage() {
     setError('');
 
     try {
-      const payload = await fetchDeclutterSession(sessionId);
+      const payload = await fetchDeclutterSession(sessionId, { player });
       setSession(payload.session);
       setItems(payload.items);
     } catch (err) {
@@ -64,7 +67,7 @@ export default function DeclutterSessionPage() {
     } finally {
       setLoading(false);
     }
-  }, [sessionId]);
+  }, [player, sessionId]);
 
   useEffect(() => {
     void refreshSession();
@@ -74,7 +77,7 @@ export default function DeclutterSessionPage() {
   const reviewedCount = getReviewedCount(counts);
 
   const pendingItems = useMemo(
-    () => items.filter((entry) => normalizeDecision(entry?.decision) === 'pending'),
+    () => items.filter((entry) => entry?.needsDecision !== false),
     [items]
   );
 
@@ -137,6 +140,7 @@ export default function DeclutterSessionPage() {
       const updated = await updateDeclutterSessionItem(sessionId, itemId, {
         decision,
         notes: notesDraft,
+        player,
       });
       replaceSessionItem(updated);
       setLastDecision(previous);
@@ -164,6 +168,7 @@ export default function DeclutterSessionPage() {
         {
           decision: lastDecision.decision || 'pending',
           notes: lastDecision.notes || '',
+          player,
         }
       );
       replaceSessionItem(updated);
@@ -200,6 +205,7 @@ export default function DeclutterSessionPage() {
       setError('');
       const updated = await updateDeclutterSessionItem(sessionId, itemId, {
         decision: 'pending',
+        player,
       });
       replaceSessionItem(updated);
       if (lastDecision?.itemId === itemId) {
@@ -223,16 +229,8 @@ export default function DeclutterSessionPage() {
     try {
       setResettingSession(true);
       setError('');
-      const result = await resetDeclutterSession(sessionId);
-      setItems((currentItems) =>
-        currentItems.map((entry) => ({
-          ...entry,
-          decision: 'pending',
-          decidedAt: null,
-          decidedBy: '',
-        }))
-      );
-      setSession((currentSession) => result?.session || currentSession);
+      await resetDeclutterSession(sessionId);
+      await refreshSession();
       setReviewCursor(0);
       setLastDecision(null);
       setDecisionFilter('all');
@@ -278,6 +276,7 @@ export default function DeclutterSessionPage() {
             ) : null}
           </div>
           <S.HeaderActions>
+            <DeclutterPlayerPicker value={player} onChange={setPlayer} />
             <S.Button
               type="button"
               $tone="warning"
@@ -315,8 +314,8 @@ export default function DeclutterSessionPage() {
       {error ? <S.ErrorState role="alert">{error}</S.ErrorState> : null}
 
       <S.PlaceholderNote>
-        Apply Dispositions is planned as a separate workflow. These decisions do not
-        change item status, disposition history, box, or location.
+        Swipe right to keep, left to toss. Items your teammate has already decided on
+        rise to the top so the two of you can converge.
       </S.PlaceholderNote>
 
       {mode === 'review' ? (

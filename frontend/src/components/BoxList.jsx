@@ -43,6 +43,8 @@ export default function BoxList({
   const [showOrphanedVirtual, setShowOrphanedVirtual] = useState(false);
   const [viewMode, setViewMode] = useState('cards');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchScope, setSearchScope] = useState('all');
+  const density = 'compact';
   const [boxPrefix, setBoxPrefix] = useState(() =>
     normalizeBoxPrefix(searchParams.get('boxPrefix')),
   );
@@ -52,6 +54,7 @@ export default function BoxList({
   const [boxLocatorLoading, setBoxLocatorLoading] = useState(false);
   const [boxLocatorError, setBoxLocatorError] = useState('');
   const [sortBy, setSortBy] = useState('boxId');
+  const [sortDirection, setSortDirection] = useState('asc');
   const [filterBy, setFilterBy] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState('all');
@@ -112,7 +115,9 @@ export default function BoxList({
     () =>
       applyTreeControls(prefixFilteredBoxes, {
         searchQuery,
+        searchScope,
         sortBy,
+        sortDirection,
         filterBy,
         categoryFilter,
         locationFilter,
@@ -122,7 +127,9 @@ export default function BoxList({
     [
       prefixFilteredBoxes,
       searchQuery,
+      searchScope,
       sortBy,
+      sortDirection,
       filterBy,
       categoryFilter,
       locationFilter,
@@ -150,6 +157,7 @@ export default function BoxList({
     () =>
       matchesNodeControls(orphanedContainer, {
         query: normalize(searchQuery),
+        searchScope,
         filterBy,
         categoryFilter,
         locationFilter,
@@ -159,6 +167,7 @@ export default function BoxList({
     [
       orphanedContainer,
       searchQuery,
+      searchScope,
       filterBy,
       categoryFilter,
       locationFilter,
@@ -325,6 +334,7 @@ export default function BoxList({
   }, [
     searchQuery,
     sortBy,
+    sortDirection,
     filterBy,
     boxPrefix,
     categoryFilter,
@@ -366,12 +376,16 @@ export default function BoxList({
         orphanedCount={telemetry.orphanedCount}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        searchScope={searchScope}
+        onSearchScopeChange={setSearchScope}
         boxLocatorQuery={boxLocatorQuery}
         onBoxLocatorQueryChange={setBoxLocatorQuery}
         boxLocatorMatches={boxLocatorMatches}
         onBoxLocatorSelect={handleBoxLocatorSelect}
         sortBy={sortBy}
         onSortChange={setSortBy}
+        sortDirection={sortDirection}
+        onSortDirectionChange={setSortDirection}
         filterBy={filterBy}
         onFilterChange={setFilterBy}
         boxPrefix={boxPrefix}
@@ -392,6 +406,7 @@ export default function BoxList({
         }
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        density={density}
         onQuickBoxCreated={handleQuickBoxCreated}
         onQuickOrphanCreated={handleQuickOrphanCreated}
         locations={locations}
@@ -426,11 +441,21 @@ export default function BoxList({
                     key={orphanedContainer._id}
                     node={orphanedContainer}
                     depth={0}
+                    searchQuery={searchQuery}
+                    searchScope={searchScope}
+                    density={density}
                   />
                 </S.OrphanedRevealShell>
               ) : null}
               {pagedVisibleBoxes.map((node) => (
-                <CompactBranch key={node._id || node.box_id} node={node} depth={0} />
+                <CompactBranch
+                  key={node._id || node.box_id}
+                  node={node}
+                  depth={0}
+                  searchQuery={searchQuery}
+                  searchScope={searchScope}
+                  density={density}
+                />
               ))}
             </S.TerminalTable>
           ) : (
@@ -441,11 +466,21 @@ export default function BoxList({
                     key={orphanedContainer._id}
                     node={orphanedContainer}
                     depth={0}
+                    searchQuery={searchQuery}
+                    searchScope={searchScope}
+                    density={density}
                   />
                 </S.OrphanedRevealShell>
               ) : null}
               {pagedVisibleBoxes.map((node) => (
-                <Branch key={node._id || node.box_id} node={node} depth={0} />
+                <Branch
+                  key={node._id || node.box_id}
+                  node={node}
+                  depth={0}
+                  searchQuery={searchQuery}
+                  searchScope={searchScope}
+                  density={density}
+                />
               ))}
             </>
           )}
@@ -481,9 +516,16 @@ export default function BoxList({
   );
 }
 
-function CompactBranch({ node, depth = 0 }) {
+function CompactBranch({
+  node,
+  depth = 0,
+  searchQuery = '',
+  searchScope = 'all',
+  density = 'compact',
+}) {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
+  const [childrenExpanded, setChildrenExpanded] = useState(false);
   const childBoxes = Array.isArray(node.childBoxes) ? node.childBoxes : [];
   const tags = getRenderableBoxTags(node);
   const group = String(node?.group || '').trim();
@@ -494,6 +536,11 @@ function CompactBranch({ node, depth = 0 }) {
   const itemQtyTotal = getNodeItemCount(node);
   const title = node.label || node.name || 'Untitled';
   const route = isOrphanedContainer ? ORPHANED_CONTAINER_ROUTE : `/boxes/${node.box_id}`;
+  const autoExpandChildren = hasMatchingDescendant(node, searchQuery, searchScope);
+  const showChildren =
+    childBoxes.length > 0 &&
+    (depth < 2 || childrenExpanded || autoExpandChildren);
+  const nestedCount = countDescendants(node);
   const hasMoreInfo =
     !!group || !!description || !!notes || tags.length > 0 || isSystemContainer;
 
@@ -506,6 +553,11 @@ function CompactBranch({ node, depth = 0 }) {
     setExpanded((prev) => !prev);
   };
 
+  const toggleChildren = (event) => {
+    event.stopPropagation();
+    setChildrenExpanded((prev) => !prev);
+  };
+
   return (
     <S.TerminalBranch $depth={depth}>
       <S.TerminalRow
@@ -513,6 +565,7 @@ function CompactBranch({ node, depth = 0 }) {
         aria-expanded={hasMoreInfo ? expanded : undefined}
         $depth={depth}
         $isSystem={isSystemContainer}
+        $density={density}
         onClick={go}
       >
         <S.TerminalBoxCell $depth={depth}>
@@ -571,10 +624,27 @@ function CompactBranch({ node, depth = 0 }) {
         </S.TerminalDetailInner>
       </S.TerminalDetailPanel>
 
-      {childBoxes.length > 0 ? (
+      {childBoxes.length > 0 && depth >= 2 ? (
+        <S.TerminalChildrenToggle
+          type="button"
+          aria-expanded={showChildren}
+          onClick={toggleChildren}
+        >
+          {showChildren ? 'Hide' : 'Show'} {nestedCount} nested {nestedCount === 1 ? 'box' : 'boxes'}
+        </S.TerminalChildrenToggle>
+      ) : null}
+
+      {showChildren ? (
         <S.TerminalChildren>
           {childBoxes.map((child) => (
-            <CompactBranch key={child._id || child.box_id} node={child} depth={depth + 1} />
+            <CompactBranch
+              key={child._id || child.box_id}
+              node={child}
+              depth={depth + 1}
+              searchQuery={searchQuery}
+              searchScope={searchScope}
+              density={density}
+            />
           ))}
         </S.TerminalChildren>
       ) : null}
@@ -582,8 +652,15 @@ function CompactBranch({ node, depth = 0 }) {
   );
 }
 
-function Branch({ node, depth = 0 }) {
+function Branch({
+  node,
+  depth = 0,
+  searchQuery = '',
+  searchScope = 'all',
+  density = 'compact',
+}) {
   const navigate = useNavigate();
+  const [childrenExpanded, setChildrenExpanded] = useState(false);
   const childBoxes = Array.isArray(node.childBoxes) ? node.childBoxes : [];
   const tags = getRenderableBoxTags(node);
   const group = String(node?.group || '').trim();
@@ -595,6 +672,14 @@ function Branch({ node, depth = 0 }) {
   const isRoot = depth === 0;
 
   const itemQtyTotal = getNodeItemCount(node);
+  const matchingItems = getMatchingItemNames(node, searchQuery, searchScope);
+  const visibleTags = density === 'roomy' ? tags : tags.slice(0, 3);
+  const hiddenTagCount = Math.max(0, tags.length - visibleTags.length);
+  const autoExpandChildren = hasMatchingDescendant(node, searchQuery, searchScope);
+  const showChildren =
+    childBoxes.length > 0 &&
+    (depth < 2 || childrenExpanded || autoExpandChildren);
+  const nestedCount = countDescendants(node);
 
   const go = () => {
     if (isOrphanedContainer) {
@@ -602,6 +687,11 @@ function Branch({ node, depth = 0 }) {
       return;
     }
     navigate(`/boxes/${node.box_id}`);
+  };
+
+  const toggleChildren = (event) => {
+    event.stopPropagation();
+    setChildrenExpanded((prev) => !prev);
   };
 
   return (
@@ -613,9 +703,10 @@ function Branch({ node, depth = 0 }) {
           $isRoot={isRoot}
           $depth={depth}
           $isSystem={isSystemContainer}
+          $density={density}
         >
-          <S.BoxBodyRow>
-            <S.BoxImageFrame>
+          <S.BoxBodyRow $density={density}>
+            <S.BoxImageFrame $density={density}>
               {boxImageUrl ? (
                 <S.BoxImage
                   src={boxImageUrl}
@@ -638,45 +729,42 @@ function Branch({ node, depth = 0 }) {
                     </>
                   )}
                 </S.ShortId>
-                <S.BoxTitle $isRoot={isRoot} $depth={depth} $isSystem={isSystemContainer}>
+                <S.BoxTitle
+                  $isRoot={isRoot}
+                  $depth={depth}
+                  $isSystem={isSystemContainer}
+                  $density={density}
+                >
                   {node.label || node.name || 'Untitled'}
                 </S.BoxTitle>
               </S.BoxHeader>
 
               {group || node.location ? (
-                <S.BoxMetaStack>
-                  {group ? (
-                    <S.BoxMetaLine>
-                      <S.BoxMetaLabel>Group</S.BoxMetaLabel>
-                      <S.BoxMetaValue>{group}</S.BoxMetaValue>
-                    </S.BoxMetaLine>
-                  ) : null}
-
+                <S.BoxMetaRow>
                   {node.location ? (
-                    <S.BoxMetaLine>
-                      <S.BoxMetaLabel>Location</S.BoxMetaLabel>
-                      <S.BoxMetaValue>{node.location}</S.BoxMetaValue>
-                    </S.BoxMetaLine>
+                    <S.LocationMeta>
+                      <S.LocationMetaLabel>Location</S.LocationMetaLabel>
+                      <S.LocationMetaValue>{node.location}</S.LocationMetaValue>
+                    </S.LocationMeta>
                   ) : null}
-                </S.BoxMetaStack>
+                  {group ? (
+                    <S.SecondaryMeta>Group · {group}</S.SecondaryMeta>
+                  ) : null}
+                </S.BoxMetaRow>
               ) : null}
 
               {description && (
-                <S.BoxSummary>{description}</S.BoxSummary>
+                <S.BoxSummary $density={density}>{description}</S.BoxSummary>
               )}
 
               {isSystemContainer ? (
-                <S.BoxSummary>Virtual system container</S.BoxSummary>
+                <S.BoxSummary $density={density}>Virtual system container</S.BoxSummary>
               ) : null}
 
-              {tags.length > 0 && (
+              {visibleTags.length > 0 && (
                 <>
-                  <S.FieldGroup>
-                    <S.FieldLabel>Tags</S.FieldLabel>
-                    <S.FieldValue />
-                  </S.FieldGroup>
                   <S.TagRow>
-                    {tags.map((t, i) => (
+                    {visibleTags.map((t, i) => (
                       <S.TagBubble
                         $isRoot={isRoot}
                         $depth={depth}
@@ -685,9 +773,20 @@ function Branch({ node, depth = 0 }) {
                         {t}
                       </S.TagBubble>
                     ))}
+                    {hiddenTagCount > 0 ? (
+                      <S.TagBubble $isRoot={isRoot} $depth={depth}>
+                        +{hiddenTagCount}
+                      </S.TagBubble>
+                    ) : null}
                   </S.TagRow>
                 </>
               )}
+
+              {matchingItems.length > 0 ? (
+                <S.MatchSummary>
+                  Matches: {matchingItems.join(', ')}
+                </S.MatchSummary>
+              ) : null}
 
               <S.BoxFooter>
                 <S.StatPill $variant="boxes" $isRoot={isRoot} $depth={depth}>
@@ -706,7 +805,7 @@ function Branch({ node, depth = 0 }) {
               </S.BoxFooter>
 
               {notes ? (
-                <S.NotesPreviewArea>
+                  <S.NotesPreviewArea $density={density}>
                   <S.NotesPreviewLabel>Notes</S.NotesPreviewLabel>
                   <S.NotesPreviewText>{notes}</S.NotesPreviewText>
                 </S.NotesPreviewArea>
@@ -715,10 +814,28 @@ function Branch({ node, depth = 0 }) {
           </S.BoxBodyRow>
         </S.BoxCard>
 
-        {childBoxes.length > 0 && (
-          <S.NodeChildren $depth={depth + 1}>
+        {childBoxes.length > 0 && depth >= 2 ? (
+          <S.NestedChildrenToggle
+            type="button"
+            aria-expanded={showChildren}
+            onClick={toggleChildren}
+          >
+            <span>{showChildren ? 'Hide' : 'Show'} {nestedCount} nested {nestedCount === 1 ? 'box' : 'boxes'}</span>
+            <S.NestedChildrenIcon aria-hidden="true">{showChildren ? '−' : '+'}</S.NestedChildrenIcon>
+          </S.NestedChildrenToggle>
+        ) : null}
+
+        {showChildren && (
+          <S.NodeChildren $depth={depth + 1} $density={density}>
             {childBoxes.map((child) => (
-              <Branch key={child._id || child.box_id} node={child} depth={depth + 1} />
+              <Branch
+                key={child._id || child.box_id}
+                node={child}
+                depth={depth + 1}
+                searchQuery={searchQuery}
+                searchScope={searchScope}
+                density={density}
+              />
             ))}
           </S.NodeChildren>
         )}
@@ -754,7 +871,9 @@ function applyTreeControls(
   nodes,
   {
     searchQuery = '',
+    searchScope = 'all',
     sortBy = 'boxId',
+    sortDirection = 'asc',
     filterBy = 'all',
     categoryFilter = 'all',
     locationFilter = 'all',
@@ -774,6 +893,7 @@ function applyTreeControls(
     const include =
       matchesNodeControls(node, {
         query,
+        searchScope,
         filterBy,
         categoryFilter,
         locationFilter,
@@ -784,18 +904,19 @@ function applyTreeControls(
 
     return {
       ...node,
-      childBoxes: sortNodes(children, sortBy),
+      childBoxes: sortNodes(children, sortBy, sortDirection),
     };
   };
 
   const mapped = (nodes || []).map(processNode).filter(Boolean);
-  return sortNodes(mapped, sortBy);
+  return sortNodes(mapped, sortBy, sortDirection);
 }
 
 function matchesNodeControls(
   node,
   {
     query = '',
+    searchScope = 'all',
     filterBy = 'all',
     categoryFilter = 'all',
     locationFilter = 'all',
@@ -803,7 +924,7 @@ function matchesNodeControls(
     ownerFilter = 'all',
   } = {},
 ) {
-  const matchesSearch = !query || matchesQuery(node, query);
+  const matchesSearch = !query || matchesQuery(node, query, searchScope);
   const qty = getNodeItemCount(node);
   const normalizedCategoryFilter =
     categoryFilter === 'all'
@@ -840,12 +961,14 @@ function matchesNodeControls(
   );
 }
 
-function sortNodes(nodes, sortBy) {
+function sortNodes(nodes, sortBy, sortDirection = 'asc') {
   const list = [...(nodes || [])];
+  const directionFactor = sortDirection === 'desc' ? -1 : 1;
 
   list.sort((a, b) => {
     const aName = normalize(a?.label || a?.name || '');
     const bName = normalize(b?.label || b?.name || '');
+    let diff = 0;
 
     if (sortBy === 'group') {
       const aGroup = normalize(a?.group || '');
@@ -854,62 +977,125 @@ function sortNodes(nodes, sortBy) {
       const bEmpty = !bGroup;
       if (aEmpty !== bEmpty) return aEmpty ? 1 : -1;
 
-      const diff = compareText(aGroup, bGroup);
+      diff = compareText(aGroup, bGroup) * directionFactor;
       if (diff !== 0) return diff;
-      const nameDiff = compareText(aName, bName);
+      const nameDiff = compareText(aName, bName) * directionFactor;
       if (nameDiff !== 0) return nameDiff;
-      return compareNodeBoxId(a, b);
+      return compareNodeBoxId(a, b) * directionFactor;
     }
 
     if (sortBy === 'location') {
-      const diff = compareText(normalize(a?.location || ''), normalize(b?.location || ''));
+      diff =
+        compareText(normalize(a?.location || ''), normalize(b?.location || '')) *
+        directionFactor;
       if (diff !== 0) return diff;
-      const nameDiff = compareText(aName, bName);
+      const nameDiff = compareText(aName, bName) * directionFactor;
       if (nameDiff !== 0) return nameDiff;
-      return compareNodeBoxId(a, b);
+      return compareNodeBoxId(a, b) * directionFactor;
     }
 
     if (sortBy === 'itemCount') {
-      const diff = sumItemQty(b?.items) - sumItemQty(a?.items);
+      diff = (sumItemQty(a?.items) - sumItemQty(b?.items)) * directionFactor;
       if (diff !== 0) return diff;
-      const nameDiff = compareText(aName, bName);
+      const nameDiff = compareText(aName, bName) * directionFactor;
       if (nameDiff !== 0) return nameDiff;
-      return compareNodeBoxId(a, b);
+      return compareNodeBoxId(a, b) * directionFactor;
     }
 
     if (sortBy === 'boxId') {
-      const diff = compareNodeBoxId(a, b);
+      diff = compareNodeBoxId(a, b) * directionFactor;
       if (diff !== 0) return diff;
-      return compareText(aName, bName);
+      return compareText(aName, bName) * directionFactor;
     }
 
-    const diff = compareText(aName, bName);
+    diff = compareText(aName, bName) * directionFactor;
     if (diff !== 0) return diff;
-    return compareNodeBoxId(a, b);
+    return compareNodeBoxId(a, b) * directionFactor;
   });
 
   return list;
 }
 
-function matchesQuery(node, query) {
+function matchesQuery(node, query, searchScope = 'all') {
   const tags = Array.isArray(node?.tags) ? node.tags.join(' ') : '';
+  const boxHaystack = [
+    node?.box_id,
+    node?.label,
+    node?.name,
+    node?.group,
+    node?.location,
+    node?.description,
+    node?.notes,
+    tags,
+  ];
+  const itemHaystack = (Array.isArray(node?.items) ? node.items : []).flatMap(
+    (item) => [
+      item?.name,
+      item?.label,
+      item?.description,
+      item?.notes,
+      item?.category,
+      item?.primaryOwnerName,
+      ...(Array.isArray(item?.tags) ? item.tags : []),
+    ],
+  );
   const haystack = normalize(
-    [
-      node?.box_id,
-      node?.label,
-      node?.name,
-      node?.group,
-      node?.location,
-      node?.description,
-      node?.notes,
-      tags,
-    ]
+    (searchScope === 'items'
+      ? itemHaystack
+      : searchScope === 'boxes'
+        ? boxHaystack
+        : [...boxHaystack, ...itemHaystack]
+    )
       .filter(Boolean)
       .join(' '),
   );
 
   return haystack.includes(query);
 }
+
+function getMatchingItemNames(node, query, searchScope = 'all') {
+  if (!query || searchScope === 'boxes') return [];
+  const normalizedQuery = normalize(query);
+  const items = Array.isArray(node?.items) ? node.items : [];
+
+  return items
+    .filter((item) => {
+      const haystack = normalize(
+        [
+          item?.name,
+          item?.label,
+          item?.description,
+          item?.notes,
+          item?.category,
+          item?.primaryOwnerName,
+          ...(Array.isArray(item?.tags) ? item.tags : []),
+        ]
+          .filter(Boolean)
+          .join(' '),
+      );
+      return haystack.includes(normalizedQuery);
+    })
+    .map((item) => String(item?.name || item?.label || '').trim())
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
+function hasMatchingDescendant(node, searchQuery, searchScope) {
+  if (!searchQuery) return false;
+  return (node?.childBoxes || []).some(
+    (child) =>
+      matchesQuery(child, normalize(searchQuery), searchScope) ||
+      hasMatchingDescendant(child, searchQuery, searchScope),
+  );
+}
+
+function countDescendants(node) {
+  return (node?.childBoxes || []).reduce(
+    (total, child) => total + 1 + countDescendants(child),
+    0,
+  );
+}
+
 
 function sumItemQty(items) {
   return (items || []).reduce((sum, it) => {

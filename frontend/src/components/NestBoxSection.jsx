@@ -15,6 +15,7 @@ export default function NestBoxSection({
   onDidNest,
   onDidUnnest,
   onDidReleaseChildren,
+  showClose = true,
 }) {
   const {
     loading,
@@ -53,9 +54,11 @@ export default function NestBoxSection({
                 : ''}{' '}
               in another box
             </S.Title>
-            <S.GhostBtn onClick={onClose} disabled={busy}>
-              Close
-            </S.GhostBtn>
+            {showClose ? (
+              <S.GhostBtn onClick={onClose} disabled={busy}>
+                Back to manage
+              </S.GhostBtn>
+            ) : null}
           </S.SectionHeader>
 
           <NestContextCard

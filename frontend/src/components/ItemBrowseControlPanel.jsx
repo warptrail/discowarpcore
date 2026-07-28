@@ -13,6 +13,7 @@ export default function ItemBrowseControlPanel({
   sortAriaLabel = 'Sort items',
   onSortChange,
   statusText = '',
+  searchInputRef,
 }) {
   const safeSortOptions = Array.isArray(sortOptions) ? sortOptions : [];
   const searchInputId = `${idPrefix}-search`;
@@ -31,6 +32,7 @@ export default function ItemBrowseControlPanel({
         <S.ControlGroup $tone="#7FD7FF">
           <S.ControlLabel htmlFor={searchInputId}>Search</S.ControlLabel>
           <S.SearchInput
+            ref={searchInputRef}
             id={searchInputId}
             type="search"
             value={searchValue}

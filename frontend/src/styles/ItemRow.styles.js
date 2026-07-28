@@ -495,6 +495,11 @@ export const ExpandedActionStrip = styled.div`
   padding-bottom: 0.54rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 
+  @media (min-width: 600px) {
+    justify-content: flex-end;
+    border-bottom-color: rgba(76, 198, 193, 0.2);
+  }
+
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     margin-bottom: 0.44rem;
     padding-bottom: 0.36rem;
@@ -506,6 +511,16 @@ export const ExpandedActionCluster = styled.div`
   align-items: center;
   flex-wrap: wrap;
   gap: 0.34rem;
+
+  @media (min-width: 600px) {
+    justify-content: flex-end;
+    max-width: 100%;
+    padding: 0.26rem;
+    border: 1px solid rgba(76, 198, 193, 0.16);
+    border-radius: 10px;
+    background: linear-gradient(105deg, rgba(76, 198, 193, 0.07), rgba(167, 182, 255, 0.05));
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+  }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.24rem;
@@ -844,6 +859,16 @@ export const QuickActionButton = styled.button`
     css`
       border-color: rgba(245, 194, 103, 0.86);
       box-shadow: 0 0 0 1px rgba(232, 177, 92, 0.25);
+    `}
+
+  ${({ $tone, $active }) =>
+    $tone === 'declutter' &&
+    $active &&
+    css`
+      border-color: rgba(202, 211, 255, 0.96);
+      background: linear-gradient(180deg, rgba(77, 84, 158, 0.98), rgba(51, 55, 117, 0.96));
+      box-shadow: 0 0 0 1px rgba(167, 182, 255, 0.42), 0 0 13px rgba(167, 182, 255, 0.26);
+      color: #ffffff;
     `}
 
   &:disabled {

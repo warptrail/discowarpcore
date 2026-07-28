@@ -1,4 +1,4 @@
-import styled, { css } from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import { Link } from 'react-router-dom';
 
 const LCARS = {
@@ -27,20 +27,115 @@ const panelBase = css`
 `;
 
 export const HeaderShell = styled.section`
-  ${panelBase};
   display: grid;
-  gap: 0.74rem;
-  padding: 0.88rem 0.92rem 0.94rem;
-  border-color: ${toneAlpha(LCARS.root, '60')};
-  background:
-    radial-gradient(circle at 95% 10%, ${toneAlpha(LCARS.root, '24')} 0%, transparent 42%),
-    linear-gradient(180deg, #0f1822 0%, #0b121a 100%);
+  gap: 0.56rem;
+  min-width: 0;
+  margin-bottom: 0.5rem;
+`;
+
+const finderCollapse = keyframes`
+  from {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate(calc(-50% + 38vw), -5.4rem) scale(0.2);
+  }
+`;
+
+export const FloatingFinder = styled.div`
+  position: fixed;
+  top: 7.7rem;
+  left: 50%;
+  z-index: 500;
+  width: min(720px, calc(100vw - 1rem));
+  max-height: calc(100vh - 8.2rem);
+  overflow: auto;
+  transform: translateX(-50%);
+  transform-origin: 92% 0%;
+  animation: ${({ $collapsing }) => ($collapsing ? css`${finderCollapse} 180ms cubic-bezier(0.4, 0, 1, 1) forwards` : 'none')};
+
+  @media (max-width: 560px) {
+    top: 7.45rem;
+    width: calc(100vw - 0.8rem);
+    max-height: calc(100vh - 7.9rem);
+  }
 `;
 
 export const TitleRow = styled.div`
   display: flex;
   align-items: center;
   gap: 0.6rem;
+`;
+
+export const MinimizedBar = styled.div`
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+`;
+
+export const MinimizedChip = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  min-height: 28px;
+  max-width: 100%;
+  border: 1px solid ${toneAlpha(LCARS.teal, '72')};
+  border-radius: 8px;
+  padding: 0.18rem 0.48rem 0.18rem 0.34rem;
+  color: ${toneAlpha(LCARS.text, 'e8')};
+  background:
+    linear-gradient(180deg, rgba(17, 48, 58, 0.92), rgba(8, 27, 35, 0.96)),
+    ${LCARS.bg};
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  font-size: 0.66rem;
+  font-weight: 820;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: ${toneAlpha(LCARS.root, 'd0')};
+    color: ${toneAlpha(LCARS.root, 'ff')};
+    box-shadow: 0 0 14px ${toneAlpha(LCARS.root, '22')};
+  }
+`;
+
+export const MinimizedIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid ${toneAlpha(LCARS.root, '80')};
+  border-radius: 5px;
+  color: ${toneAlpha(LCARS.root, 'f2')};
+  background: rgba(9, 24, 38, 0.92);
+  font-size: 0.86rem;
+  line-height: 1;
+`;
+
+export const MinimizedCount = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  color: ${LCARS.bg};
+  background: ${LCARS.amber};
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0;
 `;
 
 export const TitlePip = styled.span`
@@ -196,6 +291,7 @@ export const ViewModeButton = styled.button`
   }
 `;
 
+
 export const OrphanToggleButton = styled.button`
   display: inline-flex;
   align-items: center;
@@ -237,6 +333,223 @@ export const OrphanToggleButton = styled.button`
       0 0 12px
         ${({ $active }) =>
           $active ? toneAlpha(LCARS.lime, '1e') : toneAlpha(LCARS.root, '1b')};
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+`;
+
+export const FilterToggleButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 32px;
+  border: 1px solid
+    ${({ $active }) =>
+      $active ? toneAlpha(LCARS.teal, 'aa') : toneAlpha(LCARS.root, '72')};
+  border-radius: 9px;
+  padding: 0 0.78rem;
+  color: ${({ $active }) =>
+    $active ? toneAlpha(LCARS.teal, 'f2') : toneAlpha(LCARS.root, 'e2')};
+  background: ${({ $active }) =>
+    $active
+      ? 'linear-gradient(180deg, rgba(18, 58, 62, 0.92), rgba(10, 36, 42, 0.96))'
+      : 'linear-gradient(180deg, rgba(11, 24, 37, 0.94), rgba(8, 17, 28, 0.96))'};
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    border-color 130ms ease,
+    color 130ms ease,
+    background 130ms ease,
+    transform 90ms ease;
+
+  &:hover {
+    border-color: ${toneAlpha(LCARS.teal, 'c2')};
+    color: ${toneAlpha(LCARS.text, 'f4')};
+    box-shadow: 0 0 14px ${toneAlpha(LCARS.teal, '24')};
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+`;
+
+export const FilterCount = styled.span`
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.22rem;
+  border-radius: 999px;
+  color: ${LCARS.bg};
+  background: ${LCARS.lime};
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0;
+`;
+
+export const FilterPanel = styled.div`
+  display: grid;
+  gap: 0.62rem;
+  min-width: 0;
+  padding: 0.7rem;
+  border: 1px solid ${toneAlpha(LCARS.teal, '55')};
+  border-radius: 12px;
+  background:
+    linear-gradient(100deg, ${toneAlpha(LCARS.teal, '12')} 0%, transparent 52%),
+    linear-gradient(180deg, rgba(10, 20, 29, 0.96), rgba(8, 15, 23, 0.98));
+  box-shadow:
+    inset 0 0 0 1px ${toneAlpha(LCARS.teal, '13')},
+    0 12px 24px rgba(2, 9, 16, 0.46);
+  opacity: ${({ $hidden }) => ($hidden ? 0 : 1)};
+  visibility: ${({ $hidden }) => ($hidden ? 'hidden' : 'visible')};
+  pointer-events: ${({ $hidden }) => ($hidden ? 'none' : 'auto')};
+  transition:
+    opacity 140ms ease,
+    visibility 0s linear ${({ $hidden }) => ($hidden ? '140ms' : '0s')};
+`;
+
+export const FinderModeRow = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.34rem;
+`;
+
+export const FinderModeButton = styled.button`
+  min-height: 38px;
+  border: 1px solid
+    ${({ $active }) =>
+      $active ? toneAlpha(LCARS.root, 'ac') : toneAlpha(LCARS.root, '42')};
+  border-radius: 9px;
+  color: ${({ $active }) =>
+    $active ? toneAlpha(LCARS.root, 'f4') : '#b8cad8'};
+  background: ${({ $active }) =>
+    $active
+      ? 'linear-gradient(180deg, rgba(21, 62, 86, 0.9), rgba(10, 34, 52, 0.94))'
+      : 'rgba(7, 17, 27, 0.72)'};
+  font-size: 0.66rem;
+  font-weight: 820;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-shadow: 0 0 6px rgba(127, 215, 255, 0.12);
+
+  &:hover {
+    border-color: ${toneAlpha(LCARS.root, '9e')};
+    color: ${toneAlpha(LCARS.text, 'f2')};
+  }
+`;
+
+export const AdvancedFiltersToggle = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  width: 100%;
+  min-height: 42px;
+  padding: 0.5rem 0.62rem;
+  border: 1px solid
+    ${({ $active }) =>
+      $active ? toneAlpha(LCARS.teal, '9a') : toneAlpha(LCARS.root, '55')};
+  border-radius: 10px;
+  color: ${({ $active }) =>
+    $active ? toneAlpha(LCARS.teal, 'f0') : toneAlpha(LCARS.root, 'd4')};
+  background: ${({ $active }) =>
+    $active
+      ? 'linear-gradient(100deg, rgba(18, 57, 59, 0.68), rgba(9, 24, 31, 0.9))'
+      : 'linear-gradient(100deg, rgba(14, 31, 45, 0.8), rgba(8, 17, 27, 0.92))'};
+  font-size: 0.7rem;
+  font-weight: 780;
+  letter-spacing: 0.07em;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 130ms ease, background 130ms ease, color 130ms ease;
+
+  &:hover {
+    border-color: ${toneAlpha(LCARS.teal, 'b8')};
+    color: ${toneAlpha(LCARS.text, 'f2')};
+  }
+`;
+
+export const AdvancedFiltersIcon = styled.span`
+  display: inline-grid;
+  place-items: center;
+  width: 1.28rem;
+  height: 1.28rem;
+  border: 1px solid ${toneAlpha(LCARS.teal, '68')};
+  border-radius: 6px;
+  color: ${toneAlpha(LCARS.teal, 'ec')};
+  font-size: 1rem;
+  line-height: 1;
+`;
+
+export const AdvancedFilters = styled.div`
+  display: grid;
+  gap: 0.62rem;
+  min-width: 0;
+  padding-top: 0.08rem;
+`;
+
+export const SortControlRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.42rem;
+  align-items: stretch;
+`;
+
+export const SortDirectionButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  min-width: 38px;
+  min-height: 34px;
+  align-self: end;
+  border: 1px solid
+    ${({ $descending }) =>
+      $descending ? toneAlpha(LCARS.amber, 'b4') : toneAlpha(LCARS.root, '9a')};
+  border-radius: 9px;
+  color: ${({ $descending }) =>
+    $descending ? toneAlpha(LCARS.amber, 'f4') : toneAlpha(LCARS.root, 'ec')};
+  background: ${({ $descending }) =>
+    $descending
+      ? 'linear-gradient(180deg, rgba(61, 43, 16, 0.96), rgba(31, 22, 8, 0.98))'
+      : 'linear-gradient(180deg, rgba(13, 31, 47, 0.96), rgba(8, 19, 29, 0.98))'};
+  box-shadow:
+    inset 0 0 0 1px
+      ${({ $descending }) =>
+        $descending ? toneAlpha(LCARS.amber, '20') : toneAlpha(LCARS.root, '18')},
+    0 0 14px
+      ${({ $descending }) =>
+        $descending ? toneAlpha(LCARS.amber, '16') : toneAlpha(LCARS.root, '14')};
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    border-color 130ms ease,
+    color 130ms ease,
+    background 130ms ease,
+    box-shadow 130ms ease,
+    transform 90ms ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: ${({ $descending }) =>
+      $descending ? toneAlpha(LCARS.amber, 'e0') : toneAlpha(LCARS.root, 'd0')};
+    color: ${toneAlpha(LCARS.text, 'f2')};
+    box-shadow:
+      0 0 0 2px
+        ${({ $descending }) =>
+          $descending ? toneAlpha(LCARS.amber, '24') : toneAlpha(LCARS.root, '2f')},
+      0 0 14px
+        ${({ $descending }) =>
+          $descending ? toneAlpha(LCARS.amber, '2e') : toneAlpha(LCARS.root, '30')};
   }
 
   &:active {
@@ -574,28 +887,6 @@ export const LocatorNotes = styled.div`
   overflow-wrap: anywhere;
   max-height: min(120px, 24vh);
   overflow-y: auto;
-`;
-
-export const Select = styled.select`
-  ${controlField};
-  appearance: none;
-  background-image:
-    linear-gradient(
-      45deg,
-      transparent 50%,
-      ${toneAlpha(LCARS.textDim, 'cc')} 50%
-    ),
-    linear-gradient(
-      135deg,
-      ${toneAlpha(LCARS.textDim, 'cc')} 50%,
-      transparent 50%
-    );
-  background-position:
-    calc(100% - 16px) calc(50% - 2px),
-    calc(100% - 11px) calc(50% - 2px);
-  background-size: 5px 5px, 5px 5px;
-  background-repeat: no-repeat;
-  padding-right: 1.8rem;
 `;
 
 export const ControlHint = styled.span`

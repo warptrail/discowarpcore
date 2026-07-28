@@ -9,6 +9,25 @@ const DECLUTTER_DECISIONS = [
   'unsure',
 ];
 
+const DECLUTTER_PLAYERS = ['discofish', 'laserfox'];
+
+const playerDecisionSchema = new mongoose.Schema(
+  {
+    player: {
+      type: String,
+      enum: DECLUTTER_PLAYERS,
+      required: true,
+    },
+    decision: {
+      type: String,
+      enum: DECLUTTER_DECISIONS,
+      default: 'pending',
+    },
+    decidedAt: { type: Date, default: null },
+  },
+  { _id: false }
+);
+
 const declutterSessionItemSchema = new mongoose.Schema(
   {
     sessionId: {
@@ -38,6 +57,10 @@ const declutterSessionItemSchema = new mongoose.Schema(
     proposedBy: { type: String, default: '', trim: true },
     decidedBy: { type: String, default: '', trim: true },
     decidedAt: { type: Date, default: null },
+    playerDecisions: {
+      type: [playerDecisionSchema],
+      default: [],
+    },
   },
   { timestamps: true }
 );
@@ -53,5 +76,6 @@ const DeclutterSessionItem =
   mongoose.model('DeclutterSessionItem', declutterSessionItemSchema);
 
 DeclutterSessionItem.DECISIONS = DECLUTTER_DECISIONS;
+DeclutterSessionItem.PLAYERS = DECLUTTER_PLAYERS;
 
 module.exports = DeclutterSessionItem;

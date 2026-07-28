@@ -1,6 +1,7 @@
 // src/components/BoxMetaPanel.jsx
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import * as S from '../styles/BoxMetaPanel.styles';
+import { BOX_CONTEXT_STATE_EVENT } from '../constants/inventoryFinderEvents';
 
 /**
  * BoxMetaPanel
@@ -21,10 +22,6 @@ function pad3(idLike) {
   return s ? s.padStart(3, '0') : '‒‒‒';
 }
 
-function itemsOf(n) {
-  const a = n?.items ?? [];
-  return Array.isArray(a) ? a : [];
-}
 function kidsOf(n) {
   const a = n?.childBoxes ?? [];
   return Array.isArray(a) ? a : [];
@@ -77,25 +74,6 @@ function walk(root, visit) {
     visit(n);
     for (const k of kidsOf(n)) stack.push(k);
   }
-}
-
-function computeStatsFromTree(root) {
-  let boxes = 0;
-  const names = new Set();
-  let totalItems = 0;
-
-  walk(root, (n) => {
-    boxes += 1;
-    for (const it of itemsOf(n)) {
-      const nm = String(it?.name ?? '')
-        .trim()
-        .toLowerCase();
-      if (nm) names.add(nm);
-      totalItems += Number.isFinite(it?.quantity) ? it.quantity : 1;
-    }
-  });
-
-  return { boxes, uniqueItems: names.size, totalItems };
 }
 
 function DescendantBranch({ node, depth = 0, onNavigateBox }) {
@@ -155,10 +133,10 @@ export default function BoxMetaPanel({
   box,
   parentPath = [],
   onNavigateBox,
-  onEditBox,
-  stats,
+  onManageBox,
   imageRefreshToken = 0,
 }) {
+  const [quickGlanceOpen, setQuickGlanceOpen] = useState(false);
   const shortId = String(box?.box_id ?? box?.shortId ?? '');
   const title = box?.label ?? box?.name ?? 'Box';
   const group = String(box?.group ?? '').trim();
@@ -183,24 +161,6 @@ export default function BoxMetaPanel({
     box?.imagePath ||
     '';
   const boxImageSrc = withCacheBuster(boxImageUrl, imageRefreshToken);
-
-  // Badge logic (uses only data we have on this node)
-  const scope = useMemo(() => {
-    if (!box) return { tone: 'lilac', text: 'Standalone' };
-    const hasParent = !!box.parentBox;
-    if (hasParent) return { tone: 'teal', text: 'In tree' };
-    if (children.length > 0) return { tone: 'amber', text: 'Root of tree' };
-    return { tone: 'lilac', text: 'Standalone' };
-  }, [box, children.length]);
-
-  // Prefer backend stats if provided, otherwise compute from subtree
-  const safeStats = useMemo(
-    () =>
-      box
-        ? stats ?? computeStatsFromTree(box)
-        : { boxes: 0, uniqueItems: 0, totalItems: 0 },
-    [stats, box]
-  );
 
   // Breadcrumb: ancestors (parentPath) + current
   // Build crumbs (root → … → parent → current)
@@ -230,6 +190,15 @@ export default function BoxMetaPanel({
     return Math.max(0, count - 1);
   }, [box]);
 
+  useEffect(() => {
+    if (!box) return;
+    window.dispatchEvent(
+      new CustomEvent(BOX_CONTEXT_STATE_EVENT, {
+        detail: { shortId, title, location, expanded: quickGlanceOpen },
+      })
+    );
+  }, [box, location, quickGlanceOpen, shortId, title]);
+
   // Child box click
   const goBox = (id) => {
     if (!id) return;
@@ -242,18 +211,27 @@ export default function BoxMetaPanel({
     <S.Panel>
       <S.IdentityZone>
         <S.IdentityHeader>
-          <S.ScopeBadge $tone={scope.tone}>{scope.text}</S.ScopeBadge>
+          <span aria-hidden="true" />
           <S.IdentityActions>
             {!!depth && <S.DepthHint>level {depth}</S.DepthHint>}
-            {typeof onEditBox === 'function' ? (
-              <S.EditBoxButton
+            <S.IconButton
+              type="button"
+              onClick={() => setQuickGlanceOpen((open) => !open)}
+              aria-expanded={quickGlanceOpen}
+              aria-label={quickGlanceOpen ? 'Hide box details' : 'Show box details'}
+              title={quickGlanceOpen ? 'Hide details' : 'Show details'}
+            >
+              <span aria-hidden="true">{quickGlanceOpen ? '⌃' : '⌄'}</span>
+            </S.IconButton>
+            {typeof onManageBox === 'function' ? (
+              <S.IconButton
                 type="button"
-                onClick={onEditBox}
-                aria-label={`Edit ${title}`}
-                title="Edit box details"
+                onClick={onManageBox}
+                aria-label={`Manage ${title}`}
+                title="Manage box"
               >
-                Edit Box
-              </S.EditBoxButton>
+                <span aria-hidden="true">•••</span>
+              </S.IconButton>
             ) : null}
           </S.IdentityActions>
         </S.IdentityHeader>
@@ -314,7 +292,7 @@ export default function BoxMetaPanel({
                     <S.CurrentBoxLocationValue>{location || 'Unassigned'}</S.CurrentBoxLocationValue>
                   </S.CurrentBoxLocationChip>
                 </S.CurrentBoxInfoRow>
-                {tags.length ? (
+                {quickGlanceOpen && tags.length ? (
                   <S.CurrentBoxTagsSection>
                     <S.CurrentBoxTagsLabel>Tags</S.CurrentBoxTagsLabel>
                     <S.CurrentBoxTagsRow>
@@ -329,40 +307,28 @@ export default function BoxMetaPanel({
               </S.CurrentBoxMain>
             </S.CurrentBox>
 
-            {description ? (
+            {!quickGlanceOpen && description ? (
+              <S.CompactDescription>{description}</S.CompactDescription>
+            ) : null}
+
+            {quickGlanceOpen && description ? (
               <S.NotesZone>
                 <S.NotesHeader>
-                  <S.NotesLabel>Physical Description</S.NotesLabel>
+                  <S.NotesLabel>Visual description</S.NotesLabel>
                 </S.NotesHeader>
                 <S.NotesBody>{description}</S.NotesBody>
               </S.NotesZone>
             ) : null}
 
-            {notes ? (
+            {quickGlanceOpen && notes ? (
               <S.NotesZone>
                 <S.NotesHeader>
-                  <S.NotesLabel>Notes</S.NotesLabel>
+                <S.NotesLabel>Notes</S.NotesLabel>
                 </S.NotesHeader>
                 <S.NotesBody>{notes}</S.NotesBody>
               </S.NotesZone>
             ) : null}
 
-            <S.MetaZone>
-              <S.StatGroup>
-                <S.StatItem>
-                  <S.StatLabel>Boxes</S.StatLabel>
-                  <S.StatValue $tone="lilac">{safeStats.boxes}</S.StatValue>
-                </S.StatItem>
-                <S.StatItem>
-                  <S.StatLabel>Unique</S.StatLabel>
-                  <S.StatValue $tone="teal">{safeStats.uniqueItems}</S.StatValue>
-                </S.StatItem>
-                <S.StatItem>
-                  <S.StatLabel>Total</S.StatLabel>
-                  <S.StatValue $tone="amber">{safeStats.totalItems}</S.StatValue>
-                </S.StatItem>
-              </S.StatGroup>
-            </S.MetaZone>
           </S.SummaryInfo>
 
         {boxImageSrc ? (
@@ -373,7 +339,7 @@ export default function BoxMetaPanel({
         </S.SummaryGrid>
       </S.IdentityZone>
 
-      <S.ChildrenZone>
+      {quickGlanceOpen ? <S.ChildrenZone>
         <S.SectionHeader>
           <S.Label>Descendants</S.Label>
           <S.MetaCount>
@@ -397,7 +363,7 @@ export default function BoxMetaPanel({
             ))
           )}
         </S.ChildrenRow>
-      </S.ChildrenZone>
+      </S.ChildrenZone> : null}
     </S.Panel>
   );
 }

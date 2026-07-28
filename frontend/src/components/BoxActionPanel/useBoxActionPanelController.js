@@ -21,6 +21,10 @@ export default function useBoxActionPanelController({
   );
   const [isMoving, setIsMoving] = useState(false);
 
+  useEffect(() => {
+    setActivePanel(normalizePanelState(initialActivePanel));
+  }, [initialActivePanel]);
+
   const isEmptyMode = activePanel === 'empty';
 
   const toastCtx = useContext(ToastContext);

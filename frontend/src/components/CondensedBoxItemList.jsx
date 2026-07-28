@@ -4,6 +4,7 @@ import styled from 'styled-components';
 
 import { getItemHomeHref } from '../api/itemDetails';
 import RetrievalImageLightbox from './Retrieval/RetrievalImageLightbox';
+import { getItemThumbnailUrl } from '../util/itemImage';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_FONT_SM,
@@ -17,14 +18,6 @@ function getItemId(item) {
 
 function getItemName(item) {
   return String(item?.name || '(Unnamed Item)').trim();
-}
-
-function getItemThumbnailUrl(item) {
-  return String(
-    item?.image?.thumb?.url ||
-      item?.image?.display?.url ||
-      ''
-  ).trim();
 }
 
 function getBoxContext(item) {

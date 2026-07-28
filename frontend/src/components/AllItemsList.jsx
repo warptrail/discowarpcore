@@ -21,7 +21,7 @@ import {
   prepareItemForList,
 } from './AllItemsList/allItemsList.utils';
 import useAllItemsBatchProcessing from './AllItemsList/useAllItemsBatchProcessing.jsx';
-import useAllItemsDeclutterSessions from './AllItemsList/useAllItemsDeclutterSessions.jsx';
+import useAllItemsDeclutterDeck from './AllItemsList/useAllItemsDeclutterDeck.js';
 import useAllItemsItemSelection from './AllItemsList/useAllItemsItemSelection.jsx';
 import { getBoxGroupColorTones } from './Retrieval/boxColors';
 
@@ -236,7 +236,7 @@ export default function AllItemsList() {
     onRefreshItems: () => loadItems({ silent: true }),
     onExit: () => setItemSelectionModeEnabled(false),
   });
-  const declutterSelection = useAllItemsDeclutterSessions({
+  const declutterSelection = useAllItemsDeclutterDeck({
     enabled: itemSelectionModeEnabled,
     selectedItemIds: itemSelection.selectedItemIds,
     onAdded: itemSelection.clearSelection,

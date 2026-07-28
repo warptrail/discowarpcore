@@ -676,7 +676,12 @@ export function normalizeRetrievalItemsPage(rawItems) {
         usageHistory: normalizeDateHistory(rawItem?.usageHistory),
         checkHistory: normalizeDateHistory(rawItem?.checkHistory),
         maintenanceHistory: normalizeDateHistory(rawItem?.maintenanceHistory),
-        imageUrl: firstNonEmpty(rawItem?.imageUrl, imageUrls.imageUrl),
+        imageUrl: firstNonEmpty(
+          rawItem?.imageUrl,
+          imageUrls.imageUrl,
+          rawItem?.previewImageUrl,
+          imageUrls.previewImageUrl,
+        ),
         previewImageUrl: firstNonEmpty(
           rawItem?.previewImageUrl,
           rawItem?.imageUrl,

@@ -14,6 +14,42 @@ import {
 
 export * from './Lists.shared.styles';
 
+export const FinderReveal = styled.div`
+  display: grid;
+  grid-template-rows: ${({ $open }) => ($open ? '1fr' : '0fr')};
+  opacity: ${({ $open }) => ($open ? 1 : 0)};
+  pointer-events: ${({ $open }) => ($open ? 'auto' : 'none')};
+  transform: translateY(${({ $open }) => ($open ? '0' : '-6px')});
+  margin-bottom: ${({ $open }) => ($open ? '0.6rem' : '0')};
+  transition:
+    grid-template-rows 180ms ease,
+    opacity 140ms ease,
+    transform 180ms ease,
+    margin-bottom 180ms ease;
+
+  > * {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-bottom: ${({ $open }) => ($open ? '0.42rem' : '0')};
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+export const FinderRevealContent = styled.div`
+  min-height: 0;
+  overflow: hidden;
+
+  > * {
+    margin-bottom: 0;
+  }
+`;
+
 export const RailFront = styled(SharedRailFront)`
   padding-left: ${({ $isRoot }) => ($isRoot ? '0.58rem' : '0.48rem')};
 
@@ -55,7 +91,7 @@ export const TreeSectionTitle = styled(SectionTitle)`
 export const TreeBoxIdChip = styled.span`
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
+  border-radius: 6px;
   border: 1px solid currentColor;
   background: rgba(255, 255, 255, 0.07);
   color: inherit;

@@ -1,6 +1,6 @@
 import React from 'react';
 import MoveItemToOtherBox from '../MoveItemToOtherBox';
-import AllItemsDeclutterSessionControls from './AllItemsDeclutterSessionControls';
+import AllItemsDeclutterDeckControls from './AllItemsDeclutterDeckControls';
 import * as S from './AllItemsList.styles';
 
 function getDestinationLabel(destination) {
@@ -133,19 +133,11 @@ export default function AllItemsSelectionPanel({
         ) : null}
 
         {declutterControls ? (
-          <AllItemsDeclutterSessionControls
+          <AllItemsDeclutterDeckControls
             selectedCount={selectedCount}
-            sessions={declutterControls.sessions}
-            selectedSessionId={declutterControls.selectedSessionId}
-            newSessionName={declutterControls.newSessionName}
-            loadingSessions={declutterControls.loadingSessions}
             adding={declutterControls.adding}
             error={declutterControls.error}
-            onSelectedSessionChange={declutterControls.setSelectedSessionId}
-            onNewSessionNameChange={declutterControls.setNewSessionName}
-            onRefreshSessions={declutterControls.loadSessions}
-            onAddToSelectedSession={declutterControls.addToSelectedSession}
-            onCreateSessionAndAdd={declutterControls.createSessionAndAdd}
+            onAdd={declutterControls.addSelectedToDeck}
           />
         ) : null}
       </S.ItemSelectionControls>

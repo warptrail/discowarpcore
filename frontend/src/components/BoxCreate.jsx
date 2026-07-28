@@ -7,6 +7,7 @@ import useShortIdAvailability from '../hooks/useShortIdAvailability';
 import useLocationRegistry from '../hooks/useLocationRegistry';
 import BoxLocationField from './BoxForms/BoxLocationField';
 import BoxTagsField from './BoxForms/BoxTagsField';
+import BoxDeclutterFields from './BoxForms/BoxDeclutterFields';
 
 const LCARS = {
   panel: '#11161f',
@@ -247,6 +248,8 @@ function BoxCreate({
   const [notes, setNotes] = useState('');
   const [locationId, setLocationId] = useState('');
   const [tags, setTags] = useState([]);
+  const [declutterPurpose, setDeclutterPurpose] = useState('standard');
+  const [declutterIsDefault, setDeclutterIsDefault] = useState(false);
   const [locationCreateBusy, setLocationCreateBusy] = useState(false);
   const [locationError, setLocationError] = useState('');
   const [error, setError] = useState('');
@@ -318,6 +321,8 @@ function BoxCreate({
         notes: notes.trim() || undefined,
         locationId: locationId || null,
         tags: normalizeTags(tags),
+        declutterPurpose,
+        declutterIsDefault,
       });
       await Promise.resolve(onCreated?.(created));
       if (autoNavigate) {
@@ -457,6 +462,12 @@ function BoxCreate({
         </Field>
 
         <BoxTagsField tags={tags} setTags={setTags} />
+        <BoxDeclutterFields
+          purpose={declutterPurpose}
+          setPurpose={setDeclutterPurpose}
+          isDefault={declutterIsDefault}
+          setIsDefault={setDeclutterIsDefault}
+        />
 
         <ButtonRow>
           {onCancel ? (

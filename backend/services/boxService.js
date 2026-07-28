@@ -834,6 +834,16 @@ async function getBoxesByParent(parentId) {
 
 async function createBox(data) {
   const payload = { ...data };
+  if (payload.declutterPurpose === 'standard') payload.declutterIsDefault = false;
+  if (
+    payload.declutterIsDefault &&
+    ['donation_staging', 'sale_staging'].includes(payload.declutterPurpose)
+  ) {
+    await Box.updateMany(
+      { declutterPurpose: payload.declutterPurpose, declutterIsDefault: true },
+      { $set: { declutterIsDefault: false } }
+    );
+  }
   const descriptionInput = normalizeOptionalBoxDescriptionInput(
     data && Object.prototype.hasOwnProperty.call(data, 'description')
       ? data.description
@@ -918,6 +928,20 @@ async function createBox(data) {
 
 async function updateBox(id, data) {
   const patch = { ...data };
+  if (patch.declutterPurpose === 'standard') patch.declutterIsDefault = false;
+  if (
+    patch.declutterIsDefault &&
+    ['donation_staging', 'sale_staging'].includes(patch.declutterPurpose)
+  ) {
+    await Box.updateMany(
+      {
+        _id: { $ne: id },
+        declutterPurpose: patch.declutterPurpose,
+        declutterIsDefault: true,
+      },
+      { $set: { declutterIsDefault: false } }
+    );
+  }
   const patchFields = new Set(Object.keys(patch));
   const descriptionInput = normalizeOptionalBoxDescriptionInput(
     data && Object.prototype.hasOwnProperty.call(data, 'description')

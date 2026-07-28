@@ -70,6 +70,31 @@ export const PageShell = styled.section`
   color: ${LCARS.text};
 `;
 
+export const DeclutterSurface = styled(PageShell)`
+  --declutter-accent: ${({ $player }) => ($player === 'laserfox' ? '#b875ff' : '#38c9ff')};
+  --declutter-accent-rgb: ${({ $player }) => ($player === 'laserfox' ? '184, 117, 255' : '56, 201, 255')};
+  min-height: 100%;
+  padding: 0.58rem;
+  border: 1px solid rgba(var(--declutter-accent-rgb), 0.28);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(var(--declutter-accent-rgb), 0.13), transparent 42%),
+    linear-gradient(180deg, rgba(var(--declutter-accent-rgb), 0.045), rgba(8, 12, 17, 0.12));
+  box-shadow: inset 0 0 34px rgba(var(--declutter-accent-rgb), 0.035);
+  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.38rem;
+    border-radius: 9px;
+  }
+`;
+
+export const PlayerDock = styled.div`
+  display: flex;
+  justify-content: center;
+  padding: 0.15rem 0 0.05rem;
+`;
+
 export const PageHeader = styled.header`
   ${panelBase};
   display: grid;
@@ -120,6 +145,86 @@ export const HeaderActions = styled.div`
   gap: 0.4rem;
   align-items: center;
   justify-content: flex-end;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    justify-content: stretch;
+  }
+`;
+
+export const PlayerPicker = styled.div`
+  display: grid;
+  width: min(100%, 430px);
+`;
+
+export const PlayerChoices = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 0.28rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+`;
+
+export const PlayerButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.24rem;
+  min-height: 44px;
+  border: 1px solid ${({ $active, $player }) => {
+    if (!$active) return 'rgba(102, 167, 212, 0.34)';
+    return $player === 'laserfox' ? 'rgba(184, 117, 255, 0.95)' : 'rgba(56, 201, 255, 0.95)';
+  }};
+  border-radius: 7px;
+  background: ${({ $active, $player }) => {
+    if (!$active) return 'rgba(14, 24, 34, 0.82)';
+    return $player === 'laserfox'
+      ? 'linear-gradient(135deg, rgba(70, 31, 90, 0.96), rgba(30, 18, 47, 0.96))'
+      : 'linear-gradient(135deg, rgba(12, 75, 77, 0.96), rgba(10, 38, 48, 0.96))';
+  }};
+  color: ${LCARS.text};
+  padding: 0.34rem 0.5rem;
+  cursor: pointer;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+  }
+`;
+
+export const PlayerIcon = styled.span`
+  font-size: 1.35rem;
+  line-height: 1;
+`;
+
+export const PlayerIdentity = styled.span`
+  display: grid;
+  min-width: 70px;
+  text-align: left;
+`;
+
+export const PlayerName = styled.span`
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+`;
+
+export const PlayerStat = styled.span`
+  color: ${LCARS.textMuted};
+  font-size: 0.58rem;
+  margin-top: 0.1rem;
+`;
+
+export const OnlineDot = styled.span`
+  width: 7px;
+  height: 7px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: ${({ $player }) => ($player === 'laserfox' ? '#b875ff' : LCARS.teal)};
+  box-shadow: ${({ $player }) =>
+    $player === 'laserfox' ? '0 0 8px rgba(184, 117, 255, 0.82)' : '0 0 8px rgba(76, 198, 193, 0.8)'};
 `;
 
 export const Button = styled.button`
@@ -233,6 +338,7 @@ export const StatusPanel = styled.div`
   padding: 0.78rem;
   color: ${LCARS.textDim};
   font-size: 0.86rem;
+  border-color: rgba(var(--declutter-accent-rgb), 0.28);
 `;
 
 export const ErrorState = styled(StatusPanel)`
@@ -322,6 +428,7 @@ export const ModeBar = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 0.62rem 0.72rem;
+  border-color: rgba(var(--declutter-accent-rgb), 0.36);
 `;
 
 export const ModeGroup = styled.div`
@@ -333,11 +440,22 @@ export const ModeGroup = styled.div`
 
 export const ModeButton = styled(Button)`
   border-color: ${({ $active }) =>
-    $active ? 'rgba(127, 215, 255, 0.88)' : 'rgba(102, 167, 212, 0.42)'};
+    $active ? 'rgba(var(--declutter-accent-rgb), 0.92)' : 'rgba(102, 167, 212, 0.42)'};
   background: ${({ $active }) =>
     $active
-      ? 'linear-gradient(180deg, rgba(26, 60, 83, 0.96), rgba(17, 43, 62, 0.96))'
+      ? 'linear-gradient(180deg, rgba(var(--declutter-accent-rgb), 0.25), rgba(var(--declutter-accent-rgb), 0.1))'
       : 'rgba(14, 24, 34, 0.82)'};
+`;
+
+export const ModeCount = styled.span`
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.3rem;
+  height: 1.3rem;
+  margin-left: 0.22rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  font-variant-numeric: tabular-nums;
 `;
 
 export const ProgressText = styled.div`
@@ -378,6 +496,7 @@ export const QueueItem = styled.article`
   gap: 0.64rem;
   align-items: center;
   padding: 0.62rem;
+  border-color: rgba(var(--declutter-accent-rgb), 0.26);
 
   @media (max-width: 820px) {
     grid-template-columns: 64px minmax(0, 1fr);
@@ -472,11 +591,196 @@ export const QueueActions = styled.div`
   }
 `;
 
+export const VoteComparison = styled.div`
+  display: grid;
+  gap: 0.3rem;
+
+  @media (max-width: 820px) {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+`;
+
+export const PlayerVote = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  min-width: 0;
+  border: 1px solid ${({ $tone }) => `${decisionTone($tone)}55`};
+  border-radius: 6px;
+  background: ${({ $tone }) => `${decisionTone($tone)}12`};
+  padding: 0.36rem 0.44rem;
+
+  > span {
+    font-size: 1.12rem;
+  }
+
+  > div {
+    display: grid;
+    min-width: 0;
+  }
+
+  strong {
+    color: ${LCARS.text};
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  small {
+    color: ${({ $tone }) => decisionTone($tone)};
+    font-size: 0.68rem;
+  }
+`;
+
+export const QueueProgress = styled.div`
+  ${panelBase};
+  display: grid;
+  gap: 0.34rem;
+  padding: 0.54rem 0.68rem;
+  border-color: rgba(var(--declutter-accent-rgb), 0.32);
+`;
+
+export const QueueProgressTop = styled.div`
+  display: flex;
+  justify-content: space-between;
+  color: ${LCARS.root};
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+`;
+
+export const QueueProgressButton = styled.button`
+  border: 0;
+  border-bottom: 1px dotted ${LCARS.root};
+  padding: 0;
+  color: ${LCARS.root};
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: ${LCARS.text};
+  }
+`;
+
+export const QueueOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: start center;
+  padding: 7.5rem 1rem 1rem;
+  background: rgba(3, 7, 11, 0.62);
+`;
+
+export const QueuePopover = styled.div`
+  width: min(430px, 100%);
+  max-height: min(62vh, 520px);
+  overflow: auto;
+  border: 1px solid rgba(127, 215, 255, 0.58);
+  border-radius: 8px;
+  background: ${LCARS.panelAlt};
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.58), 0 0 24px rgba(76, 198, 193, 0.12);
+`;
+
+export const QueuePopoverHeader = styled.div`
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding: 0.7rem 0.75rem 0.58rem;
+  border-bottom: 1px solid ${LCARS.line};
+`;
+
+export const QueuePopoverTitle = styled.strong`
+  display: block;
+  margin-top: 0.18rem;
+  color: ${LCARS.text};
+  font-size: 0.96rem;
+`;
+
+export const IconButton = styled.button`
+  width: 30px;
+  height: 30px;
+  border: 1px solid ${LCARS.lineStrong};
+  border-radius: 5px;
+  color: ${LCARS.root};
+  background: rgba(12, 22, 30, 0.9);
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+`;
+
+export const QueueLinkList = styled.div`
+  display: grid;
+`;
+
+export const QueueLink = styled(Link)`
+  display: grid;
+  gap: 0.12rem;
+  padding: 0.56rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  color: ${LCARS.text};
+  text-decoration: none;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: rgba(127, 215, 255, 0.1);
+  }
+
+  strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.78rem;
+  }
+
+  small {
+    overflow: hidden;
+    color: ${LCARS.textMuted};
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.64rem;
+  }
+`;
+
+export const QueueTrack = styled.div`
+  height: 6px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.1) 0,
+    rgba(255, 255, 255, 0.1) 18px,
+    transparent 18px,
+    transparent 22px
+  );
+`;
+
+export const QueueFill = styled.div`
+  width: ${({ $percent = 0 }) => `${Math.max(0, Math.min(100, $percent))}%`};
+  height: 100%;
+  border-radius: inherit;
+  background: ${LCARS.teal};
+  box-shadow: 0 0 10px rgba(76, 198, 193, 0.55);
+  transition: width 220ms ease;
+`;
+
 export const ReviewShell = styled.section`
   ${panelBase};
   display: grid;
   gap: 0.78rem;
   padding: 0.78rem;
+  border-color: rgba(var(--declutter-accent-rgb), 0.3);
 `;
 
 export const ReviewCard = styled.article`
@@ -484,6 +788,19 @@ export const ReviewCard = styled.article`
   grid-template-columns: minmax(240px, 0.9fr) minmax(0, 1.1fr);
   gap: 0.9rem;
   align-items: stretch;
+  transform: ${({ $commitDirection = '' }) => {
+    if ($commitDirection === 'keep') return 'translateX(122vw) rotate(16deg)';
+    if (['toss', 'donate', 'sell'].includes($commitDirection)) {
+      return 'translateX(-122vw) rotate(-16deg)';
+    }
+    if ($commitDirection) return 'translateY(24px) scale(0.96)';
+    return 'translateX(0) rotate(0)';
+  }};
+  opacity: ${({ $commitDirection = '' }) => ($commitDirection ? 0 : 1)};
+  transition: ${({ $commitDirection = '' }) =>
+    $commitDirection
+      ? 'transform 340ms cubic-bezier(0.22, 0.8, 0.25, 1), opacity 300ms ease-out'
+      : 'transform 160ms ease'};
 
   @media (max-width: 820px) {
     grid-template-columns: 1fr;
@@ -502,7 +819,8 @@ export const ReviewImageFrame = styled.div`
   color: ${LCARS.textMuted};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 240px;
+    min-height: 200px;
+    height: 200px;
   }
 `;
 
@@ -532,14 +850,18 @@ export const ReviewTitle = styled.h2`
   line-height: 1.1;
 `;
 
+export const ItemLocationLine = styled.div`
+  margin-top: 0.26rem;
+  color: ${LCARS.textDim};
+  font-size: 0.74rem;
+  line-height: 1.35;
+`;
+
 export const FactGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.44rem;
 
-  @media (max-width: 520px) {
-    grid-template-columns: 1fr;
-  }
 `;
 
 export const Fact = styled.div`
@@ -566,22 +888,35 @@ export const FactValue = styled.div`
   margin-top: 0.1rem;
 `;
 
-export const DecisionGrid = styled.div`
+export const PrimaryDecisionGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.34rem;
+`;
 
-  @media (max-width: 760px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+export const SecondaryDecisionGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.34rem;
 `;
 
 export const DecisionButton = styled(Button)`
-  min-height: 42px;
+  min-height: ${({ $primary }) => ($primary ? '54px' : '42px')};
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.34rem;
   color: ${({ $tone }) => decisionTone($tone)};
   border-color: ${({ $tone }) => `${decisionTone($tone)}88`};
   background:
     linear-gradient(180deg, ${({ $tone }) => `${decisionTone($tone)}24`}, rgba(10, 18, 26, 0.9));
+  box-shadow: ${({ $primary, $tone }) => (
+    $primary ? `inset 0 0 14px ${decisionTone($tone)}12` : 'none'
+  )};
+
+  > span {
+    font-size: ${({ $primary }) => ($primary ? '1.1rem' : '0.9rem')};
+  }
 `;
 
 export const UtilityRow = styled.div`
@@ -590,6 +925,84 @@ export const UtilityRow = styled.div`
   gap: 0.38rem;
   justify-content: space-between;
   align-items: center;
+`;
+
+export const QueueHeading = styled.div`
+  display: flex;
+  align-items: baseline;
+  gap: 0.48rem;
+  color: ${LCARS.root};
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+
+  strong {
+    color: ${LCARS.textDim};
+    font-size: 0.68rem;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+`;
+
+export const PartnerWaiting = styled.div`
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.54rem;
+  border: 1px solid rgba(181, 100, 255, 0.62);
+  border-radius: 7px;
+  background: linear-gradient(90deg, rgba(62, 24, 82, 0.72), rgba(21, 15, 34, 0.8));
+  padding: 0.5rem 0.62rem;
+
+  > div {
+    display: grid;
+    gap: 0.1rem;
+  }
+
+  strong {
+    color: #d8a6ff;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  span {
+    color: ${LCARS.textDim};
+    font-size: 0.72rem;
+  }
+`;
+
+export const PartnerWaitingIcon = styled.span`
+  font-size: 1.35rem !important;
+`;
+
+export const PrivacyBadge = styled.span`
+  color: #d8a6ff !important;
+  font-size: 1rem !important;
+`;
+
+export const DecisionPrompt = styled.div`
+  color: ${LCARS.text};
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+`;
+
+export const NoteDisclosure = styled.details`
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 0.42rem;
+
+  summary {
+    color: ${LCARS.textMuted};
+    font-size: 0.7rem;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  &[open] summary {
+    margin-bottom: 0.42rem;
+  }
 `;
 
 export const PlaceholderNote = styled.div`
@@ -609,4 +1022,261 @@ export const SmallText = styled.div`
   color: ${LCARS.textMuted};
   font-size: ${MOBILE_FONT_XS};
   line-height: 1.35;
+`;
+
+export const ProgressDashboard = styled.section`
+  display: grid;
+  gap: 0.62rem;
+`;
+
+export const ProgressStatGrid = styled.div`
+  ${panelBase};
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+`;
+
+export const ProgressStat = styled.div`
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.62rem;
+  border-right: 1px solid ${({ $tone }) => `${decisionTone($tone)}66`};
+  border-bottom: 2px solid ${({ $tone }) => decisionTone($tone)};
+
+  span {
+    color: ${({ $tone }) => decisionTone($tone)};
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  strong {
+    color: ${LCARS.text};
+    font-size: 1.28rem;
+    font-variant-numeric: tabular-nums;
+  }
+`;
+
+export const DashboardPanel = styled.section`
+  ${panelBase};
+  padding: 0.7rem;
+  border-color: rgba(var(--declutter-accent-rgb), 0.28);
+`;
+
+export const PanelHeading = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.58rem;
+  color: ${LCARS.root};
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  small {
+    color: ${LCARS.textMuted};
+    font-size: 0.64rem;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+`;
+
+export const DecisionSummary = styled.div`
+  display: grid;
+  gap: 0.44rem;
+`;
+
+export const SummaryRow = styled.div`
+  display: grid;
+  grid-template-columns: 92px minmax(60px, 1fr) 34px 34px;
+  align-items: center;
+  gap: 0.42rem;
+  color: ${LCARS.text};
+  font-size: 0.72rem;
+
+  > strong,
+  > small {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  > small {
+    color: ${LCARS.textMuted};
+  }
+`;
+
+export const SummaryLabel = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.32rem;
+  color: ${({ $tone }) => decisionTone($tone)};
+`;
+
+export const SummaryTrack = styled.div`
+  height: 6px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.08);
+`;
+
+export const SummaryFill = styled.div`
+  width: ${({ $percent = 0 }) => `${Math.max(0, Math.min(100, $percent))}%`};
+  height: 100%;
+  background: ${({ $tone }) => decisionTone($tone)};
+  box-shadow: 0 0 7px ${({ $tone }) => `${decisionTone($tone)}88`};
+`;
+
+export const PartnerProgressGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.42rem;
+`;
+
+export const PartnerProgress = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.48rem;
+  border: 1px solid ${({ $player }) => (
+    $player === 'laserfox' ? 'rgba(181, 100, 255, 0.48)' : 'rgba(0, 236, 225, 0.48)'
+  )};
+  border-radius: 7px;
+  padding: 0.5rem;
+
+  > span {
+    font-size: 1.45rem;
+  }
+
+  > div {
+    display: grid;
+  }
+
+  strong {
+    color: ${({ $player }) => ($player === 'laserfox' ? '#d8a6ff' : '#73fff4')};
+    font-size: 0.72rem;
+    text-transform: uppercase;
+  }
+
+  small {
+    color: ${LCARS.textDim};
+  }
+`;
+
+export const WorkflowGrid = styled.div`
+  display: grid;
+  gap: 0.8rem;
+`;
+
+export const WorkflowCard = styled.article`
+  display: grid;
+  gap: 0.7rem;
+  border: 1px solid ${({ theme }) => theme?.declutterAccent || 'rgba(106, 223, 255, 0.45)'};
+  border-radius: 9px;
+  padding: 0.85rem;
+  background: rgba(5, 12, 18, 0.72);
+`;
+
+export const WorkflowCardTop = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+`;
+
+export const WorkflowVotes = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.8rem;
+  color: ${LCARS.textMuted};
+  font-size: 0.75rem;
+  text-transform: capitalize;
+`;
+
+export const Countdown = styled.strong`
+  color: #ffd36a;
+  font-family: monospace;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+`;
+
+export const WorkflowLaneTitle = styled.h2`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(1.5rem, auto);
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0 0 0.45rem;
+  color: ${({ theme }) => theme?.declutterAccent || '#73fff4'};
+  font-size: 0.82rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+
+  > span:last-child {
+    justify-self: end;
+    font-variant-numeric: tabular-nums;
+  }
+`;
+
+export const ActionControls = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.5rem;
+
+  select {
+    min-height: 38px;
+    border: 1px solid rgba(130, 210, 255, 0.36);
+    border-radius: 5px;
+    padding: 0 0.55rem;
+    color: ${LCARS.text};
+    background: #09131b;
+  }
+`;
+
+export const HoldButton = styled.button`
+  position: relative;
+  overflow: hidden;
+  min-height: 62px;
+  border: 1px solid #ff5b53;
+  border-radius: 7px;
+  color: #fff;
+  background:
+    linear-gradient(90deg, rgba(255, 35, 25, 0.85) 0 0) left / ${({ $holding }) => ($holding ? '100%' : '0%')} 100% no-repeat,
+    rgba(100, 10, 10, 0.42);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  transition: background-size 1200ms linear;
+  touch-action: none;
+`;
+
+export const CompactHoldButton = styled.button`
+  justify-self: center;
+  width: 188px;
+  max-width: min(44vw, 188px);
+  min-height: 34px;
+  border: 1px solid #ff9b78;
+  border-radius: 5px;
+  padding: 0.42rem 0.7rem;
+  color: ${({ $holding }) => ($holding ? '#fff' : '#ffd0c1')};
+  background:
+    linear-gradient(90deg, rgba(201, 61, 42, 0.92) 0 0) left /
+      ${({ $holding }) => ($holding ? '100%' : '0%')} 100% no-repeat,
+    rgba(91, 31, 27, 0.28);
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition:
+    background-size ${({ $holding, $holdMs }) => ($holding ? `${$holdMs}ms` : '100ms')} linear,
+    color 120ms ease;
+  touch-action: none;
+  user-select: none;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
 `;

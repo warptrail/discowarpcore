@@ -7,14 +7,19 @@ import React, {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import BoxControlBar from './BoxControlBar';
+import ManagementMenu from './BoxActionPanel/ManagementMenu';
 import NestBoxSection from './NestBoxSection';
 import EditBoxDetailsForm from './EditBoxDetailsForm';
 import ExportBoxPanel from './BoxActionPanel/ExportBoxPanel';
 import DestroyBoxSection from './DestroyBoxSection';
 
 import useBoxActionPanelController from './BoxActionPanel/useBoxActionPanelController';
-import { DetailsPanel, PanelContainer } from './BoxActionPanel/BoxActionPanel.styles';
+import {
+  BackButton,
+  DetailsPanel,
+  PanelContainer,
+  WorkspaceRail,
+} from './BoxActionPanel/BoxActionPanel.styles';
 import { ToastContext } from './Toast';
 import { destroyBoxById, releaseChildrenToFloor, updateBoxById } from '../api/boxes';
 import useBoxImageProcessing from '../hooks/useBoxImageProcessing';
@@ -51,11 +56,9 @@ export default function BoxActionPanel({
     routeShortId,
     setActivePanel,
     clearActivePanel,
-    togglePanel,
     handleEmptyTab,
     handleFormSaved,
   } = controller;
-
   const [mode, setMode] = useState('default');
   const [destroyConfirmInput, setDestroyConfirmInput] = useState('');
   const [imageRefreshToken, setImageRefreshToken] = useState(0);
@@ -203,6 +206,27 @@ export default function BoxActionPanel({
     resetDestroyConfirmState();
   }, [clearActivePanel, resetDestroyConfirmState]);
 
+  const isFocusedWorkspace = isDestroyConfirmMode || Boolean(activePanel);
+  const handleOpenPanel = useCallback((panel) => {
+    if (isDestroyConfirmMode) resetDestroyConfirmState();
+    if (panel === 'destroy') {
+      handleEnterDestroyConfirm();
+      return;
+    }
+    if (panel === 'empty') {
+      handleEmptyTab();
+      return;
+    }
+    setActivePanel(panel);
+  }, [handleEmptyTab, handleEnterDestroyConfirm, isDestroyConfirmMode, resetDestroyConfirmState, setActivePanel]);
+  const handleBackToManage = useCallback(() => {
+    if (isDestroyConfirmMode) {
+      handleCancelDestroyConfirm();
+      return;
+    }
+    setActivePanel(null);
+  }, [handleCancelDestroyConfirm, isDestroyConfirmMode, setActivePanel]);
+
   const runDestroySequence = useCallback(
     async ({ boxId, shortId }) => {
       try {
@@ -267,21 +291,6 @@ export default function BoxActionPanel({
     runDestroySequence,
     routeShortId,
   ]);
-
-  const handleEmptyTabClick = () => {
-    if (isDestroyConfirmMode) resetDestroyConfirmState();
-    handleEmptyTab();
-  };
-
-  const handleNestClick = () => {
-    if (isDestroyConfirmMode) resetDestroyConfirmState();
-    togglePanel('nest');
-  };
-
-  const handleExportClick = () => {
-    if (isDestroyConfirmMode) resetDestroyConfirmState();
-    togglePanel('export');
-  };
 
   const refreshAfterNestMutation = useCallback(async () => {
     try {
@@ -435,18 +444,24 @@ export default function BoxActionPanel({
 
   return (
     <PanelContainer>
-      <BoxControlBar
-        active={isDestroyConfirmMode ? 'destroy' : activePanel}
-        onClickEmpty={handleEmptyTabClick}
-        onClickNest={handleNestClick}
-        onClickExport={handleExportClick}
-        onClickDestroy={handleEnterDestroyConfirm}
-        busy={isDestroyBusy}
-      />
+      {isFocusedWorkspace ? (
+        <WorkspaceRail>
+          <BackButton type="button" onClick={handleBackToManage} disabled={isDestroyBusy} aria-label="Back to manage">
+            ‹
+          </BackButton>
+        </WorkspaceRail>
+      ) : (
+        <ManagementMenu
+          active={activePanel}
+          busy={isDestroyBusy}
+          onOpen={handleOpenPanel}
+        />
+      )}
 
       <NestBoxSection
         open={!isDestroyConfirmMode && activePanel === 'nest'}
-        onClose={() => setActivePanel(null)}
+        onClose={handleBackToManage}
+        showClose={false}
         onConfirm={() => {}}
         sourceBoxMongoId={boxMongoId}
         sourceBoxShortId={routeShortId}
@@ -480,7 +495,7 @@ export default function BoxActionPanel({
             processedPreviewUrl={processedPreviewUrl}
             imageRefreshToken={imageRefreshToken}
             onCancel={() => {
-              setActivePanel(null);
+              handleBackToManage();
               refreshBox?.();
             }}
           />
@@ -493,6 +508,7 @@ export default function BoxActionPanel({
             boxShortId={routeShortId}
             boxMongoId={boxMongoId}
             onClose={() => setActivePanel(null)}
+            showClose={false}
           />
         )}
       </DetailsPanel>

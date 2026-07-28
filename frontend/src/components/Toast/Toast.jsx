@@ -55,6 +55,31 @@ const commandSweep = keyframes`
   }
 `;
 
+const idlePromptBlink = keyframes`
+  0%,
+  48%,
+  100% {
+    opacity: 1;
+  }
+
+  56%,
+  68% {
+    opacity: 0.42;
+  }
+`;
+
+const retrievalGhostFlow = keyframes`
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+`;
+
 const Wrap = styled.div`
   --toast-compact-progress: 0;
   --toast-ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -245,6 +270,71 @@ const Body = styled.div`
     transition: none;
   }
 `;
+
+const RetrievalControlsShell = styled.div`
+  position: relative;
+  margin-bottom: ${({ $scrollCompact }) => ($scrollCompact ? '-145px' : '0')};
+  transition: margin-bottom 180ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    border: 1px solid rgba(91, 215, 244, 0.36);
+    border-radius: 8px;
+    background:
+      linear-gradient(
+        105deg,
+        rgba(7, 20, 31, 0.96) 0%,
+        rgba(34, 211, 238, 0.24) 24%,
+        rgba(76, 198, 193, 0.4) 48%,
+        rgba(167, 139, 250, 0.24) 70%,
+        rgba(7, 20, 31, 0.96) 100%
+      );
+    background-size: 220% 100%;
+    box-shadow:
+      inset 0 0 14px rgba(76, 198, 193, 0.12),
+      0 0 12px rgba(34, 211, 238, 0.1);
+    opacity: ${({ $scrollCompact }) => ($scrollCompact ? 1 : 0)};
+    pointer-events: none;
+    transition: opacity 130ms ease;
+    animation: ${retrievalGhostFlow} 1.4s ease-in-out infinite;
+  }
+
+  > div:first-child {
+    padding-right: 2.5rem;
+    opacity: ${({ $scrollCompact }) => ($scrollCompact ? 0 : 1)};
+    filter: blur(${({ $scrollCompact }) => ($scrollCompact ? '8px' : '0')});
+    visibility: ${({ $scrollCompact }) => ($scrollCompact ? 'hidden' : 'visible')};
+    pointer-events: ${({ $scrollCompact }) => ($scrollCompact ? 'none' : 'auto')};
+    transition:
+      opacity 150ms ease,
+      filter 150ms ease,
+      visibility 0s ${({ $scrollCompact }) => ($scrollCompact ? '150ms' : '0s')};
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &::before {
+      animation: none;
+    }
+
+    > div:first-child {
+      transition: none;
+    }
+  }
+`;
+
+const RetrievalFinderDock = styled.div`
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+`;
 const Title = styled.div`
   font-weight: 600;
   font-size: ${({ $size }) =>
@@ -309,6 +399,36 @@ const Idle = styled.div`
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+  }
+`;
+
+const IdlePromptButton = styled.button`
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-weight: 750;
+  text-align: left;
+  cursor: pointer;
+  animation: ${({ $calm }) =>
+    $calm ? 'none' : css`${idlePromptBlink} 1.9s steps(2, end) infinite`};
+
+  &:hover,
+  &:focus-visible {
+    color: #bfffee;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(103, 239, 200, 0.9);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 `;
 
@@ -728,9 +848,13 @@ export default function Toast({
   titleAlign = 'start',
   titleSize = 'default',
   showIdle = true,
+  calmIdle = false,
   idleIcon = '📦',
   idleText = 'Standing by…',
+  idleAction = null,
+  idleAddon = null,
   activeRetrievalItem = null,
+  retrievalScrollCompact = false,
   compact = false,
   compactProgress,
 }) {
@@ -807,11 +931,24 @@ export default function Toast({
           showIdle ? (
             <Idle $compact={compact}>
               <span aria-hidden="true">{idleIcon}</span>
-              <span>{idleText}</span>
+              {idleAction ? (
+                <IdlePromptButton
+                  type="button"
+                  onClick={idleAction.onClick}
+                  aria-label={idleAction.ariaLabel || idleText}
+                  $calm={calmIdle}
+                >
+                  {idleText}
+                </IdlePromptButton>
+              ) : (
+                <span>{idleText}</span>
+              )}
+              {idleAddon}
             </Idle>
           ) : null
         ) : hasRetrievalControls ? (
-          <RetrievalConsoleControls
+          <RetrievalControlsShell $scrollCompact={retrievalScrollCompact}>
+            <RetrievalConsoleControls
             mode={retrievalItemsMode}
             onModeChange={activeRetrievalItem?.onModeChange}
             searchValue={retrievalSearchValue}
@@ -845,7 +982,13 @@ export default function Toast({
             onBoxLocationChange={activeRetrievalItem?.onBoxLocationChange}
             onClearBoxGroup={activeRetrievalItem?.onClearBoxGroup}
             onClearBoxLocation={activeRetrievalItem?.onClearBoxLocation}
-          />
+            onToggleResults={activeRetrievalItem?.onToggleResults}
+              resultsVisible={activeRetrievalItem?.resultsVisible}
+            />
+            {idleAddon ? (
+              <RetrievalFinderDock>{idleAddon}</RetrievalFinderDock>
+            ) : null}
+          </RetrievalControlsShell>
         ) : hasRetrievalActive ? (
           <RetrievalStateWrap>
             <RetrievalConsoleKicker>Active Item</RetrievalConsoleKicker>

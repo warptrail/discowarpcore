@@ -9,6 +9,13 @@ import TabControlBar from './TabControlBar';
 import useBoxDetailData from './BoxDetailView/useBoxDetailData';
 import useItemEffects from './BoxDetailView/useItemEffects';
 import BoxDetailTabContent from './BoxDetailView/BoxDetailTabContent';
+import BoxSearchOverlay from './BoxDetailView/BoxSearchOverlay';
+import BoxManagementSheet from './BoxDetailView/BoxManagementSheet';
+import useBoxWorkspaceSearch from './BoxDetailView/useBoxWorkspaceSearch';
+import BoxActionPanel from './BoxActionPanel';
+import {
+  BOX_CONTEXT_STATE_EVENT,
+} from '../constants/inventoryFinderEvents';
 
 const VALID_TABS = new Set(['tree', 'flat', 'edit']);
 const VALID_PANELS = new Set(['empty', 'nest', 'edit', 'export', 'destroy']);
@@ -21,7 +28,7 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
 
   const activeTab = useMemo(() => {
     const tab = searchParams.get('tab');
-    return VALID_TABS.has(tab) ? tab : 'tree';
+    return VALID_TABS.has(tab) ? tab : 'flat';
   }, [searchParams]);
 
   const activePanel = useMemo(() => {
@@ -41,6 +48,10 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
     refreshBox,
   } =
     useBoxDetailData(shortId);
+  const search = useBoxWorkspaceSearch({ shortId, items: flatItems });
+  const browseTab = activeTab === 'tree' ? 'tree' : 'flat';
+  const managementOpen = activeTab === 'edit';
+  const resultsRef = React.useRef(null);
 
   const {
     openItemId,
@@ -59,6 +70,22 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
     if (typeof window === 'undefined') return;
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [shortId]);
+
+  useEffect(() => {
+    if (!tree) return undefined;
+    window.dispatchEvent(
+      new CustomEvent(BOX_CONTEXT_STATE_EVENT, {
+        detail: {
+          shortId: String(tree?.box_id ?? tree?.shortId ?? ''),
+          title: String(tree?.label ?? tree?.name ?? 'Box'),
+          location: String(
+            tree?.location ?? tree?.locationName ?? tree?.locationId?.name ?? ''
+          ).trim(),
+        },
+      })
+    );
+    return () => window.dispatchEvent(new CustomEvent(BOX_CONTEXT_STATE_EVENT, { detail: null }));
+  }, [tree]);
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -91,7 +118,7 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
       if (!VALID_TABS.has(mode)) return;
 
       const next = new URLSearchParams(searchParams);
-      if (mode === 'tree') {
+      if (mode === 'flat') {
         next.delete('tab');
       } else {
         next.set('tab', mode);
@@ -135,6 +162,20 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
 
+  const handleCloseManagement = useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('tab');
+    next.delete('panel');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const handleSearchCommit = useCallback(() => {
+    search.minimize();
+    window.requestAnimationFrame(() => {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [search]);
+
   const handleNavigateBox = useCallback(
     (boxId) => {
       const nextShortId = String(boxId ?? '').trim();
@@ -160,14 +201,15 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
               box={tree}
               parentPath={resolvedParentPath}
               onNavigateBox={handleNavigateBox}
-              onEditBox={handleEditBox}
+              onManageBox={handleEditBox}
               stats={stats}
               imageRefreshToken={boxImageRefreshToken}
             />
             <TabControlBar
-              mode={activeTab}
+              mode={browseTab}
               onChange={handleTabChange}
               busy={!!loading}
+              showTree={Array.isArray(tree?.childBoxes) && tree.childBoxes.length > 0}
             />
           </>
         )}
@@ -175,13 +217,13 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
         {loading && <S.Spinner />}
         {error && <S.ErrorBanner>{String(error)}</S.ErrorBanner>}
 
-        <S.TabViewport key={`tab-${activeTab}`}>
+        <S.TabViewport ref={resultsRef}>
           <BoxDetailTabContent
-            activeTab={activeTab}
+            activeTab={browseTab}
             loading={loading}
             error={error}
             tree={tree}
-            flatItems={flatItems}
+            flatItems={search.visibleItems}
             openItemId={openItemId}
             handleOpen={handleOpen}
             accent={accent}
@@ -194,11 +236,42 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
             handleFlash={handleFlash}
             handleItemSaved={handleItemSaved}
             refreshBox={refreshBox}
-            activePanel={activePanel}
-            onActivePanelChange={handlePanelChange}
-            onBoxImageStateChanged={() => setBoxImageRefreshToken(Date.now())}
+            searchQuery={search.query}
+            sortMode={search.sortMode}
           />
         </S.TabViewport>
+        {tree ? (
+          <>
+            <BoxSearchOverlay
+              mode={search.mode}
+              shortId={shortId}
+              query={search.query}
+              onQueryChange={search.setQuery}
+              sortMode={search.sortMode}
+              onSortChange={search.setSortMode}
+              matchCount={search.matchCount}
+              onMinimize={search.minimize}
+              onClear={search.clear}
+              onCommit={handleSearchCommit}
+            />
+            <BoxManagementSheet
+              open={managementOpen}
+              boxId={shortId}
+              title={tree?.label ?? tree?.name ?? 'Box'}
+              onClose={handleCloseManagement}
+            >
+              <BoxActionPanel
+                box={tree}
+                boxTree={tree}
+                boxMongoId={tree._id}
+                refreshBox={refreshBox}
+                activePanelState={activePanel}
+                onActivePanelStateChange={handlePanelChange}
+                onImageStateChanged={() => setBoxImageRefreshToken(Date.now())}
+              />
+            </BoxManagementSheet>
+          </>
+        ) : null}
       </S.Content>
     </S.Wrap>
   );

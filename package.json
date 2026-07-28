@@ -9,9 +9,16 @@
   "scripts": {
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js",
+    "tarot": "node scripts/tarot-dock.mjs",
+    "taro": "npm run tarot",
     "install:all": "npm install && cd frontend && npm install",
     "seed": "node backend/scripts/seed.js",
     "seed:all": "node backend/scripts/seed.js --all",
+    "migrate:declutter-deck": "node backend/scripts/migrate-declutter-sessions-to-deck.js",
+    "migrate:declutter-release-decisions": "node backend/scripts/migrate-declutter-release-decisions.js",
+    "migrate:declutter-cooling-off": "node backend/scripts/migrate-declutter-cooling-off.js",
+    "test:declutter-deck": "node --test test/declutterDeckState.test.js",
+    "test:backend-logging": "node --test test/backendLogger.test.js",
     "seed:boxes:range": "node backend/scripts/seed_boxes_range.js",
     "seed:boxes:700": "node backend/scripts/seed_boxes_range.js --start=700 --count=75",
     "backup:full": "node backend/scripts/backup-full.js",
@@ -44,11 +51,13 @@
     "intake:assign-imagekeys": "node scripts/assign_imagekeys_to_json.js",
     "intake:validate-batch": "node scripts/validate_intake_batch.js",
     "intake:stage-images": "node scripts/stage_imagekey_files.js",
-    "deploy:neonazoth": "rsync -avz --delete --exclude 'node_modules/' --exclude 'dist/' --exclude '.git/' --exclude '.vite/' --exclude 'frontend/node_modules/' --exclude 'frontend/dist/' --exclude 'backend/media/' ./ warptrail@neonazoth:~/discowarpcore/",
-    "deploy:neonazoth:dry": "rsync -avzn --delete --exclude 'node_modules/' --exclude 'dist/' --exclude '.git/' --exclude '.vite/' --exclude 'frontend/node_modules/' --exclude 'frontend/dist/' --exclude 'backend/media/' ./ warptrail@neonazoth:~/discowarpcore/",
+    "deploy:neonazoth": "rsync -avz --delete --exclude 'node_modules/' --exclude 'dist/' --exclude '.git/' --exclude '.vite/' --exclude '.env' --exclude '.env.*' --exclude '.DS_Store' --exclude '*.log' --exclude '*.pid' --exclude '*.backup*' --exclude '*.bak-*' --exclude 'frontend/node_modules/' --exclude 'frontend/dist/' --exclude 'backend/media/' --exclude 'dump/' --exclude 'var/' ./ warptrail@neonazoth:~/discowarpcore/",
+    "deploy:neonazoth:dry": "rsync -avzn --delete --exclude 'node_modules/' --exclude 'dist/' --exclude '.git/' --exclude '.vite/' --exclude '.env' --exclude '.env.*' --exclude '.DS_Store' --exclude '*.log' --exclude '*.pid' --exclude '*.backup*' --exclude '*.bak-*' --exclude 'frontend/node_modules/' --exclude 'frontend/dist/' --exclude 'backend/media/' --exclude 'dump/' --exclude 'var/' ./ warptrail@neonazoth:~/discowarpcore/",
     "install:neonazoth": "ssh warptrail@neonazoth 'cd ~/discowarpcore && npm install && cd frontend && npm install'",
     "neonazoth:tui": "node scripts/neonazoth/control_station.js",
-    "merge:staged-db": "node backend/scripts/merge-staged-db.js"
+    "merge:staged-db": "node backend/scripts/merge-staged-db.js",
+    "tarot:update": "node scripts/tarot-update.mjs",
+    "tarot:storm": "python3 scripts/tarot-terminal-storm.py"
   },
   "dependencies": {
     "compression": "^1.8.1",

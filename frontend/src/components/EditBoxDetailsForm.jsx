@@ -9,6 +9,7 @@ import { ToastContext } from './Toast';
 import * as S from './BoxForms/BoxEditForm.styles';
 import BoxIdentityFields from './BoxForms/BoxIdentityFields';
 import BoxTagsField from './BoxForms/BoxTagsField';
+import BoxDeclutterFields from './BoxForms/BoxDeclutterFields';
 import BoxFormActions from './BoxForms/BoxFormActions';
 import BoxImageField from './ImageFields/BoxImageField';
 
@@ -51,6 +52,8 @@ export default function EditBoxDetailsForm({
   const [tags, setTags] = useState(() =>
     Array.isArray(initial?.tags) ? initial.tags : [],
   );
+  const [declutterPurpose, setDeclutterPurpose] = useState(initial?.declutterPurpose || 'standard');
+  const [declutterIsDefault, setDeclutterIsDefault] = useState(Boolean(initial?.declutterIsDefault));
   const [busy, setBusy] = useState(false);
   const [destroyBusy, setDestroyBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -83,6 +86,8 @@ export default function EditBoxDetailsForm({
     setLocationId(nextLocationId ? String(nextLocationId) : '');
     setLocationError('');
     setTags(Array.isArray(initial?.tags) ? initial.tags : []);
+    setDeclutterPurpose(initial?.declutterPurpose || 'standard');
+    setDeclutterIsDefault(Boolean(initial?.declutterIsDefault));
   }, [
     initial?._id,
     initial?.box_id,
@@ -92,6 +97,8 @@ export default function EditBoxDetailsForm({
     initial?.notes,
     initial?.locationId,
     initial?.tags,
+    initial?.declutterPurpose,
+    initial?.declutterIsDefault,
     initialTagsKey,
   ]);
 
@@ -123,6 +130,8 @@ export default function EditBoxDetailsForm({
     const sameTags =
       JSON.stringify([...tags].sort()) ===
       JSON.stringify([...(initial?.tags || [])].sort());
+    const sameDeclutterPurpose = declutterPurpose === (initial?.declutterPurpose || 'standard');
+    const sameDeclutterDefault = declutterIsDefault === Boolean(initial?.declutterIsDefault);
     return !(
       sameId &&
       sameLabel &&
@@ -130,9 +139,11 @@ export default function EditBoxDetailsForm({
       sameDescription &&
       sameNotes &&
       sameLocation &&
-      sameTags
+      sameTags &&
+      sameDeclutterPurpose &&
+      sameDeclutterDefault
     );
-  }, [shortId, label, group, description, notes, locationId, tags, initial]);
+  }, [shortId, label, group, description, notes, locationId, tags, declutterPurpose, declutterIsDefault, initial]);
 
   const canSave =
     !busy &&
@@ -195,6 +206,8 @@ export default function EditBoxDetailsForm({
         notes: notes.trim() || null,
         locationId: locationId || null,
         tags,
+        declutterPurpose,
+        declutterIsDefault,
       });
       onSaved?.(updated || {
         _id: boxMongoId,
@@ -258,14 +271,6 @@ export default function EditBoxDetailsForm({
     <S.Card onSubmit={onSubmit} noValidate $compact={compact}>
       {!compact ? (
         <>
-          <S.ConsoleHeader>
-            <S.ConsoleKicker>Box Action Panel</S.ConsoleKicker>
-            <S.ConsoleTitle>Edit Console</S.ConsoleTitle>
-            <S.ConsoleHint>
-              Update identity, organization metadata, tags, and photo in one place.
-            </S.ConsoleHint>
-          </S.ConsoleHeader>
-
           <S.ConsoleGrid>
             <S.ConsoleMain>
               <S.SectionCard $tone="teal">
@@ -324,6 +329,12 @@ export default function EditBoxDetailsForm({
                     setTags={setTags}
                     TagInputComponent={TagInputComponent}
                   />
+                  <BoxDeclutterFields
+                    purpose={declutterPurpose}
+                    setPurpose={setDeclutterPurpose}
+                    isDefault={declutterIsDefault}
+                    setIsDefault={setDeclutterIsDefault}
+                  />
                 </S.SectionBody>
               </S.SectionCard>
             </S.ConsoleMain>
@@ -374,6 +385,12 @@ export default function EditBoxDetailsForm({
       ) : (
         <>
           <BoxIdentityFields compact {...identityFieldProps} />
+          <BoxDeclutterFields
+            purpose={declutterPurpose}
+            setPurpose={setDeclutterPurpose}
+            isDefault={declutterIsDefault}
+            setIsDefault={setDeclutterIsDefault}
+          />
 
           <S.SectionCard $tone="lilac">
             <S.SectionHeader>

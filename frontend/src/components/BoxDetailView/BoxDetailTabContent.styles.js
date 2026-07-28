@@ -24,6 +24,33 @@ export const FlatTabScope = styled.div`
   }
 `;
 
+export const SectionHeading = styled.header`
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0.72rem 0 0.22rem;
+`;
+
+export const SectionTitle = styled.h2`
+  margin: 0;
+  color: rgba(231, 236, 243, 0.86);
+  font: 800 0.82rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+`;
+
+export const SectionCount = styled.span`
+  color: rgba(231, 236, 243, 0.54);
+  font: 700 0.68rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: nowrap;
+`;
+
+export const SectionRule = styled.div`
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(90deg, rgba(76, 198, 193, 0.42), rgba(167, 139, 250, 0.08), transparent);
+`;
+
 export const FlatEmpty = styled.div`
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;

@@ -41,7 +41,7 @@ const toneAlpha = (hex, alpha = 'ff') => `${hex}${alpha}`;
 const depthStep = ({ $depth = 0 }) => Math.min(Math.max($depth, 0), 4);
 const childIndent = ({ $depth = 1, $mobile = false }) => {
   const depth = Math.max(Number($depth) || 0, 0);
-  if (depth < 1 || depth > 3) return '0px';
+  if (depth < 1 || depth >= 3) return '0px';
   return `${$mobile ? BOX_DEPTH_INDENT_MOBILE_PX : BOX_DEPTH_INDENT_PX}px`;
 };
 const railTop = ({ $isRoot }) => ($isRoot ? '0.22rem' : '0.3rem');
@@ -237,6 +237,12 @@ const BoxCard = styled.div`
     border-color 160ms ease,
     background 160ms ease;
 
+  ${({ $density }) =>
+    $density === 'roomy' &&
+    css`
+      border-radius: 16px;
+    `}
+
   ${({ $isSystem }) =>
     $isSystem &&
     css`
@@ -300,7 +306,12 @@ const BoxHeader = styled.div`
 
 const BoxTitle = styled.div`
   font-weight: 900;
-  font-size: clamp(0.94rem, 1.8vw, 1.08rem);
+  font-size: ${({ $density }) =>
+    $density === 'roomy'
+      ? 'clamp(1rem, 1.9vw, 1.12rem)'
+      : $density === 'compact'
+        ? 'clamp(0.88rem, 1.7vw, 1rem)'
+        : 'clamp(0.94rem, 1.8vw, 1.08rem)'};
   color: ${({ $isRoot, $depth = 0 }) =>
     toneAlpha(railTone({ $isRoot, $depth }), 'ee')};
   text-shadow: 0 0 10px
@@ -423,8 +434,10 @@ const BoxImageFrame = styled.div`
   flex: 0 0 auto;
 
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
-    width: 74px;
-    height: 74px;
+    width: ${({ $density }) =>
+      $density === 'roomy' ? '82px' : $density === 'compact' ? '58px' : '68px'};
+    height: ${({ $density }) =>
+      $density === 'roomy' ? '82px' : $density === 'compact' ? '58px' : '68px'};
     border-radius: 8px;
   }
 `;
@@ -451,6 +464,54 @@ const BoxMetaStack = styled.div`
   display: grid;
   gap: 0.2rem;
   padding: 0.14rem 0 0.14rem;
+`;
+
+const BoxMetaRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.36rem 0.62rem;
+  min-width: 0;
+  padding: 0.12rem 0 0.16rem;
+`;
+
+const LocationMeta = styled.span`
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.34rem;
+  min-width: 0;
+  max-width: 100%;
+  color: ${toneAlpha(LCARS.cyan, 'f0')};
+  font-size: 0.78rem;
+  font-weight: 820;
+  line-height: 1.2;
+`;
+
+const LocationMetaLabel = styled.span`
+  flex: 0 0 auto;
+  color: ${toneAlpha(LCARS.cyan, 'bf')};
+  font-size: 0.56rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+`;
+
+const LocationMetaValue = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const SecondaryMeta = styled.span`
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: ${toneAlpha(LCARS.textDim, 'd2')};
+  font-size: 0.68rem;
+  line-height: 1.2;
 `;
 
 const BoxMetaLine = styled.div`
@@ -488,6 +549,26 @@ const BoxSummary = styled.p`
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
+
+  ${({ $density }) =>
+    $density === 'compact' &&
+    css`
+      -webkit-line-clamp: 1;
+      font-size: 0.68rem;
+    `}
+`;
+
+const MatchSummary = styled.div`
+  margin: 0.16rem 0 0.1rem;
+  padding: 0.22rem 0.36rem;
+  border-left: 2px solid ${LCARS.lime};
+  color: ${toneAlpha(LCARS.lime, 'eb')};
+  background: ${toneAlpha(LCARS.lime, '0d')};
+  font-size: 0.68rem;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const ContextChip = styled.span`
@@ -659,11 +740,21 @@ const BoxBodyRow = styled.div`
   gap: 0.72rem;
   align-items: start;
   min-width: 0;
-  padding: 0.68rem 0.78rem 0.74rem;
+  padding: ${({ $density }) =>
+    $density === 'roomy'
+      ? '0.82rem 0.9rem 0.88rem'
+      : $density === 'compact'
+        ? '0.42rem 0.5rem 0.48rem'
+        : '0.68rem 0.78rem 0.74rem'};
 
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
-    gap: 0.58rem;
-    padding: 0.56rem 0.62rem 0.6rem;
+    gap: ${({ $density }) => ($density === 'compact' ? '0.42rem' : '0.58rem')};
+    padding: ${({ $density }) =>
+      $density === 'roomy'
+        ? '0.68rem 0.72rem 0.74rem'
+        : $density === 'compact'
+          ? '0.36rem 0.42rem 0.4rem'
+          : '0.56rem 0.62rem 0.6rem'};
   }
 `;
 
@@ -681,6 +772,14 @@ const NotesPreviewArea = styled.div`
   border-radius: 10px;
   border: 1px solid ${toneAlpha(LCARS.line, 'db')};
   background: linear-gradient(180deg, rgba(13, 21, 29, 0.88), rgba(10, 16, 22, 0.84));
+
+  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+    ${({ $density }) =>
+      $density === 'compact' &&
+      css`
+        display: none;
+      `}
+  }
 `;
 
 const NotesPreviewLabel = styled.span`
@@ -745,15 +844,54 @@ const NodeChildren = styled.div`
   margin-top: 2px;
   display: flex;
   flex-direction: column;
-  gap: 0.72rem;
+  gap: ${({ $density }) =>
+    $density === 'roomy' ? '0.9rem' : $density === 'compact' ? '0.42rem' : '0.72rem'};
   min-width: 0;
   padding-left: 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
     --box-depth-indent: ${({ $depth = 1 }) =>
       childIndent({ $depth, $mobile: true })};
-    gap: 0.54rem;
+    gap: ${({ $density }) =>
+      $density === 'roomy' ? '0.68rem' : $density === 'compact' ? '0.34rem' : '0.54rem'};
   }
+`;
+
+const NestedChildrenToggle = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  width: 100%;
+  min-height: 40px;
+  margin-top: 0.24rem;
+  padding: 0.42rem 0.58rem;
+  border: 1px solid ${toneAlpha(LCARS.ice, '58')};
+  border-radius: 9px;
+  color: ${toneAlpha(LCARS.ice, 'e8')};
+  background: linear-gradient(90deg, ${toneAlpha(LCARS.ice, '15')}, rgba(9, 18, 27, 0.9));
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    border-color: ${toneAlpha(LCARS.lime, '8a')};
+    color: ${toneAlpha(LCARS.lime, 'ed')};
+  }
+`;
+
+const NestedChildrenIcon = styled.span`
+  display: inline-grid;
+  place-items: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  border: 1px solid ${toneAlpha(LCARS.ice, '66')};
+  border-radius: 6px;
+  font-size: 1rem;
+  line-height: 1;
 `;
 
 const OrphanedRevealShell = styled.div`
@@ -965,6 +1103,27 @@ const TerminalMoreButton = styled.button`
   }
 `;
 
+const TerminalChildrenToggle = styled.button`
+  justify-self: stretch;
+  min-height: 34px;
+  margin: 0.28rem 0.62rem 0.36rem;
+  border: 1px solid ${toneAlpha(LCARS.ice, '58')};
+  border-radius: 8px;
+  color: ${toneAlpha(LCARS.ice, 'e6')};
+  background: rgba(10, 23, 33, 0.86);
+  font-family: inherit;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  &:hover {
+    border-color: ${toneAlpha(LCARS.lime, '86')};
+    color: ${toneAlpha(LCARS.lime, 'ee')};
+  }
+`;
+
 const TerminalDetailPanel = styled.div`
   overflow: hidden;
   max-height: ${({ $open }) => ($open ? '260px' : '0')};
@@ -1115,10 +1274,16 @@ export const styledComponents = {
   ShortIdMarker,
   ShortIdDigits,
   BoxMetaStack,
+  BoxMetaRow,
+  LocationMeta,
+  LocationMetaLabel,
+  LocationMetaValue,
+  SecondaryMeta,
   BoxMetaLine,
   BoxMetaLabel,
   BoxMetaValue,
   BoxSummary,
+  MatchSummary,
 
   FieldGroup,
   FieldLabel,
@@ -1140,6 +1305,8 @@ export const styledComponents = {
   NotesPreviewText,
 
   NodeChildren,
+  NestedChildrenToggle,
+  NestedChildrenIcon,
   OrphanedRevealShell,
   TerminalTable,
   TerminalHeader,
@@ -1153,6 +1320,7 @@ export const styledComponents = {
   TerminalCell,
   TerminalMetric,
   TerminalMoreButton,
+  TerminalChildrenToggle,
   TerminalDetailPanel,
   TerminalDetailInner,
   TerminalDetailText,

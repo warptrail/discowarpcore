@@ -1,0 +1,125 @@
+{
+  "tarotVersion": "0.1.0",
+  "version": "1.0.0",
+  "projectId": "discowarpcore",
+  "displayName": "Disco Warp Core",
+  "branding": {
+    "terminalColor": 95,
+    "sigil": "DWC"
+  },
+  "primaryService": "frontend",
+  "portAssignments": {
+    "source": "deckone-port-policy-fallback",
+    "status": "local-reservation",
+    "reason": "DeckOne allocation API was unavailable; 7607-7609 remain dedicated to DeckOne and 7610-7611 were free during verification.",
+    "frontend": 7610,
+    "backend": 7611
+  },
+  "profiles": {
+    "development": {
+      "label": "DEV",
+      "services": [
+        {
+          "id": "frontend",
+          "label": "Vite frontend",
+          "purpose": "LAN-visible React development server",
+          "projectRoot": ".",
+          "cwd": "frontend",
+          "protocol": "http",
+          "port": 7610,
+          "command": "npm",
+          "args": ["--prefix", "frontend", "run", "dev", "--", "--host", "0.0.0.0", "--port", "7610", "--strictPort"],
+          "env": {
+            "VITE_PORT": "7610",
+            "VITE_STRICT_PORT": "true",
+            "VITE_API_TARGET": "http://127.0.0.1:7611"
+          },
+          "healthPath": "/",
+          "dependencies": ["backend"],
+          "dependsOn": ["backend"],
+          "autostart": true,
+          "owner": "Disco Warp Core",
+          "actions": ["start", "stop", "restart", "status", "logs"]
+        },
+        {
+          "id": "backend",
+          "label": "Express API",
+          "purpose": "MongoDB-backed application API",
+          "projectRoot": ".",
+          "cwd": ".",
+          "protocol": "http",
+          "port": 7611,
+          "command": "node",
+          "args": ["backend/server.js"],
+          "env": {
+            "HOST": "127.0.0.1",
+            "PORT": "7611"
+          },
+          "healthPath": "/api/health",
+          "dependencies": ["mongodb"],
+          "dependsOn": ["mongodb"],
+          "autostart": true,
+          "owner": "Disco Warp Core",
+          "actions": ["start", "stop", "restart", "status", "logs"]
+        },
+        {
+          "id": "mongodb",
+          "label": "MongoDB",
+          "purpose": "Application database",
+          "projectRoot": ".",
+          "protocol": "mongodb",
+          "port": 27017,
+          "monitorOnly": true,
+          "owner": "System",
+          "startCommand": ["brew", "services", "start", "mongodb-community"],
+          "startupTimeoutMs": 30000,
+          "actions": ["status"]
+        }
+      ]
+    },
+    "production": {
+      "label": "PROD",
+      "services": [
+        {
+          "id": "backend",
+          "label": "Express production host",
+          "purpose": "Serves frontend/dist and the API",
+          "projectRoot": ".",
+          "cwd": ".",
+          "protocol": "http",
+          "port": 7611,
+          "command": "node",
+          "args": ["backend/server.js"],
+          "env": {
+            "HOST": "127.0.0.1",
+            "PORT": "7611"
+          },
+          "healthPath": "/api/health",
+          "dependencies": ["mongodb"],
+          "dependsOn": ["mongodb"],
+          "autostart": true,
+          "owner": "Disco Warp Core",
+          "actions": ["start", "stop", "restart", "status", "logs"]
+        },
+        {
+          "id": "mongodb",
+          "label": "MongoDB",
+          "purpose": "Application database",
+          "projectRoot": ".",
+          "protocol": "mongodb",
+          "port": 27017,
+          "monitorOnly": true,
+          "owner": "System",
+          "startCommand": ["brew", "services", "start", "mongodb-community"],
+          "startupTimeoutMs": 30000,
+          "actions": ["status"]
+        }
+      ]
+    }
+  },
+  "sync": {
+    "source": "deckone",
+    "channel": "stable",
+    "baseVersion": "0.1.0"
+  }
+}

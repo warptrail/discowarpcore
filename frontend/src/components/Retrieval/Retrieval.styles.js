@@ -831,6 +831,42 @@ export const AddFilterButton = styled.button`
   }
 `;
 
+export const SortDirectionToggle = styled.button`
+  min-width: 78px;
+  min-height: 36px;
+  padding: 0.38rem 0.52rem;
+  border: 1px solid rgba(111, 196, 255, 0.52);
+  border-radius: 10px;
+  color: #dff4ff;
+  background: linear-gradient(180deg, rgba(16, 44, 68, 0.78), rgba(12, 27, 43, 0.86));
+  font-size: 0.72rem;
+  font-weight: 760;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+
+  &:hover:not(:disabled),
+  &:focus-visible:not(:disabled) {
+    border-color: rgba(143, 214, 255, 0.84);
+    background: linear-gradient(180deg, rgba(20, 55, 84, 0.84), rgba(13, 31, 49, 0.9));
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(111, 196, 255, 0.66);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.46;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+    font-size: ${MOBILE_FONT_SM};
+  }
+`;
+
 export const SortSelect = styled.select`
   ${controlField};
   min-height: 36px;
@@ -1300,6 +1336,17 @@ export const ResultCard = styled.article`
     $expanded
       ? '0 10px 26px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(127, 215, 255, 0.12)'
       : '0 6px 18px rgba(0, 0, 0, 0.22)'};
+
+  &:has(> [role='button']:hover) {
+    border-color: rgba(127, 215, 255, 0.4);
+    box-shadow:
+      0 10px 24px rgba(0, 0, 0, 0.28),
+      0 0 0 1px rgba(127, 215, 255, 0.1);
+  }
+
+  &:has(> [role='button']:focus-visible) {
+    border-color: rgba(119, 213, 255, 0.72);
+  }
 `;
 
 export const SummaryButton = styled.div`
@@ -1314,7 +1361,9 @@ export const SummaryButton = styled.div`
   padding: ${({ $expanded }) => ($expanded ? '0.42rem 0.56rem' : '0.56rem')};
   display: grid;
   gap: 0.2rem;
-  transition: background 140ms ease;
+  transition:
+    background 140ms ease,
+    transform 90ms ease;
 
   &:hover {
     background: ${({ $expanded }) =>
@@ -1326,6 +1375,15 @@ export const SummaryButton = styled.div`
   &:focus-visible {
     outline: 2px solid rgba(119, 213, 255, 0.6);
     outline-offset: -2px;
+  }
+
+  &:active {
+    background: linear-gradient(
+      180deg,
+      rgba(42, 62, 82, 0.86),
+      rgba(22, 39, 55, 0.72)
+    );
+    transform: translateY(1px);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -1437,52 +1495,6 @@ export const CompactMetaLine = styled.div`
 
 export const CompactSecondaryMetaLine = styled.div`
   display: none;
-`;
-
-export const ExpandControl = styled.span`
-  appearance: none;
-  align-self: center;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.26rem;
-  min-height: 30px;
-  border-radius: 10px;
-  border: 1px solid
-    ${({ $expanded }) =>
-      $expanded ? 'rgba(119, 213, 255, 0.58)' : 'rgba(255, 255, 255, 0.2)'};
-  background: ${({ $expanded }) =>
-    $expanded ? 'rgba(119, 213, 255, 0.2)' : 'rgba(255, 255, 255, 0.06)'};
-  color: ${({ $expanded }) => ($expanded ? '#d6f0ff' : RETRIEVAL.textDim)};
-  padding: 0.2rem 0.42rem;
-  flex: 0 0 auto;
-  cursor: pointer;
-  transition: background 120ms ease, border-color 120ms ease;
-
-  &:hover {
-    background: ${({ $expanded }) =>
-      $expanded ? 'rgba(119, 213, 255, 0.24)' : 'rgba(255, 255, 255, 0.11)'};
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 28px;
-    padding: 0.18rem 0.36rem;
-  }
-`;
-
-export const ExpandCaret = styled.span`
-  font-size: 0.86rem;
-  line-height: 1;
-`;
-
-export const CardOpenHint = styled.span`
-  font-size: 0.66rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: rgba(228, 237, 248, 0.74);
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    display: none;
-  }
 `;
 
 export const ItemLineSlot = styled.span`

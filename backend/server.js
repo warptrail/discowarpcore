@@ -18,12 +18,18 @@ const retrievalRoutes = require('./routes/retrieval');
 const logRoutes = require('./routes/logs');
 const mediaRoutes = require('./routes/media');
 const intakeBatchRoutes = require('./routes/intakeBatches');
-const declutterSessionRoutes = require('./routes/declutterSessions');
+const declutterDeckRoutes = require('./routes/declutterDeck');
+const {
+  backendRequestLogger,
+  serializeError,
+  writeBackendLog,
+} = require('./utils/backendLogger');
 const { backfillBoxLocations } = require('./services/locationService');
 const { recoverQueuedMediaJobs } = require('./services/mediaJobService');
 const { backfillMissingMediaIds } = require('./services/mediaProcessingService');
+const { startDeclutterConfirmationSweep } = require('./services/declutterActionService');
 
-const PORT = process.env.PORT || 5002;
+const PORT = process.env.PORT || 7610;
 const HOST = process.env.HOST || '0.0.0.0';
 const app = express();
 const FRONTEND_DIST = path.join(__dirname, '../frontend/dist');
@@ -33,6 +39,7 @@ app.use(cors());
 app.use(compression());
 app.use(express.json());
 app.use(MEDIA_URL_BASE, express.static(MEDIA_ROOT, { maxAge: '1h' }));
+app.use('/api', backendRequestLogger);
 
 // Connect to Mongo
 app.use('/api/boxes', boxRoutes);
@@ -44,7 +51,7 @@ app.use('/api/retrieval', retrievalRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/intake-batches', intakeBatchRoutes);
-app.use('/api/declutter-sessions', declutterSessionRoutes);
+app.use('/api/declutter-deck', declutterDeckRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
@@ -68,6 +75,7 @@ app.get(/^\/(?!api|media).*/, (_req, res) => {
 async function startServer() {
   await connectDB(process.env.MONGO_URI);
   ensureMediaDirs();
+  startDeclutterConfirmationSweep();
 
   try {
     const result = await backfillBoxLocations();
@@ -95,13 +103,30 @@ async function startServer() {
   }
 
   app.listen(PORT, HOST, () => {
+    writeBackendLog('info', 'server.started', {
+      host: HOST,
+      port: Number(PORT),
+      processId: process.pid,
+    });
     console.log(`🚀 Server running at:
   • http://localhost:${PORT}
   • http://<your-local-ip>:${PORT}`);
   });
 }
 
+process.on('uncaughtExceptionMonitor', (error, origin) => {
+  writeBackendLog('error', 'process.uncaught_exception', {
+    origin,
+    processId: process.pid,
+    error: serializeError(error),
+  });
+});
+
 startServer().catch((err) => {
+  writeBackendLog('error', 'server.start.failed', {
+    processId: process.pid,
+    error: serializeError(err),
+  });
   console.error('❌ Failed to start server:', err);
   process.exit(1);
 });

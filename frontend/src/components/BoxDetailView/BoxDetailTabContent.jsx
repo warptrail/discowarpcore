@@ -1,31 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 
 import BoxTree from '../BoxTree';
 import ItemsFlatList from '../ItemsFlatList';
-import BoxActionPanel from '../BoxActionPanel';
-import ItemBrowseControlPanel from '../ItemBrowseControlPanel';
 import BoxInlineItemActions from './BoxInlineItemActions';
-import {
-  compareItemsByMode,
-  matchesItemQuery,
-  normalizeItemQuery,
-} from '../../util/itemBrowse';
 import * as S from './BoxDetailTabContent.styles';
-
-const FLAT_SORT_OPTIONS = [
-  { value: 'treeOrder', label: 'Tree Order' },
-  { value: 'recentlyAdded', label: 'Recently Added' },
-  { value: 'oldestAdded', label: 'Oldest Added' },
-  { value: 'recentlyUpdated', label: 'Recently Updated' },
-  { value: 'nameAsc', label: 'Name A-Z' },
-  { value: 'nameDesc', label: 'Name Z-A' },
-  { value: 'categoryAsc', label: 'Category A-Z' },
-  { value: 'categoryDesc', label: 'Category Z-A' },
-  { value: 'ownerAsc', label: 'Owner A-Z' },
-  { value: 'ownerDesc', label: 'Owner Z-A' },
-  { value: 'valueDesc', label: 'Value High-Low' },
-  { value: 'valueAsc', label: 'Value Low-High' },
-];
 
 export default function BoxDetailTabContent({
   activeTab,
@@ -45,39 +23,9 @@ export default function BoxDetailTabContent({
   handleFlash,
   handleItemSaved,
   refreshBox,
-  activePanel,
-  onActivePanelChange,
-  onBoxImageStateChanged,
+  searchQuery,
+  sortMode,
 }) {
-  const [flatSearchQuery, setFlatSearchQuery] = useState('');
-  const [flatSortMode, setFlatSortMode] = useState('treeOrder');
-  const flatRootKey = String(tree?._id ?? tree?.box_id ?? tree?.shortId ?? '');
-
-  useEffect(() => {
-    setFlatSearchQuery('');
-    setFlatSortMode('treeOrder');
-  }, [flatRootKey]);
-
-  const normalizedFlatQuery = normalizeItemQuery(flatSearchQuery);
-  const visibleFlatItems = useMemo(() => {
-    const source = Array.isArray(flatItems) ? flatItems : [];
-    const filtered = normalizedFlatQuery
-      ? source.filter((item) =>
-          matchesItemQuery(item, normalizedFlatQuery, {
-            boxLabel: item?.parentBoxLabel,
-            boxId: item?.parentBoxId,
-            pathLabels: item?.parentBoxLabel ? [item.parentBoxLabel] : [],
-          }),
-        )
-      : [...source];
-
-    if (flatSortMode !== 'treeOrder') {
-      filtered.sort((a, b) => compareItemsByMode(a, b, flatSortMode));
-    }
-
-    return filtered;
-  }, [flatItems, normalizedFlatQuery, flatSortMode]);
-
   if (loading || error || !tree) return null;
 
   if (activeTab === 'tree') {
@@ -96,6 +44,8 @@ export default function BoxDetailTabContent({
           stopPulse={stopPulse}
           onItemSaved={handleItemSaved}
           refreshBox={refreshBox}
+          searchQuery={searchQuery}
+          sortMode={sortMode}
         />
         <BoxInlineItemActions box={tree} onItemsChanged={refreshBox} />
       </S.TreeTabScope>
@@ -105,28 +55,19 @@ export default function BoxDetailTabContent({
   if (activeTab === 'flat') {
     return (
       <S.FlatTabScope>
-        <ItemBrowseControlPanel
-          idPrefix="flat-item-browse"
-          title="Flat Items"
-          searchValue={flatSearchQuery}
-          searchPlaceholder="Search items..."
-          searchAriaLabel="Search flat-view items"
-          onSearchChange={setFlatSearchQuery}
-          sortValue={flatSortMode}
-          sortOptions={FLAT_SORT_OPTIONS}
-          sortAriaLabel="Sort flat-view items"
-          onSortChange={setFlatSortMode}
-          statusText={`${visibleFlatItems.length} ${
-            visibleFlatItems.length === 1 ? 'item' : 'items'
-          } shown`}
-        />
-
-        {visibleFlatItems.length === 0 && normalizedFlatQuery ? (
-          <S.FlatEmpty>No items match the current search.</S.FlatEmpty>
+        <S.SectionHeading>
+          <S.SectionTitle>Items</S.SectionTitle>
+          <S.SectionCount>
+            {flatItems.length} {flatItems.length === 1 ? 'item' : 'items'}
+          </S.SectionCount>
+          <S.SectionRule aria-hidden="true" />
+        </S.SectionHeading>
+        {flatItems.length === 0 && searchQuery ? (
+          <S.FlatEmpty>Nothing in this box matches yet. Try one simpler word.</S.FlatEmpty>
         ) : null}
 
         <ItemsFlatList
-          items={visibleFlatItems}
+          items={flatItems}
           openItemId={openItemId}
           onOpenItem={handleOpen}
           accent={accent}
@@ -142,20 +83,6 @@ export default function BoxDetailTabContent({
 
         <BoxInlineItemActions box={tree} onItemsChanged={refreshBox} />
       </S.FlatTabScope>
-    );
-  }
-
-  if (activeTab === 'edit') {
-    return (
-      <BoxActionPanel
-        box={tree}
-        boxTree={tree}
-        boxMongoId={tree._id}
-        refreshBox={refreshBox}
-        activePanelState={activePanel}
-        onActivePanelStateChange={onActivePanelChange}
-        onImageStateChanged={onBoxImageStateChanged}
-      />
     );
   }
 

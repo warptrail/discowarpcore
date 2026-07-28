@@ -12,6 +12,11 @@ import RetrievalImageLightbox from './RetrievalImageLightbox';
 import RetrievalBoxCentricView from './RetrievalBoxCentricView';
 import { ToastContext } from '../Toast';
 import {
+  RETRIEVAL_FINDER_CLOSE_EVENT,
+  RETRIEVAL_FINDER_OPEN_EVENT,
+  RETRIEVAL_FINDER_STATE_EVENT,
+} from '../../constants/inventoryFinderEvents';
+import {
   buildActiveFilterChips,
   normalizeRetrievalFilterOptions,
   normalizeRetrievalItemsPage,
@@ -294,7 +299,7 @@ function writePersistedRetrievalState({ key, snapshot }) {
   }
 }
 
-export default function RetrievalPage() {
+export default function RetrievalPage({ onToggleResults, resultsVisible = false }) {
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
   const hideToast = toastCtx?.hideToast;
@@ -338,6 +343,7 @@ export default function RetrievalPage() {
     sanitizeSort(initialItemState?.selectedSort, DEFAULT_SORT_OPTIONS),
   );
   const [showRefine, setShowRefine] = useState(false);
+  const [finderMinimized, setFinderMinimized] = useState(false);
   const [activeExpandedId, setActiveExpandedId] = useState(
     () => sanitizeExpandedIds(initialItemState?.expandedIds)[0] || '',
   );
@@ -358,6 +364,26 @@ export default function RetrievalPage() {
       : null,
   );
   const latestSnapshotRef = useRef(null);
+
+  useEffect(() => {
+    const handleFinderOpen = () => setFinderMinimized(false);
+    const handleFinderClose = () => setFinderMinimized(true);
+
+    window.addEventListener(RETRIEVAL_FINDER_OPEN_EVENT, handleFinderOpen);
+    window.addEventListener(RETRIEVAL_FINDER_CLOSE_EVENT, handleFinderClose);
+    return () => {
+      window.removeEventListener(RETRIEVAL_FINDER_OPEN_EVENT, handleFinderOpen);
+      window.removeEventListener(RETRIEVAL_FINDER_CLOSE_EVENT, handleFinderClose);
+    };
+  }, []);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(RETRIEVAL_FINDER_STATE_EVENT, {
+        detail: { minimized: finderMinimized },
+      }),
+    );
+  }, [finderMinimized]);
 
   const queryState = useMemo(
     () => ({
@@ -598,27 +624,42 @@ export default function RetrievalPage() {
   }, []);
 
   const handleCategoryFilterChange = useCallback(
-    (value) => addFilter('categories', value),
+    (value) => {
+      addFilter('categories', value);
+      setShowRefine(false);
+    },
     [addFilter],
   );
 
   const handleTagFilterChange = useCallback(
-    (value) => addFilter('tags', value),
+    (value) => {
+      addFilter('tags', value);
+      setShowRefine(false);
+    },
     [addFilter],
   );
 
   const handleLocationFilterChange = useCallback(
-    (value) => addFilter('locations', value),
+    (value) => {
+      addFilter('locations', value);
+      setShowRefine(false);
+    },
     [addFilter],
   );
 
   const handleOwnerFilterChange = useCallback(
-    (value) => addFilter('owners', value),
+    (value) => {
+      addFilter('owners', value);
+      setShowRefine(false);
+    },
     [addFilter],
   );
 
   const handleKeepPriorityFilterChange = useCallback(
-    (value) => addFilter('keepPriorities', value),
+    (value) => {
+      addFilter('keepPriorities', value);
+      setShowRefine(false);
+    },
     [addFilter],
   );
 
@@ -638,6 +679,10 @@ export default function RetrievalPage() {
 
   useEffect(() => {
     if (typeof setActiveRetrievalItem !== 'function') return;
+    if (finderMinimized) {
+      setActiveRetrievalItem(null);
+      return;
+    }
     if (!isItemsMode) {
       setActiveRetrievalItem(null);
       return;
@@ -671,6 +716,8 @@ export default function RetrievalPage() {
         onKeepPriorityChange: handleKeepPriorityFilterChange,
         onRemoveChip: removeFilter,
         onClearAllChips: clearAllFilters,
+        onToggleResults,
+        resultsVisible,
       });
       return;
     }
@@ -695,6 +742,7 @@ export default function RetrievalPage() {
     filterOptions.locations,
     filterOptions.owners,
     filterOptions.tags,
+    finderMinimized,
     handleConsoleSearchChange,
     handleCategoryFilterChange,
     handleKeepPriorityFilterChange,
@@ -711,6 +759,8 @@ export default function RetrievalPage() {
     setActiveRetrievalItem,
     showRefine,
     sortOptions,
+    onToggleResults,
+    resultsVisible,
   ]);
 
   useEffect(
@@ -1113,6 +1163,7 @@ export default function RetrievalPage() {
         persistedState={boxModeState}
         onStateSnapshotChange={setBoxModeState}
         setActiveRetrievalItem={setActiveRetrievalItem}
+        finderMinimized={finderMinimized}
       />
     );
   }

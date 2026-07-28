@@ -24,11 +24,8 @@ export const Card = styled.form`
   position: relative;
   display: grid;
   gap: ${({ $compact }) => ($compact ? '8px' : '12px')};
-  background:
-    radial-gradient(circle at 92% 8%, rgba(127, 215, 255, 0.14), transparent 42%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 36%),
-    ${LCARS.panel};
-  border: 1px solid ${LCARS.line};
+  background: ${LCARS.panel};
+  border: 1px solid rgba(130, 168, 196, 0.18);
   border-radius: 12px;
   padding: ${({ $compact }) => ($compact ? '10px' : '13px')};
   min-width: 0;
@@ -37,28 +34,6 @@ export const Card = styled.form`
     inset 0 0 0 1px rgba(255, 255, 255, 0.03),
     0 12px 24px rgba(0, 0, 0, 0.24);
   isolation: isolate;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0.72rem;
-    right: 0.72rem;
-    top: 0.52rem;
-    height: 4px;
-    border-radius: 999px;
-    background: linear-gradient(
-      90deg,
-      ${LCARS.coral} 0 14%,
-      transparent 14% 18%,
-      ${LCARS.teal} 18% 55%,
-      transparent 55% 60%,
-      ${LCARS.amber} 60% 80%,
-      transparent 80% 84%,
-      ${LCARS.lilac} 84% 100%
-    );
-    opacity: ${({ $compact }) => ($compact ? 0 : 0.56)};
-    pointer-events: none;
-  }
 
   & > * {
     position: relative;
@@ -70,12 +45,19 @@ export const Card = styled.form`
     padding: ${({ $compact }) => ($compact ? '7px' : '8px')};
     gap: ${({ $compact }) => ($compact ? '7px' : '8px')};
 
+  }
+
+  /* The edit sheet is a focused mobile utility, not a second dashboard. */
+  @media (max-width: 600px) {
+    gap: 6px;
+    padding: 4px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+
     &::before {
-      left: 0.54rem;
-      right: 0.54rem;
-      top: 0.4rem;
-      height: 3px;
-      opacity: ${({ $compact }) => ($compact ? 0 : 0.42)};
+      display: none;
     }
   }
 `;
@@ -127,33 +109,23 @@ export const ConsoleSide = styled.div`
 `;
 
 export const SectionCard = styled.section`
-  border: 1px solid
-    ${({ $tone = 'teal' }) =>
-      $tone === 'amber'
-        ? 'rgba(232, 177, 92, 0.36)'
-        : $tone === 'lilac'
-          ? 'rgba(167, 182, 255, 0.36)'
-          : 'rgba(76, 198, 193, 0.36)'};
+  border: 1px solid rgba(130, 168, 196, 0.16);
   border-radius: 11px;
   padding: 9px;
-  background:
-    linear-gradient(
-      110deg,
-      ${({ $tone = 'teal' }) =>
-          $tone === 'amber'
-            ? 'rgba(232, 177, 92, 0.1)'
-            : $tone === 'lilac'
-              ? 'rgba(167, 182, 255, 0.12)'
-              : 'rgba(76, 198, 193, 0.1)'}
-        0%,
-      transparent 52%
-    ),
-    ${LCARS.panelSoft};
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  background: rgba(23, 31, 44, 0.5);
+  box-shadow: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     border-radius: 9px;
     padding: 7px;
+  }
+
+  @media (max-width: 600px) {
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
   }
 `;
 
@@ -164,6 +136,11 @@ export const SectionHeader = styled.div`
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 7px;
+
+  @media (max-width: 600px) {
+    gap: 2px;
+    margin: 4px 0 3px;
+  }
 `;
 
 export const SectionLabel = styled.span`
@@ -172,6 +149,11 @@ export const SectionLabel = styled.span`
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(214, 226, 241, 0.66);
+  display: none;
+
+  @media (max-width: 600px) {
+    font-size: 9px;
+  }
 `;
 
 export const SectionTitle = styled.h5`
@@ -185,12 +167,21 @@ export const SectionTitle = styled.h5`
 export const SectionHint = styled.span`
   font-size: 10px;
   color: rgba(214, 226, 241, 0.62);
+  display: none;
+
+  @media (max-width: 600px) {
+    display: none;
+  }
 `;
 
 export const SectionBody = styled.div`
   display: grid;
   gap: 9px;
   min-width: 0;
+
+  @media (max-width: 600px) {
+    gap: 6px;
+  }
 `;
 
 export const MediaFrame = styled.div`
@@ -253,6 +244,11 @@ export const Label = styled.label`
     font-size: ${MOBILE_FONT_XS};
     margin-bottom: ${({ $compact }) => ($compact ? '3px' : '4px')};
   }
+
+  @media (max-width: 600px) {
+    font-size: 9px;
+    margin-bottom: 2px;
+  }
 `;
 
 export const Input = styled.input`
@@ -309,6 +305,11 @@ export const Textarea = styled.textarea`
     font-size: ${MOBILE_FONT_SM};
     padding: 8px 10px;
     min-height: ${({ $compact }) => ($compact ? '80px' : '96px')};
+  }
+
+  @media (max-width: 600px) {
+    min-height: ${({ $compact }) => ($compact ? '68px' : '76px')};
+    padding: 7px 9px;
   }
 `;
 

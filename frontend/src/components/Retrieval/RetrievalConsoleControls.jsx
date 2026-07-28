@@ -46,6 +46,8 @@ export default function RetrievalConsoleControls({
   onBoxLocationChange,
   onClearBoxGroup,
   onClearBoxLocation,
+  onToggleResults,
+  resultsVisible = false,
 }) {
   const safeChips = Array.isArray(chips) ? chips : [];
   const isBoxMode = mode === 'boxes';
@@ -114,6 +116,16 @@ export default function RetrievalConsoleControls({
       ) : (
         <>
           <S.RefineHeaderRow>
+            {typeof onToggleResults === 'function' ? (
+              <S.RefineToggle
+                type="button"
+                onClick={onToggleResults}
+                aria-label={resultsVisible ? 'Hide item finder results' : 'Show item finder results'}
+                title={resultsVisible ? 'Hide item finder results' : 'Show item finder results'}
+              >
+                <span aria-hidden="true">{resultsVisible ? '⌃' : '⌕'}</span>
+              </S.RefineToggle>
+            ) : null}
             <S.RefineToggle
               type="button"
               onClick={onToggleRefine}

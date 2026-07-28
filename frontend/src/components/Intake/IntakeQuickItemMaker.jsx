@@ -16,6 +16,7 @@ import {
 import ImageSourcePicker from '../ImageSourcePicker';
 import { uploadCroppedItemImage } from './intakeImageHelpers';
 import BoxTagsField from '../BoxForms/BoxTagsField';
+import QuantityInput from '../QuantityInput';
 
 const Panel = styled.section`
   border: 1px solid rgba(108, 171, 203, 0.45);
@@ -627,17 +628,13 @@ export default function IntakeQuickItemMaker({
 
           <Field>
             <Label htmlFor={`${fieldIdPrefix}-qty`}>Quantity</Label>
-            <Input
+            <QuantityInput
               id={`${fieldIdPrefix}-qty`}
-              type="number"
-              inputMode="numeric"
-              min="1"
-              step="1"
               value={quantity}
-              onChange={(event) => {
-                const next = Number.parseInt(event.target.value || '1', 10);
-                setQuantity(Number.isFinite(next) && next > 0 ? next : 1);
-              }}
+              onChange={setQuantity}
+              min={1}
+              max={9999}
+              ariaLabel="Quantity"
               disabled={busy}
             />
           </Field>

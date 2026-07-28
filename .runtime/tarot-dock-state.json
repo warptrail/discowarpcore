@@ -1,0 +1,426 @@
+{
+  "projectName": "Disco Warp Core",
+  "profile": "DEV",
+  "sigil": "╳▓▓⟡◇╳⌁⋮",
+  "accentColor": 95,
+  "selectedAddress": 0,
+  "viewMode": "status",
+  "logServiceId": "frontend",
+  "services": [
+    {
+      "id": "frontend",
+      "label": "Vite frontend",
+      "purpose": "LAN-visible React development server",
+      "projectRoot": ".",
+      "cwd": "frontend",
+      "protocol": "http",
+      "port": 7611,
+      "command": "npm",
+      "args": [
+        "--prefix",
+        "frontend",
+        "run",
+        "dev",
+        "--",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "7611",
+        "--strictPort"
+      ],
+      "env": {
+        "VITE_PORT": "7611",
+        "VITE_STRICT_PORT": "true",
+        "VITE_API_TARGET": "http://127.0.0.1:7610"
+      },
+      "healthPath": "/",
+      "dependencies": [
+        "backend"
+      ],
+      "dependsOn": [
+        "backend"
+      ],
+      "autostart": true,
+      "owner": "Disco Warp Core",
+      "actions": [
+        "start",
+        "stop",
+        "restart",
+        "status",
+        "logs"
+      ],
+      "state": "live",
+      "verified": true,
+      "error": "",
+      "owned": true,
+      "logs": [
+        {
+          "message": "8:09:59 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxManagementSheet.jsx",
+          "stream": "out",
+          "capturedAt": 1785208199922,
+          "sequence": 5070
+        },
+        {
+          "message": "8:11:51 PM [vite] (client) hmr update /src/components/EditBoxDetailsForm.jsx",
+          "stream": "out",
+          "capturedAt": 1785208311666,
+          "sequence": 5071
+        },
+        {
+          "message": "8:12:12 PM [vite] (client) hmr update /src/components/BoxForms/BoxTagsField.jsx, /src/components/EditBoxDetailsForm.jsx, /src/components/BoxForms/BoxSelectableField.jsx, /src/components/BoxForms/BoxFormActions.jsx, /src/components/BoxForms/BoxIdentityFields.jsx",
+          "stream": "out",
+          "capturedAt": 1785208332105,
+          "sequence": 5072
+        },
+        {
+          "message": "8:12:40 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx, /src/components/BoxActionPanel/ExportBoxPanel.jsx",
+          "stream": "out",
+          "capturedAt": 1785208360291,
+          "sequence": 5073
+        },
+        {
+          "message": "8:13:45 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxManagementSheet.jsx",
+          "stream": "out",
+          "capturedAt": 1785208425044,
+          "sequence": 5075
+        },
+        {
+          "message": "8:13:45 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx, /src/components/BoxActionPanel/ExportBoxPanel.jsx",
+          "stream": "out",
+          "capturedAt": 1785208425048,
+          "sequence": 5076
+        },
+        {
+          "message": "8:13:55 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxManagementSheet.jsx",
+          "stream": "out",
+          "capturedAt": 1785208435347,
+          "sequence": 5078
+        },
+        {
+          "message": "8:13:55 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx, /src/components/BoxActionPanel/ExportBoxPanel.jsx",
+          "stream": "out",
+          "capturedAt": 1785208435447,
+          "sequence": 5079
+        },
+        {
+          "message": "8:14:48 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxManagementSheet.jsx",
+          "stream": "out",
+          "capturedAt": 1785208488508,
+          "sequence": 5081
+        },
+        {
+          "message": "8:15:10 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxManagementSheet.jsx",
+          "stream": "out",
+          "capturedAt": 1785208510316,
+          "sequence": 5082
+        },
+        {
+          "message": "8:19:30 PM [vite] (client) hmr update /src/components/BoxDetailView.jsx",
+          "stream": "out",
+          "capturedAt": 1785208770232,
+          "sequence": 5083
+        },
+        {
+          "message": "8:19:30 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxManagementSheet.jsx",
+          "stream": "out",
+          "capturedAt": 1785208770241,
+          "sequence": 5084
+        },
+        {
+          "message": "8:19:37 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxManagementSheet.jsx",
+          "stream": "out",
+          "capturedAt": 1785208777932,
+          "sequence": 5428
+        },
+        {
+          "message": "8:19:56 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx",
+          "stream": "out",
+          "capturedAt": 1785208796242,
+          "sequence": 5429
+        },
+        {
+          "message": "8:20:06 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx, /src/components/BoxActionPanel/ExportBoxPanel.jsx",
+          "stream": "out",
+          "capturedAt": 1785208806517,
+          "sequence": 5431
+        },
+        {
+          "message": "8:25:44 PM [vite] (client) hmr update /src/components/BoxDetailView.jsx",
+          "stream": "out",
+          "capturedAt": 1785209144464,
+          "sequence": 5433
+        },
+        {
+          "message": "8:25:44 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxManagementSheet.jsx",
+          "stream": "out",
+          "capturedAt": 1785209144466,
+          "sequence": 5434
+        },
+        {
+          "message": "8:25:44 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx",
+          "stream": "out",
+          "capturedAt": 1785209144581,
+          "sequence": 5435
+        },
+        {
+          "message": "8:25:44 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx, /src/components/BoxActionPanel/ExportBoxPanel.jsx",
+          "stream": "out",
+          "capturedAt": 1785209144688,
+          "sequence": 5436
+        },
+        {
+          "message": "8:27:15 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxManagementSheet.jsx",
+          "stream": "out",
+          "capturedAt": 1785209235882,
+          "sequence": 5785
+        },
+        {
+          "message": "8:27:15 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx, /src/components/BoxActionPanel/ExportBoxPanel.jsx",
+          "stream": "out",
+          "capturedAt": 1785209235887,
+          "sequence": 5786
+        },
+        {
+          "message": "8:28:25 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxManagementSheet.jsx",
+          "stream": "out",
+          "capturedAt": 1785209305218,
+          "sequence": 5894
+        },
+        {
+          "message": "8:56:39 PM [vite] (client) hmr update /src/components/BoxMetaPanel.jsx",
+          "stream": "out",
+          "capturedAt": 1785210999495,
+          "sequence": 5995
+        },
+        {
+          "message": "8:56:54 PM [vite] (client) hmr update /src/components/BoxMetaPanel.jsx",
+          "stream": "out",
+          "capturedAt": 1785211014001,
+          "sequence": 5996
+        }
+      ]
+    },
+    {
+      "id": "backend",
+      "label": "Express API",
+      "purpose": "MongoDB-backed application API",
+      "projectRoot": ".",
+      "cwd": ".",
+      "protocol": "http",
+      "port": 7610,
+      "command": "node",
+      "args": [
+        "backend/server.js"
+      ],
+      "env": {
+        "HOST": "127.0.0.1",
+        "PORT": "7610"
+      },
+      "healthPath": "/api/health",
+      "dependencies": [
+        "mongodb"
+      ],
+      "dependsOn": [
+        "mongodb"
+      ],
+      "autostart": true,
+      "owner": "Disco Warp Core",
+      "actions": [
+        "start",
+        "stop",
+        "restart",
+        "status",
+        "logs"
+      ],
+      "state": "live",
+      "verified": true,
+      "error": "",
+      "owned": true,
+      "logs": [
+        {
+          "message": "[perf][item-detail] model.findItemById itemId=6a35b8801356bc312a3124f9 itemLookupMs=8.84 containingBoxLookupMs=8.97 ancestorChainLookupMs=0.00 allBoxesLoadMs=0.00 boxMapBuildMs=0.00 breadcrumbBuildMs=0.00 totalMs=17.97",
+          "stream": "out",
+          "capturedAt": 1785209312380,
+          "sequence": 5971
+        },
+        {
+          "message": "[perf][item-detail] service.getItemById itemId=6a35b8801356bc312a3124f9 totalMs=20.24",
+          "stream": "out",
+          "capturedAt": 1785209312382,
+          "sequence": 5972
+        },
+        {
+          "message": "[perf][item-detail] controller.getItemByIdApi itemId=6a35b8801356bc312a3124f9 totalRequestMs=20.47",
+          "stream": "out",
+          "capturedAt": 1785209312382,
+          "sequence": 5973
+        },
+        {
+          "message": "[backend] {\"timestamp\":\"2026-07-28T03:28:32.382Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"deaf0747-b003-46a2-abea-03f9c709c45a\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a3124f7\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":36.73}",
+          "stream": "out",
+          "capturedAt": 1785209312383,
+          "sequence": 5974
+        },
+        {
+          "message": "[backend] {\"timestamp\":\"2026-07-28T03:28:32.383Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"81335775-1d4c-4990-9e9f-3ba8a2becdad\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a3124f8\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":32.56}",
+          "stream": "out",
+          "capturedAt": 1785209312383,
+          "sequence": 5975
+        },
+        {
+          "message": "[perf][item-detail] model.findItemById itemId=6a35b8801356bc312a3124fa itemLookupMs=9.30 containingBoxLookupMs=3.66 ancestorChainLookupMs=0.01 allBoxesLoadMs=0.00 boxMapBuildMs=0.00 breadcrumbBuildMs=0.01 totalMs=13.13",
+          "stream": "out",
+          "capturedAt": 1785209312385,
+          "sequence": 5976
+        },
+        {
+          "message": "[backend] {\"timestamp\":\"2026-07-28T03:28:32.385Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"a45868de-4b5a-4bed-b609-70b04926d72e\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a3124f0/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":9.04}",
+          "stream": "out",
+          "capturedAt": 1785209312386,
+          "sequence": 5977
+        },
+        {
+          "message": "[backend] {\"timestamp\":\"2026-07-28T03:28:32.385Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"b9aab1f9-2fd6-4bea-9656-57e5f7a72ae5\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a3124f9\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":23.94}",
+          "stream": "out",
+          "capturedAt": 1785209312386,
+          "sequence": 5978
+        },
+        {
+          "message": "[perf][item-detail] service.getItemById itemId=6a35b8801356bc312a3124fa totalMs=14.39",
+          "stream": "out",
+          "capturedAt": 1785209312387,
+          "sequence": 5979
+        },
+        {
+          "message": "[perf][item-detail] controller.getItemByIdApi itemId=6a35b8801356bc312a3124fa totalRequestMs=14.82",
+          "stream": "out",
+          "capturedAt": 1785209312387,
+          "sequence": 5980
+        },
+        {
+          "message": "[backend] {\"timestamp\":\"2026-07-28T03:28:32.397Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"b5fa5d7c-d459-4511-af77-303f144f5d76\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a3124fa\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":25.98}",
+          "stream": "out",
+          "capturedAt": 1785209312397,
+          "sequence": 5981
+        },
+        {
+          "message": "[backend] {\"timestamp\":\"2026-07-28T03:28:32.398Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"509bda97-c9b2-403a-ab1c-70f55fc83d60\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a3124f1/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":14.47}",
+          "stream": "out",
+          "capturedAt": 1785209312398,
+          "sequence": 5982
+        },
+        {
+          "message": "[backend] {\"timestamp\":\"2026-07-28T03:28:32.402Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"2424c5ed-58a2-4ff3-9e5c-0585ab5a61d4\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a3124f3/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":6.84}",
+          "stream": "out",
+          "capturedAt": 1785209312404,
+          "sequence": 5983
+        },
+        {
+          "message": "[backend] {\"timestamp\":\"2026-07-28T03:28:32.410Z\",\"level\":\"warn\",\"event\":\"http.request.completed\",\"requestId\":\"cdea21e4-4717-41bc-8e32-b7d02c63d30b\",\"method\":\"GET\",\"path\":\"/api/boxes/6a35b8801356bc312a312560/media-status\",\"queryKeys\":[],\"status\":404,\"outcome\":\"completed\",\"durationMs\":11.46,\"responseBytes\":206}",
+          "stream": "error",
+          "capturedAt": 1785209312410,
+          "sequence": 5984
+        },
+        {
+          "message": "[backend] {\"timestamp\":\"2026-07-28T03:28:32.413Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"23aeed45-c375-425a-8a4a-e228d3eb28f4\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a3124f5/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":13.31}",
+          "stream": "out",
+          "capturedAt": 1785209312413,
+          "sequence": 5985
+        },
+        {
+          "message": "[backend] {\"timestamp\":\"2026-07-28T03:28:32.425Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"7b56d8f0-b288-4b96-8de7-10c1b490a990\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a3124f4/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":18.77}",
+          "stream": "out",
+          "capturedAt": 1785209312428,
+          "sequence": 5986
+        },
+        {
+          "message": "[backend] {\"timestamp\":\"2026-07-28T03:28:32.434Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"5360e33c-2ec5-4b1a-a471-7f43672cc1e6\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a3124f2/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":23.27}",
+          "stream": "out",
+          "capturedAt": 1785209312434,
+          "sequence": 5987
+        },
+        {
+          "message": "[backend] {\"timestamp\":\"2026-07-28T03:28:32.436Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"52c76b53-985d-41da-b5cf-d0f5bde8362d\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a3124f9/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":16.1}",
+          "stream": "out",
+          "capturedAt": 1785209312436,
+          "sequence": 5988
+        },
+        {
+          "message": "[backend] {\"timestamp\":\"2026-07-28T03:28:32.438Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"8108942a-821f-4af9-8710-5854884753cf\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a3124f8/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":7.3}",
+          "stream": "out",
+          "capturedAt": 1785209312438,
+          "sequence": 5989
+        },
+        {
+          "message": "[backend] {\"timestamp\":\"2026-07-28T03:28:32.443Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"73fcf0e8-3836-4a6b-bc6e-30f7ca34847c\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a3124f6/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":7.62}",
+          "stream": "out",
+          "capturedAt": 1785209312443,
+          "sequence": 5990
+        },
+        {
+          "message": "[backend] {\"timestamp\":\"2026-07-28T03:28:32.445Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"104b82ab-83a7-4be5-9dda-398f1e0a5c3f\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a3124f7/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":7.64}",
+          "stream": "out",
+          "capturedAt": 1785209312446,
+          "sequence": 5991
+        },
+        {
+          "message": "[backend] {\"timestamp\":\"2026-07-28T03:28:32.447Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"6f706578-def4-4d15-a09d-deba9656dfa7\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a3124fa/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":7.54}",
+          "stream": "out",
+          "capturedAt": 1785209312447,
+          "sequence": 5992
+        },
+        {
+          "message": "[backend] {\"timestamp\":\"2026-07-28T03:32:08.305Z\",\"level\":\"warn\",\"event\":\"http.request.completed\",\"requestId\":\"93fcbbc4-313c-4173-9b27-1e3346f1ca9f\",\"method\":\"GET\",\"path\":\"/api/boxes/6a35b8801356bc312a312560/media-status\",\"queryKeys\":[],\"status\":404,\"outcome\":\"completed\",\"durationMs\":5.4,\"responseBytes\":206}",
+          "stream": "error",
+          "capturedAt": 1785209528305,
+          "sequence": 5993
+        },
+        {
+          "message": "[backend] {\"timestamp\":\"2026-07-28T03:32:08.311Z\",\"level\":\"warn\",\"event\":\"http.request.completed\",\"requestId\":\"e74d9b6f-84f7-4b06-807b-8dfc59dced8e\",\"method\":\"GET\",\"path\":\"/api/boxes/6a35b8801356bc312a312560/media-status\",\"queryKeys\":[],\"status\":404,\"outcome\":\"completed\",\"durationMs\":3.52,\"responseBytes\":206}",
+          "stream": "error",
+          "capturedAt": 1785209528311,
+          "sequence": 5994
+        }
+      ]
+    },
+    {
+      "id": "mongodb",
+      "label": "MongoDB",
+      "purpose": "Application database",
+      "projectRoot": ".",
+      "protocol": "mongodb",
+      "port": 27017,
+      "monitorOnly": true,
+      "owner": "System",
+      "startCommand": [
+        "brew",
+        "services",
+        "start",
+        "mongodb-community"
+      ],
+      "startupTimeoutMs": 30000,
+      "actions": [
+        "status"
+      ],
+      "state": "observed",
+      "verified": false,
+      "error": "",
+      "owned": false,
+      "logs": []
+    }
+  ],
+  "addresses": [
+    {
+      "label": "localhost",
+      "url": "http://localhost:7611/"
+    },
+    {
+      "label": "quantumzephyr.local",
+      "url": "http://quantumzephyr.local:7611/"
+    },
+    {
+      "label": "LAN IP",
+      "url": "http://192.168.1.19:7611/"
+    }
+  ]
+}

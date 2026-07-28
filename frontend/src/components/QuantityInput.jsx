@@ -1,39 +1,75 @@
-import React from 'react';
+import React, { useId } from 'react';
 import * as S from '../styles/QuantityInput.styles';
 
-export default function QuantityInput({ value = 1, onChange }) {
-  const clamp = (num) => Math.max(1, Math.min(99, num));
+export default function QuantityInput({
+  value = 1,
+  onChange,
+  min = 1,
+  max = 99,
+  step = 1,
+  id,
+  name,
+  disabled = false,
+  ariaLabel = 'Quantity',
+  fullWidth = false,
+}) {
+  const generatedId = useId();
+  const inputId = id || `quantity-input-${generatedId}`;
+  const numericValue = Number(value);
+  const safeValue = Number.isFinite(numericValue) ? numericValue : min;
+  const clamp = (num) => Math.max(min, Math.min(max, num));
+  const normalize = (num) => clamp(Math.round(num / step) * step);
 
   const handleDecrement = () => {
-    const next = clamp(value - 1);
-    onChange(next);
+    onChange(normalize(safeValue - step));
   };
 
   const handleIncrement = () => {
-    const next = clamp(value + 1);
-    onChange(next);
+    onChange(normalize(safeValue + step));
   };
 
-  const handleDirectInput = (e) => {
-    let num = parseInt(e.target.value, 10);
-    if (isNaN(num)) num = value;
-    onChange(clamp(num));
+  const handleDirectInput = (event) => {
+    if (event.target.value === '') return;
+    const next = Number(event.target.value);
+    if (Number.isFinite(next)) onChange(normalize(next));
   };
 
   return (
-    <S.Wrapper>
-      <S.Button type="button" onClick={handleDecrement} aria-label="Decrease quantity">
-        -
+    <S.Wrapper $fullWidth={fullWidth} $disabled={disabled}>
+      <S.Button
+        type="button"
+        onClick={handleDecrement}
+        aria-label={`Decrease ${ariaLabel.toLowerCase()}`}
+        disabled={disabled || safeValue <= min}
+      >
+        −
       </S.Button>
-      <S.Input
-        type="number"
-        value={value}
-        onChange={handleDirectInput}
-        min="1"
-        max="99"
-        aria-label="Quantity"
-      />
-      <S.Button type="button" onClick={handleIncrement} aria-label="Increase quantity">
+      <S.ValueShell $fullWidth={fullWidth}>
+        <S.ValueKicker aria-hidden="true">QTY</S.ValueKicker>
+        <S.Input
+          id={inputId}
+          name={name}
+          type="number"
+          inputMode="numeric"
+          value={value}
+          onChange={handleDirectInput}
+          onBlur={() => onChange(normalize(safeValue))}
+          min={min}
+          max={max}
+          step={step}
+          aria-label={ariaLabel}
+          aria-valuemin={min}
+          aria-valuemax={max}
+          aria-valuenow={safeValue}
+          disabled={disabled}
+        />
+      </S.ValueShell>
+      <S.Button
+        type="button"
+        onClick={handleIncrement}
+        aria-label={`Increase ${ariaLabel.toLowerCase()}`}
+        disabled={disabled || safeValue >= max}
+      >
         +
       </S.Button>
     </S.Wrapper>

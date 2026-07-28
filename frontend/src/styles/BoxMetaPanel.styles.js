@@ -24,6 +24,7 @@ const LCARS = {
 
 const PANEL_RADIUS = '14px';
 const NODE_RADIUS = '10px';
+const TERMINAL_CHIP_RADIUS = '6px';
 const FAST = '150ms ease';
 const DESKTOP_SUMMARY_BREAKPOINT = '980px';
 
@@ -41,42 +42,22 @@ const toneColor = (tone) =>
 export const Panel = styled.section`
   position: relative;
   display: grid;
-  gap: 14px;
-  padding: 16px 18px;
-  border: 1px solid ${LCARS.line};
-  border-radius: ${PANEL_RADIUS};
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 28%),
-    ${LCARS.panel};
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.28), 0 10px 20px rgba(0, 0, 0, 0.2);
-
-  &:before {
-    content: '';
-    position: absolute;
-    left: 18px;
-    right: 18px;
-    top: 0;
-    height: 2px;
-    border-radius: 2px;
-    background: linear-gradient(
-      90deg,
-      ${LCARS.teal},
-      ${LCARS.coral} 48%,
-      transparent 92%
-    );
-    opacity: 0.45;
-  }
+  gap: 10px;
+  padding: 18px 14px 12px;
+  border: 1px solid rgba(107, 220, 212, 0.16);
+  border-radius: 10px;
+  background: rgba(15, 20, 27, 0.9);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.045),
+    0 12px 28px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(14px);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 10px;
-    padding: 10px 11px;
-    border-radius: ${MOBILE_PANEL_RADIUS};
+    padding: 16px 11px 10px;
+    border-radius: 8px;
     box-shadow: 0 1px 0 rgba(0, 0, 0, 0.24), 0 6px 12px rgba(0, 0, 0, 0.18);
 
-    &:before {
-      left: 11px;
-      right: 11px;
-      opacity: 0.34;
-    }
   }
 `;
 
@@ -114,8 +95,15 @@ export const SummaryInfo = styled.div`
 export const IdentityHeader = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: flex-end;
+  gap: 4px;
+  position: absolute;
+  z-index: 2;
+  top: 4px;
+  left: 8px;
+  right: 8px;
+  min-height: 24px;
+  pointer-events: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     flex-wrap: wrap;
@@ -127,8 +115,9 @@ export const IdentityActions = styled.div`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 4px;
   min-width: 0;
+  pointer-events: auto;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 7px;
@@ -136,12 +125,49 @@ export const IdentityActions = styled.div`
   }
 `;
 
+export const IdentityKicker = styled.span`
+  color: rgba(121, 222, 216, 0.64);
+  font: 700 0.66rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+`;
+
+export const IconButton = styled.button`
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  color: rgba(231, 236, 243, 0.78);
+  background: transparent;
+  cursor: pointer;
+  font: 800 0.9rem/1 ui-monospace, monospace;
+  letter-spacing: -0.08em;
+  transition: 180ms ease;
+
+  &:hover,
+  &:focus-visible {
+    color: #fff;
+    background: rgba(76, 198, 193, 0.1);
+    outline: 1px solid rgba(76, 198, 193, 0.34);
+    outline-offset: 1px;
+  }
+`;
+
+export const UsefulCount = styled.span`
+  color: rgba(231, 236, 243, 0.68);
+  font: 700 0.76rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.025em;
+`;
+
 export const ScopeBadge = styled.span`
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: ${TERMINAL_CHIP_RADIUS};
   border: 1px solid ${({ $tone }) => `${toneColor($tone)}66`};
   background: ${({ $tone }) => `${toneColor($tone)}1f`};
   color: ${({ $tone }) => toneColor($tone)};
@@ -249,6 +275,7 @@ export const CurrentBox = styled.div`
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045),
     0 10px 22px rgba(0, 0, 0, 0.16);
   cursor: default;
+  margin-top: 2px;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 9px;
@@ -332,7 +359,7 @@ export const CurrentBoxTag = styled.span`
   min-height: 22px;
   max-width: 100%;
   padding: 3px 9px;
-  border-radius: 999px;
+  border-radius: ${TERMINAL_CHIP_RADIUS};
   border: 1px solid ${LCARS.lilac}66;
   background: ${LCARS.lilac}1f;
   color: ${LCARS.text};
@@ -352,14 +379,41 @@ export const CurrentBoxTag = styled.span`
 `;
 
 export const CurrentBoxTitle = styled.span`
-  font-size: 1.02rem;
-  font-weight: 700;
+  color: #edf3ff;
+  font-size: clamp(1.05rem, 2.2vw, 1.28rem);
+  font-weight: 800;
+  letter-spacing: -0.015em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 0.9rem;
+  }
+`;
+
+export const CompactDescription = styled.p`
+  margin: 0;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: rgba(231, 236, 243, 0.74);
+  font-size: 0.82rem;
+  line-height: 1.35;
+
+  &:before {
+    content: 'Visual description';
+    display: block;
+    margin-bottom: 3px;
+    color: rgba(231, 236, 243, 0.48);
+    font: 700 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: ${MOBILE_FONT_SM};
   }
 `;
 
@@ -371,7 +425,7 @@ export const CurrentBoxLocationChip = styled.span`
   max-width: 100%;
   min-height: 26px;
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: ${TERMINAL_CHIP_RADIUS};
   border: 1px solid
     ${({ $empty, $variant }) =>
       $empty

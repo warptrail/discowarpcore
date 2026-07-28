@@ -11,6 +11,11 @@ export const DECLUTTER_DECISIONS = [
   'unsure',
 ];
 
+export const DECLUTTER_PLAYERS = [
+  { id: 'discofish', label: 'Discofish', icon: '🐟' },
+  { id: 'laserfox', label: 'Laserfox', icon: '🦊' },
+];
+
 function buildUrl(path, params = {}) {
   const apiRoot = String(API_BASE || '').replace(/\/+$/, '');
   const url = new URL(`${apiRoot}${path}`, window.location.origin);
@@ -73,9 +78,10 @@ export async function createDeclutterSession(payload) {
   return body?.session || null;
 }
 
-export async function fetchDeclutterSession(sessionId) {
+export async function fetchDeclutterSession(sessionId, { player = '' } = {}) {
   const body = await sendJson(
-    `${DECLUTTER_SESSIONS_PATH}/${encodeURIComponent(sessionId)}`
+    `${DECLUTTER_SESSIONS_PATH}/${encodeURIComponent(sessionId)}`,
+    { params: player ? { player } : undefined }
   );
   return {
     session: body?.session || null,

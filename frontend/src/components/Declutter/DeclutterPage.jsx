@@ -7,6 +7,7 @@ import {
   updateDeclutterSession,
 } from '../../api/declutterSessions';
 import * as S from './Declutter.styles';
+import DeclutterPlayerPicker from './DeclutterPlayerPicker';
 import DeclutterSessionCards from './DeclutterSessionCards';
 
 function normalizeStatusFilter(value) {
@@ -133,6 +134,7 @@ export default function DeclutterPage() {
             <S.Title>Review Queue Control</S.Title>
           </div>
           <S.HeaderActions>
+            <DeclutterPlayerPicker />
             <S.Field>
               <S.FieldLabel>Status</S.FieldLabel>
               <S.Select

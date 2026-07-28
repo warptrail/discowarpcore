@@ -18,6 +18,7 @@ const {
 const { collectImageStoragePaths } = require('./imageMetadataService');
 
 const DECISIONS = DeclutterSessionItem.DECISIONS;
+const PLAYERS = DeclutterSessionItem.PLAYERS;
 const SESSION_STATUSES = DeclutterSession.STATUSES;
 
 function createHttpError(status, message, code) {
@@ -80,6 +81,61 @@ function normalizeDecision(value, fallback = 'pending') {
     );
   }
   return normalized;
+}
+
+function normalizePlayer(value, fallback = '') {
+  const normalized = toTrimmed(value).toLowerCase();
+  if (!normalized) return fallback;
+  if (!PLAYERS.includes(normalized)) {
+    throw createHttpError(400, `Player must be one of: ${PLAYERS.join(', ')}.`);
+  }
+  return normalized;
+}
+
+function getPlayerDecisionMap(row) {
+  const map = Object.fromEntries(PLAYERS.map((player) => [player, 'pending']));
+  for (const entry of Array.isArray(row?.playerDecisions) ? row.playerDecisions : []) {
+    const player = normalizePlayer(entry?.player);
+    if (player) map[player] = normalizeDecision(entry?.decision, 'pending');
+  }
+
+  // Older records have one shared decision. Preserve it for the recorded player.
+  if (!Array.isArray(row?.playerDecisions) || !row.playerDecisions.length) {
+    const legacyPlayer = normalizePlayer(row?.decidedBy);
+    const legacyDecision = normalizeDecision(row?.decision, 'pending');
+    if (legacyPlayer && legacyDecision !== 'pending') map[legacyPlayer] = legacyDecision;
+  }
+
+  return map;
+}
+
+function getDecisionSummary(row, activePlayer = '') {
+  const decisions = getPlayerDecisionMap(row);
+  const player = normalizePlayer(activePlayer);
+  const otherPlayer = player ? PLAYERS.find((candidate) => candidate !== player) : '';
+  const myDecision = player ? decisions[player] : normalizeDecision(row?.decision);
+  const otherDecision = otherPlayer ? decisions[otherPlayer] : 'pending';
+  const bothDecided = PLAYERS.every((candidate) => decisions[candidate] !== 'pending');
+  const consensusDecision =
+    bothDecided && decisions[PLAYERS[0]] === decisions[PLAYERS[1]]
+      ? decisions[PLAYERS[0]]
+      : 'pending';
+  const needsDecision = Boolean(
+    player &&
+      (myDecision === 'pending' || (bothDecided && consensusDecision === 'pending'))
+  );
+  const otherJustDecided = Boolean(
+    player && myDecision === 'pending' && otherDecision !== 'pending'
+  );
+
+  return {
+    decisions,
+    myDecision,
+    otherDecision,
+    consensusDecision,
+    needsDecision,
+    otherJustDecided,
+  };
 }
 
 function emptyCounts() {
@@ -365,19 +421,32 @@ function toClientSession(session, counts = emptyCounts()) {
   };
 }
 
-function toClientSessionItem(row, item) {
+function toClientSessionItem(row, item, activePlayer = '') {
   const id = toIdString(row?._id || row?.id);
   const itemId = toIdString(row?.itemId);
+  const decisionSummary = getDecisionSummary(row, activePlayer);
+  const hasPlayerDecisions = Array.isArray(row?.playerDecisions) && row.playerDecisions.length > 0;
   return {
     id,
     _id: id,
     sessionId: toIdString(row?.sessionId),
     itemId,
-    decision: normalizeDecision(row?.decision, 'pending'),
+    decision:
+      decisionSummary.consensusDecision !== 'pending'
+        ? decisionSummary.consensusDecision
+        : hasPlayerDecisions
+          ? 'pending'
+          : normalizeDecision(row?.decision, 'pending'),
     notes: firstNonEmpty(row?.notes),
     proposedBy: firstNonEmpty(row?.proposedBy),
     decidedBy: firstNonEmpty(row?.decidedBy),
     decidedAt: row?.decidedAt || null,
+    playerDecisions: decisionSummary.decisions,
+    myDecision: decisionSummary.myDecision,
+    otherDecision: decisionSummary.otherDecision,
+    consensusDecision: decisionSummary.consensusDecision,
+    needsDecision: decisionSummary.needsDecision,
+    otherJustDecided: decisionSummary.otherJustDecided,
     createdAt: row?.createdAt || null,
     updatedAt: row?.updatedAt || null,
     item: item || null,
@@ -437,7 +506,7 @@ async function createDeclutterSession(payload = {}) {
   return toClientSession(session.toObject(), emptyCounts());
 }
 
-async function getDeclutterSessionDetail(sessionId) {
+async function getDeclutterSessionDetail(sessionId, { player = '' } = {}) {
   const normalizedSessionId = assertObjectId(sessionId, 'sessionId');
   const session = await DeclutterSession.findById(normalizedSessionId).lean();
   if (!session) throw createHttpError(404, 'Declutter session not found.');
@@ -457,9 +526,23 @@ async function getDeclutterSessionDetail(sessionId) {
       session,
       countsBySessionId.get(normalizedSessionId)
     ),
-    items: rows.map((row) =>
-      toClientSessionItem(row, itemSummariesById.get(toIdString(row.itemId)) || null)
-    ),
+    items: rows
+      .map((row) =>
+        toClientSessionItem(
+          row,
+          itemSummariesById.get(toIdString(row.itemId)) || null,
+          player
+        )
+      )
+      .sort((left, right) => {
+        if (left.otherJustDecided !== right.otherJustDecided) {
+          return left.otherJustDecided ? -1 : 1;
+        }
+        if (left.needsDecision !== right.needsDecision) {
+          return left.needsDecision ? -1 : 1;
+        }
+        return String(left.createdAt || '').localeCompare(String(right.createdAt || ''));
+      }),
   };
 }
 
@@ -528,6 +611,7 @@ async function resetDeclutterSession(sessionId) {
         decision: 'pending',
         decidedAt: null,
         decidedBy: '',
+        playerDecisions: [],
       },
     }
   );
@@ -637,14 +721,36 @@ async function updateDeclutterSessionItem(sessionId, itemId, payload = {}) {
   const update = {};
   const hasDecision = Object.prototype.hasOwnProperty.call(payload, 'decision');
   const hasNotes = Object.prototype.hasOwnProperty.call(payload, 'notes');
+  const player = normalizePlayer(payload.player);
 
   if (hasDecision) {
     const decision = normalizeDecision(payload.decision, current.decision || 'pending');
-    update.decision = decision;
-    if (decision === 'pending') {
+    if (player) {
+      const playerDecisions = getPlayerDecisionMap(current);
+      playerDecisions[player] = decision;
+      update.playerDecisions = PLAYERS.map((candidate) => ({
+        player: candidate,
+        decision: playerDecisions[candidate],
+        decidedAt:
+          playerDecisions[candidate] === 'pending'
+            ? null
+            : candidate === player && decision !== current.playerDecisions?.find((entry) => entry.player === candidate)?.decision
+              ? new Date()
+              : current.playerDecisions?.find((entry) => entry.player === candidate)?.decidedAt || null,
+      }));
+      const nextMap = getPlayerDecisionMap({ ...current, playerDecisions: update.playerDecisions });
+      update.decision =
+        nextMap[PLAYERS[0]] !== 'pending' && nextMap[PLAYERS[0]] === nextMap[PLAYERS[1]]
+          ? nextMap[PLAYERS[0]]
+          : 'pending';
+      update.decidedBy = player;
+      update.decidedAt = decision === 'pending' ? null : new Date();
+    } else if (decision === 'pending') {
+      update.decision = decision;
       update.decidedAt = null;
       update.decidedBy = '';
     } else if (decision !== current.decision) {
+      update.decision = decision;
       update.decidedAt = new Date();
       update.decidedBy = firstNonEmpty(payload.decidedBy, current.decidedBy);
     }
@@ -691,6 +797,7 @@ async function removeItemFromDeclutterSession(sessionId, itemId) {
 
 module.exports = {
   DECISIONS,
+  PLAYERS,
   SESSION_STATUSES,
   listDeclutterSessions,
   listDeclutterSessionsForItem,

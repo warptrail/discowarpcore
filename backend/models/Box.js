@@ -22,6 +22,13 @@ const boxSchema = new mongoose.Schema({
   description: { type: String, trim: true, set: normalizeOptionalString },
   notes: { type: String, trim: true, set: normalizeOptionalString },
   tags: [String],
+  declutterPurpose: {
+    type: String,
+    enum: ['standard', 'donation_staging', 'sale_staging'],
+    default: 'standard',
+    index: true,
+  },
+  declutterIsDefault: { type: Boolean, default: false },
   imagePath: { type: String, default: '' },
   image: {
     mediaId: { type: String, default: '', trim: true },
@@ -101,5 +108,16 @@ boxSchema.statics.releaseChildrenToFloor = function (parentId) {
 // boxSchema.index({ box_id: 1 }, { unique: true });
 // boxSchema.index({ parentBox: 1 });
 boxSchema.index({ items: 1 });
+boxSchema.index(
+  { declutterPurpose: 1 },
+  {
+    unique: true,
+    name: 'one_default_declutter_box_per_purpose',
+    partialFilterExpression: {
+      declutterIsDefault: true,
+      declutterPurpose: { $in: ['donation_staging', 'sale_staging'] },
+    },
+  }
+);
 
 module.exports = mongoose.model('Box', boxSchema);

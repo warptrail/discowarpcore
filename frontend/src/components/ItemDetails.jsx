@@ -308,6 +308,7 @@ export default function ItemDetails({
   const isOrphaned = ownership.isOrphaned;
   const isGone = String(item_status || '').toLowerCase() === 'gone';
   const statusLabel = isGone ? 'No Longer Have' : isOrphaned ? 'Orphaned' : 'Assigned';
+  const showStatusPill = statusLabel !== 'Assigned';
   const primaryBox = formatBoxSummary(resolvedBoxLabel, resolvedBoxId);
   const topBoxSummary = topBox
     ? formatBoxSummary(topBox?.label, topBox?.box_id)
@@ -337,7 +338,6 @@ export default function ItemDetails({
           canOpenImageLightbox={canOpenLightbox}
           onOpenImageLightbox={canOpenLightbox ? () => setLightboxOpen(true) : undefined}
           quantity={quantity}
-          statusLabel={statusLabel}
           categoryLabel={categoryLabel}
           tags={tagList}
           primaryBox={primaryBox}
@@ -392,9 +392,11 @@ export default function ItemDetails({
               <S.HeaderBand>
                 <S.TitleBlock>
                   <S.HeaderMeta $compact>
-                    <S.StatePill $tone={isGone ? 'coral' : isOrphaned ? 'amber' : 'teal'}>
-                      {statusLabel}
-                    </S.StatePill>
+                    {showStatusPill ? (
+                      <S.StatePill $tone={isGone ? 'coral' : 'amber'}>
+                        {statusLabel}
+                      </S.StatePill>
+                    ) : null}
                     {quantity != null && <S.MetaTag>qty {quantity}</S.MetaTag>}
                     {resolvedBoxId ? <S.MetaTag>box {resolvedBoxId}</S.MetaTag> : null}
                     <S.KeepPriorityPill $tone={keepPriorityToneValue}>

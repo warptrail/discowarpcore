@@ -4,11 +4,7 @@ import { getBoxColorTones } from './boxColors';
 
 function shouldSkipRowToggle(target) {
   if (!(target instanceof Element)) return false;
-  return Boolean(
-    target.closest(
-      'a, button, [data-thumb-surface="true"], [data-expand-toggle="true"]',
-    ),
-  );
+  return Boolean(target.closest('a, button, [data-thumb-surface="true"]'));
 }
 
 export default function RetrievalResultRow({
@@ -138,28 +134,6 @@ export default function RetrievalResultRow({
             </S.BadgeStack>
           </S.RowMain>
 
-          <S.ExpandControl
-            as="button"
-            type="button"
-            data-expand-toggle="true"
-            onClick={(event) => {
-              event.stopPropagation();
-              handleToggle();
-            }}
-            aria-expanded={isExpanded}
-            aria-controls={panelId}
-            aria-label={
-              isExpanded ? 'Hide quick details' : 'Show quick details'
-            }
-            $expanded={isExpanded}
-          >
-            <S.ExpandCaret aria-hidden="true">
-              {isExpanded ? '▾' : '▸'}
-            </S.ExpandCaret>
-            <S.CardOpenHint>
-              {isExpanded ? 'Hide' : 'Quick view'}
-            </S.CardOpenHint>
-          </S.ExpandControl>
         </S.SummaryTop>
       </S.SummaryButton>
 

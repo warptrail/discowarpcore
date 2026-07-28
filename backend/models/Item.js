@@ -11,6 +11,16 @@ const {
   ITEM_DISPOSITIONS,
 } = require('../utils/itemDisposition');
 const { KEEP_PRIORITY_VALUES } = require('../utils/keepPriority');
+const { DECLUTTER_READINESS_VALUES } = require('../utils/declutterReadiness');
+const DECLUTTER_EXIT_STATES = [
+  'none',
+  'needs_routing',
+  'needs_staging',
+  'staged_for_donation',
+  'staged_for_sale',
+  'marked_for_destruction',
+  'completed',
+];
 
 function toTrimmed(value) {
   return value == null ? '' : String(value).trim();
@@ -216,6 +226,18 @@ const itemSchema = new mongoose.Schema(
     },
     disposition_at: { type: Date, default: null },
     disposition_notes: { type: String, default: '' },
+    declutterReadiness: {
+      type: String,
+      enum: DECLUTTER_READINESS_VALUES,
+      default: 'not_considered',
+      index: true,
+    },
+    declutterExitState: {
+      type: String,
+      enum: DECLUTTER_EXIT_STATES,
+      default: 'none',
+      index: true,
+    },
     last_active_box: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Box',

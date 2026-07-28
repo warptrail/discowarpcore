@@ -13,59 +13,60 @@ export const Wrapper = styled.div`
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.48rem;
-  width: fit-content;
-  padding: 0.34rem;
-  border-radius: 18px;
+  gap: 0;
+  width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'fit-content')};
+  padding: 0.18rem;
+  border-radius: 14px;
   border: 1px solid ${LCARS.line};
-  background: linear-gradient(135deg, ${LCARS.shell}, ${LCARS.shellSoft});
+  background:
+    radial-gradient(circle at 50% 0%, rgba(76, 198, 193, 0.16), transparent 54%),
+    linear-gradient(135deg, ${LCARS.shell}, ${LCARS.shellSoft});
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.04),
     0 8px 16px rgba(0, 0, 0, 0.25);
   isolation: isolate;
   overflow: hidden;
 
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    pointer-events: none;
-    opacity: 0.64;
+  &:focus-within {
+    border-color: rgba(167, 182, 255, 0.86);
+    box-shadow:
+      0 0 0 2px rgba(167, 182, 255, 0.16),
+      0 8px 18px rgba(0, 0, 0, 0.28);
   }
+`;
 
-  &::before {
-    left: 0.52rem;
-    right: 0.52rem;
-    top: 0.25rem;
-    height: 2px;
-    border-radius: 999px;
-    background: linear-gradient(90deg, ${LCARS.teal}, ${LCARS.lilac});
-  }
+export const ValueShell = styled.div`
+  position: relative;
+  display: grid;
+  flex: ${({ $fullWidth }) => ($fullWidth ? '1' : '0 0 auto')};
+  min-width: 0;
+  justify-items: center;
+`;
 
-  &::after {
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 0.22rem;
-    width: 1.9rem;
-    height: 2px;
-    border-radius: 999px;
-    background: ${LCARS.teal};
-  }
+export const ValueKicker = styled.span`
+  position: absolute;
+  top: 0.12rem;
+  z-index: 2;
+  color: rgba(167, 182, 255, 0.7);
+  font-size: 0.48rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  pointer-events: none;
 `;
 
 export const Button = styled.button`
   position: relative;
   z-index: 1;
-  min-width: 2.1rem;
-  height: 2.1rem;
+  min-width: 2.45rem;
+  height: 2.45rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(76, 198, 193, 0.55);
-  border-radius: 10px;
-  background: linear-gradient(180deg, rgba(76, 198, 193, 0.26), rgba(76, 198, 193, 0.15));
+  border-radius: 9px;
+  background: linear-gradient(180deg, rgba(76, 198, 193, 0.3), rgba(76, 198, 193, 0.13));
   color: ${LCARS.text};
-  font-size: 1.45rem;
+  font-size: 1.35rem;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -84,22 +85,27 @@ export const Button = styled.button`
     opacity: 0.46;
     cursor: not-allowed;
   }
+
+  @media (max-width: 560px) {
+    min-width: 2.75rem;
+    height: 2.75rem;
+  }
 `;
 
 export const Input = styled.input`
   position: relative;
   z-index: 1;
-  width: 3.15rem;
-  height: 2.1rem;
+  width: 3.6rem;
+  height: 2.45rem;
   text-align: center;
-  font-size: 1.06rem;
+  font-size: 1.14rem;
   font-weight: 700;
   color: ${LCARS.text};
-  border-radius: 10px;
+  border-radius: 8px;
   border: 1px solid rgba(167, 182, 255, 0.56);
   background: #0b1018;
   outline: none;
-  padding: 0;
+  padding: 0.42rem 0.2rem 0;
 
   &:focus {
     border-color: ${LCARS.lilac};
@@ -113,4 +119,9 @@ export const Input = styled.input`
   }
 
   -moz-appearance: textfield;
+
+  @media (max-width: 560px) {
+    width: 3.6rem;
+    height: 2.75rem;
+  }
 `;

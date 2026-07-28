@@ -8,6 +8,7 @@ import React, {
   useMemo,
 } from 'react';
 import * as S from '../styles/ItemRow.styles';
+import { getItemThumbnailUrl } from '../util/itemImage';
 import ItemDetails from './ItemDetails';
 import EditItemDetailsForm from './EditItemDetailsForm';
 import MoveItemToOtherBox from './MoveItemToOtherBox';
@@ -19,8 +20,10 @@ import { ToastContext } from './Toast';
 import { getItemOwnershipContext } from '../util/itemOwnership';
 import useItemTimestampActions from '../hooks/useItemTimestampActions';
 import useItemImageProcessing from '../hooks/useItemImageProcessing';
-import AddItemToDeclutterSessionToastContent from './Declutter/AddItemToDeclutterSessionToastContent';
-import { fetchDeclutterSessionsForItem } from '../api/declutterSessions';
+import {
+  nominateDeclutterCandidates,
+  removeDeclutterCandidateByItem,
+} from '../api/declutterDeck';
 import ImageProcessingToastContent from './Processing/ImageProcessingToastContent';
 import {
   getImageProcessingToastSignature,
@@ -87,15 +90,18 @@ export default function ItemRow({
   const [localImagePath, setLocalImagePath] = useState(item?.imagePath || '');
   const [expandedMode, setExpandedMode] = useState('overview');
   const [movePending, setMovePending] = useState(false);
-  const [activeDeclutterSessions, setActiveDeclutterSessions] = useState([]);
-  const [declutterMembershipLoading, setDeclutterMembershipLoading] = useState(false);
+  const [declutterNominating, setDeclutterNominating] = useState(false);
+  const [isInDeclutterDeck, setIsInDeclutterDeck] = useState(
+    item?.declutterReadiness === 'in_deck'
+  );
   const [imageRefreshToken, setImageRefreshToken] = useState(0);
   const [processedPreviewUrl, setProcessedPreviewUrl] = useState('');
   const lastImageLifecycleStatusRef = useRef('');
-  const collapsedThumbUrl =
-    localImage?.thumb?.url ||
-    localImage?.display?.url ||
-    '';
+  const collapsedThumbUrl = getItemThumbnailUrl({
+    ...item,
+    image: localImage,
+    imagePath: localImagePath,
+  });
   const itemForView = useMemo(
     () => ({
       ...item,
@@ -117,18 +123,17 @@ export default function ItemRow({
     showToast,
     hideToast,
   });
-  const activeDeclutterSessionCount = activeDeclutterSessions.length;
-  const declutterButtonDisabled =
-    !_id || declutterMembershipLoading || activeDeclutterSessionCount > 0;
-  const declutterButtonTitle = declutterMembershipLoading
-    ? 'Checking active declutter sessions...'
-    : activeDeclutterSessionCount > 0
-      ? `Already in active Declutter Session: ${
-          activeDeclutterSessions
-            .map((session) => session?.name || 'Declutter Session')
-            .join(', ')
-        }`
-      : 'Add this item to a Declutter Session';
+  useEffect(() => {
+    setIsInDeclutterDeck(item?.declutterReadiness === 'in_deck');
+  }, [item?._id, item?.declutterReadiness]);
+  const declutterButtonDisabled = !_id || declutterNominating;
+  const declutterButtonTitle = declutterNominating
+    ? isInDeclutterDeck
+      ? 'Removing from the Declutter Deck...'
+      : 'Adding to the Declutter Deck...'
+    : isInDeclutterDeck
+      ? 'Remove this item from the Declutter Deck'
+      : 'Add this item to the Declutter Deck';
 
   const handleImageProcessingCompleted = useCallback(async ({ state } = {}) => {
     const nextPreviewUrl = String(
@@ -298,36 +303,6 @@ export default function ItemRow({
       setExpandedMode('overview');
     }
   }, [rowIsOpen]);
-
-  useEffect(() => {
-    let alive = true;
-
-    if (!rowIsOpen || !_id) {
-      setActiveDeclutterSessions([]);
-      setDeclutterMembershipLoading(false);
-      return () => {
-        alive = false;
-      };
-    }
-
-    setDeclutterMembershipLoading(true);
-    fetchDeclutterSessionsForItem(_id, { status: 'active' })
-      .then((sessions) => {
-        if (!alive) return;
-        setActiveDeclutterSessions(Array.isArray(sessions) ? sessions : []);
-      })
-      .catch(() => {
-        if (!alive) return;
-        setActiveDeclutterSessions([]);
-      })
-      .finally(() => {
-        if (alive) setDeclutterMembershipLoading(false);
-      });
-
-    return () => {
-      alive = false;
-    };
-  }, [_id, rowIsOpen]);
 
   useEffect(() => {
     setExpandedMode('overview');
@@ -566,46 +541,43 @@ export default function ItemRow({
     ]
   );
 
-  const handleAddToDeclutterSession = useCallback(
-    (event) => {
+  const handleDeclutterDeckToggle = useCallback(
+    async (event) => {
       event?.stopPropagation?.();
       if (!_id) return;
-
-      showToast?.({
-        variant: 'info',
-        sticky: true,
-        title: 'Add to Declutter Session',
-        message: `Choose a review queue for "${name || 'item'}".`,
-        content: (
-          <AddItemToDeclutterSessionToastContent
-            itemId={_id}
-            itemName={name || 'Item'}
-            onCancel={() => hideToast?.()}
-            onAdded={({ message, sessionId, sessionName }) => {
-              setActiveDeclutterSessions((current) =>
-                current.length
-                  ? current
-                  : [
-                      {
-                        id: sessionId || 'active',
-                        name: sessionName || 'Declutter Session',
-                      },
-                    ]
-              );
-              hideToast?.();
-              showToast?.({
-                variant: 'success',
-                title: 'Review queue updated',
-                message,
-                timeoutMs: 3600,
-              });
-            }}
-          />
-        ),
-        onClose: () => hideToast?.(),
-      });
+      try {
+        setDeclutterNominating(true);
+        if (isInDeclutterDeck) {
+          await removeDeclutterCandidateByItem(_id);
+          setIsInDeclutterDeck(false);
+          showToast?.({
+            variant: 'success',
+            title: 'Removed from Declutter Deck',
+            message: `Removed "${name || 'item'}" from the shared deck.`,
+            timeoutMs: 3600,
+          });
+          return;
+        }
+        const [result] = await nominateDeclutterCandidates([_id]);
+        setIsInDeclutterDeck(true);
+        showToast?.({
+          variant: 'success',
+          title: 'Declutter Deck updated',
+          message: result?.reopened ? `Reopened "${name || 'item'}" for a new round.` : `Added "${name || 'item'}" to the shared deck.`,
+          timeoutMs: 3600,
+        });
+      } catch (err) {
+        showToast?.({
+          variant: 'danger',
+          title: isInDeclutterDeck ? 'Declutter removal failed' : 'Declutter add failed',
+          message: err?.message || 'Could not update the item.',
+          timeoutMs: 5200,
+        });
+      } finally {
+        setDeclutterNominating(false);
+      }
     },
-    [_id, hideToast, name, showToast]
+    [_id, isInDeclutterDeck, name, showToast]
   );
 
   return (
@@ -733,11 +705,19 @@ export default function ItemRow({
                   <S.QuickActionButton
                     type="button"
                     $tone="declutter"
+                    $active={isInDeclutterDeck}
                     disabled={declutterButtonDisabled}
                     title={declutterButtonTitle}
-                    onClick={handleAddToDeclutterSession}
+                    aria-pressed={isInDeclutterDeck}
+                    onClick={handleDeclutterDeckToggle}
                   >
-                    Declutter
+                    {declutterNominating
+                      ? isInDeclutterDeck
+                        ? 'Removing…'
+                        : 'Adding…'
+                      : isInDeclutterDeck
+                        ? 'In Deck'
+                        : 'Declutter'}
                   </S.QuickActionButton>
                 </S.ExpandedActionCluster>
               </S.ExpandedActionStrip>

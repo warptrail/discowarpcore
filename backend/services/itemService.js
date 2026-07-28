@@ -344,6 +344,7 @@ function toItemListSummary(item = {}) {
     disposition: item?.disposition,
     disposition_at: item?.disposition_at,
     disposition_notes: item?.disposition_notes,
+    declutterReadiness: item?.declutterReadiness || 'not_considered',
     last_active_box: item?.last_active_box,
     dateAcquired: item?.dateAcquired,
     dateLastUsed: item?.dateLastUsed,
@@ -1025,7 +1026,7 @@ async function markItemGone(id, payload = {}) {
         disposition_at: dispositionAt || new Date(),
         disposition_notes: dispositionNotes,
         orphanedAt: null,
-        last_active_box: previousBox?._id || null,
+        last_active_box: previousBox?._id || payload.lastActiveBoxId || null,
       },
     },
     { new: true, runValidators: true }

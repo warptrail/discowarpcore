@@ -1,10 +1,23 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import styled, { css, keyframes } from 'styled-components';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import Toast from './Toast/Toast';
 import { ToastContext } from './Toast';
 import useIsMobile from '../hooks/useIsMobile';
 import useRandomItemFlow from '../hooks/useRandomItemFlow';
+import {
+  BOX_FINDER_CLOSE_EVENT,
+  BOX_FINDER_OPEN_EVENT,
+  BOX_FINDER_STATE_EVENT,
+  BOX_CONTEXT_STATE_EVENT,
+  INVENTORY_FINDER_CLOSE_EVENT,
+  INVENTORY_FINDER_COMMIT_EVENT,
+  INVENTORY_FINDER_OPEN_EVENT,
+  INVENTORY_FINDER_STATE_EVENT,
+  RETRIEVAL_FINDER_CLOSE_EVENT,
+  RETRIEVAL_FINDER_OPEN_EVENT,
+  RETRIEVAL_FINDER_STATE_EVENT,
+} from '../constants/inventoryFinderEvents';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_CONTROL_MIN_HEIGHT,
@@ -84,6 +97,13 @@ const Inner = styled.div`
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
+
+  ${({ $boxPage }) =>
+    $boxPage &&
+    css`
+      padding-block: 0;
+      padding-inline: 0.65rem;
+    `}
 `;
 
 const TopRow = styled.div`
@@ -178,7 +198,7 @@ const mobileAmbientSweep = keyframes`
 const MobileAmbientGap = styled.div`
   display: none;
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
     display: block;
     pointer-events: none;
     position: absolute;
@@ -806,11 +826,155 @@ const ToastRow = styled.div`
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
+
+  ${({ $boxPage }) =>
+    $boxPage &&
+    css`
+      padding: 0.15rem 0.65rem 0.22rem;
+
+      & > div {
+        min-height: 40px;
+        margin-block: 0;
+        padding-block: 0.15rem;
+      }
+    `}
 `;
 
+const geometryOrbit = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
+const geometryCounterOrbit = keyframes`
+  to { transform: rotate(-360deg); }
+`;
+
+const geometryCommitPulse = keyframes`
+  0%, 100% { box-shadow: 0 0 10px rgba(76, 198, 193, 0.2); }
+  45% { box-shadow: 0 0 22px rgba(127, 215, 255, 0.95), 0 0 42px rgba(76, 198, 193, 0.52); }
+`;
+
+const RescueConsoleTrigger = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+  border: 1px solid
+    ${({ $active }) =>
+      $active ? 'rgba(255, 182, 72, 0.96)' : 'rgba(76, 198, 193, 0.68)'};
+  border-radius: 7px;
+  padding: 0;
+  color: ${({ $active }) =>
+    $active ? 'rgba(255, 240, 196, 0.98)' : 'rgba(127, 215, 255, 0.96)'};
+  background: ${({ $active }) =>
+    $active
+      ? 'linear-gradient(180deg, rgba(82, 52, 12, 0.96), rgba(38, 21, 6, 0.96))'
+      : 'rgba(7, 25, 35, 0.86)'};
+  box-shadow: ${({ $active }) =>
+    $active
+      ? '0 0 0 1px rgba(255, 182, 72, 0.18), 0 0 18px rgba(255, 182, 72, 0.34), inset 0 0 14px rgba(255, 225, 138, 0.12)'
+      : 'none'};
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease;
+
+  ${({ $pulse }) =>
+    $pulse &&
+    css`
+      animation: ${geometryCommitPulse} 620ms ease-out both;
+    `}
+
+  svg {
+    width: 20px;
+    height: 20px;
+    overflow: visible;
+    filter: ${({ $active }) =>
+      $active
+        ? 'drop-shadow(0 0 5px rgba(255, 214, 102, 0.92))'
+        : 'drop-shadow(0 0 3px rgba(127, 215, 255, 0.75))'};
+  }
+
+  .orbit {
+    transform-origin: 12px 12px;
+    animation: ${geometryOrbit} 8s linear infinite;
+  }
+
+  .counter-orbit {
+    transform-origin: 12px 12px;
+    animation: ${geometryCounterOrbit} 5.5s linear infinite;
+  }
+
+  &:hover,
+  &:focus-visible {
+    border-color: ${({ $active }) =>
+      $active ? 'rgba(255, 213, 120, 0.98)' : 'rgba(127, 215, 255, 0.94)'};
+    color: rgba(230, 237, 243, 0.98);
+    background: ${({ $active }) =>
+      $active
+        ? 'linear-gradient(180deg, rgba(111, 71, 18, 0.98), rgba(56, 31, 8, 0.98))'
+        : 'rgba(18, 58, 62, 0.92)'};
+    box-shadow: ${({ $active }) =>
+      $active
+        ? '0 0 16px rgba(255, 191, 73, 0.42), inset 0 0 16px rgba(255, 229, 148, 0.18)'
+        : '0 0 12px rgba(76, 198, 193, 0.22)'};
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: ${MOBILE_CONTROL_MIN_HEIGHT};
+    height: ${MOBILE_CONTROL_MIN_HEIGHT};
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+
+    .orbit,
+    .counter-orbit {
+      animation: none;
+    }
+  }
+`;
+
+function FinderGeometryGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <g className="orbit" fill="none" stroke="currentColor" strokeWidth="1.15">
+        <polygon points="12,2.5 20.2,7.2 20.2,16.8 12,21.5 3.8,16.8 3.8,7.2" />
+        <circle cx="12" cy="2.5" r="1" fill="currentColor" stroke="none" />
+        <circle cx="20.2" cy="16.8" r="1" fill="currentColor" stroke="none" />
+        <circle cx="3.8" cy="16.8" r="1" fill="currentColor" stroke="none" />
+      </g>
+      <g className="counter-orbit" fill="none" stroke="rgba(76, 198, 193, 0.95)" strokeWidth="1.1">
+        <path d="M12 5.6 17.5 15H6.5Z" />
+        <circle cx="12" cy="12" r="2.15" />
+      </g>
+    </svg>
+  );
+}
+
 export default function Header() {
+  const location = useLocation();
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [committedSearch, setCommittedSearch] = useState('');
+  const [isOperationsFinderOpen, setIsOperationsFinderOpen] = useState(false);
+  const [boxContext, setBoxContext] = useState(null);
+  const [boxFinderState, setBoxFinderState] = useState({
+    mode: 'closed',
+    query: '',
+    matchCount: 0,
+    sortMode: 'treeOrder',
+  });
+  const [searchPulse, setSearchPulse] = useState(false);
+  const [retrievalScrollCompact, setRetrievalScrollCompact] = useState(false);
+  const retrievalScrollTimerRef = useRef(null);
+  const retrievalLastScrollYRef = useRef(0);
+  const retrievalIgnoreScrollUntilRef = useRef(0);
+  const isBoxDetailPage = /^\/boxes\/[^/]+\/?$/.test(location.pathname);
+  const isRetrievalPage = /^\/retrieval\/?$/.test(location.pathname);
   const isMobile = useIsMobile(MOBILE_MAX_WIDTH);
   const mobileControlsId = 'mobile-header-controls';
 
@@ -819,6 +983,122 @@ export default function Header() {
   const hideToast = toastCtx?.hideToast;
   const activeRetrievalItem = toastCtx?.activeRetrievalItem ?? null;
   const { runRandomItem } = useRandomItemFlow();
+
+  const openOperationsFinder = () => {
+    const openEvent = isBoxDetailPage
+      ? BOX_FINDER_OPEN_EVENT
+      : isRetrievalPage
+        ? RETRIEVAL_FINDER_OPEN_EVENT
+        : INVENTORY_FINDER_OPEN_EVENT;
+    const closeEvent = isBoxDetailPage
+      ? BOX_FINDER_CLOSE_EVENT
+      : isRetrievalPage
+        ? RETRIEVAL_FINDER_CLOSE_EVENT
+        : INVENTORY_FINDER_CLOSE_EVENT;
+
+    window.dispatchEvent(
+      new CustomEvent(
+        isOperationsFinderOpen ? closeEvent : openEvent,
+      ),
+    );
+  };
+
+  useEffect(() => {
+    let pulseTimer = null;
+    const handleFinderCommit = (event) => {
+      const query = String(event.detail?.query || '').trim();
+      if (!query) return;
+      setCommittedSearch(query);
+      setSearchPulse(true);
+      pulseTimer = window.setTimeout(() => setSearchPulse(false), 660);
+    };
+
+    window.addEventListener(INVENTORY_FINDER_COMMIT_EVENT, handleFinderCommit);
+    return () => {
+      window.removeEventListener(INVENTORY_FINDER_COMMIT_EVENT, handleFinderCommit);
+      if (pulseTimer) window.clearTimeout(pulseTimer);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleFinderState = (event) => {
+      const minimized = Boolean(event.detail?.minimized);
+      setIsOperationsFinderOpen(!minimized);
+      if (event.type === BOX_FINDER_STATE_EVENT) {
+        setBoxFinderState((current) => ({ ...current, ...event.detail }));
+      }
+    };
+
+    window.addEventListener(INVENTORY_FINDER_STATE_EVENT, handleFinderState);
+    window.addEventListener(BOX_FINDER_STATE_EVENT, handleFinderState);
+    window.addEventListener(RETRIEVAL_FINDER_STATE_EVENT, handleFinderState);
+    return () => {
+      window.removeEventListener(INVENTORY_FINDER_STATE_EVENT, handleFinderState);
+      window.removeEventListener(BOX_FINDER_STATE_EVENT, handleFinderState);
+      window.removeEventListener(RETRIEVAL_FINDER_STATE_EVENT, handleFinderState);
+    };
+  }, []);
+
+  useEffect(() => {
+    setIsOperationsFinderOpen(false);
+    setBoxFinderState({
+      mode: 'closed',
+      query: '',
+      matchCount: 0,
+      sortMode: 'treeOrder',
+    });
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!isRetrievalPage || !isOperationsFinderOpen) {
+      setRetrievalScrollCompact(false);
+      retrievalLastScrollYRef.current = window.scrollY;
+      if (retrievalScrollTimerRef.current) {
+        window.clearTimeout(retrievalScrollTimerRef.current);
+        retrievalScrollTimerRef.current = null;
+      }
+      return undefined;
+    }
+
+    retrievalLastScrollYRef.current = window.scrollY;
+    const handleRetrievalScroll = () => {
+      const nextScrollY = window.scrollY;
+      if (Date.now() < retrievalIgnoreScrollUntilRef.current) {
+        retrievalLastScrollYRef.current = nextScrollY;
+        return;
+      }
+      if (Math.abs(nextScrollY - retrievalLastScrollYRef.current) < 1) return;
+      retrievalLastScrollYRef.current = nextScrollY;
+      setRetrievalScrollCompact(true);
+      if (retrievalScrollTimerRef.current) {
+        window.clearTimeout(retrievalScrollTimerRef.current);
+      }
+      retrievalScrollTimerRef.current = window.setTimeout(() => {
+        retrievalIgnoreScrollUntilRef.current = Date.now() + 500;
+        setRetrievalScrollCompact(false);
+        retrievalScrollTimerRef.current = null;
+      }, 2000);
+    };
+
+    window.addEventListener('scroll', handleRetrievalScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleRetrievalScroll);
+      if (retrievalScrollTimerRef.current) {
+        window.clearTimeout(retrievalScrollTimerRef.current);
+        retrievalScrollTimerRef.current = null;
+      }
+    };
+  }, [isOperationsFinderOpen, isRetrievalPage]);
+
+  useEffect(() => {
+    const handleBoxContext = (event) => setBoxContext(event?.detail || null);
+    window.addEventListener(BOX_CONTEXT_STATE_EVENT, handleBoxContext);
+    return () => window.removeEventListener(BOX_CONTEXT_STATE_EVENT, handleBoxContext);
+  }, []);
+
+  useEffect(() => {
+    if (!isBoxDetailPage) setBoxContext(null);
+  }, [isBoxDetailPage]);
 
   const handleToastClose = () => {
     if (typeof toast?.onClose === 'function') {
@@ -898,14 +1178,17 @@ export default function Header() {
     }
   };
 
+  const effectiveHeaderProgress = isBoxDetailPage
+    ? 1
+    : scrollProgress;
   const headerStyle = {
-    '--header-progress': scrollProgress.toFixed(3),
+    '--header-progress': effectiveHeaderProgress.toFixed(3),
   };
-  const isHeaderCondensed = scrollProgress >= 0.98;
+  const isHeaderCondensed = effectiveHeaderProgress >= 0.98;
 
   return (
     <HeaderShell style={headerStyle}>
-      <Inner>
+      <Inner $boxPage={isBoxDetailPage}>
         <TopRow>
           <Brand to="/">
             <Title>
@@ -947,7 +1230,7 @@ export default function Header() {
         >
           <NavRow>
             <NavButton
-              to="/"
+              to="/operations"
               aria-label="Operations"
               title="Operations"
               onClick={handleNavSelection}
@@ -1024,7 +1307,7 @@ export default function Header() {
 
       <Divider />
 
-      <ToastRow>
+      <ToastRow $boxPage={isBoxDetailPage}>
         <Toast
           open={!!toast}
           title={toast?.title}
@@ -1047,10 +1330,63 @@ export default function Header() {
           }
           showIdle
           idleIcon="📦"
-          idleText="Console ready. Awaiting orders…"
+          idleText={
+            isBoxDetailPage && boxContext
+              ? boxFinderState.mode === 'minimized' && boxFinderState.query
+                ? `#${boxContext.shortId} · ${boxFinderState.query} · ${boxFinderState.matchCount} ${
+                    boxFinderState.matchCount === 1 ? 'match' : 'matches'
+                  }`
+                : `#${boxContext.shortId} · ${boxContext.title}${
+                    boxContext.location ? ` · ${boxContext.location}` : ''
+                  }`
+              : committedSearch
+                ? `Searching: ${committedSearch}`
+                : 'What are you looking for?'
+          }
+          idleAction={{
+            onClick: openOperationsFinder,
+            ariaLabel: isBoxDetailPage
+              ? 'Open box search'
+              : isRetrievalPage
+                ? 'Open retrieval search'
+                : 'Open item finder',
+          }}
+          calmIdle={isBoxDetailPage}
+          idleAddon={
+            <RescueConsoleTrigger
+              type="button"
+              onClick={openOperationsFinder}
+              data-box-finder-trigger={isBoxDetailPage ? true : undefined}
+              aria-label={
+                isBoxDetailPage
+                  ? 'Toggle box quick search'
+                  : isRetrievalPage
+                    ? 'Toggle retrieval search'
+                    : 'Open item finder from search icon'
+              }
+              title={
+                isBoxDetailPage
+                  ? 'Search this box'
+                  : isRetrievalPage
+                    ? 'Retrieval search'
+                    : 'Open item finder'
+              }
+              $active={
+                isBoxDetailPage
+                  ? boxFinderState.mode === 'expanded' ||
+                    !!boxFinderState.query ||
+                    boxFinderState.sortMode !== 'treeOrder'
+                  : isOperationsFinderOpen
+              }
+              $pulse={searchPulse}
+            >
+              <FinderGeometryGlyph />
+            </RescueConsoleTrigger>
+          }
           activeRetrievalItem={activeRetrievalItem}
+          retrievalScrollCompact={retrievalScrollCompact}
           compact={isHeaderCondensed}
-          compactProgress={scrollProgress}
+          compactProgress={isBoxDetailPage ? 1.35 : effectiveHeaderProgress}
         />
       </ToastRow>
     </HeaderShell>

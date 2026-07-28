@@ -30,6 +30,20 @@ export function getDecisionMeta(value) {
   );
 }
 
+export function getVotePresentationChoice(vote) {
+  const selection = String(vote?.selection || '').trim().toLowerCase();
+  if (DECISION_VALUES.has(selection)) return selection;
+  const decision = String(vote?.decision || '').trim().toLowerCase();
+  if (decision !== 'release') return normalizeDecision(decision);
+  if (vote?.exitPreference === 'donate') return 'donate';
+  if (vote?.exitPreference === 'sell') return 'sell';
+  return 'toss';
+}
+
+export function getVotePresentationMeta(vote) {
+  return getDecisionMeta(getVotePresentationChoice(vote));
+}
+
 export function createEmptyCounts() {
   return DECISION_OPTIONS.reduce(
     (counts, option) => {

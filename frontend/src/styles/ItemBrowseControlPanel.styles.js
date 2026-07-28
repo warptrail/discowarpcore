@@ -32,6 +32,9 @@ export const PanelShell = styled.section`
   background:
     linear-gradient(95deg, rgba(127, 215, 255, 0.11) 0%, transparent 40%),
     ${LCARS.panel};
+  position: sticky;
+  top: 56px;
+  z-index: 40;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.34rem;
@@ -39,6 +42,7 @@ export const PanelShell = styled.section`
     margin-bottom: 0.42rem;
     border-radius: ${MOBILE_PANEL_RADIUS};
     box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2), 0 4px 10px rgba(0, 0, 0, 0.18);
+    top: 48px;
   }
 `;
 

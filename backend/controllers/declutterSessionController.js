@@ -54,7 +54,9 @@ async function postDeclutterSessionApi(req, res) {
 
 async function getDeclutterSessionByIdApi(req, res) {
   try {
-    const payload = await getDeclutterSessionDetail(req.params.sessionId);
+    const payload = await getDeclutterSessionDetail(req.params.sessionId, {
+      player: req.query.player,
+    });
     return res.status(200).json({ ok: true, ...payload });
   } catch (err) {
     console.error('❌ Error loading declutter session:', err);

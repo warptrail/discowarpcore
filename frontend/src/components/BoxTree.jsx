@@ -2,7 +2,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import * as S from '../styles/BoxTree.styles';
 import ItemRow from './ItemRow';
-import ItemBrowseControlPanel from './ItemBrowseControlPanel';
 import CondensedBoxItemList from './CondensedBoxItemList';
 import CondensedBatchMovePanel from './CondensedBatchMovePanel';
 import CondensedBatchDispositionPanel from './CondensedBatchDispositionPanel';
@@ -11,24 +10,6 @@ import {
   matchesItemQuery,
   normalizeItemQuery,
 } from '../util/itemBrowse';
-
-const SORT_OPTIONS = [
-  { value: 'recentlyAdded', label: 'Recently Added' },
-  { value: 'oldestAdded', label: 'Oldest Added' },
-  { value: 'recentlyUpdated', label: 'Recently Updated' },
-  { value: 'recentlyAcquired', label: 'Recently Acquired' },
-  { value: 'oldestAcquired', label: 'Oldest Acquired' },
-  { value: 'recentlyUsed', label: 'Recently Used' },
-  { value: 'leastRecentlyUsed', label: 'Least Recently Used' },
-  { value: 'nameAsc', label: 'Name A-Z' },
-  { value: 'nameDesc', label: 'Name Z-A' },
-  { value: 'categoryAsc', label: 'Category A-Z' },
-  { value: 'categoryDesc', label: 'Category Z-A' },
-  { value: 'ownerAsc', label: 'Owner A-Z' },
-  { value: 'ownerDesc', label: 'Owner Z-A' },
-  { value: 'valueDesc', label: 'Value High-Low' },
-  { value: 'valueAsc', label: 'Value Low-High' },
-];
 
 const DEFAULT_SORT = 'recentlyAdded';
 
@@ -150,9 +131,13 @@ export default function BoxTree({
   triggerFlash,
   onItemSaved,
   refreshBox,
+  searchQuery: controlledSearchQuery,
+  sortMode: controlledSortMode,
 }) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortMode, setSortMode] = useState(DEFAULT_SORT);
+  const [localSearchQuery, setLocalSearchQuery] = useState('');
+  const [localSortMode, setLocalSortMode] = useState(DEFAULT_SORT);
+  const searchQuery = controlledSearchQuery ?? localSearchQuery;
+  const sortMode = controlledSortMode ?? localSortMode;
   const [viewMode, setViewMode] = useState('full');
   const [condensedSelectionEnabled, setCondensedSelectionEnabled] = useState(false);
   const [selectedCondensedItemIds, setSelectedCondensedItemIds] = useState(() => new Set());
@@ -161,8 +146,8 @@ export default function BoxTree({
   const rootKey = String(node?._id ?? node?.box_id ?? node?.shortId ?? '');
 
   useEffect(() => {
-    setSearchQuery('');
-    setSortMode(DEFAULT_SORT);
+    setLocalSearchQuery('');
+    setLocalSortMode(DEFAULT_SORT);
     setCondensedSelectionEnabled(false);
     setSelectedCondensedItemIds(new Set());
     setCondensedMovePickerOpen(false);
@@ -265,19 +250,6 @@ export default function BoxTree({
 
   return (
     <S.TreeRoot>
-      <ItemBrowseControlPanel
-        idPrefix="box-tree-item-browse"
-        searchValue={searchQuery}
-        searchPlaceholder="Search items in this box tree..."
-        searchAriaLabel="Search items in this box tree"
-        onSearchChange={setSearchQuery}
-        sortValue={sortMode}
-        sortOptions={SORT_OPTIONS}
-        sortAriaLabel="Sort items in this box tree"
-        onSortChange={setSortMode}
-        statusText={`${visibleItemCount} ${visibleItemCount === 1 ? 'item' : 'items'} shown`}
-      />
-
       <S.ViewModeBar>
         <S.ViewModeLabel htmlFor="box-tree-condensed-view">
           <S.ViewModeLabelText>Full view</S.ViewModeLabelText>

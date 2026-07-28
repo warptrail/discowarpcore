@@ -18,7 +18,7 @@ import {
   ExportPanelTitle,
 } from './BoxActionPanel.styles';
 
-export default function ExportBoxPanel({ boxShortId, boxMongoId, onClose }) {
+export default function ExportBoxPanel({ boxShortId, boxMongoId, onClose, showClose = true }) {
   const [downloadingFormat, setDownloadingFormat] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const isDownloading = downloadingFormat !== null;
@@ -53,9 +53,11 @@ export default function ExportBoxPanel({ boxShortId, boxMongoId, onClose }) {
     <ExportPanelContainer>
       <ExportPanelHeader>
         <ExportPanelTitle>Export Box #{boxShortId}</ExportPanelTitle>
-        <ExportPanelClose type="button" onClick={onClose}>
-          Close
-        </ExportPanelClose>
+        {showClose ? (
+          <ExportPanelClose type="button" onClick={onClose}>
+            Back to manage
+          </ExportPanelClose>
+        ) : null}
       </ExportPanelHeader>
 
       <ExportPanelBody>

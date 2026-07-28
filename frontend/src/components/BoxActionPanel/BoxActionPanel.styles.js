@@ -10,16 +10,57 @@ import {
 } from '../../styles/tokens';
 
 export const PanelContainer = styled.div`
-  background-color: #121212;
-  padding: 1rem;
-  border-radius: 12px;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
   min-width: 0;
   overflow-x: clip;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: 0.58rem;
-    border-radius: ${MOBILE_PANEL_RADIUS};
+    padding: 0;
+    border-radius: 0;
   }
+`;
+
+export const WorkspaceRail = styled.div`
+  position: absolute;
+  top: 7px;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  pointer-events: none;
+`;
+
+export const BackButton = styled.button`
+  min-height: 28px;
+  width: 32px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0;
+  color: rgba(191, 255, 238, 0.66);
+  background: transparent;
+  font: 700 0.76rem/1 ui-monospace, monospace;
+  cursor: pointer;
+  pointer-events: auto;
+  font-size: 1.24rem;
+  &:hover, &:focus-visible {
+    color: rgba(191, 255, 238, 0.98);
+    background: transparent;
+    outline: none;
+  }
+  &:disabled { opacity: .55; cursor: wait; }
+`;
+
+export const WorkspaceContext = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(226, 234, 242, 0.58);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const zipIn = keyframes`

@@ -211,6 +211,7 @@ export default function RetrievalBoxCentricView({
   persistedState,
   onStateSnapshotChange,
   setActiveRetrievalItem,
+  finderMinimized = false,
 }) {
   const initialPersistedState = persistedState && typeof persistedState === 'object'
     ? persistedState
@@ -275,6 +276,10 @@ export default function RetrievalBoxCentricView({
 
   useEffect(() => {
     if (typeof setActiveRetrievalItem !== 'function') return undefined;
+    if (finderMinimized) {
+      setActiveRetrievalItem(null);
+      return undefined;
+    }
 
     setActiveRetrievalItem({
       mode: 'controls',
@@ -300,6 +305,7 @@ export default function RetrievalBoxCentricView({
   }, [
     filterOptions.groups,
     filterOptions.locations,
+    finderMinimized,
     handleClearGroup,
     handleClearLocation,
     mode,
