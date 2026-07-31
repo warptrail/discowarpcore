@@ -194,9 +194,11 @@ async function attachBatchImportImageToItem({
     processedPath: '',
     displayPath: '',
     thumbPath: '',
+    tinyPath: '',
     activeVariant: 'original',
     displayDerivedFrom: null,
     thumbDerivedFrom: null,
+    tinyDerivedFrom: null,
     processingStatus: 'ready_for_processing',
     sourceType: 'batch_import',
     processingError: null,
@@ -205,12 +207,16 @@ async function attachBatchImportImageToItem({
 
   let display;
   let thumb;
+  let tiny;
   try {
     mediaState = await syncDerivedVariantsRunner(original.absolutePath);
     [display, thumb] = await Promise.all([
       readDerivativeMetadata(mediaState.displayPath),
       readDerivativeMetadata(mediaState.thumbPath),
     ]);
+    tiny = mediaState.tinyPath
+      ? await readDerivativeMetadata(mediaState.tinyPath)
+      : undefined;
   } catch (error) {
     const processingError = toErrorPayload(error);
     mediaState = await upsertMediaStateRunner(original.absolutePath, {
@@ -242,6 +248,7 @@ async function attachBatchImportImageToItem({
     },
     display,
     thumb,
+    ...(tiny ? { tiny } : {}),
   };
 
   await setItemImageRunner(itemId, image);

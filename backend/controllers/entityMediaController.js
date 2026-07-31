@@ -42,6 +42,7 @@ function toStatusPayload(state) {
     processedPath: state.processedPath,
     displayPath: state.displayPath,
     thumbPath: state.thumbPath,
+    tinyPath: state.tinyPath,
     sourceType: state.sourceType || '',
     renderTokens: state.renderTokens || null,
     processedAt: state.processedAt,

@@ -39,6 +39,7 @@ const mediaStateSchema = new mongoose.Schema(
     processedPath: { type: String, default: '', trim: true },
     displayPath: { type: String, default: '', trim: true },
     thumbPath: { type: String, default: '', trim: true },
+    tinyPath: { type: String, default: '', trim: true },
     renderTokens: {
       mode: { type: String, default: 'explicit', trim: true },
       background: { type: String, default: '', trim: true },
@@ -71,6 +72,18 @@ const mediaStateSchema = new mongoose.Schema(
           return value == null || ACTIVE_VARIANTS.includes(value);
         },
         message: 'thumbDerivedFrom must be original, processed, or null',
+      },
+      index: true,
+    },
+    tinyDerivedFrom: {
+      type: String,
+      default: null,
+      set: variantOrNull,
+      validate: {
+        validator(value) {
+          return value == null || ACTIVE_VARIANTS.includes(value);
+        },
+        message: 'tinyDerivedFrom must be original, processed, or null',
       },
       index: true,
     },
@@ -117,6 +130,7 @@ mediaStateSchema.pre('validate', function normalizePathFields(next) {
   this.processedPath = toTrimmed(this.processedPath);
   this.displayPath = toTrimmed(this.displayPath);
   this.thumbPath = toTrimmed(this.thumbPath);
+  this.tinyPath = toTrimmed(this.tinyPath);
   if (this.renderTokens && typeof this.renderTokens === 'object') {
     this.renderTokens.mode = toTrimmed(this.renderTokens.mode).toLowerCase() || 'explicit';
     this.renderTokens.background = toTrimmed(this.renderTokens.background);

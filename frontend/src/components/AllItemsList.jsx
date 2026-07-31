@@ -23,10 +23,37 @@ import {
 import useAllItemsBatchProcessing from './AllItemsList/useAllItemsBatchProcessing.jsx';
 import useAllItemsDeclutterDeck from './AllItemsList/useAllItemsDeclutterDeck.js';
 import useAllItemsItemSelection from './AllItemsList/useAllItemsItemSelection.jsx';
-import { getBoxGroupColorTones } from './Retrieval/boxColors';
+import { getBoxTheme, getItemTheme } from '../util/inventoryColorTheme';
+import AllItemsInsightsModal from './AllItemsList/AllItemsInsightsModal';
+import {
+  ALL_ITEMS_INSIGHTS_OPEN_EVENT,
+  ALL_ITEMS_INSIGHTS_STATE_EVENT,
+  ALL_ITEMS_DETAIL_OPEN_EVENT,
+} from '../constants/inventoryFinderEvents';
 
 const ALL_ITEMS_SCROLL_STORAGE_PREFIX = 'all-items:scroll:';
 const SCROLL_RESTORE_MAX_FRAMES = 240;
+const SECONDARY_ACCENTS = [
+  '#67D9D3',
+  '#E8B15C',
+  '#A7B6FF',
+  '#F08A7B',
+  '#9BE564',
+  '#7FD7FF',
+  '#E056FD',
+  '#4D96FF',
+];
+
+function getSecondaryAccent(value) {
+  const source = String(value || '').trim().toLowerCase();
+  if (!source) return '';
+
+  let hash = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    hash = Math.imul(hash ^ source.charCodeAt(index), 16777619);
+  }
+  return SECONDARY_ACCENTS[Math.abs(hash) % SECONDARY_ACCENTS.length];
+}
 
 function readSearchQueryParam(searchParams) {
   return String(searchParams.get('q') || '');
@@ -87,6 +114,8 @@ export default function AllItemsList() {
   const [lightboxImage, setLightboxImage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [insightsOpen, setInsightsOpen] = useState(false);
+  const [mobileDetailItem, setMobileDetailItem] = useState(null);
   const pendingScrollRestoreRef = useRef();
 
   const loadItems = useCallback(async ({ signal, silent = false } = {}) => {
@@ -309,6 +338,7 @@ export default function AllItemsList() {
     setLightboxImage({
       src,
       name: String(nextImage?.name || '').trim(),
+      presentation: String(nextImage?.presentation || 'default'),
     });
   }, []);
 
@@ -344,46 +374,63 @@ export default function AllItemsList() {
     return next;
   }, [visibleItems]);
 
+  const activeSelectedItemIds = itemSelectionModeEnabled
+    ? itemSelection.selectedItemIds
+    : batchProcessing.selectedItemIds;
+
   const rowAccentByItemId = useMemo(() => {
     const next = new Map();
+    const selectedIds = new Set(
+      Array.isArray(activeSelectedItemIds) ? activeSelectedItemIds.map(String) : [],
+    );
 
     for (const item of visibleItems) {
       const itemId = String(item?._id || '').trim();
       const meta = item?._allItems || {};
       if (!itemId) continue;
+      const boxTheme = getBoxTheme(meta?.isBoxed ? meta?.boxId : null);
 
-      if (colorBy === 'none') {
-        next.set(itemId, '');
+      if (meta?.isGone && colorBy === 'status') {
+        next.set(itemId, '#F08A7B');
         continue;
       }
 
       if (colorBy === 'status') {
-        const statusTone = meta?.isGone
-          ? '#f08a7b'
-          : meta?.isOrphaned
-            ? '#e8b15c'
-            : '#4cc6c1';
+        const statusTone = meta?.isOrphaned ? '#E8B15C' : '#4CC6C1';
         next.set(itemId, statusTone);
+        continue;
+      }
+
+      if (selectedIds.has(itemId)) {
+        next.set(itemId, getItemTheme(meta?.boxId, itemId, { selected: true }).accent);
+        continue;
+      }
+
+      if (colorBy === 'none') {
+        next.set(itemId, boxTheme.muted);
+        continue;
+      }
+
+      if (colorBy === 'box') {
+        next.set(itemId, boxTheme.primary);
         continue;
       }
 
       const key =
         colorBy === 'batch'
           ? String(meta?.sourceBatchId || meta?.sourceBatchLabel || '').trim()
-          : colorBy === 'location'
-            ? String(meta?.locationLabel || '').trim().toLowerCase()
-            : String(meta?.boxId || meta?.boxLabel || '').trim();
+          : String(meta?.locationLabel || '').trim().toLowerCase();
 
       if (!key) {
-        next.set(itemId, '');
+        next.set(itemId, boxTheme.muted);
         continue;
       }
 
-      next.set(itemId, getBoxGroupColorTones(key, meta?.boxId).muted);
+      next.set(itemId, getSecondaryAccent(key));
     }
 
     return next;
-  }, [colorBy, visibleItems]);
+  }, [activeSelectedItemIds, colorBy, visibleItems]);
 
   useEffect(() => {
     const targetScrollY = pendingScrollRestoreRef.current;
@@ -442,6 +489,30 @@ export default function AllItemsList() {
       gone,
       orphaned,
     };
+  }, [preparedItems]);
+
+  useEffect(() => {
+    const handleInsightsOpen = () => setInsightsOpen(true);
+    window.addEventListener(ALL_ITEMS_INSIGHTS_OPEN_EVENT, handleInsightsOpen);
+    return () => window.removeEventListener(ALL_ITEMS_INSIGHTS_OPEN_EVENT, handleInsightsOpen);
+  }, []);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(ALL_ITEMS_INSIGHTS_STATE_EVENT, {
+        detail: { ...counts, visible: visibleItems.length },
+      }),
+    );
+  }, [counts, visibleItems.length]);
+
+  useEffect(() => {
+    const handleDetailOpen = (event) => {
+      const itemId = String(event.detail?.itemId || '').trim();
+      const item = preparedItems.find((entry) => String(entry?._id || '') === itemId);
+      if (item) setMobileDetailItem(item);
+    };
+    window.addEventListener(ALL_ITEMS_DETAIL_OPEN_EVENT, handleDetailOpen);
+    return () => window.removeEventListener(ALL_ITEMS_DETAIL_OPEN_EVENT, handleDetailOpen);
   }, [preparedItems]);
 
   const categoryOptions = useMemo(
@@ -595,6 +666,13 @@ export default function AllItemsList() {
                 }
                 onFocusBatch={handleFocusBatch}
                 onOpenImagePreview={handleOpenImagePreview}
+                onOpenItemDetails={(item) =>
+                  setMobileDetailItem((current) =>
+                    String(current?._id || '') === String(item?._id || '') ? null : item,
+                  )
+                }
+                detailItemId={mobileDetailItem?._id || ''}
+                onCloseItemDetails={() => setMobileDetailItem(null)}
               />
             </S.MobileWrap>
           </>
@@ -607,8 +685,16 @@ export default function AllItemsList() {
         isOpen={Boolean(lightboxImage?.src)}
         imageSrc={lightboxImage?.src || ''}
         itemName={lightboxImage?.name || ''}
+        presentation={lightboxImage?.presentation || 'default'}
         onClose={handleCloseImagePreview}
       />
+      {insightsOpen ? (
+        <AllItemsInsightsModal
+          counts={counts}
+          visibleCount={visibleItems.length}
+          onClose={() => setInsightsOpen(false)}
+        />
+      ) : null}
     </S.PageShell>
   );
 }

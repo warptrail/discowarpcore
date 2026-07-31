@@ -25,6 +25,7 @@ export default function BoxDetailTabContent({
   refreshBox,
   searchQuery,
   sortMode,
+  onManageBox,
 }) {
   if (loading || error || !tree) return null;
 
@@ -60,6 +61,11 @@ export default function BoxDetailTabContent({
           <S.SectionCount>
             {flatItems.length} {flatItems.length === 1 ? 'item' : 'items'}
           </S.SectionCount>
+          {typeof onManageBox === 'function' ? (
+            <S.SectionManageButton type="button" onClick={onManageBox} aria-label="Manage box">
+              <S.ManageDot $i={0} /><S.ManageDot $i={1} /><S.ManageDot $i={2} /><S.ManageDot $i={3} />
+            </S.SectionManageButton>
+          ) : null}
           <S.SectionRule aria-hidden="true" />
         </S.SectionHeading>
         {flatItems.length === 0 && searchQuery ? (

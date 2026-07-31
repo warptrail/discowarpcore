@@ -170,21 +170,28 @@ export default function InventoryGridHeader({
       </S.TitleRow>
 
       <S.TelemetryRow aria-live="polite">
-        <S.TelemetryValue $tone="boxes">
-          {plural(totalBoxes, 'box', 'boxes')}
-        </S.TelemetryValue>
-        <S.Sep>//</S.Sep>
-        <S.TelemetryValue $tone="items">
-          {plural(totalItems, 'item', 'items')}
-        </S.TelemetryValue>
-        <S.Sep>//</S.Sep>
-        <S.TelemetryValue $tone="orphaned">
-          {plural(orphanedCount, 'orphaned', 'orphaned')}
-        </S.TelemetryValue>
+        <S.TelemetryLine>
+          <S.TelemetryValue $tone="boxes">
+            {plural(totalBoxes, 'box', 'boxes')}
+          </S.TelemetryValue>
+          <S.Sep>//</S.Sep>
+          <S.TelemetryValue $tone="items">
+            {plural(totalItems, 'item', 'items')}
+          </S.TelemetryValue>
+        </S.TelemetryLine>
+        <S.TelemetryLine>
+          <S.TelemetryValue $tone="orphaned">
+            {plural(orphanedCount, 'orphaned', 'orphaned')}
+          </S.TelemetryValue>
+        </S.TelemetryLine>
       </S.TelemetryRow>
 
       <S.UtilityRow>
-        <S.ViewModeToggle role="group" aria-label="Box list view mode">
+        <S.ViewModeToggle
+          role="group"
+          aria-label="Box list view mode"
+          $mode={viewMode}
+        >
           <S.ViewModeButton
             type="button"
             $active={viewMode === 'cards'}

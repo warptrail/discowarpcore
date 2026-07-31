@@ -38,6 +38,11 @@ const BOX_DEPTH_INDENT_MOBILE_PX = 12;
 const railTone = ({ $isRoot, $depth = 0 }) =>
   $isRoot ? ROOT_RAIL : BRACKET_COLORS[$depth % BRACKET_COLORS.length];
 const toneAlpha = (hex, alpha = 'ff') => `${hex}${alpha}`;
+const boxTone = `var(--box-primary, ${ROOT_RAIL})`;
+const boxToneRgb = 'var(--box-primary-rgb, 127, 215, 255)';
+const boxMutedRgb = 'var(--box-muted-rgb, 92, 132, 150)';
+const boxToneAlpha = (alpha) => `rgba(${boxToneRgb}, ${alpha})`;
+const boxMutedAlpha = (alpha) => `rgba(${boxMutedRgb}, ${alpha})`;
 const depthStep = ({ $depth = 0 }) => Math.min(Math.max($depth, 0), 4);
 const childIndent = ({ $depth = 1, $mobile = false }) => {
   const depth = Math.max(Number($depth) || 0, 0);
@@ -97,6 +102,25 @@ const breatheIn = keyframes`
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+`;
+
+const notesPulse = keyframes`
+  0%,
+  100% {
+    opacity: 0.72;
+    box-shadow:
+      inset 0 0 0 1px ${toneAlpha(LCARS.lilac, '42')},
+      0 0 7px ${toneAlpha(LCARS.lilac, '20')};
+    transform: translateY(0);
+  }
+
+  50% {
+    opacity: 1;
+    box-shadow:
+      inset 0 0 0 1px ${toneAlpha(LCARS.ice, '86')},
+      0 0 14px ${toneAlpha(LCARS.ice, '32')};
+    transform: translateY(-1px);
   }
 `;
 
@@ -163,11 +187,11 @@ const RailBack = styled.div`
   margin-top: ${({ $isRoot }) => railTop({ $isRoot })};
   border-radius: ${({ $isRoot, $depth = 0 }) =>
     railOuterCorners({ $isRoot, $depth })};
-  background: ${({ $isRoot, $depth = 0 }) => railTone({ $isRoot, $depth })};
+  background: ${boxTone};
   opacity: ${({ $isRoot }) => ($isRoot ? 0.96 : 0.9)};
   filter: drop-shadow(
     0 0 ${({ $isRoot }) => ($isRoot ? '3px' : '2px')}
-      ${({ $isRoot, $depth = 0 }) => `${railTone({ $isRoot, $depth })}2d`}
+      ${boxToneAlpha(0.18)}
   );
   pointer-events: none;
   z-index: 0;
@@ -215,20 +239,26 @@ const RailFront = styled.div`
   }
 `;
 
-const BoxCard = styled.div`
+const BoxCard = styled.button`
   ${panelBase};
   position: relative;
   display: block;
+  width: 100%;
   min-width: 0;
+  padding: 0;
   overflow: hidden;
+  isolation: isolate;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  appearance: none;
   cursor: pointer;
   animation: ${breatheIn} 140ms ease both;
-  border-color: ${({ $isRoot, $depth = 0 }) =>
-    toneAlpha(railTone({ $isRoot, $depth }), '3f')};
+  border-color: ${boxToneAlpha(0.25)};
   background:
     linear-gradient(
-      92deg,
-      ${({ $isRoot, $depth = 0 }) => toneAlpha(railTone({ $isRoot, $depth }), '15')} 0%,
+      var(--box-wash-angle, 92deg),
+      ${boxToneAlpha(0.08)} 0%,
       transparent 36%
     ),
     ${LCARS.panel};
@@ -247,9 +277,13 @@ const BoxCard = styled.div`
     $isSystem &&
     css`
       border-style: dashed;
-      border-color: ${toneAlpha(LCARS.teal, '9a')};
+      border-color: ${boxToneAlpha(0.6)};
       background:
-        linear-gradient(92deg, ${toneAlpha(LCARS.teal, '24')} 0%, transparent 42%),
+        linear-gradient(
+          var(--box-wash-angle, 92deg),
+          ${boxToneAlpha(0.14)} 0%,
+          transparent 42%
+        ),
         ${LCARS.panel};
     `}
 
@@ -258,12 +292,12 @@ const BoxCard = styled.div`
     position: absolute;
     inset: 0 auto 0 0;
     width: 5px;
-    background: ${({ $isRoot, $depth = 0 }) => railTone({ $isRoot, $depth })};
+    background: ${boxTone};
     opacity: ${({ $isRoot }) => ($isRoot ? 0 : 0.28)};
     ${({ $isSystem }) =>
       $isSystem &&
       css`
-        background: ${LCARS.teal};
+        background: ${boxTone};
         opacity: 0.42;
       `}
 
@@ -274,13 +308,11 @@ const BoxCard = styled.div`
 
   &:hover {
     transform: translateY(-1px);
-    border-color: ${({ $isRoot, $depth = 0 }) =>
-      toneAlpha(railTone({ $isRoot, $depth }), '7a')};
+    border-color: ${boxToneAlpha(0.48)};
     background:
       linear-gradient(
-        92deg,
-        ${({ $isRoot, $depth = 0 }) =>
-          toneAlpha(railTone({ $isRoot, $depth }), '1f')} 0%,
+        var(--box-wash-angle, 92deg),
+        ${boxToneAlpha(0.12)} 0%,
         transparent 42%
       ),
       ${LCARS.panelAlt};
@@ -288,12 +320,37 @@ const BoxCard = styled.div`
     ${({ $isSystem }) =>
       $isSystem &&
       css`
-        border-color: ${toneAlpha(LCARS.cyan, 'b4')};
+        border-color: ${boxToneAlpha(0.7)};
         background:
-          linear-gradient(92deg, ${toneAlpha(LCARS.cyan, '2b')} 0%, transparent 46%),
+          linear-gradient(
+            var(--box-wash-angle, 92deg),
+            ${boxToneAlpha(0.17)} 0%,
+            transparent 46%
+          ),
           ${LCARS.panelAlt};
       `}
   }
+
+  &:focus-visible {
+    outline: 2px solid ${boxToneAlpha(0.76)};
+    outline-offset: 2px;
+  }
+
+  ${({ $selected }) =>
+    $selected &&
+    css`
+      border-color: ${boxToneAlpha(0.88)};
+      background:
+        linear-gradient(
+          var(--box-wash-angle, 92deg),
+          ${boxToneAlpha(0.2)} 0%,
+          transparent 52%
+        ),
+        ${LCARS.panelAlt};
+      box-shadow:
+        inset 0 0 0 1px ${boxToneAlpha(0.34)},
+        0 0 22px ${boxToneAlpha(0.18)};
+    `}
 `;
 
 const BoxHeader = styled.div`
@@ -302,6 +359,10 @@ const BoxHeader = styled.div`
   align-items: center;
   gap: 0.58rem;
   padding: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+    gap: 0.42rem;
+  }
 `;
 
 const BoxTitle = styled.div`
@@ -312,19 +373,21 @@ const BoxTitle = styled.div`
       : $density === 'compact'
         ? 'clamp(0.88rem, 1.7vw, 1rem)'
         : 'clamp(0.94rem, 1.8vw, 1.08rem)'};
-  color: ${({ $isRoot, $depth = 0 }) =>
-    toneAlpha(railTone({ $isRoot, $depth }), 'ee')};
-  text-shadow: 0 0 10px
-    ${({ $isRoot, $depth = 0 }) => toneAlpha(railTone({ $isRoot, $depth }), '1f')};
+  color: ${boxTone};
+  text-shadow: 0 0 10px ${boxToneAlpha(0.12)};
   ${({ $isSystem }) =>
     $isSystem &&
     css`
-      color: ${toneAlpha(LCARS.teal, 'ef')};
-      text-shadow: 0 0 10px ${toneAlpha(LCARS.teal, '2f')};
+      color: ${boxTone};
+      text-shadow: 0 0 10px ${boxToneAlpha(0.18)};
     `}
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+
+  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+    font-size: 0.86rem;
+  }
 `;
 
 const ShortId = styled.span`
@@ -332,34 +395,35 @@ const ShortId = styled.span`
   align-items: center;
   justify-self: start;
   gap: 0.08rem;
-  padding: 0.16rem 0.48rem 0.18rem;
-  border-radius: 999px;
+  padding: 0.04rem 0.1rem 0.04rem 0;
+  border-radius: 0;
+  font-family:
+    'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace, Menlo,
+    Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-weight: 900;
-  font-size: 0.92rem;
-  letter-spacing: 0.04em;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
   line-height: 1;
-  color: ${({ $isRoot, $depth = 0 }) =>
-    toneAlpha(railTone({ $isRoot, $depth }), 'f0')};
+  color: ${boxTone};
   background: transparent;
-  border: 1px solid
-    ${({ $isRoot, $depth = 0 }) => toneAlpha(railTone({ $isRoot, $depth }), 'bd')};
+  border: 0;
+  text-shadow: 0 0 10px ${boxToneAlpha(0.16)};
+
+  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+    font-size: 0.96rem;
+  }
+
   ${({ $isSystem }) =>
     $isSystem &&
     css`
-      color: ${toneAlpha(LCARS.teal, 'ef')};
-      border-color: ${toneAlpha(LCARS.teal, 'bd')};
-      background: linear-gradient(
-        180deg,
-        ${toneAlpha(LCARS.teal, '14')},
-        transparent 90%
-      );
+      color: ${boxTone};
     `}
 `;
 
 const ShortIdMarker = styled.span`
-  font-size: 0.6em;
+  font-size: 0.68em;
   line-height: 1;
-  opacity: 0.82;
+  opacity: 0.58;
 `;
 
 const ShortIdDigits = styled.span`
@@ -435,9 +499,9 @@ const BoxImageFrame = styled.div`
 
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
     width: ${({ $density }) =>
-      $density === 'roomy' ? '82px' : $density === 'compact' ? '58px' : '68px'};
+      $density === 'roomy' ? '82px' : $density === 'compact' ? '72px' : '74px'};
     height: ${({ $density }) =>
-      $density === 'roomy' ? '82px' : $density === 'compact' ? '58px' : '68px'};
+      $density === 'roomy' ? '82px' : $density === 'compact' ? '72px' : '74px'};
     border-radius: 8px;
   }
 `;
@@ -473,6 +537,13 @@ const BoxMetaRow = styled.div`
   gap: 0.36rem 0.62rem;
   min-width: 0;
   padding: 0.12rem 0 0.16rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+    flex-wrap: nowrap;
+    gap: 0.28rem;
+    padding: 0.08rem 0 0.1rem;
+    overflow: hidden;
+  }
 `;
 
 const LocationMeta = styled.span`
@@ -485,6 +556,12 @@ const LocationMeta = styled.span`
   font-size: 0.78rem;
   font-weight: 820;
   line-height: 1.2;
+
+  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+    flex: 0 1 auto;
+    max-width: 66%;
+    font-size: 0.66rem;
+  }
 `;
 
 const LocationMetaLabel = styled.span`
@@ -512,6 +589,11 @@ const SecondaryMeta = styled.span`
   color: ${toneAlpha(LCARS.textDim, 'd2')};
   font-size: 0.68rem;
   line-height: 1.2;
+
+  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+    flex: 1 1 auto;
+    font-size: 0.62rem;
+  }
 `;
 
 const BoxMetaLine = styled.div`
@@ -556,6 +638,13 @@ const BoxSummary = styled.p`
       -webkit-line-clamp: 1;
       font-size: 0.68rem;
     `}
+
+  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+    max-width: calc(100% - 6.6rem);
+    padding-top: 0.02rem;
+    font-size: 0.6rem;
+    line-height: 1.1;
+  }
 `;
 
 const MatchSummary = styled.div`
@@ -678,32 +767,48 @@ const MobileDescriptionHint = styled.span`
 const TagRow = styled.div`
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.35rem;
-  padding: 0.26rem 0 0.38rem;
+  padding: 0.24rem 0 0.2rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+    flex-wrap: nowrap;
+    gap: 0.3rem;
+    max-width: calc(100% - 8.6rem);
+    overflow: hidden;
+    padding: 0.16rem 0 0;
+  }
 `;
 
 const TagBubble = styled.span`
   display: inline-flex;
   align-items: center;
   height: 24px;
-  padding: 0 10px;
-  border-radius: 999px;
+  padding: 0;
+  border-radius: 0;
   font-size: 10.5px;
   font-weight: 800;
-  letter-spacing: 0.25px;
+  letter-spacing: 0.03em;
   user-select: none;
-  color: ${LCARS.textDim};
-  background:
-    linear-gradient(
-      90deg,
-      ${({ $isRoot, $depth = 0 }) =>
-          toneAlpha(railTone({ $isRoot, $depth }), '20')}
-        0%,
-      transparent 70%
-    ),
-    #121518;
-  border: 1px solid
-    ${({ $isRoot, $depth = 0 }) => toneAlpha(railTone({ $isRoot, $depth }), '7f')};
+  color: ${boxMutedAlpha(0.95)};
+  background: transparent;
+  border: 0;
+  text-shadow: 0 0 8px ${boxToneAlpha(0.1)};
+
+  &::before {
+    content: '#';
+    opacity: 0.46;
+    margin-right: 0.12rem;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+    height: 18px;
+    font-size: 0.6rem;
+    max-width: 4.4rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
   ${({ $tiny, $isRoot, $depth }) =>
     $tiny &&
@@ -717,24 +822,62 @@ const TagBubble = styled.span`
       ${({ $isSystem }) =>
         $isSystem &&
         css`
-          border-color: ${toneAlpha(LCARS.teal, '70')};
-          color: ${toneAlpha(LCARS.teal, 'ea')};
+          border-color: ${boxToneAlpha(0.44)};
+          color: ${boxTone};
           background:
-            linear-gradient(90deg, ${toneAlpha(LCARS.teal, '20')} 0%, transparent 74%),
+            linear-gradient(90deg, ${boxToneAlpha(0.12)} 0%, transparent 74%),
             #121518;
         `}
     `}
 `;
 
 const BoxFooter = styled.div`
+  display: none;
+`;
+
+const CardManifest = styled.div`
+  position: absolute;
+  right: 0.64rem;
+  bottom: 0.42rem;
+  z-index: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  padding: 0.38rem 0 0.12rem;
-  border-top: 1px dashed ${LCARS.line};
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.28rem;
+  max-width: min(58%, 360px);
+  color: ${boxTone};
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  font-size: clamp(1rem, 2.35vw, 1.72rem);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  opacity: 0.18;
+  pointer-events: none;
+  text-shadow:
+    0 0 14px ${boxToneAlpha(0.19)},
+    0 0 2px rgba(230, 237, 243, 0.2);
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+    right: 0.62rem;
+    bottom: 0.76rem;
+    max-width: 48%;
+    font-size: 0.68rem;
+    opacity: 0.22;
+    overflow: hidden;
+  }
+`;
+
+const CardManifestMuted = styled.span`
+  color: ${toneAlpha(LCARS.textDim, 'd0')};
 `;
 
 const BoxBodyRow = styled.div`
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 0.72rem;
@@ -748,12 +891,14 @@ const BoxBodyRow = styled.div`
         : '0.68rem 0.78rem 0.74rem'};
 
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+    grid-template-columns: 72px minmax(0, 1fr);
+    min-height: 92px;
     gap: ${({ $density }) => ($density === 'compact' ? '0.42rem' : '0.58rem')};
     padding: ${({ $density }) =>
       $density === 'roomy'
         ? '0.68rem 0.72rem 0.74rem'
         : $density === 'compact'
-          ? '0.36rem 0.42rem 0.4rem'
+          ? '0.38rem 0.5rem 0.42rem'
           : '0.56rem 0.62rem 0.6rem'};
   }
 `;
@@ -764,20 +909,59 @@ const BoxContent = styled.div`
   gap: 0;
 `;
 
+const NotesSignal = styled.span`
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border: 1px solid ${toneAlpha(LCARS.lilac, '58')};
+  border-radius: 5px;
+  color: ${toneAlpha(LCARS.lilac, 'ec')};
+  background:
+    linear-gradient(135deg, ${toneAlpha(LCARS.lilac, '16')}, ${toneAlpha(LCARS.ice, '0e')}),
+    rgba(10, 14, 18, 0.82);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  font-size: 0.64rem;
+  font-weight: 900;
+  line-height: 1;
+  cursor: inherit;
+  animation: ${notesPulse} 2.35s ease-in-out infinite;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    background 150ms ease,
+    transform 150ms ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+    width: 18px;
+    height: 18px;
+    font-size: 0.58rem;
+  }
+`;
+
 const NotesPreviewArea = styled.div`
   display: grid;
   gap: 4px;
-  margin: 0.2rem 0 0;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid ${toneAlpha(LCARS.line, 'db')};
-  background: linear-gradient(180deg, rgba(13, 21, 29, 0.88), rgba(10, 16, 22, 0.84));
+  margin: 0.18rem 0 0;
+  padding: 0.7rem 0.78rem;
+  border-radius: 8px;
+  border: 1px solid ${toneAlpha(LCARS.lilac, '3e')};
+  background:
+    linear-gradient(135deg, ${toneAlpha(LCARS.lilac, '12')}, transparent 62%),
+    rgba(8, 12, 16, 0.78);
 
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
     ${({ $density }) =>
       $density === 'compact' &&
       css`
-        display: none;
+        padding: 0.58rem 0.62rem;
       `}
   }
 `;
@@ -818,8 +1002,7 @@ const StatPill = styled.span`
   white-space: nowrap;
   color: ${LCARS.textDim};
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid
-    ${({ $isRoot, $depth = 0 }) => toneAlpha(railTone({ $isRoot, $depth }), '52')};
+  border: 1px solid ${boxToneAlpha(0.32)};
 
   ${({ $variant }) =>
     $variant === 'boxes' &&
@@ -863,7 +1046,7 @@ const NestedChildrenToggle = styled.button`
   justify-content: space-between;
   gap: 0.6rem;
   width: 100%;
-  min-height: 40px;
+  min-height: 44px;
   margin-top: 0.24rem;
   padding: 0.42rem 0.58rem;
   border: 1px solid ${toneAlpha(LCARS.ice, '58')};
@@ -978,7 +1161,7 @@ const TerminalRow = styled.div`
   background:
     linear-gradient(
       90deg,
-      ${({ $depth = 0 }) => toneAlpha(railTone({ $depth }), $depth ? '13' : '1e')} 0%,
+      ${boxToneAlpha(0.09)} 0%,
       rgba(255, 255, 255, 0.01) 52%,
       transparent 100%
     ),
@@ -994,7 +1177,7 @@ const TerminalRow = styled.div`
     css`
       border-bottom-style: dashed;
       background:
-        linear-gradient(90deg, ${toneAlpha(LCARS.teal, '20')}, transparent 70%),
+        linear-gradient(90deg, ${boxToneAlpha(0.12)}, transparent 70%),
         rgba(9, 18, 20, 0.86);
     `}
 
@@ -1002,7 +1185,7 @@ const TerminalRow = styled.div`
     background:
       linear-gradient(
         90deg,
-        ${({ $depth = 0 }) => toneAlpha(railTone({ $depth }), '28')} 0%,
+        ${boxToneAlpha(0.16)} 0%,
         rgba(127, 215, 255, 0.05) 60%,
         transparent 100%
       ),
@@ -1022,14 +1205,14 @@ const TerminalBoxCell = styled.div`
 const TreeGlyph = styled.span`
   flex: 0 0 auto;
   width: 1.15rem;
-  color: ${({ $depth = 0 }) => toneAlpha(railTone({ $depth }), 'ca')};
+  color: ${boxMutedAlpha(0.95)};
   font-size: 0.92rem;
 `;
 
 const TerminalShortId = styled.span`
   flex: 0 0 auto;
-  color: ${({ $depth = 0 }) => toneAlpha(railTone({ $depth }), 'f0')};
-  border: 1px solid ${({ $depth = 0 }) => toneAlpha(railTone({ $depth }), '85')};
+  color: ${boxTone};
+  border: 1px solid ${boxToneAlpha(0.52)};
   border-radius: 999px;
   padding: 0.1rem 0.38rem;
   font-size: 0.7rem;
@@ -1039,8 +1222,8 @@ const TerminalShortId = styled.span`
   ${({ $isSystem }) =>
     $isSystem &&
     css`
-      color: ${toneAlpha(LCARS.teal, 'f0')};
-      border-color: ${toneAlpha(LCARS.teal, '92')};
+      color: ${boxTone};
+      border-color: ${boxToneAlpha(0.58)};
     `}
 `;
 
@@ -1264,6 +1447,8 @@ export const styledComponents = {
   BoxCard,
   BoxBodyRow,
   BoxContent,
+  CardManifest,
+  CardManifestMuted,
   BoxImageFrame,
   BoxImage,
   BoxImagePlaceholder,
@@ -1300,6 +1485,7 @@ export const styledComponents = {
 
   BoxFooter,
   StatPill,
+  NotesSignal,
   NotesPreviewArea,
   NotesPreviewLabel,
   NotesPreviewText,

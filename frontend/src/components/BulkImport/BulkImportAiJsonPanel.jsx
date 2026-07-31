@@ -4,9 +4,9 @@ import BulkImportTextPanel from './BulkImportTextPanel';
 import { MOBILE_BREAKPOINT } from '../../styles/tokens';
 
 const IntroPanel = styled.section`
-  border: 1px solid rgba(96, 152, 189, 0.36);
-  border-radius: 14px;
-  background: linear-gradient(180deg, rgba(12, 20, 29, 0.94) 0%, rgba(8, 14, 22, 0.98) 100%);
+  border: 1px solid rgba(96, 152, 189, 0.3);
+  border-radius: 10px;
+  background: rgba(9, 17, 25, 0.78);
   padding: 0.8rem;
   display: grid;
   gap: 0.36rem;
@@ -44,20 +44,23 @@ export default function BulkImportAiJsonPanel({
   return (
     <>
       <IntroPanel>
-        <IntroTitle>AI-Assisted JSON Intake</IntroTitle>
+        <IntroTitle>Upload workbench</IntroTitle>
         <IntroText>
-          Upload a generated Disco Warp Core batch package, validate its manifest against the
-          current item-import schema, then import the validated items.
+          Use this area after you have a ZIP or JSON file. “Stage” stores a reviewable batch; it
+          does not create inventory. Select the batch below to see its destination, provenance,
+          validation state, and import controls.
         </IntroText>
       </IntroPanel>
 
-      <IntakeBatchManager
-        selectedBatchIdOverride={selectedBatchIdOverride}
-        onSelectedBatchIdChange={onSelectedBatchIdChange}
-        onSelectedBatchIdInvalid={onSelectedBatchIdInvalid}
-      />
+      <div id="ai-workbench">
+        <IntakeBatchManager
+          selectedBatchIdOverride={selectedBatchIdOverride}
+          onSelectedBatchIdChange={onSelectedBatchIdChange}
+          onSelectedBatchIdInvalid={onSelectedBatchIdInvalid}
+        />
+      </div>
 
-      <SecondarySection aria-labelledby="simple-text-upload-title">
+      <SecondarySection id="simple-text-upload" aria-labelledby="simple-text-upload-title">
         <IntroPanel>
           <IntroTitle id="simple-text-upload-title">Simple Text Upload</IntroTitle>
           <IntroText>

@@ -100,6 +100,11 @@ export default function useAllItemsItemSelection({
         value: batchId,
         label: String(meta.sourceBatchLabel || batchId).trim() || batchId,
         archiveStatus: String(meta.sourceBatchArchiveStatus || '').trim().toLowerCase(),
+        exportedAt:
+          meta?.sourceBatch?.importedAt ||
+          meta?.sourceBatch?.createdAt ||
+          meta?.sourceBatch?.updatedAt ||
+          '',
         totalCount: 0,
         selectableCount: 0,
       };
@@ -109,12 +114,14 @@ export default function useAllItemsItemSelection({
       lookup.set(batchId, current);
     }
 
-    return [...lookup.values()].sort((left, right) =>
-      String(left.label || '').localeCompare(String(right.label || ''), undefined, {
+    return [...lookup.values()].sort((left, right) => {
+      const byDate = Date.parse(left.exportedAt || '') - Date.parse(right.exportedAt || '');
+      if (Number.isFinite(byDate) && byDate !== 0) return byDate;
+      return String(left.label || '').localeCompare(String(right.label || ''), undefined, {
         sensitivity: 'base',
         numeric: true,
-      }),
-    );
+      });
+    });
   }, [visibleItems]);
 
   useEffect(() => {

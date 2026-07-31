@@ -5,6 +5,7 @@ import Toast from './Toast/Toast';
 import { ToastContext } from './Toast';
 import useIsMobile from '../hooks/useIsMobile';
 import useRandomItemFlow from '../hooks/useRandomItemFlow';
+import RotatingDataAnnouncement from './RotatingDataAnnouncement';
 import {
   BOX_FINDER_CLOSE_EVENT,
   BOX_FINDER_OPEN_EVENT,
@@ -14,9 +15,10 @@ import {
   INVENTORY_FINDER_COMMIT_EVENT,
   INVENTORY_FINDER_OPEN_EVENT,
   INVENTORY_FINDER_STATE_EVENT,
-  RETRIEVAL_FINDER_CLOSE_EVENT,
-  RETRIEVAL_FINDER_OPEN_EVENT,
   RETRIEVAL_FINDER_STATE_EVENT,
+  RETRIEVAL_FINDER_TOGGLE_EVENT,
+  ALL_ITEMS_FILTERS_STATE_EVENT,
+  ALL_ITEMS_FILTERS_TOGGLE_EVENT,
 } from '../constants/inventoryFinderEvents';
 import {
   MOBILE_BREAKPOINT,
@@ -25,6 +27,10 @@ import {
   MOBILE_MAX_WIDTH,
   MOBILE_NARROW_BREAKPOINT,
 } from '../styles/tokens';
+import {
+  getBoxTheme,
+  getBoxThemeCssVars,
+} from '../util/inventoryColorTheme';
 
 // ===============
 // LCARS-ish Styles
@@ -840,6 +846,89 @@ const ToastRow = styled.div`
     `}
 `;
 
+const BoxConsoleMessage = styled.span`
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.36rem;
+  min-width: 0;
+  max-width: 100%;
+  color: rgba(234, 238, 242, 0.84);
+`;
+
+const BoxConsoleShortId = styled.span`
+  flex: 0 0 auto;
+  color: var(--box-neon);
+  font-family:
+    'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace, Menlo,
+    Monaco, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 10px rgba(var(--box-primary-rgb), 0.32);
+`;
+
+const BoxConsoleSeparator = styled.span`
+  flex: 0 0 auto;
+  color: rgba(var(--box-secondary-rgb), 0.62);
+  font-family: ui-monospace, monospace;
+`;
+
+const BoxConsoleTitle = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  color: var(--box-muted);
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const BoxConsoleLocation = styled.span`
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(224, 229, 235, 0.66);
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const BoxConsoleTrailingContext = styled.span`
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.36rem;
+  min-width: 0;
+
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    display: none;
+  }
+`;
+
+function BoxConsoleIdleMessage({
+  shortId,
+  title,
+  location,
+  query,
+  matchCount,
+}) {
+  const hasQuery = Boolean(query);
+  const countLabel = `${matchCount} ${matchCount === 1 ? 'match' : 'matches'}`;
+  const trailingContext = hasQuery ? countLabel : location;
+
+  return (
+    <BoxConsoleMessage>
+      <BoxConsoleShortId>#{shortId}</BoxConsoleShortId>
+      <BoxConsoleSeparator aria-hidden="true">/</BoxConsoleSeparator>
+      <BoxConsoleTitle>{hasQuery ? query : title}</BoxConsoleTitle>
+      {trailingContext ? (
+        <BoxConsoleTrailingContext>
+          <BoxConsoleSeparator aria-hidden="true">/</BoxConsoleSeparator>
+          <BoxConsoleLocation>{trailingContext}</BoxConsoleLocation>
+        </BoxConsoleTrailingContext>
+      ) : null}
+    </BoxConsoleMessage>
+  );
+}
+
 const geometryOrbit = keyframes`
   to { transform: rotate(360deg); }
 `;
@@ -923,6 +1012,43 @@ const RescueConsoleTrigger = styled.button`
         : '0 0 12px rgba(76, 198, 193, 0.22)'};
   }
 
+  ${({ $boxThemed, $active }) =>
+    $boxThemed &&
+    css`
+      border-color: rgba(var(--box-primary-rgb), ${$active ? '0.92' : '0.62'});
+      color: var(--box-neon);
+      background:
+        linear-gradient(
+          145deg,
+          rgba(var(--box-primary-rgb), ${$active ? '0.27' : '0.14'}),
+          rgba(var(--box-secondary-rgb), ${$active ? '0.16' : '0.07'})
+        ),
+        rgba(7, 18, 26, 0.94);
+      box-shadow:
+        0 0 ${$active ? '17px' : '10px'} rgba(var(--box-primary-rgb), ${$active ? '0.3' : '0.12'}),
+        inset 0 0 12px rgba(var(--box-secondary-rgb), 0.08);
+
+      svg {
+        filter: drop-shadow(0 0 4px rgba(var(--box-primary-rgb), 0.78));
+      }
+
+      &:hover,
+      &:focus-visible {
+        border-color: var(--box-neon);
+        color: #f4f8fa;
+        background:
+          linear-gradient(
+            145deg,
+            rgba(var(--box-primary-rgb), 0.32),
+            rgba(var(--box-secondary-rgb), 0.19)
+          ),
+          rgba(7, 18, 26, 0.96);
+        box-shadow:
+          0 0 18px rgba(var(--box-primary-rgb), 0.3),
+          inset 0 0 14px rgba(var(--box-secondary-rgb), 0.12);
+      }
+    `}
+
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: ${MOBILE_CONTROL_MIN_HEIGHT};
     height: ${MOBILE_CONTROL_MIN_HEIGHT};
@@ -970,11 +1096,25 @@ export default function Header() {
   });
   const [searchPulse, setSearchPulse] = useState(false);
   const [retrievalScrollCompact, setRetrievalScrollCompact] = useState(false);
+  const [retrievalFinderState, setRetrievalFinderState] = useState({
+    minimized: true,
+    retrievalMode: 'items',
+    boxAnalytics: null,
+  });
+  const [allItemsFilterState, setAllItemsFilterState] = useState({
+    expanded: true,
+    searchQuery: '',
+  });
   const retrievalScrollTimerRef = useRef(null);
   const retrievalLastScrollYRef = useRef(0);
   const retrievalIgnoreScrollUntilRef = useRef(0);
   const isBoxDetailPage = /^\/boxes\/[^/]+\/?$/.test(location.pathname);
   const isRetrievalPage = /^\/retrieval\/?$/.test(location.pathname);
+  const isAllItemsPage = /^\/all-items\/?$/.test(location.pathname);
+  const boxConsoleStyle =
+    isBoxDetailPage && boxContext
+      ? getBoxThemeCssVars(getBoxTheme(boxContext.shortId))
+      : undefined;
   const isMobile = useIsMobile(MOBILE_MAX_WIDTH);
   const mobileControlsId = 'mobile-header-controls';
 
@@ -985,22 +1125,23 @@ export default function Header() {
   const { runRandomItem } = useRandomItemFlow();
 
   const openOperationsFinder = () => {
+    if (isAllItemsPage) {
+      window.dispatchEvent(new CustomEvent(ALL_ITEMS_FILTERS_TOGGLE_EVENT));
+      return;
+    }
+    if (isRetrievalPage) {
+      window.dispatchEvent(new CustomEvent(RETRIEVAL_FINDER_TOGGLE_EVENT));
+      return;
+    }
     const openEvent = isBoxDetailPage
       ? BOX_FINDER_OPEN_EVENT
-      : isRetrievalPage
-        ? RETRIEVAL_FINDER_OPEN_EVENT
-        : INVENTORY_FINDER_OPEN_EVENT;
+      : INVENTORY_FINDER_OPEN_EVENT;
     const closeEvent = isBoxDetailPage
       ? BOX_FINDER_CLOSE_EVENT
-      : isRetrievalPage
-        ? RETRIEVAL_FINDER_CLOSE_EVENT
-        : INVENTORY_FINDER_CLOSE_EVENT;
+      : INVENTORY_FINDER_CLOSE_EVENT;
 
-    window.dispatchEvent(
-      new CustomEvent(
-        isOperationsFinderOpen ? closeEvent : openEvent,
-      ),
-    );
+    const opening = !isOperationsFinderOpen;
+    window.dispatchEvent(new CustomEvent(opening ? openEvent : closeEvent));
   };
 
   useEffect(() => {
@@ -1021,11 +1162,25 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
+    const handleAllItemsFilters = (event) => {
+      setAllItemsFilterState((current) => ({ ...current, ...event.detail }));
+      setIsOperationsFinderOpen(Boolean(event.detail?.expanded));
+    };
+    window.addEventListener(ALL_ITEMS_FILTERS_STATE_EVENT, handleAllItemsFilters);
+    return () => {
+      window.removeEventListener(ALL_ITEMS_FILTERS_STATE_EVENT, handleAllItemsFilters);
+    };
+  }, []);
+
+  useEffect(() => {
     const handleFinderState = (event) => {
       const minimized = Boolean(event.detail?.minimized);
       setIsOperationsFinderOpen(!minimized);
       if (event.type === BOX_FINDER_STATE_EVENT) {
         setBoxFinderState((current) => ({ ...current, ...event.detail }));
+      }
+      if (event.type === RETRIEVAL_FINDER_STATE_EVENT) {
+        setRetrievalFinderState((current) => ({ ...current, ...event.detail }));
       }
     };
 
@@ -1046,6 +1201,11 @@ export default function Header() {
       query: '',
       matchCount: 0,
       sortMode: 'treeOrder',
+    });
+    setRetrievalFinderState({
+      minimized: true,
+      retrievalMode: 'items',
+      boxAnalytics: null,
     });
   }, [location.pathname]);
 
@@ -1307,7 +1467,7 @@ export default function Header() {
 
       <Divider />
 
-      <ToastRow $boxPage={isBoxDetailPage}>
+      <ToastRow $boxPage={isBoxDetailPage} style={boxConsoleStyle}>
         <Toast
           open={!!toast}
           title={toast?.title}
@@ -1332,15 +1492,32 @@ export default function Header() {
           idleIcon="📦"
           idleText={
             isBoxDetailPage && boxContext
-              ? boxFinderState.mode === 'minimized' && boxFinderState.query
-                ? `#${boxContext.shortId} · ${boxFinderState.query} · ${boxFinderState.matchCount} ${
-                    boxFinderState.matchCount === 1 ? 'match' : 'matches'
-                  }`
-                : `#${boxContext.shortId} · ${boxContext.title}${
-                    boxContext.location ? ` · ${boxContext.location}` : ''
-                  }`
+              ? (
+                  <BoxConsoleIdleMessage
+                    shortId={boxContext.shortId}
+                    title={boxContext.title}
+                    location={boxContext.location}
+                    query={
+                      boxFinderState.mode === 'minimized'
+                        ? boxFinderState.query
+                        : ''
+                    }
+                    matchCount={boxFinderState.matchCount}
+                  />
+                )
               : committedSearch
                 ? `Searching: ${committedSearch}`
+                : isAllItemsPage && allItemsFilterState.searchQuery
+                  ? `All Items · ${allItemsFilterState.searchQuery}`
+                : isRetrievalPage &&
+                    retrievalFinderState.minimized &&
+                    retrievalFinderState.retrievalMode === 'boxes' &&
+                    retrievalFinderState.boxAnalytics
+                  ? (
+                      <RotatingDataAnnouncement
+                        analytics={retrievalFinderState.boxAnalytics}
+                      />
+                    )
                 : 'What are you looking for?'
           }
           idleAction={{
@@ -1349,9 +1526,14 @@ export default function Header() {
               ? 'Open box search'
               : isRetrievalPage
                 ? 'Open retrieval search'
+                : isAllItemsPage
+                  ? allItemsFilterState.expanded
+                    ? 'Collapse All Items filters'
+                    : 'Open All Items filters'
                 : 'Open item finder',
           }}
           calmIdle={isBoxDetailPage}
+          themedIdle={isBoxDetailPage && !!boxContext}
           idleAddon={
             <RescueConsoleTrigger
               type="button"
@@ -1362,6 +1544,8 @@ export default function Header() {
                   ? 'Toggle box quick search'
                   : isRetrievalPage
                     ? 'Toggle retrieval search'
+                    : isAllItemsPage
+                      ? 'Toggle All Items filters'
                     : 'Open item finder from search icon'
               }
               title={
@@ -1369,6 +1553,8 @@ export default function Header() {
                   ? 'Search this box'
                   : isRetrievalPage
                     ? 'Retrieval search'
+                    : isAllItemsPage
+                      ? 'All Items filters'
                     : 'Open item finder'
               }
               $active={
@@ -1379,6 +1565,7 @@ export default function Header() {
                   : isOperationsFinderOpen
               }
               $pulse={searchPulse}
+              $boxThemed={isBoxDetailPage && !!boxContext}
             >
               <FinderGeometryGlyph />
             </RescueConsoleTrigger>

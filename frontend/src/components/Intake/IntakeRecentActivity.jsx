@@ -1,11 +1,27 @@
 import React from 'react';
 import styled from 'styled-components';
 import { getBoxColorTones } from '../Retrieval/boxColors';
+import { hexToRgbString } from '../../util/inventoryColorTheme';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_FONT_SM,
   MOBILE_FONT_XS,
 } from '../../styles/tokens';
+
+const BATCH_ACCENTS = [
+  '#67D9D3',
+  '#E8B15C',
+  '#A7B6FF',
+  '#F08A7B',
+  '#9BE564',
+  '#7FD7FF',
+  '#E056FD',
+  '#4D96FF',
+];
+
+function getBatchAccentRgb(index) {
+  return hexToRgbString(BATCH_ACCENTS[index % BATCH_ACCENTS.length]);
+}
 
 const Panel = styled.section`
   border: 1px solid rgba(93, 131, 162, 0.45);
@@ -397,8 +413,7 @@ export default function IntakeRecentActivity({
   );
   const batchToneMap = new Map(
     (Array.isArray(batchOptions) ? batchOptions : []).map((batch, index) => {
-      const tones = getBoxColorTones(index + 1);
-      return [String(batch?.id || '').trim(), tones.neonRgb];
+      return [String(batch?.id || '').trim(), getBatchAccentRgb(index)];
     }),
   );
   const filtersActive = selectedBatchSet.size > 0 || onlyOrphanedItems;
@@ -431,7 +446,7 @@ export default function IntakeRecentActivity({
           <ControlRow>
             {batchOptions.map((batch, index) => {
               const batchId = String(batch?.id || '').trim();
-              const accentRgb = batchToneMap.get(batchId) || getBoxColorTones(index + 1).neonRgb;
+              const accentRgb = batchToneMap.get(batchId) || getBatchAccentRgb(index);
               const active = selectedBatchSet.has(batchId);
               const batchLabel = batch?.label || batchId;
               const countLabel = onlyOrphanedItems

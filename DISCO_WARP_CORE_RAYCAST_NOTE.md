@@ -191,11 +191,11 @@ Choose these actions in order:
 1. `Status and health check`
 2. `Protected source sync dry run`
 3. Review the files that would change.
-4. `Protected sync + install + build + restart`
+4. `Protected sync + install + build + health check`
 5. Confirm the prompts only when the code being deployed is intentional.
 
 That workflow syncs source code, installs dependencies remotely, builds the
-frontend, and restarts the production server. It preserves neonazoth’s
+frontend, and checks the production health endpoint. It preserves neonazoth’s
 production `.env`, media, database, logs, and runtime state.
 
 The lower-level source-only command is:
@@ -205,7 +205,7 @@ npm run deploy:neonazoth
 ```
 
 Use the TUI workflow when possible because source sync alone does not install,
-build, or restart the remote app.
+build, or verify the remote app.
 
 ## Confirming production
 
@@ -317,11 +317,9 @@ development. The current local URI should end in:
 mongodb://127.0.0.1:27017/discowarpcore_dev
 ```
 
-The existing `npm run neonazoth:tui` action named `Overwrite local DB + media
-from NeonAzoth` is more destructive than the workflow above: it targets the
-old local database name and also replaces local media. Prefer
-`scripts/restore_dev_database.py` for the current database-only playground
-workflow.
+The `npm run neonazoth:tui` deploy menu does not restore databases or media.
+Prefer `scripts/restore_dev_database.py` for the current database-only
+playground workflow.
 
 ## The AI-assisted inventory workflow: what it is called
 
@@ -406,9 +404,9 @@ AI-assisted photo-to-inventory workflow. It creates and imports item batches.
 npm run neonazoth:tui
 ```
 
-Remote production operator workflow. It checks health, shows the URL, previews
-source deployment, deploys code, restarts the server, and offers guarded
-database/media workflows.
+Remote production deploy workflow. It checks health, shows the URL, previews
+source deployment, syncs code, installs dependencies, builds the frontend, and
+verifies the health endpoint. Runtime control belongs to Tarot.
 
 ## SSH access after a fresh Mac boot
 

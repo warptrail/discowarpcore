@@ -274,6 +274,9 @@ export function getItemThumbnailUrl(item) {
   const processedUrl = String(item?.image?.processed?.url || '').trim();
   const displayUrl = String(item?.image?.display?.url || '').trim();
   const thumbUrl = String(item?.image?.thumb?.url || '').trim();
+  const originalUrl = String(
+    item?.image?.original?.url || item?.image?.url || item?.imagePath || '',
+  ).trim();
   const revision = buildImageRevisionToken(item, {
     activeVariant,
     processingStatus,
@@ -283,7 +286,7 @@ export function getItemThumbnailUrl(item) {
   });
 
   return withImageRevision(
-    String(thumbUrl || displayUrl || processedUrl || '').trim(),
+    String(thumbUrl || displayUrl || processedUrl || originalUrl || '').trim(),
     revision,
   );
 }

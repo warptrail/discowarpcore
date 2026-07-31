@@ -9,8 +9,9 @@ const {
   toAbsoluteMediaPath,
   toMediaUrl,
 } = require('../config/media');
+const { generateItemTinyDerivative } = require('./itemTinyImageService');
 
-async function processEntityImageUpload(file, mediaSubdirs) {
+async function processEntityImageUpload(file, mediaSubdirs, { includeTiny = false } = {}) {
   const originalStoragePath = `${mediaSubdirs.original}/${file.filename}`;
   const originalAbsolutePath = file.path;
   const baseName = path.parse(file.filename).name;
@@ -23,7 +24,7 @@ async function processEntityImageUpload(file, mediaSubdirs) {
 
   const source = sharp(originalAbsolutePath).rotate(); // auto-orient from EXIF
 
-  const [originalMeta, originalStat, displayInfo, thumbInfo] = await Promise.all([
+  const [originalMeta, originalStat, displayInfo, thumbInfo, tinyResult] = await Promise.all([
     sharp(originalAbsolutePath).metadata(),
     fs.stat(originalAbsolutePath),
     source
@@ -50,6 +51,12 @@ async function processEntityImageUpload(file, mediaSubdirs) {
         quality: DERIVATIVE_FORMAT.thumbQuality,
       })
       .toFile(thumbAbsolutePath),
+    includeTiny
+      ? generateItemTinyDerivative({
+          sourcePath: originalAbsolutePath,
+          identitySourcePath: originalAbsolutePath,
+        })
+      : null,
   ]);
 
   return {
@@ -80,13 +87,30 @@ async function processEntityImageUpload(file, mediaSubdirs) {
         height: thumbInfo.height ?? null,
         sizeBytes: thumbInfo.size ?? null,
       },
+      ...(tinyResult
+        ? {
+            tiny: {
+              storagePath: tinyResult.storagePath,
+              url: tinyResult.url,
+              mimeType: tinyResult.mimeType,
+              width: tinyResult.width,
+              height: tinyResult.height,
+              sizeBytes: tinyResult.sizeBytes,
+            },
+          }
+        : {}),
     },
-    filesToCleanup: [originalAbsolutePath, displayAbsolutePath, thumbAbsolutePath],
+    filesToCleanup: [
+      originalAbsolutePath,
+      displayAbsolutePath,
+      thumbAbsolutePath,
+      tinyResult?.absolutePath,
+    ].filter(Boolean),
   };
 }
 
 async function processItemImageUpload(file) {
-  return processEntityImageUpload(file, ITEM_MEDIA_SUBDIRS);
+  return processEntityImageUpload(file, ITEM_MEDIA_SUBDIRS, { includeTiny: true });
 }
 
 async function processBoxImageUpload(file) {

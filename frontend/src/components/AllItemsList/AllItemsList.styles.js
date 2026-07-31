@@ -115,6 +115,9 @@ export const HeaderPanel = styled.header`
     linear-gradient(180deg, #10151a 0%, #0d1216 100%);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
+    position: sticky;
+    top: 116px;
+    z-index: 120;
     gap: 0.34rem;
     padding: 0.5rem;
     border-radius: ${MOBILE_PANEL_RADIUS};
@@ -212,6 +215,19 @@ export const ControlsToggleRow = styled.div`
   display: flex;
   justify-content: flex-start;
   padding: 0.08rem 0 0;
+`;
+
+export const PageActionBar = styled.div`
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) auto auto;
+  align-items: center;
+  gap: 0.36rem;
+  padding-top: 0.42rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+
+  @media (max-width: 520px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 `;
 
 export const BulkRow = styled.div`
@@ -329,15 +345,38 @@ export const ToolbarButton = styled.button`
 `;
 
 export const HeaderModeButton = styled(ToolbarButton)`
-  margin-left: auto;
+  min-width: 102px;
 
-  & + & {
-    margin-left: 0;
+  @media (max-width: 520px) {
+    min-width: 0;
+    width: 100%;
+    padding-inline: 0.28rem;
   }
 `;
 
 export const ControlsToggleButton = styled(ToolbarButton)`
-  min-height: 27px;
+  justify-self: start;
+  min-height: 30px;
+
+  @media (max-width: 520px) {
+    justify-self: stretch;
+    width: 100%;
+    padding-inline: 0.28rem;
+  }
+`;
+
+export const PulseButton = styled(ToolbarButton)`
+  margin-left: auto;
+  border-color: rgba(232, 177, 92, 0.62);
+  background:
+    linear-gradient(180deg, rgba(91, 59, 14, 0.92), rgba(54, 38, 14, 0.94));
+  color: #f6d58f;
+
+  &:hover,
+  &:focus-visible {
+    border-color: rgba(246, 213, 143, 0.9);
+    color: #fff1c7;
+  }
 `;
 
 export const ControlGroup = styled.label`
@@ -743,25 +782,25 @@ export const TR = styled.tr`
   background:
     ${({ $selected, $batchFocused, $batchTone, $accentActive, $accentColor }) =>
       $selected
-        ? 'rgba(76, 198, 193, 0.12)'
+        ? `linear-gradient(90deg, ${withAlpha($accentColor || LCARS.teal, '22')} 0%, rgba(12, 15, 17, 0) 44%)`
         : $accentActive && $accentColor
           ? `linear-gradient(90deg, ${withAlpha($accentColor, '10')} 0%, transparent 26%)`
         : $batchFocused && $batchTone
           ? `linear-gradient(90deg, ${batchToneAccent($batchTone)}20 0%, rgba(12, 15, 17, 0) 38%)`
           : 'transparent'};
   box-shadow:
-    ${({ $selected, $batchFocused, $batchTone }) =>
+    ${({ $selected, $batchFocused, $batchTone, $accentColor }) =>
       $selected
-        ? 'inset 0 0 0 1px rgba(100, 188, 151, 0.38)'
+        ? `inset 0 0 0 1px ${withAlpha($accentColor || LCARS.teal, '70')}`
         : $batchFocused && $batchTone
           ? `inset 0 1px 0 ${batchToneAccent($batchTone)}22`
           : 'none'};
 
   &:hover {
     background:
-      ${({ $selected, $batchFocused, $batchTone }) =>
+      ${({ $selected, $batchFocused, $batchTone, $accentColor }) =>
         $selected
-          ? 'rgba(76, 198, 193, 0.16)'
+          ? `linear-gradient(90deg, ${withAlpha($accentColor || LCARS.teal, '2c')} 0%, rgba(12, 15, 17, 0.04) 52%)`
           : $batchFocused && $batchTone
             ? `linear-gradient(90deg, ${batchToneAccent($batchTone)}2b 0%, rgba(127, 215, 255, 0.05) 44%)`
             : 'rgba(127, 215, 255, 0.08)'};
@@ -1459,11 +1498,14 @@ export const MobileBatchSectionHeader = styled.div`
 `;
 
 export const MobileCard = styled.li`
+  position: relative;
+  z-index: ${({ $detailOpen }) => ($detailOpen ? 30 : 1)};
+  transform: ${({ $detailOpen }) => ($detailOpen ? 'translateY(-4px)' : 'none')};
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   background:
-    ${({ $selected, $batchFocused, $batchTone, $unavailable }) =>
+    ${({ $selected, $batchFocused, $batchTone, $unavailable, $accentColor }) =>
       $selected
-        ? 'rgba(76, 198, 193, 0.1)'
+        ? `linear-gradient(90deg, ${withAlpha($accentColor || LCARS.teal, '20')} 0%, transparent 58%)`
         : $unavailable
           ? 'linear-gradient(180deg, rgba(80, 48, 52, 0.42) 0%, rgba(42, 35, 39, 0.5) 100%)'
         : $batchFocused && $batchTone
@@ -1472,7 +1514,7 @@ export const MobileCard = styled.li`
   box-shadow:
     ${({ $selected, $batchFocused, $batchTone, $accentActive, $accentColor, $unavailable }) =>
       $selected
-        ? 'inset 0 0 0 1px rgba(100, 188, 151, 0.34)'
+        ? `inset 0 0 0 1px ${withAlpha($accentColor || LCARS.teal, '68')}`
         : $unavailable
           ? 'inset 2px 0 0 rgba(171, 109, 116, 0.82)'
         : $accentActive && $accentColor
@@ -1484,6 +1526,21 @@ export const MobileCard = styled.li`
   &:last-child {
     border-bottom: none;
   }
+
+  ${({ $detailOpen }) =>
+    $detailOpen
+      ? `
+    background: linear-gradient(90deg, rgba(76, 198, 193, 0.16), rgba(20, 24, 27, 0.98) 52%);
+    box-shadow:
+      0 10px 24px rgba(0, 0, 0, 0.62),
+      inset 0 0 0 1px rgba(76, 198, 193, 0.44);
+  `
+      : ''}
+
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
 `;
 
 export const MobileCardSurface = styled.div`
@@ -1531,7 +1588,7 @@ export const MobileCardSurface = styled.div`
 export const MobileTop = styled.div`
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr) auto;
-  align-items: center;
+  align-items: start;
   gap: 0.35rem;
 `;
 
@@ -1593,7 +1650,21 @@ export const MobileSelectionToggle = styled.button`
 export const MobileNameBlock = styled.div`
   min-width: 0;
   display: grid;
-  gap: 0.1rem;
+  gap: 0.22rem;
+`;
+
+export const MobileSelectionIdentity = styled.div`
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+`;
+
+export const MobileIdentityLine = styled.div`
+  display: grid;
+  grid-template-columns: 3.4rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.3rem;
+  min-width: 0;
 `;
 
 export const MobileNameLink = styled(Link)`
@@ -1620,8 +1691,8 @@ export const MobileNameText = styled.span`
 `;
 
 export const MobileThumbFrame = styled.div`
-  width: 38px;
-  height: 38px;
+  width: ${({ $large, $selectionLarge }) => ($selectionLarge ? '72px' : $large ? '54px' : '38px')};
+  height: ${({ $large, $selectionLarge }) => ($selectionLarge ? '72px' : $large ? '54px' : '38px')};
   flex: 0 0 auto;
   border-radius: 8px;
   overflow: hidden;
@@ -1645,6 +1716,10 @@ export const MobileThumbButton = styled.button`
     outline: 2px solid rgba(127, 215, 255, 0.56);
     outline-offset: 2px;
   }
+
+  &:active {
+    transform: scale(0.97);
+  }
 `;
 
 export const MobileThumbImage = styled.img`
@@ -1665,6 +1740,64 @@ export const MobileThumbPlaceholder = styled.div`
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
     'Courier New', monospace;
+`;
+
+export const MobileCondensedRow = styled.div`
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0.55rem;
+`;
+
+export const MobileCondensedButton = styled.button`
+  width: 100%;
+  margin: 0;
+  padding: 0.5rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover,
+  &:active {
+    background: rgba(127, 215, 255, 0.09);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(127, 215, 255, 0.56);
+    outline-offset: -2px;
+  }
+`;
+
+export const MobileCondensedText = styled.div`
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  min-width: 0;
+`;
+
+export const MobileCondensedPrimary = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+
+  ${MobileNameText} {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
+
+export const MobileSummaryLine = styled.div`
+  align-self: center;
+  overflow: hidden;
+  color: ${LCARS.textMuted};
+  font: 0.68rem/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.015em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 export const MobileQty = styled.span`

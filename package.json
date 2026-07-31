@@ -19,6 +19,7 @@
     "migrate:declutter-cooling-off": "node backend/scripts/migrate-declutter-cooling-off.js",
     "test:declutter-deck": "node --test test/declutterDeckState.test.js",
     "test:backend-logging": "node --test test/backendLogger.test.js",
+    "test:inventory-colors": "node --test test/inventoryColorTheme.test.js",
     "seed:boxes:range": "node backend/scripts/seed_boxes_range.js",
     "seed:boxes:700": "node backend/scripts/seed_boxes_range.js --start=700 --count=75",
     "backup:full": "node backend/scripts/backup-full.js",
@@ -34,6 +35,7 @@
     "test:entity-media-contract": "node --test test/media/entityMedia.contract.test.js",
     "test:batch-import-media-contract": "node --test test/media/batchImportedMedia.contract.test.js test/media/batchImportImageService.contract.test.js",
     "smoke:objectglow": "node backend/scripts/objectglow-smoke.js",
+    "media:backfill:item-tiny": "node backend/scripts/backfill-item-tiny-thumbnails.js",
     "intake:create-batch": "node scripts/create_intake_batch.js",
     "intake:build-package": "node scripts/dwc_batch_send.js",
     "intake:tui": "node scripts/intake_tui.js",
@@ -57,7 +59,8 @@
     "neonazoth:tui": "node scripts/neonazoth/control_station.js",
     "merge:staged-db": "node backend/scripts/merge-staged-db.js",
     "tarot:update": "node scripts/tarot-update.mjs",
-    "tarot:storm": "python3 scripts/tarot-terminal-storm.py"
+    "tarot:storm": "python3 scripts/tarot-terminal-storm.py",
+    "tarot:install": "node scripts/tarot-install.mjs . --reconfigure"
   },
   "dependencies": {
     "compression": "^1.8.1",

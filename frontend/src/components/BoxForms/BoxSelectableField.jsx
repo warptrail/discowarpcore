@@ -35,6 +35,7 @@ export default function BoxSelectableField({
   createBusyText = 'Working…',
   helperText = '',
   allowFreeform = false,
+  clearOnFocus = false,
 }) {
   const [inputValue, setInputValue] = useState('');
   const [open, setOpen] = useState(false);
@@ -249,7 +250,16 @@ export default function BoxSelectableField({
             setInputValue(event.target.value);
             setOpen(true);
           }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            if (
+              clearOnFocus &&
+              selectedOption &&
+              normalize(inputValue) === normalize(selectedOption.label)
+            ) {
+              setInputValue('');
+            }
+            setOpen(true);
+          }}
           onBlur={() => {
             window.setTimeout(() => {
               if (selectingFromDropdownRef.current) {
@@ -286,6 +296,14 @@ export default function BoxSelectableField({
           onKeyDown={(event) => {
             if (event.key === 'Escape') {
               setOpen(false);
+              setInputValue(
+                selectedOption
+                  ? selectedOption.label
+                  : allowFreeform
+                  ? toTrimmed(value)
+                  : '',
+              );
+              event.currentTarget.blur();
               return;
             }
 

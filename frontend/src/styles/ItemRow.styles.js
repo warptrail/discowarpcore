@@ -1,5 +1,4 @@
 import styled, { keyframes, css } from 'styled-components';
-import { Link } from 'react-router-dom';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_CONTROL_MIN_HEIGHT,
@@ -10,15 +9,6 @@ import {
 } from './tokens';
 
 const ROW_BG = '#111';
-
-const hueDial = keyframes`
-  from {
-    filter: hue-rotate(0deg);
-  }
-  to {
-    filter: hue-rotate(360deg);
-  }
-`;
 
 export const flashColors = {
   blue: 'rgba(0, 255, 200, 0.8)',
@@ -38,17 +28,39 @@ const flashGlow = (colorName) => {
   `;
 };
 
+const capSweep = keyframes`
+  0%, 100% {
+    transform: translate3d(-18%, 0, 0);
+    opacity: 0.18;
+  }
+  50% {
+    transform: translate3d(18%, 0, 0);
+    opacity: 0.42;
+  }
+`;
+
+const capPulse = keyframes`
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  50% {
+    transform: translateY(-2px);
+    opacity: 0.95;
+  }
+`;
+
 export const Wrapper = styled.div`
   --r: 10px;
   --gap: 3px;
   --ring-speed: 16s;
 
   position: relative;
+  scroll-margin-top: 112px;
   border-radius: var(--r);
   overflow: hidden;
   isolation: isolate;
   transition: none;
-  will-change: box-shadow, filter;
 
   &::before,
   &::after {
@@ -61,17 +73,25 @@ export const Wrapper = styled.div`
   &::before {
     inset: 0;
     z-index: 0;
-    opacity: 0.84;
-    background: linear-gradient(135deg, #355070, #6d597a);
+    opacity: 0.68;
+    background: linear-gradient(
+      118deg,
+      var(--item-accent, #7fd7ff),
+      var(--item-secondary, #67d9d3)
+    );
   }
 
   ${({ $open, $pulsing }) =>
     ($open || $pulsing) &&
     css`
       &::before {
-        opacity: 0.96;
-        background: #1cd3ff;
-        animation: ${hueDial} var(--ring-speed) linear infinite;
+        opacity: 0.94;
+        background: linear-gradient(
+          118deg,
+          var(--item-accent, #7fd7ff),
+          var(--item-secondary, #67d9d3)
+        );
+        box-shadow: 0 0 16px rgba(var(--item-accent-rgb, 127, 215, 255), 0.2);
       }
     `}
 
@@ -85,7 +105,13 @@ export const Wrapper = styled.div`
     inset: var(--gap);
     z-index: 1;
     border-radius: calc(var(--r) - var(--gap));
-    background: ${ROW_BG};
+    background:
+      linear-gradient(
+        100deg,
+        rgba(var(--item-accent-rgb, 127, 215, 255), 0.055),
+        transparent 42%
+      ),
+      ${ROW_BG};
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -98,19 +124,63 @@ export const Wrapper = styled.div`
   }
 `;
 
-export const Row = styled.div`
+export const RowShell = styled.div`
   position: relative;
   z-index: 2;
-  display: block;
+`;
 
+export const Row = styled.button`
+  position: relative;
+  display: block;
+  width: 100%;
   padding: 0.42rem 0.78rem 0.32rem;
+  border: 0;
   background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   border-radius: ${({ $open }) =>
     $open
       ? 'calc(var(--r) - var(--gap)) calc(var(--r) - var(--gap)) 0 0'
       : 'calc(var(--r) - var(--gap))'};
   cursor: pointer;
-  transition: background 240ms ease;
+  transition: background 280ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  ${({ $open }) =>
+    $open &&
+    css`
+      overflow: hidden;
+
+      &::before {
+        content: '';
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 5px;
+        background: linear-gradient(
+          180deg,
+          var(--item-accent, #7fd7ff),
+          var(--item-secondary, #67d9d3)
+        );
+        opacity: 0.88;
+        pointer-events: none;
+      }
+
+      &::after {
+        content: '';
+        position: absolute;
+        inset: auto 8% 0;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(var(--item-accent-rgb, 127, 215, 255), 0.72),
+          rgba(var(--item-secondary-rgb, 103, 217, 211), 0.38),
+          transparent
+        );
+        animation: ${capSweep} 4.8s ease-in-out infinite;
+        pointer-events: none;
+      }
+    `}
 
   &:active {
     background: rgba(255, 255, 255, 0.05);
@@ -122,6 +192,14 @@ export const Row = styled.div`
 
   @media (max-width: 420px) {
     padding: 0.28rem 0.3rem 0.32rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &::after {
+      animation: none;
+    }
   }
 `;
 
@@ -136,11 +214,13 @@ export const RowHeader = styled.div`
   padding: 0.34rem 0.5rem;
   border: 1px solid
     ${({ $open }) =>
-      $open ? 'rgba(76, 198, 193, 0.38)' : 'rgba(255, 255, 255, 0.08)'};
+      $open
+        ? 'rgba(var(--item-accent-rgb, 76, 198, 193), 0.5)'
+        : 'rgba(var(--item-accent-rgb, 255, 255, 255), 0.18)'};
   background: ${({ $open }) =>
     $open
-      ? 'linear-gradient(90deg, rgba(76, 198, 193, 0.14), rgba(167, 182, 255, 0.1))'
-      : 'rgba(255, 255, 255, 0.03)'};
+      ? 'linear-gradient(90deg, rgba(var(--item-accent-rgb, 76, 198, 193), 0.14), rgba(var(--item-secondary-rgb, 167, 182, 255), 0.08))'
+      : 'linear-gradient(90deg, rgba(var(--item-accent-rgb, 255, 255, 255), 0.06), rgba(255, 255, 255, 0.025) 38%)'};
   box-shadow: ${({ $open }) =>
     $open ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.04)' : 'none'};
   transition: border-color 220ms ease, background 220ms ease, box-shadow 220ms ease;
@@ -158,6 +238,78 @@ export const RowHeader = styled.div`
 
   @media (max-width: 420px) {
     padding: 0.22rem 0.26rem;
+  }
+
+  ${({ $open }) =>
+    $open &&
+    css`
+      border: 0;
+      border-radius: 0;
+      min-height: 46px;
+      align-items: center;
+      padding: 0.34rem
+        ${({ $hasItemLink }) => ($hasItemLink ? '2.85rem' : '0.32rem')}
+        0.42rem 0.5rem;
+      background: linear-gradient(
+        90deg,
+        rgba(var(--item-accent-rgb, 76, 198, 193), 0.18),
+        rgba(var(--item-secondary-rgb, 167, 182, 255), 0.06) 58%,
+        transparent 92%
+      );
+      box-shadow: none;
+
+      @media (max-width: ${MOBILE_BREAKPOINT}) {
+        border-radius: 0;
+        min-height: 44px;
+        padding: 0.3rem
+          ${({ $hasItemLink }) => ($hasItemLink ? '2.6rem' : '0.22rem')}
+          0.36rem 0.46rem;
+      }
+
+      @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+        border-radius: 0;
+        padding: 0.28rem 0.18rem 0.34rem 0.42rem;
+      }
+    `}
+`;
+
+export const ItemHomeLink = styled.a`
+  position: absolute;
+  z-index: 4;
+  top: 50%;
+  right: 0.7rem;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.34);
+  border-radius: 5px;
+  background: rgba(5, 10, 17, 0.72);
+  color: rgba(231, 236, 243, 0.68);
+  font-family: ${"'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace, monospace"};
+  font-size: 0.8rem;
+  line-height: 1;
+  text-decoration: none;
+  transform: translateY(-50%);
+  transition:
+    color 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+
+  &:hover,
+  &:focus-visible {
+    outline: none;
+    color: #ffffff;
+    border-color: rgba(var(--item-accent-rgb, 127, 215, 255), 0.78);
+    background: rgba(var(--item-accent-rgb, 127, 215, 255), 0.13);
+    box-shadow: 0 0 12px rgba(var(--item-accent-rgb, 127, 215, 255), 0.14);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    right: 0.48rem;
+    width: 25px;
+    height: 25px;
   }
 `;
 
@@ -190,6 +342,7 @@ export const RowThumb = styled.div`
   border-radius: 10px;
   overflow: hidden;
   align-self: start;
+  box-shadow: 0 0 0 1px rgba(var(--item-accent-rgb, 255, 255, 255), 0.32);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: 46px;
@@ -210,7 +363,7 @@ export const RowThumbImage = styled.img`
   display: block;
   object-fit: cover;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(var(--item-accent-rgb, 255, 255, 255), 0.42);
   background: rgba(255, 255, 255, 0.04);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -230,10 +383,10 @@ export const RowThumbPlaceholder = styled.div`
   width: 52px;
   height: 52px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(var(--item-accent-rgb, 255, 255, 255), 0.32);
   background: linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.045),
+      rgba(var(--item-accent-rgb, 255, 255, 255), 0.1),
       rgba(255, 255, 255, 0.015)
     ),
     rgba(255, 255, 255, 0.025);
@@ -266,6 +419,70 @@ export const TitleGroup = styled.div`
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
     gap: 0.14rem;
+  }
+`;
+
+export const RowDeckState = styled.span`
+  width: fit-content;
+  color: rgba(219, 224, 255, 0.72);
+  font-family: ${"'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace, monospace"};
+  font-size: 0.55rem;
+  font-weight: 720;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+`;
+
+export const RowCapCommand = styled.span`
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 0.48rem;
+  padding-right: 0.2rem;
+  color: rgba(231, 236, 243, 0.5);
+  font-family: ${"'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace, monospace"};
+  font-size: 0.56rem;
+  font-weight: 720;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
+
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    > span {
+      display: none;
+    }
+  }
+`;
+
+export const RowCapSignal = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 14px;
+
+  i {
+    display: block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--item-accent, #7fd7ff);
+    box-shadow: 0 0 6px rgba(var(--item-accent-rgb, 127, 215, 255), 0.5);
+    animation: ${capPulse} 1.8s ease-in-out infinite;
+  }
+
+  i:nth-child(2) {
+    background: var(--item-secondary, #67d9d3);
+    animation-delay: -1.2s;
+  }
+
+  i:nth-child(3) {
+    animation-delay: -0.6s;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    i {
+      animation: none;
+    }
   }
 `;
 
@@ -365,9 +582,9 @@ export const QuickTag = styled.span`
   line-height: 1;
   padding: 0.13rem 0.38rem;
   border-radius: 999px;
-  border: 1px solid rgba(76, 198, 193, 0.48);
+  border: 1px solid rgba(var(--item-accent-rgb, 76, 198, 193), 0.48);
   color: #d7f5f2;
-  background: rgba(76, 198, 193, 0.13);
+  background: rgba(var(--item-accent-rgb, 76, 198, 193), 0.13);
   white-space: nowrap;
   flex: 0 0 auto;
 
@@ -455,20 +672,52 @@ export const RowChevron = styled.span`
 export const Collapse = styled.div`
   position: relative;
   z-index: 2;
-  overflow: hidden;
+  display: grid;
+  grid-template-rows: ${({ $open }) => ($open ? '1fr' : '0fr')};
+  visibility: ${({ $open }) => ($open ? 'visible' : 'hidden')};
+  pointer-events: ${({ $open }) => ($open ? 'auto' : 'none')};
 
-  margin: 0 var(--gap) var(--gap);
-  background: ${ROW_BG};
+  margin: 0 var(--gap) ${({ $open }) => ($open ? 'var(--gap)' : '0')};
+  background:
+    linear-gradient(
+      110deg,
+      rgba(var(--item-accent-rgb, 127, 215, 255), 0.06),
+      transparent 36%
+    ),
+    ${ROW_BG};
   border-radius: 0 0 calc(var(--r) - var(--gap)) calc(var(--r) - var(--gap));
 
-  height: ${({ $height }) => $height}px;
-  transition: height ${({ $collapseDurMs }) => $collapseDurMs}ms
-      cubic-bezier(0.2, 0.8, 0.2, 1),
-    opacity ${({ $collapseDurMs }) => $collapseDurMs}ms ease,
-    transform ${({ $collapseDurMs }) => $collapseDurMs}ms ease;
-
   opacity: ${({ $open }) => ($open ? 1 : 0)};
-  transform: translateY(${({ $open }) => ($open ? '0' : '-6px')});
+  transform: translate3d(0, ${({ $open }) => ($open ? '0' : '-8px')}, 0);
+  transition:
+    grid-template-rows ${({ $collapseDurMs }) => $collapseDurMs}ms
+      cubic-bezier(0.22, 1, 0.36, 1),
+    margin-bottom ${({ $collapseDurMs }) => $collapseDurMs}ms
+      cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 300ms ease,
+    transform ${({ $collapseDurMs }) => $collapseDurMs}ms
+      cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s linear
+      ${({ $open, $collapseDurMs }) => ($open ? '0ms' : `${$collapseDurMs}ms`)};
+
+  > div {
+    min-height: 0;
+    overflow: hidden;
+    transform-origin: top center;
+    transform: translate3d(0, ${({ $open }) => ($open ? '0' : '-12px')}, 0);
+    opacity: ${({ $open }) => ($open ? 1 : 0)};
+    transition: transform ${({ $collapseDurMs }) => $collapseDurMs}ms
+        cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 280ms ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    > div {
+      transition: none;
+    }
+  }
 `;
 
 export const DetailsCard = styled.div`
@@ -476,7 +725,14 @@ export const DetailsCard = styled.div`
   z-index: 2;
   padding: 1rem;
   border-radius: 0 0 calc(var(--r) - var(--gap)) calc(var(--r) - var(--gap));
-  background: #181818;
+  background:
+    linear-gradient(
+      112deg,
+      rgba(var(--item-accent-rgb, 127, 215, 255), 0.08),
+      rgba(var(--item-secondary-rgb, 103, 217, 211), 0.035) 48%,
+      transparent
+    ),
+    #181818;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 0.46rem;
@@ -484,46 +740,6 @@ export const DetailsCard = styled.div`
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
     padding: 0.38rem;
-  }
-`;
-
-export const ExpandedActionStrip = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  margin-bottom: 0.62rem;
-  padding-bottom: 0.54rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-
-  @media (min-width: 600px) {
-    justify-content: flex-end;
-    border-bottom-color: rgba(76, 198, 193, 0.2);
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    margin-bottom: 0.44rem;
-    padding-bottom: 0.36rem;
-  }
-`;
-
-export const ExpandedActionCluster = styled.div`
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.34rem;
-
-  @media (min-width: 600px) {
-    justify-content: flex-end;
-    max-width: 100%;
-    padding: 0.26rem;
-    border: 1px solid rgba(76, 198, 193, 0.16);
-    border-radius: 10px;
-    background: linear-gradient(105deg, rgba(76, 198, 193, 0.07), rgba(167, 182, 255, 0.05));
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025);
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    gap: 0.24rem;
   }
 `;
 
@@ -550,9 +766,26 @@ export const Title = styled.div`
   overflow: hidden;
   text-overflow: ellipsis;
 
+  ${({ $expanded }) =>
+    $expanded &&
+    css`
+      color: rgba(231, 236, 243, 0.68);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.035em;
+      line-height: 1.15;
+    `}
+
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 0.9rem;
     line-height: 1.18;
+
+    ${({ $expanded }) =>
+      $expanded &&
+      css`
+        font-size: 0.78rem;
+        line-height: 1.15;
+      `}
 
     ${({ $mobileCollapsed }) =>
       $mobileCollapsed &&
@@ -564,79 +797,13 @@ export const Title = styled.div`
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
     font-size: 0.84rem;
-  }
-`;
 
-export const ItemNameChip = styled(Link)`
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
-  justify-self: start;
-  width: fit-content;
-  max-width: 100%;
-  padding: 0.14rem 0.46rem;
-  border-radius: 999px;
-  border: 1px solid rgba(76, 198, 193, 0.42);
-  background: rgba(76, 198, 193, 0.1);
-  color: #e7ecf3;
-  font-size: clamp(1.02rem, 1.85vw, 1.15rem);
-  font-weight: 760;
-  letter-spacing: 0.015em;
-  line-height: 1.25;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-decoration: none;
-  cursor: pointer;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: 0.9rem;
-    line-height: 1.18;
-    padding: 0.1rem 0.28rem;
-    letter-spacing: 0.012em;
-
-    ${({ $mobileCollapsed }) =>
-      $mobileCollapsed &&
+    ${({ $expanded }) =>
+      $expanded &&
       css`
-        display: inline-flex;
-        align-items: center;
-        justify-self: stretch;
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
-        flex: 1 1 auto;
-        border-radius: 8px;
-        padding: 0.12rem 0.38rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-size: 0.74rem;
+        line-height: 1.12;
       `}
-  }
-
-  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
-    font-size: 0.84rem;
-    line-height: 1.16;
-    padding: 0.08rem 0.24rem;
-    border-color: rgba(76, 198, 193, 0.34);
-    background: rgba(76, 198, 193, 0.08);
-
-    ${({ $mobileCollapsed }) =>
-      $mobileCollapsed &&
-      css`
-        border-radius: 7px;
-        padding: 0.1rem 0.3rem;
-      `}
-  }
-
-  &:hover {
-    border-color: rgba(76, 198, 193, 0.82);
-    background: rgba(76, 198, 193, 0.16);
-  }
-
-  &:focus-visible {
-    outline: none;
-    border-color: rgba(76, 198, 193, 0.9);
-    box-shadow: 0 0 0 2px rgba(76, 198, 193, 0.24);
   }
 `;
 
@@ -796,104 +963,6 @@ export const FlatBoxStatePill = styled.span`
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
     padding: 0.1rem 0.28rem;
-  }
-`;
-
-export const QuickActionButton = styled.button`
-  border: 1px solid
-    ${({ $tone }) =>
-      $tone === 'move'
-        ? 'rgba(232, 177, 92, 0.74)'
-        : $tone === 'consumed'
-          ? 'rgba(242, 98, 98, 0.76)'
-          : $tone === 'declutter'
-            ? 'rgba(167, 182, 255, 0.76)'
-            : $tone === 'maintained'
-              ? 'rgba(84, 208, 151, 0.72)'
-              : $tone === 'checked'
-                ? 'rgba(160, 151, 255, 0.72)'
-                : 'rgba(76, 198, 193, 0.72)'};
-  background: ${({ $tone, $active }) =>
-    $tone === 'move'
-      ? $active
-        ? 'linear-gradient(180deg, rgba(100, 68, 23, 0.95), rgba(76, 51, 18, 0.94))'
-        : 'linear-gradient(180deg, rgba(73, 53, 22, 0.94), rgba(58, 42, 17, 0.92))'
-      : $tone === 'consumed'
-        ? 'linear-gradient(180deg, rgba(92, 29, 29, 0.94), rgba(67, 22, 22, 0.92))'
-        : $tone === 'declutter'
-          ? 'linear-gradient(180deg, rgba(47, 50, 105, 0.94), rgba(35, 38, 81, 0.92))'
-          : $tone === 'maintained'
-            ? 'linear-gradient(180deg, rgba(25, 71, 50, 0.92), rgba(19, 56, 40, 0.9))'
-            : $tone === 'checked'
-              ? 'linear-gradient(180deg, rgba(45, 43, 93, 0.92), rgba(34, 33, 70, 0.9))'
-              : 'linear-gradient(180deg, rgba(31, 72, 88, 0.92), rgba(24, 56, 69, 0.9))'};
-  color: #eff7ff;
-  border-radius: 8px;
-  padding: 0.24rem 0.52rem;
-  font-size: 0.66rem;
-  font-weight: 730;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  line-height: 1;
-  white-space: nowrap;
-  cursor: pointer;
-  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-  transition: filter 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
-
-  &:hover:not(:disabled) {
-    filter: brightness(1.08);
-    box-shadow: 0 0 10px
-      ${({ $tone }) =>
-        $tone === 'consumed'
-          ? 'rgba(242, 98, 98, 0.26)'
-          : $tone === 'move'
-            ? 'rgba(232, 177, 92, 0.24)'
-            : $tone === 'declutter'
-              ? 'rgba(167, 182, 255, 0.24)'
-              : 'rgba(127, 215, 255, 0.18)'};
-  }
-
-  ${({ $tone, $active }) =>
-    $tone === 'move' &&
-    $active &&
-    css`
-      border-color: rgba(245, 194, 103, 0.86);
-      box-shadow: 0 0 0 1px rgba(232, 177, 92, 0.25);
-    `}
-
-  ${({ $tone, $active }) =>
-    $tone === 'declutter' &&
-    $active &&
-    css`
-      border-color: rgba(202, 211, 255, 0.96);
-      background: linear-gradient(180deg, rgba(77, 84, 158, 0.98), rgba(51, 55, 117, 0.96));
-      box-shadow: 0 0 0 1px rgba(167, 182, 255, 0.42), 0 0 13px rgba(167, 182, 255, 0.26);
-      color: #ffffff;
-    `}
-
-  &:disabled {
-    opacity: 0.52;
-    cursor: not-allowed;
-    filter: saturate(0.72);
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(1px);
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: ${({ $compactMobile }) => ($compactMobile ? '25px' : '32px')};
-    font-size: ${({ $compactMobile }) => ($compactMobile ? '0.56rem' : '0.64rem')};
-    letter-spacing: ${({ $compactMobile }) => ($compactMobile ? '0.03em' : '0.04em')};
-    padding: ${({ $compactMobile }) => ($compactMobile ? '0.06rem 0.18rem' : '0.16rem 0.34rem')};
-    border-radius: ${({ $compactMobile }) => ($compactMobile ? '6px' : '7px')};
-  }
-
-  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
-    min-height: ${({ $compactMobile }) => ($compactMobile ? '23px' : '30px')};
-    font-size: ${({ $compactMobile }) => ($compactMobile ? '0.54rem' : '0.62rem')};
-    padding: ${({ $compactMobile }) => ($compactMobile ? '0.05rem 0.16rem' : '0.15rem 0.3rem')};
-    border-radius: ${({ $compactMobile }) => ($compactMobile ? '5px' : '7px')};
   }
 `;
 

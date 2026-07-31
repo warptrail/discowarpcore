@@ -300,6 +300,7 @@ async function postItemImageApi(req, res) {
       itemId: updated._id,
       image: updated.image,
       urls: {
+        tiny: updated.image?.tiny?.url || null,
         display: updated.image?.display?.url || null,
         thumb: updated.image?.thumb?.url || null,
         original: updated.image?.original?.url || null,

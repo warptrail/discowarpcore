@@ -9,7 +9,7 @@ const Panel = styled.div`
   background: rgba(8, 15, 23, 0.55);
 `;
 
-const Label = styled.label`
+const Label = styled.div`
   display: grid;
   gap: 0.3rem;
   color: rgba(214, 226, 241, 0.82);
@@ -19,13 +19,65 @@ const Label = styled.label`
   text-transform: uppercase;
 `;
 
-const Select = styled.select`
-  min-height: 38px;
-  border: 1px solid rgba(122, 142, 167, 0.45);
+const FlagGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const Flag = styled.button`
+  display: grid;
+  grid-template-columns: 7px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 46px;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid ${({ $active, $tone }) =>
+    $active ? $tone : 'rgba(122, 142, 167, 0.22)'};
   border-radius: 7px;
-  padding: 0 0.55rem;
-  color: #e6edf4;
-  background: #0b1018;
+  color: ${({ $active }) => ($active ? '#f2f7fa' : 'rgba(214, 226, 241, 0.66)')};
+  background: ${({ $active, $tone }) =>
+    $active ? `linear-gradient(100deg, ${$tone}24, rgba(8, 15, 23, 0.74))` : 'rgba(8, 15, 23, 0.42)'};
+  text-align: left;
+  cursor: pointer;
+  box-shadow: ${({ $active, $tone }) => ($active ? `inset 0 0 0 1px ${$tone}18` : 'none')};
+
+  &:focus-visible {
+    outline: 2px solid rgba(127, 215, 255, 0.66);
+    outline-offset: 2px;
+  }
+`;
+
+const FlagLight = styled.span`
+  width: 6px;
+  height: 18px;
+  border-radius: 2px;
+  background: ${({ $active, $tone }) => ($active ? $tone : 'rgba(154, 171, 187, 0.24)')};
+  box-shadow: ${({ $active, $tone }) => ($active ? `0 0 9px ${$tone}88` : 'none')};
+`;
+
+const FlagText = styled.span`
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+`;
+
+const FlagTitle = styled.span`
+  font-size: 0.75rem;
+  font-weight: 760;
+  letter-spacing: 0.015em;
+  text-transform: none;
+`;
+
+const FlagHint = styled.span`
+  color: rgba(184, 202, 212, 0.48);
+  font: 600 0.58rem/1.2 ui-monospace, monospace;
+  letter-spacing: 0.02em;
+  text-transform: none;
 `;
 
 const Check = styled.label`
@@ -43,22 +95,40 @@ export default function BoxDeclutterFields({
   setIsDefault,
 }) {
   const canBeDefault = purpose !== 'standard';
+  const flags = [
+    { value: 'standard', title: 'Standard inventory', hint: 'Keep and retrieve', tone: '#4cc6c1' },
+    { value: 'donation_staging', title: 'Donation staging', hint: 'Route to donate', tone: '#a78bfa' },
+    { value: 'sale_staging', title: 'Sale staging', hint: 'Route to sell', tone: '#e8b15c' },
+  ];
   return (
     <Panel>
       <Label>
         Declutter purpose
-        <Select
-          value={purpose}
-          onChange={(event) => {
-            const next = event.target.value;
-            setPurpose(next);
-            if (next === 'standard') setIsDefault(false);
-          }}
-        >
-          <option value="standard">Standard inventory</option>
-          <option value="donation_staging">Donation staging</option>
-          <option value="sale_staging">Sale staging</option>
-        </Select>
+        <FlagGrid role="radiogroup" aria-label="Declutter purpose">
+          {flags.map((flag) => {
+            const active = purpose === flag.value;
+            return (
+              <Flag
+                key={flag.value}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                $active={active}
+                $tone={flag.tone}
+                onClick={() => {
+                  setPurpose(flag.value);
+                  if (flag.value === 'standard') setIsDefault(false);
+                }}
+              >
+                <FlagLight aria-hidden="true" $active={active} $tone={flag.tone} />
+                <FlagText>
+                  <FlagTitle>{flag.title}</FlagTitle>
+                  <FlagHint>{flag.hint}</FlagHint>
+                </FlagText>
+              </Flag>
+            );
+          })}
+        </FlagGrid>
       </Label>
       <Check>
         <input

@@ -78,19 +78,23 @@ test('batch import synchronously creates transparent derivatives before attachin
       const itemRoot = path.dirname(path.dirname(originalPath));
       const displayPath = path.join(itemRoot, 'display', `${baseName}.webp`);
       const thumbPath = path.join(itemRoot, 'thumb', `${baseName}.webp`);
+      const tinyPath = path.join(itemRoot, 'tiny', `${baseName}.webp`);
       await Promise.all([
         fs.mkdir(path.dirname(displayPath), { recursive: true }),
         fs.mkdir(path.dirname(thumbPath), { recursive: true }),
+        fs.mkdir(path.dirname(tinyPath), { recursive: true }),
       ]);
       await Promise.all([
         sharp(originalPath).resize({ width: 1600, height: 1600, fit: 'inside' }).webp().toFile(displayPath),
         sharp(originalPath).resize({ width: 320, height: 320, fit: 'inside' }).webp().toFile(thumbPath),
+        sharp(originalPath).resize({ width: 64, height: 64, fit: 'cover' }).webp().toFile(tinyPath),
       ]);
       return {
         mediaId: 'med_import_sync',
         originalPath,
         displayPath,
         thumbPath,
+        tinyPath,
         processingStatus: 'ready_for_processing',
       };
     },
@@ -109,6 +113,7 @@ test('batch import synchronously creates transparent derivatives before attachin
         fs.unlink(retainedOriginalPath),
         fs.unlink(path.join(itemRoot, 'display', `${baseName}.webp`)),
         fs.unlink(path.join(itemRoot, 'thumb', `${baseName}.webp`)),
+        fs.unlink(path.join(itemRoot, 'tiny', `${baseName}.webp`)),
       ]);
     }
   });
@@ -128,6 +133,9 @@ test('batch import synchronously creates transparent derivatives before attachin
   assert.equal(attached.itemId, 'item_import_sync');
   assert.match(attached.image.thumb.url, /^\/media\/items\/thumb\//);
   assert.match(attached.image.display.url, /^\/media\/items\/display\//);
+  assert.match(attached.image.tiny.url, /^\/media\/items\/tiny\//);
+  assert.equal(attached.image.tiny.width, 64);
+  assert.equal(attached.image.tiny.height, 64);
   assert.deepEqual(await fs.readFile(retainedOriginalPath), sourceBytes);
   const thumbMeta = await sharp(attached.image.thumb.storagePath
     ? path.join(MEDIA_ROOT, attached.image.thumb.storagePath)

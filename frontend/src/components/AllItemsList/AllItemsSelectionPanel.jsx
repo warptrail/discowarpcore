@@ -1,6 +1,7 @@
 import React from 'react';
 import MoveItemToOtherBox from '../MoveItemToOtherBox';
 import AllItemsDeclutterDeckControls from './AllItemsDeclutterDeckControls';
+import AllItemsBatchGrid from './AllItemsBatchGrid';
 import * as S from './AllItemsList.styles';
 
 function getDestinationLabel(destination) {
@@ -67,24 +68,12 @@ export default function AllItemsSelectionPanel({
 
         {safeBatchOptions.length ? (
           <S.SelectionBatchCluster>
-            <S.SelectionSelectLabel>
-              <span>JSON Batch</span>
-              <S.Select
-                value={pendingSourceBatchId}
-                disabled={moving}
-                onChange={(event) => onPendingSourceBatchChange?.(event.target.value)}
-              >
-                <option value="">Choose source batch...</option>
-                {safeBatchOptions.map((option) => {
-                  const archiveSuffix = option.archiveStatus === 'archived' ? ' (Archived)' : '';
-                  return (
-                    <option key={option.value} value={option.value}>
-                      {option.label}{archiveSuffix} - {option.selectableCount}/{option.totalCount}
-                    </option>
-                  );
-                })}
-              </S.Select>
-            </S.SelectionSelectLabel>
+            <AllItemsBatchGrid
+              options={safeBatchOptions}
+              selectedValue={pendingSourceBatchId}
+              disabled={moving}
+              onChange={onPendingSourceBatchChange}
+            />
             <S.ToolbarButton
               type="button"
               disabled={!canSelectBatch || moving}

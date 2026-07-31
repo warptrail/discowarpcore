@@ -33,7 +33,7 @@ export const SectionHeading = styled.header`
 
 export const SectionTitle = styled.h2`
   margin: 0;
-  color: rgba(231, 236, 243, 0.86);
+  color: var(--box-neon, rgba(231, 236, 243, 0.86));
   font: 800 0.82rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -48,7 +48,46 @@ export const SectionCount = styled.span`
 export const SectionRule = styled.div`
   height: 1px;
   flex: 1;
-  background: linear-gradient(90deg, rgba(76, 198, 193, 0.42), rgba(167, 139, 250, 0.08), transparent);
+  background: linear-gradient(
+    90deg,
+    rgba(var(--box-primary-rgb, 76, 198, 193), 0.52),
+    rgba(var(--box-secondary-rgb, 167, 139, 250), 0.12),
+    transparent
+  );
+`;
+
+export const SectionManageButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 28px;
+  margin-left: auto;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(190, 204, 214, 0.48);
+  gap: 3px;
+  cursor: pointer;
+  &:hover, &:focus-visible { color: rgba(226, 237, 242, 0.9); background: rgba(120, 170, 182, 0.08); outline: 1px solid rgba(120, 170, 182, 0.28); }
+`;
+
+export const ManageDot = styled.span`
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: ${({ $i }) => ['#4cc6c1', '#a78bfa', '#7fb7ff', '#70d6a7'][$i]};
+  box-shadow: 0 0 5px currentColor;
+  animation: manage-dot-wave 1.35s ease-in-out infinite;
+  animation-delay: ${({ $i }) => `${$i * 110}ms`};
+
+  @keyframes manage-dot-wave {
+    0%, 100% { transform: translateY(2px); opacity: 0.46; }
+    50% { transform: translateY(-2px); opacity: 0.95; }
+  }
+
+  @media (prefers-reduced-motion: reduce) { animation: none; }
 `;
 
 export const FlatEmpty = styled.div`

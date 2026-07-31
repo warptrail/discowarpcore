@@ -189,7 +189,7 @@ async function attachMediaStateSummaries(rawItems = []) {
 
   const mediaStates = clauses.length
     ? await MediaState.find(clauses.length === 1 ? clauses[0] : { $or: clauses })
-        .select('mediaId originalPath processedPath displayPath thumbPath activeVariant processedAt updatedAt')
+        .select('mediaId originalPath processedPath displayPath thumbPath tinyPath activeVariant processedAt updatedAt')
         .lean()
     : [];
 
@@ -216,6 +216,7 @@ async function attachMediaStateSummaries(rawItems = []) {
     const processedUrl = mediaPathToClientUrl(matchedState?.processedPath);
     const displayUrl = mediaPathToClientUrl(matchedState?.displayPath);
     const thumbUrl = mediaPathToClientUrl(matchedState?.thumbPath);
+    const tinyUrl = mediaPathToClientUrl(matchedState?.tinyPath);
 
     return {
       ...item,
@@ -228,6 +229,10 @@ async function attachMediaStateSummaries(rawItems = []) {
         thumb: {
           ...(item?.image?.thumb || {}),
           url: firstNonEmpty(thumbUrl, item?.image?.thumb?.url),
+        },
+        tiny: {
+          ...(item?.image?.tiny || {}),
+          url: firstNonEmpty(tinyUrl, item?.image?.tiny?.url),
         },
         processed: {
           ...(item?.image?.processed || {}),

@@ -320,9 +320,13 @@ const boxChipBase = css`
 
 export const BoxIdChip = styled.span`
   ${boxChipBase};
-  border: 1px solid rgba(116, 212, 255, 0.6);
-  background: linear-gradient(180deg, rgba(116, 212, 255, 0.2) 0%, rgba(116, 212, 255, 0.1) 100%);
-  color: #8ce2ff;
+  border: 1px solid rgba(var(--box-primary-rgb, 116, 212, 255), 0.6);
+  background: linear-gradient(
+    180deg,
+    rgba(var(--box-primary-rgb, 116, 212, 255), 0.2) 0%,
+    rgba(var(--box-primary-rgb, 116, 212, 255), 0.1) 100%
+  );
+  color: var(--box-neon, #8ce2ff);
   padding: 0.14rem 0.52rem;
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
@@ -334,8 +338,8 @@ export const BoxIdChip = styled.span`
 
 export const BoxLabelChip = styled.span`
   ${boxChipBase};
-  border: 1px solid rgba(120, 245, 200, 0.38);
-  background: rgba(120, 245, 200, 0.11);
+  border: 1px solid rgba(var(--box-muted-rgb, 120, 245, 200), 0.38);
+  background: rgba(var(--box-muted-rgb, 120, 245, 200), 0.11);
   color: #d5f6ea;
   padding: 0.14rem 0.45rem;
   font-family: inherit;

@@ -31,7 +31,18 @@ export const Wrap = styled.div`
   min-height: 100dvh;
 
   /* cosmetics */
-  background: ${LCARS.bg};
+  background:
+    radial-gradient(
+      circle at 12% 0%,
+      rgba(var(--box-primary-rgb, 127, 215, 255), 0.1),
+      transparent 34%
+    ),
+    linear-gradient(
+      var(--box-wash-angle, 118deg),
+      rgba(var(--box-secondary-rgb, 103, 217, 211), 0.045),
+      transparent 42%
+    ),
+    ${LCARS.bg};
   color: ${LCARS.text};
 
   /* IMPORTANT for wrapping children correctly */
@@ -60,6 +71,7 @@ export const TabViewport = styled.div`
   position: relative;
   min-width: 0;
   overflow-x: clip;
+  border-top: 1px solid rgba(var(--box-primary-rgb, 127, 215, 255), 0.1);
 `;
 
 /* Spinner */
@@ -72,7 +84,7 @@ export const Spinner = styled.div`
   width: 36px;
   height: 36px;
   border: 3px solid rgba(255, 255, 255, 0.18);
-  border-top: 3px solid ${LCARS.accent};
+  border-top: 3px solid var(--box-primary, ${LCARS.accent});
   border-radius: 50%;
   animation: ${spin} 1s linear infinite;
   margin: 24px auto;

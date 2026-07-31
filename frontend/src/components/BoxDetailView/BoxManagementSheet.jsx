@@ -1,11 +1,14 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 
 const Backdrop = styled.div`
   position: fixed;
-  inset: 0;
-  z-index: 310;
+  top: ${({ $top }) => `${$top}px`};
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 190;
   display: grid;
   justify-items: end;
   background: rgba(1, 4, 8, 0.44);
@@ -100,6 +103,32 @@ const Close = styled.button`
 
 export default function BoxManagementSheet({ open, boxId, title, onClose, children }) {
   const sheetRef = useRef(null);
+  const [headerBottom, setHeaderBottom] = useState(0);
+
+  useLayoutEffect(() => {
+    if (!open || typeof document === 'undefined') return undefined;
+    const header = document.querySelector('header');
+    if (!header) {
+      setHeaderBottom(0);
+      return undefined;
+    }
+
+    const measure = () => {
+      setHeaderBottom(Math.max(0, Math.round(header.getBoundingClientRect().bottom)));
+    };
+    measure();
+
+    const observer = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(measure)
+      : null;
+    observer?.observe(header);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (event) => {
@@ -111,7 +140,7 @@ export default function BoxManagementSheet({ open, boxId, title, onClose, childr
 
   if (!open || typeof document === 'undefined') return null;
   return createPortal(
-    <Backdrop onPointerDown={(event) => {
+    <Backdrop $top={headerBottom} onPointerDown={(event) => {
       if (!sheetRef.current?.contains(event.target)) onClose?.();
     }}>
       <Sheet ref={sheetRef} aria-label={`Manage ${title}`}>

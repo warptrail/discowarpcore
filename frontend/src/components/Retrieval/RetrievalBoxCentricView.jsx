@@ -7,7 +7,7 @@ import {
 import { compareNumericBoxIds, normalizeBoxId } from '../../util/boxLocator';
 import { MOBILE_BREAKPOINT } from '../../styles/tokens';
 import * as S from './Retrieval.styles';
-import { getBoxGroupColorTones } from './boxColors';
+import { getBoxTheme } from '../../util/inventoryColorTheme';
 import {
   normalizeRetrievalBoxesPage,
   normalizeRetrievalFilterOptions,
@@ -210,6 +210,7 @@ export default function RetrievalBoxCentricView({
   onModeChange,
   persistedState,
   onStateSnapshotChange,
+  onAnalyticsChange,
   setActiveRetrievalItem,
   finderMinimized = false,
 }) {
@@ -373,6 +374,7 @@ export default function RetrievalBoxCentricView({
       setSelectedBoxDetails(null);
       setBoxDetailsError('');
       setBoxDetailsLoading(false);
+      onAnalyticsChange?.(null);
 
       try {
         const payload = await fetchRetrievalBoxesPage(
@@ -392,6 +394,7 @@ export default function RetrievalBoxCentricView({
         setOffset(Number(payload?.offset) || 0);
         setHasMore(Boolean(payload?.hasMore));
         setFilterOptions(normalizeRetrievalFilterOptions(payload?.filters));
+        onAnalyticsChange?.(payload?.analytics || null);
       } catch (loadError) {
         if (loadError?.name === 'AbortError') return;
         if (queryKeyRef.current !== currentQueryKey) return;
@@ -399,6 +402,7 @@ export default function RetrievalBoxCentricView({
         setBoxes([]);
         setTotal(0);
         setHasMore(false);
+        onAnalyticsChange?.(null);
       } finally {
         if (!controller.signal.aborted && queryKeyRef.current === currentQueryKey) {
           setLoading(false);
@@ -411,7 +415,7 @@ export default function RetrievalBoxCentricView({
     return () => {
       controller.abort();
     };
-  }, [queryKey, queryState]);
+  }, [onAnalyticsChange, queryKey, queryState]);
 
   useEffect(() => {
     const validIds = new Set(
@@ -639,10 +643,7 @@ export default function RetrievalBoxCentricView({
                       const normalizedId = normalizeBoxId(box?.boxId);
                       const isActive = normalizedId === normalizeBoxId(selectedBoxId);
                       const inlinePanelId = `retrieval-box-inline-${normalizedId || box.id}`;
-                      const rowTones = getBoxGroupColorTones(
-                        box?.groupLabel,
-                        box?.boxId || box?.id || 0,
-                      );
+                      const rowTones = getBoxTheme(box?.boxId);
                       return (
                         <S.BoxListItem key={box.id}>
                           <S.BoxListRow

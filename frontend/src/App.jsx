@@ -13,12 +13,11 @@ import ItemPage from './components/ItemPage';
 import IntakePage from './components/Intake/IntakePage';
 import BulkImportPage from './components/BulkImport/BulkImportPage';
 import RetrievalPage from './components/Retrieval/RetrievalPage';
-import RetrievalUtilityOverlay from './components/Retrieval/RetrievalUtilityOverlay';
 import DeclutterDeckPage from './components/Declutter/DeclutterDeckPage';
 import LogsPage from './components/SystemLogsPage';
 import { API_BASE } from './api/API_BASE';
 import { MOBILE_BREAKPOINT, MOBILE_PAGE_GAP } from './styles/tokens';
-import { RETRIEVAL_RESCUE_OPEN_EVENT } from './constants/inventoryFinderEvents';
+import { RETRIEVAL_FINDER_TOGGLE_EVENT } from './constants/inventoryFinderEvents';
 
 const OPERATIONS_PAGE_LIMIT = 50;
 
@@ -124,21 +123,24 @@ function App() {
   const [orphanedCount, setOrphanedCount] = useState(0);
   const [orphanedItems, setOrphanedItems] = useState([]);
   const [locations, setLocations] = useState([]);
-  const [retrievalUtilityRouteKey, setRetrievalUtilityRouteKey] = useState('');
+  const [retrievalFinderOpen, setRetrievalFinderOpen] = useState(true);
 
   // for refreshing the home page on location change
   const location = useLocation();
-  const isRetrievalUtilityOpen = retrievalUtilityRouteKey === location.key;
-
   const handleOperationsDataRefreshRequest = useCallback(() => {
     setOperationsRefreshTick((prev) => prev + 1);
   }, []);
 
   useEffect(() => {
-    const handleOpenRescue = () => setRetrievalUtilityRouteKey(location.key);
-    window.addEventListener(RETRIEVAL_RESCUE_OPEN_EVENT, handleOpenRescue);
-    return () => window.removeEventListener(RETRIEVAL_RESCUE_OPEN_EVENT, handleOpenRescue);
-  }, [location.key]);
+    const handleRetrievalFinderToggle = () => {
+      setRetrievalFinderOpen((current) => !current);
+    };
+
+    window.addEventListener(RETRIEVAL_FINDER_TOGGLE_EVENT, handleRetrievalFinderToggle);
+    return () => {
+      window.removeEventListener(RETRIEVAL_FINDER_TOGGLE_EVENT, handleRetrievalFinderToggle);
+    };
+  }, []);
 
   useEffect(() => {
     let isAlive = true;
@@ -278,12 +280,6 @@ function App() {
     <AppContainer>
       <GlobalStyles />
       <Header />
-      <RetrievalUtilityOverlay
-        key={location.key}
-        isOpen={isRetrievalUtilityOpen}
-        onRequestOpen={() => setRetrievalUtilityRouteKey(location.key)}
-        onRequestClose={() => setRetrievalUtilityRouteKey('')}
-      />
 
       <Routes>
         <Route path="/" element={operationsPage} />
@@ -295,7 +291,16 @@ function App() {
         <Route path="/all-items" element={<AllItemsList />} />
         <Route path="/declutter" element={<DeclutterDeckPage />} />
         <Route path="/logs" element={<LogsPage />} />
-        <Route path="/retrieval" element={<RetrievalPage />} />
+        <Route
+          path="/retrieval"
+          element={
+            <RetrievalPage
+              finderOpen={retrievalFinderOpen}
+              onToggleResults={() => setRetrievalFinderOpen((current) => !current)}
+              resultsVisible={retrievalFinderOpen}
+            />
+          }
+        />
         <Route path="/items/:itemId" element={<ItemPage />} />
       </Routes>
     </AppContainer>

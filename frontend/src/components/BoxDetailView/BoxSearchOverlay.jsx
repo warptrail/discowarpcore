@@ -82,6 +82,32 @@ const Tools = styled.div`
   gap: 10px;
   @media (max-width: 520px) { grid-template-columns: 1fr; }
 `;
+const DirectionToggle = styled.button`
+  min-width: 48px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(220, 234, 240, 0.88);
+  font: 900 1.55rem/1 ui-monospace, monospace;
+  text-shadow: 0 0 9px rgba(76, 198, 193, 0.18);
+  cursor: pointer;
+  transition: color 140ms ease, text-shadow 140ms ease, transform 140ms ease;
+
+  &:hover,
+  &:focus-visible {
+    color: #fff;
+    text-shadow: 0 0 12px rgba(127, 215, 255, 0.72);
+    outline: none;
+    transform: scale(1.08);
+  }
+
+  &:focus-visible {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.22em;
+  }
+`;
 const Clear = styled.button`
   min-width: 72px;
   min-height: 40px;
@@ -105,6 +131,8 @@ export default function BoxSearchOverlay({
   onQueryChange,
   sortMode,
   onSortChange,
+  sortDirection,
+  onSortDirectionChange,
   matchCount,
   onMinimize,
   onClear,
@@ -172,6 +200,14 @@ export default function BoxSearchOverlay({
           ariaLabel="Sort box search results"
           tone="#4CC6C1"
         />
+        <DirectionToggle
+          type="button"
+          aria-label={`Sort direction: ${sortDirection === 'desc' ? 'descending' : 'ascending'}`}
+          aria-pressed={sortDirection === 'desc'}
+          onClick={() => onSortDirectionChange(sortDirection === 'desc' ? 'asc' : 'desc')}
+        >
+          {sortDirection === 'desc' ? '↓' : '↑'}
+        </DirectionToggle>
         <Clear type="button" onClick={onClear}>Clear</Clear>
       </Tools>
       {query && matchCount === 0 ? (

@@ -59,6 +59,7 @@ export default function BoxLocationField({
       createLabelBuilder={(rawValue) => `Create location "${String(rawValue || '').trim()}"`}
       createBadgeText="Create"
       createBusyText="Creating..."
+      clearOnFocus
     />
   );
 }

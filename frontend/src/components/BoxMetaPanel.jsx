@@ -136,23 +136,32 @@ export default function BoxMetaPanel({
   onManageBox,
   imageRefreshToken = 0,
 }) {
-  const [quickGlanceOpen, setQuickGlanceOpen] = useState(false);
   const shortId = String(box?.box_id ?? box?.shortId ?? '');
   const title = box?.label ?? box?.name ?? 'Box';
   const group = String(box?.group ?? '').trim();
-  const description = String(box?.description ?? '').trim();
-  const notes = String(box?.notes ?? '').trim();
   const location = String(
     box?.location ?? box?.locationName ?? box?.locationId?.name ?? ''
   ).trim();
-  const tags = useMemo(
-    () =>
-      getRenderableBoxTags(box?.tags, {
-        blockedValues: [group, location],
-      }),
-    [box?.tags, group, location]
-  );
+  const description = String(box?.description ?? '').trim();
+  const notes = String(box?.notes ?? '').trim();
+  const previewTags = Array.isArray(box?.tags)
+    ? box.tags.map((tag) => String(tag?.value ?? tag ?? '').trim()).filter(Boolean)
+    : [];
   const children = kidsOf(box);
+  const [metaIndex, setMetaIndex] = useState(0);
+  const metadata = useMemo(() => [
+    group ? `Group · ${group}` : '',
+    `${Array.isArray(box?.items) ? box.items.length : 0} items`,
+    children.length ? `${children.length} nested boxes` : '',
+    box?.createdAt ? `Created · ${new Date(box.createdAt).toLocaleDateString()}` : '',
+    box?.updatedAt ? `Updated · ${new Date(box.updatedAt).toLocaleDateString()}` : '',
+    previewTags.length ? `${previewTags.length} tags` : '',
+  ].filter(Boolean), [box?.createdAt, box?.items, box?.updatedAt, children.length, group, previewTags.length]);
+  useEffect(() => {
+    if (metadata.length < 2) return undefined;
+    const timer = window.setInterval(() => setMetaIndex((index) => (index + 1) % metadata.length), 3200);
+    return () => window.clearInterval(timer);
+  }, [metadata.length]);
   const boxImageUrl =
     box?.image?.display?.url ||
     box?.image?.thumb?.url ||
@@ -194,10 +203,10 @@ export default function BoxMetaPanel({
     if (!box) return;
     window.dispatchEvent(
       new CustomEvent(BOX_CONTEXT_STATE_EVENT, {
-        detail: { shortId, title, location, expanded: quickGlanceOpen },
+        detail: { shortId, title, location },
       })
     );
-  }, [box, location, quickGlanceOpen, shortId, title]);
+  }, [box, location, shortId, title]);
 
   // Child box click
   const goBox = (id) => {
@@ -211,28 +220,9 @@ export default function BoxMetaPanel({
     <S.Panel>
       <S.IdentityZone>
         <S.IdentityHeader>
-          <span aria-hidden="true" />
+          <S.RotatingMeta aria-live="polite">{metadata[metaIndex % Math.max(metadata.length, 1)]}</S.RotatingMeta>
           <S.IdentityActions>
             {!!depth && <S.DepthHint>level {depth}</S.DepthHint>}
-            <S.IconButton
-              type="button"
-              onClick={() => setQuickGlanceOpen((open) => !open)}
-              aria-expanded={quickGlanceOpen}
-              aria-label={quickGlanceOpen ? 'Hide box details' : 'Show box details'}
-              title={quickGlanceOpen ? 'Hide details' : 'Show details'}
-            >
-              <span aria-hidden="true">{quickGlanceOpen ? '⌃' : '⌄'}</span>
-            </S.IconButton>
-            {typeof onManageBox === 'function' ? (
-              <S.IconButton
-                type="button"
-                onClick={onManageBox}
-                aria-label={`Manage ${title}`}
-                title="Manage box"
-              >
-                <span aria-hidden="true">•••</span>
-              </S.IconButton>
-            ) : null}
           </S.IdentityActions>
         </S.IdentityHeader>
 
@@ -292,44 +282,18 @@ export default function BoxMetaPanel({
                     <S.CurrentBoxLocationValue>{location || 'Unassigned'}</S.CurrentBoxLocationValue>
                   </S.CurrentBoxLocationChip>
                 </S.CurrentBoxInfoRow>
-                {quickGlanceOpen && tags.length ? (
-                  <S.CurrentBoxTagsSection>
-                    <S.CurrentBoxTagsLabel>Tags</S.CurrentBoxTagsLabel>
-                    <S.CurrentBoxTagsRow>
-                      {tags.map((tag, index) => (
-                        <S.CurrentBoxTag key={`${shortId || 'box'}-tag-${index}-${tag}`}>
-                          {tag}
-                        </S.CurrentBoxTag>
-                      ))}
-                    </S.CurrentBoxTagsRow>
-                  </S.CurrentBoxTagsSection>
-                ) : null}
               </S.CurrentBoxMain>
             </S.CurrentBox>
 
-            {!quickGlanceOpen && description ? (
-              <S.CompactDescription>{description}</S.CompactDescription>
-            ) : null}
-
-            {quickGlanceOpen && description ? (
-              <S.NotesZone>
-                <S.NotesHeader>
-                  <S.NotesLabel>Visual description</S.NotesLabel>
-                </S.NotesHeader>
-                <S.NotesBody>{description}</S.NotesBody>
-              </S.NotesZone>
-            ) : null}
-
-            {quickGlanceOpen && notes ? (
-              <S.NotesZone>
-                <S.NotesHeader>
-                <S.NotesLabel>Notes</S.NotesLabel>
-                </S.NotesHeader>
-                <S.NotesBody>{notes}</S.NotesBody>
-              </S.NotesZone>
-            ) : null}
-
           </S.SummaryInfo>
+
+          {(description || notes || previewTags.length) ? (
+            <S.MetaPreview>
+              {description ? <S.MetaPreviewBlock><S.MetaPreviewLabel>Physical description</S.MetaPreviewLabel><S.MetaPreviewText>{description}</S.MetaPreviewText></S.MetaPreviewBlock> : null}
+              {notes ? <S.MetaPreviewBlock><S.MetaPreviewLabel>Notes</S.MetaPreviewLabel><S.MetaPreviewText>{notes}</S.MetaPreviewText></S.MetaPreviewBlock> : null}
+              {previewTags.length ? <S.MetaPreviewBlock><S.MetaPreviewLabel>Tags</S.MetaPreviewLabel><S.MetaPreviewText>{previewTags.join(' · ')}</S.MetaPreviewText></S.MetaPreviewBlock> : null}
+            </S.MetaPreview>
+          ) : null}
 
         {boxImageSrc ? (
           <S.BoxImageWrap>
@@ -339,7 +303,7 @@ export default function BoxMetaPanel({
         </S.SummaryGrid>
       </S.IdentityZone>
 
-      {quickGlanceOpen ? <S.ChildrenZone>
+      {children.length > 0 ? <S.ChildrenZone>
         <S.SectionHeader>
           <S.Label>Descendants</S.Label>
           <S.MetaCount>

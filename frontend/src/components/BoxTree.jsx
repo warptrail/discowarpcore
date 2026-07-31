@@ -10,6 +10,10 @@ import {
   matchesItemQuery,
   normalizeItemQuery,
 } from '../util/itemBrowse';
+import {
+  getBoxTheme,
+  getBoxThemeCssVars,
+} from '../util/inventoryColorTheme';
 
 const DEFAULT_SORT = 'recentlyAdded';
 
@@ -41,9 +45,10 @@ function BoxSection({
   const items = Array.isArray(node.items) ? node.items : [];
   const kids = Array.isArray(node.childBoxes) ? node.childBoxes : [];
   const isRootSection = depth === 0;
+  const boxThemeStyle = getBoxThemeCssVars(getBoxTheme(parentBoxId));
 
   return (
-    <S.SectionGroup $isRoot={isRootSection} $depth={depth}>
+    <S.SectionGroup $isRoot={isRootSection} $depth={depth} style={boxThemeStyle}>
       <S.RailBack aria-hidden="true" $isRoot={isRootSection} $depth={depth} />
 
       <S.RailFront $isRoot={isRootSection} $depth={depth}>

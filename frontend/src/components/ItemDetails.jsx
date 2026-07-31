@@ -16,6 +16,12 @@ function fmtDate(value) {
   return value ? dayjs(value).format('YYYY-MM-DD') : '—';
 }
 
+function fmtActivityDate(value) {
+  if (!value) return '';
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('MMM D, YYYY') : '';
+}
+
 const usdFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
   currency: 'USD',
@@ -155,6 +161,7 @@ export default function ItemDetails({
   imageUrlOverride = '',
   imageRefreshToken = 0,
   variant = 'full',
+  operationsActions = null,
 }) {
   const [itemData, setItemData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -243,6 +250,8 @@ export default function ItemDetails({
     dateAcquired,
     dateLastUsed,
     usageHistory,
+    checkHistory,
+    maintenanceHistory,
     valueCents,
     value,
     avgUseIntervalDays,
@@ -287,6 +296,10 @@ export default function ItemDetails({
 
   const tagList = Array.isArray(tags) ? tags : [];
   const usageDates = Array.isArray(usageHistory) ? usageHistory : [];
+  const checkDates = Array.isArray(checkHistory) ? checkHistory : [];
+  const maintenanceDates = Array.isArray(maintenanceHistory)
+    ? maintenanceHistory
+    : [];
   const categoryLabel = formatItemCategory(normalizeItemCategory(category));
   const externalLinks = normalizeExternalLinks(links);
   const ownership = getItemOwnershipContext(resolvedItemData);
@@ -324,11 +337,24 @@ export default function ItemDetails({
   const sourceBatchLink = sourceBatch?.batchId || sourceBatch?.id || sourceBatchId
     ? getImportBatchHref(sourceBatch?.batchId || sourceBatch?.id || sourceBatchId)
     : '';
+  const activityTimestamps = {
+    used: fmtActivityDate(
+      dateLastUsed || usageDates[usageDates.length - 1]
+    ),
+    checked: fmtActivityDate(
+      lastCheckedAt || checkDates[checkDates.length - 1]
+    ),
+    maintained: fmtActivityDate(
+      lastMaintainedAt || maintenanceDates[maintenanceDates.length - 1]
+    ),
+    consumed: fmtActivityDate(disposition_at),
+  };
 
   return (
     <S.Panel
       $lightboxOpen={lightboxOpen}
       $priorityTone={keepPriorityToneValue}
+      $operationsOverview={isOperationsOverview}
     >
 
       {isOperationsOverview ? (
@@ -337,10 +363,10 @@ export default function ItemDetails({
           thumbnailUrl={resolvedImageUrl}
           canOpenImageLightbox={canOpenLightbox}
           onOpenImageLightbox={canOpenLightbox ? () => setLightboxOpen(true) : undefined}
-          quantity={quantity}
           categoryLabel={categoryLabel}
           tags={tagList}
-          primaryBox={primaryBox}
+          boxId={resolvedBoxId}
+          boxLabel={resolvedBoxLabel}
           location={placementLocation}
           boxGroup={placementBoxGroup}
           breadcrumbTrail={breadcrumbTrail}
@@ -354,6 +380,13 @@ export default function ItemDetails({
           description={description}
           notes={notes}
           externalLinks={externalLinks}
+          inDeclutterDeck={Boolean(operationsActions?.inDeclutterDeck)}
+          declutterPending={Boolean(operationsActions?.declutterPending)}
+          onDeclutter={operationsActions?.onDeclutter}
+          onMove={operationsActions?.onMove}
+          onEdit={operationsActions?.onEdit}
+          activityActions={operationsActions?.activityActions || []}
+          activityTimestamps={activityTimestamps}
         />
       ) : (
         <>

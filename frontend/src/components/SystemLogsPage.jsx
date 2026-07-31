@@ -2,6 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { API_BASE } from '../api/API_BASE';
 import { DEFAULT_LOGS_LIMIT, fetchLogsPage } from '../api/logs';
 import * as S from './SystemLogs.styles';
+import {
+  getBoxTheme,
+  getBoxThemeCssVars,
+} from '../util/inventoryColorTheme';
 
 const TIMESTAMP_FORMATTER = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
@@ -576,6 +580,10 @@ export default function LogsPage() {
         const importedContext = getBulkImportedItemContext(entry, inferredImportMap);
         const chips = buildMetaChips(entry, importedContext);
         const primaryParts = buildPrimaryParts(entry, importedContext, boxShortIdMap);
+        const boxIdChip = primaryParts?.chips?.find((chip) => chip.kind === 'boxId');
+        const boxThemeStyle = boxIdChip
+          ? getBoxThemeCssVars(getBoxTheme(boxIdChip.label))
+          : undefined;
 
         return (
           <S.EntryRow key={entry.id}>
@@ -585,7 +593,7 @@ export default function LogsPage() {
                   {primaryParts.prefix ? <S.EntryPrefix>{primaryParts.prefix}</S.EntryPrefix> : null}
                   {primaryParts.chips?.length ? (
                     href ? (
-                      <S.BoxChipLink to={href}>
+                      <S.BoxChipLink to={href} style={boxThemeStyle}>
                         {primaryParts.chips.map((chip) =>
                           chip.kind === 'boxId' ? (
                             <S.BoxIdChip key={`${entry.id}-${chip.kind}`}>{chip.label}</S.BoxIdChip>
@@ -595,7 +603,7 @@ export default function LogsPage() {
                         )}
                       </S.BoxChipLink>
                     ) : (
-                      <S.BoxChipGroup>
+                      <S.BoxChipGroup style={boxThemeStyle}>
                         {primaryParts.chips.map((chip) =>
                           chip.kind === 'boxId' ? (
                             <S.BoxIdChip key={`${entry.id}-${chip.kind}`}>{chip.label}</S.BoxIdChip>

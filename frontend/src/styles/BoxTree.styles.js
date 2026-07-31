@@ -7,12 +7,21 @@ import {
   MOBILE_NARROW_BREAKPOINT,
 } from './tokens';
 import {
+  RailBack as SharedRailBack,
   RailFront as SharedRailFront,
   SectionTitle,
   ViewModeLabel,
 } from './Lists.shared.styles';
 
 export * from './Lists.shared.styles';
+
+export const RailBack = styled(SharedRailBack)`
+  background: var(--box-primary, #7fd7ff);
+  filter: drop-shadow(
+    0 0 ${({ $isRoot }) => ($isRoot ? '3px' : '2px')}
+      rgba(var(--box-primary-rgb, 127, 215, 255), 0.18)
+  );
+`;
 
 export const FinderReveal = styled.div`
   display: grid;
@@ -52,6 +61,13 @@ export const FinderRevealContent = styled.div`
 
 export const RailFront = styled(SharedRailFront)`
   padding-left: ${({ $isRoot }) => ($isRoot ? '0.58rem' : '0.48rem')};
+  background:
+    linear-gradient(
+      var(--box-wash-angle, 140deg),
+      rgba(var(--box-primary-rgb, 127, 215, 255), 0.055),
+      rgba(12, 15, 17, 0.94) 42%,
+      rgba(12, 15, 17, 0.9) 100%
+    );
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding-left: ${({ $isRoot }) => ($isRoot ? '0.36rem' : '0.32rem')};
@@ -70,6 +86,7 @@ export const TreeSectionTitle = styled(SectionTitle)`
   margin-bottom: 0.36rem;
   font-size: ${({ $isRoot }) => ($isRoot ? '1.16rem' : '1.02rem')};
   line-height: 1.18;
+  color: var(--box-neon, #7fd7ff);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.3rem;

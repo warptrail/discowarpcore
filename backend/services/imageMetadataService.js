@@ -29,6 +29,14 @@ function buildEmptyImageMetadata() {
       height: null,
       sizeBytes: null,
     },
+    tiny: {
+      storagePath: '',
+      url: '',
+      mimeType: '',
+      width: null,
+      height: null,
+      sizeBytes: null,
+    },
   };
 }
 
@@ -54,6 +62,7 @@ function collectImageStoragePaths(entity) {
   push(image?.original?.storagePath);
   push(image?.display?.storagePath);
   push(image?.thumb?.storagePath);
+  push(image?.tiny?.storagePath);
 
   // Legacy single-image shape fallback.
   push(image?.storagePath);

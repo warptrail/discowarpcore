@@ -158,41 +158,52 @@ export const ModeToggleRow = styled.div`
 export const ModeToggleGroup = styled.div`
   display: inline-grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.22rem;
-  padding: 0.2rem;
-  border-radius: 12px;
-  border: 1px solid rgba(127, 215, 255, 0.28);
-  background: rgba(10, 16, 24, 0.62);
+  gap: 0.12rem;
+  padding: 0.16rem;
+  border-radius: 8px;
+  border: 1px solid rgba(127, 215, 255, 0.24);
+  background: linear-gradient(180deg, rgba(4, 9, 15, 0.9), rgba(20, 29, 38, 0.82));
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.62),
+    0 1px 0 rgba(255, 255, 255, 0.04);
 `;
 
 export const ModeToggleButton = styled.button`
-  min-height: 34px;
-  padding: 0.22rem 0.76rem;
-  border-radius: 9px;
-  border: 1px solid
-    ${({ $active }) =>
-      $active ? 'rgba(119, 213, 255, 0.58)' : 'rgba(255, 255, 255, 0.16)'};
+  min-height: 28px;
+  padding: 0.16rem 0.66rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
   background: ${({ $active }) =>
     $active
-      ? 'linear-gradient(180deg, rgba(119, 213, 255, 0.26), rgba(119, 213, 255, 0.14))'
-      : 'rgba(255, 255, 255, 0.06)'};
-  color: ${({ $active }) => ($active ? '#e8f7ff' : RETRIEVAL.textDim)};
-  font-size: 0.76rem;
-  font-weight: 760;
-  letter-spacing: 0.06em;
+      ? 'linear-gradient(180deg, rgba(119, 213, 255, 0.3), rgba(55, 119, 148, 0.2))'
+      : 'transparent'};
+  box-shadow: ${({ $active }) =>
+    $active
+      ? 'inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 0 8px rgba(119, 213, 255, 0.12)'
+      : 'none'};
+  color: ${({ $active }) => ($active ? '#e8f7ff' : RETRIEVAL.textMuted)};
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+  transition: background 120ms ease, box-shadow 120ms ease, color 120ms ease;
 
   &:hover {
-    border-color: ${({ $active }) =>
-      $active ? 'rgba(119, 213, 255, 0.72)' : 'rgba(119, 213, 255, 0.46)'};
+    color: #e8f7ff;
+    background: ${({ $active }) =>
+      $active ? 'linear-gradient(180deg, rgba(119, 213, 255, 0.34), rgba(55, 119, 148, 0.24))' : 'rgba(255, 255, 255, 0.06)'};
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(119, 213, 255, 0.76);
+    outline-offset: 1px;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-    font-size: ${MOBILE_FONT_SM};
-    padding: 0.2rem 0.6rem;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.62rem;
   }
 `;
 
@@ -574,25 +585,44 @@ export const RefineHeaderRow = styled.div`
 `;
 
 export const RefineToggle = styled.button`
-  min-height: 34px;
-  border-radius: 10px;
-  border: 1px solid rgba(127, 215, 255, 0.36);
-  background: rgba(127, 215, 255, 0.14);
-  color: #d9efff;
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 26px;
+  border: 0;
+  background: transparent;
+  color: rgba(217, 239, 255, 0.58);
+  font-size: 0.62rem;
+  font-weight: 760;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  padding: 0.2rem 0.62rem;
+  padding: 0 0.14rem;
   cursor: pointer;
 
+  &::after {
+    content: '+';
+    color: rgba(103, 212, 202, 0.78);
+    font-size: 0.72rem;
+    line-height: 1;
+  }
+
+  &[aria-expanded='true']::after {
+    content: '−';
+  }
+
   &:hover {
-    background: rgba(127, 215, 255, 0.2);
+    color: rgba(217, 239, 255, 0.9);
+  }
+
+  &:focus-visible {
+    outline: 1px solid rgba(127, 215, 255, 0.62);
+    outline-offset: 3px;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+    min-height: 44px;
     font-size: ${MOBILE_FONT_SM};
+    padding-inline: 0.28rem;
   }
 `;
 
@@ -605,10 +635,9 @@ export const RefineCount = styled.span`
 export const RefinePanel = styled.div`
   display: grid;
   gap: 0.52rem;
-  border: 1px solid rgba(127, 215, 255, 0.16);
-  border-radius: 12px;
-  background: rgba(10, 16, 24, 0.56);
-  padding: 0.48rem;
+  border-left: 1px solid rgba(127, 215, 255, 0.22);
+  background: rgba(10, 16, 24, 0.22);
+  padding: 0.42rem 0.42rem 0.42rem 0.62rem;
 `;
 
 export const FilterGrid = styled.div`
@@ -646,10 +675,9 @@ export const BoxFilterGrid = styled.div`
 export const FilterControl = styled.div`
   display: grid;
   gap: 0.24rem;
-  border: 1px solid rgba(127, 215, 255, 0.17);
-  border-radius: 11px;
-  padding: 0.42rem;
-  background: rgba(12, 18, 26, 0.65);
+  min-width: 0;
+  padding: 0.18rem 0;
+  background: transparent;
 `;
 
 export const FilterLabel = styled.span`
@@ -674,7 +702,7 @@ export const FilterComboboxShell = styled.div`
 
 export const FilterComboboxInput = styled.input`
   ${controlField};
-  min-height: 36px;
+  min-height: 34px;
   padding-right: 2rem;
   font-size: 0.84rem;
   border-color: ${({ $variant }) =>
@@ -695,6 +723,11 @@ export const FilterComboboxInput = styled.input`
       $variant === 'sort'
         ? 'linear-gradient(180deg, rgba(20, 55, 84, 0.84), rgba(13, 31, 49, 0.9))'
         : RETRIEVAL.panelAlt};
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 44px;
+    font-size: 16px;
   }
 `;
 
@@ -805,12 +838,12 @@ export const FilterComboboxEmptyState = styled.li`
 export const AddFilterButton = styled.button`
   min-width: 68px;
   border: 1px solid rgba(103, 239, 200, 0.38);
-  border-radius: 10px;
-  background: rgba(103, 239, 200, 0.14);
-  color: #d8fff2;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
+  border-radius: 5px;
+  background: rgba(103, 239, 200, 0.05);
+  color: rgba(216, 255, 242, 0.76);
+  font-size: 0.68rem;
+  font-weight: 760;
+  letter-spacing: 0.05em;
   cursor: pointer;
   padding: 0 0.65rem;
   transition: background 120ms ease;
@@ -826,7 +859,7 @@ export const AddFilterButton = styled.button`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-width: 74px;
-    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+    min-height: 44px;
     font-size: ${MOBILE_FONT_SM};
   }
 `;
@@ -2518,6 +2551,13 @@ export const LightboxPanel = styled.div`
   display: grid;
   gap: 0.36rem;
   justify-items: center;
+  ${({ $presentation }) =>
+    $presentation === 'phone'
+      ? `
+    width: min(82vw, 390px);
+    max-height: min(72vh, 620px);
+  `
+      : ''}
 `;
 
 export const LightboxImage = styled.img`
@@ -2526,6 +2566,13 @@ export const LightboxImage = styled.img`
   width: auto;
   height: auto;
   object-fit: contain;
+  ${({ $presentation }) =>
+    $presentation === 'phone'
+      ? `
+    max-width: 100%;
+    max-height: min(60vh, 520px);
+  `
+      : ''}
   display: block;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.2);

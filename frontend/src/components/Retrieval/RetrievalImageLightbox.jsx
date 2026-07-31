@@ -6,6 +6,7 @@ export default function RetrievalImageLightbox({
   isOpen = false,
   imageSrc = '',
   itemName = '',
+  presentation = 'default',
   onClose,
 }) {
   useEffect(() => {
@@ -31,7 +32,10 @@ export default function RetrievalImageLightbox({
       aria-label={title ? `Image preview for ${title}` : 'Image preview'}
       onClick={onClose}
     >
-      <S.LightboxPanel onClick={(event) => event.stopPropagation()}>
+      <S.LightboxPanel
+        $presentation={presentation}
+        onClick={(event) => event.stopPropagation()}
+      >
         <S.LightboxCloseButton
           type="button"
           onClick={onClose}
@@ -41,6 +45,7 @@ export default function RetrievalImageLightbox({
           ×
         </S.LightboxCloseButton>
         <S.LightboxImage
+          $presentation={presentation}
           src={imageSrc}
           alt={title ? `${title} full image` : 'Full image preview'}
         />

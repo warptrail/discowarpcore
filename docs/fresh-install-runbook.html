@@ -249,13 +249,12 @@ scripts/neonazoth/install-codex-ssh-access.sh</code></pre>
         local <code>backend/media</code> so the fresh install matches Neon Azoth.
       </p>
       <pre><code>cd ~/Developer/discowarpcore
-npm run neonazoth:tui</code></pre>
+python3 scripts/restore_dev_database.py --help</code></pre>
 
       <ol>
-        <li>Select <code>Overwrite local DB + media from NeonAzoth</code>.</li>
-        <li>Confirm backup and preview.</li>
-        <li>Review the <code>rsync --delete</code> dry run.</li>
-        <li>Type the exact confirmation phrase only when ready: <code>OVERWRITE LOCAL FROM NEONAZOTH</code>.</li>
+        <li>Use the dedicated restore script, not the Neon Azoth deploy TUI.</li>
+        <li>Create or confirm a local backup before restoring data.</li>
+        <li>Restore only into the local development database unless production work is explicitly intended.</li>
       </ol>
 
       <p class="warn">
@@ -321,16 +320,12 @@ npm run intake:tui</code></pre>
     <section>
       <h2>8. Verify Neon Azoth Control Panel TUI</h2>
       <pre><code>cd ~/Developer/discowarpcore
-npm run neonazoth:tui -- --overwrite-local-check
-npm run neonazoth:tui -- --merge-check
 npm run neonazoth:tui -- --status
 npm run neonazoth:tui</code></pre>
 
       <ul class="checklist">
-        <li><code>Status and health check</code> should show the remote process and health endpoint.</li>
-        <li><code>Merge Moonshade DB + media into NeonAzoth</code> pushes local-only data into production.</li>
-        <li><code>Overwrite local DB + media from NeonAzoth</code> restores this MacBook from production.</li>
-        <li><code>Protected sync + install + build + restart</code> deploys source code to Neon Azoth, preserving media and env files.</li>
+        <li><code>Status and health check</code> should show the remote health endpoint and LAN URL.</li>
+        <li><code>Protected sync + install + build + health check</code> deploys source code to Neon Azoth, preserving media and env files.</li>
       </ul>
     </section>
 
@@ -339,13 +334,13 @@ npm run neonazoth:tui</code></pre>
       <div class="grid">
         <div>
           <h3>Local restore from Neon Azoth</h3>
-          <pre><code>npm run neonazoth:tui</code></pre>
-          <p class="small">Choose <code>Overwrite local DB + media from NeonAzoth</code>.</p>
+          <pre><code>python3 scripts/restore_dev_database.py --help</code></pre>
+          <p class="small">Use the dedicated restore script; the deploy TUI no longer owns database/media restore.</p>
         </div>
         <div>
           <h3>Push local source to Neon Azoth</h3>
           <pre><code>npm run neonazoth:tui</code></pre>
-          <p class="small">Choose <code>Protected sync + install + build + restart</code>.</p>
+          <p class="small">Choose <code>Protected sync + install + build + health check</code>.</p>
         </div>
         <div>
           <h3>Run image smoke test</h3>

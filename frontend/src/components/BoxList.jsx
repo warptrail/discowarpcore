@@ -15,6 +15,12 @@ import {
   matchesBoxIdPrefix,
   normalizeBoxId,
 } from '../util/boxLocator';
+import {
+  getBoxTheme,
+  getBoxThemeCssVars,
+} from '../util/inventoryColorTheme';
+import OperationsBoxQuickPeek from './OperationsQuickPeek/OperationsBoxQuickPeek';
+import useOperationsQuickPeek from './OperationsQuickPeek/useOperationsQuickPeek';
 
 const ORPHANED_CONTAINER_ID = '__system-orphaned-items__';
 const ORPHANED_CONTAINER_ROUTE = '/all-items?filter=orphaned';
@@ -152,6 +158,13 @@ export default function BoxList({
     const start = (safeCurrentPage - 1) * pageLimit;
     return controlledBoxes.slice(start, start + pageLimit);
   }, [controlledBoxes, pageLimit, safeCurrentPage]);
+  const quickPeekBoxes = useMemo(
+    () => flattenPreviewBoxes(pagedVisibleBoxes),
+    [pagedVisibleBoxes],
+  );
+  const quickPeek = useOperationsQuickPeek(quickPeekBoxes, {
+    ready: effectiveTotalCount > 0 || mergedBoxes.length > 0,
+  });
 
   const orphanedMatchesControls = useMemo(
     () =>
@@ -469,6 +482,8 @@ export default function BoxList({
                     searchQuery={searchQuery}
                     searchScope={searchScope}
                     density={density}
+                    selectedBoxId={quickPeek.selectedBoxId}
+                    onOpenQuickPeek={quickPeek.openBox}
                   />
                 </S.OrphanedRevealShell>
               ) : null}
@@ -480,6 +495,8 @@ export default function BoxList({
                   searchQuery={searchQuery}
                   searchScope={searchScope}
                   density={density}
+                  selectedBoxId={quickPeek.selectedBoxId}
+                  onOpenQuickPeek={quickPeek.openBox}
                 />
               ))}
             </>
@@ -512,6 +529,24 @@ export default function BoxList({
           </S.PaginationButton>
         </S.PaginationBar>
       ) : null}
+
+      <OperationsBoxQuickPeek
+        box={quickPeek.selectedBox}
+        position={quickPeek.selectedIndex + 1}
+        total={quickPeek.totalBoxes}
+        expanded={quickPeek.expanded}
+        transitionDirection={quickPeek.transitionDirection}
+        canSelectPrevious={quickPeek.canSelectPrevious}
+        canSelectNext={quickPeek.canSelectNext}
+        onPrevious={quickPeek.selectPrevious}
+        onNext={quickPeek.selectNext}
+        onToggleExpanded={() =>
+          quickPeek.setExpanded((current) => !current)
+        }
+        onSetExpanded={quickPeek.setExpanded}
+        onClose={quickPeek.close}
+        onOpenFullBox={quickPeek.openFullBox}
+      />
     </S.Container>
   );
 }
@@ -533,6 +568,14 @@ function CompactBranch({
   const notes = String(node?.notes || '').trim();
   const isSystemContainer = !!node?.isSystemContainer;
   const isOrphanedContainer = node?.systemType === 'orphaned';
+  const boxTheme = getBoxTheme(node?.box_id, {
+    kind: isSystemContainer
+      ? isOrphanedContainer
+        ? 'orphaned'
+        : 'system'
+      : undefined,
+  });
+  const boxThemeStyle = getBoxThemeCssVars(boxTheme);
   const itemQtyTotal = getNodeItemCount(node);
   const title = node.label || node.name || 'Untitled';
   const route = isOrphanedContainer ? ORPHANED_CONTAINER_ROUTE : `/boxes/${node.box_id}`;
@@ -559,7 +602,7 @@ function CompactBranch({
   };
 
   return (
-    <S.TerminalBranch $depth={depth}>
+    <S.TerminalBranch $depth={depth} style={boxThemeStyle}>
       <S.TerminalRow
         role="treeitem"
         aria-expanded={hasMoreInfo ? expanded : undefined}
@@ -658,6 +701,8 @@ function Branch({
   searchQuery = '',
   searchScope = 'all',
   density = 'compact',
+  selectedBoxId = '',
+  onOpenQuickPeek,
 }) {
   const navigate = useNavigate();
   const [childrenExpanded, setChildrenExpanded] = useState(false);
@@ -670,6 +715,14 @@ function Branch({
   const isSystemContainer = !!node?.isSystemContainer;
   const isOrphanedContainer = node?.systemType === 'orphaned';
   const isRoot = depth === 0;
+  const boxTheme = getBoxTheme(node?.box_id, {
+    kind: isSystemContainer
+      ? isOrphanedContainer
+        ? 'orphaned'
+        : 'system'
+      : undefined,
+  });
+  const boxThemeStyle = getBoxThemeCssVars(boxTheme);
 
   const itemQtyTotal = getNodeItemCount(node);
   const matchingItems = getMatchingItemNames(node, searchQuery, searchScope);
@@ -680,13 +733,16 @@ function Branch({
     childBoxes.length > 0 &&
     (depth < 2 || childrenExpanded || autoExpandChildren);
   const nestedCount = countDescendants(node);
+  const isSelected =
+    !isSystemContainer &&
+    normalizeBoxId(node?.box_id) === normalizeBoxId(selectedBoxId);
 
-  const go = () => {
+  const go = (event) => {
     if (isOrphanedContainer) {
       navigate(ORPHANED_CONTAINER_ROUTE);
       return;
     }
-    navigate(`/boxes/${node.box_id}`);
+    onOpenQuickPeek?.(node, event.currentTarget);
   };
 
   const toggleChildren = (event) => {
@@ -695,15 +751,31 @@ function Branch({
   };
 
   return (
-    <S.NodeSection $isRoot={isRoot} $depth={depth}>
+    <S.NodeSection $isRoot={isRoot} $depth={depth} style={boxThemeStyle}>
       <S.RailBack aria-hidden="true" $isRoot={isRoot} $depth={depth} />
       <S.RailFront $isRoot={isRoot} $depth={depth}>
         <S.BoxCard
+          type="button"
           onClick={go}
+          aria-label={
+            isOrphanedContainer
+              ? 'Open orphaned items'
+              : `Preview box ${node.box_id}, ${
+                  node.label || node.name || 'Untitled'
+                }`
+          }
+          aria-expanded={isSystemContainer ? undefined : isSelected}
+          aria-controls={
+            isSystemContainer ? undefined : 'operations-box-quick-peek'
+          }
+          data-operations-box-preview-trigger={
+            isSystemContainer ? undefined : 'true'
+          }
           $isRoot={isRoot}
           $depth={depth}
           $isSystem={isSystemContainer}
           $density={density}
+          $selected={isSelected}
         >
           <S.BoxBodyRow $density={density}>
             <S.BoxImageFrame $density={density}>
@@ -761,25 +833,31 @@ function Branch({
                 <S.BoxSummary $density={density}>Virtual system container</S.BoxSummary>
               ) : null}
 
-              {visibleTags.length > 0 && (
-                <>
-                  <S.TagRow>
-                    {visibleTags.map((t, i) => (
-                      <S.TagBubble
-                        $isRoot={isRoot}
-                        $depth={depth}
-                        key={`${node._id || node.box_id}-tag-${i}`}
-                      >
-                        {t}
-                      </S.TagBubble>
-                    ))}
-                    {hiddenTagCount > 0 ? (
-                      <S.TagBubble $isRoot={isRoot} $depth={depth}>
-                        +{hiddenTagCount}
-                      </S.TagBubble>
-                    ) : null}
-                  </S.TagRow>
-                </>
+              {(visibleTags.length > 0 || notes) && (
+                <S.TagRow>
+                  {visibleTags.map((t, i) => (
+                    <S.TagBubble
+                      $isRoot={isRoot}
+                      $depth={depth}
+                      key={`${node._id || node.box_id}-tag-${i}`}
+                    >
+                      {t}
+                    </S.TagBubble>
+                  ))}
+                  {hiddenTagCount > 0 ? (
+                    <S.TagBubble $isRoot={isRoot} $depth={depth}>
+                      +{hiddenTagCount}
+                    </S.TagBubble>
+                  ) : null}
+                  {notes ? (
+                    <S.NotesSignal
+                      aria-label="Notes available"
+                      title="Notes available in quick peek"
+                    >
+                      N
+                    </S.NotesSignal>
+                  ) : null}
+                </S.TagRow>
               )}
 
               {matchingItems.length > 0 ? (
@@ -804,14 +882,17 @@ function Branch({
                 ) : null}
               </S.BoxFooter>
 
-              {notes ? (
-                  <S.NotesPreviewArea $density={density}>
-                  <S.NotesPreviewLabel>Notes</S.NotesPreviewLabel>
-                  <S.NotesPreviewText>{notes}</S.NotesPreviewText>
-                </S.NotesPreviewArea>
-              ) : null}
             </S.BoxContent>
           </S.BoxBodyRow>
+          <S.CardManifest aria-hidden="true" $isRoot={isRoot} $depth={depth}>
+            <span>
+              {isOrphanedContainer
+                ? 'virtual'
+                : `${childBoxes.length} ${childBoxes.length === 1 ? 'box' : 'boxes'}`}
+            </span>
+            <S.CardManifestMuted>//</S.CardManifestMuted>
+            <span>{itemQtyTotal} {itemQtyTotal === 1 ? 'item' : 'items'}</span>
+          </S.CardManifest>
         </S.BoxCard>
 
         {childBoxes.length > 0 && depth >= 2 ? (
@@ -835,6 +916,8 @@ function Branch({
                 searchQuery={searchQuery}
                 searchScope={searchScope}
                 density={density}
+                selectedBoxId={selectedBoxId}
+                onOpenQuickPeek={onOpenQuickPeek}
               />
             ))}
           </S.NodeChildren>
@@ -865,6 +948,22 @@ function summarizeTree(nodes, orphanedCount = 0) {
 
   walk(nodes);
   return summary;
+}
+
+function flattenPreviewBoxes(nodes) {
+  const flattened = [];
+
+  const walk = (list) => {
+    for (const node of list || []) {
+      if (!node?.isSystemContainer && normalizeBoxId(node?.box_id)) {
+        flattened.push(node);
+      }
+      walk(node?.childBoxes);
+    }
+  };
+
+  walk(nodes);
+  return flattened;
 }
 
 function applyTreeControls(

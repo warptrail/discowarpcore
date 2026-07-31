@@ -48,8 +48,13 @@ const Btn = styled.button`
     $active &&
     css`
       color: #f4f7fa;
-      background: linear-gradient(110deg, rgba(76,198,193,.16), rgba(167,139,250,.12));
-      box-shadow: inset 0 0 0 1px rgba(99, 215, 207, 0.26);
+      background: linear-gradient(
+        110deg,
+        rgba(var(--box-primary-rgb, 76, 198, 193), 0.16),
+        rgba(var(--box-secondary-rgb, 167, 139, 250), 0.12)
+      );
+      box-shadow: inset 0 0 0 1px
+        rgba(var(--box-primary-rgb, 99, 215, 207), 0.32);
     `}
 
   &:active {

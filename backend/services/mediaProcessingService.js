@@ -6,6 +6,10 @@ const sharp = require('sharp');
 
 const MediaState = require('../models/MediaState');
 const { DERIVATIVE_SIZES, DERIVATIVE_FORMAT, MEDIA_ROOT } = require('../config/media');
+const {
+  isManagedItemMediaPath,
+  generateItemTinyDerivative,
+} = require('./itemTinyImageService');
 const { createMediaId } = require('../utils/mediaId');
 const {
   MEDIA_ERROR_CODES,
@@ -457,10 +461,12 @@ function normalizeMediaStateRecord(record) {
     processedPath: toTrimmed(source?.processedPath),
     displayPath: toTrimmed(source?.displayPath),
     thumbPath: toTrimmed(source?.thumbPath),
+    tinyPath: toTrimmed(source?.tinyPath),
     renderTokens: normalizeRenderTokensForState(source?.renderTokens, DEFAULT_RENDER_TOKENS),
     activeVariant: normalizeActiveVariant(source?.activeVariant, 'original'),
     displayDerivedFrom: normalizeActiveVariantOrNull(source?.displayDerivedFrom),
     thumbDerivedFrom: normalizeActiveVariantOrNull(source?.thumbDerivedFrom),
+    tinyDerivedFrom: normalizeActiveVariantOrNull(source?.tinyDerivedFrom),
     processingStatus: normalizeProcessingStatus(source?.processingStatus, 'idle'),
     sourceType: toTrimmed(source?.sourceType).toLowerCase(),
     processingError: source?.processingError ?? null,
@@ -506,6 +512,12 @@ function normalizeMediaStateUpdate(updateSet = {}) {
       allowEmpty: true,
     });
   }
+  if (Object.prototype.hasOwnProperty.call(normalized, 'tinyPath')) {
+    normalized.tinyPath = resolveMediaPath(normalized.tinyPath, {
+      fieldName: 'tinyPath',
+      allowEmpty: true,
+    });
+  }
 
   if (Object.prototype.hasOwnProperty.call(normalized, 'renderTokens')) {
     normalized.renderTokens = validateAndResolveRenderTokens(normalized.renderTokens, {
@@ -526,6 +538,11 @@ function normalizeMediaStateUpdate(updateSet = {}) {
   if (Object.prototype.hasOwnProperty.call(normalized, 'thumbDerivedFrom')) {
     normalized.thumbDerivedFrom = normalizeActiveVariantOrNull(
       normalized.thumbDerivedFrom
+    );
+  }
+  if (Object.prototype.hasOwnProperty.call(normalized, 'tinyDerivedFrom')) {
+    normalized.tinyDerivedFrom = normalizeActiveVariantOrNull(
+      normalized.tinyDerivedFrom
     );
   }
 
@@ -562,10 +579,12 @@ async function upsertMediaStateByOriginalPath(
     processedPath: '',
     displayPath: '',
     thumbPath: '',
+    tinyPath: '',
     renderTokens: normalizeRenderTokensForState(DEFAULT_RENDER_TOKENS),
     activeVariant: 'original',
     displayDerivedFrom: null,
     thumbDerivedFrom: null,
+    tinyDerivedFrom: null,
     processingStatus: 'idle',
     sourceType: '',
     processingError: null,
@@ -655,6 +674,7 @@ function toVariantSiblingDirectory(sourceDirPath, targetVariantSegment) {
     'processed',
     'display',
     'thumb',
+    'tiny',
   ]);
 
   for (let index = segments.length - 1; index >= 0; index -= 1) {
@@ -1099,6 +1119,7 @@ async function syncDerivedVariantsForMedia(originalPath) {
   const thumbPath = computeDerivedPathFromSource(baseState.originalPath, 'thumb');
   const displayTempPath = `${displayPath}.tmp-${process.pid}-${Date.now()}`;
   const thumbTempPath = `${thumbPath}.tmp-${process.pid}-${Date.now()}`;
+  let tinyResult = null;
 
   await fs.mkdir(path.dirname(displayPath), { recursive: true });
   await fs.mkdir(path.dirname(thumbPath), { recursive: true });
@@ -1132,6 +1153,13 @@ async function syncDerivedVariantsForMedia(originalPath) {
         })
         .toFile(thumbTempPath),
     ]);
+
+    if (isManagedItemMediaPath(baseState.originalPath)) {
+      tinyResult = await generateItemTinyDerivative({
+        sourcePath: normalizedSourcePath,
+        identitySourcePath: baseState.originalPath,
+      });
+    }
 
     await Promise.all([
       assertOutputArtifact(displayTempPath, {
@@ -1185,14 +1213,20 @@ async function syncDerivedVariantsForMedia(originalPath) {
   const nextState = await upsertMediaStateByOriginalPath(baseState.originalPath, {
     displayPath,
     thumbPath,
+    tinyPath: tinyResult?.absolutePath || '',
     displayDerivedFrom: activeVariant,
     thumbDerivedFrom: activeVariant,
+    tinyDerivedFrom: tinyResult ? activeVariant : null,
   });
 
-  const supersededDerivativePaths = [baseState.displayPath, baseState.thumbPath]
+  const supersededDerivativePaths = [
+    baseState.displayPath,
+    baseState.thumbPath,
+    baseState.tinyPath,
+  ]
     .map((entry) => toTrimmed(entry))
     .filter(Boolean)
-    .filter((entry) => ![displayPath, thumbPath].includes(entry));
+    .filter((entry) => ![displayPath, thumbPath, tinyResult?.absolutePath].includes(entry));
   await Promise.allSettled(supersededDerivativePaths.map((entry) => fs.unlink(entry)));
 
   return nextState;
@@ -1347,6 +1381,7 @@ async function queueMediaProcessing(inputPath, outputPath, renderTokens, options
       activeVariant: 'original',
       displayDerivedFrom: null,
       thumbDerivedFrom: null,
+      tinyDerivedFrom: null,
       processedAt: null,
     }
   );
@@ -1455,6 +1490,7 @@ async function processImageWithObjectGlow(inputPath, outputPath, options = {}) {
         activeVariant: 'original',
         displayDerivedFrom: null,
         thumbDerivedFrom: null,
+        tinyDerivedFrom: null,
         processedAt: null,
       }
     );

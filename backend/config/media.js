@@ -9,6 +9,7 @@ const ITEM_MEDIA_SUBDIRS = {
   original: 'items/original',
   display: 'items/display',
   thumb: 'items/thumb',
+  tiny: 'items/tiny',
 };
 
 const IMPORT_MEDIA_SUBDIRS = {
@@ -35,6 +36,7 @@ const UPLOAD_LIMITS = {
 const DERIVATIVE_SIZES = {
   displayMaxDim: 1600,
   thumbMaxDim: 320,
+  tinySize: 64,
 };
 
 const DERIVATIVE_FORMAT = {
@@ -43,12 +45,14 @@ const DERIVATIVE_FORMAT = {
   sharpFormat: 'webp',
   displayQuality: 82,
   thumbQuality: 76,
+  tinyQuality: 72,
 };
 
 const MEDIA_SUBDIRS = [
   ITEM_MEDIA_SUBDIRS.original,
   ITEM_MEDIA_SUBDIRS.display,
   ITEM_MEDIA_SUBDIRS.thumb,
+  ITEM_MEDIA_SUBDIRS.tiny,
   IMPORT_MEDIA_SUBDIRS.staging,
   BOX_MEDIA_SUBDIRS.original,
   BOX_MEDIA_SUBDIRS.display,

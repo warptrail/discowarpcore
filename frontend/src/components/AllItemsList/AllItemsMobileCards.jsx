@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getItemHomeHref } from '../../api/itemDetails';
 import * as S from './AllItemsList.styles';
 import { getBatchActionEligibility, getVisibleTags } from './allItemsList.utils';
+import AllItemsMobileDetailDeck from './AllItemsMobileDetailDeck';
 
 function getItemHref(itemId) {
   if (!itemId) return '';
@@ -100,6 +101,9 @@ function MobileItemCard({
   onToggleItemSelection,
   onFocusBatch,
   onOpenImagePreview,
+  onOpenDetails,
+  detailOpen,
+  onCloseDetails,
 }) {
   const navigate = useNavigate();
   const meta = item?._allItems;
@@ -140,6 +144,53 @@ function MobileItemCard({
   const tagsValue = visible.length
     ? `${visible.join(', ')}${overflow > 0 ? ` +${overflow}` : ''}`
     : '—';
+
+  if (!compactBatchMode && !batchFocused) {
+    const summaryParts = [
+      meta?.categoryLabel,
+      meta?.isBoxed ? [meta?.boxId, meta?.boxLabel].filter(Boolean).join(' · ') : '',
+      meta?.locationLabel,
+    ].filter(Boolean);
+
+    return (
+      <S.MobileCard
+        $batchFocused={false}
+        $selected={false}
+        $detailOpen={detailOpen}
+        $accentColor={accentColor}
+        $accentActive={accentActive}
+      >
+        <S.MobileCondensedButton
+          type="button"
+          data-all-items-detail-id={String(item?._id || '')}
+          onClick={() => onOpenDetails?.(item)}
+        >
+          <S.MobileCondensedRow>
+            <S.MobileThumbFrame $large $accentColor={accentColor} $accentActive={accentActive}>
+              {thumbnailUrl ? (
+                <S.MobileThumbImage src={thumbnailUrl} alt="" loading="lazy" />
+              ) : (
+                <S.MobileThumbPlaceholder aria-hidden="true">∅</S.MobileThumbPlaceholder>
+              )}
+            </S.MobileThumbFrame>
+            <S.MobileCondensedText>
+              <S.MobileCondensedPrimary>
+                <S.MobileNameText>{name}</S.MobileNameText>
+                <S.MobileQty>{meta?.quantityLabel || '—'}</S.MobileQty>
+              </S.MobileCondensedPrimary>
+              <S.MobileSummaryLine>
+                {summaryParts.join(' // ') || 'Tap for item details'}
+              </S.MobileSummaryLine>
+            </S.MobileCondensedText>
+          </S.MobileCondensedRow>
+        </S.MobileCondensedButton>
+        {detailOpen ? (
+          <AllItemsMobileDetailDeck item={item} onClose={onCloseDetails} />
+        ) : null}
+      </S.MobileCard>
+    );
+  }
+
   return (
     <S.MobileCard
       $batchFocused={batchFocused}
@@ -183,17 +234,26 @@ function MobileItemCard({
                 onOpenImagePreview?.({
                   src: lightboxImageUrl || thumbnailUrl,
                   name,
+                  presentation: compactBatchMode ? 'phone' : 'default',
                 });
               }}
               aria-label={`Preview image for ${name}`}
               title={`Preview image for ${name}`}
             >
-              <S.MobileThumbFrame $accentColor={accentColor} $accentActive={accentActive}>
+              <S.MobileThumbFrame
+                $selectionLarge={compactBatchMode}
+                $accentColor={accentColor}
+                $accentActive={accentActive}
+              >
                 <S.MobileThumbImage src={thumbnailUrl} alt="" loading="lazy" />
               </S.MobileThumbFrame>
             </S.MobileThumbButton>
           ) : (
-            <S.MobileThumbFrame $accentColor={accentColor} $accentActive={accentActive}>
+            <S.MobileThumbFrame
+              $selectionLarge={compactBatchMode}
+              $accentColor={accentColor}
+              $accentActive={accentActive}
+            >
               <S.MobileThumbPlaceholder aria-hidden="true">∅</S.MobileThumbPlaceholder>
             </S.MobileThumbFrame>
           )}
@@ -221,35 +281,32 @@ function MobileItemCard({
                 </S.ItemOpenButton>
               ) : null}
             </S.NameRow>
+            {compactBatchMode ? (
+              <S.MobileSelectionIdentity>
+                <S.MobileIdentityLine>
+                  <S.MobileMetaLabel>box</S.MobileMetaLabel>
+                  <S.MobileMetaValue $accent={colorBy === 'box'} $accentColor={accentColor}>
+                    {boxValue}
+                  </S.MobileMetaValue>
+                </S.MobileIdentityLine>
+                <S.MobileIdentityLine>
+                  <S.MobileMetaLabel>location</S.MobileMetaLabel>
+                  <S.MobileMetaValue
+                    $accent={colorBy === 'location'}
+                    $accentColor={accentColor}
+                  >
+                    {meta?.locationLabel || 'Unknown'}
+                  </S.MobileMetaValue>
+                </S.MobileIdentityLine>
+              </S.MobileSelectionIdentity>
+            ) : null}
           </S.MobileNameBlock>
 
           {!compactBatchMode ? <S.MobileQty>{meta?.quantityLabel || '—'}</S.MobileQty> : null}
         </S.MobileTop>
 
         <S.MobileFacts>
-          {compactBatchMode ? (
-            <S.MobileMetaLine>
-              <S.MobileMetaLabel>box:</S.MobileMetaLabel>
-              {meta?.isBoxed ? (
-                meta?.boxHref ? (
-                  <S.MobileMetaLink
-                    to={meta.boxHref}
-                    $accent={colorBy === 'box'}
-                    $accentColor={accentColor}
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    {boxValue}
-                  </S.MobileMetaLink>
-                ) : (
-                  <S.MobileMetaValue $accent={colorBy === 'box'} $accentColor={accentColor}>
-                    {boxValue}
-                  </S.MobileMetaValue>
-                )
-              ) : (
-                <S.MobileMetaValue>{boxValue}</S.MobileMetaValue>
-              )}
-            </S.MobileMetaLine>
-          ) : (
+          {!compactBatchMode ? (
             <>
           <S.MobileMetaLine>
             <S.MobileMetaLabel>category:</S.MobileMetaLabel>
@@ -351,7 +408,7 @@ function MobileItemCard({
             <S.MobileNotes>{meta.dispositionNotesPreview}</S.MobileNotes>
           ) : null}
             </>
-          )}
+          ) : null}
         </S.MobileFacts>
       </S.MobileCardSurface>
     </S.MobileCard>
@@ -373,6 +430,9 @@ export default function AllItemsMobileCards({
   onSelectBatch,
   onFocusBatch,
   onOpenImagePreview,
+  onOpenItemDetails,
+  detailItemId = '',
+  onCloseItemDetails,
 }) {
   const safeItems = Array.isArray(items) ? items : [];
   const selectedIds = new Set(Array.isArray(selectedItemIds) ? selectedItemIds : []);
@@ -381,7 +441,7 @@ export default function AllItemsMobileCards({
   if (!batchFocused) {
     return (
       <S.MobileList>
-        {safeItems.map((item, index) => (
+          {safeItems.map((item, index) => (
           <MobileItemCard
             key={item?._id || `${item?.name || 'item'}-${item?._allItems?.createdAtMs || index}`}
             item={item}
@@ -397,8 +457,11 @@ export default function AllItemsMobileCards({
             onToggleItemSelection={onToggleItemSelection}
             onFocusBatch={onFocusBatch}
             onOpenImagePreview={onOpenImagePreview}
+            onOpenDetails={onOpenItemDetails}
+            detailOpen={String(item?._id || '') === String(detailItemId)}
+            onCloseDetails={onCloseItemDetails}
           />
-        ))}
+          ))}
       </S.MobileList>
     );
   }

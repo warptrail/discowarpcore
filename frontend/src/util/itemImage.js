@@ -32,3 +32,11 @@ export function getItemThumbnailUrl(item) {
 
   return normalizeMediaUrl(item?.imagePath);
 }
+
+export function getItemTinyThumbnailUrl(item) {
+  return normalizeMediaUrl(item?.image?.tiny?.url || item?.image?.tiny?.storagePath);
+}
+
+export function getItemMicroThumbnailUrl(item) {
+  return getItemTinyThumbnailUrl(item) || getItemThumbnailUrl(item);
+}

@@ -158,6 +158,7 @@ test('item media-status response includes frontend polling fields', async (t) =>
       processedPath: '/tmp/items/processed/item-3.webp',
       displayPath: '/tmp/items/display/item-3.webp',
       thumbPath: '/tmp/items/thumb/item-3.webp',
+      tinyPath: '/tmp/items/tiny/item-3.webp',
       activeVariant: 'processed',
       processingStatus: 'completed',
       processingError: null,
@@ -185,6 +186,7 @@ test('item media-status response includes frontend polling fields', async (t) =>
     'renderTokens',
     'sourceType',
     'thumbPath',
+    'tinyPath',
   ]);
 });
 

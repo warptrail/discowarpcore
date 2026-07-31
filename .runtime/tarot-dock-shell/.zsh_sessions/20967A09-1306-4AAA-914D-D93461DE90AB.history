@@ -54,3 +54,29 @@ copy 1
 scry-all
 banish
 farewell
+awaken --scry
+copy 1
+status
+scry-all
+status\
+health\
+logs backend\
+logs frontend
+health
+status\
+scry-all
+copy 1
+restart
+help
+restart
+restart --all
+restart all
+banish
+awaken --scry-all
+banish
+exit
+awaken
+banish
+exit
+awaken
+copy 1

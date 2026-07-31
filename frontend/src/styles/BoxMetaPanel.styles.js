@@ -44,13 +44,21 @@ export const Panel = styled.section`
   display: grid;
   gap: 10px;
   padding: 18px 14px 12px;
-  border: 1px solid rgba(107, 220, 212, 0.16);
+  border: 1px solid rgba(var(--box-primary-rgb, 125, 168, 182), 0.28);
   border-radius: 10px;
-  background: rgba(15, 20, 27, 0.9);
+  background:
+    linear-gradient(
+      var(--box-wash-angle, 118deg),
+      rgba(var(--box-primary-rgb, 125, 168, 182), 0.09),
+      rgba(var(--box-secondary-rgb, 167, 182, 255), 0.035) 46%,
+      transparent
+    ),
+    rgba(15, 20, 27, 0.9);
   box-shadow:
-    inset 0 1px rgba(255, 255, 255, 0.045),
-    0 12px 28px rgba(0, 0, 0, 0.22);
-  backdrop-filter: blur(14px);
+    inset 3px 0 0 rgba(var(--box-primary-rgb, 125, 168, 182), 0.68),
+    inset 0 1px rgba(255, 255, 255, 0.035),
+    0 10px 24px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(12px);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 10px;
@@ -79,6 +87,19 @@ export const SummaryGrid = styled.div`
     align-items: start;
     column-gap: 14px;
   }
+
+  @media (min-width: 600px) and (max-width: 979px) {
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 0.72fr);
+    grid-template-areas: "info preview" "media preview";
+    align-items: start;
+    column-gap: 18px;
+  }
+
+  @media (max-width: 599px) {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
 `;
 
 export const SummaryInfo = styled.div`
@@ -90,6 +111,47 @@ export const SummaryInfo = styled.div`
     grid-area: info;
     align-content: start;
   }
+`;
+
+export const MetaPreview = styled.aside`
+  grid-area: preview;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+  padding: 8px 0 0 14px;
+  border-left: 1px solid rgba(125, 168, 182, 0.16);
+  color: rgba(218, 230, 236, 0.72);
+
+  @media (max-width: 599px) {
+    grid-area: auto;
+    padding: 8px 0 0;
+    border-left: 0;
+    border-top: 1px solid rgba(125, 168, 182, 0.16);
+  }
+`;
+
+export const MetaPreviewBlock = styled.div`
+  min-width: 0;
+  overflow: hidden;
+`;
+
+export const MetaPreviewLabel = styled.div`
+  margin-bottom: 4px;
+  color: rgba(184, 202, 212, 0.48);
+  font: 700 0.58rem/1 ui-monospace, monospace;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+`;
+
+export const MetaPreviewText = styled.div`
+  display: -webkit-box;
+  overflow: hidden;
+  color: rgba(218, 230, 236, 0.74);
+  font-size: 0.78rem;
+  line-height: 1.38;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 `;
 
 export const IdentityHeader = styled.div`
@@ -109,6 +171,25 @@ export const IdentityHeader = styled.div`
     flex-wrap: wrap;
     gap: 6px;
   }
+`;
+
+export const RotatingMeta = styled.span`
+  margin-right: auto;
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(184, 202, 212, 0.46);
+  font: 600 0.68rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  animation: prism-meta 320ms ease;
+
+  @keyframes prism-meta {
+    from { opacity: 0; transform: translateY(3px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) { animation: none; }
 `;
 
 export const IdentityActions = styled.div`
@@ -140,7 +221,7 @@ export const IconButton = styled.button`
   padding: 0;
   border: 0;
   border-radius: 6px;
-  color: rgba(231, 236, 243, 0.78);
+  color: rgba(190, 204, 214, 0.48);
   background: transparent;
   cursor: pointer;
   font: 800 0.9rem/1 ui-monospace, monospace;
@@ -149,9 +230,9 @@ export const IconButton = styled.button`
 
   &:hover,
   &:focus-visible {
-    color: #fff;
-    background: rgba(76, 198, 193, 0.1);
-    outline: 1px solid rgba(76, 198, 193, 0.34);
+    color: rgba(226, 237, 242, 0.9);
+    background: rgba(120, 170, 182, 0.08);
+    outline: 1px solid rgba(120, 170, 182, 0.28);
     outline-offset: 1px;
   }
 `;
@@ -258,49 +339,43 @@ export const EditBoxButton = styled.button`
 export const CurrentBox = styled.div`
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
+  align-items: start;
   gap: 12px;
   min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid ${LCARS.teal}52;
-  border-radius: ${NODE_RADIUS};
+  padding: 8px 0 9px;
+  border: 0;
+  border-bottom: 1px solid rgba(var(--box-primary-rgb, 125, 168, 182), 0.22);
+  border-radius: 0;
   color: ${LCARS.text};
-  background: linear-gradient(
-      105deg,
-      ${LCARS.teal}2b,
-      rgba(167, 182, 255, 0.08) 48%,
-      transparent 72%
-    ),
-    ${LCARS.panelSoft};
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045),
-    0 10px 22px rgba(0, 0, 0, 0.16);
+  background: transparent;
+  box-shadow: none;
   cursor: default;
   margin-top: 2px;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 9px;
-    padding: 8px 9px;
-    border-radius: 9px;
+    padding: 7px 0 8px;
+    border-radius: 0;
   }
 `;
 
 export const CurrentBoxId = styled.span`
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     'Liberation Mono', 'Courier New', monospace;
-  font-size: 0.93rem;
+  font-size: 1.08rem;
   font-weight: 800;
   letter-spacing: 0.14em;
   line-height: 1;
-  padding: 5px 8px;
-  border-radius: 8px;
-  color: ${LCARS.teal};
-  background: ${LCARS.teal}1f;
-  border: 1px solid ${LCARS.teal}57;
+  padding: 3px 0;
+  border-radius: 0;
+  color: var(--box-neon, rgba(109, 201, 196, 0.78));
+  background: transparent;
+  border: 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_SM};
     letter-spacing: 0.09em;
-    padding: 4px 6px;
+    padding: 3px 0;
   }
 `;
 
@@ -360,8 +435,8 @@ export const CurrentBoxTag = styled.span`
   max-width: 100%;
   padding: 3px 9px;
   border-radius: ${TERMINAL_CHIP_RADIUS};
-  border: 1px solid ${LCARS.lilac}66;
-  background: ${LCARS.lilac}1f;
+  border: 1px solid rgba(var(--box-secondary-rgb, 167, 182, 255), 0.4);
+  background: rgba(var(--box-secondary-rgb, 167, 182, 255), 0.12);
   color: ${LCARS.text};
   font-size: 0.69rem;
   font-weight: 700;
@@ -379,7 +454,7 @@ export const CurrentBoxTag = styled.span`
 `;
 
 export const CurrentBoxTitle = styled.span`
-  color: #edf3ff;
+  color: var(--box-neon, #edf3ff);
   font-size: clamp(1.05rem, 2.2vw, 1.28rem);
   font-weight: 800;
   letter-spacing: -0.015em;
@@ -423,48 +498,26 @@ export const CurrentBoxLocationChip = styled.span`
   gap: 7px;
   width: fit-content;
   max-width: 100%;
-  min-height: 26px;
-  padding: 4px 10px;
-  border-radius: ${TERMINAL_CHIP_RADIUS};
-  border: 1px solid
-    ${({ $empty, $variant }) =>
-      $empty
-        ? 'rgba(167, 182, 255, 0.4)'
-        : $variant === 'group'
-        ? 'rgba(76, 198, 193, 0.66)'
-        : 'rgba(232, 177, 92, 0.62)'};
-  background: ${({ $empty, $variant }) =>
-    $empty
-      ? 'rgba(167, 182, 255, 0.14)'
-      : $variant === 'group'
-      ? 'rgba(76, 198, 193, 0.21)'
-      : 'rgba(232, 177, 92, 0.2)'};
-  color: ${({ $empty, $variant }) =>
-    $empty ? LCARS.textDim : $variant === 'group' ? '#d6fff8' : '#ffe5af'};
-  box-shadow: ${({ $empty, $variant }) =>
-    $empty
-      ? 'none'
-      : $variant === 'group'
-      ? '0 0 0 1px rgba(76, 198, 193, 0.18) inset'
-      : '0 0 0 1px rgba(232, 177, 92, 0.12) inset'};
+  min-height: 20px;
+  padding: 0;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  color: ${({ $empty }) => ($empty ? LCARS.textDim : '#d7e5ec')};
+  box-shadow: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 6px;
-    min-height: 24px;
-    padding: 3px 8px;
+    min-height: 20px;
+    padding: 0;
   }
 `;
 
 export const CurrentBoxLocationLabel = styled.span`
-  color: ${({ $empty, $variant }) =>
-    $empty
-      ? LCARS.textDim
-      : $variant === 'group'
-      ? 'rgba(207, 255, 246, 0.9)'
-      : 'rgba(255, 232, 181, 0.86)'};
-  font-size: 0.64rem;
-  font-weight: 760;
-  letter-spacing: 0.09em;
+  color: rgba(184, 202, 212, 0.48);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   line-height: 1;
 
@@ -475,9 +528,9 @@ export const CurrentBoxLocationLabel = styled.span`
 `;
 
 export const CurrentBoxLocationValue = styled.span`
-  color: inherit;
-  font-size: 0.76rem;
-  font-weight: 700;
+  color: var(--box-muted, #d7e5ec);
+  font-size: 0.86rem;
+  font-weight: 760;
   letter-spacing: 0.03em;
   line-height: 1.1;
   min-width: 0;
@@ -495,6 +548,15 @@ export const CurrentBoxLocationValue = styled.span`
 export const BoxImageWrap = styled.div`
   width: min(360px, 100%);
   aspect-ratio: 1 / 1;
+  grid-area: media;
+
+  @media (max-width: 599px) {
+    order: 3;
+    width: 100%;
+    max-height: 290px;
+    overflow: hidden;
+    aspect-ratio: 16 / 10;
+  }
   display: grid;
   place-items: center;
   border-radius: ${NODE_RADIUS};

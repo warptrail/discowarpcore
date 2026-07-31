@@ -1,0 +1,253 @@
+import { useEffect, useState } from 'react';
+import styled from 'styled-components';
+import { getItemHomeHref } from '../../api/itemDetails';
+
+const Printout = styled.div`
+  position: absolute;
+  z-index: 40;
+  top: calc(100% - 5px);
+  left: 0.5rem;
+  right: 0.5rem;
+  animation: print-card 180ms cubic-bezier(0.2, 0.78, 0.24, 1) both;
+
+  @keyframes print-card {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+const Deck = styled.section`
+  display: grid;
+  grid-template-rows: auto minmax(150px, 1fr) auto;
+  height: min(350px, 52dvh);
+  overflow: hidden;
+  border: 1px solid rgba(103, 212, 202, 0.46);
+  border-radius: 2px 2px 8px 8px;
+  background: #091015;
+  box-shadow:
+    0 20px 42px rgba(0, 0, 0, 0.72),
+    inset 3px 0 0 rgba(103, 212, 202, 0.12);
+`;
+
+const Header = styled.header`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.6rem;
+  padding: 0.66rem 0.72rem;
+  border-bottom: 1px solid rgba(127, 215, 255, 0.12);
+  background: #0b1319;
+`;
+
+const Name = styled.h2`
+  margin: 0;
+  overflow: hidden;
+  color: #e6edf3;
+  font-size: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const Position = styled.div`
+  margin-top: 0.2rem;
+  color: #67d4ca;
+  font: 0.68rem/1.2 "SFMono-Regular", Consolas, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+`;
+
+const Close = styled.button`
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(127, 215, 255, 0.26);
+  border-radius: 3px;
+  background: #0d171e;
+  color: #d8f3ff;
+  font-size: 1rem;
+`;
+
+const Card = styled.div`
+  margin: 0;
+  padding: 0.9rem 1rem;
+  overflow: auto;
+  border: 0;
+  background: #0b1218;
+`;
+
+const SectionTitle = styled.h3`
+  margin: 0 0 0.8rem;
+  color: #4cc6c1;
+  font: 800 0.72rem/1.2 "SFMono-Regular", Consolas, monospace;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+`;
+
+const DataList = styled.dl`
+  display: grid;
+  grid-template-columns: minmax(86px, auto) minmax(0, 1fr);
+  gap: 0.6rem 0.8rem;
+  margin: 0;
+
+  dt {
+    color: rgba(185, 195, 205, 0.64);
+    font: 0.68rem/1.35 "SFMono-Regular", Consolas, monospace;
+    text-transform: uppercase;
+  }
+
+  dd {
+    margin: 0;
+    color: rgba(230, 237, 243, 0.94);
+    font-size: 0.83rem;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+`;
+
+const Footer = styled.footer`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  padding: 0.58rem 0.7rem 0.68rem;
+  border-top: 1px solid rgba(127, 215, 255, 0.12);
+  background: #0a1117;
+`;
+
+const NavButton = styled.button`
+  min-height: 38px;
+  border: 1px solid rgba(127, 215, 255, 0.3);
+  border-radius: 3px;
+  background: ${({ $primary }) =>
+    $primary
+      ? '#12303c'
+      : '#0d161d'};
+  color: #e6edf3;
+  font: 800 0.72rem/1 "SFMono-Regular", Consolas, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  &:disabled {
+    opacity: 0.3;
+  }
+`;
+
+function valueOrDash(value) {
+  const text = Array.isArray(value) ? value.filter(Boolean).join(', ') : String(value || '').trim();
+  return text || '—';
+}
+
+export default function AllItemsMobileDetailDeck({ item, onClose }) {
+  const [sectionIndex, setSectionIndex] = useState(0);
+  useEffect(() => {
+    setSectionIndex(0);
+  }, [item?._id]);
+
+  const meta = item?._allItems || {};
+  const sections = [
+    {
+      title: 'Identity',
+      rows: [
+        ['Quantity', meta.quantityLabel],
+        ['Category', meta.categoryLabel],
+        ['Status', meta.statusLabel],
+        ['Description', item?.description],
+      ],
+    },
+    {
+      title: 'Where It Lives',
+      rows: [
+        ['Box', [meta.boxId, meta.boxLabel].filter(Boolean).join(' · ')],
+        ['Location', meta.locationLabel],
+        ['Batch', meta.sourceBatchLabel],
+      ],
+    },
+    {
+      title: 'Metadata',
+      rows: [
+        ['Tags', meta.tags],
+        ['Owner', meta.ownerLabel],
+        ['Priority', meta.keepPriorityLabel],
+        ['Condition', item?.condition],
+        ['Value', Number(item?.valueCents) > 0 ? `$${(Number(item.valueCents) / 100).toFixed(2)}` : '—'],
+      ],
+    },
+    {
+      title: 'Notes & History',
+      rows: [
+        ['Notes', item?.notes],
+        ['Maintenance', item?.maintenanceNotes],
+        ['Acquired', item?.dateAcquired],
+        ['Last used', item?.dateLastUsed],
+      ],
+    },
+  ];
+
+  if (!item) return null;
+  const section = sections[sectionIndex];
+
+  return (
+    <Printout>
+      <Deck
+        role="dialog"
+        aria-modal="false"
+        aria-label={`Details for ${item.name || 'item'}`}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <Header>
+          <div>
+            <Name>{item.name || 'Unnamed item'}</Name>
+            <Position>{sectionIndex + 1} / {sections.length} · {section.title}</Position>
+          </div>
+          <Close type="button" onClick={onClose} aria-label="Close item details">×</Close>
+        </Header>
+        <Card>
+          <SectionTitle>{section.title}</SectionTitle>
+          <DataList>
+            {section.rows.map(([label, value]) => (
+              <div key={label} style={{ display: 'contents' }}>
+                <dt>{label}</dt>
+                <dd>{valueOrDash(value)}</dd>
+              </div>
+            ))}
+          </DataList>
+        </Card>
+        <Footer>
+          <NavButton
+            type="button"
+            disabled={sectionIndex === 0}
+            onClick={() => setSectionIndex((current) => Math.max(0, current - 1))}
+          >
+            ← Back
+          </NavButton>
+          {sectionIndex < sections.length - 1 ? (
+            <NavButton
+              type="button"
+              $primary
+              onClick={() => setSectionIndex((current) => Math.min(sections.length - 1, current + 1))}
+            >
+              Next →
+            </NavButton>
+          ) : (
+            <NavButton
+              type="button"
+              $primary
+              onClick={() => {
+                window.location.assign(getItemHomeHref(item._id));
+              }}
+            >
+              Open Item
+            </NavButton>
+          )}
+        </Footer>
+      </Deck>
+    </Printout>
+  );
+}

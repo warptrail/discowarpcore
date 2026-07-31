@@ -1,7 +1,6 @@
 import React, {
   useState,
   useRef,
-  useLayoutEffect,
   useEffect,
   useCallback,
   useContext,
@@ -12,7 +11,6 @@ import { getItemThumbnailUrl } from '../util/itemImage';
 import ItemDetails from './ItemDetails';
 import EditItemDetailsForm from './EditItemDetailsForm';
 import MoveItemToOtherBox from './MoveItemToOtherBox';
-import { getItemHomeHref } from '../api/itemDetails';
 import { moveBoxedItem, orphanBoxedItem } from '../api/boxedItems';
 import useIsMobile from '../hooks/useIsMobile';
 import { API_BASE } from '../api/API_BASE';
@@ -29,6 +27,10 @@ import {
   getImageProcessingToastSignature,
   isImageProcessingInFlight,
 } from './Processing/imageProcessingToastUtils';
+import {
+  getItemTheme,
+  getItemThemeCssVars,
+} from '../util/inventoryColorTheme';
 
 export default function ItemRow({
   item,
@@ -37,7 +39,7 @@ export default function ItemRow({
   onSaved,
   accent = 'blue',
   pulsing = [],
-  collapseDurMs = 300,
+  collapseDurMs = 520,
   flashing = false,
   flashColor = 'blue',
   triggerFlash,
@@ -111,12 +113,19 @@ export default function ItemRow({
     [item, localImage, localImagePath]
   );
 
-  const [targetHeight, setTargetHeight] = useState(0);
-  const contentRef = useRef(null);
-  const itemHomeHref = _id ? getItemHomeHref(_id) : null;
   const rowIsOpen = isOpen;
-  const showExpandedMoveAction = true;
-  const showItemNameLink = Boolean(itemHomeHref) && (!isMobile || rowIsOpen);
+  const itemColorTheme = useMemo(
+    () =>
+      getItemTheme(ownership.boxId, _id, {
+        selected: rowIsOpen,
+        varied: true,
+      }),
+    [_id, ownership.boxId, rowIsOpen],
+  );
+  const itemThemeStyle = useMemo(
+    () => getItemThemeCssVars(itemColorTheme),
+    [itemColorTheme],
+  );
   const { actions: timestampActions } = useItemTimestampActions({
     item,
     onSaved,
@@ -127,13 +136,6 @@ export default function ItemRow({
     setIsInDeclutterDeck(item?.declutterReadiness === 'in_deck');
   }, [item?._id, item?.declutterReadiness]);
   const declutterButtonDisabled = !_id || declutterNominating;
-  const declutterButtonTitle = declutterNominating
-    ? isInDeclutterDeck
-      ? 'Removing from the Declutter Deck...'
-      : 'Adding to the Declutter Deck...'
-    : isInDeclutterDeck
-      ? 'Remove this item from the Declutter Deck'
-      : 'Add this item to the Declutter Deck';
 
   const handleImageProcessingCompleted = useCallback(async ({ state } = {}) => {
     const nextPreviewUrl = String(
@@ -187,40 +189,6 @@ export default function ItemRow({
     onCompleted: handleImageProcessingCompleted,
     onFailed: handleImageProcessingFailed,
   });
-
-  // ---- measure helpers
-  const measureNow = () => {
-    const el = contentRef.current;
-    if (!el) return;
-    setTargetHeight(el.scrollHeight);
-  };
-
-  // Re-measure on open/mode/item switch (double rAF ensures subtree has swapped)
-  useLayoutEffect(() => {
-    if (!rowIsOpen) {
-      setTargetHeight(0);
-      return;
-    }
-    const id1 = requestAnimationFrame(() => {
-      const id2 = requestAnimationFrame(measureNow);
-      return () => cancelAnimationFrame(id2);
-    });
-    return () => cancelAnimationFrame(id1);
-  }, [rowIsOpen, expandedMode, _id]); // depend on id (or item) to catch item changes
-
-  // Track content growth (e.g., ItemDetails finishes loading)
-  useEffect(() => {
-    if (!rowIsOpen || !contentRef.current || typeof ResizeObserver === 'undefined')
-      return;
-
-    const ro = new ResizeObserver(() => {
-      // Only adjust while open
-      if (contentRef.current) setTargetHeight(contentRef.current.scrollHeight);
-    });
-
-    ro.observe(contentRef.current);
-    return () => ro.disconnect();
-  }, [rowIsOpen]);
 
   useEffect(() => {
     setLocalImage(item?.image || null);
@@ -541,35 +509,84 @@ export default function ItemRow({
     ]
   );
 
+  const runDeclutterChange = useCallback(
+    async (nextInDeck) => {
+      if (!_id) return null;
+
+      if (!nextInDeck) {
+        await removeDeclutterCandidateByItem(_id);
+        setIsInDeclutterDeck(false);
+        return null;
+      }
+
+      const [result] = await nominateDeclutterCandidates([_id]);
+      setIsInDeclutterDeck(true);
+      return result || null;
+    },
+    [_id]
+  );
+
+  const showDeclutterSuccess = useCallback(
+    (nextInDeck, result) => {
+      const undoTarget = !nextInDeck;
+      showToast?.({
+        variant: 'success',
+        sticky: true,
+        title: nextInDeck ? 'Declutter Deck updated' : 'Removed from Declutter Deck',
+        message: nextInDeck
+          ? result?.reopened
+            ? `Reopened "${name || 'item'}" for a new round.`
+            : `Added "${name || 'item'}" to the shared deck.`
+          : `Removed "${name || 'item'}" from the shared deck.`,
+        actions: [
+          {
+            id: `undo-declutter-${_id}-${nextInDeck ? 'add' : 'remove'}`,
+            label: 'Undo',
+            onClick: async () => {
+              hideToast?.();
+              try {
+                setDeclutterNominating(true);
+                await runDeclutterChange(undoTarget);
+                showToast?.({
+                  variant: 'success',
+                  title: 'Declutter change undone',
+                  message: undoTarget
+                    ? `Returned "${name || 'item'}" to the shared deck.`
+                    : `Removed "${name || 'item'}" from the shared deck.`,
+                  timeoutMs: 3200,
+                });
+              } catch (err) {
+                showToast?.({
+                  variant: 'danger',
+                  title: 'Undo failed',
+                  message: err?.message || 'Could not restore the previous deck state.',
+                  timeoutMs: 4200,
+                });
+              } finally {
+                setDeclutterNominating(false);
+              }
+            },
+          },
+        ],
+      });
+    },
+    [_id, hideToast, name, runDeclutterChange, showToast]
+  );
+
   const handleDeclutterDeckToggle = useCallback(
     async (event) => {
       event?.stopPropagation?.();
       if (!_id) return;
+      const nextInDeck = !isInDeclutterDeck;
+
       try {
         setDeclutterNominating(true);
-        if (isInDeclutterDeck) {
-          await removeDeclutterCandidateByItem(_id);
-          setIsInDeclutterDeck(false);
-          showToast?.({
-            variant: 'success',
-            title: 'Removed from Declutter Deck',
-            message: `Removed "${name || 'item'}" from the shared deck.`,
-            timeoutMs: 3600,
-          });
-          return;
-        }
-        const [result] = await nominateDeclutterCandidates([_id]);
-        setIsInDeclutterDeck(true);
-        showToast?.({
-          variant: 'success',
-          title: 'Declutter Deck updated',
-          message: result?.reopened ? `Reopened "${name || 'item'}" for a new round.` : `Added "${name || 'item'}" to the shared deck.`,
-          timeoutMs: 3600,
-        });
+        const result = await runDeclutterChange(nextInDeck);
+        showDeclutterSuccess(nextInDeck, result);
       } catch (err) {
         showToast?.({
           variant: 'danger',
-          title: isInDeclutterDeck ? 'Declutter removal failed' : 'Declutter add failed',
+          title: nextInDeck ? 'Declutter add failed' : 'Declutter removal failed',
           message: err?.message || 'Could not update the item.',
           timeoutMs: 5200,
         });
@@ -577,152 +594,131 @@ export default function ItemRow({
         setDeclutterNominating(false);
       }
     },
-    [_id, isInDeclutterDeck, name, showToast]
+    [_id, isInDeclutterDeck, runDeclutterChange, showDeclutterSuccess, showToast]
   );
 
   return (
     <S.Wrapper
+      style={itemThemeStyle}
       $accent={accent}
       $open={rowIsOpen}
       $pulsing={pulsing}
       $flashing={flashing}
       $flashColor={flashColor}
       $collapseDurMs={collapseDurMs}
-      $height={targetHeight}
     >
-      <S.Row onClick={handleRowClick} $open={rowIsOpen}>
-        <S.RowHeader $open={rowIsOpen}>
-          <S.RowMain $showThumb={!rowIsOpen}>
-            {!rowIsOpen && (
-              <S.RowThumb>
-                {collapsedThumbUrl ? (
-                  <S.RowThumbImage src={collapsedThumbUrl} alt={`${name || 'Item'} thumbnail`} />
-                ) : (
-                  <S.RowThumbPlaceholder aria-hidden="true" />
-                )}
-              </S.RowThumb>
-            )}
-
-            <S.TitleGroup $mobileCollapsed={!rowIsOpen}>
-              {showItemNameLink ? (
-                <S.ItemNameChip
-                  $mobileCollapsed={!rowIsOpen}
-                  to={itemHomeHref}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {name}
-                </S.ItemNameChip>
-              ) : (
-                <S.Title $mobileCollapsed={!rowIsOpen}>{name}</S.Title>
+      <S.RowShell>
+        <S.Row
+          type="button"
+          onClick={handleRowClick}
+          $open={rowIsOpen}
+          aria-expanded={rowIsOpen}
+          aria-controls={`item-dossier-${_id}`}
+          aria-label={
+            rowIsOpen
+              ? `Roll up ${name || 'item'} item dossier`
+              : `Open ${name || 'item'} item dossier`
+          }
+        >
+          <S.RowHeader $open={rowIsOpen} $hasItemLink={rowIsOpen}>
+            <S.RowMain $showThumb={!rowIsOpen}>
+              {!rowIsOpen && (
+                <S.RowThumb>
+                  {collapsedThumbUrl ? (
+                    <S.RowThumbImage src={collapsedThumbUrl} alt={`${name || 'Item'} thumbnail`} />
+                  ) : (
+                    <S.RowThumbPlaceholder aria-hidden="true" />
+                  )}
+                </S.RowThumb>
               )}
-              {!rowIsOpen && quantityLabel ? (
-                <S.QuantitySubtext>{quantityLabel}</S.QuantitySubtext>
-              ) : null}
-            </S.TitleGroup>
-          </S.RowMain>
 
-          <S.RowChevron aria-hidden="true" $open={rowIsOpen}>
-            ▾
-          </S.RowChevron>
-        </S.RowHeader>
-
-        {hasCollapsedQuickContent ? (
-          <S.QuickView $collapsed={rowIsOpen}>
-            {isMobile ? (
-              <S.QuickMetaRow>
-                <S.QuickSummaryDescription>
-                  {collapsedDescription}
-                </S.QuickSummaryDescription>
-              </S.QuickMetaRow>
-            ) : (
-              <S.QuickDesktopStack>
-                {showCollapsedTags ? (
-                  <S.QuickTagLane>
-                    {visibleCollapsedTags.map((tag) => (
-                      <S.QuickTag key={tag}>{tag}</S.QuickTag>
-                    ))}
-                    {hiddenCollapsedTagCount > 0 ? (
-                      <S.QuickTagOverflow>
-                        +{hiddenCollapsedTagCount}
-                      </S.QuickTagOverflow>
-                    ) : null}
-                  </S.QuickTagLane>
+              <S.TitleGroup $mobileCollapsed={!rowIsOpen}>
+                <S.Title $mobileCollapsed={!rowIsOpen} $expanded={rowIsOpen}>
+                  {name}
+                </S.Title>
+                {quantityLabel ? (
+                  <S.QuantitySubtext>{quantityLabel}</S.QuantitySubtext>
                 ) : null}
+                {rowIsOpen && isInDeclutterDeck ? (
+                  <S.RowDeckState>In Declutter Deck</S.RowDeckState>
+                ) : null}
+              </S.TitleGroup>
+            </S.RowMain>
 
-                {showCollapsedDescription ? (
+            {rowIsOpen ? (
+              <S.RowCapCommand aria-hidden="true">
+                <span>Roll up</span>
+                <S.RowCapSignal>
+                  <i />
+                  <i />
+                  <i />
+                </S.RowCapSignal>
+              </S.RowCapCommand>
+            ) : (
+              <S.RowChevron aria-hidden="true" $open={false}>
+                ▾
+              </S.RowChevron>
+            )}
+          </S.RowHeader>
+
+          {!rowIsOpen && hasCollapsedQuickContent ? (
+            <S.QuickView $collapsed={false}>
+              {isMobile ? (
+                <S.QuickMetaRow>
                   <S.QuickSummaryDescription>
                     {collapsedDescription}
                   </S.QuickSummaryDescription>
-                ) : null}
+                </S.QuickMetaRow>
+              ) : (
+                <S.QuickDesktopStack>
+                  {showCollapsedTags ? (
+                    <S.QuickTagLane>
+                      {visibleCollapsedTags.map((tag) => (
+                        <S.QuickTag key={tag}>{tag}</S.QuickTag>
+                      ))}
+                      {hiddenCollapsedTagCount > 0 ? (
+                        <S.QuickTagOverflow>
+                          +{hiddenCollapsedTagCount}
+                        </S.QuickTagOverflow>
+                      ) : null}
+                    </S.QuickTagLane>
+                  ) : null}
 
-                {showCollapsedFallback ? (
-                  <S.QuickSummaryFallback>No details</S.QuickSummaryFallback>
-                ) : null}
-              </S.QuickDesktopStack>
-            )}
-          </S.QuickView>
+                  {showCollapsedDescription ? (
+                    <S.QuickSummaryDescription>
+                      {collapsedDescription}
+                    </S.QuickSummaryDescription>
+                  ) : null}
+
+                  {showCollapsedFallback ? (
+                    <S.QuickSummaryFallback>No details</S.QuickSummaryFallback>
+                  ) : null}
+                </S.QuickDesktopStack>
+              )}
+            </S.QuickView>
+          ) : null}
+        </S.Row>
+
+        {rowIsOpen && _id ? (
+          <S.ItemHomeLink
+            href={`/items/${encodeURIComponent(_id)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Open ${name || 'item'} item page in a new tab`}
+            title="Open item page in a new tab"
+          >
+            ↗
+          </S.ItemHomeLink>
         ) : null}
-      </S.Row>
+      </S.RowShell>
 
       <S.Collapse
+        id={`item-dossier-${_id}`}
         $open={rowIsOpen}
         $collapseDurMs={collapseDurMs}
-        $height={targetHeight}
       >
-        <div ref={contentRef}>
+        <div>
           <S.DetailsCard>
-            {expandedMode !== 'move' && (
-              <S.ExpandedActionStrip>
-                <S.ExpandedActionCluster>
-                  <S.QuickActionButton
-                    type="button"
-                    $tone="edit"
-                    $active={expandedMode === 'edit'}
-                    onClick={handleEditModeToggle}
-                  >
-                    {expandedMode === 'edit' ? 'View' : 'Edit'}
-                  </S.QuickActionButton>
-                  {showExpandedMoveAction ? (
-                    <S.QuickActionButton
-                      type="button"
-                      $tone="move"
-                      onClick={handleMoveModeToggle}
-                    >
-                      Move
-                    </S.QuickActionButton>
-                  ) : null}
-                  {timestampActions.map((action) => (
-                    <S.QuickActionButton
-                      key={action.id}
-                      type="button"
-                      $tone={action.tone}
-                      disabled={action.disabled}
-                      onClick={action.onClick}
-                    >
-                      {action.label}
-                    </S.QuickActionButton>
-                  ))}
-                  <S.QuickActionButton
-                    type="button"
-                    $tone="declutter"
-                    $active={isInDeclutterDeck}
-                    disabled={declutterButtonDisabled}
-                    title={declutterButtonTitle}
-                    aria-pressed={isInDeclutterDeck}
-                    onClick={handleDeclutterDeckToggle}
-                  >
-                    {declutterNominating
-                      ? isInDeclutterDeck
-                        ? 'Removing…'
-                        : 'Adding…'
-                      : isInDeclutterDeck
-                        ? 'In Deck'
-                        : 'Declutter'}
-                  </S.QuickActionButton>
-                </S.ExpandedActionCluster>
-              </S.ExpandedActionStrip>
-            )}
-
             {expandedMode === 'move' ? (
               <S.MoveWorkspace>
                 <S.MoveWorkspaceHeader>
@@ -784,6 +780,14 @@ export default function ItemRow({
                 itemData={itemForView}
                 enableImageLightbox
                 variant="operationsOverview"
+                operationsActions={{
+                  inDeclutterDeck: isInDeclutterDeck,
+                  declutterPending: declutterButtonDisabled,
+                  onDeclutter: handleDeclutterDeckToggle,
+                  onMove: handleMoveModeToggle,
+                  onEdit: handleEditModeToggle,
+                  activityActions: timestampActions,
+                }}
                 imageUrlOverride={processedPreviewUrl}
                 imageRefreshToken={imageRefreshToken}
               />

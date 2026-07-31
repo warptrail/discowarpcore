@@ -1,0 +1,83 @@
+exit
+awaken
+banish
+exot
+exit
+status
+farewell
+awaken
+curl -s http://127.0.0.1:7611/api/health
+curl -s http://127.0.0.1:7610/
+status
+logs 1
+view
+banish
+farewell
+start frontend
+curl -s http://127.0.0.1:7610/
+status
+logs 1
+stop frontend
+farewell
+awaken
+1
+help
+links
+1
+banish
+exit
+exit
+awaken
+exit
+exit
+awaken
+scry 2
+banish
+exit
+awaken
+copy 1
+help
+python3 scripts/restore_dev_database.py --yes
+banish
+exit
+exit
+awaken
+scry all
+scry-all
+banish
+exit
+awaken --scry
+status
+copy 1
+open .
+copy 1
+scry-all
+banish
+farewell
+awaken --scry
+copy 1
+status
+scry-all
+status\
+health\
+logs backend\
+logs frontend
+health
+status\
+scry-all
+copy 1
+restart
+help
+restart
+restart --all
+restart all
+banish
+awaken --scry-all
+banish
+exit
+awaken
+banish
+exit
+awaken
+copy 1
+awaken

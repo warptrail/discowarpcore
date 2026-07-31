@@ -36,6 +36,7 @@ async function assertLandscapeUploadPreserved({
   mediaSubdirs,
   processUpload,
   prefix,
+  expectTiny = false,
 }) {
   const filename = uniqueFilename(prefix);
   const originalStoragePath = `${mediaSubdirs.original}/${filename}`;
@@ -81,6 +82,17 @@ async function assertLandscapeUploadPreserved({
     assert.ok(thumbMeta.height <= 320);
     assert.notEqual(displayMeta.width, displayMeta.height);
     assert.notEqual(thumbMeta.width, thumbMeta.height);
+
+    if (expectTiny) {
+      const tinyMeta = await sharp(
+        toAbsoluteMediaPath(processed.image.tiny.storagePath)
+      ).metadata();
+      assert.equal(tinyMeta.format, 'webp');
+      assert.equal(tinyMeta.width, 64);
+      assert.equal(tinyMeta.height, 64);
+    } else {
+      assert.equal(processed.image.tiny, undefined);
+    }
   } finally {
     if (processed?.filesToCleanup?.length) {
       await Promise.all(
@@ -97,6 +109,7 @@ test('item upload preserves true original landscape dimensions', async () => {
     mediaSubdirs: ITEM_MEDIA_SUBDIRS,
     processUpload: processItemImageUpload,
     prefix: 'item',
+    expectTiny: true,
   });
 });
 

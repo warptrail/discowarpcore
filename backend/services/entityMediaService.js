@@ -67,6 +67,7 @@ function normalizeMediaStateForResponse(state) {
     processedPath: toTrimmed(state.processedPath),
     displayPath: toTrimmed(state.displayPath),
     thumbPath: toTrimmed(state.thumbPath),
+    tinyPath: toTrimmed(state.tinyPath),
     sourceType: toTrimmed(state.sourceType).toLowerCase(),
     renderTokens: {
       mode: toTrimmed(state?.renderTokens?.mode).toLowerCase() || 'explicit',

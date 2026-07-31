@@ -15,9 +15,8 @@ export const BOX_SEARCH_SORT_OPTIONS = [
   { value: 'treeOrder', label: 'Tree order' },
   { value: 'recentlyAdded', label: 'Recently added' },
   { value: 'recentlyUpdated', label: 'Recently updated' },
-  { value: 'nameAsc', label: 'Name A–Z' },
-  { value: 'nameDesc', label: 'Name Z–A' },
-  { value: 'categoryAsc', label: 'Category A–Z' },
+  { value: 'name', label: 'Name' },
+  { value: 'category', label: 'Category' },
   { value: 'valueDesc', label: 'Value high–low' },
 ];
 
@@ -25,6 +24,7 @@ export default function useBoxWorkspaceSearch({ shortId, items }) {
   const [mode, setMode] = useState('closed');
   const [query, setQuery] = useState('');
   const [sortMode, setSortMode] = useState('treeOrder');
+  const [sortDirection, setSortDirection] = useState('asc');
   const openScrollYRef = useRef(0);
   const normalizedQuery = normalizeItemQuery(query);
 
@@ -41,10 +41,17 @@ export default function useBoxWorkspaceSearch({ shortId, items }) {
       : [...source];
 
     if (sortMode !== 'treeOrder') {
-      filtered.sort((a, b) => compareItemsByMode(a, b, sortMode));
+      const directionalMode = sortMode === 'name'
+        ? `name${sortDirection === 'desc' ? 'Desc' : 'Asc'}`
+        : sortMode === 'category'
+        ? `category${sortDirection === 'desc' ? 'Desc' : 'Asc'}`
+        : sortMode === 'valueDesc' && sortDirection === 'asc'
+        ? 'valueAsc'
+        : sortMode;
+      filtered.sort((a, b) => compareItemsByMode(a, b, directionalMode));
     }
     return filtered;
-  }, [items, normalizedQuery, sortMode]);
+  }, [items, normalizedQuery, sortDirection, sortMode]);
 
   const expand = useCallback(() => {
     openScrollYRef.current = window.scrollY;
@@ -63,6 +70,7 @@ export default function useBoxWorkspaceSearch({ shortId, items }) {
   const clear = useCallback(() => {
     setQuery('');
     setSortMode('treeOrder');
+    setSortDirection('asc');
     setMode('closed');
   }, []);
 
@@ -70,6 +78,7 @@ export default function useBoxWorkspaceSearch({ shortId, items }) {
     setMode('closed');
     setQuery('');
     setSortMode('treeOrder');
+    setSortDirection('asc');
   }, [shortId]);
 
   useEffect(() => {
@@ -90,11 +99,12 @@ export default function useBoxWorkspaceSearch({ shortId, items }) {
         minimized: mode !== 'expanded',
         query,
         sortMode,
+        sortDirection,
         matchCount: visibleItems.length,
         shortId: String(shortId || ''),
       },
     }));
-  }, [mode, query, shortId, sortMode, visibleItems.length]);
+  }, [mode, query, shortId, sortDirection, sortMode, visibleItems.length]);
 
   useEffect(() => {
     if (mode !== 'expanded') return undefined;
@@ -111,6 +121,8 @@ export default function useBoxWorkspaceSearch({ shortId, items }) {
     setQuery,
     sortMode,
     setSortMode,
+    sortDirection,
+    setSortDirection,
     visibleItems,
     matchCount: visibleItems.length,
     normalizedQuery,

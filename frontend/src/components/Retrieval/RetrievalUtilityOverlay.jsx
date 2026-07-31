@@ -1,8 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import RetrievalPage from './RetrievalPage';
 import * as S from './RetrievalUtilityOverlay.styles';
+import {
+  RETRIEVAL_FINDER_CLOSE_EVENT,
+  RETRIEVAL_FINDER_OPEN_EVENT,
+} from '../../constants/inventoryFinderEvents';
 
 export default function RetrievalUtilityOverlay({
   isOpen,
@@ -10,9 +14,36 @@ export default function RetrievalUtilityOverlay({
   onRequestClose,
 }) {
   const [hasStarted, setHasStarted] = useState(isOpen);
+  const transitionLockRef = useRef(false);
+
+  const claimTransition = useCallback(() => {
+    if (transitionLockRef.current) return false;
+    transitionLockRef.current = true;
+    window.setTimeout(() => {
+      transitionLockRef.current = false;
+    }, 320);
+    return true;
+  }, []);
+
+  const handleRequestOpen = useCallback(() => {
+    if (!claimTransition()) return;
+    window.dispatchEvent(new CustomEvent(RETRIEVAL_FINDER_OPEN_EVENT));
+    onRequestOpen?.();
+  }, [claimTransition, onRequestOpen]);
+
+  const handleRequestClose = useCallback(() => {
+    if (!claimTransition()) return;
+    window.dispatchEvent(new CustomEvent(RETRIEVAL_FINDER_CLOSE_EVENT));
+    onRequestClose?.();
+  }, [claimTransition, onRequestClose]);
 
   useEffect(() => {
     if (isOpen) setHasStarted(true);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    window.dispatchEvent(new CustomEvent(RETRIEVAL_FINDER_OPEN_EVENT));
   }, [isOpen]);
 
   useEffect(() => {
@@ -23,7 +54,7 @@ export default function RetrievalUtilityOverlay({
     }, 0);
 
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') onRequestClose?.();
+      if (event.key === 'Escape') handleRequestClose();
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -31,7 +62,7 @@ export default function RetrievalUtilityOverlay({
       window.clearTimeout(focusSearch);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onRequestClose]);
+  }, [handleRequestClose, isOpen]);
 
   if (!hasStarted || typeof document === 'undefined') return null;
 
@@ -39,7 +70,7 @@ export default function RetrievalUtilityOverlay({
     <S.Backdrop
       $open={isOpen}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onRequestClose?.();
+        if (event.target === event.currentTarget) handleRequestClose();
       }}
     >
       <S.UtilityPanel
@@ -49,7 +80,7 @@ export default function RetrievalUtilityOverlay({
       >
         <S.PanelHint>Use the Header console to search and refine. Tap outside this panel to collapse it.</S.PanelHint>
         <RetrievalPage
-          onToggleResults={isOpen ? onRequestClose : onRequestOpen}
+          onToggleResults={isOpen ? handleRequestClose : handleRequestOpen}
           resultsVisible={isOpen}
         />
       </S.UtilityPanel>

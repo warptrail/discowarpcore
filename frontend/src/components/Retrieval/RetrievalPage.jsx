@@ -299,7 +299,11 @@ function writePersistedRetrievalState({ key, snapshot }) {
   }
 }
 
-export default function RetrievalPage({ onToggleResults, resultsVisible = false }) {
+export default function RetrievalPage({
+  finderOpen,
+  onToggleResults,
+  resultsVisible = false,
+}) {
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
   const hideToast = toastCtx?.hideToast;
@@ -343,13 +347,17 @@ export default function RetrievalPage({ onToggleResults, resultsVisible = false 
     sanitizeSort(initialItemState?.selectedSort, DEFAULT_SORT_OPTIONS),
   );
   const [showRefine, setShowRefine] = useState(false);
-  const [finderMinimized, setFinderMinimized] = useState(false);
+  const finderVisibilityIsControlled = typeof finderOpen === 'boolean';
+  const [finderMinimized, setFinderMinimized] = useState(
+    () => (finderVisibilityIsControlled ? !finderOpen : false),
+  );
   const [activeExpandedId, setActiveExpandedId] = useState(
     () => sanitizeExpandedIds(initialItemState?.expandedIds)[0] || '',
   );
   const [boxModeState, setBoxModeState] = useState(() =>
     sanitizeBoxModeState(initialSnapshot?.boxes),
   );
+  const [boxAnalytics, setBoxAnalytics] = useState(null);
   const [lightboxImage, setLightboxImage] = useState(null);
   const isItemsMode = retrievalMode === 'items';
 
@@ -366,6 +374,8 @@ export default function RetrievalPage({ onToggleResults, resultsVisible = false 
   const latestSnapshotRef = useRef(null);
 
   useEffect(() => {
+    if (finderVisibilityIsControlled) return undefined;
+
     const handleFinderOpen = () => setFinderMinimized(false);
     const handleFinderClose = () => setFinderMinimized(true);
 
@@ -375,15 +385,24 @@ export default function RetrievalPage({ onToggleResults, resultsVisible = false 
       window.removeEventListener(RETRIEVAL_FINDER_OPEN_EVENT, handleFinderOpen);
       window.removeEventListener(RETRIEVAL_FINDER_CLOSE_EVENT, handleFinderClose);
     };
-  }, []);
+  }, [finderVisibilityIsControlled]);
+
+  useEffect(() => {
+    if (!finderVisibilityIsControlled) return;
+    setFinderMinimized(!finderOpen);
+  }, [finderOpen, finderVisibilityIsControlled]);
 
   useEffect(() => {
     window.dispatchEvent(
       new CustomEvent(RETRIEVAL_FINDER_STATE_EVENT, {
-        detail: { minimized: finderMinimized },
+        detail: {
+          minimized: finderMinimized,
+          retrievalMode,
+          boxAnalytics: retrievalMode === 'boxes' ? boxAnalytics : null,
+        },
       }),
     );
-  }, [finderMinimized]);
+  }, [boxAnalytics, finderMinimized, retrievalMode]);
 
   const queryState = useMemo(
     () => ({
@@ -684,7 +703,6 @@ export default function RetrievalPage({ onToggleResults, resultsVisible = false 
       return;
     }
     if (!isItemsMode) {
-      setActiveRetrievalItem(null);
       return;
     }
 
@@ -1162,6 +1180,7 @@ export default function RetrievalPage({ onToggleResults, resultsVisible = false 
         onModeChange={setRetrievalMode}
         persistedState={boxModeState}
         onStateSnapshotChange={setBoxModeState}
+        onAnalyticsChange={setBoxAnalytics}
         setActiveRetrievalItem={setActiveRetrievalItem}
         finderMinimized={finderMinimized}
       />

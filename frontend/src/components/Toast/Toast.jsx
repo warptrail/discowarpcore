@@ -139,6 +139,26 @@ const Wrap = styled.div`
   border-radius: calc(10px - (2px * var(--toast-compact-progress)));
   box-shadow:
     0 calc(8px - (4px * var(--toast-compact-progress))) calc(20px - (8px * var(--toast-compact-progress))) rgba(0, 0, 0, calc(0.25 - (0.03 * var(--toast-compact-progress))));
+  ${({ $themedIdle }) =>
+    $themedIdle &&
+    css`
+      background:
+        linear-gradient(
+          var(--box-wash-angle, 110deg),
+          rgba(var(--box-primary-rgb), 0.16),
+          rgba(var(--box-secondary-rgb), 0.075) 48%,
+          rgba(15, 20, 26, 0.97) 88%
+        );
+      border-color: rgba(var(--box-primary-rgb), 0.46);
+      color: rgba(242, 245, 248, 0.9);
+      box-shadow:
+        inset 3px 0 0 rgba(var(--box-primary-rgb), 0.72),
+        inset 0 1px 0 rgba(var(--box-secondary-rgb), 0.12),
+        0 calc(8px - (4px * var(--toast-compact-progress)))
+          calc(20px - (8px * var(--toast-compact-progress)))
+          rgba(0, 0, 0, 0.24),
+        0 0 13px rgba(var(--box-primary-rgb), 0.08);
+    `}
   overflow: hidden;
   transition:
     gap var(--toast-duration) var(--toast-ease),
@@ -273,16 +293,23 @@ const Body = styled.div`
 
 const RetrievalControlsShell = styled.div`
   position: relative;
-  margin-bottom: ${({ $scrollCompact }) => ($scrollCompact ? '-145px' : '0')};
-  transition: margin-bottom 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  max-height: ${({ $scrollCompact }) => ($scrollCompact ? '28px' : '1200px')};
+  overflow: hidden;
+  transition: max-height 180ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    max-height: ${({ $scrollCompact }) =>
+      $scrollCompact ? MOBILE_CONTROL_MIN_HEIGHT : '1200px'};
+  }
 
   &::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
-    right: 0;
-    height: 32px;
+    right: 36px;
+    height: 28px;
+    box-sizing: border-box;
     border: 1px solid rgba(91, 215, 244, 0.36);
     border-radius: 8px;
     background:
@@ -302,6 +329,11 @@ const RetrievalControlsShell = styled.div`
     pointer-events: none;
     transition: opacity 130ms ease;
     animation: ${retrievalGhostFlow} 1.4s ease-in-out infinite;
+
+    @media (max-width: ${MOBILE_BREAKPOINT}) {
+      right: calc(${MOBILE_CONTROL_MIN_HEIGHT} + 8px);
+      height: ${MOBILE_CONTROL_MIN_HEIGHT};
+    }
   }
 
   > div:first-child {
@@ -417,13 +449,13 @@ const IdlePromptButton = styled.button`
 
   &:hover,
   &:focus-visible {
-    color: #bfffee;
+    color: var(--box-neon, #bfffee);
     text-decoration: underline;
     text-underline-offset: 0.2em;
   }
 
   &:focus-visible {
-    outline: 2px solid rgba(103, 239, 200, 0.9);
+    outline: 2px solid var(--box-neon, rgba(103, 239, 200, 0.9));
     outline-offset: 3px;
   }
 
@@ -849,6 +881,7 @@ export default function Toast({
   titleSize = 'default',
   showIdle = true,
   calmIdle = false,
+  themedIdle = false,
   idleIcon = '📦',
   idleText = 'Standing by…',
   idleAction = null,
@@ -919,6 +952,7 @@ export default function Toast({
     <Wrap
       $variant={variant}
       $idle={isIdle}
+      $themedIdle={isIdle && themedIdle}
       $compact={compact}
       $hasContent={hasContent}
       $hasClose={!isIdle && !!onClose}

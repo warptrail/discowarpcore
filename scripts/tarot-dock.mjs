@@ -107,13 +107,53 @@ function releaseLock() {
 
 function resolveCommand(service) {
   const env = Object.fromEntries(Object.entries(service.env || {}).map(([key, value]) => [key, String(value)]));
-  if (service.command === 'npm') return { command: process.platform === 'win32' ? 'npm.cmd' : 'npm', args: service.args || [], cwd: root, env };
+  const configuredCwd = resolve(root, service.cwd || '.');
+  if (!configuredCwd.startsWith(`${root}/`) && configuredCwd !== root) return { error: `${service.label || service.id} has a working directory outside this project.` };
+  if (!existsSync(configuredCwd)) return { error: `${service.label || service.id} working directory was not found: ${service.cwd || '.'}` };
+  const lan = serviceLan(service);
+  const commandArgs = applyLanBinding(service, normalizeNpmPrefix(service, service.args || [], configuredCwd), env, lan);
+  if (service.command === 'npm') return { command: process.platform === 'win32' ? 'npm.cmd' : 'npm', args: commandArgs, cwd: configuredCwd, env };
   if (service.cwdEnv) {
     const cwd = process.env[service.cwdEnv] || '/Volumes/Luna/Developer-Luna/warp_gen';
     if (!existsSync(cwd)) return { error: `${service.cwdEnv} is not set and the default provider path was not found.` };
-    return { command: resolve(cwd, 'bin/warp-gen-server'), args: service.args || [], cwd, env };
+    return { command: resolve(cwd, 'bin/warp-gen-server'), args: commandArgs, cwd, env };
   }
-  return { command: service.command, args: service.args || [], cwd: root, env };
+  return { command: service.command, args: commandArgs, cwd: configuredCwd, env };
+}
+
+function normalizeNpmPrefix(service, args, configuredCwd) {
+  if (service.command !== 'npm') return [...args];
+  const prefixIndex = args.indexOf('--prefix');
+  const prefix = prefixIndex >= 0 ? args[prefixIndex + 1] : '';
+  if (!prefix) return [...args];
+  const fromServiceCwd = resolve(configuredCwd, prefix);
+  const fromProjectRoot = resolve(root, prefix);
+  // A copied manifest can legitimately contain both cwd: "frontend" and
+  // --prefix frontend. npm then looks for frontend/frontend/package.json.
+  // Remove only that exact redundant prefix; never rewrite an arbitrary path.
+  if (!existsSync(fromServiceCwd) && existsSync(fromProjectRoot)) return args.filter((_, index) => index !== prefixIndex && index !== prefixIndex + 1);
+  return [...args];
+}
+
+function serviceLan(service) {
+  const enabled = profileName === 'development' && manifest.network?.development?.lan?.enabled !== false && service.lan?.enabled !== false;
+  const adapter = service.lan?.adapter || '';
+  return { enabled, adapter, host: service.lan?.host || manifest.network?.development?.lan?.host || '0.0.0.0' };
+}
+
+function applyLanBinding(service, args, env, lan) {
+  if (!lan.enabled || !lan.adapter) return [...args];
+  if (lan.adapter === 'env') {
+    env.HOST ||= lan.host;
+    env.TAROT_LAN_HOST ||= lan.host;
+    return [...args];
+  }
+  if (lan.adapter === 'uvicorn') return args.includes('--host') ? [...args] : [...args, '--host', lan.host];
+  if (lan.adapter === 'vite') {
+    if (args.includes('--host')) return [...args];
+    return args.includes('--') ? [...args, '--host', lan.host] : [...args, '--', '--host', lan.host];
+  }
+  return [...args];
 }
 
 async function listeners(port) {
@@ -211,13 +251,14 @@ function mongoFailureMessage() {
 function addresses() {
   const primary = services.get(manifest.primaryService) || [...services.values()].find((service) => service.port);
   const port = primary?.port || 7609;
+  const lan = primary && serviceLan(primary).enabled && Boolean(serviceLan(primary).adapter);
   const hostname = os.hostname().trim().replace(/\.$/, '');
   const computer = hostname && hostname !== 'localhost' && !net.isIP(hostname) ? (hostname.includes('.') ? hostname : `${hostname}.local`) : null;
   const networks = Object.values(os.networkInterfaces()).flat().filter((item) => item?.family === 'IPv4' && !item.internal);
   return [
     { label: 'localhost', url: `http://localhost:${port}/` },
-    ...(computer ? [{ label: computer, url: `http://${computer}:${port}/` }] : []),
-    { label: 'LAN IP', url: `http://${networks[0]?.address || '127.0.0.1'}:${port}/` },
+    ...(lan && computer ? [{ label: computer, url: `http://${computer}:${port}/` }] : []),
+    ...(lan ? [{ label: 'LAN IP', url: `http://${networks[0]?.address || '127.0.0.1'}:${port}/` }] : []),
   ];
 }
 
@@ -487,7 +528,9 @@ function servicePresentation(service, index) {
   const status = service.state === 'error' ? 'ERROR' : live ? 'ONLINE' : service.state === 'starting' ? 'WAKING' : service.state === 'bypassed' ? 'BYPASS' : 'QUIET';
   const color = service.state === 'error' ? '91' : live ? (external || service.monitorOnly ? '96' : '92') : '2';
   const marker = live ? '●' : service.state === 'error' ? '×' : '○';
-  return paint(color, `${marker} ${index + 1} · ${service.label} :${service.port}  ${status}  OWNER / ${owner}${service.error ? ` · ${service.error}` : ''}`);
+  const lan = serviceLan(service);
+  const lanState = service.monitorOnly ? '' : lan.adapter ? `  LAN / ${lan.enabled ? 'READY' : 'OFF'}` : lan.enabled ? '  LAN / MANUAL' : '';
+  return paint(color, `${marker} ${index + 1} · ${service.label} :${service.port}  ${status}  OWNER / ${owner}${lanState}${service.error ? ` · ${service.error}` : ''}`);
 }
 
 function liveSummary() {

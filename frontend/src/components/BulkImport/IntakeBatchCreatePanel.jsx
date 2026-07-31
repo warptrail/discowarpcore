@@ -6,9 +6,9 @@ import {
 } from '../../styles/tokens';
 
 const Panel = styled.section`
-  border: 1px solid rgba(96, 152, 189, 0.36);
-  border-radius: 14px;
-  background: linear-gradient(180deg, rgba(12, 20, 29, 0.95) 0%, rgba(8, 14, 22, 0.98) 100%);
+  border: 1px solid rgba(96, 152, 189, 0.34);
+  border-radius: 10px;
+  background: rgba(9, 17, 25, 0.82);
   padding: 0.9rem;
   display: grid;
   gap: 0.78rem;
@@ -60,60 +60,6 @@ const InlineActions = styled.div`
 const Section = styled.div`
   display: grid;
   gap: 0.34rem;
-`;
-
-const SequenceGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.52rem;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const SequenceCard = styled.div`
-  border-radius: 12px;
-  border: 1px solid
-    ${({ $tone }) =>
-      $tone === 'stage'
-        ? 'rgba(111, 171, 224, 0.54)'
-        : $tone === 'validate'
-          ? 'rgba(207, 170, 101, 0.54)'
-          : 'rgba(104, 177, 141, 0.54)'};
-  background: ${({ $tone }) =>
-    $tone === 'stage'
-      ? 'rgba(16, 34, 49, 0.88)'
-      : $tone === 'validate'
-        ? 'rgba(49, 35, 16, 0.88)'
-        : 'rgba(16, 40, 31, 0.88)'};
-  padding: 0.62rem;
-  display: grid;
-  gap: 0.22rem;
-`;
-
-const SequenceStep = styled.div`
-  font-size: 0.67rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: ${({ $tone }) =>
-    $tone === 'stage'
-      ? '#9bc7f0'
-      : $tone === 'validate'
-        ? '#efd2a5'
-        : '#c9f1dd'};
-`;
-
-const SequenceTitle = styled.div`
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #e7f4ff;
-`;
-
-const SequenceText = styled.div`
-  font-size: 0.75rem;
-  line-height: 1.38;
-  color: #abc4da;
 `;
 
 const Label = styled.label`
@@ -269,24 +215,6 @@ export default function IntakeBatchCreatePanel({
           {simpleJsonFile?.name || 'Select one unzipped .json file with item fields and no images.'}
         </StatusLine>
       </Section>
-
-      <SequenceGrid>
-        <SequenceCard $tone="stage">
-          <SequenceStep $tone="stage">Step 1</SequenceStep>
-          <SequenceTitle>Upload Source</SequenceTitle>
-          <SequenceText>Choose a package zip or simple item JSON and stage it to the backend.</SequenceText>
-        </SequenceCard>
-        <SequenceCard $tone="validate">
-          <SequenceStep $tone="validate">Step 2</SequenceStep>
-          <SequenceTitle>Validate Batch</SequenceTitle>
-          <SequenceText>Confirm the staged items match the import schema before any item records are created.</SequenceText>
-        </SequenceCard>
-        <SequenceCard $tone="import">
-          <SequenceStep $tone="import">Step 3</SequenceStep>
-          <SequenceTitle>Import Items</SequenceTitle>
-          <SequenceText>Import validated intake data into durable item records. Image processing remains optional later.</SequenceText>
-        </SequenceCard>
-      </SequenceGrid>
 
       <FactList>
         <Fact>Package zip mode requires `batch_manifest.json` plus referenced files in `images/`.</Fact>

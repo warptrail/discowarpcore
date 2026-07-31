@@ -2,6 +2,10 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { formatItemCategory } from '../../util/itemCategories';
+import {
+  getBoxTheme,
+  getBoxThemeCssVars,
+} from '../../util/inventoryColorTheme';
 import RetrievalImageLightbox from '../Retrieval/RetrievalImageLightbox';
 
 const Wrap = styled.div`
@@ -115,9 +119,9 @@ const BoxHeaderBase = `
   max-width: 100%;
   padding: 0.28rem 0.75rem 0.28rem 0.48rem;
   border-radius: 999px;
-  border: 1px solid rgba(112, 228, 255, 0.28);
+  border: 1px solid rgba(var(--box-primary-rgb, 112, 228, 255), 0.34);
   background:
-    linear-gradient(90deg, rgba(43, 89, 128, 0.58), rgba(7, 21, 34, 0.56)),
+    linear-gradient(90deg, rgba(var(--box-primary-rgb, 43, 89, 128), 0.22), rgba(7, 21, 34, 0.56)),
     rgba(7, 21, 34, 0.56);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.08),
@@ -147,7 +151,7 @@ const BoxHeaderFallback = styled.div`
 `;
 
 const BoxShortId = styled.span`
-  color: #55ff98;
+  color: var(--box-neon, #55ff98);
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
     'Courier New', monospace;
@@ -156,12 +160,12 @@ const BoxShortId = styled.span`
   letter-spacing: 0.05em;
   line-height: 1;
   white-space: nowrap;
-  text-shadow: 0 0 10px rgba(68, 255, 150, 0.3);
+  text-shadow: 0 0 10px rgba(var(--box-neon-rgb, 68, 255, 150), 0.3);
 `;
 
 const BoxLabel = styled.span`
   min-width: 0;
-  color: #7bd8ff;
+  color: var(--box-muted, #7bd8ff);
   font-size: 0.92rem;
   font-weight: 720;
   letter-spacing: 0;
@@ -424,10 +428,11 @@ export default function RandomItemToastContent({
   const notes = getFallbackText(item?.notes, 'No notes logged');
   const imageLabel = getFallbackText(itemName, 'selected item');
   const boxParts = getBoxParts(item, boxIdLabel);
+  const boxThemeStyle = getBoxThemeCssVars(getBoxTheme(item?.box?.box_id));
 
   return (
     <>
-      <Wrap>
+      <Wrap style={boxThemeStyle}>
         <ThumbButton
           type="button"
           onClick={() => previewUrl && setLightboxOpen(true)}

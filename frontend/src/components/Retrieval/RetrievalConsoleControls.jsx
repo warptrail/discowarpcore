@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import styled from 'styled-components';
 import RetrievalModeToggle from './RetrievalModeToggle';
 import RetrievalSearchBar from './RetrievalSearchBar';
@@ -51,6 +52,8 @@ export default function RetrievalConsoleControls({
 }) {
   const safeChips = Array.isArray(chips) ? chips : [];
   const isBoxMode = mode === 'boxes';
+  const [showAdvancedBoxFilters, setShowAdvancedBoxFilters] = useState(false);
+  const advancedBoxFiltersOpen = showAdvancedBoxFilters || Boolean(selectedBoxGroup);
 
   return (
     <Surface>
@@ -66,30 +69,7 @@ export default function RetrievalConsoleControls({
       />
 
       {isBoxMode ? (
-        <S.BoxFilterGrid>
-          <S.FilterControl>
-            <S.FilterLabel>Group</S.FilterLabel>
-            <S.FilterRow>
-              <FilterCombobox
-                id="retrieval-console-box-group"
-                name="retrieval_console_box_group"
-                ariaLabel="Box group filter options"
-                placeholder="All Groups"
-                options={boxGroupOptions}
-                selectedKey={selectedBoxGroup}
-                onSelectedKeyChange={onBoxGroupChange}
-                emptyMessage="No groups match"
-              />
-              <S.AddFilterButton
-                type="button"
-                onClick={onClearBoxGroup}
-                disabled={!selectedBoxGroup}
-              >
-                Clear
-              </S.AddFilterButton>
-            </S.FilterRow>
-          </S.FilterControl>
-
+        <>
           <S.FilterControl>
             <S.FilterLabel>Location</S.FilterLabel>
             <S.FilterRow>
@@ -110,9 +90,48 @@ export default function RetrievalConsoleControls({
               >
                 Clear
               </S.AddFilterButton>
-            </S.FilterRow>
-          </S.FilterControl>
-        </S.BoxFilterGrid>
+              </S.FilterRow>
+            </S.FilterControl>
+
+          <S.RefineHeaderRow>
+            <S.RefineToggle
+              type="button"
+              onClick={() => setShowAdvancedBoxFilters((current) => !current)}
+              aria-expanded={advancedBoxFiltersOpen}
+              aria-controls="retrieval-console-box-advanced-filters"
+            >
+              {advancedBoxFiltersOpen ? 'Hide more filters' : 'More filters'}
+            </S.RefineToggle>
+            {selectedBoxGroup ? <S.RefineCount>1 active filter</S.RefineCount> : null}
+          </S.RefineHeaderRow>
+
+          {advancedBoxFiltersOpen ? (
+            <S.RefinePanel id="retrieval-console-box-advanced-filters">
+              <S.FilterControl>
+                <S.FilterLabel>Group</S.FilterLabel>
+                <S.FilterRow>
+                  <FilterCombobox
+                    id="retrieval-console-box-group"
+                    name="retrieval_console_box_group"
+                    ariaLabel="Box group filter options"
+                    placeholder="All Groups"
+                    options={boxGroupOptions}
+                    selectedKey={selectedBoxGroup}
+                    onSelectedKeyChange={onBoxGroupChange}
+                    emptyMessage="No groups match"
+                  />
+                  <S.AddFilterButton
+                    type="button"
+                    onClick={onClearBoxGroup}
+                    disabled={!selectedBoxGroup}
+                  >
+                    Clear
+                  </S.AddFilterButton>
+                </S.FilterRow>
+              </S.FilterControl>
+            </S.RefinePanel>
+          ) : null}
+        </>
       ) : (
         <>
           <S.RefineHeaderRow>

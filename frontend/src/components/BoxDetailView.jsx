@@ -12,6 +12,10 @@ import BoxDetailTabContent from './BoxDetailView/BoxDetailTabContent';
 import BoxSearchOverlay from './BoxDetailView/BoxSearchOverlay';
 import BoxManagementSheet from './BoxDetailView/BoxManagementSheet';
 import useBoxWorkspaceSearch from './BoxDetailView/useBoxWorkspaceSearch';
+import {
+  getBoxTheme,
+  getBoxThemeCssVars,
+} from '../util/inventoryColorTheme';
 import BoxActionPanel from './BoxActionPanel';
 import {
   BOX_CONTEXT_STATE_EVENT,
@@ -192,8 +196,10 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
     ? parentPath
     : fetchedParentPath;
 
+  const boxThemeStyle = getBoxThemeCssVars(getBoxTheme(shortId));
+
   return (
-    <S.Wrap>
+    <S.Wrap style={boxThemeStyle}>
       <S.Content>
         {tree && (
           <>
@@ -238,6 +244,7 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
             refreshBox={refreshBox}
             searchQuery={search.query}
             sortMode={search.sortMode}
+            onManageBox={handleEditBox}
           />
         </S.TabViewport>
         {tree ? (
@@ -249,6 +256,8 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
               onQueryChange={search.setQuery}
               sortMode={search.sortMode}
               onSortChange={search.setSortMode}
+              sortDirection={search.sortDirection}
+              onSortDirectionChange={search.setSortDirection}
               matchCount={search.matchCount}
               onMinimize={search.minimize}
               onClear={search.clear}

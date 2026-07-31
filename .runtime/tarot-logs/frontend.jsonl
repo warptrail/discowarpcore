@@ -1,56 +1,11 @@
-{"message":"> frontend@0.0.0 dev","stream":"out","capturedAt":1785206581834,"sequence":3722}
-{"message":"> vite --host 0.0.0.0 --port 7611 --strictPort","stream":"out","capturedAt":1785206581834,"sequence":3723}
-{"message":"  VITE v7.0.0  ready in 898 ms","stream":"out","capturedAt":1785206582836,"sequence":3724}
-{"message":"  ➜  Local:   http://localhost:7611/","stream":"out","capturedAt":1785206582836,"sequence":3725}
-{"message":"  ➜  Network: http://192.168.1.19:7611/","stream":"out","capturedAt":1785206582836,"sequence":3726}
-{"message":"  ➜  Network: http://10.5.0.2:7611/","stream":"out","capturedAt":1785206582836,"sequence":3727}
-{"message":"7:45:18 PM [vite] (client) hmr update /src/components/Declutter/DeclutterPlayerPicker.jsx","stream":"out","capturedAt":1785206718933,"sequence":4174}
-{"message":"7:45:29 PM [vite] (client) hmr update /src/components/Declutter/DeclutterDeckPage.jsx, /src/components/Declutter/DeclutterReviewCard.jsx, /src/components/Declutter/DeclutterProgressPanel.jsx, /src/components/Declutter/DeclutterWaitingOverlay.jsx, /src/components/Declutter/DeclutterCoolingOffLane.jsx, /src/components/Declutter/DeclutterActionsPanel.jsx, /src/components/Declutter/DeclutterPlayerPicker.jsx, /src/components/Declutter/DeclutterHoldButton.jsx, /src/components/Declutter/DeclutterCandidateLane.jsx, /src/components/Declutter/DeclutterDecisionPill.jsx","stream":"out","capturedAt":1785206729347,"sequence":4175}
-{"message":"7:46:12 PM [vite] (client) hmr update /src/components/BoxMetaPanel.jsx","stream":"out","capturedAt":1785206772297,"sequence":4188}
-{"message":"7:48:43 PM [vite] (client) hmr update /src/components/Declutter/DeclutterDeckPage.jsx","stream":"out","capturedAt":1785206923827,"sequence":4325}
-{"message":"7:48:53 PM [vite] (client) hmr update /src/components/Declutter/DeclutterDeckPage.jsx, /src/components/Declutter/DeclutterReviewCard.jsx, /src/components/Declutter/DeclutterProgressPanel.jsx, /src/components/Declutter/DeclutterWaitingOverlay.jsx, /src/components/Declutter/DeclutterCoolingOffLane.jsx, /src/components/Declutter/DeclutterActionsPanel.jsx, /src/components/Declutter/DeclutterPlayerPicker.jsx, /src/components/Declutter/DeclutterHoldButton.jsx, /src/components/Declutter/DeclutterCandidateLane.jsx, /src/components/Declutter/DeclutterDecisionPill.jsx","stream":"out","capturedAt":1785206933588,"sequence":4328}
-{"message":"7:49:27 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxSearchOverlay.jsx","stream":"out","capturedAt":1785206967245,"sequence":4331}
-{"message":"7:49:31 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxSearchOverlay.jsx","stream":"out","capturedAt":1785206971408,"sequence":4332}
-{"message":"7:55:46 PM [vite] (client) hmr update /src/components/Header.jsx","stream":"out","capturedAt":1785207346197,"sequence":4388}
-{"message":"7:55:46 PM [vite] (client) hmr update /src/components/Toast/Toast.jsx","stream":"out","capturedAt":1785207346200,"sequence":4389}
-{"message":"7:56:59 PM [vite] (client) hmr update /src/components/Header.jsx","stream":"out","capturedAt":1785207419947,"sequence":4398}
-{"message":"7:57:44 PM [vite] (client) hmr update /src/components/Header.jsx","stream":"out","capturedAt":1785207464325,"sequence":4407}
-{"message":"8:00:10 PM [vite] (client) hmr update /src/components/BoxForms/BoxTagsField.jsx, /src/components/EditBoxDetailsForm.jsx, /src/components/BoxForms/BoxSelectableField.jsx, /src/components/BoxForms/BoxFormActions.jsx, /src/components/BoxForms/BoxIdentityFields.jsx","stream":"out","capturedAt":1785207610708,"sequence":4416}
-{"message":"8:01:00 PM [vite] (client) hmr update /src/components/Toast/Toast.jsx","stream":"out","capturedAt":1785207660463,"sequence":4417}
-{"message":"8:04:23 PM [vite] (client) hmr update /src/components/Toast/Toast.jsx","stream":"out","capturedAt":1785207864002,"sequence":4636}
-{"message":"8:06:07 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx","stream":"out","capturedAt":1785207967986,"sequence":4645}
-{"message":"8:06:10 PM [vite] (client) hmr update /src/components/Toast/Toast.jsx","stream":"out","capturedAt":1785207970458,"sequence":4646}
-{"message":"8:06:31 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx","stream":"out","capturedAt":1785207991359,"sequence":4659}
-{"message":"8:06:45 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx, /src/components/BoxActionPanel/ExportBoxPanel.jsx","stream":"out","capturedAt":1785208005320,"sequence":4664}
-{"message":"8:06:54 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx","stream":"out","capturedAt":1785208014057,"sequence":4669}
-{"message":"8:07:02 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx","stream":"out","capturedAt":1785208022332,"sequence":4764}
-{"message":"8:07:13 PM [vite] (client) hmr update /src/components/NestBoxSection.jsx","stream":"out","capturedAt":1785208033641,"sequence":4765}
-{"message":"8:07:13 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx","stream":"out","capturedAt":1785208033782,"sequence":4801}
-{"message":"8:07:13 PM [vite] (client) hmr update /src/components/BoxActionPanel/ExportBoxPanel.jsx","stream":"out","capturedAt":1785208033935,"sequence":4858}
-{"message":"8:07:14 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx","stream":"out","capturedAt":1785208034084,"sequence":4859}
-{"message":"8:07:35 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx","stream":"out","capturedAt":1785208055423,"sequence":4861}
-{"message":"8:07:49 PM [vite] (client) hmr update /src/components/Toast/Toast.jsx","stream":"out","capturedAt":1785208069518,"sequence":4863}
-{"message":"8:09:59 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxManagementSheet.jsx","stream":"out","capturedAt":1785208199922,"sequence":5070}
-{"message":"8:11:51 PM [vite] (client) hmr update /src/components/EditBoxDetailsForm.jsx","stream":"out","capturedAt":1785208311666,"sequence":5071}
-{"message":"8:12:12 PM [vite] (client) hmr update /src/components/BoxForms/BoxTagsField.jsx, /src/components/EditBoxDetailsForm.jsx, /src/components/BoxForms/BoxSelectableField.jsx, /src/components/BoxForms/BoxFormActions.jsx, /src/components/BoxForms/BoxIdentityFields.jsx","stream":"out","capturedAt":1785208332105,"sequence":5072}
-{"message":"8:12:40 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx, /src/components/BoxActionPanel/ExportBoxPanel.jsx","stream":"out","capturedAt":1785208360291,"sequence":5073}
-{"message":"8:13:45 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxManagementSheet.jsx","stream":"out","capturedAt":1785208425044,"sequence":5075}
-{"message":"8:13:45 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx, /src/components/BoxActionPanel/ExportBoxPanel.jsx","stream":"out","capturedAt":1785208425048,"sequence":5076}
-{"message":"8:13:55 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxManagementSheet.jsx","stream":"out","capturedAt":1785208435347,"sequence":5078}
-{"message":"8:13:55 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx, /src/components/BoxActionPanel/ExportBoxPanel.jsx","stream":"out","capturedAt":1785208435447,"sequence":5079}
-{"message":"8:14:48 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxManagementSheet.jsx","stream":"out","capturedAt":1785208488508,"sequence":5081}
-{"message":"8:15:10 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxManagementSheet.jsx","stream":"out","capturedAt":1785208510316,"sequence":5082}
-{"message":"8:19:30 PM [vite] (client) hmr update /src/components/BoxDetailView.jsx","stream":"out","capturedAt":1785208770232,"sequence":5083}
-{"message":"8:19:30 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxManagementSheet.jsx","stream":"out","capturedAt":1785208770241,"sequence":5084}
-{"message":"8:19:37 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxManagementSheet.jsx","stream":"out","capturedAt":1785208777932,"sequence":5428}
-{"message":"8:19:56 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx","stream":"out","capturedAt":1785208796242,"sequence":5429}
-{"message":"8:20:06 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx, /src/components/BoxActionPanel/ExportBoxPanel.jsx","stream":"out","capturedAt":1785208806517,"sequence":5431}
-{"message":"8:25:44 PM [vite] (client) hmr update /src/components/BoxDetailView.jsx","stream":"out","capturedAt":1785209144464,"sequence":5433}
-{"message":"8:25:44 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxManagementSheet.jsx","stream":"out","capturedAt":1785209144466,"sequence":5434}
-{"message":"8:25:44 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx","stream":"out","capturedAt":1785209144581,"sequence":5435}
-{"message":"8:25:44 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx, /src/components/BoxActionPanel/ExportBoxPanel.jsx","stream":"out","capturedAt":1785209144688,"sequence":5436}
-{"message":"8:27:15 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxManagementSheet.jsx","stream":"out","capturedAt":1785209235882,"sequence":5785}
-{"message":"8:27:15 PM [vite] (client) hmr update /src/components/BoxActionPanel.jsx, /src/components/BoxActionPanel/ExportBoxPanel.jsx","stream":"out","capturedAt":1785209235887,"sequence":5786}
-{"message":"8:28:25 PM [vite] (client) hmr update /src/components/BoxDetailView/BoxManagementSheet.jsx","stream":"out","capturedAt":1785209305218,"sequence":5894}
-{"message":"8:56:39 PM [vite] (client) hmr update /src/components/BoxMetaPanel.jsx","stream":"out","capturedAt":1785210999495,"sequence":5995}
-{"message":"8:56:54 PM [vite] (client) hmr update /src/components/BoxMetaPanel.jsx","stream":"out","capturedAt":1785211014001,"sequence":5996}
+{"message":"> frontend@0.0.0 dev","stream":"out","capturedAt":1785533104121,"sequence":9}
+{"message":"> vite --host 0.0.0.0 --port 7611 --strictPort","stream":"out","capturedAt":1785533104121,"sequence":10}
+{"message":"  VITE v7.0.0  ready in 544 ms","stream":"out","capturedAt":1785533104726,"sequence":11}
+{"message":"  ➜  Local:   http://localhost:7611/","stream":"out","capturedAt":1785533104726,"sequence":12}
+{"message":"  ➜  Network: http://169.254.93.10:7611/","stream":"out","capturedAt":1785533104726,"sequence":13}
+{"message":"  ➜  Network: http://192.168.1.76:7611/","stream":"out","capturedAt":1785533104726,"sequence":14}
+{"message":"  ➜  Network: http://10.5.0.2:7611/","stream":"out","capturedAt":1785533104726,"sequence":15}
+{"message":"2:58:53 PM [vite] (client) hmr update /src/components/ItemRow.jsx, /src/components/CondensedBoxItemList.jsx","stream":"out","capturedAt":1785535133810,"sequence":26}
+{"message":"2:58:53 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/QuickPeekItemList.jsx","stream":"out","capturedAt":1785535133811,"sequence":27}
+{"message":"2:58:53 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/OperationsBoxQuickPeek.jsx, /src/components/OperationsQuickPeek/QuickPeekBoxHeader.jsx, /src/components/OperationsQuickPeek/QuickPeekItemList.jsx","stream":"out","capturedAt":1785535133878,"sequence":28}
+{"message":"3:03:59 PM [vite] (client) hmr update /src/components/AllItemsList.jsx, /src/components/ItemPage.jsx, /src/components/ItemRow.jsx, /src/components/BoxActionPanel.jsx, /src/components/Intake/IntakeCurrentBoxImagePanel.jsx, /src/components/BulkImport/IntakeBatchManager.jsx, /src/components/Intake/IntakeCurrentBoxItemsPanel.jsx, /src/components/Intake/IntakeQuickItemMaker.jsx, /src/components/ImageFields/ItemImageField.jsx","stream":"out","capturedAt":1785535439873,"sequence":29}

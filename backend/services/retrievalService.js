@@ -10,6 +10,7 @@ const {
   formatKeepPriorityLabel,
   normalizeKeepPriorityValue,
 } = require('../utils/keepPriority');
+const { calculateBoxCollectionStats } = require('../utils/inventoryAnalytics');
 
 const ACTIVE_ITEM_FILTER = { item_status: { $ne: 'gone' } };
 
@@ -211,7 +212,7 @@ async function attachMediaStateSummariesForRetrieval(rawItems = []) {
 
   const mediaStates = clauses.length
     ? await MediaState.find(clauses.length === 1 ? clauses[0] : { $or: clauses })
-        .select('mediaId originalPath processedPath displayPath thumbPath activeVariant processedAt updatedAt')
+        .select('mediaId originalPath processedPath displayPath thumbPath tinyPath activeVariant processedAt updatedAt')
         .lean()
     : [];
 
@@ -238,6 +239,7 @@ async function attachMediaStateSummariesForRetrieval(rawItems = []) {
     const processedUrl = mediaPathToClientUrl(matchedState?.processedPath);
     const displayUrl = mediaPathToClientUrl(matchedState?.displayPath);
     const thumbUrl = mediaPathToClientUrl(matchedState?.thumbPath);
+    const tinyUrl = mediaPathToClientUrl(matchedState?.tinyPath);
     const activeVariant = toTrimmed(matchedState?.activeVariant).toLowerCase();
 
     return {
@@ -251,6 +253,10 @@ async function attachMediaStateSummariesForRetrieval(rawItems = []) {
         thumb: {
           ...(item?.image?.thumb || {}),
           url: firstNonEmpty(thumbUrl, item?.image?.thumb?.url),
+        },
+        tiny: {
+          ...(item?.image?.tiny || {}),
+          url: firstNonEmpty(tinyUrl, item?.image?.tiny?.url),
         },
         processed: {
           ...(item?.image?.processed || {}),
@@ -880,9 +886,14 @@ async function getRetrievalBoxesPage(params = {}) {
   const limit = parseLimit(params.limit);
   const offset = parseOffset(params.offset);
 
-  const boxDocs = await Box.find()
-    .select('_id box_id label name group description notes location parentBox items')
-    .lean();
+  const [boxDocs, itemDocs] = await Promise.all([
+    Box.find()
+      .select('_id box_id label name group description notes location parentBox items')
+      .lean(),
+    Item.find(ACTIVE_ITEM_FILTER)
+      .select('_id quantity notes maintenanceNotes valueCents')
+      .lean(),
+  ]);
 
   const retrievalBoxes = buildRetrievalBoxes(boxDocs);
   const filteredBoxes = filterRetrievalBoxes(retrievalBoxes, {
@@ -893,9 +904,15 @@ async function getRetrievalBoxesPage(params = {}) {
 
   const total = filteredBoxes.length;
   const pagedBoxes = filteredBoxes.slice(offset, offset + limit).map(toClientBox);
+  const analytics = calculateBoxCollectionStats({
+    boxes: boxDocs,
+    items: itemDocs,
+    includedBoxIds: filteredBoxes.map((box) => box.id),
+  });
 
   return {
     boxes: pagedBoxes,
+    analytics,
     total,
     limit,
     offset,

@@ -48,8 +48,10 @@ function normalizeMediaState(payload) {
   const processedPath = toTrimmed(payload.processedPath);
   const displayPath = toTrimmed(payload.displayPath);
   const thumbPath = toTrimmed(payload.thumbPath);
+  const tinyPath = toTrimmed(payload.tinyPath);
   const displayUrl = mediaPathToClientUrl(displayPath);
   const thumbUrl = mediaPathToClientUrl(thumbPath);
+  const tinyUrl = mediaPathToClientUrl(tinyPath);
   const processedUrl = mediaPathToClientUrl(processedPath);
 
   return {
@@ -65,10 +67,12 @@ function normalizeMediaState(payload) {
     processedPath,
     displayPath,
     thumbPath,
+    tinyPath,
     originalUrl: mediaPathToClientUrl(originalPath),
     processedUrl,
     displayUrl,
     thumbUrl,
+    tinyUrl,
     preferredImageUrl: displayUrl || thumbUrl || processedUrl || '',
     processedAt: payload.processedAt || null,
     renderTokens: normalizeRenderTokens(payload.renderTokens),

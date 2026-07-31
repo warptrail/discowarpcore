@@ -27,6 +27,7 @@ const panelBase = css`
 `;
 
 export const HeaderShell = styled.section`
+  position: relative;
   display: grid;
   gap: 0.56rem;
   min-width: 0;
@@ -68,6 +69,10 @@ export const TitleRow = styled.div`
   display: flex;
   align-items: center;
   gap: 0.6rem;
+
+  @media (max-width: 560px) {
+    order: 1;
+  }
 `;
 
 export const MinimizedBar = styled.div`
@@ -158,16 +163,53 @@ export const Title = styled.h2`
 `;
 
 export const TelemetryRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  align-items: center;
+  position: absolute;
+  top: 0.72rem;
+  right: 0.16rem;
+  display: grid;
+  justify-items: end;
+  gap: 0.1rem;
   color: ${LCARS.textDim};
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
     'Courier New', monospace;
-  font-size: 0.8rem;
-  letter-spacing: 0.045em;
+  font-size: clamp(0.96rem, 2.45vw, 1.42rem);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  opacity: 0.28;
+  pointer-events: none;
+  white-space: nowrap;
+  text-transform: uppercase;
+  text-shadow: 0 0 16px rgba(127, 215, 255, 0.22);
+
+  @media (max-width: 560px) {
+    position: static;
+    order: 3;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    justify-items: start;
+    gap: 0.16rem 0.34rem;
+    max-width: 100%;
+    margin-top: -0.18rem;
+    padding-left: 0.12rem;
+    font-size: 0.68rem;
+    opacity: 0.72;
+    overflow: visible;
+    text-shadow: 0 0 10px rgba(127, 215, 255, 0.18);
+  }
+`;
+
+export const TelemetryLine = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.28rem;
+  min-width: 0;
+
+  @media (max-width: 560px) {
+    gap: 0.22rem;
+  }
 `;
 
 export const TelemetryValue = styled.span`
@@ -180,7 +222,7 @@ export const TelemetryValue = styled.span`
 `;
 
 export const Sep = styled.span`
-  color: ${toneAlpha(LCARS.textDim, '9f')};
+  color: ${toneAlpha(LCARS.textDim, 'b8')};
 `;
 
 export const SearchSortRow = styled.div`
@@ -226,24 +268,45 @@ export const UtilityRow = styled.div`
   margin-top: -0.08rem;
 
   @media (max-width: 560px) {
+    order: 2;
     align-items: stretch;
     flex-direction: column;
   }
 `;
 
 export const ViewModeToggle = styled.div`
+  position: relative;
   display: inline-grid;
   grid-template-columns: repeat(2, minmax(0, auto));
-  gap: 0.18rem;
-  padding: 0.18rem;
-  border: 1px solid ${toneAlpha(LCARS.root, '54')};
-  border-radius: 11px;
+  gap: 0;
+  padding: 0.16rem;
+  border: 1px solid ${toneAlpha(LCARS.root, '64')};
+  border-radius: 999px;
   background:
-    linear-gradient(180deg, rgba(5, 12, 19, 0.92), rgba(7, 17, 27, 0.96)),
+    linear-gradient(180deg, rgba(4, 8, 13, 0.98), rgba(10, 18, 28, 0.98)),
     ${LCARS.bg};
   box-shadow:
-    inset 0 0 0 1px ${toneAlpha(LCARS.root, '18')},
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -8px 18px rgba(0, 0, 0, 0.36),
     0 0 16px ${toneAlpha(LCARS.root, '12')};
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 3px auto 3px 3px;
+    width: calc(50% - 3px);
+    border-radius: 999px;
+    background:
+      linear-gradient(180deg, rgba(42, 117, 146, 0.82), rgba(12, 45, 66, 0.92)),
+      radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.18), transparent 34%);
+    box-shadow:
+      inset 0 0 0 1px ${toneAlpha(LCARS.root, '72')},
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      0 0 18px ${toneAlpha(LCARS.root, '28')};
+    transform: translateX(${({ $mode }) => ($mode === 'terminal' ? '100%' : '0')});
+    transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
 
   @media (max-width: 560px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -251,39 +314,34 @@ export const ViewModeToggle = styled.div`
 `;
 
 export const ViewModeButton = styled.button`
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 26px;
+  min-height: 44px;
   min-width: 84px;
-  border: 1px solid
-    ${({ $active }) =>
-      $active ? toneAlpha(LCARS.root, 'b8') : 'rgba(104, 154, 186, 0.42)'};
-  border-radius: 8px;
+  border: 0;
+  border-radius: 999px;
   padding: 0 0.58rem;
   color: ${({ $active }) =>
-    $active ? toneAlpha(LCARS.root, 'f2') : 'rgba(230, 237, 243, 0.92)'};
-  background: ${({ $active }) =>
-    $active
-      ? 'linear-gradient(180deg, rgba(22, 61, 84, 0.92), rgba(10, 34, 52, 0.96))'
-      : 'linear-gradient(180deg, rgba(10, 19, 29, 0.74), rgba(7, 14, 22, 0.88))'};
+    $active ? toneAlpha(LCARS.text, 'ff') : 'rgba(230, 237, 243, 0.58)'};
+  background: transparent;
   font-size: 0.66rem;
-  font-weight: 820;
+  font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-shadow: ${({ $active }) =>
-    $active ? '0 0 8px rgba(127, 215, 255, 0.16)' : '0 0 5px rgba(230, 237, 243, 0.08)'};
+    $active ? '0 0 9px rgba(127, 215, 255, 0.28)' : 'none'};
   cursor: pointer;
   transition:
-    border-color 140ms ease,
     color 140ms ease,
-    background 140ms ease,
-    box-shadow 140ms ease;
+    text-shadow 140ms ease,
+    transform 120ms ease;
 
   &:hover {
-    border-color: ${toneAlpha(LCARS.teal, '9a')};
     color: ${toneAlpha(LCARS.text, 'f2')};
-    box-shadow: 0 0 12px ${toneAlpha(LCARS.teal, '22')};
+    transform: translateY(-1px);
   }
 
   @media (max-width: 560px) {
