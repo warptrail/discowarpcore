@@ -1,11 +1,6 @@
-{"message":"> frontend@0.0.0 dev","stream":"out","capturedAt":1785533104121,"sequence":9}
-{"message":"> vite --host 0.0.0.0 --port 7611 --strictPort","stream":"out","capturedAt":1785533104121,"sequence":10}
-{"message":"  VITE v7.0.0  ready in 544 ms","stream":"out","capturedAt":1785533104726,"sequence":11}
-{"message":"  ➜  Local:   http://localhost:7611/","stream":"out","capturedAt":1785533104726,"sequence":12}
-{"message":"  ➜  Network: http://169.254.93.10:7611/","stream":"out","capturedAt":1785533104726,"sequence":13}
-{"message":"  ➜  Network: http://192.168.1.76:7611/","stream":"out","capturedAt":1785533104726,"sequence":14}
-{"message":"  ➜  Network: http://10.5.0.2:7611/","stream":"out","capturedAt":1785533104726,"sequence":15}
-{"message":"2:58:53 PM [vite] (client) hmr update /src/components/ItemRow.jsx, /src/components/CondensedBoxItemList.jsx","stream":"out","capturedAt":1785535133810,"sequence":26}
-{"message":"2:58:53 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/QuickPeekItemList.jsx","stream":"out","capturedAt":1785535133811,"sequence":27}
-{"message":"2:58:53 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/OperationsBoxQuickPeek.jsx, /src/components/OperationsQuickPeek/QuickPeekBoxHeader.jsx, /src/components/OperationsQuickPeek/QuickPeekItemList.jsx","stream":"out","capturedAt":1785535133878,"sequence":28}
-{"message":"3:03:59 PM [vite] (client) hmr update /src/components/AllItemsList.jsx, /src/components/ItemPage.jsx, /src/components/ItemRow.jsx, /src/components/BoxActionPanel.jsx, /src/components/Intake/IntakeCurrentBoxImagePanel.jsx, /src/components/BulkImport/IntakeBatchManager.jsx, /src/components/Intake/IntakeCurrentBoxItemsPanel.jsx, /src/components/Intake/IntakeQuickItemMaker.jsx, /src/components/ImageFields/ItemImageField.jsx","stream":"out","capturedAt":1785535439873,"sequence":29}
+{"message":"> frontend@0.0.0 dev","stream":"out","capturedAt":1785704221653,"sequence":9}
+{"message":"> vite --host 0.0.0.0 --port 7611 --strictPort","stream":"out","capturedAt":1785704221653,"sequence":10}
+{"message":"  VITE v7.0.0  ready in 534 ms","stream":"out","capturedAt":1785704222244,"sequence":11}
+{"message":"  ➜  Local:   http://localhost:7611/","stream":"out","capturedAt":1785704222244,"sequence":12}
+{"message":"  ➜  Network: http://192.168.1.19:7611/","stream":"out","capturedAt":1785704222244,"sequence":13}
+{"message":"  ➜  Network: http://10.5.0.2:7611/","stream":"out","capturedAt":1785704222244,"sequence":14}

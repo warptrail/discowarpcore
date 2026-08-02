@@ -1,0 +1,2 @@
+export const QUICK_PEEK_EXIT_DURATION_MS = 620;
+

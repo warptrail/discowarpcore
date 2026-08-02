@@ -48,20 +48,21 @@ const finderCollapse = keyframes`
 
 export const FloatingFinder = styled.div`
   position: fixed;
-  top: 7.7rem;
+  top: 10.9rem;
   left: 50%;
   z-index: 500;
   width: min(720px, calc(100vw - 1rem));
-  max-height: calc(100vh - 8.2rem);
+  max-height: calc(100vh - 11.4rem);
   overflow: auto;
+  pointer-events: none;
   transform: translateX(-50%);
   transform-origin: 92% 0%;
   animation: ${({ $collapsing }) => ($collapsing ? css`${finderCollapse} 180ms cubic-bezier(0.4, 0, 1, 1) forwards` : 'none')};
 
   @media (max-width: 560px) {
-    top: 7.45rem;
+    top: 10.9rem;
     width: calc(100vw - 0.8rem);
-    max-height: calc(100vh - 7.9rem);
+    max-height: calc(100vh - 11.4rem);
   }
 `;
 
@@ -260,6 +261,8 @@ export const FilterRow = styled.div`
 `;
 
 export const UtilityRow = styled.div`
+  position: relative;
+  z-index: 520;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -689,16 +692,116 @@ export const SearchInput = styled.input`
   ${controlField};
 `;
 
+export const BoxLocatorScope = styled.div`
+  min-width: 0;
+  min-height: 56px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 34px;
+  align-items: end;
+  gap: 0.52rem;
+  padding: 0.42rem 0.48rem;
+  border: 1px solid
+    ${({ $active }) =>
+      $active ? toneAlpha(LCARS.lime, 'a8') : toneAlpha(LCARS.line, '82')};
+  border-radius: 9px;
+  background:
+    linear-gradient(
+      92deg,
+      ${({ $active }) =>
+        $active ? toneAlpha(LCARS.lime, '20') : toneAlpha(LCARS.root, '10')},
+      transparent 58%
+    ),
+    ${LCARS.panel};
+  box-shadow: ${({ $active }) =>
+    $active
+      ? `inset 0 0 0 1px ${toneAlpha(LCARS.lime, '24')}, 0 0 16px ${toneAlpha(LCARS.lime, '18')}`
+      : `inset 0 0 0 1px ${toneAlpha(LCARS.root, '16')}`};
+
+  @media (max-width: 560px) {
+    grid-template-columns: auto minmax(0, 1fr) 34px;
+    min-height: 52px;
+  }
+`;
+
+export const BoxLocatorInputGroup = styled.label`
+  display: grid;
+  gap: 0.22rem;
+`;
+
+export const BoxLocatorInput = styled.input`
+  ${controlField};
+  width: 4.7rem;
+  min-height: 32px;
+  padding: 0.34rem 0.46rem;
+  text-align: center;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  font-size: 1.02rem;
+  font-weight: 760;
+  letter-spacing: 0.18em;
+  font-variant-numeric: tabular-nums;
+`;
+
+export const BoxLocatorReadout = styled.div`
+  align-self: stretch;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.08rem;
+  padding: 0.1rem 0 0.22rem;
+  color: ${toneAlpha(LCARS.text, 'dc')};
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  font-size: 0.72rem;
+  font-weight: 760;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  overflow: hidden;
+
+  span,
+  small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  small {
+    color: ${toneAlpha(LCARS.textDim, 'b0')};
+    font-size: 0.56rem;
+    letter-spacing: 0.08em;
+  }
+`;
+
+export const BoxLocatorClear = styled.button`
+  align-self: end;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: ${toneAlpha(LCARS.textDim, 'c4')};
+  font-size: 1.05rem;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: ${toneAlpha(LCARS.lime, 'f0')};
+    background: ${toneAlpha(LCARS.lime, '15')};
+    outline: 1px solid ${toneAlpha(LCARS.lime, '70')};
+  }
+`;
+
 export const LocatorWrap = styled.div`
   position: relative;
 `;
 
 export const LocatorDropdown = styled.div`
-  position: absolute;
-  top: calc(100% + 0.34rem);
-  left: 0;
-  right: 0;
-  z-index: 20;
+  position: fixed;
+  z-index: 640;
   display: grid;
   gap: 0.2rem;
   padding: 0.36rem;
@@ -708,8 +811,8 @@ export const LocatorDropdown = styled.div`
   box-shadow:
     0 18px 30px rgba(2, 9, 16, 0.7),
     0 0 0 1px ${toneAlpha(LCARS.lime, '1f')} inset;
-  max-height: min(280px, 46vh);
   overflow-y: auto;
+  overscroll-behavior: contain;
 `;
 
 export const LocatorOption = styled.button`

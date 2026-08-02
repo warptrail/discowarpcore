@@ -72,6 +72,11 @@ function listeningPorts() {
   return new Set([...String(result.stdout || '').matchAll(/:(\d+)$/gm)].map((match) => Number(match[1])));
 }
 
+function firstOpenPort(usedPorts, start = 7610) {
+  for (let port = start; port <= 7999; port += 1) if (!usedPorts.has(port)) return port;
+  return 8000;
+}
+
 function inferredPort(value) {
   const match = String(value || '').match(/(?:--port\s+|(?:PORT|port)\s*[=:]\s*)(\d{2,5})/);
   return match ? Number(match[1]) : 0;
@@ -114,20 +119,11 @@ function detectCandidates(targetPackage) {
     const preferred = ['dev', 'dev:server', 'dev:api', 'start'].find((name) => scripts[name]);
     if (!preferred) return;
     const command = `npm run ${preferred}`;
-    const launch = String(scripts[preferred]).toLowerCase();
-    const lanAdapter = /\bvinext\b/.test(launch) ? 'vinext'
-      : /\bvite\b/.test(launch) ? 'vite'
-        : /\bnext\b/.test(launch) ? 'next'
-          : /\breact-scripts\b/.test(launch) ? 'react-scripts' : '';
-    candidates.push({ label, cwd, command, port: inferredPort(scripts[preferred]), lanAdapter });
+    candidates.push({ label, cwd, command, port: inferredPort(scripts[preferred]), lanAdapter: /\bvite\b/.test(scripts[preferred]) ? 'vite' : '' });
   };
   addPackageCandidate(targetPackage, '.', targetPackage?.name || 'Node service');
   const frontendPath = resolve(targetRoot, 'frontend', 'package.json');
   if (existsSync(frontendPath)) addPackageCandidate(readJson(frontendPath), 'frontend', 'Frontend');
-  if (existsSync(resolve(targetRoot, 'index.html')) && !candidates.some((candidate) => candidate.lanAdapter)) {
-    candidates.push({ label: 'Static HTML site', cwd: '.', command: 'node scripts/tarot-static-server.mjs', port: 0, lanAdapter: 'static', note: 'Detected index.html without a recognized web launcher — Tarot can host it on the assigned LAN port.' });
-  }
-  if (targetPackage?.dependencies?.electron || targetPackage?.devDependencies?.electron) candidates.push({ label: 'Electron desktop app', cwd: '.', command: '', port: 0, note: 'Electron is a desktop shell, not a LAN server. Configure its Vite, Next, or other renderer separately.' });
   if (existsSync(resolve(targetRoot, 'pyproject.toml'))) candidates.push({ label: 'Python service', cwd: '.', command: '', port: 0, note: 'Detected pyproject.toml — enter its explicit launcher, e.g. python -m uvicorn module:app --reload.' });
   if (existsSync(resolve(targetRoot, 'requirements.txt'))) candidates.push({ label: 'Python service', cwd: '.', command: '', port: 0, note: 'Detected requirements.txt — enter its explicit launcher.' });
   return candidates;
@@ -175,10 +171,6 @@ async function interactiveManifest(existingManifest, release, source, targetPack
 function inferLanAdapter(command, args, candidate) {
   if (candidate.lanAdapter) return candidate.lanAdapter;
   const launch = [command, ...args].join(' ').toLowerCase();
-  if (/\btarot-static-server\.mjs\b/.test(launch)) return 'static';
-  if (/\bvinext\b/.test(launch)) return 'vinext';
-  if (/\bnext\b/.test(launch)) return 'next';
-  if (/\breact-scripts\b/.test(launch)) return 'react-scripts';
   if (/\buvicorn\b/.test(launch)) return 'uvicorn';
   if (/\bvite\b/.test(launch)) return 'vite';
   return '';
@@ -197,10 +189,9 @@ async function askService(ask, candidate, usedPorts, existingServices, lanEnable
   const [command, ...args] = splitCommand(commandLine);
   if (!command) throw new Error(`${label} needs a launch command.`);
   const cwd = await ask('Working directory relative to project root', candidate.cwd || '.');
-  const suggestedPort = candidate.port ? String(candidate.port) : '';
-  const portText = await ask('Port (use the project manifest or DeckOne registry assignment)', suggestedPort);
-  const port = Number(portText);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error(`${label} needs an explicit port from its project configuration or the DeckOne registry; Tarot will not guess one.`);
+  const suggestedPort = candidate.port || firstOpenPort(usedPorts);
+  const port = Number(await ask('Port', String(suggestedPort)));
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error(`${label} needs a valid port.`);
   if (usedPorts.has(port)) console.log(`  Warning: :${port} is currently listening or already selected. Tarot will not take over an unknown listener.`);
   const healthPath = await ask('Health path (blank = TCP check)', '/');
   const envLine = await ask('Environment values (KEY=value, comma-separated; blank = none)', '');

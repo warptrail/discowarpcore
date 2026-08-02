@@ -101,5 +101,3 @@ ssh neonazoth 'cd ~/discowarpcore && npm run media:backfill:item-tiny && find ba
 banish
 awaken
 npm run neonazoth:tui
-awaken
-farewell

@@ -14,18 +14,54 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const REMOTE = process.env.NEONAZOTH_REMOTE || 'neonazoth';
 const REMOTE_APP_DIR = process.env.NEONAZOTH_APP_DIR || '~/discowarpcore';
 const REMOTE_PORT = process.env.NEONAZOTH_PORT || '5002';
+const REMOTE_COMPLETION_MARKER = '__DWC_REMOTE_COMMAND_COMPLETE__';
+const REMOTE_COMPLETION_GRACE_MS = 1500;
+const REMOTE_COMMAND_TIMEOUT_MS = 20 * 60 * 1000;
+const SSH_OPTIONS = [
+  '-o', 'BatchMode=yes',
+  '-o', 'ConnectTimeout=10',
+  '-o', 'ServerAliveInterval=15',
+  '-o', 'ServerAliveCountMax=3',
+];
 
 const RSYNC_EXCLUDES = [
   'node_modules/',
   'dist/',
   '.git/',
   '.vite/',
+  '.runtime/',
+  '.tarot/',
   'frontend/node_modules/',
   'frontend/dist/',
   'backend/media/',
   'backend/.env',
+  'backend/.env.*',
   'dump/',
   'var/',
+  'test/output/',
+  '.DS_Store',
+  '**/.DS_Store',
+  '*.log',
+  '*.pid',
+  '*.sock',
+  '*.backup*',
+  '*.bak-*',
+];
+
+const PROTECTED_DRY_RUN_PATTERNS = [
+  /(^|\/)\.runtime(\/|$)/,
+  /(^|\/)\.tarot(\/|$)/,
+  /(^|\/)\.DS_Store$/,
+  /^backend\/media(\/|$)/,
+  /^backend\/\.env(?:\.|$)/,
+  /^dump(\/|$)/,
+  /^var(\/|$)/,
+  /^test\/output(\/|$)/,
+  /\.log$/,
+  /\.pid$/,
+  /\.sock$/,
+  /\.backup[^/]*$/,
+  /\.bak-[^/]*$/,
 ];
 
 const LAN_IP_SCRIPT = 'ip route get 1.1.1.1 2>/dev/null | sed -n "s/.* src \\\\([0-9.]*\\\\).*/\\\\1/p" | head -n1';
@@ -34,39 +70,114 @@ function quoteShell(value) {
   return `'${String(value).replace(/'/g, `'\\''`)}'`;
 }
 
-function runCommand(command, args, { cwd = REPO_ROOT, inherit = true } = {}) {
+function runCommand(command, args, {
+  cwd = REPO_ROOT,
+  inherit = true,
+  completionMarker = '',
+  completionGraceMs = REMOTE_COMPLETION_GRACE_MS,
+  timeoutMs = 0,
+} = {}) {
   return new Promise((resolve) => {
+    const pipeOutput = !inherit || Boolean(completionMarker);
     const child = spawn(command, args, {
       cwd,
-      stdio: inherit ? 'inherit' : ['ignore', 'pipe', 'pipe'],
+      stdio: pipeOutput ? ['ignore', 'pipe', 'pipe'] : 'inherit',
     });
 
     let stdout = '';
     let stderr = '';
+    let completionSeen = false;
+    let completionTimer = null;
+    let timeoutTimer = null;
+    let forcedCloseAfterCompletion = false;
+    let timedOut = false;
 
-    if (!inherit) {
+    if (timeoutMs > 0) {
+      timeoutTimer = setTimeout(() => {
+        timedOut = true;
+        child.kill('SIGTERM');
+      }, timeoutMs);
+      timeoutTimer.unref?.();
+    }
+
+    if (pipeOutput) {
       child.stdout.on('data', (chunk) => {
-        stdout += chunk.toString();
+        const text = chunk.toString();
+        stdout += text;
+        if (inherit) {
+          process.stdout.write(
+            completionMarker ? text.split(completionMarker).join('') : text
+          );
+        }
+
+        if (!completionSeen && completionMarker && stdout.includes(completionMarker)) {
+          completionSeen = true;
+          completionTimer = setTimeout(() => {
+            forcedCloseAfterCompletion = true;
+            child.kill('SIGTERM');
+          }, completionGraceMs);
+          completionTimer.unref?.();
+        }
       });
       child.stderr.on('data', (chunk) => {
-        stderr += chunk.toString();
+        const text = chunk.toString();
+        stderr += text;
+        if (inherit) process.stderr.write(text);
       });
     }
 
-    child.on('close', (code) => {
-      resolve({ code, stdout, stderr });
+    child.on('error', (error) => {
+      if (completionTimer) clearTimeout(completionTimer);
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      resolve({
+        code: 1,
+        stdout,
+        stderr,
+        error,
+        completionSeen,
+        forcedCloseAfterCompletion,
+        timedOut,
+      });
+    });
+
+    child.on('close', (code, signal) => {
+      if (completionTimer) clearTimeout(completionTimer);
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      resolve({
+        code: completionSeen && !timedOut ? 0 : code,
+        signal,
+        stdout,
+        stderr,
+        completionSeen,
+        forcedCloseAfterCompletion,
+        timedOut,
+      });
     });
   });
 }
 
 async function runRemote(script, options = {}) {
-  return runCommand('ssh', [REMOTE, `bash -lc ${quoteShell(script)}`], options);
+  return runCommand(
+    'ssh',
+    [...SSH_OPTIONS, REMOTE, `bash -lc ${quoteShell(script)}`],
+    options
+  );
 }
 
 async function runRemoteChecked(script, label) {
-  const result = await runRemote(script);
-  if (result.code !== 0) {
+  const markedScript = `${script}\nprintf '\\n${REMOTE_COMPLETION_MARKER}\\n'`;
+  const result = await runRemote(markedScript, {
+    completionMarker: REMOTE_COMPLETION_MARKER,
+    timeoutMs: REMOTE_COMMAND_TIMEOUT_MS,
+  });
+  if (result.timedOut) {
+    throw new Error(`${label || 'Remote command'} exceeded the 20-minute safety limit.`);
+  }
+  if (result.code !== 0 || !result.completionSeen) {
     throw new Error(`${label || 'Remote command'} failed with exit code ${result.code}.`);
+  }
+  if (result.forcedCloseAfterCompletion) {
+    console.log('[remote] Work completed; closed a stale SSH channel safely.');
   }
 }
 
@@ -114,11 +225,37 @@ function rsyncArgs({ dryRun }) {
   ];
 }
 
+function findProtectedDryRunEntries(output = '') {
+  return String(output)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => {
+      const pathEntry = line.replace(/^deleting\s+/, '');
+      return PROTECTED_DRY_RUN_PATTERNS.some((pattern) => pattern.test(pathEntry));
+    });
+}
+
 async function syncSource({ dryRun }) {
   console.log(dryRun ? 'Running protected rsync dry run...' : 'Syncing protected source tree...');
-  const result = await runCommand('rsync', rsyncArgs({ dryRun }));
+  const result = await runCommand('rsync', rsyncArgs({ dryRun }), {
+    inherit: !dryRun,
+  });
+  if (dryRun) {
+    process.stdout.write(result.stdout);
+    process.stderr.write(result.stderr);
+  }
   if (result.code !== 0) {
     throw new Error(`rsync failed with exit code ${result.code}.`);
+  }
+  if (dryRun) {
+    const protectedEntries = findProtectedDryRunEntries(result.stdout);
+    if (protectedEntries.length > 0) {
+      throw new Error(
+        `Protected rsync dry run included unsafe paths:\n${protectedEntries.join('\n')}`
+      );
+    }
+    console.log('[dry run] Protected paths are absent from the transfer/delete plan.');
   }
 }
 
@@ -126,10 +263,14 @@ async function installAndBuild() {
   const script = `
     set -euo pipefail
     cd ${REMOTE_APP_DIR}
-    npm install
+    echo "[deploy 1/3] Installing backend dependencies"
+    npm install --no-audit --no-fund
     cd frontend
-    npm install
+    echo "[deploy 2/3] Installing frontend dependencies"
+    npm install --no-audit --no-fund
+    echo "[deploy 3/3] Building production frontend"
     npm run build
+    echo "[deploy] Install and build complete"
   `;
   await runRemoteChecked(script, 'Install and build');
 }
@@ -138,6 +279,10 @@ async function syncInstallBuildCheck(rl) {
   console.log('');
   console.log('This sync uses --delete on neonazoth source files, but preserves:');
   console.log('  backend/media/ backend/.env dump/ var/ .git/ node_modules/ frontend/dist/');
+  console.log('  .runtime/ .tarot/ logs, pid/socket files, local backups, and OS metadata');
+  console.log('');
+  console.log('A fresh protected dry run is required immediately before deployment.');
+  await syncSource({ dryRun: true });
   if (!(await askConfirm(rl, 'Run the real sync, install/build, and health check?', { defaultValue: false }))) {
     return;
   }
@@ -199,7 +344,17 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error?.message || error);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error?.message || error);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  REMOTE_COMPLETION_MARKER,
+  RSYNC_EXCLUDES,
+  findProtectedDryRunEntries,
+  rsyncArgs,
+  runCommand,
+};

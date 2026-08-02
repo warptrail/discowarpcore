@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   appendFileSync,
@@ -20,13 +20,10 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const runtime = resolve(root, '.runtime');
-const manifestPath = resolve(root, 'tarot.manifest.json');
-const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-if (migrateFrontendLanContracts(manifest)) writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+const manifest = JSON.parse(readFileSync(resolve(root, 'tarot.manifest.json'), 'utf8'));
 const profileName = process.argv.includes('production') ? 'production' : 'development';
 const profile = manifest.profiles?.[profileName] || manifest.profiles.development;
 const withoutMongo = process.argv.includes('--without-mongo') || process.env.TAROT_WITHOUT_MONGO === '1';
-const recoverRequested = process.argv.includes('--recover');
 const projectName = manifest.displayName || manifest.projectId || 'Tarot project';
 const socketPath = resolve(runtime, 'tarot-dock.sock');
 const lockPath = resolve(runtime, 'tarot-dock.lock');
@@ -72,41 +69,6 @@ function serviceLogPath(service) {
   return resolve(logsDirectory, `${String(service.id).replace(/[^a-z0-9_-]/gi, '-')}.jsonl`);
 }
 
-function frontendLanAdapter(service) {
-  const args = service.args || [];
-  const direct = [service.command, ...args].join(' ').toLowerCase();
-  if (/\btarot-static-server\.mjs\b/.test(direct)) return 'static';
-  if (/\bvinext\b/.test(direct)) return 'vinext';
-  if (/\bvite\b/.test(direct)) return 'vite';
-  if (/\bnext\b/.test(direct)) return 'next';
-  if (/\breact-scripts\b/.test(direct)) return 'react-scripts';
-  if (service.command !== 'npm') return '';
-  const runIndex = args.indexOf('run');
-  const scriptName = runIndex >= 0 ? args[runIndex + 1] : '';
-  const serviceRoot = resolve(root, service.cwd || '.');
-  const packagePath = resolve(serviceRoot, 'package.json');
-  if ((!serviceRoot.startsWith(`${root}/`) && serviceRoot !== root) || !existsSync(packagePath)) return '';
-  try {
-    const script = String(JSON.parse(readFileSync(packagePath, 'utf8')).scripts?.[scriptName] || '').toLowerCase();
-    if (/\bvinext\b/.test(script)) return 'vinext';
-    if (/\bvite\b/.test(script)) return 'vite';
-    if (/\bnext\b/.test(script)) return 'next';
-    return /\breact-scripts\b/.test(script) ? 'react-scripts' : '';
-  } catch { return ''; }
-}
-
-function migrateFrontendLanContracts(candidateManifest) {
-  if (candidateManifest.network?.development?.lan?.enabled === false) return false;
-  let changed = false;
-  for (const service of candidateManifest.profiles?.development?.services || []) {
-    const adapter = frontendLanAdapter(service);
-    if (service.monitorOnly || service.lan || !adapter) continue;
-    service.lan = { enabled: true, adapter, host: '0.0.0.0' };
-    changed = true;
-  }
-  return changed;
-}
-
 function run(command, args, options = {}) {
   return new Promise((resolveRun) => {
     const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'], ...options });
@@ -129,41 +91,12 @@ function acquireLock() {
   } catch (error) {
     if (error.code !== 'EEXIST') throw error;
     const pid = Number(existsSync(lockPath) ? readFileSync(lockPath, 'utf8').trim() : 0);
-    if (isTarotDockProcess(pid)) throw new Error('Tarot Dock is already running in this project.');
-    unlinkSync(lockPath);
-    acquireLock();
+    try { process.kill(pid, 0); throw new Error('Tarot Dock is already running in this project.'); } catch (processError) {
+      if (processError.message.includes('already running')) throw processError;
+      unlinkSync(lockPath);
+      acquireLock();
+    }
   }
-}
-
-function isTarotDockProcess(pid) {
-  if (!Number.isInteger(pid) || pid < 1) return false;
-  try { process.kill(pid, 0); } catch { return false; }
-  const inspection = spawnSync('ps', ['-p', String(pid), '-o', 'command='], { encoding: 'utf8' });
-  if (inspection.status !== 0 || !/(?:^|[\\/ ])tarot-dock\.mjs(?:\s|$)/.test(inspection.stdout || '')) return false;
-  const cwd = spawnSync('lsof', ['-a', '-p', String(pid), '-d', 'cwd', '-Fn'], { encoding: 'utf8' });
-  const processRoot = (cwd.stdout || '').split(/\r?\n/).find((line) => line.startsWith('n'))?.slice(1);
-  return Boolean(processRoot && resolve(processRoot) === root);
-}
-
-async function waitForDockExit(pid, timeoutMs = 5000) {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (!isTarotDockProcess(pid)) return true;
-    await new Promise((resolveWait) => setTimeout(resolveWait, 100));
-  }
-  return !isTarotDockProcess(pid);
-}
-
-async function recoverExistingDock() {
-  if (!recoverRequested || !existsSync(lockPath)) return;
-  const pid = Number(readFileSync(lockPath, 'utf8').trim());
-  if (!isTarotDockProcess(pid)) return;
-  console.log(`Recovering the prior Tarot Dock for ${projectName} (PID ${pid})…`);
-  try { process.kill(pid, 'SIGTERM'); } catch (error) { throw new Error(`Could not signal the prior Tarot Dock: ${error.message}`); }
-  if (!await waitForDockExit(pid)) throw new Error(`The prior Tarot Dock (PID ${pid}) did not close. Close that project's Tarot terminal, then retry.`);
-  try { rmSync(socketPath, { force: true }); } catch {}
-  try { unlinkSync(lockPath); } catch {}
-  console.log('Prior Tarot Dock released. Starting a fresh Dock…');
 }
 
 function releaseLock() {
@@ -174,14 +107,17 @@ function releaseLock() {
 
 function resolveCommand(service) {
   const env = Object.fromEntries(Object.entries(service.env || {}).map(([key, value]) => [key, String(value)]));
-  const externalRoot = service.cwdEnv ? process.env[service.cwdEnv] : '';
-  if (service.cwdEnv && !externalRoot) return { error: `${service.cwdEnv} is not configured for ${service.label || service.id}.` };
-  const configuredCwd = resolve(externalRoot || root, service.cwd || '.');
-  if (!service.cwdEnv && !configuredCwd.startsWith(`${root}/`) && configuredCwd !== root) return { error: `${service.label || service.id} has a working directory outside this project.` };
+  const configuredCwd = resolve(root, service.cwd || '.');
+  if (!configuredCwd.startsWith(`${root}/`) && configuredCwd !== root) return { error: `${service.label || service.id} has a working directory outside this project.` };
   if (!existsSync(configuredCwd)) return { error: `${service.label || service.id} working directory was not found: ${service.cwd || '.'}` };
   const lan = serviceLan(service);
   const commandArgs = applyLanBinding(service, normalizeNpmPrefix(service, service.args || [], configuredCwd), env, lan);
   if (service.command === 'npm') return { command: process.platform === 'win32' ? 'npm.cmd' : 'npm', args: commandArgs, cwd: configuredCwd, env };
+  if (service.cwdEnv) {
+    const cwd = process.env[service.cwdEnv] || '/Volumes/Luna/Developer-Luna/warp_gen';
+    if (!existsSync(cwd)) return { error: `${service.cwdEnv} is not set and the default provider path was not found.` };
+    return { command: resolve(cwd, 'bin/warp-gen-server'), args: commandArgs, cwd, env };
+  }
   return { command: service.command, args: commandArgs, cwd: configuredCwd, env };
 }
 
@@ -205,23 +141,6 @@ function serviceLan(service) {
   return { enabled, adapter, host: service.lan?.host || manifest.network?.development?.lan?.host || '0.0.0.0' };
 }
 
-function computerLanHostname() {
-  const hostname = os.hostname().trim().replace(/\.$/, '');
-  return hostname && hostname !== 'localhost' && !net.isIP(hostname) ? (hostname.includes('.') ? hostname : `${hostname}.local`) : '';
-}
-
-function appendDelimitedEnv(env, key, value) {
-  if (!value) return;
-  const values = new Set(String(env[key] || '').split(',').map((item) => item.trim()).filter(Boolean));
-  values.add(value);
-  env[key] = [...values].join(',');
-}
-
-function appendLaunchFlags(service, args, flags) {
-  if (service.command === 'npm' && !args.includes('--')) return [...args, '--', ...flags];
-  return [...args, ...flags];
-}
-
 function applyLanBinding(service, args, env, lan) {
   if (!lan.enabled || !lan.adapter) return [...args];
   if (lan.adapter === 'env') {
@@ -229,35 +148,10 @@ function applyLanBinding(service, args, env, lan) {
     env.TAROT_LAN_HOST ||= lan.host;
     return [...args];
   }
-  const hasHost = args.some((argument) => argument === '--host' || argument.startsWith('--host='));
-  if (lan.adapter === 'uvicorn') return hasHost ? [...args] : [...args, '--host', lan.host];
+  if (lan.adapter === 'uvicorn') return args.includes('--host') ? [...args] : [...args, '--host', lan.host];
   if (lan.adapter === 'vite') {
-    appendDelimitedEnv(env, '__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS', computerLanHostname());
-    if (hasHost) return [...args];
-    return appendLaunchFlags(service, args, ['--host', lan.host]);
-  }
-  if (lan.adapter === 'vinext') {
-    appendDelimitedEnv(env, '__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS', computerLanHostname());
-    const hasHostname = args.some((argument) => argument === '--hostname' || argument.startsWith('--hostname='));
-    if (hasHostname) return [...args];
-    return appendLaunchFlags(service, args, ['--hostname', lan.host]);
-  }
-  if (lan.adapter === 'next') {
-    const hasHostname = args.some((argument) => ['-H', '--hostname'].includes(argument) || argument.startsWith('--hostname='));
-    return hasHostname ? [...args] : appendLaunchFlags(service, args, ['-H', lan.host]);
-  }
-  if (lan.adapter === 'react-scripts') {
-    env.HOST ||= lan.host;
-    return [...args];
-  }
-  if (lan.adapter === 'static') {
-    const hasStaticHost = args.some((argument) => argument === '--host' || argument.startsWith('--host='));
-    const hasStaticPort = args.some((argument) => argument === '--port' || argument.startsWith('--port='));
-    return [
-      ...args,
-      ...(hasStaticHost ? [] : ['--host', lan.host]),
-      ...(hasStaticPort ? [] : ['--port', String(service.port)]),
-    ];
+    if (args.includes('--host')) return [...args];
+    return args.includes('--') ? [...args, '--host', lan.host] : [...args, '--', '--host', lan.host];
   }
   return [...args];
 }
@@ -370,7 +264,7 @@ function addresses() {
 
 function addressIndex(reference) {
   const available = addresses();
-  if (!reference) return -1;
+  if (!reference) return Math.max(0, available.findIndex((address) => address.label === 'LAN IP'));
   if (/^\d+$/.test(reference)) return Number(reference) - 1;
   const value = reference.toLowerCase();
   if (['local', 'localhost', 'l'].includes(value)) return available.findIndex((address) => address.label === 'localhost');
@@ -536,18 +430,8 @@ async function stop(serviceId) {
 }
 
 async function copy(reference) {
-  if (!reference) {
-    return [
-      'Choose a relay to copy:',
-      ...addresses().map((address, index) => `  ${index + 1}. ${address.label}  ${address.url}`),
-      'Use copy local, copy lan, copy computer, or copy <number>.',
-    ].join('\n');
-  }
   const index = addressIndex(reference);
-  if (!addresses()[index]) {
-    if (['lan', 'network', 'n'].includes(String(reference).toLowerCase())) return 'LAN relay is unavailable because the primary frontend is not LAN-configured.';
-    return `Unknown link choice: ${reference}. Try local, computer, lan, or 1–${addresses().length}.`;
-  }
+  if (!addresses()[index]) return `Unknown link choice: ${reference}. Try local, computer, lan, or 1–${addresses().length}.`;
   selectedAddress = index;
   const address = addresses()[index];
   const command = process.platform === 'darwin' ? 'pbcopy' : 'xclip';
@@ -629,7 +513,7 @@ async function control(parts) {
     paint('35', '  AWAKEN  awaken · awaken --scry · start <service> · restart <service> · stop [service] · banish'),
     paint('35', '  OBSERVE scry = status portal · scry-all = live all-service relay · scry <1–n> / logs <1–n> = snapshot'),
     paint('35', '  MAP     status · deck · ports · links'),
-    paint('35', '  RELAYS  copy = choose · copy local / lan / computer · 1–3 = direct copy · C / c = LAN'),
+    paint('35', '  RELAYS  1–3 + Return = copy link · C / c = copy LAN · copy <local|computer|lan>'),
     paint('35', '  SYSTEM  mongo [start] · farewell = release Tarot services and close'),
     paint('2', '  Scry Portal keys: [1–9] logs · [a] all-service relay · [s] status · [q / Esc] return to shell'),
   ].join('\n');
@@ -969,7 +853,6 @@ async function shutdown() {
 }
 
 async function launchDock() {
-  await recoverExistingDock();
   acquireLock();
   writeShellConfig();
   await ensureMongo();

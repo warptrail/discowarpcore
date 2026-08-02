@@ -1,5 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import {
+  getBoxTheme,
+  getBoxThemeCssVars,
+} from '../../util/inventoryColorTheme';
 import QuickPeekBoxHeader from './QuickPeekBoxHeader';
 import QuickPeekItemList from './QuickPeekItemList';
 import * as S from './OperationsQuickPeek.styles';
@@ -31,6 +35,7 @@ export default function OperationsBoxQuickPeek({
   position,
   total,
   expanded,
+  closing,
   transitionDirection,
   canSelectPrevious,
   canSelectNext,
@@ -42,9 +47,12 @@ export default function OperationsBoxQuickPeek({
   onOpenFullBox,
 }) {
   const gestureRef = useRef(null);
+  const suppressDetentClickRef = useRef(false);
+  const suppressDetentResetTimerRef = useRef(0);
   const sheetRef = useRef(null);
   const [headerBottom, setHeaderBottom] = useState(140);
   const boxId = box?.box_id;
+  const boxThemeStyle = getBoxThemeCssVars(getBoxTheme(boxId));
   const title = String(box?.label || box?.name || 'Untitled box').trim();
   const imageUrl = getBoxImageUrl(box);
   const description = String(box?.description || '').trim();
@@ -108,10 +116,19 @@ export default function OperationsBoxQuickPeek({
     };
   }, [box]);
 
+  useEffect(
+    () => () => window.clearTimeout(suppressDetentResetTimerRef.current),
+    [],
+  );
+
   if (!box || typeof document === 'undefined') return null;
 
   const handlePointerDown = (event) => {
-    if (event.button !== 0 || event.target.closest('button, a')) return;
+    const interactiveTarget = event.target.closest('button, a');
+    const isDragHandle = interactiveTarget?.hasAttribute(
+      'data-quick-peek-drag-handle',
+    );
+    if (event.button !== 0 || (interactiveTarget && !isDragHandle)) return;
     gestureRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -131,18 +148,38 @@ export default function OperationsBoxQuickPeek({
     const vertical = Math.abs(deltaY) > Math.abs(deltaX) * 1.2;
 
     if (horizontal && Math.abs(deltaX) >= HORIZONTAL_SWIPE_THRESHOLD) {
+      suppressDetentClickRef.current = true;
+      window.clearTimeout(suppressDetentResetTimerRef.current);
+      suppressDetentResetTimerRef.current = window.setTimeout(() => {
+        suppressDetentClickRef.current = false;
+      }, 0);
       if (deltaX < 0) onNext?.();
       else onPrevious?.();
       return;
     }
 
     if (vertical && Math.abs(deltaY) >= VERTICAL_DETENT_THRESHOLD) {
-      onSetExpanded?.(deltaY < 0);
+      suppressDetentClickRef.current = true;
+      window.clearTimeout(suppressDetentResetTimerRef.current);
+      suppressDetentResetTimerRef.current = window.setTimeout(() => {
+        suppressDetentClickRef.current = false;
+      }, 0);
+      if (deltaY < 0) onSetExpanded?.(true);
+      else onClose?.();
     }
   };
 
   const cancelGesture = () => {
     gestureRef.current = null;
+  };
+
+  const handleDetentClick = () => {
+    if (suppressDetentClickRef.current) {
+      window.clearTimeout(suppressDetentResetTimerRef.current);
+      suppressDetentClickRef.current = false;
+      return;
+    }
+    onToggleExpanded?.();
   };
 
   return createPortal(
@@ -153,10 +190,15 @@ export default function OperationsBoxQuickPeek({
       aria-label={`Quick peek at box ${title}`}
       tabIndex={-1}
       $expanded={expanded}
-      style={{ '--operations-quick-peek-top': `${headerBottom}px` }}
+      $closing={closing}
+      style={{
+        ...boxThemeStyle,
+        '--operations-quick-peek-top': `${headerBottom}px`,
+      }}
     >
       <QuickPeekBoxHeader
         box={box}
+        imageUrl={imageUrl}
         position={position}
         total={total}
         expanded={expanded}
@@ -164,8 +206,7 @@ export default function OperationsBoxQuickPeek({
         canSelectNext={canSelectNext}
         onPrevious={onPrevious}
         onNext={onNext}
-        onToggleExpanded={onToggleExpanded}
-        onClose={onClose}
+        onToggleExpanded={handleDetentClick}
         onPointerDown={handlePointerDown}
         onPointerUp={finishGesture}
         onPointerCancel={cancelGesture}
@@ -174,38 +215,35 @@ export default function OperationsBoxQuickPeek({
       <S.DeckContent
         key={box.box_id}
         $direction={transitionDirection}
+        data-quick-peek-scroll-region
       >
-        <S.BoxSnapshot>
-          {imageUrl ? (
-            <S.BoxImage src={imageUrl} alt={`${title} box`} />
-          ) : (
-            <S.BoxImageFallback aria-hidden="true">BOX</S.BoxImageFallback>
-          )}
-
-          <S.BoxSnapshotText>
-            {description ? (
-              <S.BoxDescription>{description}</S.BoxDescription>
-            ) : null}
-            {notes ? (
-              <S.BoxNotes>
-                <S.MetaLabel>Notes</S.MetaLabel>
-                {notes}
-              </S.BoxNotes>
-            ) : null}
-            {tags.length > 0 ? (
-              <S.TagLine aria-label="Box tags">
-                {tags.map((tag) => (
-                  <span key={tag}>#{tag}</span>
-                ))}
-              </S.TagLine>
-            ) : null}
-          </S.BoxSnapshotText>
-        </S.BoxSnapshot>
+        {description || notes || tags.length > 0 ? (
+          <S.BoxSnapshot>
+            <S.BoxSnapshotText>
+              {description ? (
+                <S.BoxDescription>{description}</S.BoxDescription>
+              ) : null}
+              {notes ? (
+                <S.BoxNotes>
+                  <S.MetaLabel>Notes</S.MetaLabel>
+                  {notes}
+                </S.BoxNotes>
+              ) : null}
+              {tags.length > 0 ? (
+                <S.TagLine aria-label="Box tags">
+                  {tags.map((tag) => (
+                    <span key={tag}>#{tag}</span>
+                  ))}
+                </S.TagLine>
+              ) : null}
+            </S.BoxSnapshotText>
+          </S.BoxSnapshot>
+        ) : null}
 
         <S.ItemsHeader>
           <span>Direct items</span>
           <S.ItemsCount>
-            {items.length} {items.length === 1 ? 'entry' : 'entries'}
+            {items.length} {items.length === 1 ? 'item' : 'items'}
           </S.ItemsCount>
         </S.ItemsHeader>
 

@@ -1,6 +1,6 @@
 {
-  "tarotVersion": "1.7.0",
-  "version": "1.7.0",
+  "tarotVersion": "1.6.1",
+  "version": "1.6.1",
   "projectId": "discowarpcore",
   "displayName": "Disco Warp Core",
   "presentation": {
@@ -64,12 +64,7 @@
             "restart",
             "status",
             "logs"
-          ],
-          "lan": {
-            "enabled": true,
-            "adapter": "vite",
-            "host": "0.0.0.0"
-          }
+          ]
         },
         {
           "id": "backend",
@@ -195,15 +190,15 @@
   "sync": {
     "source": "/Volumes/Luna/Developer-Luna/deckone",
     "channel": "stable",
-    "baseVersion": "1.7.0",
-    "updatedAt": "2026-08-02T20:53:17.026Z"
+    "baseVersion": "1.6.1",
+    "updatedAt": "2026-07-28T08:17:09.238Z"
   },
   "registry": {
     "url": "http://localhost:7609/api/port-index",
     "projectId": "discowarpcore",
-    "status": "offline",
+    "status": "registered",
     "pendingRegistry": true,
-    "lastSyncAt": "2026-08-02T20:53:17.064Z",
-    "lastError": "fetch failed"
+    "lastSyncAt": "2026-07-28T08:17:09.297Z",
+    "lastError": ""
   }
 }

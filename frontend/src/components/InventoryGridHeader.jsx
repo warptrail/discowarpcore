@@ -27,14 +27,6 @@ const FILTER_OPTIONS = [
   { value: 'inGroups', label: 'Boxes In Groups' },
 ];
 
-const BOX_PREFIX_OPTIONS = [
-  { value: 'all', label: 'All Boxes' },
-  ...Array.from({ length: 10 }, (_, index) => ({
-    value: String(index),
-    label: `${index}xx`,
-  })),
-];
-
 const plural = (count, singular, pluralWord) =>
   `${count} ${count === 1 ? singular : pluralWord}`;
 
@@ -53,16 +45,16 @@ export default function InventoryGridHeader({
   onSearchScopeChange,
   boxLocatorQuery = '',
   onBoxLocatorQueryChange,
-  boxLocatorMatches = [],
-  onBoxLocatorSelect,
+  boxLocatorMatchingRootCount = 0,
+  boxLocatorVisibleBoxCount = 0,
+  boxLocatorExactMatch = null,
+  onBoxLocatorActivateExact,
   sortBy = 'boxId',
   onSortChange,
   sortDirection = 'asc',
   onSortDirectionChange,
   filterBy = 'all',
   onFilterChange,
-  boxPrefix = 'all',
-  onBoxPrefixChange,
   categoryFilter = 'all',
   onCategoryFilterChange,
   locationFilter = 'all',
@@ -122,7 +114,6 @@ export default function InventoryGridHeader({
   const activeFilterCount = [
     searchQuery,
     boxLocatorQuery,
-    boxPrefix !== 'all',
     sortBy !== 'boxId',
     filterBy !== 'all',
     categoryFilter !== 'all',
@@ -256,8 +247,10 @@ export default function InventoryGridHeader({
             <BoxLocatorControl
               query={boxLocatorQuery}
               onQueryChange={onBoxLocatorQueryChange}
-              matches={boxLocatorMatches}
-              onSelect={onBoxLocatorSelect}
+              matchingRootCount={boxLocatorMatchingRootCount}
+              visibleBoxCount={boxLocatorVisibleBoxCount}
+              exactMatch={boxLocatorExactMatch}
+              onActivateExact={onBoxLocatorActivateExact}
             />
 
           </S.SearchSortRow>
@@ -370,16 +363,6 @@ export default function InventoryGridHeader({
               />
             </S.ControlGroup>
 
-            <S.ControlGroup $tone="#9BE564" $active={boxPrefix !== 'all'}>
-              <S.ControlLabel>Box Group</S.ControlLabel>
-              <CustomSelect
-                value={boxPrefix}
-                options={BOX_PREFIX_OPTIONS}
-                onChange={onBoxPrefixChange}
-                ariaLabel="Filter by box group"
-                tone="#9BE564"
-              />
-            </S.ControlGroup>
               </S.FilterRow>
 
               <S.OrphanToggleButton

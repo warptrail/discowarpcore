@@ -1,4 +1,5 @@
 import styled, { css, keyframes } from 'styled-components';
+import { QUICK_PEEK_EXIT_DURATION_MS } from './OperationsQuickPeek.motion';
 
 const COLORS = {
   bg: '#090d12',
@@ -6,10 +7,11 @@ const COLORS = {
   panelRaised: '#131d27',
   text: '#e6edf3',
   dim: 'rgba(230, 237, 243, 0.62)',
-  teal: '#4cc6c1',
-  ice: '#7fd7ff',
-  lilac: '#a7b6ff',
-  line: 'rgba(127, 215, 255, 0.24)',
+  accent: 'var(--box-primary, #4cc6c1)',
+  secondary: 'var(--box-secondary, #a7b6ff)',
+  accentRgb: 'var(--box-primary-rgb, 76, 198, 193)',
+  secondaryRgb: 'var(--box-secondary-rgb, 167, 182, 255)',
+  line: 'rgba(var(--box-primary-rgb, 76, 198, 193), 0.24)',
 };
 
 const slideForward = keyframes`
@@ -27,6 +29,44 @@ const settle = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `;
 
+const riseAndDock = keyframes`
+  0% {
+    opacity: 0.72;
+    translate: 0 108%;
+  }
+  64% {
+    opacity: 1;
+    translate: 0 -10px;
+  }
+  80% {
+    translate: 0 4px;
+  }
+  91% {
+    translate: 0 -2px;
+  }
+  100% {
+    opacity: 1;
+    translate: 0 0;
+  }
+`;
+
+const undockAndDescend = keyframes`
+  0% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  14% {
+    translate: 0 -6px;
+  }
+  26% {
+    translate: 0 2px;
+  }
+  100% {
+    opacity: 0.68;
+    translate: 0 108%;
+  }
+`;
+
 export const Deck = styled.aside`
   position: fixed;
   right: 0;
@@ -38,10 +78,11 @@ export const Deck = styled.aside`
   width: 100%;
   height: 82dvh;
   min-height: 28rem;
-  overflow: hidden;
+  overflow: visible;
   color: ${COLORS.text};
   background:
-    radial-gradient(circle at 78% 0%, rgba(167, 182, 255, 0.12), transparent 38%),
+    radial-gradient(circle at 78% 0%, rgba(${COLORS.secondaryRgb}, 0.13), transparent 38%),
+    linear-gradient(90deg, rgba(${COLORS.accentRgb}, 0.055), transparent 44%),
     linear-gradient(160deg, rgba(14, 25, 34, 0.985), rgba(7, 11, 16, 0.995));
   border: 1px solid ${COLORS.line};
   border-bottom: 0;
@@ -49,10 +90,15 @@ export const Deck = styled.aside`
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
     0 -18px 50px rgba(0, 0, 0, 0.58),
-    0 0 24px rgba(76, 198, 193, 0.08);
+    0 0 24px rgba(${COLORS.accentRgb}, 0.13);
   transform: translateY(${({ $expanded }) => ($expanded ? '0' : '28dvh')});
   transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform;
+  animation: ${({ $closing }) =>
+    $closing
+      ? css`${undockAndDescend} ${QUICK_PEEK_EXIT_DURATION_MS}ms cubic-bezier(0.58, 0.02, 0.82, 0.42) both`
+      : css`${riseAndDock} 680ms cubic-bezier(0.16, 0.82, 0.24, 1) both`};
+  will-change: translate, transform;
+  pointer-events: ${({ $closing }) => ($closing ? 'none' : 'auto')};
 
   &:focus {
     outline: none;
@@ -70,6 +116,7 @@ export const Deck = styled.aside`
     border-radius: 10px;
     transform: none;
     animation: ${settle} 240ms cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: auto;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -80,64 +127,104 @@ export const Deck = styled.aside`
 
 export const DeckCap = styled.header`
   position: relative;
-  display: grid;
-  gap: 0.18rem;
-  padding: 0.1rem 2.6rem 0.5rem;
+  isolation: isolate;
+  overflow: visible;
+  padding: ${({ $expanded }) =>
+    $expanded ? '0.55rem 0.18rem 0.42rem' : '0 0.18rem'};
   border-bottom: 1px solid ${COLORS.line};
   background:
-    linear-gradient(90deg, rgba(76, 198, 193, 0.08), transparent 42%),
+    linear-gradient(90deg, rgba(${COLORS.accentRgb}, 0.12), transparent 42%),
     rgba(8, 13, 19, 0.88);
-  touch-action: pan-y;
+  touch-action: none;
   user-select: none;
+
+  @media (min-width: 768px) {
+    padding: 0.55rem 0.18rem 0.42rem;
+    touch-action: auto;
+  }
+`;
+
+export const DeckCapArtwork = styled.span`
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 11px 11px 0 0;
+  background-position: 72% 48%;
+  background-size: cover;
+  opacity: 0.22;
+  filter: saturate(0.72) contrast(1.08) brightness(0.72);
+  mix-blend-mode: screen;
+  mask-image: linear-gradient(90deg, transparent 0%, black 30%, black 100%);
+
+  &::after {
+    position: absolute;
+    inset: 0;
+    content: '';
+    background:
+      linear-gradient(90deg, rgba(8, 13, 19, 0.94) 0%, rgba(8, 13, 19, 0.48) 48%, rgba(8, 13, 19, 0.72) 100%),
+      linear-gradient(0deg, rgba(8, 13, 19, 0.84), transparent 72%);
+  }
 `;
 
 export const DetentButton = styled.button`
+  position: absolute;
+  z-index: 2;
+  top: -22px;
+  right: 3rem;
+  left: 3rem;
   display: grid;
   place-items: center;
-  width: 100%;
   min-height: 44px;
   padding: 0;
   border: 0;
   color: ${COLORS.dim};
   background: transparent;
-  cursor: pointer;
+  cursor: ns-resize;
+  touch-action: none;
+  user-select: none;
 `;
 
 export const DetentHandle = styled.span`
   width: 2.8rem;
   height: 3px;
   border-radius: 999px;
-  background: linear-gradient(90deg, ${COLORS.teal}, ${COLORS.lilac});
+  background: linear-gradient(90deg, ${COLORS.accent}, ${COLORS.secondary});
   opacity: 0.62;
-  box-shadow: 0 0 10px rgba(127, 215, 255, 0.22);
+  box-shadow: 0 0 10px rgba(${COLORS.accentRgb}, 0.3);
 `;
 
 export const CapNavigation = styled.div`
+  position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
   align-items: center;
   gap: 0.25rem;
+  min-height: 44px;
 `;
 
 export const CapIconButton = styled.button`
   display: grid;
   place-items: center;
-  width: 44px;
+  width: 40px;
   height: 44px;
   padding: 0;
   border: 0;
   border-radius: 6px;
-  color: ${COLORS.ice};
+  color: ${COLORS.accent};
   background: transparent;
-  font-size: 1.45rem;
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1;
   cursor: pointer;
   opacity: 0.78;
 
   &:hover,
   &:focus-visible {
     color: ${COLORS.text};
-    background: rgba(127, 215, 255, 0.08);
-    outline: 1px solid rgba(127, 215, 255, 0.48);
+    background: rgba(${COLORS.accentRgb}, 0.1);
+    outline: 1px solid rgba(${COLORS.accentRgb}, 0.52);
   }
 
   &:disabled {
@@ -149,17 +236,39 @@ export const CapIconButton = styled.button`
 export const BoxIdentity = styled.div`
   min-width: 0;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.18rem;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 180ms ease,
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  @media (max-width: 767px) {
+    visibility: ${({ $expanded }) => ($expanded ? 'visible' : 'hidden')};
+    opacity: ${({ $expanded }) => ($expanded ? 1 : 0)};
+    transform: translateY(${({ $expanded }) => ($expanded ? '0' : '-4px')});
+    pointer-events: ${({ $expanded }) => ($expanded ? 'auto' : 'none')};
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+export const BoxTitleLine = styled.div`
+  display: flex;
   align-items: baseline;
-  gap: 0.08rem 0.55rem;
+  justify-content: center;
+  gap: 0.58rem;
+  min-width: 0;
 `;
 
 export const BoxId = styled.span`
-  color: ${COLORS.teal};
+  color: ${COLORS.accent};
   font-family:
     'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace, Menlo,
     Monaco, Consolas, monospace;
-  font-size: 0.88rem;
+  font-size: 1.02rem;
   font-weight: 900;
   letter-spacing: 0.08em;
 `;
@@ -168,52 +277,42 @@ export const BoxName = styled.strong`
   min-width: 0;
   overflow: hidden;
   color: ${COLORS.text};
-  font-size: 1rem;
-  line-height: 1.15;
+  font-size: 1.08rem;
+  line-height: 1.08;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
 
 export const BoxContextLine = styled.span`
-  grid-column: 1 / -1;
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
   gap: 0.75rem;
   min-width: 0;
   color: ${COLORS.dim};
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   line-height: 1.2;
+`;
+
+export const BoxLocation = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(${COLORS.accentRgb}, 0.82);
+  font-family:
+    'SFMono-Regular', ui-monospace, Menlo, Monaco, Consolas, monospace;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
 `;
 
 export const PositionReadout = styled.span`
   flex: 0 0 auto;
-  color: rgba(167, 182, 255, 0.78);
+  color: rgba(${COLORS.secondaryRgb}, 0.82);
   font-family:
     'SFMono-Regular', ui-monospace, Menlo, Monaco, Consolas, monospace;
   letter-spacing: 0.08em;
-`;
-
-export const CloseButton = styled.button`
-  position: absolute;
-  top: 0.18rem;
-  right: 0.22rem;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: 0;
-  color: ${COLORS.dim};
-  background: transparent;
-  font-size: 1.1rem;
-  cursor: pointer;
-
-  &:hover,
-  &:focus-visible {
-    color: ${COLORS.text};
-    outline: 1px solid rgba(127, 215, 255, 0.42);
-    outline-offset: -7px;
-  }
 `;
 
 export const DeckContent = styled.div`
@@ -221,7 +320,7 @@ export const DeckContent = styled.div`
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0.72rem 0.78rem 5.2rem;
+  padding: 0.55rem 0.78rem 5.2rem;
   animation: ${({ $direction }) =>
     $direction > 0
       ? css`${slideForward} 250ms cubic-bezier(0.22, 1, 0.36, 1)`
@@ -235,34 +334,7 @@ export const DeckContent = styled.div`
 `;
 
 export const BoxSnapshot = styled.div`
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.7rem;
-  align-items: start;
-  padding-bottom: 0.7rem;
-`;
-
-export const BoxImage = styled.img`
-  width: 70px;
-  height: 70px;
-  object-fit: cover;
-  border: 1px solid rgba(76, 198, 193, 0.34);
-  border-radius: 7px;
-  background: ${COLORS.bg};
-`;
-
-export const BoxImageFallback = styled.div`
-  display: grid;
-  place-items: center;
-  width: 70px;
-  height: 70px;
-  border: 1px solid rgba(127, 215, 255, 0.18);
-  border-radius: 7px;
-  color: rgba(230, 237, 243, 0.34);
-  background: rgba(4, 8, 12, 0.7);
-  font-family: ui-monospace, monospace;
-  font-size: 0.64rem;
-  letter-spacing: 0.12em;
+  padding: 0 0 0.55rem;
 `;
 
 export const BoxSnapshotText = styled.div`
@@ -296,7 +368,7 @@ export const BoxNotes = styled.p`
 export const MetaLabel = styled.span`
   display: block;
   margin-bottom: 0.12rem;
-  color: rgba(167, 182, 255, 0.76);
+  color: rgba(${COLORS.secondaryRgb}, 0.8);
   font-family: ui-monospace, monospace;
   font-size: 0.56rem;
   font-weight: 900;
@@ -309,7 +381,7 @@ export const TagLine = styled.div`
   gap: 0.4rem;
   min-width: 0;
   overflow: hidden;
-  color: rgba(76, 198, 193, 0.72);
+  color: rgba(${COLORS.accentRgb}, 0.78);
   font-family: ui-monospace, monospace;
   font-size: 0.62rem;
   white-space: nowrap;
@@ -322,7 +394,7 @@ export const ItemsHeader = styled.div`
   gap: 1rem;
   padding: 0.52rem 0 0.4rem;
   border-top: 1px solid ${COLORS.line};
-  color: ${COLORS.ice};
+  color: ${COLORS.accent};
   font-family: ui-monospace, monospace;
   font-size: 0.72rem;
   font-weight: 900;
@@ -341,7 +413,7 @@ export const ItemList = styled.ul`
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid rgba(127, 215, 255, 0.1);
+  border-top: 1px solid rgba(${COLORS.accentRgb}, 0.12);
 `;
 
 export const ItemRow = styled.li`
@@ -352,7 +424,7 @@ export const ItemRow = styled.li`
   gap: 0.14rem 0.65rem;
   min-height: 46px;
   padding: 0.42rem 0.1rem;
-  border-bottom: 1px solid rgba(127, 215, 255, 0.1);
+  border-bottom: 1px solid rgba(${COLORS.accentRgb}, 0.12);
 `;
 
 export const ItemThumbnail = styled.img`
@@ -361,7 +433,7 @@ export const ItemThumbnail = styled.img`
   width: 30px;
   height: 30px;
   object-fit: cover;
-  border: 1px solid rgba(76, 198, 193, 0.26);
+  border: 1px solid rgba(${COLORS.accentRgb}, 0.3);
   border-radius: 4px;
   background: rgba(4, 8, 12, 0.78);
 `;
@@ -371,10 +443,10 @@ export const ItemThumbnailFallback = styled.span`
   grid-row: 1 / span 2;
   width: 30px;
   height: 30px;
-  border: 1px solid rgba(127, 215, 255, 0.1);
+  border: 1px solid rgba(${COLORS.accentRgb}, 0.12);
   border-radius: 4px;
   background:
-    linear-gradient(135deg, transparent 46%, rgba(127, 215, 255, 0.08) 47% 53%, transparent 54%),
+    linear-gradient(135deg, transparent 46%, rgba(${COLORS.accentRgb}, 0.1) 47% 53%, transparent 54%),
     rgba(4, 8, 12, 0.54);
 `;
 
@@ -402,7 +474,7 @@ export const ItemCategory = styled.span`
 export const ItemQuantity = styled.code`
   grid-column: 3;
   grid-row: 1 / span 2;
-  color: ${COLORS.lilac};
+  color: ${COLORS.secondary};
   font-size: 0.72rem;
   letter-spacing: 0.06em;
 `;
@@ -411,7 +483,7 @@ export const EmptyItems = styled.p`
   margin: 0.35rem 0 0.8rem;
   padding: 0.8rem;
   color: ${COLORS.dim};
-  border: 1px dashed rgba(127, 215, 255, 0.18);
+  border: 1px dashed rgba(${COLORS.accentRgb}, 0.24);
   border-radius: 7px;
   font-size: 0.76rem;
   text-align: center;
@@ -438,7 +510,7 @@ export const NestedBoxes = styled.details`
   }
 
   summary span {
-    color: ${COLORS.teal};
+    color: ${COLORS.accent};
     font-family: ui-monospace, monospace;
   }
 `;
@@ -458,7 +530,7 @@ export const NestedBoxList = styled.ul`
   }
 
   code {
-    color: ${COLORS.teal};
+    color: ${COLORS.accent};
   }
 `;
 
@@ -472,11 +544,11 @@ export const OpenFullBoxButton = styled.button`
   justify-content: space-between;
   min-height: 46px;
   padding: 0 0.9rem;
-  border: 1px solid rgba(167, 182, 255, 0.5);
+  border: 1px solid rgba(${COLORS.secondaryRgb}, 0.58);
   border-radius: 7px;
   color: ${COLORS.text};
   background:
-    linear-gradient(90deg, rgba(76, 198, 193, 0.12), rgba(167, 182, 255, 0.17)),
+    linear-gradient(90deg, rgba(${COLORS.accentRgb}, 0.16), rgba(${COLORS.secondaryRgb}, 0.2)),
     rgba(9, 14, 20, 0.96);
   font-size: 0.76rem;
   font-weight: 900;
@@ -492,11 +564,11 @@ export const OpenFullBoxButton = styled.button`
 
   &:hover,
   &:focus-visible {
-    border-color: ${COLORS.ice};
+    border-color: ${COLORS.accent};
     outline: none;
     box-shadow:
       0 8px 24px rgba(0, 0, 0, 0.42),
-      0 0 16px rgba(127, 215, 255, 0.14);
+      0 0 16px rgba(${COLORS.accentRgb}, 0.2);
   }
 
   @media (min-width: 768px) {
@@ -517,5 +589,5 @@ export const OpenFullBoxIcon = styled.svg`
   stroke-width: 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: drop-shadow(0 0 5px rgba(127, 215, 255, 0.24));
+  filter: drop-shadow(0 0 5px rgba(${COLORS.accentRgb}, 0.3));
 `;

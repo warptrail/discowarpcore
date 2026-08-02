@@ -27,6 +27,8 @@ function copy() { tarot copy "$@"; }
 function c() { tarot copy lan; }
 function C() { tarot copy lan; }
 function 1() { tarot copy 1; }
+function 2() { tarot copy 2; }
+function 3() { tarot copy 3; }
 function mongo() { tarot mongo "$@"; }
 function banish() { tarot banish; }
 function farewell() { tarot farewell; exit; }

@@ -1,18 +1,11 @@
 // src/views/BoxList.jsx
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { styledComponents as S } from '../styles/BoxList.styles';
 import InventoryGridHeader from './InventoryGridHeader';
-import BoxLocatorInspectorPanel from './BoxLocatorInspectorPanel';
 import { normalizeItemCategory } from '../util/itemCategories';
-import { fetchBoxTreeByShortId } from '../api/boxes';
 import {
-  filterBoxTreeByPrefix,
-  normalizeBoxPrefix,
-} from '../util/boxPrefixFilter';
-import {
-  compareNumericBoxIds,
-  matchesBoxIdPrefix,
+  filterBoxTreeByIdPrefix,
   normalizeBoxId,
 } from '../util/boxLocator';
 import {
@@ -20,7 +13,9 @@ import {
   getBoxThemeCssVars,
 } from '../util/inventoryColorTheme';
 import OperationsBoxQuickPeek from './OperationsQuickPeek/OperationsBoxQuickPeek';
-import useOperationsQuickPeek from './OperationsQuickPeek/useOperationsQuickPeek';
+import useOperationsQuickPeek, {
+  getOperationsBoxAnchorId,
+} from './OperationsQuickPeek/useOperationsQuickPeek';
 
 const ORPHANED_CONTAINER_ID = '__system-orphaned-items__';
 const ORPHANED_CONTAINER_ROUTE = '/all-items?filter=orphaned';
@@ -51,14 +46,9 @@ export default function BoxList({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchScope, setSearchScope] = useState('all');
   const density = 'compact';
-  const [boxPrefix, setBoxPrefix] = useState(() =>
-    normalizeBoxPrefix(searchParams.get('boxPrefix')),
+  const [boxLocatorQuery, setBoxLocatorQuery] = useState(() =>
+    normalizeBoxId(searchParams.get('boxPrefix')).slice(0, 1),
   );
-  const [boxLocatorQuery, setBoxLocatorQuery] = useState('');
-  const [boxLocatorSelection, setBoxLocatorSelection] = useState(null);
-  const [boxLocatorDetails, setBoxLocatorDetails] = useState(null);
-  const [boxLocatorLoading, setBoxLocatorLoading] = useState(false);
-  const [boxLocatorError, setBoxLocatorError] = useState('');
   const [sortBy, setSortBy] = useState('boxId');
   const [sortDirection, setSortDirection] = useState('asc');
   const [filterBy, setFilterBy] = useState('all');
@@ -102,36 +92,28 @@ export default function BoxList({
     [orphanedItems, effectiveOrphanedCount],
   );
 
-  const boxLocatorIndex = useMemo(
-    () => buildBoxLocatorIndex(mergedBoxes),
-    [mergedBoxes],
+  const locatorFilteredBoxes = useMemo(
+    () => filterBoxTreeByIdPrefix(mergedBoxes, boxLocatorQuery),
+    [mergedBoxes, boxLocatorQuery],
   );
-
-  const boxLocatorMatches = useMemo(
-    () => findBoxLocatorMatches(boxLocatorIndex, boxLocatorQuery),
-    [boxLocatorIndex, boxLocatorQuery],
-  );
-
-  const prefixFilteredBoxes = useMemo(
-    () => filterBoxTreeByPrefix(mergedBoxes, boxPrefix),
-    [mergedBoxes, boxPrefix],
-  );
+  const boxLocatorActive = normalizeBoxId(boxLocatorQuery).length > 0;
 
   const controlledBoxes = useMemo(
     () =>
-      applyTreeControls(prefixFilteredBoxes, {
-        searchQuery,
-        searchScope,
+      applyTreeControls(locatorFilteredBoxes, {
+        searchQuery: boxLocatorActive ? '' : searchQuery,
+        searchScope: boxLocatorActive ? 'all' : searchScope,
         sortBy,
         sortDirection,
-        filterBy,
-        categoryFilter,
-        locationFilter,
-        groupFilter,
-        ownerFilter,
+        filterBy: boxLocatorActive ? 'all' : filterBy,
+        categoryFilter: boxLocatorActive ? 'all' : categoryFilter,
+        locationFilter: boxLocatorActive ? 'all' : locationFilter,
+        groupFilter: boxLocatorActive ? 'all' : groupFilter,
+        ownerFilter: boxLocatorActive ? 'all' : ownerFilter,
       }),
     [
-      prefixFilteredBoxes,
+      locatorFilteredBoxes,
+      boxLocatorActive,
       searchQuery,
       searchScope,
       sortBy,
@@ -149,6 +131,10 @@ export default function BoxList({
     [controlledBoxes],
   );
   const visibleTopLevelCount = controlledBoxes.length;
+  const boxLocatorExactMatch = useMemo(() => {
+    const query = normalizeBoxId(boxLocatorQuery);
+    return query.length === 3 ? findBoxById(mergedBoxes, query) : null;
+  }, [boxLocatorQuery, mergedBoxes]);
   const filteredTotalPages = Math.max(
     1,
     Math.ceil(visibleTopLevelCount / pageLimit),
@@ -165,6 +151,13 @@ export default function BoxList({
   const quickPeek = useOperationsQuickPeek(quickPeekBoxes, {
     ready: effectiveTotalCount > 0 || mergedBoxes.length > 0,
   });
+  const {
+    close: closeQuickPeek,
+    openBox: openQuickPeek,
+    selectedBoxId: quickPeekSelectedBoxId,
+  } = quickPeek;
+  const lastAutoActivatedLocatorRef = useRef('');
+  const autoOpenedPeekIdRef = useRef('');
 
   const orphanedMatchesControls = useMemo(
     () =>
@@ -201,36 +194,34 @@ export default function BoxList({
   }, [groupFilter, groupOptions]);
 
   useEffect(() => {
-    const rawParam = searchParams.get('boxPrefix');
-    const normalizedParam = normalizeBoxPrefix(rawParam);
-    if (rawParam && normalizedParam === 'all') {
-      const next = new URLSearchParams(searchParams);
-      next.delete('boxPrefix');
-      setSearchParams(next, { replace: true });
-      return;
-    }
-
-    if (normalizedParam !== boxPrefix) {
-      setBoxPrefix(normalizedParam);
-    }
-  }, [boxPrefix, searchParams, setSearchParams]);
+    if (!searchParams.has('boxPrefix')) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('boxPrefix');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     onInventoryQueryChange?.({
-      q: searchQuery,
-      group: groupFilter,
+      q: boxLocatorActive ? '' : searchQuery,
+      group: boxLocatorActive ? 'all' : groupFilter,
       sortBy,
     });
-  }, [searchQuery, groupFilter, sortBy, onInventoryQueryChange]);
+  }, [
+    boxLocatorActive,
+    searchQuery,
+    groupFilter,
+    sortBy,
+    onInventoryQueryChange,
+  ]);
 
-  const showOrphanedContainer = showOrphanedVirtual && orphanedMatchesControls;
+  const orphanedCanRender = !boxLocatorActive && orphanedMatchesControls;
+  const showOrphanedContainer = showOrphanedVirtual && orphanedCanRender;
   const hasAnyData = effectiveTotalCount > 0 || effectiveOrphanedCount > 0;
   const noData = !hasAnyData;
   const hasNoMatches =
     hasAnyData &&
     pagedVisibleBoxes.length === 0 &&
-    !showOrphanedContainer &&
-    !orphanedMatchesControls;
+    !showOrphanedContainer;
 
   const handleQuickBoxCreated = (createdBox) => {
     const nextId = String(createdBox?._id || '').trim();
@@ -262,85 +253,38 @@ export default function BoxList({
     setQuickOrphanedDelta((prev) => prev + 1);
   };
 
-  const handleBoxLocatorSelect = (entry) => {
-    const nextBoxId = normalizeBoxId(entry?.boxId);
-    if (!nextBoxId) return;
-
-    setBoxLocatorQuery(String(entry?.boxId || ''));
-    setBoxLocatorSelection({
-      boxId: nextBoxId,
-      label: String(entry?.label || '').trim(),
-    });
-    setBoxLocatorLoading(true);
-    setBoxLocatorDetails(null);
-    setBoxLocatorError('');
-  };
+  const activateExactBox = useCallback(() => {
+    const exactId = normalizeBoxId(boxLocatorExactMatch?.box_id);
+    if (!exactId) return;
+    lastAutoActivatedLocatorRef.current = exactId;
+    autoOpenedPeekIdRef.current = exactId;
+    openQuickPeek(boxLocatorExactMatch);
+  }, [boxLocatorExactMatch, openQuickPeek]);
 
   useEffect(() => {
-    const selectedId = normalizeBoxId(boxLocatorSelection?.boxId);
-    if (!selectedId) return;
+    const query = normalizeBoxId(boxLocatorQuery);
+    const autoPeekId = autoOpenedPeekIdRef.current;
 
-    const stillExists = boxLocatorIndex.some((entry) => {
-      return normalizeBoxId(entry?.boxId) === selectedId;
-    });
-
-    if (!stillExists) {
-      setBoxLocatorSelection(null);
-      setBoxLocatorDetails(null);
-      setBoxLocatorError('');
-    }
-  }, [boxLocatorIndex, boxLocatorSelection]);
-
-  useEffect(() => {
-    const selectedId = normalizeBoxId(boxLocatorSelection?.boxId);
-    if (!selectedId || !boxLocatorQuery) return;
-
-    const queryId = normalizeBoxId(boxLocatorQuery);
-    if (queryId && selectedId === queryId) return;
-
-    setBoxLocatorSelection(null);
-    setBoxLocatorDetails(null);
-    setBoxLocatorError('');
-  }, [boxLocatorQuery, boxLocatorSelection]);
-
-  useEffect(() => {
-    const selectedId = normalizeBoxId(boxLocatorSelection?.boxId);
-    if (!selectedId) {
-      setBoxLocatorLoading(false);
+    if (query.length !== 3 || !boxLocatorExactMatch) {
+      lastAutoActivatedLocatorRef.current = '';
+      if (autoPeekId && quickPeekSelectedBoxId === autoPeekId) {
+        autoOpenedPeekIdRef.current = '';
+        closeQuickPeek();
+      } else if (autoPeekId) {
+        autoOpenedPeekIdRef.current = '';
+      }
       return;
     }
 
-    const controller = new AbortController();
-    let active = true;
-
-    const loadInspector = async () => {
-      try {
-        setBoxLocatorLoading(true);
-        setBoxLocatorError('');
-        const detail = await fetchBoxTreeByShortId(selectedId, {
-          signal: controller.signal,
-        });
-        if (!active) return;
-        setBoxLocatorDetails(detail || null);
-      } catch (error) {
-        if (controller.signal.aborted) return;
-        if (!active) return;
-        setBoxLocatorDetails(null);
-        setBoxLocatorError(error?.message || 'Failed to load box contents.');
-      } finally {
-        if (active) {
-          setBoxLocatorLoading(false);
-        }
-      }
-    };
-
-    loadInspector();
-
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [boxLocatorSelection]);
+    if (lastAutoActivatedLocatorRef.current === query) return;
+    activateExactBox();
+  }, [
+    activateExactBox,
+    boxLocatorExactMatch,
+    boxLocatorQuery,
+    closeQuickPeek,
+    quickPeekSelectedBoxId,
+  ]);
 
   useEffect(() => {
     onPageChange?.(1);
@@ -349,7 +293,7 @@ export default function BoxList({
     sortBy,
     sortDirection,
     filterBy,
-    boxPrefix,
+    boxLocatorQuery,
     categoryFilter,
     locationFilter,
     groupFilter,
@@ -362,27 +306,8 @@ export default function BoxList({
     onPageChange?.(filteredTotalPages);
   }, [currentPage, filteredTotalPages, onPageChange]);
 
-  const handleClearBoxLocatorResult = () => {
-    setBoxLocatorSelection(null);
-    setBoxLocatorDetails(null);
-    setBoxLocatorError('');
-  };
-
-  const handleBoxPrefixChange = (nextPrefix) => {
-    const normalizedPrefix = normalizeBoxPrefix(nextPrefix);
-    setBoxPrefix(normalizedPrefix);
-
-    const next = new URLSearchParams(searchParams);
-    if (normalizedPrefix === 'all') {
-      next.delete('boxPrefix');
-    } else {
-      next.set('boxPrefix', normalizedPrefix);
-    }
-    setSearchParams(next, { replace: true });
-  };
-
   return (
-    <S.Container>
+    <S.Container $quickPeekOpen={Boolean(quickPeek.selectedBox)}>
       <InventoryGridHeader
         totalBoxes={telemetry.totalBoxes}
         totalItems={telemetry.totalItems}
@@ -393,16 +318,16 @@ export default function BoxList({
         onSearchScopeChange={setSearchScope}
         boxLocatorQuery={boxLocatorQuery}
         onBoxLocatorQueryChange={setBoxLocatorQuery}
-        boxLocatorMatches={boxLocatorMatches}
-        onBoxLocatorSelect={handleBoxLocatorSelect}
+        boxLocatorMatchingRootCount={locatorFilteredBoxes.length}
+        boxLocatorVisibleBoxCount={visibleBoxCount}
+        boxLocatorExactMatch={boxLocatorExactMatch}
+        onBoxLocatorActivateExact={activateExactBox}
         sortBy={sortBy}
         onSortChange={setSortBy}
         sortDirection={sortDirection}
         onSortDirectionChange={setSortDirection}
         filterBy={filterBy}
         onFilterChange={setFilterBy}
-        boxPrefix={boxPrefix}
-        onBoxPrefixChange={handleBoxPrefixChange}
         categoryFilter={categoryFilter}
         onCategoryFilterChange={setCategoryFilter}
         locationFilter={locationFilter}
@@ -425,14 +350,6 @@ export default function BoxList({
         locations={locations}
       />
 
-      <BoxLocatorInspectorPanel
-        selection={boxLocatorSelection}
-        details={boxLocatorDetails}
-        loading={boxLocatorLoading}
-        error={boxLocatorError}
-        onClearSelection={handleClearBoxLocatorResult}
-      />
-
       {noData ? (
         <S.EmptyMessage>No boxes yet.</S.EmptyMessage>
       ) : hasNoMatches ? (
@@ -448,7 +365,7 @@ export default function BoxList({
                 <S.TerminalHeadCell>Children</S.TerminalHeadCell>
                 <S.TerminalHeadCell>Items</S.TerminalHeadCell>
               </S.TerminalHeader>
-              {orphanedMatchesControls ? (
+              {orphanedCanRender ? (
                 <S.OrphanedRevealShell $open={showOrphanedContainer}>
                   <CompactBranch
                     key={orphanedContainer._id}
@@ -473,7 +390,7 @@ export default function BoxList({
             </S.TerminalTable>
           ) : (
             <>
-              {orphanedMatchesControls ? (
+              {orphanedCanRender ? (
                 <S.OrphanedRevealShell $open={showOrphanedContainer}>
                   <Branch
                     key={orphanedContainer._id}
@@ -535,6 +452,7 @@ export default function BoxList({
         position={quickPeek.selectedIndex + 1}
         total={quickPeek.totalBoxes}
         expanded={quickPeek.expanded}
+        closing={quickPeek.closing}
         transitionDirection={quickPeek.transitionDirection}
         canSelectPrevious={quickPeek.canSelectPrevious}
         canSelectNext={quickPeek.canSelectNext}
@@ -751,7 +669,16 @@ function Branch({
   };
 
   return (
-    <S.NodeSection $isRoot={isRoot} $depth={depth} style={boxThemeStyle}>
+    <S.NodeSection
+      id={
+        isSystemContainer
+          ? undefined
+          : getOperationsBoxAnchorId(node?.box_id)
+      }
+      $isRoot={isRoot}
+      $depth={depth}
+      style={boxThemeStyle}
+    >
       <S.RailBack aria-hidden="true" $isRoot={isRoot} $depth={depth} />
       <S.RailFront $isRoot={isRoot} $depth={depth}>
         <S.BoxCard
@@ -867,11 +794,13 @@ function Branch({
               ) : null}
 
               <S.BoxFooter>
-                <S.StatPill $variant="boxes" $isRoot={isRoot} $depth={depth}>
-                  {isOrphanedContainer
-                    ? 'virtual'
-                    : `${childBoxes.length} ${childBoxes.length === 1 ? 'box' : 'boxes'}`}
-                </S.StatPill>
+                {isOrphanedContainer || childBoxes.length > 0 ? (
+                  <S.StatPill $variant="boxes" $isRoot={isRoot} $depth={depth}>
+                    {isOrphanedContainer
+                      ? 'virtual'
+                      : `${childBoxes.length} ${childBoxes.length === 1 ? 'box' : 'boxes'}`}
+                  </S.StatPill>
+                ) : null}
                 <S.StatPill $variant="items" $isRoot={isRoot} $depth={depth}>
                   {itemQtyTotal} {itemQtyTotal === 1 ? 'item' : 'items'}
                 </S.StatPill>
@@ -885,12 +814,16 @@ function Branch({
             </S.BoxContent>
           </S.BoxBodyRow>
           <S.CardManifest aria-hidden="true" $isRoot={isRoot} $depth={depth}>
-            <span>
-              {isOrphanedContainer
-                ? 'virtual'
-                : `${childBoxes.length} ${childBoxes.length === 1 ? 'box' : 'boxes'}`}
-            </span>
-            <S.CardManifestMuted>//</S.CardManifestMuted>
+            {isOrphanedContainer || childBoxes.length > 0 ? (
+              <>
+                <span>
+                  {isOrphanedContainer
+                    ? 'virtual'
+                    : `${childBoxes.length} ${childBoxes.length === 1 ? 'box' : 'boxes'}`}
+                </span>
+                <S.CardManifestMuted>//</S.CardManifestMuted>
+              </>
+            ) : null}
             <span>{itemQtyTotal} {itemQtyTotal === 1 ? 'item' : 'items'}</span>
           </S.CardManifest>
         </S.BoxCard>
@@ -1411,41 +1344,15 @@ function buildOrphanedContainerNode({ orphanedItems = [], orphanedCount = 0 } = 
   };
 }
 
-function buildBoxLocatorIndex(nodes) {
-  const found = [];
-  const seen = new Set();
+function findBoxById(nodes, boxId) {
+  const normalizedId = normalizeBoxId(boxId);
+  if (!normalizedId) return null;
 
-  const walk = (list) => {
-    for (const node of list || []) {
-      const boxId = normalizeBoxId(node?.box_id);
-      if (boxId && !seen.has(boxId)) {
-        seen.add(boxId);
-        found.push({
-          boxId,
-          label: String(node?.label || node?.name || '').trim(),
-          location: String(node?.location || '').trim(),
-        });
-      }
-      walk(node?.childBoxes);
-    }
-  };
+  for (const node of nodes || []) {
+    if (normalizeBoxId(node?.box_id) === normalizedId) return node;
+    const nestedMatch = findBoxById(node?.childBoxes, normalizedId);
+    if (nestedMatch) return nestedMatch;
+  }
 
-  walk(nodes);
-
-  found.sort((a, b) => {
-    const numericDiff = compareNumericBoxIds(a.boxId, b.boxId);
-    if (numericDiff !== 0) return numericDiff;
-    return compareText(a.label, b.label);
-  });
-
-  return found;
-}
-
-function findBoxLocatorMatches(index, prefix) {
-  const normalizedPrefix = normalizeBoxId(prefix);
-  if (!normalizedPrefix) return [];
-
-  return (index || []).filter((entry) =>
-    matchesBoxIdPrefix(entry?.boxId, normalizedPrefix),
-  );
+  return null;
 }

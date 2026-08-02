@@ -10,20 +10,31 @@ import {
   useNavigate,
   useSearchParams,
 } from 'react-router-dom';
+import { QUICK_PEEK_EXIT_DURATION_MS } from './OperationsQuickPeek.motion';
 
 const PEEK_PARAM = 'peek';
 const PEEK_HISTORY_STATE = 'operationsQuickPeekEntry';
+const MOBILE_PEEK_TOP_RATIO = 0.46;
+const PEEK_LABEL_GAP_PX = 8;
+const PEEK_ANCHOR_SETTLE_MS = 760;
 
 function normalizeBoxId(value) {
   return String(value || '').replace(/\D/g, '').trim();
 }
 
+export function getOperationsBoxAnchorId(boxId) {
+  const normalizedId = normalizeBoxId(boxId);
+  return normalizedId ? `operations-box-${normalizedId}` : '';
+}
+
 export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [expanded, setExpanded] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [transitionDirection, setTransitionDirection] = useState(0);
+  const closeTimerRef = useRef(0);
   const triggerRef = useRef(null);
   const previousSelectedIdRef = useRef('');
 
@@ -40,6 +51,7 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
     (box) => normalizeBoxId(box?.box_id) === selectedBoxId,
   );
   const selectedBox = selectedIndex >= 0 ? previewBoxes[selectedIndex] : null;
+  const selectedBoxReady = Boolean(selectedBox);
 
   const writePeekParam = useCallback(
     (boxId, { replace = false, state = location.state } = {}) => {
@@ -52,10 +64,55 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
         next.delete(PEEK_PARAM);
       }
 
-      setSearchParams(next, { replace, state });
+      const search = next.toString();
+      navigate(
+        {
+          pathname: location.pathname,
+          search: search ? `?${search}` : '',
+          hash: normalizedId ? `#${getOperationsBoxAnchorId(normalizedId)}` : '',
+        },
+        { replace, state },
+      );
     },
-    [location.state, searchParams, setSearchParams],
+    [location.pathname, location.state, navigate, searchParams],
   );
+
+  const commitClose = useCallback(() => {
+    setExpanded(false);
+    setClosing(false);
+    setTransitionDirection(0);
+
+    if (location.state?.[PEEK_HISTORY_STATE]) {
+      navigate(-1);
+      return;
+    }
+
+    const nextState = { ...(location.state || {}) };
+    delete nextState[PEEK_HISTORY_STATE];
+    writePeekParam('', { replace: true, state: nextState });
+  }, [location.state, navigate, writePeekParam]);
+
+  const close = useCallback(() => {
+    if (!selectedBox || closing) return;
+
+    const shouldAnimate =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(max-width: 767px)').matches &&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (!shouldAnimate) {
+      commitClose();
+      return;
+    }
+
+    setClosing(true);
+    setTransitionDirection(0);
+    window.clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = window.setTimeout(
+      commitClose,
+      QUICK_PEEK_EXIT_DURATION_MS,
+    );
+  }, [closing, commitClose, selectedBox]);
 
   const openBox = useCallback(
     (box, triggerElement = null) => {
@@ -65,6 +122,14 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
       if (triggerElement instanceof HTMLElement) {
         triggerRef.current = triggerElement;
       }
+
+      if (nextId === selectedBoxId && !expanded) {
+        close();
+        return;
+      }
+
+      window.clearTimeout(closeTimerRef.current);
+      setClosing(false);
       setTransitionDirection(0);
       setExpanded(false);
 
@@ -81,22 +146,19 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
         },
       });
     },
-    [location.state, selectedBoxId, writePeekParam],
+    [
+      close,
+      expanded,
+      location.state,
+      selectedBoxId,
+      writePeekParam,
+    ],
   );
 
-  const close = useCallback(() => {
-    setExpanded(false);
-    setTransitionDirection(0);
-
-    if (location.state?.[PEEK_HISTORY_STATE]) {
-      navigate(-1);
-      return;
-    }
-
-    const nextState = { ...(location.state || {}) };
-    delete nextState[PEEK_HISTORY_STATE];
-    writePeekParam('', { replace: true, state: nextState });
-  }, [location.state, navigate, writePeekParam]);
+  useEffect(
+    () => () => window.clearTimeout(closeTimerRef.current),
+    [],
+  );
 
   const selectOffset = useCallback(
     (offset) => {
@@ -125,16 +187,109 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
     const rawPeek = searchParams.get(PEEK_PARAM);
     if (!ready || !rawPeek || selectedBox) return;
 
-    const next = new URLSearchParams(searchParams);
-    next.delete(PEEK_PARAM);
-    setSearchParams(next, { replace: true, state: location.state });
+    writePeekParam('', { replace: true, state: location.state });
   }, [
     location.state,
     ready,
     searchParams,
     selectedBox,
-    setSearchParams,
+    writePeekParam,
   ]);
+
+  useEffect(() => {
+    if (!selectedBoxReady || !selectedBoxId || typeof window === 'undefined') {
+      return undefined;
+    }
+    if (!window.matchMedia('(max-width: 767px)').matches) return undefined;
+    if (expanded) return undefined;
+
+    let frameId = 0;
+    let settleTimerId = 0;
+
+    const alignSelectedRow = (behavior) => {
+      const anchor = document.getElementById(
+        getOperationsBoxAnchorId(selectedBoxId),
+      );
+      if (!anchor) return;
+
+      const anchorRect = anchor.getBoundingClientRect();
+      const appHeaderBottom =
+        document.querySelector('#root header')?.getBoundingClientRect().bottom || 0;
+      const peekTop = window.innerHeight * MOBILE_PEEK_TOP_RATIO;
+      const targetBottom = Math.max(
+        appHeaderBottom + anchorRect.height + PEEK_LABEL_GAP_PX,
+        peekTop - PEEK_LABEL_GAP_PX,
+      );
+      const scrollDelta = anchorRect.bottom - targetBottom;
+
+      if (Math.abs(scrollDelta) < 2) return;
+      const reduceMotion = window.matchMedia(
+        '(prefers-reduced-motion: reduce)',
+      ).matches;
+      window.scrollTo({
+        top: Math.max(0, window.scrollY + scrollDelta),
+        behavior: reduceMotion ? 'auto' : behavior,
+      });
+    };
+
+    frameId = window.requestAnimationFrame(() => {
+      alignSelectedRow('smooth');
+      settleTimerId = window.setTimeout(() => {
+        alignSelectedRow('auto');
+      }, PEEK_ANCHOR_SETTLE_MS);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(settleTimerId);
+    };
+  }, [expanded, selectedBoxId, selectedBoxReady]);
+
+  useEffect(() => {
+    if (!selectedBox || expanded || typeof window === 'undefined') {
+      return undefined;
+    }
+    if (!window.matchMedia('(max-width: 767px)').matches) return undefined;
+
+    const preventBackgroundScroll = (event) => {
+      const target = event.target;
+      const scrollRegion =
+        target instanceof Element
+          ? target.closest('[data-quick-peek-scroll-region]')
+          : null;
+
+      if (scrollRegion) {
+        const hasScrollableOverflow =
+          scrollRegion.scrollHeight > scrollRegion.clientHeight + 1;
+
+        if (event.type === 'wheel' && hasScrollableOverflow) {
+          const canScrollUp = event.deltaY < 0 && scrollRegion.scrollTop > 0;
+          const canScrollDown =
+            event.deltaY > 0 &&
+            scrollRegion.scrollTop + scrollRegion.clientHeight <
+              scrollRegion.scrollHeight - 1;
+
+          if (canScrollUp || canScrollDown) return;
+        } else if (event.type === 'touchmove' && hasScrollableOverflow) {
+          return;
+        }
+      }
+
+      event.preventDefault();
+    };
+
+    document.addEventListener('wheel', preventBackgroundScroll, {
+      passive: false,
+    });
+    document.addEventListener('touchmove', preventBackgroundScroll, {
+      passive: false,
+    });
+
+    return () => {
+      document.removeEventListener('wheel', preventBackgroundScroll);
+      document.removeEventListener('touchmove', preventBackgroundScroll);
+    };
+  }, [expanded, selectedBox]);
 
   useEffect(() => {
     const previousId = previousSelectedIdRef.current;
@@ -164,6 +319,7 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
     selectedIndex,
     totalBoxes: previewBoxes.length,
     expanded,
+    closing,
     transitionDirection,
     canSelectPrevious: selectedIndex > 0,
     canSelectNext:

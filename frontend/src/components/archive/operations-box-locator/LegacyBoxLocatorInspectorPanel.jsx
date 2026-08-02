@@ -1,7 +1,7 @@
 import React from 'react';
-import * as S from '../styles/InventoryGridHeader.styles';
+import * as S from './LegacyBoxLocator.styles';
 
-export default function BoxLocatorInspectorPanel({
+export default function LegacyBoxLocatorInspectorPanel({
   selection = null,
   details = null,
   loading = false,

@@ -51,13 +51,6 @@ const childIndent = ({ $depth = 1, $mobile = false }) => {
 };
 const railTop = ({ $isRoot }) => ($isRoot ? '0.22rem' : '0.3rem');
 
-const mobileRailInset = ({ $isRoot, $depth = 0 }) => {
-  if ($isRoot) return '0.36rem';
-  if ($depth <= 1) return '0.32rem';
-  if ($depth === 2) return '0.28rem';
-  return '0.24rem';
-};
-
 const mobileRailBaseOffset = ({ $depth = 0 }) => {
   if ($depth >= 3) return '-0.24rem';
   if ($depth >= 1) return '-0.31rem';
@@ -146,6 +139,18 @@ const Container = styled.div`
   background:
     radial-gradient(circle at top right, #7fd7ff15 0%, transparent 44%),
     linear-gradient(180deg, #0d1013, #0b0e11 45%, #0d1013 100%);
+
+  @media (max-width: 767px) {
+    padding-bottom: ${({ $quickPeekOpen }) =>
+      $quickPeekOpen
+        ? 'calc(68dvh + env(safe-area-inset-bottom))'
+        : 'calc(var(--pad) * 1.8)'};
+    transition: padding-bottom 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 const Heading = styled.h2`
@@ -207,7 +212,7 @@ const RailFront = styled.div`
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.44rem;
+  gap: 0.24rem;
   width: auto;
   min-width: 0;
   z-index: 1;
@@ -215,10 +220,7 @@ const RailFront = styled.div`
   margin-right: ${RAIL_W};
   margin-top: ${({ $isRoot }) => `calc(${railTop({ $isRoot })} + ${RAIL_W})`};
   margin-bottom: ${RAIL_W};
-  padding-top: 0.38rem;
-  padding-right: 0.45rem;
-  padding-left: ${({ $isRoot }) => ($isRoot ? '0' : '0.48rem')};
-  padding-bottom: 0.35rem;
+  padding: 0;
   border-radius: ${({ $isRoot, $depth = 0 }) =>
     railInnerCorners({ $isRoot, $depth })};
   background: linear-gradient(
@@ -233,9 +235,7 @@ const RailFront = styled.div`
     margin-right: 1px;
     margin-top: ${({ $isRoot }) => `calc(${railTop({ $isRoot })} + ${MOBILE_RAIL_W})`};
     margin-bottom: ${MOBILE_RAIL_W};
-    padding-right: 0.2rem;
-    padding-left: ${({ $isRoot, $depth = 0 }) =>
-      $isRoot ? '0' : mobileRailInset({ $isRoot, $depth })};
+    padding: 0;
   }
 `;
 
@@ -255,6 +255,8 @@ const BoxCard = styled.button`
   cursor: pointer;
   animation: ${breatheIn} 140ms ease both;
   border-color: ${boxToneAlpha(0.25)};
+  border-radius: ${({ $isRoot, $depth = 0 }) =>
+    railInnerCorners({ $isRoot, $depth })};
   background:
     linear-gradient(
       var(--box-wash-angle, 92deg),
@@ -488,9 +490,12 @@ const BoxContextRow = styled.div`
 const BoxImageFrame = styled.div`
   position: relative;
   width: 92px;
-  height: 92px;
-  border: 1px solid ${LCARS.line};
-  border-radius: 10px;
+  min-height: 92px;
+  height: 100%;
+  align-self: stretch;
+  border: 0;
+  border-right: 1px solid ${boxToneAlpha(0.22)};
+  border-radius: 0;
   background:
     linear-gradient(180deg, rgba(8, 12, 15, 0.64), rgba(8, 12, 15, 0.92)),
     #11161a;
@@ -500,9 +505,9 @@ const BoxImageFrame = styled.div`
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
     width: ${({ $density }) =>
       $density === 'roomy' ? '82px' : $density === 'compact' ? '72px' : '74px'};
-    height: ${({ $density }) =>
-      $density === 'roomy' ? '82px' : $density === 'compact' ? '72px' : '74px'};
-    border-radius: 8px;
+    min-height: 92px;
+    height: 100%;
+    border-radius: 0;
   }
 `;
 
@@ -880,26 +885,17 @@ const BoxBodyRow = styled.div`
   z-index: 1;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.72rem;
-  align-items: start;
+  gap: 0;
+  align-items: stretch;
   min-width: 0;
-  padding: ${({ $density }) =>
-    $density === 'roomy'
-      ? '0.82rem 0.9rem 0.88rem'
-      : $density === 'compact'
-        ? '0.42rem 0.5rem 0.48rem'
-        : '0.68rem 0.78rem 0.74rem'};
+  min-height: 92px;
+  padding: 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
     grid-template-columns: 72px minmax(0, 1fr);
     min-height: 92px;
-    gap: ${({ $density }) => ($density === 'compact' ? '0.42rem' : '0.58rem')};
-    padding: ${({ $density }) =>
-      $density === 'roomy'
-        ? '0.68rem 0.72rem 0.74rem'
-        : $density === 'compact'
-          ? '0.38rem 0.5rem 0.42rem'
-          : '0.56rem 0.62rem 0.6rem'};
+    gap: 0;
+    padding: 0;
   }
 `;
 
@@ -907,6 +903,12 @@ const BoxContent = styled.div`
   min-width: 0;
   display: grid;
   gap: 0;
+  align-content: start;
+  padding: 0.48rem 0.58rem 0.52rem 0.72rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+    padding: 0.4rem 0.48rem 0.44rem 0.5rem;
+  }
 `;
 
 const NotesSignal = styled.span`

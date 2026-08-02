@@ -7,12 +7,9 @@ import { fileURLToPath } from 'node:url';
 
 const localRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
+const apply = args.includes('--apply');
 const bootstrap = args.includes('--bootstrap');
 const verifyOnly = args.includes('--verify');
-const dryRun = args.includes('--dry-run');
-// Updating is the normal action. --dry-run is the explicit no-write preview;
-// --apply remains accepted for older documentation and scripts.
-const apply = !verifyOnly && !dryRun;
 const forceScript = args.includes('--force-script');
 const sourceFlag = args.indexOf('--source');
 const sourceOverride = sourceFlag >= 0 ? args[sourceFlag + 1] : '';
@@ -66,45 +63,6 @@ function registryServices(manifest) {
       adapter: service.portAdapter || {},
       temporary: Boolean(manifest.registry?.pendingRegistry),
     }));
-}
-
-function manifestServicePackage(targetRoot, service) {
-  const serviceRoot = resolve(targetRoot, service.cwd || '.');
-  const packagePath = resolve(serviceRoot, 'package.json');
-  if (!serviceRoot.startsWith(`${targetRoot}/`) && serviceRoot !== targetRoot) return null;
-  if (!existsSync(packagePath)) return null;
-  try { return readJson(packagePath); } catch { return null; }
-}
-
-function frontendLanAdapter(service, targetRoot) {
-  const args = service.args || [];
-  const direct = [service.command, ...args].join(' ').toLowerCase();
-  if (/\btarot-static-server\.mjs\b/.test(direct)) return 'static';
-  if (/\bvinext\b/.test(direct)) return 'vinext';
-  if (/\bvite\b/.test(direct)) return 'vite';
-  if (/\bnext\b/.test(direct)) return 'next';
-  if (/\breact-scripts\b/.test(direct)) return 'react-scripts';
-  if (service.command !== 'npm') return '';
-  const runIndex = args.indexOf('run');
-  const scriptName = runIndex >= 0 ? args[runIndex + 1] : '';
-  const script = manifestServicePackage(targetRoot, service)?.scripts?.[scriptName];
-  const launch = String(script || '').toLowerCase();
-  if (/\bvinext\b/.test(launch)) return 'vinext';
-  if (/\bvite\b/.test(launch)) return 'vite';
-  if (/\bnext\b/.test(launch)) return 'next';
-  return /\breact-scripts\b/.test(launch) ? 'react-scripts' : '';
-}
-
-function migrateFrontendLanContracts(manifest, targetRoot) {
-  if (manifest.network?.development?.lan?.enabled === false) return [];
-  const migrated = [];
-  for (const service of manifest.profiles?.development?.services || []) {
-    const adapter = frontendLanAdapter(service, targetRoot);
-    if (service.monitorOnly || service.lan || !adapter) continue;
-    service.lan = { enabled: true, adapter, host: '0.0.0.0' };
-    migrated.push(`${service.label || service.id} :${service.port}`);
-  }
-  return migrated;
 }
 
 function applyPortReassignment(manifest, targetRoot, allocation) {
@@ -173,7 +131,6 @@ if (!existsSync(packagePath)) {
   } else {
     const release = readJson(releasePath);
     const targetManifest = existingManifest || starterManifest(targetPackage, release, sourceRoot);
-    const viteLanMigrations = migrateFrontendLanContracts(targetManifest, targetRoot);
     const recordedSource = targetRoot === sourceRoot ? 'self' : sourceRoot;
     const planned = release.files.map((file) => {
       const source = resolve(sourceRoot, file);
@@ -188,7 +145,7 @@ if (!existsSync(packagePath)) {
     const metadataCurrent = targetManifest.version === release.version && targetManifest.tarotVersion === release.version && targetManifest.sync?.source === recordedSource && targetManifest.sync?.channel === release.channel && targetManifest.sync?.baseVersion === release.version;
     const scriptsCurrent = !scriptConflict && targetPackage.scripts?.tarot === tarotScript && targetPackage.scripts?.['tarot:update'] === updaterScript && targetPackage.scripts?.['tarot:storm'] === stormScript && targetPackage.scripts?.['tarot:install'] === installerScript;
     const filesCurrent = planned.every((item) => item.state === 'current');
-    const changed = !existingManifest || !filesCurrent || !metadataCurrent || !scriptsCurrent || viteLanMigrations.length > 0;
+    const changed = !existingManifest || !filesCurrent || !metadataCurrent || !scriptsCurrent;
 
     console.log(`Tarot Port ${release.version} (${release.channel})`);
     console.log(`source  ${sourceRoot}`);
@@ -196,13 +153,12 @@ if (!existsSync(packagePath)) {
     if (!existingManifest) console.log('add     tarot.manifest.json (bootstrap skeleton)');
     planned.forEach((item) => console.log(`${item.state.padEnd(7)} ${item.file}`));
     console.log(scriptConflict ? `conflict package.json scripts.tarot = ${targetPackage.scripts.tarot}` : scriptsCurrent ? 'current package.json Tarot commands' : 'update  package.json Tarot commands');
-    viteLanMigrations.forEach((service) => console.log(`configure LAN frontend adapter for ${service}`));
 
     if (verifyOnly) {
       if (filesCurrent && metadataCurrent && scriptsCurrent) console.log('\nVerification passed: target is byte-aligned with the declared master release.');
       else fail('Verification failed: target is not fully synchronized with the declared master release.');
     } else if (!apply) {
-      console.log(changed ? '\nDry run only. Remove --dry-run to write this update.' : '\nAlready current and byte-aligned.');
+      console.log(changed ? '\nDry run only. Re-run with --apply to write this update.' : '\nAlready current and byte-aligned.');
     } else if (!changed) {
       console.log('\nAlready current; nothing was written.');
     } else if (scriptConflict && !forceScript) {

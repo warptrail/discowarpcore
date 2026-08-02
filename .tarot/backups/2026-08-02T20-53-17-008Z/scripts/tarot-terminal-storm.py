@@ -22,7 +22,7 @@ def interrupt(_signal: int, _frame: object) -> None:
 def emit(index: int, total: int) -> None:
     color = COLORS[index % len(COLORS)]
     phase = ("scanning", "threading", "mapping", "stabilizing", "relaying")[index % 5]
-    service = ("Tarot control", "Vite", "Express", "Mongo probe", "Port registry")[index % 5]
+    service = ("WarpGen", "Vite", "Express", "Mongo probe", "Port registry")[index % 5]
     width = 8 + (index % 20)
     progress = "█" * width + "░" * (28 - width)
     stamp = time.strftime("%H:%M:%S")

@@ -3,6 +3,7 @@ import * as S from './OperationsQuickPeek.styles';
 
 export default function QuickPeekBoxHeader({
   box,
+  imageUrl,
   position,
   total,
   expanded,
@@ -11,7 +12,6 @@ export default function QuickPeekBoxHeader({
   onPrevious,
   onNext,
   onToggleExpanded,
-  onClose,
   onPointerDown,
   onPointerUp,
   onPointerCancel,
@@ -19,23 +19,47 @@ export default function QuickPeekBoxHeader({
   const boxId = String(box?.box_id || '').trim();
   const label = String(box?.label || box?.name || 'Untitled box').trim();
   const location = String(box?.location || '').trim();
+  const handleGrabberPointerDown = (event) => {
+    event.stopPropagation();
+    onPointerDown?.(event);
+  };
+  const handleGrabberPointerUp = (event) => {
+    event.stopPropagation();
+    onPointerUp?.(event);
+  };
+  const handleGrabberPointerCancel = (event) => {
+    event.stopPropagation();
+    onPointerCancel?.(event);
+  };
 
   return (
     <S.DeckCap
+      $expanded={expanded}
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
     >
+      {imageUrl ? (
+        <S.DeckCapArtwork
+          aria-hidden="true"
+          style={{ backgroundImage: `url(${JSON.stringify(imageUrl)})` }}
+        />
+      ) : null}
+
       <S.DetentButton
         type="button"
+        data-quick-peek-drag-handle
         aria-label={expanded ? 'Collapse box quick peek' : 'Expand box quick peek'}
         aria-expanded={expanded}
         onClick={onToggleExpanded}
+        onPointerDown={handleGrabberPointerDown}
+        onPointerUp={handleGrabberPointerUp}
+        onPointerCancel={handleGrabberPointerCancel}
       >
         <S.DetentHandle aria-hidden="true" />
       </S.DetentButton>
 
-      <S.CapNavigation>
+      <S.CapNavigation $expanded={expanded}>
         <S.CapIconButton
           type="button"
           aria-label="Previous box"
@@ -45,11 +69,13 @@ export default function QuickPeekBoxHeader({
           ‹
         </S.CapIconButton>
 
-        <S.BoxIdentity>
-          <S.BoxId>#{boxId}</S.BoxId>
-          <S.BoxName>{label}</S.BoxName>
+        <S.BoxIdentity $expanded={expanded} aria-hidden={!expanded}>
+          <S.BoxTitleLine>
+            <S.BoxId>#{boxId}</S.BoxId>
+            <S.BoxName>{label}</S.BoxName>
+          </S.BoxTitleLine>
           <S.BoxContextLine>
-            {location || 'Location not recorded'}
+            <S.BoxLocation>{location || 'Location not recorded'}</S.BoxLocation>
             <S.PositionReadout>
               {position} / {total}
             </S.PositionReadout>
@@ -65,14 +91,6 @@ export default function QuickPeekBoxHeader({
           ›
         </S.CapIconButton>
       </S.CapNavigation>
-
-      <S.CloseButton
-        type="button"
-        aria-label="Close box quick peek"
-        onClick={onClose}
-      >
-        ×
-      </S.CloseButton>
     </S.DeckCap>
   );
 }
