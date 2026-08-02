@@ -4,3 +4,11 @@
 {"message":"  ➜  Local:   http://localhost:7611/","stream":"out","capturedAt":1785704222244,"sequence":12}
 {"message":"  ➜  Network: http://192.168.1.19:7611/","stream":"out","capturedAt":1785704222244,"sequence":13}
 {"message":"  ➜  Network: http://10.5.0.2:7611/","stream":"out","capturedAt":1785704222244,"sequence":14}
+{"message":"2:11:23 PM [vite] (client) hmr update /src/components/BoxList.jsx","stream":"out","capturedAt":1785705083505,"sequence":113}
+{"message":"2:12:21 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/QuickPeekItemList.jsx","stream":"out","capturedAt":1785705141738,"sequence":114}
+{"message":"2:13:01 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/OperationsBoxQuickPeek.jsx","stream":"out","capturedAt":1785705181472,"sequence":115}
+{"message":"2:13:52 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/OperationsBoxQuickPeek.jsx, /src/components/OperationsQuickPeek/QuickPeekBoxHeader.jsx, /src/components/OperationsQuickPeek/QuickPeekItemList.jsx, /src/components/OperationsQuickPeek/QuickPeekItemCarousel.jsx","stream":"out","capturedAt":1785705232042,"sequence":119}
+{"message":"2:14:16 PM [vite] (client) hmr update /src/components/BoxList.jsx, /src/components/OperationsQuickPeek/OperationsBoxQuickPeek.jsx","stream":"out","capturedAt":1785705256970,"sequence":123}
+{"message":"2:14:16 PM [vite] (client) hmr update /src/components/BoxList.jsx","stream":"out","capturedAt":1785705256971,"sequence":124}
+{"message":"2:18:39 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/OperationsBoxQuickPeek.jsx","stream":"out","capturedAt":1785705519032,"sequence":125}
+{"message":"2:18:39 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/QuickPeekItemCarousel.jsx","stream":"out","capturedAt":1785705519034,"sequence":126}

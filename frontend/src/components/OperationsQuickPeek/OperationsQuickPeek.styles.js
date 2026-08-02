@@ -418,13 +418,31 @@ export const ItemList = styled.ul`
 
 export const ItemRow = styled.li`
   position: relative;
+  border-bottom: 1px solid rgba(${COLORS.accentRgb}, 0.12);
+`;
+
+export const ItemRowButton = styled.button`
   display: grid;
   grid-template-columns: 30px minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.14rem 0.65rem;
+  width: 100%;
   min-height: 46px;
   padding: 0.42rem 0.1rem;
-  border-bottom: 1px solid rgba(${COLORS.accentRgb}, 0.12);
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    outline: none;
+    background:
+      linear-gradient(90deg, rgba(${COLORS.accentRgb}, 0.12), transparent 74%);
+    box-shadow: inset 2px 0 0 ${COLORS.accent};
+  }
 `;
 
 export const ItemThumbnail = styled.img`
@@ -486,6 +504,200 @@ export const EmptyItems = styled.p`
   border: 1px dashed rgba(${COLORS.accentRgb}, 0.24);
   border-radius: 7px;
   font-size: 0.76rem;
+  text-align: center;
+`;
+
+export const ItemCarousel = styled.section`
+  min-width: 0;
+  touch-action: pan-y;
+  animation: ${({ $direction }) =>
+    $direction > 0
+      ? css`${slideForward} 250ms cubic-bezier(0.22, 1, 0.36, 1)`
+      : $direction < 0
+        ? css`${slideBackward} 250ms cubic-bezier(0.22, 1, 0.36, 1)`
+        : css`${settle} 220ms cubic-bezier(0.22, 1, 0.36, 1)`};
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+export const ItemCarouselNavigation = styled.div`
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  min-height: 46px;
+  border-bottom: 1px solid ${COLORS.line};
+`;
+
+export const ItemCarouselArrow = styled.button`
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  color: ${COLORS.accent};
+  background: transparent;
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: ${COLORS.text};
+    outline: 1px solid rgba(${COLORS.accentRgb}, 0.48);
+    background: rgba(${COLORS.accentRgb}, 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.18;
+    cursor: default;
+  }
+`;
+
+export const ItemCarouselReturn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  justify-self: center;
+  min-width: 76px;
+  min-height: 44px;
+  padding: 0 0.5rem;
+  border: 0;
+  color: ${COLORS.dim};
+  background: transparent;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: ${COLORS.text};
+    outline: none;
+  }
+`;
+
+export const ItemListIcon = styled.svg`
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: ${COLORS.accent};
+  stroke-width: 1.8;
+  stroke-linecap: round;
+`;
+
+export const ItemCarouselPosition = styled.code`
+  color: rgba(${COLORS.secondaryRgb}, 0.82);
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
+`;
+
+export const ItemCarouselHero = styled.div`
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  gap: 0.8rem;
+  align-items: center;
+  padding: 0.8rem 0 0.72rem;
+`;
+
+export const ItemCarouselImage = styled.img`
+  width: 86px;
+  height: 86px;
+  object-fit: cover;
+  border: 1px solid rgba(${COLORS.accentRgb}, 0.34);
+  border-radius: 6px;
+  background: ${COLORS.bg};
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 0 14px rgba(${COLORS.accentRgb}, 0.1);
+`;
+
+export const ItemCarouselImageFallback = styled.div`
+  display: grid;
+  place-items: center;
+  width: 86px;
+  height: 86px;
+  border: 1px solid rgba(${COLORS.accentRgb}, 0.16);
+  border-radius: 6px;
+  color: rgba(230, 237, 243, 0.3);
+  background: rgba(4, 8, 12, 0.58);
+  font-family: ui-monospace, monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+`;
+
+export const ItemCarouselIdentity = styled.div`
+  min-width: 0;
+  display: grid;
+  gap: 0.44rem;
+`;
+
+export const ItemCarouselName = styled.h3`
+  margin: 0;
+  color: ${COLORS.text};
+  font-size: clamp(1rem, 4.5vw, 1.24rem);
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+`;
+
+export const ItemCarouselMeta = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.6rem;
+  align-items: center;
+  color: ${COLORS.dim};
+  font-size: 0.68rem;
+
+  code {
+    color: ${COLORS.secondary};
+    font-size: 0.64rem;
+    letter-spacing: 0.08em;
+  }
+`;
+
+export const ItemCarouselDetails = styled.div`
+  display: grid;
+  gap: 0;
+  border-top: 1px solid ${COLORS.line};
+`;
+
+export const ItemCarouselDetail = styled.div`
+  padding: 0.68rem 0;
+  border-bottom: 1px solid rgba(${COLORS.accentRgb}, 0.12);
+
+  p {
+    display: -webkit-box;
+    margin: 0;
+    overflow: hidden;
+    color: rgba(230, 237, 243, 0.8);
+    font-size: 0.76rem;
+    line-height: 1.4;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+`;
+
+export const ItemCarouselTags = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.32rem 0.52rem;
+  max-height: 2.8em;
+  padding: 0.68rem 0;
+  overflow: hidden;
+  color: rgba(${COLORS.accentRgb}, 0.8);
+  font-family: ui-monospace, monospace;
+  font-size: 0.64rem;
+  line-height: 1.4;
+`;
+
+export const ItemCarouselEmpty = styled.p`
+  margin: 0;
+  padding: 0.75rem 0;
+  border-top: 1px solid ${COLORS.line};
+  color: ${COLORS.dim};
+  font-size: 0.72rem;
   text-align: center;
 `;
 

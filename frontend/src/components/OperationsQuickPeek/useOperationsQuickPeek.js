@@ -11,6 +11,10 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import { QUICK_PEEK_EXIT_DURATION_MS } from './OperationsQuickPeek.motion';
+import {
+  QUICK_PEEK_ITEM_HISTORY_STATE,
+  QUICK_PEEK_ITEM_PARAM,
+} from './useOperationsQuickPeekItemSelection';
 
 const PEEK_PARAM = 'peek';
 const PEEK_HISTORY_STATE = 'operationsQuickPeekEntry';
@@ -57,11 +61,18 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
     (boxId, { replace = false, state = location.state } = {}) => {
       const next = new URLSearchParams(searchParams);
       const normalizedId = normalizeBoxId(boxId);
+      const currentId = normalizeBoxId(searchParams.get(PEEK_PARAM));
+      const nextState = { ...(state || {}) };
 
       if (normalizedId) {
         next.set(PEEK_PARAM, normalizedId);
       } else {
         next.delete(PEEK_PARAM);
+      }
+
+      if (!normalizedId || normalizedId !== currentId) {
+        next.delete(QUICK_PEEK_ITEM_PARAM);
+        delete nextState[QUICK_PEEK_ITEM_HISTORY_STATE];
       }
 
       const search = next.toString();
@@ -71,7 +82,7 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
           search: search ? `?${search}` : '',
           hash: normalizedId ? `#${getOperationsBoxAnchorId(normalizedId)}` : '',
         },
-        { replace, state },
+        { replace, state: nextState },
       );
     },
     [location.pathname, location.state, navigate, searchParams],
@@ -185,7 +196,15 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
 
   useEffect(() => {
     const rawPeek = searchParams.get(PEEK_PARAM);
-    if (!ready || !rawPeek || selectedBox) return;
+    const rawItem = searchParams.get(QUICK_PEEK_ITEM_PARAM);
+    if (!ready) return;
+
+    if (!rawPeek && rawItem) {
+      writePeekParam('', { replace: true, state: location.state });
+      return;
+    }
+
+    if (!rawPeek || selectedBox) return;
 
     writePeekParam('', { replace: true, state: location.state });
   }, [

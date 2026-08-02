@@ -42,7 +42,7 @@ function QuickPeekItemThumbnail({ item }) {
   );
 }
 
-export default function QuickPeekItemList({ items = [] }) {
+export default function QuickPeekItemList({ items = [], onSelectItem }) {
   if (!Array.isArray(items) || items.length === 0) {
     return <S.EmptyItems>No direct items in this box.</S.EmptyItems>;
   }
@@ -56,12 +56,18 @@ export default function QuickPeekItemList({ items = [] }) {
 
         return (
           <S.ItemRow key={itemId}>
-            <QuickPeekItemThumbnail item={item} />
-            <S.ItemName>{name}</S.ItemName>
-            {category ? <S.ItemCategory>{category}</S.ItemCategory> : null}
-            <S.ItemQuantity aria-label={`Quantity ${quantityLabel(item)}`}>
-              ×{quantityLabel(item)}
-            </S.ItemQuantity>
+            <S.ItemRowButton
+              type="button"
+              aria-label={`Preview ${name}`}
+              onClick={() => onSelectItem?.(item)}
+            >
+              <QuickPeekItemThumbnail item={item} />
+              <S.ItemName>{name}</S.ItemName>
+              {category ? <S.ItemCategory>{category}</S.ItemCategory> : null}
+              <S.ItemQuantity aria-label={`Quantity ${quantityLabel(item)}`}>
+                ×{quantityLabel(item)}
+              </S.ItemQuantity>
+            </S.ItemRowButton>
           </S.ItemRow>
         );
       })}

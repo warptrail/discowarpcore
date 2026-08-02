@@ -5,7 +5,9 @@ import {
   getBoxThemeCssVars,
 } from '../../util/inventoryColorTheme';
 import QuickPeekBoxHeader from './QuickPeekBoxHeader';
+import QuickPeekItemCarousel from './QuickPeekItemCarousel';
 import QuickPeekItemList from './QuickPeekItemList';
+import useOperationsQuickPeekItemSelection from './useOperationsQuickPeekItemSelection';
 import * as S from './OperationsQuickPeek.styles';
 
 const HORIZONTAL_SWIPE_THRESHOLD = 54;
@@ -60,6 +62,9 @@ export default function OperationsBoxQuickPeek({
   const tags = getTags(box);
   const childBoxes = Array.isArray(box?.childBoxes) ? box.childBoxes : [];
   const items = Array.isArray(box?.items) ? box.items : [];
+  const itemSelection = useOperationsQuickPeekItemSelection(items, {
+    boxId,
+  });
 
   useEffect(() => {
     if (!boxId) return;
@@ -214,65 +219,89 @@ export default function OperationsBoxQuickPeek({
 
       <S.DeckContent
         key={box.box_id}
-        $direction={transitionDirection}
+        $direction={itemSelection.selectedItem ? 0 : transitionDirection}
         data-quick-peek-scroll-region
       >
-        {description || notes || tags.length > 0 ? (
-          <S.BoxSnapshot>
-            <S.BoxSnapshotText>
-              {description ? (
-                <S.BoxDescription>{description}</S.BoxDescription>
-              ) : null}
-              {notes ? (
-                <S.BoxNotes>
-                  <S.MetaLabel>Notes</S.MetaLabel>
-                  {notes}
-                </S.BoxNotes>
-              ) : null}
-              {tags.length > 0 ? (
-                <S.TagLine aria-label="Box tags">
-                  {tags.map((tag) => (
-                    <span key={tag}>#{tag}</span>
+        {itemSelection.selectedItem ? (
+          <QuickPeekItemCarousel
+            key={String(itemSelection.selectedItem?._id || itemSelection.selectedItem?.id || '')}
+            item={itemSelection.selectedItem}
+            position={itemSelection.selectedIndex + 1}
+            total={itemSelection.totalItems}
+            transitionDirection={itemSelection.transitionDirection}
+            canSelectPrevious={itemSelection.canSelectPrevious}
+            canSelectNext={itemSelection.canSelectNext}
+            onPrevious={itemSelection.selectPrevious}
+            onNext={itemSelection.selectNext}
+            onBack={itemSelection.backToItems}
+          />
+        ) : (
+          <>
+            {description || notes || tags.length > 0 ? (
+              <S.BoxSnapshot>
+                <S.BoxSnapshotText>
+                  {description ? (
+                    <S.BoxDescription>{description}</S.BoxDescription>
+                  ) : null}
+                  {notes ? (
+                    <S.BoxNotes>
+                      <S.MetaLabel>Notes</S.MetaLabel>
+                      {notes}
+                    </S.BoxNotes>
+                  ) : null}
+                  {tags.length > 0 ? (
+                    <S.TagLine aria-label="Box tags">
+                      {tags.map((tag) => (
+                        <span key={tag}>#{tag}</span>
+                      ))}
+                    </S.TagLine>
+                  ) : null}
+                </S.BoxSnapshotText>
+              </S.BoxSnapshot>
+            ) : null}
+
+            <S.ItemsHeader>
+              <span>Direct items</span>
+              <S.ItemsCount>
+                {items.length} {items.length === 1 ? 'item' : 'items'}
+              </S.ItemsCount>
+            </S.ItemsHeader>
+
+            <QuickPeekItemList
+              items={items}
+              onSelectItem={itemSelection.openItem}
+            />
+
+            {childBoxes.length > 0 ? (
+              <S.NestedBoxes>
+                <summary>
+                  Nested boxes
+                  <span>{childBoxes.length}</span>
+                </summary>
+                <S.NestedBoxList>
+                  {childBoxes.map((child) => (
+                    <li key={child?._id || child?.box_id}>
+                      <code>#{child?.box_id}</code>
+                      {child?.label || child?.name || 'Untitled box'}
+                    </li>
                   ))}
-                </S.TagLine>
-              ) : null}
-            </S.BoxSnapshotText>
-          </S.BoxSnapshot>
-        ) : null}
-
-        <S.ItemsHeader>
-          <span>Direct items</span>
-          <S.ItemsCount>
-            {items.length} {items.length === 1 ? 'item' : 'items'}
-          </S.ItemsCount>
-        </S.ItemsHeader>
-
-        <QuickPeekItemList items={items} />
-
-        {childBoxes.length > 0 ? (
-          <S.NestedBoxes>
-            <summary>
-              Nested boxes
-              <span>{childBoxes.length}</span>
-            </summary>
-            <S.NestedBoxList>
-              {childBoxes.map((child) => (
-                <li key={child?._id || child?.box_id}>
-                  <code>#{child?.box_id}</code>
-                  {child?.label || child?.name || 'Untitled box'}
-                </li>
-              ))}
-            </S.NestedBoxList>
-          </S.NestedBoxes>
-        ) : null}
+                </S.NestedBoxList>
+              </S.NestedBoxes>
+            ) : null}
+          </>
+        )}
       </S.DeckContent>
 
       <S.OpenFullBoxButton
         type="button"
         $expanded={expanded}
-        onClick={onOpenFullBox}
+        onClick={
+          itemSelection.selectedItem
+            ? itemSelection.openFullItem
+            : onOpenFullBox
+        }
       >
-        Open full box
+        {itemSelection.selectedItem ? 'Open full item' : 'Open full box'}
         <S.OpenFullBoxIcon
           aria-hidden="true"
           viewBox="0 0 20 20"
