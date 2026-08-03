@@ -262,7 +262,7 @@ export const FilterRow = styled.div`
 
 export const UtilityRow = styled.div`
   position: relative;
-  z-index: 520;
+  z-index: 20;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -272,8 +272,8 @@ export const UtilityRow = styled.div`
 
   @media (max-width: 560px) {
     order: 2;
-    align-items: stretch;
-    flex-direction: column;
+    align-items: flex-start;
+    flex-direction: row;
   }
 `;
 
@@ -312,7 +312,23 @@ export const ViewModeToggle = styled.div`
   }
 
   @media (max-width: 560px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, 4.65rem);
+    padding: 0.1rem;
+    border-color: ${toneAlpha(LCARS.root, '46')};
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.035),
+      inset 0 -5px 12px rgba(0, 0, 0, 0.28),
+      0 0 10px ${toneAlpha(LCARS.root, '0c')};
+
+    &::before {
+      inset: 2px auto 2px 2px;
+      width: calc(50% - 2px);
+      opacity: 0.72;
+      box-shadow:
+        inset 0 0 0 1px ${toneAlpha(LCARS.root, '58')},
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 0 10px ${toneAlpha(LCARS.root, '1c')};
+    }
   }
 `;
 
@@ -349,6 +365,10 @@ export const ViewModeButton = styled.button`
 
   @media (max-width: 560px) {
     min-width: 0;
+    min-height: 40px;
+    padding-inline: 0.38rem;
+    font-size: 0.6rem;
+    letter-spacing: 0.065em;
   }
 `;
 

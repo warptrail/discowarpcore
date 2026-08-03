@@ -194,6 +194,88 @@ export const DetentHandle = styled.span`
   box-shadow: 0 0 10px rgba(${COLORS.accentRgb}, 0.3);
 `;
 
+export const QuickPeekSearchDock = styled.div`
+  position: absolute;
+  z-index: 3;
+  top: -18px;
+  right: 2.7rem;
+  left: 2.7rem;
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) 1.75rem;
+  align-items: center;
+  height: 36px;
+  border: 1px solid rgba(${COLORS.accentRgb}, 0.58);
+  border-radius: 6px;
+  color: ${COLORS.text};
+  background:
+    linear-gradient(90deg, rgba(${COLORS.accentRgb}, 0.1), transparent 36%),
+    rgba(7, 12, 18, 0.98);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.045),
+    0 0 14px rgba(${COLORS.accentRgb}, 0.16);
+  touch-action: manipulation;
+  animation: ${settle} 180ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  &:focus-within {
+    border-color: rgba(${COLORS.accentRgb}, 0.88);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 0 16px rgba(${COLORS.accentRgb}, 0.24);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+export const QuickPeekSearchGlyph = styled.span`
+  display: grid;
+  place-items: center;
+  color: ${COLORS.accent};
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9rem;
+  opacity: 0.72;
+`;
+
+export const QuickPeekSearchInput = styled.input`
+  min-width: 0;
+  height: 30px;
+  border: 0;
+  outline: 0;
+  padding: 0 0.2rem;
+  color: ${COLORS.text};
+  background: transparent;
+  font: 700 0.72rem/1.2 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: 0.01em;
+
+  &::placeholder {
+    color: ${COLORS.dim};
+  }
+
+  &::-webkit-search-cancel-button {
+    display: none;
+  }
+`;
+
+export const QuickPeekSearchClose = styled.button`
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 32px;
+  border: 0;
+  padding: 0;
+  color: ${COLORS.dim};
+  background: transparent;
+  font-size: 1rem;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: ${COLORS.text};
+    outline: 0;
+  }
+`;
+
 export const CapNavigation = styled.div`
   position: relative;
   z-index: 1;

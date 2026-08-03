@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   getBoxTheme,
@@ -8,6 +8,10 @@ import QuickPeekBoxHeader from './QuickPeekBoxHeader';
 import QuickPeekItemCarousel from './QuickPeekItemCarousel';
 import QuickPeekItemList from './QuickPeekItemList';
 import useOperationsQuickPeekItemSelection from './useOperationsQuickPeekItemSelection';
+import {
+  OPERATIONS_QUICK_PEEK_SEARCH_STATE_EVENT,
+  OPERATIONS_QUICK_PEEK_SEARCH_TOGGLE_EVENT,
+} from '../../constants/inventoryFinderEvents';
 import * as S from './OperationsQuickPeek.styles';
 
 const HORIZONTAL_SWIPE_THRESHOLD = 54;
@@ -53,6 +57,8 @@ export default function OperationsBoxQuickPeek({
   const suppressDetentResetTimerRef = useRef(0);
   const sheetRef = useRef(null);
   const [headerBottom, setHeaderBottom] = useState(140);
+  const [quickSearchOpen, setQuickSearchOpen] = useState(false);
+  const [itemQuery, setItemQuery] = useState('');
   const boxId = box?.box_id;
   const boxThemeStyle = getBoxThemeCssVars(getBoxTheme(boxId));
   const title = String(box?.label || box?.name || 'Untitled box').trim();
@@ -61,10 +67,87 @@ export default function OperationsBoxQuickPeek({
   const notes = String(box?.notes || '').trim();
   const tags = getTags(box);
   const childBoxes = Array.isArray(box?.childBoxes) ? box.childBoxes : [];
-  const items = Array.isArray(box?.items) ? box.items : [];
+  const items = useMemo(
+    () => (Array.isArray(box?.items) ? box.items : []),
+    [box?.items],
+  );
   const itemSelection = useOperationsQuickPeekItemSelection(items, {
     boxId,
   });
+  const selectedQuickPeekItem = itemSelection.selectedItem;
+  const backToItemList = itemSelection.backToItems;
+  const normalizedItemQuery = itemQuery.trim().toLowerCase();
+  const visibleItems = useMemo(() => {
+    if (!normalizedItemQuery) return items;
+
+    return items.filter((item) => {
+      const tags = Array.isArray(item?.tags) ? item.tags : [item?.tags];
+      return [
+        item?.name,
+        item?.label,
+        item?.category,
+        item?.description,
+        item?.notes,
+        ...tags,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedItemQuery);
+    });
+  }, [items, normalizedItemQuery]);
+
+  const closeQuickSearch = useCallback(() => {
+    setQuickSearchOpen(false);
+    setItemQuery('');
+  }, []);
+
+  useEffect(() => {
+    const handleQuickSearchToggle = () => {
+      setQuickSearchOpen((current) => {
+        if (current) setItemQuery('');
+        return !current;
+      });
+    };
+
+    window.addEventListener(
+      OPERATIONS_QUICK_PEEK_SEARCH_TOGGLE_EVENT,
+      handleQuickSearchToggle,
+    );
+    return () =>
+      window.removeEventListener(
+        OPERATIONS_QUICK_PEEK_SEARCH_TOGGLE_EVENT,
+        handleQuickSearchToggle,
+      );
+  }, []);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(OPERATIONS_QUICK_PEEK_SEARCH_STATE_EVENT, {
+        detail: { open: quickSearchOpen, boxId },
+      }),
+    );
+  }, [boxId, quickSearchOpen]);
+
+  useEffect(
+    () => () => {
+      window.dispatchEvent(
+        new CustomEvent(OPERATIONS_QUICK_PEEK_SEARCH_STATE_EVENT, {
+          detail: { open: false, boxId },
+        }),
+      );
+    },
+    [boxId],
+  );
+
+  useEffect(() => {
+    setItemQuery('');
+  }, [boxId]);
+
+  useEffect(() => {
+    if (!quickSearchOpen || !selectedQuickPeekItem) return;
+    backToItemList();
+  }, [backToItemList, quickSearchOpen, selectedQuickPeekItem]);
 
   useEffect(() => {
     if (!boxId) return;
@@ -215,6 +298,10 @@ export default function OperationsBoxQuickPeek({
         onPointerDown={handlePointerDown}
         onPointerUp={finishGesture}
         onPointerCancel={cancelGesture}
+        searchOpen={quickSearchOpen}
+        searchQuery={itemQuery}
+        onSearchChange={setItemQuery}
+        onSearchClose={closeQuickSearch}
       />
 
       <S.DeckContent
@@ -263,13 +350,28 @@ export default function OperationsBoxQuickPeek({
             <S.ItemsHeader>
               <span>Direct items</span>
               <S.ItemsCount>
-                {items.length} {items.length === 1 ? 'item' : 'items'}
+                {visibleItems.length}{' '}
+                {normalizedItemQuery
+                  ? visibleItems.length === 1
+                    ? 'match'
+                    : 'matches'
+                  : visibleItems.length === 1
+                    ? 'item'
+                    : 'items'}
               </S.ItemsCount>
             </S.ItemsHeader>
 
             <QuickPeekItemList
-              items={items}
-              onSelectItem={itemSelection.openItem}
+              items={visibleItems}
+              emptyMessage={
+                normalizedItemQuery
+                  ? 'No direct items match that signal.'
+                  : undefined
+              }
+              onSelectItem={(item) => {
+                closeQuickSearch();
+                itemSelection.openItem(item);
+              }}
             />
 
             {childBoxes.length > 0 ? (

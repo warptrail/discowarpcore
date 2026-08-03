@@ -42,9 +42,13 @@ function QuickPeekItemThumbnail({ item }) {
   );
 }
 
-export default function QuickPeekItemList({ items = [], onSelectItem }) {
+export default function QuickPeekItemList({
+  items = [],
+  emptyMessage = 'No direct items in this box.',
+  onSelectItem,
+}) {
   if (!Array.isArray(items) || items.length === 0) {
-    return <S.EmptyItems>No direct items in this box.</S.EmptyItems>;
+    return <S.EmptyItems>{emptyMessage}</S.EmptyItems>;
   }
 
   return (

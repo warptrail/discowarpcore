@@ -7,6 +7,11 @@ export const INVENTORY_FINDER_CLOSE_EVENT =
 export const INVENTORY_FINDER_COMMIT_EVENT =
   'disco-warp-core:inventory-finder-commit';
 
+export const OPERATIONS_QUICK_PEEK_SEARCH_TOGGLE_EVENT =
+  'disco-warp-core:operations-quick-peek-search-toggle';
+export const OPERATIONS_QUICK_PEEK_SEARCH_STATE_EVENT =
+  'disco-warp-core:operations-quick-peek-search-state';
+
 export const BOX_FINDER_STATE_EVENT =
   'disco-warp-core:box-finder-state';
 export const BOX_FINDER_OPEN_EVENT =

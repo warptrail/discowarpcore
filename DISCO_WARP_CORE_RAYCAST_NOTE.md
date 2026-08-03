@@ -204,8 +204,11 @@ The lower-level source-only command is:
 npm run deploy:neonazoth
 ```
 
-Use the TUI workflow when possible because source sync alone does not install,
-build, or verify the remote app.
+This command now prints the local revision, remote identity and pre-sync health,
+live `rsync` progress/statistics, the resolved LAN URL, and a post-sync health
+check. It remains source-only: it does not install dependencies, build the
+frontend, or restart the running app. Use the TUI workflow when those steps are
+needed.
 
 ## Confirming production
 

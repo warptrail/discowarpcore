@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import * as S from './OperationsQuickPeek.styles';
 
 export default function QuickPeekBoxHeader({
@@ -15,7 +15,12 @@ export default function QuickPeekBoxHeader({
   onPointerDown,
   onPointerUp,
   onPointerCancel,
+  searchOpen,
+  searchQuery,
+  onSearchChange,
+  onSearchClose,
 }) {
+  const searchInputRef = useRef(null);
   const boxId = String(box?.box_id || '').trim();
   const label = String(box?.label || box?.name || 'Untitled box').trim();
   const location = String(box?.location || '').trim();
@@ -32,6 +37,13 @@ export default function QuickPeekBoxHeader({
     onPointerCancel?.(event);
   };
 
+  useEffect(() => {
+    if (!searchOpen) return;
+    searchInputRef.current?.focus({ preventScroll: true });
+  }, [searchOpen]);
+
+  const stopSearchPointerEvent = (event) => event.stopPropagation();
+
   return (
     <S.DeckCap
       $expanded={expanded}
@@ -46,18 +58,50 @@ export default function QuickPeekBoxHeader({
         />
       ) : null}
 
-      <S.DetentButton
-        type="button"
-        data-quick-peek-drag-handle
-        aria-label={expanded ? 'Collapse box quick peek' : 'Expand box quick peek'}
-        aria-expanded={expanded}
-        onClick={onToggleExpanded}
-        onPointerDown={handleGrabberPointerDown}
-        onPointerUp={handleGrabberPointerUp}
-        onPointerCancel={handleGrabberPointerCancel}
-      >
-        <S.DetentHandle aria-hidden="true" />
-      </S.DetentButton>
+      {searchOpen ? (
+        <S.QuickPeekSearchDock
+          role="search"
+          aria-label={`Search direct items in box ${boxId}`}
+          onPointerDown={stopSearchPointerEvent}
+          onPointerUp={stopSearchPointerEvent}
+          onPointerCancel={stopSearchPointerEvent}
+        >
+          <S.QuickPeekSearchGlyph aria-hidden="true">⌕</S.QuickPeekSearchGlyph>
+          <S.QuickPeekSearchInput
+            ref={searchInputRef}
+            type="search"
+            value={searchQuery}
+            onChange={(event) => onSearchChange?.(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== 'Escape') return;
+              event.preventDefault();
+              onSearchClose?.();
+            }}
+            placeholder={`Find in #${boxId}`}
+            aria-label={`Find an item in box ${boxId}`}
+          />
+          <S.QuickPeekSearchClose
+            type="button"
+            aria-label="Close Quick Peek item search"
+            onClick={onSearchClose}
+          >
+            ×
+          </S.QuickPeekSearchClose>
+        </S.QuickPeekSearchDock>
+      ) : (
+        <S.DetentButton
+          type="button"
+          data-quick-peek-drag-handle
+          aria-label={expanded ? 'Collapse box quick peek' : 'Expand box quick peek'}
+          aria-expanded={expanded}
+          onClick={onToggleExpanded}
+          onPointerDown={handleGrabberPointerDown}
+          onPointerUp={handleGrabberPointerUp}
+          onPointerCancel={handleGrabberPointerCancel}
+        >
+          <S.DetentHandle aria-hidden="true" />
+        </S.DetentButton>
+      )}
 
       <S.CapNavigation $expanded={expanded}>
         <S.CapIconButton

@@ -15,6 +15,8 @@ import {
   INVENTORY_FINDER_COMMIT_EVENT,
   INVENTORY_FINDER_OPEN_EVENT,
   INVENTORY_FINDER_STATE_EVENT,
+  OPERATIONS_QUICK_PEEK_SEARCH_STATE_EVENT,
+  OPERATIONS_QUICK_PEEK_SEARCH_TOGGLE_EVENT,
   RETRIEVAL_FINDER_STATE_EVENT,
   RETRIEVAL_FINDER_TOGGLE_EVENT,
   ALL_ITEMS_FILTERS_STATE_EVENT,
@@ -1087,6 +1089,7 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [committedSearch, setCommittedSearch] = useState('');
   const [isOperationsFinderOpen, setIsOperationsFinderOpen] = useState(false);
+  const [isQuickPeekSearchOpen, setIsQuickPeekSearchOpen] = useState(false);
   const [boxContext, setBoxContext] = useState(null);
   const [boxFinderState, setBoxFinderState] = useState({
     mode: 'closed',
@@ -1109,8 +1112,11 @@ export default function Header() {
   const retrievalLastScrollYRef = useRef(0);
   const retrievalIgnoreScrollUntilRef = useRef(0);
   const isBoxDetailPage = /^\/boxes\/[^/]+\/?$/.test(location.pathname);
+  const isOperationsPage = /^\/operations\/?$/.test(location.pathname);
   const isRetrievalPage = /^\/retrieval\/?$/.test(location.pathname);
   const isAllItemsPage = /^\/all-items\/?$/.test(location.pathname);
+  const hasOperationsQuickPeek =
+    isOperationsPage && new URLSearchParams(location.search).has('peek');
   const boxConsoleStyle =
     isBoxDetailPage && boxContext
       ? getBoxThemeCssVars(getBoxTheme(boxContext.shortId))
@@ -1131,6 +1137,13 @@ export default function Header() {
     }
     if (isRetrievalPage) {
       window.dispatchEvent(new CustomEvent(RETRIEVAL_FINDER_TOGGLE_EVENT));
+      return;
+    }
+    if (hasOperationsQuickPeek) {
+      window.dispatchEvent(new CustomEvent(INVENTORY_FINDER_CLOSE_EVENT));
+      window.dispatchEvent(
+        new CustomEvent(OPERATIONS_QUICK_PEEK_SEARCH_TOGGLE_EVENT),
+      );
       return;
     }
     const openEvent = isBoxDetailPage
@@ -1195,7 +1208,24 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
+    const handleQuickPeekSearchState = (event) => {
+      setIsQuickPeekSearchOpen(Boolean(event.detail?.open));
+    };
+
+    window.addEventListener(
+      OPERATIONS_QUICK_PEEK_SEARCH_STATE_EVENT,
+      handleQuickPeekSearchState,
+    );
+    return () =>
+      window.removeEventListener(
+        OPERATIONS_QUICK_PEEK_SEARCH_STATE_EVENT,
+        handleQuickPeekSearchState,
+      );
+  }, []);
+
+  useEffect(() => {
     setIsOperationsFinderOpen(false);
+    setIsQuickPeekSearchOpen(false);
     setBoxFinderState({
       mode: 'closed',
       query: '',
@@ -1530,7 +1560,9 @@ export default function Header() {
                   ? allItemsFilterState.expanded
                     ? 'Collapse All Items filters'
                     : 'Open All Items filters'
-                : 'Open item finder',
+                : hasOperationsQuickPeek
+                  ? 'Toggle Quick Peek item search'
+                  : 'Open item finder',
           }}
           calmIdle={isBoxDetailPage}
           themedIdle={isBoxDetailPage && !!boxContext}
@@ -1546,23 +1578,27 @@ export default function Header() {
                     ? 'Toggle retrieval search'
                     : isAllItemsPage
                       ? 'Toggle All Items filters'
-                    : 'Open item finder from search icon'
+                    : hasOperationsQuickPeek
+                      ? 'Toggle Quick Peek item search'
+                      : 'Open item finder from search icon'
               }
               title={
                 isBoxDetailPage
                   ? 'Search this box'
                   : isRetrievalPage
                     ? 'Retrieval search'
-                    : isAllItemsPage
-                      ? 'All Items filters'
-                    : 'Open item finder'
+                  : isAllItemsPage
+                    ? 'All Items filters'
+                    : hasOperationsQuickPeek
+                      ? 'Search items in this box'
+                      : 'Open item finder'
               }
               $active={
                 isBoxDetailPage
                   ? boxFinderState.mode === 'expanded' ||
                     !!boxFinderState.query ||
                     boxFinderState.sortMode !== 'treeOrder'
-                  : isOperationsFinderOpen
+                  : isOperationsFinderOpen || isQuickPeekSearchOpen
               }
               $pulse={searchPulse}
               $boxThemed={isBoxDetailPage && !!boxContext}

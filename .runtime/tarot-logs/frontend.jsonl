@@ -12,3 +12,12 @@
 {"message":"2:14:16 PM [vite] (client) hmr update /src/components/BoxList.jsx","stream":"out","capturedAt":1785705256971,"sequence":124}
 {"message":"2:18:39 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/OperationsBoxQuickPeek.jsx","stream":"out","capturedAt":1785705519032,"sequence":125}
 {"message":"2:18:39 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/QuickPeekItemCarousel.jsx","stream":"out","capturedAt":1785705519034,"sequence":126}
+{"message":"3:53:42 PM [vite] (client) hmr update /src/components/InventoryGridHeader.jsx, /src/components/BoxLocatorControl.jsx","stream":"out","capturedAt":1785711222809,"sequence":139}
+{"message":"5:31:00 PM [vite] (client) hmr update /src/App.jsx, /src/components/Header.jsx, /src/components/AllItemsList.jsx, /src/components/BoxDetailView.jsx, /src/components/Retrieval/RetrievalPage.jsx, /src/components/InventoryGridHeader.jsx, /src/components/BoxDetailView/BoxSearchOverlay.jsx, /src/components/AllItemsList/AllItemsToolbar.jsx, /src/components/BoxMetaPanel.jsx","stream":"out","capturedAt":1785717060409,"sequence":146}
+{"message":"5:32:12 PM [vite] (client) hmr update /src/components/Header.jsx","stream":"out","capturedAt":1785717132297,"sequence":147}
+{"message":"5:32:50 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/QuickPeekBoxHeader.jsx","stream":"out","capturedAt":1785717170073,"sequence":148}
+{"message":"5:33:23 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/OperationsBoxQuickPeek.jsx, /src/components/OperationsQuickPeek/QuickPeekBoxHeader.jsx, /src/components/OperationsQuickPeek/QuickPeekItemList.jsx, /src/components/OperationsQuickPeek/QuickPeekItemCarousel.jsx","stream":"out","capturedAt":1785717203898,"sequence":149}
+{"message":"5:34:30 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/OperationsBoxQuickPeek.jsx","stream":"out","capturedAt":1785717270912,"sequence":150}
+{"message":"5:35:01 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/QuickPeekItemList.jsx","stream":"out","capturedAt":1785717301629,"sequence":151}
+{"message":"5:35:18 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/OperationsBoxQuickPeek.jsx","stream":"out","capturedAt":1785717318534,"sequence":152}
+{"message":"5:36:32 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/OperationsBoxQuickPeek.jsx","stream":"out","capturedAt":1785717392572,"sequence":153}
