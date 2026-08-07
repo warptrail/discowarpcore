@@ -18,11 +18,16 @@ function buildUrl(path, params = {}) {
 }
 
 async function sendJson(path, { method = 'GET', body, params } = {}) {
-  const response = await fetch(buildUrl(path, params), {
-    method,
-    headers: body == null ? undefined : { 'Content-Type': 'application/json' },
-    body: body == null ? undefined : JSON.stringify(body),
-  });
+  let response;
+  try {
+    response = await fetch(buildUrl(path, params), {
+      method,
+      headers: body == null ? undefined : { 'Content-Type': 'application/json' },
+      body: body == null ? undefined : JSON.stringify(body),
+    });
+  } catch {
+    throw new Error('Could not reach the Declutter backend. Check Express in Tarot, then try again.');
+  }
   const payload = await response.json().catch(() => null);
   if (!response.ok) {
     const requestId = String(
@@ -128,6 +133,14 @@ export async function reopenDeclutterCandidate(candidateId) {
   const body = await sendJson(`${DECK_PATH}/candidates/${encodeURIComponent(candidateId)}/reopen`, {
     method: 'POST',
   });
+  return body?.candidate || null;
+}
+
+export async function resolveDeclutterDiscussion(candidateId, { choice, notes = '' }) {
+  const body = await sendJson(
+    `${DECK_PATH}/candidates/${encodeURIComponent(candidateId)}/resolve-discussion`,
+    { method: 'POST', body: { choice, notes } }
+  );
   return body?.candidate || null;
 }
 

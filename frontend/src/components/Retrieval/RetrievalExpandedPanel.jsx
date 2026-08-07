@@ -548,8 +548,7 @@ export default function RetrievalExpandedPanel({
   const useAmbientMediaBackdrop = mediaShape === 'portrait' || mediaShape === 'square';
   const editHref = useMemo(() => {
     const href = toText(resolvedItem?.itemHref);
-    if (!href) return '';
-    return `${href}${href.includes('?') ? '&' : '?'}edit=choose`;
+    return href;
   }, [resolvedItem?.itemHref]);
   const canRunActions = typeof onLifecycleAction === 'function' && Boolean(resolvedItem?.id);
   const actionBusy = Boolean(pendingAction);

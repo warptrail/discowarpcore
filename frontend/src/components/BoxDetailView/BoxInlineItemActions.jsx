@@ -5,12 +5,6 @@ import MiniOrphanedList from '../MiniOrphanedList';
 import { ToastContext } from '../Toast';
 import * as S from './BoxDetailTabContent.styles';
 
-const ORPHAN_SORT_OPTIONS = [
-  { value: 'recent', label: 'Date Orphaned (Newest)' },
-  { value: 'oldest', label: 'Date Orphaned (Oldest)' },
-  { value: 'alpha', label: 'Alphabetical (A-Z)' },
-];
-
 function formatBoxContextLabel(box) {
   const shortId = String(box?.box_id || '').trim();
   const label = String(box?.label || box?.name || '').trim();
@@ -93,7 +87,7 @@ export default function BoxInlineItemActions({
         >
           {activePanel === 'assign'
             ? 'Hide Items Adrift'
-            : 'Assign Item Adrift to This Box'}
+            : 'Assign a Lost Item to This Box'}
         </S.InlineActionButton>
       </S.InlineActionsRow>
 
@@ -124,33 +118,25 @@ export default function BoxInlineItemActions({
       ) : null}
 
       {activePanel === 'assign' && selectedBox?._id ? (
-        <S.InlinePanelShell>
-          <S.InlinePanelHeader>
-            <S.InlinePanelTitle>Assign Items Adrift</S.InlinePanelTitle>
-            <S.InlinePanelContext>
-              Target: {selectedBoxContext}
-            </S.InlinePanelContext>
-          </S.InlinePanelHeader>
-
-          <MiniOrphanedList
-            boxMongoId={selectedBox._id}
-            title="Items Adrift"
-            assignLabel="Assign"
-            showControls
-            paginationMode="paged"
-            fixedViewportHeight="min(68vh, 560px)"
-            searchPlaceholder="Search Items Adrift..."
-            sortOptions={ORPHAN_SORT_OPTIONS}
-            emptyText="No Items Adrift match the current search."
-            assignSuccessMessage={(item) => {
-              const itemName = String(item?.name || '').trim();
-              return itemName
-                ? `Assigned "${itemName}" from Items Adrift to ${selectedBoxContext}.`
-                : `Assigned an item from Items Adrift to ${selectedBoxContext}.`;
-            }}
-            onItemAssigned={handleOrphanAssigned}
-          />
-        </S.InlinePanelShell>
+        <MiniOrphanedList
+          boxMongoId={selectedBox._id}
+          title="Assign Items Adrift"
+          contextId={selectedBox.box_id}
+          contextLabel={selectedBox.label}
+          assignLabel="Assign"
+          showControls
+          paginationMode="paged"
+          fixedViewportHeight="min(58vh, 520px)"
+          searchPlaceholder="Name, notes, tags…"
+          emptyText="No Items Adrift match these filters."
+          assignSuccessMessage={(item) => {
+            const itemName = String(item?.name || '').trim();
+            return itemName
+              ? `Assigned "${itemName}" from Items Adrift to ${selectedBoxContext}.`
+              : `Assigned an item from Items Adrift to ${selectedBoxContext}.`;
+          }}
+          onItemAssigned={handleOrphanAssigned}
+        />
       ) : null}
     </S.InlineActionsArea>
   );

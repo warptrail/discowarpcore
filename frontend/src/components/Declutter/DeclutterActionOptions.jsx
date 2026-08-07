@@ -23,14 +23,14 @@ export default function DeclutterActionOptions({
   const [route, setRoute] = useState(
     currentRoute === 'needs_routing' ? 'discard' : currentRoute,
   );
-  const [boxId, setBoxId] = useState('');
+  const [boxId, setBoxId] = useState('__leave__');
   const panelId = useId();
   const toggleRef = useRef(null);
   const routingLocked = currentRoute === 'needs_routing' && player !== 'laserfox';
 
   useEffect(() => {
     setRoute(currentRoute === 'needs_routing' ? 'discard' : currentRoute);
-    setBoxId('');
+    setBoxId('__leave__');
   }, [currentRoute]);
 
   const compatibleBoxes = useMemo(
@@ -42,10 +42,12 @@ export default function DeclutterActionOptions({
 
   const stagingOptions = useMemo(
     () => [
-      { value: '', label: 'Default staging box' },
+      { value: '__leave__', label: 'Leave in current location' },
       ...compatibleBoxes.map((box) => ({
         value: box.id,
-        label: [box.box_id, box.label].filter(Boolean).join(' '),
+        label: [box.box_id, box.label, box.declutterIsDefault ? '(default)' : '']
+          .filter(Boolean)
+          .join(' '),
       })),
     ],
     [compatibleBoxes],
@@ -121,8 +123,14 @@ export default function DeclutterActionOptions({
 
           <S.ActionOptionsApply
             type="button"
-            disabled={busy || routingLocked || route === currentRoute}
-            onClick={() => runAction('reroute', { route, boxId })}
+            disabled={busy || routingLocked || (
+              route === currentRoute && (boxId === '__leave__' || !['donate', 'sell'].includes(route))
+            )}
+            onClick={() => runAction('reroute', {
+              route,
+              boxId: boxId === '__leave__' ? '' : boxId,
+              leaveInPlace: boxId === '__leave__',
+            })}
           >
             Update plan
           </S.ActionOptionsApply>

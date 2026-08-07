@@ -1,9 +1,5 @@
 import React from 'react';
-import ItemActivityDisclosure from './ItemDossier/ItemActivityDisclosure';
-import ItemDecisionActions from './ItemDossier/ItemDecisionActions';
-import ItemDossierHero from './ItemDossier/ItemDossierHero';
-import ItemFinderFacts from './ItemDossier/ItemFinderFacts';
-import ItemMoreDetails from './ItemDossier/ItemMoreDetails';
+import ItemDossierCarousel from './ItemDossier/ItemDossierCarousel';
 import * as S from './ItemDossier/ItemDossier.styles';
 
 export default function OperationsItemOverview({
@@ -24,6 +20,13 @@ export default function OperationsItemOverview({
   isConsumable,
   valueLabel,
   purchasePriceLabel,
+  quantity,
+  statusLabel,
+  acquisitionType,
+  dateAcquiredLabel,
+  sourceBatchLabel,
+  topBoxLabel,
+  maintenanceNotes,
   description,
   notes,
   externalLinks = [],
@@ -32,55 +35,50 @@ export default function OperationsItemOverview({
   onDeclutter,
   onMove,
   onEdit,
+  consumablePending = false,
+  onConsumableToggle,
   activityActions = [],
   activityTimestamps = {},
 }) {
   return (
     <S.Dossier>
-      <S.DossierTop $hasImage={Boolean(thumbnailUrl)}>
-        <ItemDossierHero
-          itemName={itemName}
-          thumbnailUrl={thumbnailUrl}
-          canOpenImageLightbox={canOpenImageLightbox}
-          onOpenImageLightbox={onOpenImageLightbox}
-        />
-
-        <S.ContextColumn>
-          <ItemFinderFacts
-            location={location}
-            boxId={boxId}
-            boxLabel={boxLabel}
-            description={description}
-            categoryLabel={categoryLabel}
-            tags={tags}
-          />
-
-          <ItemDecisionActions
-            inDeclutterDeck={inDeclutterDeck}
-            declutterPending={declutterPending}
-            onDeclutter={onDeclutter}
-            onMove={onMove}
-            onEdit={onEdit}
-          />
-        </S.ContextColumn>
-      </S.DossierTop>
-
-      <ItemMoreDetails
-        notes={notes}
+      <ItemDossierCarousel
+        itemName={itemName}
+        thumbnailUrl={thumbnailUrl}
+        canOpenImageLightbox={canOpenImageLightbox}
+        onOpenImageLightbox={onOpenImageLightbox}
+        categoryLabel={categoryLabel}
+        tags={tags}
+        boxId={boxId}
+        boxLabel={boxLabel}
+        location={location}
         boxGroup={boxGroup}
-        breadcrumb={breadcrumbTrail}
-        keepPriority={keepPriorityLabel}
-        primaryOwner={primaryOwnerName}
+        breadcrumbTrail={breadcrumbTrail}
+        keepPriorityLabel={keepPriorityLabel}
+        primaryOwnerName={primaryOwnerName}
         condition={condition}
-        consumableLabel={isConsumable ? 'Yes' : 'No'}
+        isConsumable={isConsumable}
         valueLabel={valueLabel}
         purchasePriceLabel={purchasePriceLabel}
+        quantity={quantity}
+        statusLabel={statusLabel}
+        acquisitionType={acquisitionType}
+        dateAcquiredLabel={dateAcquiredLabel}
+        sourceBatchLabel={sourceBatchLabel}
+        topBoxLabel={topBoxLabel}
+        maintenanceNotes={maintenanceNotes}
+        description={description}
+        notes={notes}
         externalLinks={externalLinks}
-      />
-
-      <ItemActivityDisclosure
-        actions={activityActions}
-        timestamps={activityTimestamps}
+        inDeclutterDeck={inDeclutterDeck}
+        declutterPending={declutterPending}
+        onDeclutter={onDeclutter}
+        onMove={onMove}
+        onEdit={onEdit}
+        consumablePending={consumablePending}
+        onConsumableToggle={onConsumableToggle}
+        activityActions={activityActions}
+        activityTimestamps={activityTimestamps}
       />
     </S.Dossier>
   );

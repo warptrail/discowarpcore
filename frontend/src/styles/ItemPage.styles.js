@@ -974,12 +974,16 @@ const timestampToneGlow = (tone) =>
         : 'rgba(var(--item-accent-rgb, 127, 215, 255), 0.2)';
 
 export const ContainerTimestampButton = styled.button`
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.14rem;
   border: 1px solid ${({ $tone }) => timestampToneBorder($tone)};
   background: ${({ $tone }) => timestampToneBg($tone)};
   color: ${({ $tone }) => timestampToneColor($tone)};
   border-radius: 3px;
   padding: 0.14rem 0.24rem;
-  min-height: 31px;
+  min-height: 42px;
   font-size: 0.55rem;
   font-weight: 730;
   letter-spacing: 0.07em;
@@ -1003,7 +1007,7 @@ export const ContainerTimestampButton = styled.button`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 31px;
+    min-height: 42px;
     font-size: 0.51rem;
     letter-spacing: 0.025em;
     padding: 0.12rem 0.14rem;
@@ -1012,6 +1016,18 @@ export const ContainerTimestampButton = styled.button`
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
+`;
+
+export const ContainerTimestampStat = styled.span`
+  max-width: 100%;
+  color: rgba(225, 242, 248, 0.58);
+  font: 650 0.47rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  letter-spacing: 0.035em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
 `;
 
 export const TimestampLabelFull = styled.span`

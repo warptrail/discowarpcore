@@ -411,20 +411,34 @@ The normal sequence is:
 For local development, make the API target explicit:
 
 ```bash
-DISCO_API_BASE=http://localhost:7610 npm run intake:tui
+DISCO_API_BASE=http://localhost:5002 npm run intake:tui
 ```
 
-For production intake over the LAN, choose the current server address
-deliberately:
+### Production intake: laptop or desktop to NeonAzoth
+
+The Intake TUI runs on the Mac where you are using Codex, but it does **not**
+write directly to MongoDB. For a production import, it packages the batch and
+sends it through the Disco Warp Core backend API on NeonAzoth; that server then
+writes to the production database. Use this command from the checkout on the
+laptop or desktop that is running the TUI:
 
 ```bash
+cd /Volumes/Luna/Developer-Luna/discowarpcore
 DISCO_ENV=production \
-DISCO_API_BASE=http://<neonazoth-lan-address>:5002 \
+DISCO_API_BASE=http://192.168.1.37:5002 \
 npm run intake:tui
 ```
 
-The TUI prints its API target at startup. Read that line before importing. The
-full folder and recovery rules are in
+`192.168.1.37:5002` is NeonAzoth's production backend on the home LAN. The TUI
+prints the API target and checks `/api/health` before it opens; confirm that it
+says `http://192.168.1.37:5002` before choosing a direct database import.
+
+Do not use the default `localhost:5002` for production unless you deliberately
+opened an SSH tunnel to NeonAzoth. `DISCO_ENV=production` intentionally refuses
+to start if `DISCO_API_BASE` is missing, preventing a silent import into a local
+development backend.
+
+The full folder and recovery rules are in
 [docs/VISION_INTAKE_TUI.md](docs/VISION_INTAKE_TUI.md).
 
 ## Deploy and sync to the home server

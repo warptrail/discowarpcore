@@ -84,8 +84,9 @@ export default function ItemPage() {
   const requestedEditKey = String(searchParams.get('edit') || '')
     .trim()
     .toLocaleLowerCase();
-  const locatorActive = requestedEditKey === 'choose';
-  const activeFieldKey = locatorActive ? '' : requestedEditKey;
+  const locatorActive = false;
+  const obsoleteLocatorRequested = requestedEditKey === 'choose';
+  const activeFieldKey = obsoleteLocatorRequested ? '' : requestedEditKey;
   const viewMode = searchParams.get('view') === 'hierarchy' ? 'hierarchy' : 'all';
   const navigate = useNavigate();
 
@@ -154,12 +155,12 @@ export default function ItemPage() {
   }, []);
 
   useEffect(() => {
-    if (!legacyEditRequested) return;
+    if (!legacyEditRequested && !obsoleteLocatorRequested) return;
 
     const params = new URLSearchParams(location.search);
     params.delete('mode');
     params.delete('view');
-    params.set('edit', 'choose');
+    params.delete('edit');
     navigate(
       {
         pathname: location.pathname,
@@ -168,7 +169,14 @@ export default function ItemPage() {
       },
       { replace: true },
     );
-  }, [legacyEditRequested, location.hash, location.pathname, location.search, navigate]);
+  }, [
+    legacyEditRequested,
+    location.hash,
+    location.pathname,
+    location.search,
+    navigate,
+    obsoleteLocatorRequested,
+  ]);
 
   useEffect(() => {
     setProcessedPreviewUrl('');
@@ -418,15 +426,6 @@ export default function ItemPage() {
       restoreFieldTriggerFocus(closingFieldKey);
     });
   }, [activeFieldKey, fieldEditor.descriptor?.key, requestDiscardBefore, restoreFieldTriggerFocus, updateEditRoute]);
-
-  const handleStartFieldLocator = useCallback(() => {
-    requestDiscardBefore(() => {
-      setMediaEditorOpen(false);
-      updateEditRoute('choose', {
-        replace: locatorActive || fieldEditor.isActive,
-      });
-    });
-  }, [fieldEditor.isActive, locatorActive, requestDiscardBefore, updateEditRoute]);
 
   const setViewMode = useCallback((nextMode) => {
     requestDiscardBefore(() => {
@@ -1369,8 +1368,6 @@ export default function ItemPage() {
         onMoveItem={handleMoveItem}
         onRemoveFromBox={handleRemoveFromBox}
         timestampActions={isGoneItem ? [] : timestampActions}
-        onEditFields={handleStartFieldLocator}
-        editLocatorActive={locatorActive}
         fieldFocusLabel={fieldEditor.descriptor?.label || ''}
         viewMode={viewMode}
         onViewModeChange={setViewMode}

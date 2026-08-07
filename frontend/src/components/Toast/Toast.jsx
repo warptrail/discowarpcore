@@ -1,4 +1,5 @@
 // Toast.jsx
+import { isValidElement } from 'react';
 import styled, { css, keyframes } from 'styled-components';
 import { Link } from 'react-router-dom';
 import {
@@ -1450,7 +1451,7 @@ export default function Toast({
                   {idleText}
                 </IdlePromptButton>
               ) : (
-                <span>{idleText}</span>
+                isValidElement(idleText) ? idleText : <span>{idleText}</span>
               )}
               {idleAddon}
             </Idle>

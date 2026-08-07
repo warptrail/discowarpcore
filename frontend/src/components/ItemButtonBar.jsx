@@ -9,6 +9,29 @@ import {
   isItemPendingDeparture,
 } from '../util/itemDeparture';
 
+function getLatestActivityValue(item, actionId) {
+  const configByAction = {
+    used: { history: 'usageHistory', fallback: 'dateLastUsed' },
+    checked: { history: 'checkHistory', fallback: 'lastCheckedAt' },
+    maintained: { history: 'maintenanceHistory', fallback: 'lastMaintainedAt' },
+    consumed: { fallback: 'disposition_at' },
+  };
+  const config = configByAction[actionId] || {};
+  const history = Array.isArray(item?.[config.history]) ? item[config.history] : [];
+  return history[history.length - 1] || item?.[config.fallback] || '';
+}
+
+function formatActivityStat(value) {
+  const date = new Date(value);
+  if (!value || Number.isNaN(date.getTime())) return 'Not logged';
+
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+  return isToday
+    ? `Today · ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+    : date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 export default function ItemButtonBar({
   item,
   pending = false,
@@ -16,8 +39,6 @@ export default function ItemButtonBar({
   onMoveItem,
   onRemoveFromBox,
   timestampActions = [],
-  onEditFields,
-  editLocatorActive = false,
   fieldFocusLabel = '',
   viewMode = 'all',
   onViewModeChange,
@@ -41,14 +62,12 @@ export default function ItemButtonBar({
   const departureRoute = getItemDepartureRoute(item);
   const suggestedBoxPurpose = getDeclutterBoxPurposeForRoute(departureRoute);
 
-  const hasEditAction = typeof onEditFields === 'function';
   const hasMediaAction = typeof onToggleMedia === 'function';
   const hasViewToggle = typeof onViewModeChange === 'function';
   const hasDeclutterAction = typeof onDeclutter === 'function';
 
   if (
     resolvedTimestampActions.length === 0 &&
-    !hasEditAction &&
     !hasMediaAction &&
     !hasViewToggle &&
     !hasDeclutterAction
@@ -85,18 +104,8 @@ export default function ItemButtonBar({
   };
 
   const showPickerButton = () => setShowPicker((prev) => !prev);
-  const editActions = hasEditAction || hasMediaAction ? (
+  const editActions = hasMediaAction ? (
     <S.ItemModeActions aria-label="Item editing commands">
-      {hasEditAction ? (
-      <S.ItemModeButton
-        type="button"
-        $active={editLocatorActive}
-        aria-pressed={editLocatorActive}
-        onClick={onEditFields}
-      >
-        Edit fields
-      </S.ItemModeButton>
-      ) : null}
       {hasMediaAction ? (
       <S.ItemModeButton
         type="button"
@@ -143,9 +152,7 @@ export default function ItemButtonBar({
           <S.ItemControlsSummary>
             {fieldFocusLabel
               ? `Field focus // ${fieldFocusLabel}`
-              : editLocatorActive
-                ? 'Field locator active'
-                : mediaEditorOpen
+              : mediaEditorOpen
                   ? 'Image management active'
                   : viewMode === 'hierarchy'
                 ? 'Hierarchy view'
@@ -220,7 +227,7 @@ export default function ItemButtonBar({
                     aria-label={action.label}
                     onClick={action.onClick}
                     disabled={departurePending || pending || action.disabled}
-                  >
+                    >
                     <S.TimestampLabelFull aria-hidden="true">{action.label}</S.TimestampLabelFull>
                     <S.TimestampLabelCompact aria-hidden="true">
                       {action.tone === 'maintained'
@@ -229,8 +236,11 @@ export default function ItemButtonBar({
                           ? 'Check'
                           : action.tone === 'consumed'
                             ? 'Use'
-                            : action.label}
+                          : action.label}
                     </S.TimestampLabelCompact>
+                    <S.ContainerTimestampStat>
+                      {formatActivityStat(getLatestActivityValue(item, action.id))}
+                    </S.ContainerTimestampStat>
                   </S.ContainerTimestampButton>
                 ))}
               </S.ContainerTimestampActions>

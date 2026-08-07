@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import {
@@ -10,6 +10,7 @@ import {
   rerouteDeclutterAction,
   resetDeclutterVote,
   resetAllDeclutterVotes,
+  resolveDeclutterDiscussion,
   restoreDeclutterActionAsKeep,
   voteOnDeclutterCandidate,
   DECLUTTER_PLAYERS,
@@ -22,6 +23,7 @@ import DeclutterWaitingOverlay from './DeclutterWaitingOverlay';
 import DeclutterActionsPanel from './DeclutterActionsPanel';
 import DeclutterHoldButton from './DeclutterHoldButton';
 import DeclutterSystemCollectionCard from './DeclutterSystemCollectionCard';
+import DeclutterDiscussionSheet from './DeclutterDiscussionSheet';
 import {
   DECLUTTER_PLAYER_CHANGE_EVENT,
   getStoredDeclutterPlayer,
@@ -55,6 +57,7 @@ export default function DeclutterDeckPage() {
   const [error, setError] = useState('');
   const [isWaitingOverlayOpen, setIsWaitingOverlayOpen] = useState(false);
   const [stagingBoxes, setStagingBoxes] = useState([]);
+  const discussionTriggerRef = useRef(null);
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
 
@@ -65,6 +68,7 @@ export default function DeclutterDeckPage() {
       const next = new URLSearchParams(current);
       if (normalizedMode === 'deck') next.delete('mode');
       else next.set('mode', normalizedMode);
+      if (normalizedMode !== 'discussion') next.delete('resolve');
       return next;
     }, { replace: true });
   }, [setSearchParams]);
@@ -166,6 +170,12 @@ export default function DeclutterDeckPage() {
     () => (deck?.discussionCandidates || []).filter(isReviewableCandidate),
     [deck?.discussionCandidates, isReviewableCandidate]
   );
+  const discussionCandidate = useMemo(() => {
+    const candidateId = String(searchParams.get('resolve') || '');
+    return discussionCandidates.find(
+      (candidate) => String(candidate?.id) === candidateId
+    ) || null;
+  }, [discussionCandidates, searchParams]);
   const resolvedCandidates = useMemo(
     () => deck?.resolvedCandidates || [],
     [deck?.resolvedCandidates]
@@ -304,11 +314,65 @@ export default function DeclutterDeckPage() {
       const updated = await reopenDeclutterCandidate(candidate.id);
       mergeCandidate(updated);
       void loadDeck({ silent: true });
+      return true;
     } catch (err) {
       setError(err?.message || 'Failed to reopen candidate.');
+      return false;
     } finally {
       setSaving('');
     }
+  };
+
+  const openDiscussion = (candidate) => {
+    discussionTriggerRef.current = document.activeElement;
+    setError('');
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set('mode', 'discussion');
+      next.set('resolve', candidate.id);
+      return next;
+    }, { replace: true });
+  };
+
+  const closeDiscussion = useCallback(() => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete('resolve');
+      return next;
+    }, { replace: true });
+    window.requestAnimationFrame(() => discussionTriggerRef.current?.focus?.());
+  }, [setSearchParams]);
+
+  const handleResolveDiscussion = async ({ choice, notes }) => {
+    if (!discussionCandidate?.id) return;
+    try {
+      setSaving(discussionCandidate.id);
+      setError('');
+      const updated = await resolveDeclutterDiscussion(
+        discussionCandidate.id,
+        { choice, notes }
+      );
+      mergeCandidate(updated);
+      closeDiscussion();
+      showToast?.({
+        variant: choice === 'keep' ? 'success' : 'warning',
+        title: 'Joint decision saved',
+        message: choice === 'keep'
+          ? 'You agreed to keep it. Both original votes remain in the ledger.'
+          : `You agreed on ${choice}. The item is now in Actions with that route.`,
+      });
+      await loadDeck({ silent: true });
+    } catch (err) {
+      setError(err?.message || 'Failed to save the shared decision.');
+    } finally {
+      setSaving('');
+    }
+  };
+
+  const handleReopenFromDiscussion = async () => {
+    if (!discussionCandidate) return;
+    const reopened = await handleReopen(discussionCandidate);
+    if (reopened) closeDiscussion();
   };
 
   const handleResetVote = async (candidate) => {
@@ -496,9 +560,19 @@ export default function DeclutterDeckPage() {
           title="Talk it out"
           candidates={discussionCandidates}
           emptyText="No split votes right now."
-          actionLabel="Reopen voting"
           busyCandidateId={saving}
-          onAction={handleReopen}
+          renderActions={(candidate) => (
+            <S.QueueActions>
+              <S.Button
+                type="button"
+                $tone="warning"
+                disabled={saving === candidate.id}
+                onClick={() => openDiscussion(candidate)}
+              >
+                Resolve together
+              </S.Button>
+            </S.QueueActions>
+          )}
         />
       ) : mode === 'actions' ? (
         <DeclutterActionsPanel
@@ -522,6 +596,16 @@ export default function DeclutterDeckPage() {
           />
         </>
       )}
+      {discussionCandidate ? (
+        <DeclutterDiscussionSheet
+          candidate={discussionCandidate}
+          saving={saving === discussionCandidate.id}
+          error={error}
+          onClose={closeDiscussion}
+          onResolve={handleResolveDiscussion}
+          onReopen={handleReopenFromDiscussion}
+        />
+      ) : null}
     </S.DeclutterSurface>
   );
 }

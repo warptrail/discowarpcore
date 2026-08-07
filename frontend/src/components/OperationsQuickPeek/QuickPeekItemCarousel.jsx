@@ -1,12 +1,10 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   getItemOriginalImageUrl,
   getItemPreviewImageUrl,
   getItemThumbnailUrl,
 } from '../../util/itemImage';
 import RetrievalImageLightbox from '../Retrieval/RetrievalImageLightbox';
-import { ToastContext } from '../Toast';
-import useItemDeclutterDeck from '../../hooks/useItemDeclutterDeck';
 import * as S from './OperationsQuickPeek.styles';
 
 function quantityLabel(item) {
@@ -81,29 +79,15 @@ export default function QuickPeekItemCarousel({
   canSelectNext,
   onPrevious,
   onNext,
-  onBack,
-  onDeclutterStateChange,
 }) {
   const itemId = String(item?._id || item?.id || '');
   const lightboxImageUrl = getItemOriginalImageUrl(item);
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const { showToast, hideToast } = useContext(ToastContext) || {};
-  const {
-    declutterPending,
-    inDeclutterDeck,
-    toggleDeclutterDeck,
-  } = useItemDeclutterDeck({
-    item,
-    showToast,
-    hideToast,
-    onStateChange: onDeclutterStateChange,
-  });
   const name = String(item?.name || item?.label || 'Untitled item').trim();
   const category = String(item?.category || '').trim();
   const description = String(item?.description || '').trim();
-  const notes = String(item?.notes || '').trim();
   const tags = getTags(item);
-  const hasDetails = Boolean(description || notes || tags.length > 0);
+  const hasDetails = Boolean(description || category || tags.length > 0);
 
   useEffect(() => {
     setLightboxOpen(false);
@@ -142,34 +126,6 @@ export default function QuickPeekItemCarousel({
           ‹
         </S.ItemCarouselArrow>
 
-        <S.ItemCarouselReturn
-          type="button"
-          aria-label="Back to direct items"
-          onClick={onBack}
-        >
-          <S.ItemListIcon aria-hidden="true" viewBox="0 0 20 20">
-            <path d="M7 5h9M7 10h9M7 15h9" />
-            <path d="M3.5 5h.01M3.5 10h.01M3.5 15h.01" />
-          </S.ItemListIcon>
-          <S.ItemCarouselPosition>{position} / {total}</S.ItemCarouselPosition>
-        </S.ItemCarouselReturn>
-
-        <S.ItemCarouselDeckToggle
-          type="button"
-          $active={inDeclutterDeck}
-          aria-label={inDeclutterDeck ? `Remove ${name} from Declutter Deck` : `Add ${name} to Declutter Deck`}
-          aria-pressed={inDeclutterDeck}
-          title={inDeclutterDeck ? 'Remove from Declutter Deck' : 'Add to Declutter Deck'}
-          disabled={declutterPending || !itemId || item?.item_status === 'gone'}
-          onClick={toggleDeclutterDeck}
-        >
-          <S.ItemDeckIcon aria-hidden="true" viewBox="0 0 20 20" focusable="false">
-            <path d="M5.5 6.5h9v10h-9z" />
-            <path d="M7.5 3.5h7v3" />
-            {inDeclutterDeck ? <path d="m8 11 1.5 1.5L12.5 9" /> : <path d="M10 9v5M7.5 11.5h5" />}
-          </S.ItemDeckIcon>
-        </S.ItemCarouselDeckToggle>
-
         <S.ItemCarouselArrow
           type="button"
           aria-label="Next item"
@@ -186,7 +142,6 @@ export default function QuickPeekItemCarousel({
             <S.ItemCarouselName>{name}</S.ItemCarouselName>
             <S.ItemCarouselMeta>
               <code>QTY {quantityLabel(item)}</code>
-              {category ? <span>{category}</span> : null}
             </S.ItemCarouselMeta>
           </S.ItemCarouselIdentity>
 
@@ -198,10 +153,10 @@ export default function QuickPeekItemCarousel({
                   <p>{description}</p>
                 </S.ItemCarouselDetail>
               ) : null}
-              {notes ? (
+              {category ? (
                 <S.ItemCarouselDetail>
-                  <S.MetaLabel>Notes</S.MetaLabel>
-                  <p>{notes}</p>
+                  <S.MetaLabel>Category</S.MetaLabel>
+                  <p>{category}</p>
                 </S.ItemCarouselDetail>
               ) : null}
               {tags.length > 0 ? (

@@ -5,6 +5,11 @@ export default function QuickPeekBoxHeader({
   box,
   imageUrl,
   description,
+  hasNotes = false,
+  noteReaderOpen = false,
+  noteButtonRef,
+  onOpenNotes,
+  itemActionPanel,
   position,
   total,
   expanded,
@@ -89,8 +94,18 @@ export default function QuickPeekBoxHeader({
       onReturnToItems?.();
       return;
     }
+    if (expanded) {
+      onToggleExpanded?.();
+      return;
+    }
     onClose?.();
   };
+
+  const closeEdgeLabel = itemFocused
+    ? 'Return to box item list'
+    : expanded
+      ? 'Collapse box quick peek to short view'
+      : 'Close box quick peek from navigation edge';
 
   return (
     <S.DeckCap
@@ -176,10 +191,25 @@ export default function QuickPeekBoxHeader({
               </S.PositionReadout>
             </S.BoxContextLine>
           </S.BoxIdentity>
-          {description ? (
-            <S.CapDescription title={description}>
-              {description}
-            </S.CapDescription>
+          {itemFocused && itemActionPanel ? (
+            itemActionPanel
+          ) : description || hasNotes ? (
+            <S.CapDescriptionRow>
+              {description ? (
+                <S.CapDescription title={description}>{description}</S.CapDescription>
+              ) : null}
+              {hasNotes ? (
+                <S.CapNoteButton
+                  ref={noteButtonRef}
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-expanded={noteReaderOpen}
+                  aria-label="Open box notes"
+                  title="Box notes"
+                  onClick={onOpenNotes}
+                >N</S.CapNoteButton>
+              ) : null}
+            </S.CapDescriptionRow>
           ) : null}
         </S.CapIdentityStack>
 
@@ -196,7 +226,7 @@ export default function QuickPeekBoxHeader({
       <S.CollapseEdgeButton
         type="button"
         $itemFocused={itemFocused}
-        aria-label={itemFocused ? 'Return to box item list' : 'Close box quick peek from navigation edge'}
+        aria-label={closeEdgeLabel}
         data-quick-peek-close-edge
         onClick={handleCloseEdgeClick}
         onPointerDown={(event) => event.stopPropagation()}

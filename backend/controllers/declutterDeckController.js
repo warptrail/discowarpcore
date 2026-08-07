@@ -6,6 +6,7 @@ const {
   voteOnDeclutterCandidate,
   resetOwnDeclutterVote,
   resetAllOwnDeclutterVotes,
+  resolveDeclutterDiscussion,
   reopenDeclutterCandidate,
 } = require('../services/declutterDeckService');
 const {
@@ -28,6 +29,7 @@ function safeRequestFields(req) {
     itemId: String(req?.body?.itemId || req?.params?.itemId || '') || undefined,
     player: String(req?.body?.player || req?.query?.player || '') || undefined,
     vote: String(req?.body?.vote || '') || undefined,
+    choice: String(req?.body?.choice || '') || undefined,
   };
 }
 
@@ -209,6 +211,11 @@ const postDeclutterCandidateResetVoteApi = actionHandler(
   resetOwnDeclutterVote,
   'Failed to reset your vote.'
 );
+const postDeclutterDiscussionResolveApi = actionHandler(
+  'discussion.resolve_together',
+  resolveDeclutterDiscussion,
+  'Failed to save the shared discussion decision.'
+);
 
 async function postDeclutterResetAllVotesApi(req, res) {
   const startedAt = process.hrtime.bigint();
@@ -269,6 +276,7 @@ module.exports = {
   postDeclutterCandidateVoteApi,
   postDeclutterCandidateReopenApi,
   postDeclutterCandidateResetVoteApi,
+  postDeclutterDiscussionResolveApi,
   postDeclutterResetAllVotesApi,
   getDeclutterActionResourcesApi,
   postDeclutterActionRerouteApi,

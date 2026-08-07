@@ -138,7 +138,7 @@ export const InlineActionsRow = styled.div`
 
 export const InlineActionButton = styled.button`
   min-height: ${({ $compact }) => ($compact ? '27px' : '42px')};
-  border-radius: ${({ $compact }) => ($compact ? '6px' : '12px')};
+  border-radius: ${({ $compact }) => ($compact ? '4px' : '5px')};
   border: 1px solid
     ${({ $active, $tone }) => {
       if ($active) return 'rgba(0, 255, 224, 0.92)';
@@ -187,7 +187,7 @@ export const InlineActionButton = styled.button`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: ${({ $compact }) => ($compact ? '26px' : '40px')};
-    border-radius: ${({ $compact }) => ($compact ? '6px' : '10px')};
+    border-radius: 4px;
     font-size: ${({ $compact }) => ($compact ? '0.52rem' : '0.72rem')};
   }
 `;

@@ -14,6 +14,7 @@ import MoveItemToOtherBox from './MoveItemToOtherBox';
 import { moveBoxedItem, orphanBoxedItem } from '../api/boxedItems';
 import useIsMobile from '../hooks/useIsMobile';
 import { API_BASE } from '../api/API_BASE';
+import { editItem } from '../api/editItem';
 import { ToastContext } from './Toast';
 import { getItemOwnershipContext } from '../util/itemOwnership';
 import useItemTimestampActions from '../hooks/useItemTimestampActions';
@@ -100,6 +101,8 @@ export default function ItemRow({
   const isMarkedForDestruction = item?.declutterExitState === 'marked_for_destruction';
   const [imageRefreshToken, setImageRefreshToken] = useState(0);
   const [processedPreviewUrl, setProcessedPreviewUrl] = useState('');
+  const [localIsConsumable, setLocalIsConsumable] = useState(Boolean(item?.isConsumable));
+  const [consumablePending, setConsumablePending] = useState(false);
   const lastImageLifecycleStatusRef = useRef('');
   const collapsedThumbUrl = getItemThumbnailUrl({
     ...item,
@@ -111,8 +114,9 @@ export default function ItemRow({
       ...item,
       image: localImage,
       imagePath: localImagePath,
+      isConsumable: localIsConsumable,
     }),
-    [item, localImage, localImagePath]
+    [item, localImage, localImagePath, localIsConsumable]
   );
   const editSheetContext = useMemo(
     () => [
@@ -137,7 +141,7 @@ export default function ItemRow({
     [itemColorTheme],
   );
   const { actions: timestampActions } = useItemTimestampActions({
-    item,
+    item: itemForView,
     onSaved,
     showToast,
     hideToast,
@@ -203,7 +207,8 @@ export default function ItemRow({
   useEffect(() => {
     setLocalImage(item?.image || null);
     setLocalImagePath(item?.imagePath || '');
-  }, [_id, item?.image, item?.imagePath]);
+    setLocalIsConsumable(Boolean(item?.isConsumable));
+  }, [_id, item?.image, item?.imagePath, item?.isConsumable]);
 
   useEffect(() => {
     setProcessedPreviewUrl('');
@@ -351,6 +356,7 @@ export default function ItemRow({
       if (updated && typeof updated === 'object') {
         setLocalImage(updated?.image || null);
         setLocalImagePath(updated?.imagePath || '');
+        setLocalIsConsumable(Boolean(updated?.isConsumable));
         onSaved?.(updated);
       }
 
@@ -358,6 +364,46 @@ export default function ItemRow({
     },
     [onSaved, refreshBox]
   );
+
+  const handleConsumableToggle = useCallback(async (event) => {
+    event?.stopPropagation?.();
+    if (!_id || consumablePending) return;
+
+    const nextValue = !localIsConsumable;
+
+    try {
+      setConsumablePending(true);
+      const updated = await editItem(_id, { isConsumable: nextValue });
+      setLocalIsConsumable(Boolean(updated?.isConsumable ?? nextValue));
+      onSaved?.(updated);
+      await refreshBox?.();
+      showToast?.({
+        variant: 'success',
+        title: nextValue ? 'Consumable tracking on' : 'Consumable tracking off',
+        message: nextValue
+          ? `"${name || 'Item'}" now uses consumable activity.`
+          : `"${name || 'Item'}" now uses maintenance activity.`,
+        timeoutMs: 3200,
+      });
+    } catch (error) {
+      showToast?.({
+        variant: 'danger',
+        title: 'Consumable update failed',
+        message: error?.message || 'Could not update consumable tracking.',
+        timeoutMs: 4600,
+      });
+    } finally {
+      setConsumablePending(false);
+    }
+  }, [
+    _id,
+    consumablePending,
+    localIsConsumable,
+    name,
+    onSaved,
+    refreshBox,
+    showToast,
+  ]);
 
   const handleInlineImageUpdated = useCallback(
     ({ image, imagePath } = {}) => {
@@ -766,6 +812,8 @@ export default function ItemRow({
                   onDeclutter: handleDeclutterDeckToggle,
                   onMove: handleMoveModeToggle,
                   onEdit: handleEditModeToggle,
+                  consumablePending,
+                  onConsumableToggle: handleConsumableToggle,
                   activityActions: timestampActions,
                 }}
                 imageUrlOverride={processedPreviewUrl}

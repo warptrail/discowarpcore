@@ -10,6 +10,7 @@ import {
 } from './declutterUtils';
 
 const FINAL_FATE = {
+  broken: { choice: '', label: 'Broken', icon: '⚒', tone: 'toss' },
   trashed: { choice: 'toss', label: 'Trashed', icon: '🗑', tone: 'toss' },
   recycled: { choice: '', label: 'Recycled', icon: '♻', tone: 'donate' },
   donated: { choice: 'donate', label: 'Donated', icon: '💙', tone: 'donate' },

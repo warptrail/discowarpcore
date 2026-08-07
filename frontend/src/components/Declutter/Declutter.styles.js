@@ -1,4 +1,4 @@
-import styled, { css } from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import { Link } from 'react-router-dom';
 import {
   MOBILE_BREAKPOINT,
@@ -33,6 +33,11 @@ const decisionTone = (tone = 'pending') => {
   if (tone === 'unsure') return LCARS.root;
   return LCARS.textDim;
 };
+
+const sheetReveal = keyframes`
+  from { opacity: 0; transform: translateY(10px) scale(0.992); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+`;
 
 const panelBase = css`
   border: 1px solid ${LCARS.line};
@@ -2371,6 +2376,256 @@ export const WorkflowLaneTitle = styled.h2`
       min-width: 0;
     }
   }
+`;
+
+export const DiscussionScrim = styled.div`
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(2, 5, 9, 0.78);
+  backdrop-filter: blur(7px);
+
+  @media (max-width: 520px) { padding: 0; }
+`;
+
+export const DiscussionSheet = styled.section`
+  width: min(620px, 100%);
+  max-height: min(820px, calc(100dvh - 2rem));
+  overflow: auto;
+  border: 1px solid rgba(139, 226, 218, 0.38);
+  border-radius: 8px;
+  background:
+    linear-gradient(115deg, rgba(71, 205, 193, 0.055), transparent 38%, rgba(172, 112, 238, 0.06)),
+    #0a0e14;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.055), 0 24px 70px rgba(0, 0, 0, 0.62);
+  animation: ${sheetReveal} 220ms ease-out;
+
+  @media (max-width: 520px) {
+    width: 100%;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) { animation: none; }
+`;
+
+export const DiscussionHeader = styled.header`
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 0.62rem;
+  align-items: center;
+  min-height: 74px;
+  padding: 0.68rem 0.8rem 0.68rem 0.35rem;
+  border-bottom: 1px solid rgba(139, 226, 218, 0.18);
+  background: rgba(8, 12, 18, 0.97);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+`;
+
+export const DiscussionClose = styled.button`
+  width: 40px;
+  height: 40px;
+  border: 0;
+  padding: 0;
+  color: #a8e9e3;
+  background: transparent;
+  font: 300 1.65rem/1 sans-serif;
+  cursor: pointer;
+
+  &:focus-visible { outline: 2px solid #73fff4; outline-offset: -4px; }
+`;
+
+export const DiscussionKicker = styled.div`
+  color: #84dcd5;
+  font: 800 0.58rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+`;
+
+export const DiscussionTitle = styled.h2`
+  margin: 0.18rem 0 0;
+  color: ${LCARS.text};
+  font-size: 1.14rem;
+  line-height: 1.15;
+`;
+
+export const DiscussionContext = styled.div`
+  margin-top: 0.2rem;
+  color: ${LCARS.textMuted};
+  font: 0.67rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+`;
+
+export const DiscussionBody = styled.div`
+  display: grid;
+  gap: 0.8rem;
+  padding: 0.8rem;
+`;
+
+export const DiscussionItemRail = styled.div`
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: stretch;
+`;
+
+export const DiscussionThumb = styled.div`
+  width: 76px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(115, 255, 244, 0.22);
+  border-radius: 5px;
+  color: ${LCARS.textMuted};
+  background: #060b10;
+  font-size: 0.62rem;
+
+  img { width: 100%; height: 100%; object-fit: cover; }
+`;
+
+export const DiscussionVotes = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.42rem;
+`;
+
+export const DiscussionVote = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  min-width: 0;
+  border: 1px solid ${({ $tone }) => `${decisionTone($tone)}55`};
+  padding: 0.48rem;
+  color: ${({ $tone }) => decisionTone($tone)};
+  background: ${({ $tone }) => `${decisionTone($tone)}0d`};
+
+  > span { font-size: 1.12rem; }
+  > div { display: grid; min-width: 0; }
+  small { color: ${LCARS.textMuted}; font: 750 0.52rem/1.2 ui-monospace, monospace; text-transform: uppercase; }
+  strong { overflow: hidden; font-size: 0.76rem; text-overflow: ellipsis; text-transform: uppercase; }
+`;
+
+export const DiscussionRecommendation = styled.div`
+  display: grid;
+  gap: 0.18rem;
+  border-left: 2px solid ${({ $hasRecommendation }) => ($hasRecommendation ? '#72dcc8' : '#b58ae8')};
+  padding: 0.54rem 0.65rem;
+  background: rgba(255, 255, 255, 0.025);
+
+  small { color: ${LCARS.textMuted}; font: 800 0.54rem/1.2 ui-monospace, monospace; text-transform: uppercase; }
+  strong { color: ${({ $hasRecommendation }) => ($hasRecommendation ? '#91ead8' : '#d5b6f5')}; }
+  span { color: ${LCARS.textDim}; font-size: 0.72rem; line-height: 1.35; }
+`;
+
+export const DiscussionSectionLabel = styled.div`
+  color: ${LCARS.textDim};
+  font: 820 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+`;
+
+export const DiscussionChoiceGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.42rem;
+`;
+
+export const DiscussionChoice = styled.button`
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid ${({ $tone, $selected }) => `${decisionTone($tone)}${$selected ? 'cc' : '44'}`};
+  border-radius: 5px;
+  padding: 0.48rem 0.55rem;
+  color: ${({ $tone }) => decisionTone($tone)};
+  background: ${({ $tone, $selected }) => `${decisionTone($tone)}${$selected ? '20' : '08'}`};
+  box-shadow: ${({ $tone, $selected }) => ($selected ? `inset 0 0 18px ${decisionTone($tone)}18` : 'none')};
+  text-align: left;
+  cursor: pointer;
+
+  > span { font-size: 1rem; }
+  > div { display: grid; gap: 0.1rem; }
+  strong { font-size: 0.72rem; text-transform: uppercase; }
+  small { color: ${LCARS.textMuted}; font-size: 0.62rem; line-height: 1.25; }
+  &:focus-visible { outline: 2px solid ${({ $tone }) => decisionTone($tone)}; outline-offset: 2px; }
+`;
+
+export const DiscussionNotes = styled.label`
+  display: grid;
+  gap: 0.32rem;
+  color: ${LCARS.textDim};
+  font: 760 0.62rem/1.2 ui-monospace, monospace;
+  text-transform: uppercase;
+
+  small { color: ${LCARS.textMuted}; font-weight: 500; }
+  textarea {
+    min-height: 66px;
+    resize: vertical;
+    border: 1px solid rgba(115, 255, 244, 0.2);
+    border-radius: 4px;
+    padding: 0.56rem;
+    color: ${LCARS.text};
+    background: #070c12;
+    font: inherit;
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+  textarea:focus { outline: 2px solid rgba(115, 255, 244, 0.54); outline-offset: 1px; }
+`;
+
+export const DiscussionCommit = styled.button`
+  min-height: 46px;
+  border: 1px solid ${({ $tone }) => `${decisionTone($tone)}bb`};
+  border-radius: 5px;
+  color: ${({ $tone }) => decisionTone($tone)};
+  background: ${({ $tone }) => `${decisionTone($tone)}20`};
+  font: 850 0.72rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  &:disabled { cursor: not-allowed; opacity: 0.42; }
+`;
+
+export const DiscussionError = styled.div`
+  display: grid;
+  gap: 0.2rem;
+  border: 1px solid rgba(240, 138, 123, 0.62);
+  border-left-width: 3px;
+  border-radius: 4px;
+  padding: 0.58rem 0.64rem;
+  color: #ffc0b7;
+  background: rgba(240, 138, 123, 0.09);
+
+  strong {
+    font: 850 0.64rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  span {
+    color: ${LCARS.textDim};
+    font-size: 0.72rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+`;
+
+export const DiscussionReopen = styled.button`
+  min-height: 40px;
+  border: 0;
+  color: ${LCARS.textMuted};
+  background: transparent;
+  font: 760 0.62rem/1 ui-monospace, monospace;
+  text-decoration: underline;
+  text-underline-offset: 0.22rem;
+  cursor: pointer;
 `;
 
 export const ActionControls = styled.div`

@@ -3,8 +3,10 @@ const assert = require('node:assert/strict');
 
 const {
   deriveCandidateState,
+  deriveSharedResolutionState,
   emptyVotes,
   getVisibleVoteChoice,
+  getRecommendedDiscussionChoice,
   matchesHistoryFilter,
   matchesHistoryRoute,
   normalizeVote,
@@ -206,17 +208,71 @@ for (const releaseChoice of ['toss', 'donate', 'sell', 'gift']) {
   });
 }
 
-for (const otherChoice of ['keep', 'toss', 'donate', 'sell', 'gift', 'unsure']) {
-  test(`Unsure + ${otherChoice} defers the candidate`, () => {
-    assert.deepEqual(stateFor('unsure', otherChoice), {
-      deckState: 'discussion',
-      resolution: 'review_later',
-      readiness: 'in_deck',
-      stagingRoute: null,
-      ...votingFields,
+const unsurePairings = [
+  ['keep', 'resolved', 'kept', null],
+  ['toss', 'action', 'release_approved', 'discard'],
+  ['donate', 'action', 'release_approved', 'donate'],
+  ['sell', 'action', 'release_approved', 'sell'],
+  ['gift', 'action', 'release_approved', 'gift'],
+];
+
+for (const [decisiveChoice, deckState, resolution, stagingRoute] of unsurePairings) {
+  test(`Unsure + ${decisiveChoice} accepts the decisive choice`, () => {
+    assert.deepEqual(stateFor('unsure', decisiveChoice), {
+      deckState,
+      resolution,
+      readiness: decisiveChoice === 'keep' ? 'kept' : 'ready_to_declutter',
+      stagingRoute,
+      ...confirmedFields,
     });
   });
 }
+
+test('Unsure + Unsure defaults to Keep', () => {
+  assert.deepEqual(stateFor('unsure', 'unsure'), {
+    deckState: 'resolved',
+    resolution: 'kept',
+    readiness: 'kept',
+    stagingRoute: null,
+    ...confirmedFields,
+  });
+});
+
+test('a shared discussion decision can explicitly override the inferred outcome', () => {
+  assert.deepEqual(deriveSharedResolutionState('toss', { now: NOW }), {
+    deckState: 'action',
+    resolution: 'release_approved',
+    readiness: 'ready_to_declutter',
+    stagingRoute: 'discard',
+    ...confirmedFields,
+  });
+  assert.deepEqual(deriveSharedResolutionState('keep', { now: NOW }), {
+    deckState: 'resolved',
+    resolution: 'kept',
+    readiness: 'kept',
+    stagingRoute: null,
+    ...confirmedFields,
+  });
+});
+
+test('discussion recommendations make specific and decisive choices win', () => {
+  assert.equal(getRecommendedDiscussionChoice({
+    discofish: voteFor('toss'),
+    laserfox: voteFor('sell'),
+  }), 'sell');
+  assert.equal(getRecommendedDiscussionChoice({
+    discofish: voteFor('unsure'),
+    laserfox: voteFor('gift'),
+  }), 'gift');
+  assert.equal(getRecommendedDiscussionChoice({
+    discofish: voteFor('unsure'),
+    laserfox: voteFor('unsure'),
+  }), 'keep');
+  assert.equal(getRecommendedDiscussionChoice({
+    discofish: voteFor('keep'),
+    laserfox: voteFor('toss'),
+  }), null);
+});
 
 test('stored release votes retain their original visible choice', () => {
   assert.equal(

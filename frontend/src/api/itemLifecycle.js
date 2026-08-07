@@ -2,6 +2,7 @@ import { API_BASE } from './API_BASE';
 
 export const GONE_DISPOSITIONS = Object.freeze([
   'consumed',
+  'broken',
   'lost',
   'stolen',
   'trashed',

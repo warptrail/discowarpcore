@@ -92,37 +92,16 @@ async function routeConfirmedRelease(candidate, route = candidate.stagingRoute) 
     };
   }
 
-  const purpose = route === 'donate' ? 'donation_staging' : 'sale_staging';
-  const defaultBox = await Box.findOne({
-    declutterPurpose: purpose,
-    declutterIsDefault: true,
-  }).select('_id box_id label').lean();
-  if (!defaultBox) {
-    await detachItem({ itemId: candidate.itemId });
-    await setExitState(candidate.itemId, 'needs_staging');
-    workflowLog('warn', 'action.default_staging_missing', {
-      candidateId: String(candidate._id),
-      itemId: String(candidate.itemId),
-      route,
-      purpose,
-    });
-    return { exitState: 'needs_staging', boxId: null };
-  }
-
-  await attachItemToBox({
-    itemId: candidate.itemId,
-    boxId: defaultBox._id,
-  });
-  const exitState = route === 'donate' ? 'staged_for_donation' : 'staged_for_sale';
-  await setExitState(candidate.itemId, exitState);
-  workflowLog('info', 'action.staged', {
+  // A democratic exit decision establishes intent, not physical placement.
+  // Keep the item where it is until Actions explicitly chooses a staging box.
+  await setExitState(candidate.itemId, 'needs_staging');
+  workflowLog('info', 'action.staging_choice_needed', {
     candidateId: String(candidate._id),
     itemId: String(candidate.itemId),
     route,
-    boxId: String(defaultBox._id),
-    boxLabel: defaultBox.label,
+    currentBoxId: candidate.preActionBoxId ? String(candidate.preActionBoxId) : null,
   });
-  return { exitState, boxId: defaultBox._id };
+  return { exitState: 'needs_staging', boxId: candidate.preActionBoxId || null };
 }
 
 async function finalizeClaimedCandidate(candidate) {
@@ -289,7 +268,13 @@ async function getActionResources() {
   };
 }
 
-async function rerouteAction(candidateId, { player, route, boxId, reason = '' } = {}) {
+async function rerouteAction(candidateId, {
+  player,
+  route,
+  boxId,
+  leaveInPlace = false,
+  reason = '',
+} = {}) {
   const candidate = await DeclutterCandidate.findById(candidateId);
   if (!candidate || candidate.deckState !== 'action') throw Object.assign(new Error('Action candidate was not found.'), { status: 404 });
   if (candidate.stagingRoute === 'needs_routing' && player !== 'laserfox') {
@@ -299,7 +284,9 @@ async function rerouteAction(candidateId, { player, route, boxId, reason = '' } 
   if (!normalizedRoute) throw Object.assign(new Error('Route must be discard, donate, sell, or gift.'), { status: 400 });
   const previousRoute = candidate.stagingRoute;
   candidate.stagingRoute = normalizedRoute;
-  if (boxId) {
+  if (leaveInPlace && ['donate', 'sell'].includes(normalizedRoute)) {
+    await setExitState(candidate.itemId, 'needs_staging');
+  } else if (boxId) {
     const expectedPurpose = getBoxPurposeForRoute(normalizedRoute);
     const box = await Box.findOne({ _id: boxId, declutterPurpose: expectedPurpose }).lean();
     if (!box) throw Object.assign(new Error('Choose a compatible staging box.'), { status: 400 });

@@ -14,6 +14,7 @@ import { getItemOwnershipContext } from '../../util/itemOwnership';
 
 const DISPOSITION_LABELS = {
   consumed: 'Consumed',
+  broken: 'Broken',
   lost: 'Lost',
   stolen: 'Stolen',
   trashed: 'Trashed',

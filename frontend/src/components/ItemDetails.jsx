@@ -377,6 +377,13 @@ export default function ItemDetails({
           isConsumable={isConsumable}
           valueLabel={valueLabel}
           purchasePriceLabel={purchasePriceLabel}
+          quantity={quantity}
+          statusLabel={statusLabel}
+          acquisitionType={acquisitionType}
+          dateAcquiredLabel={fmtDate(dateAcquired)}
+          sourceBatchLabel={sourceBatchSummary}
+          topBoxLabel={topBoxSummary}
+          maintenanceNotes={maintenanceNotes}
           description={description}
           notes={notes}
           externalLinks={externalLinks}
@@ -385,6 +392,8 @@ export default function ItemDetails({
           onDeclutter={operationsActions?.onDeclutter}
           onMove={operationsActions?.onMove}
           onEdit={operationsActions?.onEdit}
+          consumablePending={Boolean(operationsActions?.consumablePending)}
+          onConsumableToggle={operationsActions?.onConsumableToggle}
           activityActions={operationsActions?.activityActions || []}
           activityTimestamps={activityTimestamps}
         />

@@ -7,6 +7,7 @@ const DeclutterCandidate = require('../models/DeclutterCandidate');
 const path = require('path');
 const { MEDIA_ROOT, toMediaUrl } = require('../config/media');
 const {
+  ITEM_CATEGORIES,
   normalizeItemCategory,
   withNormalizedItemCategory,
 } = require('../utils/itemCategory');
@@ -573,12 +574,14 @@ async function getItemById(id, { select, perf = false } = {}) {
 /**
  * Orphaned items
  */
-async function getOrphanedItems(sort, limit, query = '') {
+async function getOrphanedItems(sort, limit, query = '', filters = {}) {
   const page = await getOrphanedItemsPage({
     sort,
     limit,
     offset: 0,
     query,
+    category: filters?.category,
+    location: filters?.location,
   });
   return page.items;
 }
@@ -600,20 +603,23 @@ function buildOrphanedSort(sort = 'recent') {
   return { orphanedAt: -1, _id: -1 };
 }
 
-async function getOrphanedItemsPage({
-  sort = 'recent',
-  limit = 20,
-  offset = 0,
-  query = '',
-} = {}) {
-  const safeLimit = Math.max(1, Math.min(100, Number(limit) || 20));
-  const safeOffset = Math.max(0, Number(offset) || 0);
-  const order = buildOrphanedSort(sort);
+function buildOrphanedFilter({ query = '', category = '', location = '' } = {}) {
   const filter = {
     ...ACTIVE_ITEM_FILTER,
     orphanedAt: { $ne: null },
   };
+  const normalizedCategory = String(category || '').trim().toLowerCase();
+  const locationQuery = String(location || '').trim();
   const textQuery = String(query || '').trim();
+
+  if (normalizedCategory) {
+    filter.category = ITEM_CATEGORIES.includes(normalizedCategory)
+      ? normalizedCategory
+      : { $in: [] };
+  }
+  if (locationQuery) {
+    filter.location = new RegExp(escapeRegex(locationQuery), 'i');
+  }
   if (textQuery) {
     const regex = new RegExp(escapeRegex(textQuery), 'i');
     filter.$or = [
@@ -625,6 +631,22 @@ async function getOrphanedItemsPage({
       { location: regex },
     ];
   }
+
+  return filter;
+}
+
+async function getOrphanedItemsPage({
+  sort = 'recent',
+  limit = 20,
+  offset = 0,
+  query = '',
+  category = '',
+  location = '',
+} = {}) {
+  const safeLimit = Math.max(1, Math.min(100, Number(limit) || 20));
+  const safeOffset = Math.max(0, Number(offset) || 0);
+  const order = buildOrphanedSort(sort);
+  const filter = buildOrphanedFilter({ query, category, location });
   const total = await Item.countDocuments(filter);
   const items = await Item.find(filter)
     .sort(order)
@@ -1040,7 +1062,7 @@ async function markItemGone(id, payload = {}) {
   );
   if (!disposition) {
     const err = new Error(
-      'A valid disposition is required: consumed, lost, stolen, trashed, recycled, gifted, donated, or sold.'
+      'A valid disposition is required: consumed, broken, lost, stolen, trashed, recycled, gifted, donated, or sold.'
     );
     err.status = 400;
     throw err;
@@ -1686,6 +1708,8 @@ module.exports = {
   getRandomActiveItem,
   getOrphanedItems,
   getOrphanedItemsPage,
+  buildOrphanedSort,
+  buildOrphanedFilter,
   createItem,
   bulkCreateItems,
   updateItem,

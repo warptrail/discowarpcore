@@ -117,6 +117,7 @@ const Button = styled.button`
 
 const dispositionLabelMap = {
   consumed: 'Consumed',
+  broken: 'Broken',
   lost: 'Lost',
   stolen: 'Stolen',
   trashed: 'Trashed',

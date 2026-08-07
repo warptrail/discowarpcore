@@ -126,6 +126,54 @@ function deriveStagingRoute(votes) {
   return 'needs_routing';
 }
 
+function confirmedKeepState(now = new Date()) {
+  return {
+    deckState: 'resolved',
+    resolution: 'kept',
+    readiness: 'kept',
+    stagingRoute: null,
+    confirmationState: 'confirmed',
+    consensusReachedAt: now,
+  };
+}
+
+function confirmedReleaseState(stagingRoute, now = new Date()) {
+  return {
+    deckState: 'action',
+    resolution: 'release_approved',
+    readiness: 'ready_to_declutter',
+    stagingRoute,
+    confirmationState: 'confirmed',
+    consensusReachedAt: now,
+  };
+}
+
+function deriveSharedResolutionState(choice, { now = new Date() } = {}) {
+  const vote = normalizeVote(choice);
+  if (vote.decision === 'unsure') {
+    throw createHttpError(400, 'A shared final decision must be Keep, Toss, Donate, Sell, or Gift.');
+  }
+  return vote.decision === 'keep'
+    ? confirmedKeepState(now)
+    : confirmedReleaseState(vote.exitPreference || 'discard', now);
+}
+
+function getRecommendedDiscussionChoice(rawVotes) {
+  const votes = normalizeVotes(rawVotes);
+  const choices = PLAYERS.map((player) => getVisibleVoteChoice(votes[player]));
+  const [first, second] = choices;
+  if (first === 'pending' || second === 'pending') return null;
+  if (first === 'unsure' && second === 'unsure') return 'keep';
+  if (first === 'unsure') return second;
+  if (second === 'unsure') return first;
+  if (first === second) return first;
+  if (votes.discofish.decision === 'release' && votes.laserfox.decision === 'release') {
+    const route = deriveStagingRoute(votes);
+    return route === 'discard' ? 'toss' : route === 'needs_routing' ? null : route;
+  }
+  return null;
+}
+
 function deriveCandidateState(rawVotes, { now = new Date() } = {}) {
   const votes = normalizeVotes(rawVotes);
   const discofish = votes.discofish.decision;
@@ -140,35 +188,21 @@ function deriveCandidateState(rawVotes, { now = new Date() } = {}) {
       consensusReachedAt: null,
     };
   }
+  if (discofish === 'unsure' && laserfox === 'unsure') {
+    return confirmedKeepState(now);
+  }
   if (discofish === 'unsure' || laserfox === 'unsure') {
-    return {
-      deckState: 'discussion',
-      resolution: 'review_later',
-      readiness: 'in_deck',
-      stagingRoute: null,
-      confirmationState: 'voting',
-      consensusReachedAt: null,
-    };
+    const decisivePlayer = discofish === 'unsure' ? 'laserfox' : 'discofish';
+    const decisiveVote = votes[decisivePlayer];
+    return decisiveVote.decision === 'keep'
+      ? confirmedKeepState(now)
+      : confirmedReleaseState(decisiveVote.exitPreference || 'discard', now);
   }
   if (discofish === 'keep' && laserfox === 'keep') {
-    return {
-      deckState: 'resolved',
-      resolution: 'kept',
-      readiness: 'kept',
-      stagingRoute: null,
-      confirmationState: 'confirmed',
-      consensusReachedAt: now,
-    };
+    return confirmedKeepState(now);
   }
   if (discofish === 'release' && laserfox === 'release') {
-    return {
-      deckState: 'action',
-      resolution: 'release_approved',
-      readiness: 'ready_to_declutter',
-      stagingRoute: deriveStagingRoute(votes),
-      confirmationState: 'confirmed',
-      consensusReachedAt: now,
-    };
+    return confirmedReleaseState(deriveStagingRoute(votes), now);
   }
   return {
     deckState: 'discussion',
@@ -239,6 +273,9 @@ function toClientCandidate(candidate, item, player = '') {
     actionCompletedAt: candidate.actionCompletedAt || null,
     preActionBoxId: candidate.preActionBoxId ? String(candidate.preActionBoxId) : null,
     actionOverride: candidate.actionOverride || null,
+    recommendedDiscussionChoice: candidate.deckState === 'discussion'
+      ? getRecommendedDiscussionChoice(votes)
+      : null,
     resolvedAt: candidate.resolvedAt || null,
     notes: candidate.notes || '',
     createdAt: candidate.createdAt || null,
@@ -307,6 +344,7 @@ async function getDeclutterDeck({ player } = {}) {
   const activePlayer = normalizePlayer(player, { required: true });
   const { reconcileLegacyCoolingCandidates } = require('./declutterActionService');
   await reconcileLegacyCoolingCandidates({ limit: 100, source: 'deck_read' });
+  await reconcileDecisiveDiscussionCandidates({ limit: 100, source: 'deck_read' });
   const candidateItemIds = await DeclutterCandidate.distinct('itemId');
   const activeItemIds = await Item.distinct('_id', {
     _id: { $in: candidateItemIds },
@@ -472,6 +510,54 @@ async function getDeclutterDeck({ player } = {}) {
       needsRouting: metrics.stagingNeedsRouting,
     },
   };
+}
+
+async function reconcileDecisiveDiscussionCandidates({ limit = 100, source = 'deck_read' } = {}) {
+  const rows = await DeclutterCandidate.find({
+    deckState: 'discussion',
+    confirmationState: { $ne: 'confirmed' },
+  }).sort({ updatedAt: 1 }).limit(limit);
+  let reconciled = 0;
+  for (const row of rows) {
+    const state = deriveCandidateState(row.votes);
+    if (state.deckState === 'discussion') continue;
+    const candidate = await DeclutterCandidate.findOneAndUpdate(
+      { _id: row._id, deckState: 'discussion', confirmationState: { $ne: 'confirmed' } },
+      {
+        $set: {
+          deckState: state.deckState,
+          resolution: state.resolution,
+          stagingRoute: state.stagingRoute,
+          confirmationState: state.confirmationState,
+          consensusReachedAt: state.consensusReachedAt,
+          confirmedAt: null,
+          resolvedAt: null,
+          actionOverride: {
+            player: 'system',
+            action: 'discussion_default_applied',
+            reason: 'Applied the decisive-over-unsure shared-decision rule.',
+            previousRoute: row.stagingRoute || null,
+            nextRoute: state.stagingRoute,
+            at: new Date(),
+          },
+        },
+      },
+      { new: true }
+    );
+    if (!candidate) continue;
+    await syncItemReadiness(candidate.itemId, state.readiness);
+    const { finalizeCandidateImmediately } = require('./declutterActionService');
+    await finalizeCandidateImmediately(candidate, { source: 'discussion_default_reconciliation' });
+    reconciled += 1;
+    writeBackendLog('info', 'declutter.discussion.default_applied', {
+      source,
+      candidateId: String(candidate._id),
+      itemId: String(candidate.itemId),
+      resolution: state.resolution,
+      stagingRoute: state.stagingRoute,
+    });
+  }
+  return reconciled;
 }
 
 const HISTORY_FILTERS = new Set([
@@ -733,6 +819,58 @@ async function resetAllOwnDeclutterVotes(payload = {}) {
   return { player, resetCount: resetIds.length, candidateIds: resetIds };
 }
 
+async function resolveDeclutterDiscussion(candidateId, payload = {}) {
+  const id = assertObjectId(candidateId, 'candidateId');
+  const choice = String(payload.choice || '').trim().toLowerCase();
+  const state = deriveSharedResolutionState(choice);
+  const candidate = await DeclutterCandidate.findById(id);
+  if (!candidate) throw createHttpError(404, 'Declutter candidate was not found.');
+  if (candidate.deckState !== 'discussion' || candidate.confirmationState === 'confirmed') {
+    throw createHttpError(409, 'Only an open discussion can receive a shared final decision.');
+  }
+  const item = await Item.findById(candidate.itemId).select('_id item_status').lean();
+  if (!item) throw createHttpError(404, 'Inventory item was not found.');
+  assertItemIsReviewable(item);
+
+  const now = state.consensusReachedAt;
+  const previousRoute = candidate.stagingRoute || null;
+  const reason = String(payload.notes || '').trim().slice(0, 1000)
+    || `Discofish and Laserfox chose ${choice} together.`;
+  candidate.deckState = state.deckState;
+  candidate.resolution = state.resolution;
+  candidate.stagingRoute = state.stagingRoute;
+  candidate.confirmationState = state.confirmationState;
+  candidate.consensusReachedAt = now;
+  candidate.confirmedAt = null;
+  candidate.resolvedAt = null;
+  candidate.actionOverride = {
+    player: 'system',
+    action: 'discussion_resolution',
+    reason,
+    previousRoute,
+    nextRoute: state.stagingRoute,
+    at: now,
+  };
+  if (Object.prototype.hasOwnProperty.call(payload, 'notes')) {
+    candidate.notes = String(payload.notes || '').trim().slice(0, 2000);
+  }
+  await candidate.save();
+  await syncItemReadiness(candidate.itemId, state.readiness);
+  const { finalizeCandidateImmediately } = require('./declutterActionService');
+  const finalized = await finalizeCandidateImmediately(candidate, { source: 'discussion_resolution' });
+  writeBackendLog('info', 'declutter.discussion.resolved_together', {
+    candidateId: String(candidate._id),
+    itemId: String(candidate.itemId),
+    choice,
+    resolution: state.resolution,
+    stagingRoute: state.stagingRoute,
+    originalVotes: Object.fromEntries(
+      PLAYERS.map((votePlayer) => [votePlayer, getVisibleVoteChoice(candidate.votes[votePlayer])])
+    ),
+  });
+  return (await hydrateCandidates([finalized.toObject()], ''))[0];
+}
+
 async function reopenDeclutterCandidate(candidateId) {
   const id = assertObjectId(candidateId, 'candidateId');
   const existing = await DeclutterCandidate.findById(id);
@@ -788,8 +926,10 @@ module.exports = {
   voteOnDeclutterCandidate,
   resetOwnDeclutterVote,
   resetAllOwnDeclutterVotes,
+  resolveDeclutterDiscussion,
   reopenDeclutterCandidate,
   deriveCandidateState,
+  deriveSharedResolutionState,
   deriveStagingRoute,
   emptyVotes,
   getVisibleVoteChoice,
@@ -799,6 +939,8 @@ module.exports = {
   toClientCandidate,
   hydrateCandidates,
   normalizePlayer,
+  getRecommendedDiscussionChoice,
+  reconcileDecisiveDiscussionCandidates,
   createHttpError,
   assertItemIsReviewable,
 };

@@ -1140,7 +1140,11 @@ function BoxConsoleIdleMessage({
   if (!hasQuery && breadcrumb.length > 0) {
     return (
       <BoxConsoleBreadcrumb aria-label="Box breadcrumb">
-        <BoxConsoleCrumb to="/boxes" title="Browse all boxes" aria-label="Browse all boxes">
+        <BoxConsoleCrumb
+          to="/operations"
+          title="Operations home"
+          aria-label="Go to Operations home"
+        >
           <BoxConsoleHomeIcon src={houseCommandIcon} alt="" aria-hidden="true" />
         </BoxConsoleCrumb>
         {breadcrumb.map((crumb, index) => {
@@ -2100,7 +2104,7 @@ export default function Header() {
                 : 'What are you looking for?'
           }
           idleAction={
-            isDeclutterPage || isOperationsPage
+            isDeclutterPage || isOperationsPage || isBoxDetailPage
               ? null
               : {
                   onClick: openOperationsFinder,

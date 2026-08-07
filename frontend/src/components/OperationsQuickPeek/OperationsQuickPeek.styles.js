@@ -458,6 +458,37 @@ export const CapDescription = styled.p`
   }
 `;
 
+export const CapDescriptionRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  gap: 0.32rem;
+`;
+
+export const CapNoteButton = styled.button`
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid rgba(${COLORS.accentRgb}, 0.44);
+  border-radius: 4px;
+  color: rgba(${COLORS.accentRgb}, 0.96);
+  background: rgba(5, 10, 15, 0.58);
+  font: 900 0.61rem ui-monospace, monospace;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    border-color: rgba(${COLORS.accentRgb}, 0.84);
+    color: ${COLORS.text};
+    outline: none;
+  }
+`;
+
 export const BoxTitleLine = styled.div`
   display: flex;
   align-items: baseline;
@@ -1249,6 +1280,103 @@ export const ItemCarouselDeckToggle = styled.button`
     $active ? 'rgba(118, 39, 35, 0.76)' : 'rgba(5, 10, 15, 0.78)'
   )};
   backdrop-filter: blur(7px);
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    outline: none;
+    filter: brightness(1.22);
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px rgba(${COLORS.accentRgb}, 0.34);
+  }
+
+  &:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+  }
+`;
+
+export const ItemCarouselActionRail = styled.div`
+  position: absolute;
+  z-index: 5;
+  top: 0.42rem;
+  right: 0.42rem;
+  display: grid;
+  grid-template-columns: repeat(3, 46px);
+  gap: 0.22rem;
+`;
+
+export const ItemHeaderActionPanel = styled.div`
+  display: grid;
+  grid-template-columns: repeat(6, 46px);
+  gap: 0.22rem;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+
+  @media (max-width: 460px) {
+    grid-template-columns: repeat(6, 42px);
+
+    button {
+      width: 42px;
+      font-size: 0.48rem;
+    }
+  }
+`;
+
+export const ItemCarouselActionButton = styled.button`
+  display: inline-grid;
+  width: 46px;
+  height: 30px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid ${({ $active, $tone }) => (
+    $active && $tone === 'declutter'
+      ? 'rgba(240, 138, 123, 0.88)'
+      : $active && $tone === 'consumable'
+        ? 'rgba(255, 195, 87, 0.88)'
+        : $tone === 'consumable'
+          ? 'rgba(220, 161, 75, 0.64)'
+        : $tone === 'position'
+          ? 'rgba(var(--box-secondary-rgb, 167, 182, 255), 0.78)'
+        : $tone === 'note'
+          ? 'rgba(220, 143, 255, 0.72)'
+          : `rgba(${COLORS.accentRgb}, 0.34)`
+  )};
+  border-radius: 5px;
+  color: ${({ $active, $tone }) => (
+    $active && $tone === 'declutter'
+      ? '#ff9d91'
+      : $active && $tone === 'consumable'
+        ? '#ffd26e'
+        : $tone === 'consumable'
+          ? '#e8b765'
+        : $tone === 'position'
+          ? 'var(--box-secondary, #a7b6ff)'
+        : $tone === 'note'
+          ? '#e8b5ff'
+          : `rgba(${COLORS.accentRgb}, 0.88)`
+  )};
+  background: ${({ $active, $tone }) => (
+    $active && $tone === 'declutter'
+      ? 'rgba(118, 39, 35, 0.76)'
+      : $active && $tone === 'consumable'
+        ? 'rgba(106, 78, 22, 0.76)'
+        : $tone === 'consumable'
+          ? 'rgba(70, 48, 18, 0.7)'
+        : $tone === 'position'
+          ? 'rgba(var(--box-secondary-rgb, 167, 182, 255), 0.16)'
+        : $tone === 'note'
+          ? 'rgba(76, 37, 104, 0.76)'
+          : 'rgba(5, 10, 15, 0.78)'
+  )};
+  backdrop-filter: blur(7px);
+  font-family: inherit;
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
   cursor: pointer;
 
   &:hover,

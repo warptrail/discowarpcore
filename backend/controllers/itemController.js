@@ -147,6 +147,8 @@ async function getRandomItemApi(req, res) {
 async function getOrphanedItemsApi(req, res) {
   const sort = req.query.sort || 'recent';
   const query = String(req.query.q ?? req.query.search ?? '').trim();
+  const category = String(req.query.category ?? '').trim();
+  const location = String(req.query.location ?? '').trim();
   const limit = Math.min(parsePositiveInt(req.query.limit, 20), 100);
   const page = parsePositiveInt(req.query.page, 1);
   const offsetFromPage = (page - 1) * limit;
@@ -158,11 +160,18 @@ async function getOrphanedItemsApi(req, res) {
 
   try {
     if (wantsPagination) {
-      const payload = await getOrphanedItemsPage({ sort, limit, offset, query });
+      const payload = await getOrphanedItemsPage({
+        sort,
+        limit,
+        offset,
+        query,
+        category,
+        location,
+      });
       return res.json(payload);
     }
 
-    const items = await getOrphanedItems(sort, limit, query);
+    const items = await getOrphanedItems(sort, limit, query, { category, location });
     return res.json(items);
   } catch (err) {
     console.error('❌ Error fetching orphaned items:', err);

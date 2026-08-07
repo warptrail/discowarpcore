@@ -6,6 +6,7 @@ import { ToastContext } from './Toast';
 
 const DISPOSITION_OPTIONS = Object.freeze([
   { value: 'trashed', label: 'Trash' },
+  { value: 'broken', label: 'Broken' },
   { value: 'donated', label: 'Donate' },
   { value: 'gifted', label: 'Gift' },
   { value: 'sold', label: 'Sell' },

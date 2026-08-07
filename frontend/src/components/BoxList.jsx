@@ -231,7 +231,6 @@ export default function BoxList({
     openBox: openQuickPeek,
     selectedBoxId: quickPeekSelectedBoxId,
   } = quickPeek;
-  const [notesEmphasisBoxId, setNotesEmphasisBoxId] = useState('');
   const [quickPeekSurface, setQuickPeekSurface] = useState('items');
   const lastAutoActivatedLocatorRef = useRef('');
   const autoOpenedPeekIdRef = useRef('');
@@ -285,7 +284,6 @@ export default function BoxList({
     if (!showingArchivedItems) return;
     setBoxLocatorQuery('');
     setExpandedTerminalBoxId('');
-    setNotesEmphasisBoxId('');
     closeQuickPeek();
   }, [closeQuickPeek, showingArchivedItems]);
 
@@ -349,7 +347,6 @@ export default function BoxList({
 
   const handleOpenQuickPeek = useCallback(
     (box, triggerElement) => {
-      setNotesEmphasisBoxId('');
       setQuickPeekSurface('items');
       openQuickPeek(box, triggerElement);
     },
@@ -358,27 +355,13 @@ export default function BoxList({
 
   const handleOpenPhotoQuickPeek = useCallback(
     (box, triggerElement) => {
-      setNotesEmphasisBoxId('');
       setQuickPeekSurface('photo');
       openQuickPeek(box, triggerElement, { forceOpen: true });
     },
     [openQuickPeek],
   );
 
-  const handleOpenNotesQuickPeek = useCallback(
-    (box, triggerElement) => {
-      const nextId = normalizeBoxId(box?.box_id);
-      if (!nextId) return;
-
-      setNotesEmphasisBoxId(nextId);
-      setQuickPeekSurface('items');
-      openQuickPeek(box, triggerElement, { forceOpen: true });
-    },
-    [openQuickPeek],
-  );
-
   const handleCloseQuickPeek = useCallback(() => {
-    setNotesEmphasisBoxId('');
     setQuickPeekSurface('items');
     closeQuickPeek();
   }, [closeQuickPeek]);
@@ -552,7 +535,6 @@ export default function BoxList({
                   selectedBoxId={quickPeek.selectedBoxId}
                   onOpenQuickPeek={handleOpenQuickPeek}
                   onOpenPhotoQuickPeek={handleOpenPhotoQuickPeek}
-                  onOpenNotesQuickPeek={handleOpenNotesQuickPeek}
                 />
               ))}
             </>
@@ -597,20 +579,14 @@ export default function BoxList({
         expanded={quickPeek.expanded}
         closing={quickPeek.closing}
         transitionDirection={quickPeek.transitionDirection}
-        notesEmphasized={
-          normalizeBoxId(quickPeek.selectedBox?.box_id) ===
-          notesEmphasisBoxId
-        }
         surface={quickPeekSurface}
         canSelectPrevious={quickPeek.canSelectPrevious}
         canSelectNext={quickPeek.canSelectNext}
         onPrevious={() => {
-          setNotesEmphasisBoxId('');
           setQuickPeekSurface('items');
           quickPeek.selectPrevious();
         }}
         onNext={() => {
-          setNotesEmphasisBoxId('');
           setQuickPeekSurface('items');
           quickPeek.selectNext();
         }}
@@ -619,7 +595,6 @@ export default function BoxList({
         }
         onSetExpanded={quickPeek.setExpanded}
         onShowItems={() => {
-          setNotesEmphasisBoxId('');
           setQuickPeekSurface('items');
         }}
         onClose={handleCloseQuickPeek}
@@ -794,7 +769,6 @@ function Branch({
   selectedBoxId = '',
   onOpenQuickPeek,
   onOpenPhotoQuickPeek,
-  onOpenNotesQuickPeek,
 }) {
   const navigate = useNavigate();
   const [childrenExpanded, setChildrenExpanded] = useState(false);
@@ -802,7 +776,6 @@ function Branch({
   const tags = getRenderableBoxTags(node);
   const group = String(node?.group || '').trim();
   const description = String(node?.description || '').trim();
-  const notes = String(node?.notes || '').trim();
   const boxImageUrl = getBoxImageUrl(node);
   const isSystemContainer = !!node?.isSystemContainer;
   const isOrphanedContainer = node?.systemType === 'orphaned';
@@ -849,11 +822,6 @@ function Branch({
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
     go(event);
-  };
-
-  const openNotes = (event) => {
-    event.stopPropagation();
-    onOpenNotesQuickPeek?.(node, event.currentTarget);
   };
 
   const openPhoto = (event) => {
@@ -974,7 +942,7 @@ function Branch({
                 <S.BoxSummary $density={density}>Virtual system container</S.BoxSummary>
               ) : null}
 
-              {(visibleTags.length > 0 || notes) && (
+              {visibleTags.length > 0 && (
                 <S.TagRow>
                   {visibleTags.map((t, i) => (
                     <S.TagBubble
@@ -989,16 +957,6 @@ function Branch({
                     <S.TagBubble $isRoot={isRoot} $depth={depth}>
                       +{hiddenTagCount}
                     </S.TagBubble>
-                  ) : null}
-                  {notes ? (
-                    <S.NotesSignal
-                      type="button"
-                      aria-label={`Show notes for ${node.label || node.name || `box ${node.box_id}`}`}
-                      title="Open quick peek with notes"
-                      onClick={openNotes}
-                    >
-                      N
-                    </S.NotesSignal>
                   ) : null}
                 </S.TagRow>
               )}
@@ -1068,7 +1026,6 @@ function Branch({
                 selectedBoxId={selectedBoxId}
                 onOpenQuickPeek={onOpenQuickPeek}
                 onOpenPhotoQuickPeek={onOpenPhotoQuickPeek}
-                onOpenNotesQuickPeek={onOpenNotesQuickPeek}
               />
             ))}
           </S.NodeChildren>
