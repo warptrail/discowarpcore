@@ -5,8 +5,10 @@ import {
   getBoxThemeCssVars,
 } from '../../util/inventoryColorTheme';
 import QuickPeekBoxHeader from './QuickPeekBoxHeader';
+import QuickPeekBoxPhotoView from './QuickPeekBoxPhotoView';
 import QuickPeekItemCarousel from './QuickPeekItemCarousel';
 import QuickPeekItemList from './QuickPeekItemList';
+import QuickPeekNoteModal from './QuickPeekNoteModal';
 import useOperationsQuickPeekItemSelection from './useOperationsQuickPeekItemSelection';
 import {
   OPERATIONS_QUICK_PEEK_SEARCH_STATE_EVENT,
@@ -16,6 +18,16 @@ import * as S from './OperationsQuickPeek.styles';
 
 const HORIZONTAL_SWIPE_THRESHOLD = 54;
 const VERTICAL_DETENT_THRESHOLD = 42;
+const NOTE_PREVIEW_CHARACTER_LIMIT = 180;
+
+function normalizeItemSearchText(value) {
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
 
 function getBoxImageUrl(box) {
   return (
@@ -28,12 +40,40 @@ function getBoxImageUrl(box) {
   );
 }
 
+function getBoxDisplayImageUrl(box) {
+  return (
+    box?.image?.display?.url ||
+    box?.image?.original?.url ||
+    box?.image?.url ||
+    box?.imagePath ||
+    box?.image?.thumb?.url ||
+    ''
+  );
+}
+
 function getTags(box) {
   if (Array.isArray(box?.tags)) return box.tags.filter(Boolean);
   return String(box?.tags || '')
     .split(',')
     .map((tag) => tag.trim())
     .filter(Boolean);
+}
+
+function getNotePreview(notes) {
+  if (notes.length <= NOTE_PREVIEW_CHARACTER_LIMIT) {
+    return { text: notes, truncated: false };
+  }
+
+  const candidate = notes.slice(0, NOTE_PREVIEW_CHARACTER_LIMIT + 1);
+  const lastSpace = candidate.lastIndexOf(' ');
+  const end = lastSpace >= NOTE_PREVIEW_CHARACTER_LIMIT * 0.72
+    ? lastSpace
+    : NOTE_PREVIEW_CHARACTER_LIMIT;
+
+  return {
+    text: `${notes.slice(0, end).trimEnd()} .....`,
+    truncated: true,
+  };
 }
 
 export default function OperationsBoxQuickPeek({
@@ -43,12 +83,15 @@ export default function OperationsBoxQuickPeek({
   expanded,
   closing,
   transitionDirection,
+  notesEmphasized = false,
+  surface = 'items',
   canSelectPrevious,
   canSelectNext,
   onPrevious,
   onNext,
   onToggleExpanded,
   onSetExpanded,
+  onShowItems,
   onClose,
   onOpenFullBox,
 }) {
@@ -56,15 +99,22 @@ export default function OperationsBoxQuickPeek({
   const suppressDetentClickRef = useRef(false);
   const suppressDetentResetTimerRef = useRef(0);
   const sheetRef = useRef(null);
+  const contentRef = useRef(null);
+  const notePreviewButtonRef = useRef(null);
   const [headerBottom, setHeaderBottom] = useState(140);
   const [quickSearchOpen, setQuickSearchOpen] = useState(false);
   const [itemQuery, setItemQuery] = useState('');
+  const [noteReaderOpen, setNoteReaderOpen] = useState(false);
+  const [declutterDeckOverrides, setDeclutterDeckOverrides] = useState({});
   const boxId = box?.box_id;
   const boxThemeStyle = getBoxThemeCssVars(getBoxTheme(boxId));
   const title = String(box?.label || box?.name || 'Untitled box').trim();
   const imageUrl = getBoxImageUrl(box);
+  const displayImageUrl = getBoxDisplayImageUrl(box);
+  const photoFocused = surface === 'photo' && Boolean(displayImageUrl);
   const description = String(box?.description || '').trim();
   const notes = String(box?.notes || '').trim();
+  const notePreview = useMemo(() => getNotePreview(notes), [notes]);
   const tags = getTags(box);
   const childBoxes = Array.isArray(box?.childBoxes) ? box.childBoxes : [];
   const items = useMemo(
@@ -75,31 +125,76 @@ export default function OperationsBoxQuickPeek({
     boxId,
   });
   const selectedQuickPeekItem = itemSelection.selectedItem;
+  const selectedQuickPeekItemId = String(
+    selectedQuickPeekItem?._id || selectedQuickPeekItem?.id || '',
+  );
+  const selectedQuickPeekItemWithDeckState = useMemo(() => {
+    if (!selectedQuickPeekItem || !(selectedQuickPeekItemId in declutterDeckOverrides)) {
+      return selectedQuickPeekItem;
+    }
+    return {
+      ...selectedQuickPeekItem,
+      declutterReadiness: declutterDeckOverrides[selectedQuickPeekItemId]
+        ? 'in_deck'
+        : 'not_considered',
+    };
+  }, [declutterDeckOverrides, selectedQuickPeekItem, selectedQuickPeekItemId]);
   const backToItemList = itemSelection.backToItems;
-  const normalizedItemQuery = itemQuery.trim().toLowerCase();
+  const itemQueryTerms = useMemo(
+    () => [
+      ...new Set(
+        normalizeItemSearchText(itemQuery).split(/\s+/).filter(Boolean),
+      ),
+    ],
+    [itemQuery],
+  );
+  const hasItemQuery = itemQueryTerms.length > 0;
   const visibleItems = useMemo(() => {
-    if (!normalizedItemQuery) return items;
+    if (!hasItemQuery) return items;
 
     return items.filter((item) => {
       const tags = Array.isArray(item?.tags) ? item.tags : [item?.tags];
-      return [
-        item?.name,
-        item?.label,
-        item?.category,
-        item?.description,
-        item?.notes,
-        ...tags,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-        .includes(normalizedItemQuery);
+      const searchableText = normalizeItemSearchText(
+        [
+          item?.name,
+          item?.label,
+          item?.category,
+          item?.description,
+          item?.notes,
+          ...tags,
+        ]
+          .filter(Boolean)
+          .join(' '),
+      );
+
+      return itemQueryTerms.every((term) => searchableText.includes(term));
     });
-  }, [items, normalizedItemQuery]);
+  }, [hasItemQuery, itemQueryTerms, items]);
+
+  const scrollQuickPeekContent = useCallback((deltaY) => {
+    const scrollRegion = contentRef.current;
+    if (!scrollRegion || !Number.isFinite(deltaY)) return;
+
+    const maximumScrollTop = Math.max(
+      0,
+      scrollRegion.scrollHeight - scrollRegion.clientHeight,
+    );
+    scrollRegion.scrollTop = Math.min(
+      maximumScrollTop,
+      Math.max(0, scrollRegion.scrollTop + deltaY),
+    );
+  }, []);
 
   const closeQuickSearch = useCallback(() => {
     setQuickSearchOpen(false);
     setItemQuery('');
+  }, []);
+
+  const closeNoteReader = useCallback(() => {
+    setNoteReaderOpen(false);
+    window.requestAnimationFrame(() => {
+      notePreviewButtonRef.current?.focus({ preventScroll: true });
+    });
   }, []);
 
   useEffect(() => {
@@ -142,12 +237,20 @@ export default function OperationsBoxQuickPeek({
 
   useEffect(() => {
     setItemQuery('');
+    setNoteReaderOpen(false);
+    setDeclutterDeckOverrides({});
   }, [boxId]);
 
   useEffect(() => {
     if (!quickSearchOpen || !selectedQuickPeekItem) return;
     backToItemList();
   }, [backToItemList, quickSearchOpen, selectedQuickPeekItem]);
+
+  useEffect(() => {
+    if (!photoFocused) return;
+    if (selectedQuickPeekItem) backToItemList();
+    if (quickSearchOpen) onShowItems?.();
+  }, [backToItemList, onShowItems, photoFocused, quickSearchOpen, selectedQuickPeekItem]);
 
   useEffect(() => {
     if (!boxId) return;
@@ -161,6 +264,8 @@ export default function OperationsBoxQuickPeek({
       const target = event.target;
       if (!(target instanceof Element)) return;
       if (sheetRef.current?.contains(target)) return;
+      if (target.closest('[role="dialog"][aria-modal="true"]')) return;
+      if (target.closest('[data-quick-peek-note-reader]')) return;
       if (target.closest('[data-operations-box-preview-trigger]')) return;
       if (target.closest('header')) return;
       onClose?.();
@@ -182,7 +287,15 @@ export default function OperationsBoxQuickPeek({
       frameId = requestAnimationFrame(() => {
         const bottom = appHeader?.getBoundingClientRect().bottom;
         if (!Number.isFinite(bottom)) return;
-        setHeaderBottom(Math.max(8, Math.round(bottom) + 8));
+        // Keep every detent below the live global header. This also lets short
+        // or zoomed-in viewports reduce the expansion travel instead of pushing
+        // the sheet beyond the available screen space.
+        const nextHeaderBottom = Math.max(8, Math.round(bottom) + 8);
+        setHeaderBottom((currentHeaderBottom) =>
+          currentHeaderBottom === nextHeaderBottom
+            ? currentHeaderBottom
+            : nextHeaderBottom,
+        );
       });
     };
 
@@ -279,6 +392,8 @@ export default function OperationsBoxQuickPeek({
       tabIndex={-1}
       $expanded={expanded}
       $closing={closing}
+      $itemFocused={Boolean(selectedQuickPeekItem)}
+      $photoFocused={photoFocused}
       style={{
         ...boxThemeStyle,
         '--operations-quick-peek-top': `${headerBottom}px`,
@@ -287,6 +402,7 @@ export default function OperationsBoxQuickPeek({
       <QuickPeekBoxHeader
         box={box}
         imageUrl={imageUrl}
+        description={description}
         position={position}
         total={total}
         expanded={expanded}
@@ -294,6 +410,9 @@ export default function OperationsBoxQuickPeek({
         canSelectNext={canSelectNext}
         onPrevious={onPrevious}
         onNext={onNext}
+        onClose={onClose}
+        itemFocused={Boolean(selectedQuickPeekItem)}
+        onReturnToItems={backToItemList}
         onToggleExpanded={handleDetentClick}
         onPointerDown={handlePointerDown}
         onPointerUp={finishGesture}
@@ -302,17 +421,29 @@ export default function OperationsBoxQuickPeek({
         searchQuery={itemQuery}
         onSearchChange={setItemQuery}
         onSearchClose={closeQuickSearch}
+        onSearchScroll={scrollQuickPeekContent}
       />
 
       <S.DeckContent
+        ref={contentRef}
         key={box.box_id}
+        $expanded={expanded}
+        $itemFocused={Boolean(selectedQuickPeekItem)}
+        $photoFocused={photoFocused}
         $direction={itemSelection.selectedItem ? 0 : transitionDirection}
         data-quick-peek-scroll-region
       >
-        {itemSelection.selectedItem ? (
+        {photoFocused ? (
+          <QuickPeekBoxPhotoView
+            box={box}
+            imageUrl={displayImageUrl}
+            fallbackUrl={imageUrl}
+            onShowItems={onShowItems}
+          />
+        ) : itemSelection.selectedItem ? (
           <QuickPeekItemCarousel
             key={String(itemSelection.selectedItem?._id || itemSelection.selectedItem?.id || '')}
-            item={itemSelection.selectedItem}
+            item={selectedQuickPeekItemWithDeckState}
             position={itemSelection.selectedIndex + 1}
             total={itemSelection.totalItems}
             transitionDirection={itemSelection.transitionDirection}
@@ -321,75 +452,123 @@ export default function OperationsBoxQuickPeek({
             onPrevious={itemSelection.selectPrevious}
             onNext={itemSelection.selectNext}
             onBack={itemSelection.backToItems}
+            onDeclutterStateChange={(inDeck) => {
+              if (!selectedQuickPeekItemId) return;
+              setDeclutterDeckOverrides((current) => ({
+                ...current,
+                [selectedQuickPeekItemId]: inDeck,
+              }));
+            }}
           />
         ) : (
           <>
-            {description || notes || tags.length > 0 ? (
-              <S.BoxSnapshot>
-                <S.BoxSnapshotText>
-                  {description ? (
-                    <S.BoxDescription>{description}</S.BoxDescription>
-                  ) : null}
-                  {notes ? (
-                    <S.BoxNotes>
-                      <S.MetaLabel>Notes</S.MetaLabel>
-                      {notes}
-                    </S.BoxNotes>
-                  ) : null}
-                  {tags.length > 0 ? (
-                    <S.TagLine aria-label="Box tags">
-                      {tags.map((tag) => (
-                        <span key={tag}>#{tag}</span>
+            {notesEmphasized && notes ? (
+              <S.NoteFocusStage data-notes-emphasized="true">
+                <S.NoteFocusToolbar>
+                  <S.NoteItemsReturn type="button" onClick={onShowItems}>
+                    Items // {items.length}
+                    <span aria-hidden="true">›</span>
+                  </S.NoteItemsReturn>
+                </S.NoteFocusToolbar>
+                <S.NotePaper
+                  ref={notePreviewButtonRef}
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-expanded={noteReaderOpen}
+                  aria-label={
+                    notePreview.truncated
+                      ? 'Read the complete box note'
+                      : 'Open box note reader'
+                  }
+                  onClick={() => setNoteReaderOpen(true)}
+                >
+                  <S.NotePaperKicker>
+                    Box note{boxId ? ` // ${boxId}` : ''}
+                  </S.NotePaperKicker>
+                  <S.NotePaperBody>{notePreview.text}</S.NotePaperBody>
+                  <S.NotePaperHint>
+                    {notePreview.truncated ? 'Open full note' : 'Open reader'} ↗
+                  </S.NotePaperHint>
+                </S.NotePaper>
+              </S.NoteFocusStage>
+            ) : (
+              <>
+                {notes || tags.length > 0 ? (
+                  <S.BoxSnapshot>
+                    <S.BoxSnapshotText>
+                      {notes ? (
+                        <S.BoxNotesButton
+                          ref={notePreviewButtonRef}
+                          type="button"
+                          aria-haspopup="dialog"
+                          aria-expanded={noteReaderOpen}
+                          aria-label={
+                            notePreview.truncated
+                              ? 'Read the complete box note'
+                              : 'Open box note reader'
+                          }
+                          onClick={() => setNoteReaderOpen(true)}
+                        >
+                          <S.MetaLabel>Notes</S.MetaLabel>
+                          {notePreview.text}
+                        </S.BoxNotesButton>
+                      ) : null}
+                      {tags.length > 0 ? (
+                        <S.TagLine aria-label="Box tags">
+                          {tags.map((tag) => (
+                            <span key={tag}>#{tag}</span>
+                          ))}
+                        </S.TagLine>
+                      ) : null}
+                    </S.BoxSnapshotText>
+                  </S.BoxSnapshot>
+                ) : null}
+
+                <S.ItemsHeader>
+                  <span>Direct items</span>
+                  <S.ItemsCount>
+                    {visibleItems.length}{' '}
+                    {hasItemQuery
+                      ? visibleItems.length === 1
+                        ? 'match'
+                        : 'matches'
+                      : visibleItems.length === 1
+                        ? 'item'
+                        : 'items'}
+                  </S.ItemsCount>
+                </S.ItemsHeader>
+
+                <QuickPeekItemList
+                  items={visibleItems}
+                  emptyMessage={
+                    hasItemQuery
+                      ? 'No direct items match that signal.'
+                      : undefined
+                  }
+                  onSelectItem={(item) => {
+                    closeQuickSearch();
+                    itemSelection.openItem(item);
+                  }}
+                />
+
+                {childBoxes.length > 0 ? (
+                  <S.NestedBoxes>
+                    <summary>
+                      Nested boxes
+                      <span>{childBoxes.length}</span>
+                    </summary>
+                    <S.NestedBoxList>
+                      {childBoxes.map((child) => (
+                        <li key={child?._id || child?.box_id}>
+                          <code>#{child?.box_id}</code>
+                          {child?.label || child?.name || 'Untitled box'}
+                        </li>
                       ))}
-                    </S.TagLine>
-                  ) : null}
-                </S.BoxSnapshotText>
-              </S.BoxSnapshot>
-            ) : null}
-
-            <S.ItemsHeader>
-              <span>Direct items</span>
-              <S.ItemsCount>
-                {visibleItems.length}{' '}
-                {normalizedItemQuery
-                  ? visibleItems.length === 1
-                    ? 'match'
-                    : 'matches'
-                  : visibleItems.length === 1
-                    ? 'item'
-                    : 'items'}
-              </S.ItemsCount>
-            </S.ItemsHeader>
-
-            <QuickPeekItemList
-              items={visibleItems}
-              emptyMessage={
-                normalizedItemQuery
-                  ? 'No direct items match that signal.'
-                  : undefined
-              }
-              onSelectItem={(item) => {
-                closeQuickSearch();
-                itemSelection.openItem(item);
-              }}
-            />
-
-            {childBoxes.length > 0 ? (
-              <S.NestedBoxes>
-                <summary>
-                  Nested boxes
-                  <span>{childBoxes.length}</span>
-                </summary>
-                <S.NestedBoxList>
-                  {childBoxes.map((child) => (
-                    <li key={child?._id || child?.box_id}>
-                      <code>#{child?.box_id}</code>
-                      {child?.label || child?.name || 'Untitled box'}
-                    </li>
-                  ))}
-                </S.NestedBoxList>
-              </S.NestedBoxes>
-            ) : null}
+                    </S.NestedBoxList>
+                  </S.NestedBoxes>
+                ) : null}
+              </>
+            )}
           </>
         )}
       </S.DeckContent>
@@ -413,6 +592,14 @@ export default function OperationsBoxQuickPeek({
           <path d="M8 6h6v6" />
         </S.OpenFullBoxIcon>
       </S.OpenFullBoxButton>
+      {noteReaderOpen ? (
+        <QuickPeekNoteModal
+          box={box}
+          notes={notes}
+          onClose={closeNoteReader}
+          themeStyle={boxThemeStyle}
+        />
+      ) : null}
     </S.Deck>,
     document.body,
   );

@@ -16,32 +16,33 @@ import {
 import RenderTokenControls from '../Processing/RenderTokenControls';
 
 const Field = styled.section`
-  border: 1px solid rgba(105, 154, 176, 0.44);
-  border-radius: 14px;
+  border: 1px solid rgba(97, 151, 158, 0.46);
+  border-radius: 7px;
   background:
-    radial-gradient(circle at 18% 18%, rgba(74, 185, 207, 0.1), transparent 38%),
-    linear-gradient(180deg, rgba(11, 22, 30, 0.92) 0%, rgba(9, 17, 24, 0.96) 100%);
-  padding: ${({ $compact }) => ($compact ? '0.48rem' : '0.72rem')};
+    linear-gradient(120deg, rgba(37, 88, 84, 0.11), transparent 36%),
+    rgba(7, 14, 19, 0.94);
+  padding: ${({ $compact }) => ($compact ? '0.5rem' : '0.64rem')};
   display: grid;
-  gap: ${({ $compact }) => ($compact ? '0.4rem' : '0.62rem')};
+  gap: ${({ $compact }) => ($compact ? '0.42rem' : '0.52rem')};
   min-width: 0;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+  box-shadow: inset 0 1px 0 rgba(220, 255, 251, 0.045);
 `;
 
 const HeaderRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  gap: 0.42rem;
+  min-width: 0;
 `;
 
 const Title = styled.h4`
   margin: 0;
-  font-size: 0.7rem;
+  color: #b9d4d3;
+  font-size: 0.64rem;
+  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #d6e9f2;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
@@ -49,67 +50,64 @@ const Title = styled.h4`
 `;
 
 const VariantBadge = styled.span`
-  border: 1px solid rgba(103, 157, 183, 0.5);
-  border-radius: 999px;
-  padding: 0.08rem 0.36rem;
-  font-size: 0.62rem;
+  color: #87afaf;
+  font-family: 'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace,
+    Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.58rem;
+  font-weight: 700;
   letter-spacing: 0.04em;
-  color: #a8c7da;
-  background: rgba(14, 26, 36, 0.84);
   text-transform: uppercase;
   white-space: nowrap;
 `;
 
 const BodyRow = styled.div`
   display: grid;
-  grid-template-columns: ${({ $compact }) =>
-    ($compact ? 'minmax(112px, 150px) minmax(0, 1fr)' : 'minmax(220px, 0.34fr) minmax(0, 1fr)')};
-  gap: ${({ $compact }) => ($compact ? '0.5rem' : '0.8rem')};
+  grid-template-columns: ${({ $hasImage, $compact }) =>
+    ($hasImage
+      ? ($compact ? 'minmax(94px, 126px) minmax(0, 1fr)' : 'minmax(128px, 180px) minmax(0, 1fr)')
+      : '1fr')};
+  gap: ${({ $compact }) => ($compact ? '0.46rem' : '0.6rem')};
   align-items: stretch;
   min-width: 0;
 
   @media (max-width: 860px) {
-    grid-template-columns: ${({ $compact, $mobileHeaderPreview }) =>
-      $mobileHeaderPreview ? '1fr' : ($compact ? 'minmax(96px, 128px) minmax(0, 1fr)' : 'minmax(180px, 0.38fr) minmax(0, 1fr)')};
+    grid-template-columns: ${({ $hasImage, $compact, $mobileHeaderPreview }) => {
+    if (!$hasImage || $mobileHeaderPreview) return '1fr';
+    return $compact ? 'minmax(94px, 120px) minmax(0, 1fr)' : 'minmax(116px, 154px) minmax(0, 1fr)';
+  }};
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: 1fr;
+    grid-template-columns: ${({ $hasImage, $compact, $mobileHeaderPreview }) => {
+    if (!$hasImage || $mobileHeaderPreview) return '1fr';
+    return $compact ? 'minmax(92px, 112px) minmax(0, 1fr)' : 'minmax(112px, 142px) minmax(0, 1fr)';
+  }};
   }
 `;
 
-const previewFrameStyles = `
+const previewSurfaceStyles = `
   width: 100%;
-  min-height: ${({ $compact }) => ($compact ? '136px' : '232px')};
+  min-height: ${({ $compact }) => ($compact ? '96px' : '128px')};
   height: 100%;
-  max-height: ${({ $compact }) => ($compact ? '172px' : '320px')};
+  max-height: ${({ $compact }) => ($compact ? '138px' : '188px')};
   aspect-ratio: ${({ $compact }) => ($compact ? '1 / 1' : '4 / 3')};
-  border-radius: 14px;
-  border: 1px solid rgba(99, 154, 175, 0.54);
+  border-radius: 6px;
+  border: 1px solid rgba(97, 151, 158, 0.48);
   overflow: hidden;
-  background:
-    radial-gradient(circle at 50% 42%, rgba(56, 104, 126, 0.22), transparent 48%),
-    rgba(7, 13, 19, 0.96);
+  background: rgba(5, 11, 16, 0.96);
   display: grid;
   place-items: center;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.035),
-    0 12px 22px rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(225, 255, 252, 0.03);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: ${({ $compact, $mobileHeaderPreview }) =>
-      ($mobileHeaderPreview ? '180px' : ($compact ? '132px' : '168px'))};
-    max-height: ${({ $mobileHeaderPreview }) => ($mobileHeaderPreview ? '240px' : '220px')};
-    border-radius: 12px;
+      ($mobileHeaderPreview ? '144px' : ($compact ? '92px' : '112px'))};
+    max-height: ${({ $mobileHeaderPreview }) => ($mobileHeaderPreview ? '190px' : '148px')};
   }
 `;
 
-const PreviewFrame = styled.div`
-  ${previewFrameStyles}
-`;
-
 const PreviewButton = styled.button`
-  ${previewFrameStyles}
+  ${previewSurfaceStyles}
   appearance: none;
   box-sizing: border-box;
   display: grid;
@@ -118,7 +116,7 @@ const PreviewButton = styled.button`
   margin: 0;
   cursor: zoom-in;
   line-height: 0;
-  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 
   &:hover {
     border-color: rgba(120, 196, 226, 0.8);
@@ -132,8 +130,36 @@ const PreviewButton = styled.button`
   }
 
   &:active {
-    transform: scale(0.985);
+    transform: scale(0.99);
   }
+`;
+
+const EmptyImageRail = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: ${({ $compact }) => ($compact ? '36px' : '40px')};
+  gap: 0.5rem;
+  padding: 0.42rem 0.5rem;
+  border: 1px solid rgba(97, 151, 158, 0.38);
+  border-radius: 5px;
+  background: rgba(6, 12, 16, 0.68);
+`;
+
+const EmptyImageLabel = styled.span`
+  color: #bed4d3;
+  font-size: 0.68rem;
+  font-weight: 720;
+`;
+
+const EmptyImageHint = styled.span`
+  color: #718e90;
+  font-family: 'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace,
+    Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.56rem;
+  letter-spacing: 0.05em;
+  text-align: right;
+  text-transform: uppercase;
 `;
 
 const PreviewImage = styled.img`
@@ -145,33 +171,24 @@ const PreviewImage = styled.img`
   background: rgba(5, 10, 16, 0.96);
 `;
 
-const Placeholder = styled.div`
-  color: #93adbe;
-  font-size: ${({ $compact }) => ($compact ? '0.62rem' : '0.7rem')};
-  line-height: 1.25;
-  text-align: center;
-  padding: ${({ $compact }) => ($compact ? '0.4rem' : '0.72rem')};
-  text-transform: uppercase;
-`;
-
 const ActionStack = styled.div`
   display: grid;
-  gap: ${({ $compact }) => ($compact ? '0.42rem' : '0.62rem')};
+  gap: ${({ $compact }) => ($compact ? '0.42rem' : '0.5rem')};
   min-width: 0;
   align-content: start;
   container-type: inline-size;
 `;
 
 const ActionGrid = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${({ $compact }) => ($compact ? '0.32rem' : '0.42rem')};
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.25rem), 1fr));
+  gap: ${({ $compact }) => ($compact ? '0.3rem' : '0.36rem')};
+  align-items: stretch;
 `;
 
 const ActionButton = styled.button`
-  min-height: ${({ $compact }) => ($compact ? '30px' : '32px')};
-  border-radius: 8px;
+  min-height: ${({ $compact }) => ($compact ? '36px' : '40px')};
+  border-radius: 5px;
   border: 1px solid
     ${({ $tone }) => {
     if ($tone === 'primary') return 'rgba(95, 179, 144, 0.64)';
@@ -188,16 +205,21 @@ const ActionButton = styled.button`
     if ($tone === 'danger') return '#ffdede';
     return '#d9ecf6';
   }};
-  font-size: 0.67rem;
+  font-size: 0.64rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  padding: 0 0.46rem;
+  padding: 0.28rem 0.48rem;
   cursor: pointer;
 
   &:disabled {
     opacity: 0.56;
     cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(173, 142, 255, 0.92);
+    outline-offset: 2px;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -308,7 +330,7 @@ function renderUploadAction(action, compact) {
       renderAction={({ label, onClick, disabled }) => (
         <ActionButton
           type="button"
-          $tone={action.tone}
+          $tone={action.tone || 'primary'}
           $compact={compact}
           onClick={onClick}
           disabled={disabled}
@@ -369,7 +391,11 @@ export default function ImageAssetField({
         ) : null}
       </HeaderRow>
 
-      <BodyRow $compact={compact} $mobileHeaderPreview={mobileHeaderPreview}>
+      <BodyRow
+        $compact={compact}
+        $hasImage={hasImage}
+        $mobileHeaderPreview={mobileHeaderPreview}
+      >
         {hasImage ? (
           <PreviewButton
             type="button"
@@ -385,9 +411,10 @@ export default function ImageAssetField({
             />
           </PreviewButton>
         ) : (
-          <PreviewFrame $compact={compact} $mobileHeaderPreview={mobileHeaderPreview}>
-            <Placeholder $compact={compact}>{placeholder}</Placeholder>
-          </PreviewFrame>
+          <EmptyImageRail $compact={compact}>
+            <EmptyImageLabel>{placeholder}</EmptyImageLabel>
+            <EmptyImageHint>Source ready</EmptyImageHint>
+          </EmptyImageRail>
         )}
 
         <ActionStack $compact={compact}>

@@ -220,9 +220,36 @@ export const IdentityCompactGrid = styled.div`
   align-items: start;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: 1fr;
+  & > :last-child {
+    grid-column: 1 / -1;
   }
+
+  @media (max-width: 390px) {
+    grid-template-columns: 1fr;
+
+    & > :last-child {
+      grid-column: auto;
+    }
+  }
+`;
+
+export const CompactContextGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 7px;
+  min-width: 0;
+  padding-top: 7px;
+  border-top: 1px solid rgba(151, 163, 176, 0.24);
+
+  @media (min-width: 560px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+`;
+
+export const CompactMediaRegion = styled.div`
+  min-width: 0;
+  padding-top: 7px;
+  border-top: 1px solid rgba(151, 163, 176, 0.24);
 `;
 
 export const Field = styled.div`
@@ -256,7 +283,7 @@ export const Input = styled.input`
   border-radius: 8px;
   border: 1px solid rgba(122, 142, 167, 0.44);
   background: ${LCARS.inset};
-  color: ${LCARS.text};
+  color: #c9d8eb;
   font-size: ${({ $compact }) => ($compact ? '13px' : '14px')};
   min-height: ${({ $compact }) => ($compact ? '36px' : MOBILE_CONTROL_MIN_HEIGHT)};
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -287,7 +314,7 @@ export const Textarea = styled.textarea`
   border-radius: 8px;
   border: 1px solid rgba(122, 142, 167, 0.44);
   background: ${LCARS.inset};
-  color: ${LCARS.text};
+  color: #c9d8eb;
   font-size: ${({ $compact }) => ($compact ? '13px' : '14px')};
   min-height: ${({ $compact }) => ($compact ? '88px' : '110px')};
   line-height: 1.45;
@@ -318,7 +345,7 @@ export const Select = styled.select`
   border-radius: 8px;
   border: 1px solid rgba(122, 142, 167, 0.44);
   background: ${LCARS.inset};
-  color: ${LCARS.text};
+  color: #c9d8eb;
   font-size: ${({ $compact }) => ($compact ? '13px' : '14px')};
   min-height: ${({ $compact }) => ($compact ? '36px' : MOBILE_CONTROL_MIN_HEIGHT)};
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -360,7 +387,7 @@ export const LocationInput = styled.input`
   border-radius: 8px;
   border: 1px solid rgba(122, 142, 167, 0.45);
   background: #0b1018;
-  color: #e6edf4;
+  color: #c9d8eb;
   font-size: 14px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
@@ -472,6 +499,18 @@ export const statusColor = ($status) =>
         ? '#ff4d4f'
         : '#2f2f2f';
 
+const shortIdBorderColor = ($status, $palette) => {
+  if ($status === 'inProgress' || $status === 'invalid') return statusColor($status);
+  return $palette || statusColor($status);
+};
+
+const shortIdFocusRing = ($status, $paletteRgb) => {
+  if ($status === 'inProgress') return 'rgba(255,212,0,0.30)';
+  if ($status === 'invalid') return 'rgba(255,77,79,0.30)';
+  if ($paletteRgb) return `rgba(${$paletteRgb},0.24)`;
+  return $status === 'valid' ? 'rgba(78,199,123,0.30)' : 'rgba(180,180,180,0.15)';
+};
+
 export const ShortIdInput = styled.input`
   font-family: monospace;
   text-align: center;
@@ -479,25 +518,18 @@ export const ShortIdInput = styled.input`
   margin: 0 auto;
   padding: ${({ $compact }) => ($compact ? '8px 8px' : '10px 12px')};
   border-radius: 8px;
-  border: 2px solid ${({ $status }) => statusColor($status)};
+  border: 2px solid ${({ $status, $palette }) => shortIdBorderColor($status, $palette)};
   background: #101010;
-  color: #eaeaea;
+  color: #cfe0ff;
   font-size: ${({ $compact }) => ($compact ? '16px' : '18px')};
   letter-spacing: 2px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:focus {
     outline: none;
-    border-color: ${({ $status }) => statusColor($status)};
+    border-color: ${({ $status, $palette }) => shortIdBorderColor($status, $palette)};
     box-shadow: 0 0 0 2px
-      ${({ $status }) =>
-        $status === 'inProgress'
-          ? 'rgba(255,212,0,0.30)'
-          : $status === 'valid'
-            ? 'rgba(78,199,123,0.30)'
-            : $status === 'invalid'
-              ? 'rgba(255,77,79,0.30)'
-        : 'rgba(180,180,180,0.15)'};
+      ${({ $status, $paletteRgb }) => shortIdFocusRing($status, $paletteRgb)};
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -521,7 +553,7 @@ export const Hint = styled.div`
 export const TagWrap = styled.div`
   padding: ${({ $compact }) => ($compact ? '6px' : '8px')};
   border-radius: 8px;
-  border: 1px dashed #2f2f2f;
+  border: 1px solid rgba(122, 142, 167, 0.32);
   background: #101010;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -540,17 +572,19 @@ export const TagChip = styled.span`
   align-items: center;
   gap: ${({ $compact }) => ($compact ? '5px' : '6px')};
   padding: ${({ $compact }) => ($compact ? '4px 7px' : '6px 8px')};
-  border-radius: 999px;
-  background: #1f1f1f;
-  border: 1px solid #2a2a2a;
+  border-radius: 7px;
+  background: rgba(20, 28, 40, 0.9);
+  border: 1px solid rgba(111, 148, 190, 0.32);
+  font-family: 'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace,
+    Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   font-size: ${({ $compact }) => ($compact ? '11px' : '12px')};
-  color: #eaeaea;
+  color: #98c2ff;
 `;
 
 export const RemoveX = styled.button`
   border: none;
   background: transparent;
-  color: #bdbdbd;
+  color: #87aeea;
   cursor: pointer;
   padding: 0 2px;
   line-height: 1;
@@ -562,16 +596,16 @@ export const RemoveX = styled.button`
 export const TagAdder = styled.input`
   padding: ${({ $compact }) => ($compact ? '5px 8px' : '6px 8px')};
   min-width: 140px;
-  border-radius: 999px;
-  border: 1px dashed #2a2a2a;
+  border-radius: 8px;
+  border: 1px solid rgba(122, 142, 167, 0.44);
   background: #0f0f0f;
-  color: #eaeaea;
+  color: #c9d8eb;
   font-size: ${({ $compact }) => ($compact ? '11px' : '12px')};
 
   &:focus {
     outline: none;
-    border-color: #4ec77b;
-    box-shadow: 0 0 0 2px rgba(78, 199, 123, 0.2);
+    border-color: #4d96ff;
+    box-shadow: 0 0 0 2px rgba(77, 150, 255, 0.2);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {

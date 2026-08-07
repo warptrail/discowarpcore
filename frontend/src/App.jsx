@@ -14,6 +14,7 @@ import IntakePage from './components/Intake/IntakePage';
 import BulkImportPage from './components/BulkImport/BulkImportPage';
 import RetrievalPage from './components/Retrieval/RetrievalPage';
 import DeclutterDeckPage from './components/Declutter/DeclutterDeckPage';
+import DeclutterHistoryPage from './components/Declutter/DeclutterHistoryPage';
 import LogsPage from './components/SystemLogsPage';
 import { API_BASE } from './api/API_BASE';
 import { MOBILE_BREAKPOINT, MOBILE_PAGE_GAP } from './styles/tokens';
@@ -23,11 +24,18 @@ const OPERATIONS_PAGE_LIMIT = 50;
 
 // ! STYLES
 const AppContainer = styled.div`
-  max-width: 1024px;
+  max-width: ${({ $retrievalPage, $itemPage }) => (
+    $retrievalPage ? '1280px' : $itemPage ? '1440px' : '1024px'
+  )};
   margin: 0 auto;
-  padding: 2rem;
+  padding: ${({ $retrievalPage }) =>
+    $retrievalPage ? 'clamp(1rem, 2vw, 1.5rem)' : 'clamp(1rem, 3vw, 2rem)'};
   font-family: Arial, Helvetica, sans-serif;
   min-width: 0;
+
+  @media (min-width: calc(${MOBILE_BREAKPOINT} + 1px)) and (max-width: 899px) {
+    padding: ${({ $retrievalPage }) => ($retrievalPage ? '0.75rem' : '2rem')};
+  }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     max-width: 100%;
@@ -127,6 +135,10 @@ function App() {
 
   // for refreshing the home page on location change
   const location = useLocation();
+  const isRetrievalPage = /^\/(?:retrieval|tags\/[^/]+)\/?$/.test(
+    location.pathname,
+  );
+  const isItemPage = /^\/items\/[^/]+\/?$/.test(location.pathname);
   const handleOperationsDataRefreshRequest = useCallback(() => {
     setOperationsRefreshTick((prev) => prev + 1);
   }, []);
@@ -276,8 +288,17 @@ function App() {
     />
   );
 
+  const retrievalPage = (
+    <RetrievalPage
+      key={location.pathname}
+      finderOpen={retrievalFinderOpen}
+      onToggleResults={() => setRetrievalFinderOpen((current) => !current)}
+      resultsVisible={retrievalFinderOpen}
+    />
+  );
+
   return (
-    <AppContainer>
+    <AppContainer $retrievalPage={isRetrievalPage} $itemPage={isItemPage}>
       <GlobalStyles />
       <Header />
 
@@ -290,17 +311,10 @@ function App() {
         <Route path="/import" element={<BulkImportPage />} />
         <Route path="/all-items" element={<AllItemsList />} />
         <Route path="/declutter" element={<DeclutterDeckPage />} />
+        <Route path="/declutter/history" element={<DeclutterHistoryPage />} />
         <Route path="/logs" element={<LogsPage />} />
-        <Route
-          path="/retrieval"
-          element={
-            <RetrievalPage
-              finderOpen={retrievalFinderOpen}
-              onToggleResults={() => setRetrievalFinderOpen((current) => !current)}
-              resultsVisible={retrievalFinderOpen}
-            />
-          }
-        />
+        <Route path="/retrieval" element={retrievalPage} />
+        <Route path="/tags/:tag" element={retrievalPage} />
         <Route path="/items/:itemId" element={<ItemPage />} />
       </Routes>
     </AppContainer>

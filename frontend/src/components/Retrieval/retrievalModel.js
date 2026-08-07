@@ -27,7 +27,13 @@ const normalizeText = (value) =>
     .toLowerCase()
     .replace(/\s+/g, ' ');
 
-const normalizeFacetKey = (value) => normalizeText(value);
+export const normalizeRetrievalFacetKey = (value) => normalizeText(value);
+const normalizeFacetKey = normalizeRetrievalFacetKey;
+
+export function getRetrievalTagHref(value) {
+  const key = normalizeRetrievalFacetKey(value);
+  return key ? `/tags/${encodeURIComponent(key)}` : '/retrieval';
+}
 
 const compareLabel = (a, b) =>
   String(a || '').localeCompare(String(b || ''), undefined, {

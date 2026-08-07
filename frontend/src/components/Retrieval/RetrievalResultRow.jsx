@@ -1,6 +1,9 @@
 import * as S from './Retrieval.styles';
 import RetrievalExpandedPanel from './RetrievalExpandedPanel';
-import { getBoxColorTones } from './boxColors';
+import {
+  getBoxTheme,
+  getBoxThemeCssVars,
+} from '../../util/inventoryColorTheme';
 
 function shouldSkipRowToggle(target) {
   if (!(target instanceof Element)) return false;
@@ -10,7 +13,10 @@ function shouldSkipRowToggle(target) {
 export default function RetrievalResultRow({
   item,
   isExpanded = false,
+  detailResource,
+  activeSectionKey,
   onToggle,
+  onSectionChange,
   onPreviewImage,
   onLifecycleAction,
 }) {
@@ -41,11 +47,20 @@ export default function RetrievalResultRow({
   const hasKnownLocation =
     Boolean(locationLabel) && !/^unknown/i.test(locationLabel);
   const hasKnownBox = Boolean(boxNumber) || Boolean(boxName);
-  const boxColorTones = getBoxColorTones(boxNumber || 0);
+  const boxTheme = getBoxTheme(boxNumber);
+  const boxThemeStyle = getBoxThemeCssVars(boxTheme);
   const boxSummary = hasKnownBox
     ? `${boxNumber ? `#${boxNumber}` : ''}${boxNumber && boxName ? ' · ' : ''}${boxName}`
     : 'Orphaned';
   const locationSummary = hasKnownLocation ? locationLabel : 'Unknown';
+  const compactMeta = [
+    item?.categoryKey && item?.categoryKey !== 'uncategorized'
+      ? String(item.categoryLabel || '').trim()
+      : '',
+    String(item?.keepPriority || '').trim()
+      ? String(item.keepPriorityLabel || '').trim()
+      : '',
+  ].filter(Boolean);
 
   const hasImage = Boolean(imageUrl);
 
@@ -58,7 +73,7 @@ export default function RetrievalResultRow({
   };
 
   return (
-    <S.ResultCard $expanded={isExpanded}>
+    <S.ResultCard $expanded={isExpanded} style={boxThemeStyle}>
       <S.SummaryButton
         onClick={handleSummaryClick}
         onKeyDown={handleSummaryKeyDown}
@@ -99,27 +114,39 @@ export default function RetrievalResultRow({
                 <S.ItemLine>{item.name}</S.ItemLine>
               </S.ItemLineSlot>
 
+              {compactMeta.length ? (
+                <S.CompactMetaLine aria-label="Item metadata">
+                  {compactMeta.map((label) => <span key={label}>{label}</span>)}
+                </S.CompactMetaLine>
+              ) : null}
+
               {!isExpanded ? (
                 <S.CollapsedPlacementTable>
                   <S.CollapsedPlacementRow>
                     <S.CollapsedPlacementLabel>Box</S.CollapsedPlacementLabel>
                     <S.CollapsedPlacementValue $stack>
-                      <S.CollapsedBoxValueChip
+                      <S.CollapsedBoxTelemetry
                         title={`Box: ${boxSummary}`}
                         $orphaned={!hasKnownBox}
-                        $boxColorRgb={boxColorTones.baseRgb}
-                        $boxNeonRgb={boxColorTones.neonRgb}
-                        $boxMutedRgb={boxColorTones.mutedRgb}
                       >
-                        {boxSummary}
-                      </S.CollapsedBoxValueChip>
+                        {hasKnownBox ? (
+                          <>
+                            {boxNumber ? (
+                              <S.CollapsedBoxId>{boxNumber}</S.CollapsedBoxId>
+                            ) : null}
+                            {boxName ? (
+                              <S.CollapsedBoxName>{boxName}</S.CollapsedBoxName>
+                            ) : null}
+                          </>
+                        ) : (
+                          <S.CollapsedBoxName>Orphaned</S.CollapsedBoxName>
+                        )}
+                      </S.CollapsedBoxTelemetry>
                     </S.CollapsedPlacementValue>
                   </S.CollapsedPlacementRow>
 
                   <S.CollapsedPlacementRow>
-                    <S.CollapsedPlacementLabel>
-                      Location
-                    </S.CollapsedPlacementLabel>
+                    <S.CollapsedPlacementLabel>Loc</S.CollapsedPlacementLabel>
                     <S.CollapsedPlacementValue
                       $stack
                       title={`Location: ${locationSummary}`}
@@ -141,6 +168,10 @@ export default function RetrievalResultRow({
         <RetrievalExpandedPanel
           item={item}
           panelId={panelId}
+          detailResource={detailResource}
+          themeStyle={boxThemeStyle}
+          activeSectionKey={activeSectionKey}
+          onSectionChange={onSectionChange}
           onLifecycleAction={onLifecycleAction}
           onPreviewImage={onPreviewImage}
         />

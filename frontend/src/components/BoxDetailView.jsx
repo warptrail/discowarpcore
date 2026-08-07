@@ -29,6 +29,7 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [boxImageRefreshToken, setBoxImageRefreshToken] = useState(0);
+  const [treeViewMode, setTreeViewMode] = useState('full');
 
   const activeTab = useMemo(() => {
     const tab = searchParams.get('tab');
@@ -53,6 +54,7 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
   } =
     useBoxDetailData(shortId);
   const search = useBoxWorkspaceSearch({ shortId, items: flatItems });
+  const hasChildBoxes = Array.isArray(tree?.childBoxes) && tree.childBoxes.length > 0;
   const browseTab = activeTab === 'tree' ? 'tree' : 'flat';
   const managementOpen = activeTab === 'edit';
   const resultsRef = React.useRef(null);
@@ -73,6 +75,10 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
   useLayoutEffect(() => {
     if (typeof window === 'undefined') return;
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [shortId]);
+
+  useEffect(() => {
+    setTreeViewMode('full');
   }, [shortId]);
 
   useEffect(() => {
@@ -115,7 +121,7 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
     if (shouldNormalize) {
       setSearchParams(next, { replace: true });
     }
-  }, [searchParams, setSearchParams]);
+  }, [hasChildBoxes, searchParams, setSearchParams, tree]);
 
   const handleTabChange = useCallback(
     (mode) => {
@@ -157,10 +163,10 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
     [activeTab, searchParams, setSearchParams],
   );
 
-  const handleEditBox = useCallback(() => {
+  const handleManageBox = useCallback(() => {
     const next = new URLSearchParams(searchParams);
     next.set('tab', 'edit');
-    next.set('panel', 'edit');
+    next.delete('panel');
 
     if (next.toString() === searchParams.toString()) return;
     setSearchParams(next, { replace: true });
@@ -188,9 +194,14 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
         onNavigateBox(nextShortId);
         return;
       }
-      navigate(`/boxes/${encodeURIComponent(nextShortId)}`);
+      const nextSearch = new URLSearchParams();
+      if (activeTab === 'tree') nextSearch.set('tab', 'tree');
+      navigate({
+        pathname: `/boxes/${encodeURIComponent(nextShortId)}`,
+        search: nextSearch.toString() ? `?${nextSearch.toString()}` : '',
+      });
     },
-    [navigate, onNavigateBox],
+    [activeTab, navigate, onNavigateBox],
   );
   const resolvedParentPath = Array.isArray(parentPath)
     ? parentPath
@@ -207,7 +218,6 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
               box={tree}
               parentPath={resolvedParentPath}
               onNavigateBox={handleNavigateBox}
-              onManageBox={handleEditBox}
               stats={stats}
               imageRefreshToken={boxImageRefreshToken}
             />
@@ -215,7 +225,10 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
               mode={browseTab}
               onChange={handleTabChange}
               busy={!!loading}
-              showTree={Array.isArray(tree?.childBoxes) && tree.childBoxes.length > 0}
+              showTree={Boolean(tree)}
+              hasChildBoxes={hasChildBoxes}
+              viewMode={treeViewMode}
+              onViewModeChange={setTreeViewMode}
             />
           </>
         )}
@@ -244,7 +257,8 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
             refreshBox={refreshBox}
             searchQuery={search.query}
             sortMode={search.sortMode}
-            onManageBox={handleEditBox}
+            onManageBox={handleManageBox}
+            viewMode={treeViewMode}
           />
         </S.TabViewport>
         {tree ? (

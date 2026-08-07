@@ -7,8 +7,10 @@ import {
 } from '../util/inventoryColorTheme';
 
 const Details = styled.div`
-  display: grid;
-  gap: 0.24rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.24rem 0.44rem;
   min-width: 0;
   color: rgba(230, 244, 255, 0.86);
 `;
@@ -17,24 +19,23 @@ const BoxLine = styled.div`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.42rem;
+  gap: 0.3rem;
   min-width: 0;
-  font-size: 0.82rem;
+  font-size: 0.7rem;
   line-height: 1.2;
 `;
 
-const BoxChip = styled.span`
+const ContextId = styled.span`
   display: inline-flex;
   align-items: center;
-  min-height: 24px;
-  padding: 0.12rem 0.44rem;
-  border: 1px solid rgba(var(--box-primary-rgb, 76, 198, 193), 0.48);
-  border-radius: 999px;
-  background: rgba(var(--box-primary-rgb, 76, 198, 193), 0.12);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--box-neon, #c5f4f1);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     'Liberation Mono', 'Courier New', monospace;
-  font-size: 0.66rem;
+  font-size: 0.58rem;
   font-weight: 760;
   letter-spacing: 0.08em;
   line-height: 1;
@@ -66,10 +67,10 @@ const LocationLine = styled.div`
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 0.36rem;
+  gap: 0.26rem;
   min-width: 0;
   color: rgba(230, 244, 255, 0.72);
-  font-size: 0.74rem;
+  font-size: 0.64rem;
   line-height: 1.2;
 `;
 
@@ -81,7 +82,37 @@ const LocationLabel = styled.span`
   text-transform: uppercase;
 `;
 
-export default function ItemPageConsoleDetails({ item }) {
+const Mode = styled.span`
+  color: var(--item-accent, #7fd7ff);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.56rem;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+`;
+
+const CompactItemName = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(238, 246, 252, 0.94);
+  font-size: 0.7rem;
+  font-weight: 720;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const CompactSeparator = styled.span`
+  color: rgba(185, 204, 219, 0.42);
+  font-size: 0.62rem;
+`;
+
+export default function ItemPageConsoleDetails({
+  item,
+  viewMode = 'all',
+  modeLabel = '',
+  compact = false,
+}) {
   const ownership = getItemOwnershipContext(item);
   const boxId = ownership.boxId || '';
   const boxLabel =
@@ -90,16 +121,33 @@ export default function ItemPageConsoleDetails({ item }) {
   const location = String(ownership.effectiveLocation || '').trim() || 'No location set';
   const themeStyle = getBoxThemeCssVars(getBoxTheme(boxId));
 
+  const itemName = String(item?.name || 'Item').trim() || 'Item';
+
+  if (compact) {
+    return (
+      <Details aria-label="Field editing context" style={themeStyle}>
+        <CompactItemName title={itemName}>{itemName}</CompactItemName>
+        <CompactSeparator aria-hidden="true">·</CompactSeparator>
+        {boxId ? <ContextId>BOX {boxId}</ContextId> : <ContextId>UNBOXED</ContextId>}
+        <CompactSeparator aria-hidden="true">·</CompactSeparator>
+        <LocationLine>
+          <span>{location}</span>
+        </LocationLine>
+      </Details>
+    );
+  }
+
   return (
     <Details aria-label="Item context" style={themeStyle}>
       <BoxLine>
-        {boxId ? <BoxChip>BOX {boxId}</BoxChip> : null}
+        {boxId ? <ContextId>BOX {boxId}</ContextId> : null}
         {boxHref ? <BoxNameLink to={boxHref}>{boxLabel}</BoxNameLink> : <BoxName>{boxLabel}</BoxName>}
       </BoxLine>
       <LocationLine>
         <LocationLabel>Location</LocationLabel>
         <span>{location}</span>
       </LocationLine>
+      <Mode>{modeLabel || (viewMode === 'hierarchy' ? 'Hierarchy' : 'All data')}</Mode>
     </Details>
   );
 }

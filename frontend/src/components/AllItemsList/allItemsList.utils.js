@@ -39,7 +39,7 @@ export const STATUS_FILTER_OPTIONS = [
 export const BASE_FILTER_OPTIONS = [
   { value: 'all', label: 'All Items' },
   { value: 'boxed', label: 'Boxed' },
-  { value: 'orphaned', label: 'Orphaned' },
+  { value: 'orphaned', label: 'Items Adrift' },
   { value: 'consumable', label: 'Consumable' },
   { value: 'nonConsumable', label: 'Non-Consumable' },
   { value: 'decommissioned', label: 'Decommissioned' },
@@ -477,7 +477,7 @@ export function prepareItemForList(item) {
   const boxDescription = ownership.boxDescription || '';
   const tags = Array.isArray(item?.tags) ? item.tags.filter(Boolean) : [];
   const ownerLabel = String(item?.primaryOwnerName || '').trim();
-  const statusLabel = isGone ? 'No Longer Have' : isOrphaned ? 'Orphaned' : 'Active';
+  const statusLabel = isGone ? 'No Longer Have' : isOrphaned ? 'Items Adrift' : 'Active';
   const sourceBatchId = String(item?.sourceBatchId || '').trim();
   const sourceBatch = item?.sourceBatch && typeof item.sourceBatch === 'object'
     ? item.sourceBatch

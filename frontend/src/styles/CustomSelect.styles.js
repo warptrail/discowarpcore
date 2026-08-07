@@ -23,10 +23,14 @@ export const SelectButton = styled.button`
   min-height: 34px;
   min-width: 0;
   border: 1px solid rgba(108, 156, 188, 0.5);
-  border-radius: 9px;
+  border-radius: ${({ $variant }) => ($variant === 'prism' ? '3px' : '9px')};
   padding: 0.46rem 0.62rem;
   color: ${palette.text};
-  background: linear-gradient(180deg, rgba(6, 12, 19, 0.98), rgba(8, 15, 23, 0.98));
+  background: ${({ $variant }) => (
+    $variant === 'prism'
+      ? 'rgba(7, 13, 19, 0.98)'
+      : 'linear-gradient(180deg, rgba(6, 12, 19, 0.98), rgba(8, 15, 23, 0.98))'
+  )};
   font: inherit;
   font-size: 0.86rem;
   text-align: left;
@@ -41,7 +45,7 @@ export const SelectButton = styled.button`
     box-shadow:
       0 0 0 2px ${({ $tone = palette.root }) => `${$tone}2f`},
       0 0 14px ${({ $tone = palette.root }) => `${$tone}30`};
-    background: #162330;
+    background: ${({ $variant }) => ($variant === 'prism' ? '#101a22' : '#162330')};
   }
 
   &:disabled {
@@ -58,15 +62,20 @@ export const SelectValue = styled.span`
 `;
 
 export const SelectChevron = styled.span`
-  flex: 0 0 auto;
+  flex: 0 0 0.48rem;
+  width: 0.48rem;
+  height: 0.48rem;
   color: ${palette.textDim};
-  font-size: 1rem;
-  line-height: 0.7;
-  transform: translateY(-0.08rem);
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  font-size: 0;
+  line-height: 1;
+  transform: rotate(45deg) translate(-0.08rem, -0.08rem);
+  transform-origin: center;
 `;
 
 export const SelectMenu = styled.div`
-  position: absolute;
+  position: ${({ $variant }) => ($variant === 'prism' ? 'static' : 'absolute')};
   top: calc(100% + 0.34rem);
   left: 0;
   right: 0;
@@ -74,10 +83,15 @@ export const SelectMenu = styled.div`
   gap: 0.18rem;
   max-height: min(280px, 42vh);
   overflow-y: auto;
+  margin-top: ${({ $variant }) => ($variant === 'prism' ? '0.28rem' : '0')};
   padding: 0.34rem;
   border: 1px solid rgba(76, 198, 193, 0.58);
-  border-radius: 11px;
-  background: linear-gradient(180deg, rgba(9, 16, 24, 0.99), rgba(8, 14, 20, 0.99));
+  border-radius: ${({ $variant }) => ($variant === 'prism' ? '3px' : '11px')};
+  background: ${({ $variant }) => (
+    $variant === 'prism'
+      ? 'rgba(7, 13, 19, 0.995)'
+      : 'linear-gradient(180deg, rgba(9, 16, 24, 0.99), rgba(8, 14, 20, 0.99))'
+  )};
   box-shadow:
     0 18px 30px rgba(2, 9, 16, 0.7),
     0 0 0 1px rgba(76, 198, 193, 0.14) inset;
@@ -89,13 +103,17 @@ export const SelectOption = styled.button`
   border: 1px solid
     ${({ $active, $selected }) =>
       $active || $selected ? 'rgba(76, 198, 193, 0.72)' : 'rgba(104, 154, 186, 0.32)'};
-  border-radius: 8px;
+  border-radius: ${({ $variant }) => ($variant === 'prism' ? '2px' : '8px')};
   padding: 0.42rem 0.52rem;
   color: ${({ $selected }) => ($selected ? '#d9fffa' : palette.text)};
-  background: ${({ $active, $selected }) =>
-    $active || $selected
+  background: ${({ $active, $selected, $variant }) => {
+    if ($variant === 'prism') {
+      return $active || $selected ? 'rgba(32, 73, 76, 0.72)' : 'rgba(11, 21, 30, 0.96)';
+    }
+    return $active || $selected
       ? 'linear-gradient(180deg, rgba(18, 58, 62, 0.82), rgba(10, 36, 42, 0.92))'
-      : 'linear-gradient(180deg, rgba(15, 30, 45, 0.94), rgba(9, 18, 29, 0.96))'};
+      : 'linear-gradient(180deg, rgba(15, 30, 45, 0.94), rgba(9, 18, 29, 0.96))';
+  }};
   font: inherit;
   font-size: 0.82rem;
   text-align: left;

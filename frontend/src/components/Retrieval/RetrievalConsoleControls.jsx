@@ -2,15 +2,83 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import RetrievalModeToggle from './RetrievalModeToggle';
 import RetrievalSearchBar from './RetrievalSearchBar';
-import RetrievalFilterBar from './RetrievalFilterBar';
-import ActiveFilterChips from './ActiveFilterChips';
 import FilterCombobox from './FilterCombobox';
 import * as S from './Retrieval.styles';
 
 const Surface = styled.div`
   width: 100%;
   display: grid;
-  gap: 0.56rem;
+  gap: 0.42rem;
+
+  @media (min-width: 900px) {
+    grid-template-columns: minmax(150px, auto) minmax(0, 1fr);
+    align-items: center;
+
+    > :nth-child(1) {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    > :nth-child(2) {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    > :nth-child(n + 3) {
+      grid-column: 1 / -1;
+    }
+  }
+`;
+
+const ScopePlaque = styled.div`
+  min-height: 38px;
+  display: inline-grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.52rem;
+  border: 1px solid rgba(167, 182, 255, 0.38);
+  border-left: 5px solid rgba(167, 182, 255, 0.82);
+  border-radius: 2px 7px 2px 2px;
+  background:
+    linear-gradient(90deg, rgba(167, 182, 255, 0.18), transparent 68%),
+    rgba(7, 13, 21, 0.92);
+  padding: 0.28rem 0.62rem 0.28rem 0.52rem;
+  min-width: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  @media (max-width: 700px) {
+    min-height: 44px;
+  }
+`;
+
+const ScopeCode = styled.span`
+  color: #a7b6ff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.64rem;
+  font-weight: 860;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+`;
+
+const ScopeIdentity = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  color: #edf0ff;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  &::after {
+    content: ' · VIRTUAL BOX';
+    color: rgba(205, 214, 255, 0.5);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+  }
 `;
 
 export default function RetrievalConsoleControls({
@@ -21,24 +89,6 @@ export default function RetrievalConsoleControls({
   searchLabel,
   searchPlaceholder,
   searchHint,
-  showRefine = false,
-  onToggleRefine,
-  chips = [],
-  sortOptions = [],
-  selectedSort = '',
-  categoryOptions = [],
-  tagOptions = [],
-  locationOptions = [],
-  ownerOptions = [],
-  keepPriorityOptions = [],
-  onSortChange,
-  onCategoryChange,
-  onTagChange,
-  onLocationChange,
-  onOwnerChange,
-  onKeepPriorityChange,
-  onRemoveChip,
-  onClearAllChips,
   boxGroupOptions = [],
   selectedBoxGroup = '',
   boxLocationOptions = [],
@@ -47,17 +97,23 @@ export default function RetrievalConsoleControls({
   onBoxLocationChange,
   onClearBoxGroup,
   onClearBoxLocation,
-  onToggleResults,
-  resultsVisible = false,
+  scope = null,
 }) {
-  const safeChips = Array.isArray(chips) ? chips : [];
   const isBoxMode = mode === 'boxes';
+  const hasTagScope = scope?.kind === 'tag' && Boolean(scope?.key);
   const [showAdvancedBoxFilters, setShowAdvancedBoxFilters] = useState(false);
   const advancedBoxFiltersOpen = showAdvancedBoxFilters || Boolean(selectedBoxGroup);
 
   return (
     <Surface>
-      <RetrievalModeToggle mode={mode} onChange={onModeChange} />
+      {hasTagScope ? (
+        <ScopePlaque aria-label={`Tag ${scope.label}, virtual box`}>
+          <ScopeCode>Tag //</ScopeCode>
+          <ScopeIdentity>{scope.label}</ScopeIdentity>
+        </ScopePlaque>
+      ) : (
+        <RetrievalModeToggle mode={mode} onChange={onModeChange} />
+      )}
 
       <RetrievalSearchBar
         id="retrieval-console-search"
@@ -132,59 +188,7 @@ export default function RetrievalConsoleControls({
             </S.RefinePanel>
           ) : null}
         </>
-      ) : (
-        <>
-          <S.RefineHeaderRow>
-            {typeof onToggleResults === 'function' ? (
-              <S.RefineToggle
-                type="button"
-                onClick={onToggleResults}
-                aria-label={resultsVisible ? 'Hide item finder results' : 'Show item finder results'}
-                title={resultsVisible ? 'Hide item finder results' : 'Show item finder results'}
-              >
-                <span aria-hidden="true">{resultsVisible ? '⌃' : '⌕'}</span>
-              </S.RefineToggle>
-            ) : null}
-            <S.RefineToggle
-              type="button"
-              onClick={onToggleRefine}
-              aria-expanded={showRefine}
-              aria-controls="retrieval-console-refine-panel"
-            >
-              {showRefine ? 'Hide Refine' : 'Refine'}
-            </S.RefineToggle>
-            {safeChips.length ? (
-              <S.RefineCount>{safeChips.length} active filters</S.RefineCount>
-            ) : null}
-          </S.RefineHeaderRow>
-
-          {showRefine ? (
-            <S.RefinePanel id="retrieval-console-refine-panel">
-              <RetrievalFilterBar
-                sortOptions={sortOptions}
-                selectedSort={selectedSort}
-                categoryOptions={categoryOptions}
-                tagOptions={tagOptions}
-                locationOptions={locationOptions}
-                ownerOptions={ownerOptions}
-                keepPriorityOptions={keepPriorityOptions}
-                onSortChange={onSortChange}
-                onCategoryChange={onCategoryChange}
-                onTagChange={onTagChange}
-                onLocationChange={onLocationChange}
-                onOwnerChange={onOwnerChange}
-                onKeepPriorityChange={onKeepPriorityChange}
-              />
-
-              <ActiveFilterChips
-                chips={safeChips}
-                onRemove={onRemoveChip}
-                onClearAll={onClearAllChips}
-              />
-            </S.RefinePanel>
-          ) : null}
-        </>
-      )}
+      ) : null}
     </Surface>
   );
 }

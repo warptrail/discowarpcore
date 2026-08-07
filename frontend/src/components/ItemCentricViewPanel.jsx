@@ -71,7 +71,7 @@ export default function ItemCentricViewPanel({
           </Fact>
           <Fact>
             <FactLabel>Status:</FactLabel>
-            <FactValue>{orphaned ? 'Orphaned' : 'Assigned'}</FactValue>
+            <FactValue>{orphaned ? 'Items Adrift' : 'Assigned'}</FactValue>
           </Fact>
           <Fact>
             <FactLabel>Category:</FactLabel>

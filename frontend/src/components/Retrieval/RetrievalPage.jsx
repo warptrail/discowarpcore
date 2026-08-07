@@ -1,5 +1,9 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate, useNavigationType } from 'react-router-dom';
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+} from 'react-router-dom';
 import {
   DEFAULT_RETRIEVAL_LIMIT,
   fetchRetrievalItemsPage,
@@ -10,6 +14,8 @@ import * as S from './Retrieval.styles';
 import RetrievalResultsList from './RetrievalResultsList';
 import RetrievalImageLightbox from './RetrievalImageLightbox';
 import RetrievalBoxCentricView from './RetrievalBoxCentricView';
+import RetrievalExplorer from './RetrievalExplorer';
+import useRetrievalItemDetails from './useRetrievalItemDetails';
 import { ToastContext } from '../Toast';
 import {
   RETRIEVAL_FINDER_CLOSE_EVENT,
@@ -18,6 +24,7 @@ import {
 } from '../../constants/inventoryFinderEvents';
 import {
   buildActiveFilterChips,
+  normalizeRetrievalFacetKey,
   normalizeRetrievalFilterOptions,
   normalizeRetrievalItemsPage,
   normalizeRetrievalSortOptions,
@@ -45,6 +52,8 @@ const EMPTY_FILTER_OPTIONS = {
 };
 
 const RETRIEVAL_STATE_STORAGE_PREFIX = 'retrieval:state:';
+const RETRIEVAL_HISTORY_STATE_KEY = '__discoWarpRetrievalState';
+const retrievalStateByNavigationEntry = new Map();
 const SCROLL_RESTORE_MAX_FRAMES = 240;
 const DEFAULT_ITEM_SORT = 'location';
 const DEFAULT_SORT_OPTIONS = [
@@ -268,10 +277,26 @@ function sameSortOptions(a, b) {
   });
 }
 
-function readPersistedRetrievalState({ key, navigationType }) {
+function getRetrievalNavigationEntryKey({ key, pathname }) {
+  return `${String(key || 'default')}:${String(pathname || '/retrieval')}`;
+}
+
+function readPersistedRetrievalState({ key, pathname }) {
   if (typeof window === 'undefined') return null;
+
+  const memorySnapshot = retrievalStateByNavigationEntry.get(
+    getRetrievalNavigationEntryKey({ key, pathname }),
+  );
+  if (memorySnapshot && typeof memorySnapshot === 'object') {
+    return memorySnapshot;
+  }
+
+  const historySnapshot = window.history.state?.[RETRIEVAL_HISTORY_STATE_KEY];
+  if (historySnapshot && typeof historySnapshot === 'object') {
+    return historySnapshot;
+  }
+
   if (!key || key === 'default') return null;
-  if (navigationType !== 'POP') return null;
 
   try {
     const raw = window.sessionStorage.getItem(`${RETRIEVAL_STATE_STORAGE_PREFIX}${key}`);
@@ -285,9 +310,34 @@ function readPersistedRetrievalState({ key, navigationType }) {
   }
 }
 
-function writePersistedRetrievalState({ key, snapshot }) {
+function writeCurrentHistoryRetrievalState(snapshot) {
+  if (typeof window === 'undefined' || !snapshot) return;
+
+  try {
+    const currentState =
+      window.history.state && typeof window.history.state === 'object'
+        ? window.history.state
+        : {};
+    window.history.replaceState(
+      {
+        ...currentState,
+        [RETRIEVAL_HISTORY_STATE_KEY]: snapshot,
+      },
+      '',
+    );
+  } catch {
+    // best-effort persistence only
+  }
+}
+
+function writePersistedRetrievalState({ key, pathname, snapshot }) {
   if (typeof window === 'undefined') return;
   if (!key || !snapshot) return;
+
+  retrievalStateByNavigationEntry.set(
+    getRetrievalNavigationEntryKey({ key, pathname }),
+    snapshot,
+  );
 
   try {
     window.sessionStorage.setItem(
@@ -310,12 +360,14 @@ export default function RetrievalPage({
   const setActiveRetrievalItem = toastCtx?.setActiveRetrievalItem;
   const navigate = useNavigate();
   const location = useLocation();
-  const navigationType = useNavigationType();
+  const { tag: routeTagParam } = useParams();
+  const routeTagKey = normalizeRetrievalFacetKey(routeTagParam);
+  const hasTagScope = Boolean(routeTagKey);
   const initialSnapshotRef = useRef();
   if (initialSnapshotRef.current === undefined) {
     initialSnapshotRef.current = readPersistedRetrievalState({
       key: location.key,
-      navigationType,
+      pathname: location.pathname,
     });
   }
   const initialSnapshot = initialSnapshotRef.current || null;
@@ -325,7 +377,7 @@ export default function RetrievalPage({
       : null;
 
   const [retrievalMode, setRetrievalMode] = useState(() =>
-    sanitizeMode(initialSnapshot?.mode),
+    hasTagScope ? 'items' : sanitizeMode(initialSnapshot?.mode),
   );
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
@@ -338,15 +390,15 @@ export default function RetrievalPage({
   const [searchValue, setSearchValue] = useState(() =>
     String(initialItemState?.searchValue || ''),
   );
-  const [activeFilters, setActiveFilters] = useState(() =>
-    sanitizeFilters(initialItemState?.activeFilters),
-  );
+  const [activeFilters, setActiveFilters] = useState(() => {
+    const restoredFilters = sanitizeFilters(initialItemState?.activeFilters);
+    return hasTagScope ? { ...restoredFilters, tags: [] } : restoredFilters;
+  });
   const [filterOptions, setFilterOptions] = useState(EMPTY_FILTER_OPTIONS);
   const [sortOptions, setSortOptions] = useState(DEFAULT_SORT_OPTIONS);
   const [selectedSort, setSelectedSort] = useState(() =>
     sanitizeSort(initialItemState?.selectedSort, DEFAULT_SORT_OPTIONS),
   );
-  const [showRefine, setShowRefine] = useState(false);
   const finderVisibilityIsControlled = typeof finderOpen === 'boolean';
   const [finderMinimized, setFinderMinimized] = useState(
     () => (finderVisibilityIsControlled ? !finderOpen : false),
@@ -354,12 +406,18 @@ export default function RetrievalPage({
   const [activeExpandedId, setActiveExpandedId] = useState(
     () => sanitizeExpandedIds(initialItemState?.expandedIds)[0] || '',
   );
+  const [activeSectionKey, setActiveSectionKey] = useState('overview');
   const [boxModeState, setBoxModeState] = useState(() =>
     sanitizeBoxModeState(initialSnapshot?.boxes),
   );
   const [boxAnalytics, setBoxAnalytics] = useState(null);
   const [lightboxImage, setLightboxImage] = useState(null);
-  const isItemsMode = retrievalMode === 'items';
+  const isItemsMode = hasTagScope || retrievalMode === 'items';
+  const {
+    detailResource,
+    merge: mergeItemDetails,
+    remove: removeItemDetails,
+  } = useRetrievalItemDetails(activeExpandedId);
 
   const debouncedSearchValue = useDebouncedValue(searchValue, 220);
   const loadMoreControllerRef = useRef(null);
@@ -408,14 +466,24 @@ export default function RetrievalPage({
     () => ({
       q: debouncedSearchValue,
       categories: activeFilters.categories,
-      tags: activeFilters.tags,
+      tags: hasTagScope ? [routeTagKey] : activeFilters.tags,
       locations: activeFilters.locations,
       owners: activeFilters.owners,
       keepPriorities: activeFilters.keepPriorities,
       sort: selectedSort,
     }),
-    [debouncedSearchValue, activeFilters, selectedSort],
+    [debouncedSearchValue, activeFilters, hasTagScope, routeTagKey, selectedSort],
   );
+
+  const tagScope = useMemo(() => {
+    if (!hasTagScope) return null;
+    const canonicalLabel = filterOptions.tagLabelByKey.get(routeTagKey);
+    return {
+      kind: 'tag',
+      key: routeTagKey,
+      label: canonicalLabel || String(routeTagParam || routeTagKey).trim() || routeTagKey,
+    };
+  }, [filterOptions.tagLabelByKey, hasTagScope, routeTagKey, routeTagParam]);
 
   const queryKey = useMemo(() => JSON.stringify(queryState), [queryState]);
 
@@ -428,7 +496,7 @@ export default function RetrievalPage({
   }, [queryState]);
 
   useEffect(() => {
-    latestSnapshotRef.current = {
+    const snapshot = {
       mode: sanitizeMode(retrievalMode),
       items: {
         searchValue: String(searchValue || ''),
@@ -440,10 +508,26 @@ export default function RetrievalPage({
       scrollY: typeof window === 'undefined' ? 0 : window.scrollY,
       savedAt: Date.now(),
     };
-  }, [activeExpandedId, activeFilters, boxModeState, retrievalMode, searchValue, selectedSort]);
+    latestSnapshotRef.current = snapshot;
+    writePersistedRetrievalState({
+      key: location.key,
+      pathname: location.pathname,
+      snapshot,
+    });
+    writeCurrentHistoryRetrievalState(snapshot);
+  }, [
+    activeExpandedId,
+    activeFilters,
+    boxModeState,
+    location.key,
+    location.pathname,
+    retrievalMode,
+    searchValue,
+    selectedSort,
+  ]);
 
   useEffect(() => {
-    const persist = () => {
+    const persist = ({ includeHistory = false } = {}) => {
       const baseSnapshot =
         latestSnapshotRef.current && typeof latestSnapshotRef.current === 'object'
           ? latestSnapshotRef.current
@@ -457,20 +541,34 @@ export default function RetrievalPage({
 
       writePersistedRetrievalState({
         key: location.key,
+        pathname: location.pathname,
         snapshot,
       });
+      if (includeHistory) writeCurrentHistoryRetrievalState(snapshot);
     };
 
     const onPageHide = () => {
-      persist();
+      persist({ includeHistory: true });
+    };
+
+    let scrollFrame = 0;
+    const onScroll = () => {
+      if (scrollFrame) return;
+      scrollFrame = window.requestAnimationFrame(() => {
+        scrollFrame = 0;
+        persist({ includeHistory: true });
+      });
     };
 
     window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('scroll', onScroll);
+      if (scrollFrame) window.cancelAnimationFrame(scrollFrame);
       persist();
     };
-  }, [location.key]);
+  }, [location.key, location.pathname]);
 
   useEffect(() => {
     const targetScrollY = pendingScrollRestoreRef.current;
@@ -622,6 +720,21 @@ export default function RetrievalPage({
     });
   }, []);
 
+  const toggleFilter = useCallback((type, rawKey) => {
+    const key = toKey(rawKey);
+    if (!type || !key) return;
+
+    setActiveFilters((current) => {
+      const currentValues = Array.isArray(current[type]) ? current[type] : [];
+      return {
+        ...current,
+        [type]: currentValues.includes(key)
+          ? currentValues.filter((value) => value !== key)
+          : [...currentValues, key],
+      };
+    });
+  }, []);
+
   const removeFilter = useCallback((type, rawKey) => {
     const key = toKey(rawKey);
     if (!type || !key) return;
@@ -645,7 +758,6 @@ export default function RetrievalPage({
   const handleCategoryFilterChange = useCallback(
     (value) => {
       addFilter('categories', value);
-      setShowRefine(false);
     },
     [addFilter],
   );
@@ -653,7 +765,6 @@ export default function RetrievalPage({
   const handleTagFilterChange = useCallback(
     (value) => {
       addFilter('tags', value);
-      setShowRefine(false);
     },
     [addFilter],
   );
@@ -661,7 +772,6 @@ export default function RetrievalPage({
   const handleLocationFilterChange = useCallback(
     (value) => {
       addFilter('locations', value);
-      setShowRefine(false);
     },
     [addFilter],
   );
@@ -669,7 +779,6 @@ export default function RetrievalPage({
   const handleOwnerFilterChange = useCallback(
     (value) => {
       addFilter('owners', value);
-      setShowRefine(false);
     },
     [addFilter],
   );
@@ -677,20 +786,17 @@ export default function RetrievalPage({
   const handleKeepPriorityFilterChange = useCallback(
     (value) => {
       addFilter('keepPriorities', value);
-      setShowRefine(false);
     },
     [addFilter],
   );
 
-  const handleToggleRefine = useCallback(() => {
-    setShowRefine((current) => !current);
-  }, []);
 
   const toggleExpanded = useCallback((itemId) => {
     const resolvedId = String(itemId || '').trim();
     if (!resolvedId) return;
+    if (activeExpandedId !== resolvedId) setActiveSectionKey('overview');
     setActiveExpandedId((current) => (current === resolvedId ? '' : resolvedId));
-  }, []);
+  }, [activeExpandedId]);
 
   const handleConsoleSearchChange = useCallback((nextValue) => {
     setSearchValue(String(nextValue || ''));
@@ -713,11 +819,17 @@ export default function RetrievalPage({
       setActiveRetrievalItem({
         mode: 'controls',
         retrievalMode,
+        scope: tagScope,
         onModeChange: setRetrievalMode,
         searchValue: String(searchValue || ''),
         onSearchChange: handleConsoleSearchChange,
-        showRefine,
-        onToggleRefine: handleToggleRefine,
+        searchLabel: tagScope ? 'Search This Tag' : undefined,
+        searchPlaceholder: tagScope
+          ? `Search within ${tagScope.label}`
+          : undefined,
+        searchHint: tagScope
+          ? `Search only items tagged ${tagScope.label}.`
+          : undefined,
         chips: activeChips,
         sortOptions,
         selectedSort,
@@ -749,10 +861,16 @@ export default function RetrievalPage({
       boxName: String(activeItem?.boxName || '').trim(),
       boxHref: String(activeItem?.boxHref || '').trim(),
       locationLabel: String(activeItem?.locationLabel || '').trim(),
-      onCollapse: () => setActiveExpandedId((current) => (current === activeItem.id ? '' : current)),
+      previewImageUrl: String(activeItem?.previewImageUrl || activeItem?.imageUrl || '').trim(),
+      sectionKey: activeSectionKey,
+      onCollapse: () => {
+        setActiveSectionKey('overview');
+        setActiveExpandedId((current) => (current === activeItem.id ? '' : current));
+      },
     });
   }, [
     activeExpandedId,
+    activeSectionKey,
     activeChips,
     clearAllFilters,
     filterOptions.categories,
@@ -767,7 +885,6 @@ export default function RetrievalPage({
     handleLocationFilterChange,
     handleOwnerFilterChange,
     handleTagFilterChange,
-    handleToggleRefine,
     isItemsMode,
     items,
     removeFilter,
@@ -775,8 +892,8 @@ export default function RetrievalPage({
     searchValue,
     selectedSort,
     setActiveRetrievalItem,
-    showRefine,
     sortOptions,
+    tagScope,
     onToggleResults,
     resultsVisible,
   ]);
@@ -842,6 +959,7 @@ export default function RetrievalPage({
                   setItems((current) =>
                     current.filter((entry) => entry.id !== itemId),
                   );
+                  removeItemDetails(itemId);
                   setActiveExpandedId((current) => (current === itemId ? '' : current));
                   setTotal((current) => Math.max(0, current - 1));
 
@@ -864,6 +982,10 @@ export default function RetrievalPage({
                                 ...(restored && typeof restored === 'object' ? restored : {}),
                               },
                             ])[0] || mergedUpdated;
+                            mergeItemDetails(itemId, {
+                              ...(restored && typeof restored === 'object' ? restored : {}),
+                              item_status: 'active',
+                            });
 
                             const shouldShow = itemMatchesQuery(
                               restoredItem,
@@ -980,6 +1102,10 @@ export default function RetrievalPage({
 
         const json = await response.json().catch(() => ({}));
         const updated = json?.data ?? json;
+        mergeItemDetails(itemId, {
+          ...(updated && typeof updated === 'object' ? updated : {}),
+          [targetField]: [...currentHistory, nowIso],
+        });
         const normalizedUpdated = normalizeRetrievalItemsPage([
           {
             ...currentItem,
@@ -1031,6 +1157,12 @@ export default function RetrievalPage({
 
                   const undoJson = await undoResponse.json().catch(() => ({}));
                   const undoUpdated = undoJson?.data ?? undoJson;
+                  mergeItemDetails(itemId, {
+                    ...(undoUpdated && typeof undoUpdated === 'object'
+                      ? undoUpdated
+                      : {}),
+                    [targetField]: currentHistory,
+                  });
                   const normalizedUndo = normalizeRetrievalItemsPage([
                     {
                       ...currentItem,
@@ -1089,7 +1221,15 @@ export default function RetrievalPage({
         throw err;
       }
     },
-    [hideToast, items, navigate, parseApiError, showToast],
+    [
+      hideToast,
+      items,
+      mergeItemDetails,
+      navigate,
+      parseApiError,
+      removeItemDetails,
+      showToast,
+    ],
   );
 
   const handleLoadMore = useCallback(async () => {
@@ -1193,15 +1333,28 @@ export default function RetrievalPage({
 
       <S.ResultsPanel>
         <S.ResultsHeader>
-          <S.ResultsCount>
-            {items.length} shown / {total} matches
-          </S.ResultsCount>
+          <RetrievalExplorer
+            countLabel={`${items.length} shown / ${total} ${tagScope ? 'tagged items' : 'matches'}`}
+            activeFilters={activeFilters}
+            filterOptions={filterOptions}
+            activeChips={activeChips}
+            tagScope={tagScope}
+            sortOptions={sortOptions}
+            selectedSort={selectedSort}
+            onSortChange={setSelectedSort}
+            onToggleFilter={toggleFilter}
+            onRemoveChip={removeFilter}
+            onClearAll={clearAllFilters}
+          />
         </S.ResultsHeader>
 
         <RetrievalResultsList
           items={items}
           activeExpandedId={activeExpandedId}
+          activeDetailResource={detailResource}
+          activeSectionKey={activeSectionKey}
           onToggleRow={toggleExpanded}
+          onSectionChange={setActiveSectionKey}
           onPreviewImage={handlePreviewImage}
           onLifecycleAction={handleLifecycleAction}
           loading={loading}

@@ -108,7 +108,7 @@ export default function ItemLifecycleActionsBar({
             <Button onClick={() => setShowMovePanel((prev) => !prev)}>
               Move to Another Box
             </Button>
-            <Button onClick={handleOrphan}>Orphan</Button>
+            <Button onClick={handleOrphan}>Eject</Button>
           </ButtonRow>
 
           {showMovePanel && (

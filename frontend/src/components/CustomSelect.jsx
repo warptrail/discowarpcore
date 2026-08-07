@@ -8,6 +8,7 @@ export default function CustomSelect({
   ariaLabel,
   disabled = false,
   tone = '#7FD7FF',
+  variant = 'default',
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -83,10 +84,11 @@ export default function CustomSelect({
   };
 
   return (
-    <S.SelectWrap ref={wrapperRef} $tone={tone} $disabled={disabled} $open={isOpen}>
+    <S.SelectWrap ref={wrapperRef} $tone={tone} $disabled={disabled} $open={isOpen} $variant={variant}>
       <S.SelectButton
         type="button"
         $tone={tone}
+        $variant={variant}
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
@@ -100,7 +102,7 @@ export default function CustomSelect({
       </S.SelectButton>
 
       {isOpen ? (
-        <S.SelectMenu id={listboxId} role="listbox" aria-label={ariaLabel}>
+        <S.SelectMenu id={listboxId} role="listbox" aria-label={ariaLabel} $variant={variant}>
           {safeOptions.map((option, index) => (
             <S.SelectOption
               key={String(option.value)}
@@ -109,6 +111,7 @@ export default function CustomSelect({
               aria-selected={index === selectedIndex}
               $active={index === highlightedIndex}
               $selected={index === selectedIndex}
+              $variant={variant}
               onMouseEnter={() => setHighlightedIndex(index)}
               onClick={() => selectOption(option)}
             >

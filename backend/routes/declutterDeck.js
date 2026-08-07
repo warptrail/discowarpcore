@@ -2,6 +2,7 @@ const express = require('express');
 const { validateObjectIdParam } = require('../utils/validateObjectIdParam');
 const {
   getDeclutterDeckApi,
+  getDeclutterHistoryApi,
   postDeclutterCandidateApi,
   deleteDeclutterCandidateByItemApi,
   postDeclutterCandidateVoteApi,
@@ -18,6 +19,7 @@ const {
 const router = express.Router();
 
 router.get('/', getDeclutterDeckApi);
+router.get('/history', getDeclutterHistoryApi);
 router.delete('/votes/mine', postDeclutterResetAllVotesApi);
 router.post('/candidates', postDeclutterCandidateApi);
 router.delete('/candidates/by-item/:itemId', validateObjectIdParam('itemId'), deleteDeclutterCandidateByItemApi);

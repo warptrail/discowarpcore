@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -41,6 +42,7 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
   const closeTimerRef = useRef(0);
   const triggerRef = useRef(null);
   const previousSelectedIdRef = useRef('');
+  const closeViewportRef = useRef(null);
 
   const previewBoxes = useMemo(
     () =>
@@ -94,6 +96,12 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
     setTransitionDirection(0);
 
     if (location.state?.[PEEK_HISTORY_STATE]) {
+      closeViewportRef.current = {
+        left: window.scrollX,
+        top: window.scrollY,
+        scrollRestoration: window.history.scrollRestoration,
+      };
+      window.history.scrollRestoration = 'manual';
       navigate(-1);
       return;
     }
@@ -102,6 +110,29 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
     delete nextState[PEEK_HISTORY_STATE];
     writePeekParam('', { replace: true, state: nextState });
   }, [location.state, navigate, writePeekParam]);
+
+  useLayoutEffect(() => {
+    const viewport = closeViewportRef.current;
+    if (selectedBoxId || !viewport || typeof window === 'undefined') return;
+
+    window.scrollTo({
+      left: viewport.left,
+      top: viewport.top,
+      behavior: 'auto',
+    });
+
+    const frameId = window.requestAnimationFrame(() => {
+      window.scrollTo({
+        left: viewport.left,
+        top: viewport.top,
+        behavior: 'auto',
+      });
+      window.history.scrollRestoration = viewport.scrollRestoration;
+      closeViewportRef.current = null;
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [selectedBoxId]);
 
   const close = useCallback(() => {
     if (!selectedBox || closing) return;
@@ -126,7 +157,7 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
   }, [closing, commitClose, selectedBox]);
 
   const openBox = useCallback(
-    (box, triggerElement = null) => {
+    (box, triggerElement = null, { forceOpen = false } = {}) => {
       const nextId = normalizeBoxId(box?.box_id);
       if (!nextId) return;
 
@@ -134,8 +165,15 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
         triggerRef.current = triggerElement;
       }
 
-      if (nextId === selectedBoxId && !expanded) {
+      if (nextId === selectedBoxId && !expanded && !forceOpen) {
         close();
+        return;
+      }
+
+      if (nextId === selectedBoxId && forceOpen) {
+        window.clearTimeout(closeTimerRef.current);
+        setClosing(false);
+        setTransitionDirection(0);
         return;
       }
 
@@ -167,7 +205,13 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
   );
 
   useEffect(
-    () => () => window.clearTimeout(closeTimerRef.current),
+    () => () => {
+      window.clearTimeout(closeTimerRef.current);
+      if (closeViewportRef.current) {
+        window.history.scrollRestoration =
+          closeViewportRef.current.scrollRestoration;
+      }
+    },
     [],
   );
 
@@ -323,6 +367,7 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
 
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
+        if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
         event.preventDefault();
         close();
       }

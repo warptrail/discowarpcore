@@ -23,6 +23,7 @@ import {
   removeDeclutterCandidateByItem,
 } from '../api/declutterDeck';
 import ImageProcessingToastContent from './Processing/ImageProcessingToastContent';
+import ObsidianPrismSheet from './Sheets/ObsidianPrismSheet';
 import {
   getImageProcessingToastSignature,
   isImageProcessingInFlight,
@@ -96,6 +97,7 @@ export default function ItemRow({
   const [isInDeclutterDeck, setIsInDeclutterDeck] = useState(
     item?.declutterReadiness === 'in_deck'
   );
+  const isMarkedForDestruction = item?.declutterExitState === 'marked_for_destruction';
   const [imageRefreshToken, setImageRefreshToken] = useState(0);
   const [processedPreviewUrl, setProcessedPreviewUrl] = useState('');
   const lastImageLifecycleStatusRef = useRef('');
@@ -111,6 +113,14 @@ export default function ItemRow({
       imagePath: localImagePath,
     }),
     [item, localImage, localImagePath]
+  );
+  const editSheetContext = useMemo(
+    () => [
+      ownership.boxId ? `BOX ${ownership.boxId}` : 'NO BOX',
+      ownership.boxLabel,
+      ownership.effectiveLocation ? `LOCATION ${ownership.effectiveLocation}` : '',
+    ].filter(Boolean).join('  ·  '),
+    [ownership.boxId, ownership.boxLabel, ownership.effectiveLocation],
   );
 
   const rowIsOpen = isOpen;
@@ -642,6 +652,11 @@ export default function ItemRow({
                 {rowIsOpen && isInDeclutterDeck ? (
                   <S.RowDeckState>In Declutter Deck</S.RowDeckState>
                 ) : null}
+                {isMarkedForDestruction ? (
+                  <S.RowDestructionState>
+                    Marked for destruction · still in this box
+                  </S.RowDestructionState>
+                ) : null}
               </S.TitleGroup>
             </S.RowMain>
 
@@ -739,41 +754,6 @@ export default function ItemRow({
                   onBoxSelected={handleMoveToSelectedBox}
                 />
               </S.MoveWorkspace>
-            ) : expandedMode === 'edit' ? (
-              <S.EditWorkspace>
-                <S.MoveWorkspaceHeader>
-                  <S.MoveWorkspaceTitle>
-                    Editing {name || '(Unnamed Item)'}
-                  </S.MoveWorkspaceTitle>
-                  <S.MoveWorkspaceClose
-                    type="button"
-                    onClick={() => setExpandedMode('overview')}
-                  >
-                    View
-                  </S.MoveWorkspaceClose>
-                </S.MoveWorkspaceHeader>
-                <EditItemDetailsForm
-                  item={itemForView}
-                  triggerFlash={triggerFlash}
-                  onItemImageUpdated={handleInlineImageUpdated}
-                  onProcessImage={handleProcessItemImage}
-                  processImageStatus={processImageStatus}
-                  processImageBusy={processImageBusy}
-                  processImageError={processImageError}
-                  processImageProgressLabel={processImageProgressLabel}
-                  processImageProgressPercent={processImageProgressPercent}
-                  persistedRenderTokens={processImageState?.renderTokens || null}
-                  activeVariant={activeVariant}
-                  hasProcessedVariant={hasProcessedVariant}
-                  onSwitchActiveVariant={handleSwitchItemVariant}
-                  switchVariantBusy={isSwitchingVariant}
-                  switchVariantError={variantSwitchError}
-                  processedPreviewUrl={processedPreviewUrl}
-                  imageRefreshToken={imageRefreshToken}
-                  onCancel={() => setExpandedMode('overview')}
-                  onSaved={handleInlineEditSaved}
-                />
-              </S.EditWorkspace>
             ) : (
               <ItemDetails
                 itemId={_id}
@@ -795,6 +775,38 @@ export default function ItemRow({
           </S.DetailsCard>
         </div>
       </S.Collapse>
+
+      {rowIsOpen && expandedMode === 'edit' ? (
+        <ObsidianPrismSheet
+          eyebrow="Edit item"
+          title={name || '(Unnamed Item)'}
+          context={editSheetContext}
+          onBack={() => setExpandedMode('overview')}
+          onClose={() => setExpandedMode('overview')}
+        >
+          <EditItemDetailsForm
+            item={itemForView}
+            triggerFlash={triggerFlash}
+            onItemImageUpdated={handleInlineImageUpdated}
+            onProcessImage={handleProcessItemImage}
+            processImageStatus={processImageStatus}
+            processImageBusy={processImageBusy}
+            processImageError={processImageError}
+            processImageProgressLabel={processImageProgressLabel}
+            processImageProgressPercent={processImageProgressPercent}
+            persistedRenderTokens={processImageState?.renderTokens || null}
+            activeVariant={activeVariant}
+            hasProcessedVariant={hasProcessedVariant}
+            onSwitchActiveVariant={handleSwitchItemVariant}
+            switchVariantBusy={isSwitchingVariant}
+            switchVariantError={variantSwitchError}
+            processedPreviewUrl={processedPreviewUrl}
+            imageRefreshToken={imageRefreshToken}
+            onCancel={() => setExpandedMode('overview')}
+            onSaved={handleInlineEditSaved}
+          />
+        </ObsidianPrismSheet>
+      ) : null}
     </S.Wrapper>
   );
 }

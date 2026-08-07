@@ -11,6 +11,8 @@ export const OPERATIONS_QUICK_PEEK_SEARCH_TOGGLE_EVENT =
   'disco-warp-core:operations-quick-peek-search-toggle';
 export const OPERATIONS_QUICK_PEEK_SEARCH_STATE_EVENT =
   'disco-warp-core:operations-quick-peek-search-state';
+export const OPERATIONS_QUICK_PEEK_CLOSE_EVENT =
+  'disco-warp-core:operations-quick-peek-close';
 
 export const BOX_FINDER_STATE_EVENT =
   'disco-warp-core:box-finder-state';

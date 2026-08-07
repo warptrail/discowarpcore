@@ -250,6 +250,7 @@ function BoxCreate({
   const [tags, setTags] = useState([]);
   const [declutterPurpose, setDeclutterPurpose] = useState('standard');
   const [declutterIsDefault, setDeclutterIsDefault] = useState(false);
+  const [isGiftBox, setIsGiftBox] = useState(false);
   const [locationCreateBusy, setLocationCreateBusy] = useState(false);
   const [locationError, setLocationError] = useState('');
   const [error, setError] = useState('');
@@ -323,6 +324,7 @@ function BoxCreate({
         tags: normalizeTags(tags),
         declutterPurpose,
         declutterIsDefault,
+        isGiftBox,
       });
       await Promise.resolve(onCreated?.(created));
       if (autoNavigate) {
@@ -467,6 +469,8 @@ function BoxCreate({
           setPurpose={setDeclutterPurpose}
           isDefault={declutterIsDefault}
           setIsDefault={setDeclutterIsDefault}
+          isGiftBox={isGiftBox}
+          setIsGiftBox={setIsGiftBox}
         />
 
         <ButtonRow>

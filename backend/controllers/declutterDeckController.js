@@ -1,5 +1,6 @@
 const {
   getDeclutterDeck,
+  getDeclutterHistory,
   nominateDeclutterCandidate,
   removeDeclutterCandidateByItem,
   voteOnDeclutterCandidate,
@@ -69,6 +70,24 @@ async function getDeclutterDeckApi(req, res) {
     return res.status(200).json({ ok: true, ...deck });
   } catch (error) {
     return sendError(req, res, error, 'Failed to load the declutter deck.', 'deck.load', startedAt);
+  }
+}
+
+async function getDeclutterHistoryApi(req, res) {
+  const startedAt = process.hrtime.bigint();
+  try {
+    const history = await getDeclutterHistory(req.query);
+    logSuccess(req, 'history.load', startedAt, {
+      filter: history.filter,
+      route: history.route || undefined,
+      count: history.total,
+      page: history.page,
+      pageSize: history.limit,
+      totalPages: history.totalPages,
+    });
+    return res.status(200).json({ ok: true, ...history });
+  } catch (error) {
+    return sendError(req, res, error, 'Failed to load declutter history.', 'history.load', startedAt);
   }
 }
 
@@ -244,6 +263,7 @@ async function getDeclutterActionResourcesApi(req, res) {
 
 module.exports = {
   getDeclutterDeckApi,
+  getDeclutterHistoryApi,
   postDeclutterCandidateApi,
   deleteDeclutterCandidateByItemApi,
   postDeclutterCandidateVoteApi,

@@ -29,6 +29,17 @@ const settle = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `;
 
+const notePaperRise = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(42px) rotate(-0.8deg) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(-0.25deg) scale(1);
+  }
+`;
+
 const riseAndDock = keyframes`
   0% {
     opacity: 0.72;
@@ -68,6 +79,15 @@ const undockAndDescend = keyframes`
 `;
 
 export const Deck = styled.aside`
+  --quick-peek-expanded-height: min(
+    82dvh,
+    max(0px, calc(100dvh - var(--operations-quick-peek-top, 0px)))
+  );
+  --quick-peek-collapsed-height: min(54dvh, var(--quick-peek-expanded-height));
+  --quick-peek-collapsed-shift: max(
+    0px,
+    calc(var(--quick-peek-expanded-height) - var(--quick-peek-collapsed-height))
+  );
   position: fixed;
   right: 0;
   bottom: 0;
@@ -76,8 +96,8 @@ export const Deck = styled.aside`
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   width: 100%;
-  height: 82dvh;
-  min-height: 28rem;
+  height: var(--quick-peek-expanded-height);
+  min-height: 0;
   overflow: visible;
   color: ${COLORS.text};
   background:
@@ -91,7 +111,9 @@ export const Deck = styled.aside`
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
     0 -18px 50px rgba(0, 0, 0, 0.58),
     0 0 24px rgba(${COLORS.accentRgb}, 0.13);
-  transform: translateY(${({ $expanded }) => ($expanded ? '0' : '28dvh')});
+  transform: translateY(
+    ${({ $expanded }) => ($expanded ? '0' : 'var(--quick-peek-collapsed-shift)')}
+  );
   transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
   animation: ${({ $closing }) =>
     $closing
@@ -105,6 +127,9 @@ export const Deck = styled.aside`
   }
 
   @media (min-width: 768px) {
+    --quick-peek-expanded-height: auto;
+    --quick-peek-collapsed-height: auto;
+    --quick-peek-collapsed-shift: 0px;
     top: var(--operations-quick-peek-top, 8.6rem);
     right: 1rem;
     bottom: 1rem;
@@ -117,6 +142,14 @@ export const Deck = styled.aside`
     transform: none;
     animation: ${settle} 240ms cubic-bezier(0.22, 1, 0.36, 1);
     pointer-events: auto;
+  }
+
+  @media (min-width: 1100px) {
+    ${({ $itemFocused }) =>
+      $itemFocused &&
+      css`
+        width: min(720px, 58vw);
+      `}
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -213,7 +246,7 @@ export const QuickPeekSearchDock = styled.div`
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.045),
     0 0 14px rgba(${COLORS.accentRgb}, 0.16);
-  touch-action: manipulation;
+  touch-action: none;
   animation: ${settle} 180ms cubic-bezier(0.22, 1, 0.36, 1);
 
   &:focus-within {
@@ -286,6 +319,65 @@ export const CapNavigation = styled.div`
   min-height: 44px;
 `;
 
+export const CollapseEdgeButton = styled.button`
+  position: absolute;
+  z-index: 6;
+  bottom: -22px;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 6.5rem;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  color: ${({ $itemFocused }) => (
+    $itemFocused ? 'rgba(190, 151, 255, 0.8)' : 'rgba(238, 190, 91, 0.62)'
+  )};
+  background: transparent;
+  cursor: pointer;
+  transform: translateX(-50%);
+  transition: color 180ms ease;
+  touch-action: manipulation;
+
+  &:hover,
+  &:focus-visible {
+    color: ${({ $itemFocused }) => (
+      $itemFocused ? 'rgba(226, 205, 255, 0.98)' : 'rgba(255, 211, 116, 0.96)'
+    )};
+    outline: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+export const CollapseEdgeHandle = styled.span`
+  width: 3.4rem;
+  height: 3px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.82;
+  box-shadow: 0 0 7px rgba(238, 190, 91, 0.18);
+  transition:
+    width 180ms ease,
+    opacity 180ms ease,
+    box-shadow 180ms ease;
+
+  ${CollapseEdgeButton}:hover &,
+  ${CollapseEdgeButton}:focus-visible & {
+    width: 4.1rem;
+    opacity: 1;
+    box-shadow:
+      0 0 8px rgba(255, 211, 116, 0.62),
+      0 0 18px rgba(238, 190, 91, 0.34);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
 export const CapIconButton = styled.button`
   display: grid;
   place-items: center;
@@ -315,6 +407,13 @@ export const CapIconButton = styled.button`
   }
 `;
 
+export const CapIdentityStack = styled.div`
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  gap: 0.22rem;
+`;
+
 export const BoxIdentity = styled.div`
   min-width: 0;
   display: grid;
@@ -326,6 +425,7 @@ export const BoxIdentity = styled.div`
     transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
 
   @media (max-width: 767px) {
+    display: ${({ $expanded }) => ($expanded ? 'grid' : 'none')};
     visibility: ${({ $expanded }) => ($expanded ? 'visible' : 'hidden')};
     opacity: ${({ $expanded }) => ($expanded ? 1 : 0)};
     transform: translateY(${({ $expanded }) => ($expanded ? '0' : '-4px')});
@@ -334,6 +434,27 @@ export const BoxIdentity = styled.div`
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+  }
+`;
+
+export const CapDescription = styled.p`
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: rgba(230, 237, 243, 0.72);
+  font-size: 0.68rem;
+  font-weight: 650;
+  line-height: 1.2;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+  user-select: text;
+
+  @media (max-width: 767px) {
+    padding-inline: 0.25rem;
+    color: rgba(230, 237, 243, 0.76);
   }
 `;
 
@@ -400,57 +521,237 @@ export const PositionReadout = styled.span`
 export const DeckContent = styled.div`
   min-height: 0;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: ${({ $itemFocused, $photoFocused }) =>
+    $itemFocused || $photoFocused ? 'hidden' : 'auto'};
   overscroll-behavior: contain;
-  padding: 0.55rem 0.78rem 5.2rem;
+  padding: ${({ $itemFocused, $photoFocused, $expanded }) =>
+    $photoFocused
+      ? `0.45rem 0.6rem ${$expanded ? '4.65rem' : '4.25rem'}`
+      : $itemFocused
+      ? `0.45rem 0.72rem ${$expanded ? '4.65rem' : '4.25rem'}`
+      : `0.55rem 0.78rem ${$expanded ? '5.2rem' : 'calc(5.2rem + var(--quick-peek-collapsed-shift))'}`};
+  ${({ $itemFocused, $photoFocused, $expanded }) =>
+    ($itemFocused || $photoFocused) &&
+    css`
+      block-size: calc(
+        ${$expanded
+          ? 'var(--quick-peek-expanded-height)'
+          : 'var(--quick-peek-collapsed-height)'} - 3.15rem
+      );
+    `}
   animation: ${({ $direction }) =>
     $direction > 0
       ? css`${slideForward} 250ms cubic-bezier(0.22, 1, 0.36, 1)`
       : $direction < 0
         ? css`${slideBackward} 250ms cubic-bezier(0.22, 1, 0.36, 1)`
-        : css`${settle} 220ms cubic-bezier(0.22, 1, 0.36, 1)`};
+      : css`${settle} 220ms cubic-bezier(0.22, 1, 0.36, 1)`};
+
+  @media (min-width: 768px) {
+    block-size: auto;
+    height: 100%;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
   }
 `;
 
+export const BoxPhotoView = styled.section`
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+`;
+
+export const BoxPhotoStage = styled.div`
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(${COLORS.accentRgb}, 0.34);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(${COLORS.accentRgb}, 0.12), transparent 58%),
+    rgba(3, 8, 13, 0.78);
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.44);
+`;
+
+export const BoxPhotoBackdrop = styled.img`
+  position: absolute;
+  inset: -8%;
+  width: 116%;
+  height: 116%;
+  object-fit: cover;
+  opacity: 0.16;
+  filter: blur(22px) saturate(1.2);
+  transform: scale(1.04);
+  pointer-events: none;
+`;
+
+export const BoxPhotoImageButton = styled.button`
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0.45rem;
+  border: 0;
+  color: ${COLORS.text};
+  background: transparent;
+  cursor: zoom-in;
+
+  &:focus-visible {
+    outline: 2px solid ${COLORS.accent};
+    outline-offset: -3px;
+  }
+`;
+
+export const BoxPhotoImage = styled.img`
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.5));
+`;
+
+export const BoxPhotoExpandHint = styled.span`
+  position: absolute;
+  right: 0.55rem;
+  bottom: 0.55rem;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(${COLORS.accentRgb}, 0.48);
+  border-radius: 6px;
+  background: rgba(5, 10, 16, 0.66);
+  backdrop-filter: blur(10px);
+
+  svg {
+    width: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+  }
+`;
+
+export const BoxPhotoItemsButton = styled.button`
+  position: absolute;
+  z-index: 3;
+  top: 0.55rem;
+  left: 0.55rem;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid rgba(${COLORS.secondaryRgb}, 0.62);
+  border-radius: 6px;
+  color: ${COLORS.accent};
+  background: rgba(5, 10, 16, 0.72);
+  backdrop-filter: blur(12px) saturate(130%);
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(${COLORS.accentRgb}, 0.12);
+
+  svg {
+    width: 19px;
+    height: 19px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  &:hover,
+  &:focus-visible {
+    outline: none;
+    color: ${COLORS.text};
+    border-color: ${COLORS.accent};
+    box-shadow: 0 0 18px rgba(${COLORS.accentRgb}, 0.28);
+  }
+`;
+
+export const BoxPhotoFallback = styled.div`
+  color: ${COLORS.dim};
+  font: 800 0.7rem/1.3 'SFMono-Regular', ui-monospace, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+`;
+
 export const BoxSnapshot = styled.div`
-  padding: 0 0 0.55rem;
+  padding: ${({ $notesEmphasized }) =>
+    $notesEmphasized ? '0.38rem 0.52rem 0.42rem' : '0 0 0.55rem'};
+  margin: ${({ $notesEmphasized }) =>
+    $notesEmphasized ? '0 0 0.38rem' : '0'};
+  border-left: ${({ $notesEmphasized }) =>
+    $notesEmphasized
+      ? `3px solid rgba(${COLORS.accentRgb}, 0.9)`
+      : '0'};
+  background: ${({ $notesEmphasized }) =>
+    $notesEmphasized
+      ? `linear-gradient(90deg, rgba(${COLORS.accentRgb}, 0.15), rgba(${COLORS.secondaryRgb}, 0.05) 72%, transparent)`
+      : 'transparent'};
+  box-shadow: ${({ $notesEmphasized }) =>
+    $notesEmphasized
+      ? `inset 0 1px rgba(${COLORS.accentRgb}, 0.16), 0 0 20px rgba(${COLORS.accentRgb}, 0.08)`
+      : 'none'};
 `;
 
 export const BoxSnapshotText = styled.div`
   min-width: 0;
   display: grid;
-  gap: 0.42rem;
-`;
-
-export const BoxDescription = styled.p`
-  margin: 0;
-  color: rgba(230, 237, 243, 0.82);
-  font-size: 0.78rem;
-  line-height: 1.35;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
+  gap: ${({ $notesEmphasized }) =>
+    $notesEmphasized ? '0.22rem' : '0.42rem'};
 `;
 
 export const BoxNotes = styled.p`
   margin: 0;
-  color: ${COLORS.dim};
-  font-size: 0.72rem;
-  line-height: 1.35;
+  color: ${({ $emphasized }) => ($emphasized ? COLORS.text : COLORS.dim)};
+  font-size: ${({ $emphasized }) => ($emphasized ? '0.82rem' : '0.72rem')};
+  line-height: ${({ $emphasized }) => ($emphasized ? '1.45' : '1.35')};
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: ${({ $emphasized }) => ($emphasized ? 5 : 2)};
   overflow: hidden;
+`;
+
+export const BoxNotesButton = styled.button`
+  display: block;
+  width: 100%;
+  min-height: 2.8rem;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  color: ${({ $emphasized }) => ($emphasized ? COLORS.text : COLORS.dim)};
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-size: ${({ $emphasized }) => ($emphasized ? '0.82rem' : '0.72rem')};
+  line-height: ${({ $emphasized }) => ($emphasized ? '1.45' : '1.35')};
+  text-align: left;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: ${COLORS.text};
+    outline: none;
+  }
 `;
 
 export const MetaLabel = styled.span`
   display: block;
   margin-bottom: 0.12rem;
-  color: rgba(${COLORS.secondaryRgb}, 0.8);
+  color: ${({ $emphasized }) =>
+    $emphasized
+      ? `rgba(${COLORS.accentRgb}, 0.98)`
+      : `rgba(${COLORS.secondaryRgb}, 0.8)`};
   font-family: ui-monospace, monospace;
   font-size: 0.56rem;
   font-weight: 900;
@@ -467,6 +768,171 @@ export const TagLine = styled.div`
   font-family: ui-monospace, monospace;
   font-size: 0.62rem;
   white-space: nowrap;
+`;
+
+export const NoteFocusStage = styled.section`
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.48rem;
+  min-height: 100%;
+`;
+
+export const NoteFocusToolbar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 44px;
+`;
+
+export const NoteItemsReturn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.42rem;
+  min-height: 44px;
+  border: 1px solid rgba(${COLORS.accentRgb}, 0.24);
+  border-radius: 5px 10px 5px 5px;
+  padding: 0 0.72rem;
+  color: rgba(230, 237, 243, 0.72);
+  background: rgba(6, 12, 17, 0.56);
+  font: 800 0.62rem ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  span:last-child {
+    color: ${COLORS.accent};
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  &:hover,
+  &:focus-visible {
+    border-color: rgba(${COLORS.accentRgb}, 0.72);
+    color: ${COLORS.text};
+    background: rgba(${COLORS.accentRgb}, 0.1);
+    outline: none;
+  }
+`;
+
+export const NotePaper = styled.button`
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  width: calc(100% - 0.3rem);
+  min-height: clamp(190px, 34dvh, 310px);
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid rgba(${COLORS.accentRgb}, 0.42);
+  border-radius: 3px 10px 5px 3px;
+  padding: 1rem 1rem 0.82rem 1.42rem;
+  color: var(--box-neon, ${COLORS.text});
+  background:
+    radial-gradient(
+      circle at 18% 7%,
+      rgba(${COLORS.accentRgb}, 0.13),
+      transparent 36%
+    ),
+    radial-gradient(
+      circle at 92% 88%,
+      rgba(${COLORS.secondaryRgb}, 0.09),
+      transparent 44%
+    ),
+    repeating-linear-gradient(
+      180deg,
+      transparent 0,
+      transparent 28px,
+      rgba(${COLORS.secondaryRgb}, 0.13) 29px,
+      transparent 30px
+    ),
+    linear-gradient(145deg, #0c1017, #05070b 72%, #090c12);
+  box-shadow:
+    0 18px 34px rgba(0, 0, 0, 0.48),
+    0 0 18px rgba(${COLORS.accentRgb}, 0.09),
+    inset 0 1px rgba(${COLORS.secondaryRgb}, 0.14),
+    inset 0 0 28px rgba(0, 0, 0, 0.34);
+  text-align: left;
+  cursor: pointer;
+  transform-origin: 50% 100%;
+  animation: ${notePaperRise} 430ms cubic-bezier(0.16, 0.82, 0.24, 1) both;
+
+  &::before {
+    position: absolute;
+    z-index: 1;
+    inset: 0 auto 0 0;
+    width: 7px;
+    background: linear-gradient(
+      180deg,
+      rgba(${COLORS.accentRgb}, 0.98),
+      rgba(${COLORS.secondaryRgb}, 0.78)
+    );
+    box-shadow: 0 0 14px rgba(${COLORS.accentRgb}, 0.34);
+    content: '';
+  }
+
+  &::after {
+    position: absolute;
+    z-index: 0;
+    inset: 0 auto 0 2.02rem;
+    width: 1px;
+    background: rgba(${COLORS.accentRgb}, 0.24);
+    box-shadow: 0 0 8px rgba(${COLORS.accentRgb}, 0.2);
+    content: '';
+    pointer-events: none;
+  }
+
+  > span {
+    position: relative;
+    z-index: 2;
+  }
+
+  &:hover,
+  &:focus-visible {
+    border-color: rgba(${COLORS.accentRgb}, 0.72);
+    outline: none;
+    box-shadow:
+      0 20px 38px rgba(0, 0, 0, 0.52),
+      0 0 0 2px rgba(${COLORS.accentRgb}, 0.24),
+      0 0 24px rgba(${COLORS.accentRgb}, 0.14),
+      inset 0 1px rgba(${COLORS.secondaryRgb}, 0.18);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transform: none;
+  }
+`;
+
+export const NotePaperKicker = styled.span`
+  color: rgba(${COLORS.secondaryRgb}, 0.86);
+  font: 900 0.62rem ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 10px rgba(${COLORS.secondaryRgb}, 0.32);
+  text-transform: uppercase;
+`;
+
+export const NotePaperBody = styled.span`
+  align-self: start;
+  color: var(--box-neon, ${COLORS.text});
+  font-size: clamp(0.96rem, 3.6vw, 1.08rem);
+  font-weight: 720;
+  line-height: 1.78;
+  overflow-wrap: anywhere;
+  text-shadow:
+    0 0 5px rgba(var(--box-neon-rgb, 230, 237, 243), 0.42),
+    0 0 16px rgba(${COLORS.accentRgb}, 0.2);
+  white-space: pre-wrap;
+`;
+
+export const NotePaperHint = styled.span`
+  justify-self: end;
+  color: rgba(${COLORS.accentRgb}, 0.76);
+  font: 800 0.56rem ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 8px rgba(${COLORS.accentRgb}, 0.24);
+  text-transform: uppercase;
 `;
 
 export const ItemsHeader = styled.div`
@@ -591,6 +1057,7 @@ export const EmptyItems = styled.p`
 
 export const ItemCarousel = styled.section`
   min-width: 0;
+  height: 100%;
   touch-action: pan-y;
   animation: ${({ $direction }) =>
     $direction > 0
@@ -604,24 +1071,103 @@ export const ItemCarousel = styled.section`
   }
 `;
 
-export const ItemCarouselNavigation = styled.div`
+export const ItemCarouselCard = styled.div`
+  position: relative;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(${COLORS.accentRgb}, 0.34);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, rgba(${COLORS.accentRgb}, 0.07), transparent 42%),
+    rgba(7, 12, 18, 0.82);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.045),
+    0 14px 34px rgba(0, 0, 0, 0.3);
+
+  @media (min-width: 768px) {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) clamp(9.75rem, 24dvh, 12rem);
+  }
+
+  @media (min-width: 1100px) {
+    grid-template-columns: minmax(250px, 0.9fr) minmax(0, 1.1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+`;
+
+export const ItemCarouselMedia = styled.div`
+  position: relative;
+  isolation: isolate;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
-  align-items: center;
-  min-height: 46px;
-  border-bottom: 1px solid ${COLORS.line};
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(${COLORS.secondaryRgb}, 0.12), transparent 62%),
+    rgba(3, 8, 12, 0.88);
+  cursor: ${({ $interactive }) => ($interactive ? 'zoom-in' : 'default')};
+
+  &:focus-visible {
+    outline: 2px solid rgba(${COLORS.accentRgb}, 0.9);
+    outline-offset: -3px;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(180deg, rgba(3, 7, 11, 0.42), transparent 22% 72%, rgba(3, 7, 11, 0.58)),
+      linear-gradient(90deg, rgba(3, 7, 11, 0.32), transparent 18% 82%, rgba(3, 7, 11, 0.32));
+  }
+
+  @media (min-width: 1100px) {
+    border-right: 1px solid rgba(${COLORS.accentRgb}, 0.22);
+  }
+`;
+
+export const ItemCarouselLightboxTrigger = styled.button`
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: zoom-in;
+  touch-action: pan-y;
+
+  &:focus-visible {
+    outline: 2px solid rgba(${COLORS.accentRgb}, 0.9);
+    outline-offset: -4px;
+  }
 `;
 
 export const ItemCarouselArrow = styled.button`
+  position: absolute;
+  z-index: 4;
+  top: 50%;
+  ${({ $side }) => ($side === 'previous' ? 'left: 0.35rem;' : 'right: 0.35rem;')}
+  transform: translateY(-50%);
   display: grid;
   place-items: center;
   width: 44px;
   height: 44px;
   padding: 0;
-  border: 0;
-  border-radius: 5px;
+  border: 1px solid rgba(${COLORS.accentRgb}, 0.26);
+  border-radius: 6px;
   color: ${COLORS.accent};
-  background: transparent;
+  background: rgba(5, 10, 15, 0.68);
+  backdrop-filter: blur(7px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.34);
   font-size: 1.9rem;
   font-weight: 800;
   line-height: 1;
@@ -630,7 +1176,8 @@ export const ItemCarouselArrow = styled.button`
   &:hover,
   &:focus-visible {
     color: ${COLORS.text};
-    outline: 1px solid rgba(${COLORS.accentRgb}, 0.48);
+    outline: none;
+    border-color: rgba(${COLORS.accentRgb}, 0.7);
     background: rgba(${COLORS.accentRgb}, 0.1);
   }
 
@@ -641,17 +1188,24 @@ export const ItemCarouselArrow = styled.button`
 `;
 
 export const ItemCarouselReturn = styled.button`
+  position: absolute;
+  z-index: 4;
+  top: 0.42rem;
+  left: 50%;
+  transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.55rem;
   justify-self: center;
   min-width: 76px;
-  min-height: 44px;
-  padding: 0 0.5rem;
-  border: 0;
-  color: ${COLORS.dim};
-  background: transparent;
+  min-height: 40px;
+  padding: 0 0.68rem;
+  border: 1px solid rgba(${COLORS.accentRgb}, 0.22);
+  border-radius: 5px;
+  color: rgba(230, 237, 243, 0.78);
+  background: rgba(5, 10, 15, 0.7);
+  backdrop-filter: blur(7px);
   cursor: pointer;
 
   &:hover,
@@ -676,35 +1230,150 @@ export const ItemCarouselPosition = styled.code`
   letter-spacing: 0.08em;
 `;
 
-export const ItemCarouselHero = styled.div`
-  display: grid;
-  grid-template-columns: 86px minmax(0, 1fr);
-  gap: 0.8rem;
-  align-items: center;
-  padding: 0.8rem 0 0.72rem;
+export const ItemCarouselDeckToggle = styled.button`
+  position: absolute;
+  z-index: 5;
+  top: 0.66rem;
+  left: calc(50% + 54px);
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid ${({ $active }) => (
+    $active ? 'rgba(240, 138, 123, 0.88)' : `rgba(${COLORS.accentRgb}, 0.34)`
+  )};
+  border-radius: 5px;
+  color: ${({ $active }) => ($active ? '#ff9d91' : `rgba(${COLORS.accentRgb}, 0.88)`)};
+  background: ${({ $active }) => (
+    $active ? 'rgba(118, 39, 35, 0.76)' : 'rgba(5, 10, 15, 0.78)'
+  )};
+  backdrop-filter: blur(7px);
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    outline: none;
+    filter: brightness(1.22);
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px rgba(${COLORS.accentRgb}, 0.34);
+  }
+
+  &:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+  }
+`;
+
+export const ItemDeckIcon = styled.svg`
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+`;
+
+export const ItemCarouselBody = styled.div`
+  position: absolute;
+  z-index: 3;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  min-width: 0;
+  max-height: 64%;
+  overflow: hidden;
+  pointer-events: none;
+  padding: 2.5rem 0.82rem 0.62rem;
+  background: linear-gradient(
+    180deg,
+    transparent 0,
+    rgba(5, 10, 15, 0.84) 2.4rem,
+    rgba(5, 10, 15, 0.98) 100%
+  );
+
+  @media (min-width: 768px) {
+    position: static;
+    align-self: stretch;
+    min-height: 0;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    pointer-events: auto;
+    padding: 0.78rem 0.9rem 1rem;
+    border-top: 1px solid rgba(${COLORS.accentRgb}, 0.22);
+    background:
+      linear-gradient(90deg, rgba(${COLORS.accentRgb}, 0.055), transparent 46%),
+      rgba(7, 12, 18, 0.96);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(${COLORS.accentRgb}, 0.4) transparent;
+  }
+
+  @media (min-width: 1100px) {
+    align-self: stretch;
+    padding: 1.05rem 1.1rem;
+    border-top: 0;
+    background: rgba(7, 12, 18, 0.78);
+  }
 `;
 
 export const ItemCarouselImage = styled.img`
-  width: 86px;
-  height: 86px;
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  padding: ${({ $framing }) =>
+    $framing === 'portrait' ? '1.05rem 3.15rem 0.6rem' : '0'};
+  object-fit: ${({ $framing }) =>
+    $framing === 'portrait' ? 'contain' : 'cover'};
+  object-position: ${({ $framing }) => {
+    if ($framing === 'landscape') return 'center 64%';
+    if ($framing === 'portrait') return 'center 38%';
+    return 'center 70%';
+  }};
+  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.46));
+  transition: object-position 180ms ease;
+
+  @media (min-width: 1100px) {
+    padding: 1rem 1.2rem;
+    object-fit: contain;
+    object-position: center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+export const ItemCarouselImageBackdrop = styled.img`
+  position: absolute;
+  z-index: 0;
+  inset: -8%;
+  width: 116%;
+  height: 116%;
   object-fit: cover;
-  border: 1px solid rgba(${COLORS.accentRgb}, 0.34);
-  border-radius: 6px;
-  background: ${COLORS.bg};
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 0 14px rgba(${COLORS.accentRgb}, 0.1);
+  opacity: 0.22;
+  filter: blur(18px) saturate(0.8) brightness(0.72);
+  transform: scale(1.06);
 `;
 
 export const ItemCarouselImageFallback = styled.div`
   display: grid;
   place-items: center;
-  width: 86px;
-  height: 86px;
-  border: 1px solid rgba(${COLORS.accentRgb}, 0.16);
-  border-radius: 6px;
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
   color: rgba(230, 237, 243, 0.3);
-  background: rgba(4, 8, 12, 0.58);
+  background:
+    linear-gradient(135deg, transparent 49.7%, rgba(${COLORS.accentRgb}, 0.12) 50%, transparent 50.3%),
+    rgba(4, 8, 12, 0.28);
   font-family: ui-monospace, monospace;
   font-size: 0.58rem;
   letter-spacing: 0.14em;
@@ -713,14 +1382,16 @@ export const ItemCarouselImageFallback = styled.div`
 export const ItemCarouselIdentity = styled.div`
   min-width: 0;
   display: grid;
-  gap: 0.44rem;
+  gap: 0.3rem;
+  padding-bottom: 0.42rem;
+  border-bottom: 1px solid ${COLORS.line};
 `;
 
 export const ItemCarouselName = styled.h3`
   margin: 0;
   color: ${COLORS.text};
-  font-size: clamp(1rem, 4.5vw, 1.24rem);
-  line-height: 1.12;
+  font-size: clamp(1rem, 4.8vw, 1.35rem);
+  line-height: 1.08;
   overflow-wrap: anywhere;
 `;
 
@@ -742,11 +1413,10 @@ export const ItemCarouselMeta = styled.div`
 export const ItemCarouselDetails = styled.div`
   display: grid;
   gap: 0;
-  border-top: 1px solid ${COLORS.line};
 `;
 
 export const ItemCarouselDetail = styled.div`
-  padding: 0.68rem 0;
+  padding: 0.38rem 0;
   border-bottom: 1px solid rgba(${COLORS.accentRgb}, 0.12);
 
   p {
@@ -754,24 +1424,33 @@ export const ItemCarouselDetail = styled.div`
     margin: 0;
     overflow: hidden;
     color: rgba(230, 237, 243, 0.8);
-    font-size: 0.76rem;
-    line-height: 1.4;
+    font-size: 0.7rem;
+    line-height: 1.32;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
+  }
+
+  &:nth-of-type(n + 2) p {
+    -webkit-line-clamp: 2;
   }
 `;
 
 export const ItemCarouselTags = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 0.32rem 0.52rem;
-  max-height: 2.8em;
-  padding: 0.68rem 0;
+  gap: 0.28rem 0.48rem;
+  max-height: 2.9em;
+  padding: 0.38rem 0 0;
   overflow: hidden;
   color: rgba(${COLORS.accentRgb}, 0.8);
   font-family: ui-monospace, monospace;
   font-size: 0.64rem;
   line-height: 1.4;
+
+  @media (min-width: 768px) {
+    max-height: 2.9em;
+    padding-bottom: 0.16rem;
+  }
 `;
 
 export const ItemCarouselEmpty = styled.p`
@@ -831,26 +1510,35 @@ export const NestedBoxList = styled.ul`
 export const OpenFullBoxButton = styled.button`
   position: absolute;
   right: 0.72rem;
-  bottom: max(0.72rem, env(safe-area-inset-bottom));
-  left: 0.72rem;
+  bottom: max(0.52rem, env(safe-area-inset-bottom));
+  left: 0.6rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 46px;
-  padding: 0 0.9rem;
+  min-height: 36px;
+  padding: 0 0.72rem;
   border: 1px solid rgba(${COLORS.secondaryRgb}, 0.58);
   border-radius: 7px;
   color: ${COLORS.text};
   background:
-    linear-gradient(90deg, rgba(${COLORS.accentRgb}, 0.16), rgba(${COLORS.secondaryRgb}, 0.2)),
-    rgba(9, 14, 20, 0.96);
-  font-size: 0.76rem;
+    linear-gradient(
+      90deg,
+      rgba(${COLORS.accentRgb}, 0.18),
+      rgba(${COLORS.secondaryRgb}, 0.14)
+    ),
+    rgba(9, 14, 20, 0.62);
+  -webkit-backdrop-filter: blur(14px) saturate(135%);
+  backdrop-filter: blur(14px) saturate(135%);
+  font-size: 0.68rem;
   font-weight: 900;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   cursor: pointer;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.42);
-  transform: translateY(${({ $expanded }) => ($expanded ? '0' : '-28dvh')});
+  transform: translateY(
+    ${({ $expanded }) =>
+      $expanded ? '0' : 'calc(-1 * var(--quick-peek-collapsed-shift))'}
+  );
   transition:
     transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
     border-color 160ms ease,
@@ -875,8 +1563,8 @@ export const OpenFullBoxButton = styled.button`
 `;
 
 export const OpenFullBoxIcon = styled.svg`
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
   flex: 0 0 auto;
   fill: none;
   stroke: currentColor;

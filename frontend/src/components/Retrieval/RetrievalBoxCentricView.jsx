@@ -5,6 +5,7 @@ import {
   fetchRetrievalBoxesPage,
 } from '../../api/retrieval';
 import { compareNumericBoxIds, normalizeBoxId } from '../../util/boxLocator';
+import { getItemMicroThumbnailUrl } from '../../util/itemImage';
 import { MOBILE_BREAKPOINT } from '../../styles/tokens';
 import * as S from './Retrieval.styles';
 import { getBoxTheme } from '../../util/inventoryColorTheme';
@@ -143,18 +144,33 @@ function BoxInspectContent({
               if (!itemId) return null;
 
               const quantity = Number(item?.quantity);
+              const thumbnailUrl = getItemMicroThumbnailUrl(item);
               const quantityLabel = Number.isFinite(quantity)
                 ? `Qty ${quantity}`
                 : '';
 
               return (
                 <S.BoxInspectRow key={`box-item-${itemId}`}>
-                  <S.BoxInspectRowLink to={`/items/${itemId}`}>
-                    {String(item?.name || 'Unnamed item').trim()}
-                  </S.BoxInspectRowLink>
-                  {quantityLabel ? (
-                    <S.BoxInspectRowMeta>{quantityLabel}</S.BoxInspectRowMeta>
-                  ) : null}
+                  <S.BoxInspectItemThumb $empty={!thumbnailUrl} aria-hidden="true">
+                    {thumbnailUrl ? (
+                      <img
+                        src={thumbnailUrl}
+                        alt=""
+                        loading="lazy"
+                        onError={(event) => {
+                          event.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : <span>·</span>}
+                  </S.BoxInspectItemThumb>
+                  <S.BoxInspectItemContent>
+                    <S.BoxInspectRowLink to={`/items/${itemId}`}>
+                      {String(item?.name || 'Unnamed item').trim()}
+                    </S.BoxInspectRowLink>
+                    {quantityLabel ? (
+                      <S.BoxInspectRowMeta>{quantityLabel}</S.BoxInspectRowMeta>
+                    ) : null}
+                  </S.BoxInspectItemContent>
                 </S.BoxInspectRow>
               );
             })}

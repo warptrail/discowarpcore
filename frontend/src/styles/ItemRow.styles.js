@@ -225,6 +225,21 @@ export const RowHeader = styled.div`
     $open ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.04)' : 'none'};
   transition: border-color 220ms ease, background 220ms ease, box-shadow 220ms ease;
 
+  ${Row}:hover &,
+  ${Row}:focus-visible & {
+    border-color: rgba(var(--item-accent-rgb, 127, 215, 255), 0.62);
+    background: linear-gradient(
+      90deg,
+      rgba(var(--item-accent-rgb, 127, 215, 255), 0.14),
+      rgba(var(--item-secondary-rgb, 167, 182, 255), 0.06) 58%,
+      rgba(255, 255, 255, 0.025)
+    );
+    box-shadow:
+      0 0 0 1px rgba(var(--item-accent-rgb, 127, 215, 255), 0.16),
+      0 0 14px rgba(var(--item-accent-rgb, 127, 215, 255), 0.24),
+      inset 0 0 12px rgba(var(--item-accent-rgb, 127, 215, 255), 0.08);
+  }
+
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     grid-template-columns: minmax(0, 1fr);
     padding: 0.28rem 0.34rem;
@@ -433,6 +448,17 @@ export const RowDeckState = styled.span`
   text-transform: uppercase;
 `;
 
+export const RowDestructionState = styled.span`
+  width: fit-content;
+  color: #ffd36a;
+  font-family: ${"'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace, monospace"};
+  font-size: 0.55rem;
+  font-weight: 760;
+  letter-spacing: 0.07em;
+  line-height: 1.2;
+  text-transform: uppercase;
+`;
+
 export const RowCapCommand = styled.span`
   display: inline-flex;
   align-items: center;
@@ -480,6 +506,8 @@ export const RowCapSignal = styled.span`
   }
 
   @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
     i {
       animation: none;
     }

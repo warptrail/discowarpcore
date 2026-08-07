@@ -13,6 +13,10 @@ const {
 
 const ACTIVE_ITEM_FILTER = { item_status: { $ne: 'gone' } };
 
+function shouldSetGiftIntent(item, destinationBox) {
+  return Boolean(destinationBox?.isGiftBox && !item?.isIntendedGift);
+}
+
 function toBoxRef(box, fallback = ORPHANED_LABEL) {
   if (!box) return { id: null, label: fallback, box_id: null };
   return {
@@ -83,8 +87,8 @@ async function logItemMovedEvent({
  */
 async function attachItemToBox({ itemId, boxId, suppressMoveLog = false }) {
   const [item, destinationBox, sourceBox] = await Promise.all([
-    Item.findById(itemId).select('_id name item_status').lean(),
-    Box.findById(boxId).select('_id box_id label').lean(),
+    Item.findById(itemId).select('_id name item_status isIntendedGift').lean(),
+    Box.findById(boxId).select('_id box_id label isGiftBox').lean(),
     findContainingBoxForItem(itemId),
   ]);
 
@@ -98,6 +102,29 @@ async function attachItemToBox({ itemId, boxId, suppressMoveLog = false }) {
   }
   if (!destinationBox) {
     throw new Error('Box not found');
+  }
+
+  const giftIntentWasSet = shouldSetGiftIntent(item, destinationBox);
+  if (giftIntentWasSet) {
+    await Item.updateOne(
+      { _id: itemId, ...ACTIVE_ITEM_FILTER },
+      { $set: { isIntendedGift: true } }
+    );
+    await logEventBestEffort(
+      {
+        event_type: 'item_gift_intent_set',
+        entity_type: 'item',
+        entity_id: toItemRef(item).id,
+        entity_label: toItemRef(item).label,
+        summary: `Marked item ${quoteLabel(toItemRef(item).label)} as intended for gifting`,
+        details: {
+          trigger: 'entered_gift_box',
+          gift_box_id: String(destinationBox._id),
+          gift_box_label: formatBoxLabel(destinationBox, 'Gift Box'),
+        },
+      },
+      { label: `item_gift_intent_set:${itemId}` }
+    );
   }
 
   const destinationRef = toBoxRef(destinationBox, 'Box');
@@ -353,4 +380,5 @@ module.exports = {
   detachItem,
   moveItem,
   getOrphanItems,
+  shouldSetGiftIntent,
 };

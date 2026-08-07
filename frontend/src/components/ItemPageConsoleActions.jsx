@@ -12,6 +12,13 @@ const Wrap = styled.div`
   width: 100%;
   gap: calc(0.7rem - (0.18rem * var(--toast-compact-progress, 0)));
   min-width: 0;
+
+  ${({ $prism }) =>
+    $prism &&
+    `
+      justify-content: flex-end;
+      gap: 0;
+    `}
 `;
 
 const Actions = styled.div`
@@ -20,16 +27,22 @@ const Actions = styled.div`
   justify-content: flex-end;
   gap: 0.24rem;
   flex: 0 0 auto;
-  padding: 0.22rem;
-  border: 1px solid rgba(91, 215, 244, 0.24);
-  border-radius: 11px;
-  background:
-    linear-gradient(180deg, rgba(19, 32, 48, 0.88), rgba(8, 13, 23, 0.86)),
-    rgba(10, 19, 30, 0.86);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.035),
-    0 0 16px rgba(34, 211, 238, 0.08);
+  padding: 0.1rem;
+  border: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.24);
+  border-radius: 4px;
+  background: rgba(5, 12, 19, 0.44);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 
+  ${({ $prism }) =>
+    $prism &&
+    `
+      gap: 0.32rem;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    `}
 `;
 
 const ModeButton = styled.button`
@@ -39,7 +52,7 @@ const ModeButton = styled.button`
   border: 1px solid
     ${({ $active }) =>
       $active ? 'rgba(126, 223, 255, 0.7)' : 'rgba(91, 215, 244, 0.34)'};
-  border-radius: 8px;
+  border-radius: 3px;
   background: ${({ $active }) =>
     $active
       ? `linear-gradient(
@@ -103,9 +116,43 @@ const ModeButton = styled.button`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     flex: 1;
-    min-height: 38px;
+    min-height: ${({ $prism }) => ($prism ? '44px' : '38px')};
     font-size: ${MOBILE_FONT_XS};
   }
+
+  ${({ $prism, $primary }) =>
+    $prism &&
+    `
+      min-width: 6.8rem;
+      min-height: 44px;
+      padding: 0.38rem 0.72rem;
+      border-color: ${$primary ? 'rgba(100, 225, 218, 0.5)' : 'rgba(177, 159, 239, 0.34)'};
+      border-radius: 6px;
+      background: ${$primary ? 'rgba(45, 154, 151, 0.13)' : 'rgba(103, 86, 158, 0.08)'};
+      color: ${$primary ? 'rgba(224, 255, 251, 0.96)' : 'rgba(225, 220, 246, 0.88)'};
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      transform: none;
+
+      &:hover:enabled {
+        border-color: ${$primary ? 'rgba(115, 241, 233, 0.76)' : 'rgba(196, 177, 255, 0.64)'};
+        background: ${$primary ? 'rgba(45, 154, 151, 0.2)' : 'rgba(103, 86, 158, 0.14)'};
+        box-shadow: 0 0 14px ${$primary ? 'rgba(73, 211, 202, 0.14)' : 'rgba(169, 139, 250, 0.1)'};
+        transform: none;
+      }
+
+      &:focus-visible {
+        outline-color: ${$primary ? 'rgba(115, 241, 233, 0.9)' : 'rgba(196, 177, 255, 0.82)'};
+      }
+
+      &:disabled {
+        border-color: rgba(150, 166, 181, 0.18);
+        background: rgba(17, 23, 30, 0.76);
+        color: rgba(205, 216, 225, 0.42);
+        box-shadow: none;
+      }
+    `}
 `;
 
 export default function ItemPageConsoleActions({
@@ -117,27 +164,45 @@ export default function ItemPageConsoleActions({
   saving = false,
   isDirty = false,
   lifecycleBusy = false,
+  revertLabel = 'Revert',
+  revertRequiresDirty = true,
+  saveLabel = 'Save',
+  showViewAction = true,
+  prism = false,
 }) {
   return (
-    <Wrap>
-      <span aria-hidden="true" />
-      <Actions>
-        <ModeButton
-          type="button"
-          $active={!isEditing}
-          aria-pressed={!isEditing}
-          onClick={onView}
-          disabled={!isEditing}
-        >
-          View
-        </ModeButton>
+    <Wrap $prism={prism}>
+      {!prism ? <span aria-hidden="true" /> : null}
+      <Actions $prism={prism}>
+        {showViewAction ? (
+          <ModeButton
+            type="button"
+            $active={!isEditing}
+            aria-pressed={!isEditing}
+            onClick={onView}
+            disabled={!isEditing}
+          >
+            View
+          </ModeButton>
+        ) : null}
         {isEditing ? (
           <>
-            <ModeButton type="button" onClick={onSave} disabled={!isDirty || saving || lifecycleBusy}>
-              {saving ? 'Saving...' : 'Save'}
+            <ModeButton
+              type="button"
+              $prism={prism}
+              $primary
+              onClick={onSave}
+              disabled={!isDirty || saving || lifecycleBusy}
+            >
+              {saving ? 'Saving...' : saveLabel}
             </ModeButton>
-            <ModeButton type="button" onClick={onRevert} disabled={!isDirty || saving || lifecycleBusy}>
-              Revert
+            <ModeButton
+              type="button"
+              $prism={prism}
+              onClick={onRevert}
+              disabled={(revertRequiresDirty && !isDirty) || saving || lifecycleBusy}
+            >
+              {revertLabel}
             </ModeButton>
           </>
         ) : (

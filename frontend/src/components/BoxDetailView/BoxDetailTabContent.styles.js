@@ -24,6 +24,13 @@ export const FlatTabScope = styled.div`
   }
 `;
 
+export const DetailActionSection = styled.section`
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+`;
+
 export const SectionHeading = styled.header`
   display: flex;
   align-items: center;
@@ -108,7 +115,7 @@ export const FlatEmpty = styled.div`
 `;
 
 export const InlineActionsArea = styled.section`
-  margin-top: 0.66rem;
+  margin-top: ${({ $compact }) => ($compact ? '-0.12rem' : '0.66rem')};
   display: grid;
   gap: 0.52rem;
 `;
@@ -118,44 +125,59 @@ export const InlineActionsRow = styled.div`
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
 
+  ${({ $compact }) => $compact && `
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.32rem;
+  `}
+
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     grid-template-columns: 1fr;
   }
 `;
 
 export const InlineActionButton = styled.button`
-  min-height: 42px;
-  border-radius: 12px;
+  min-height: ${({ $compact }) => ($compact ? '27px' : '42px')};
+  border-radius: ${({ $compact }) => ($compact ? '6px' : '12px')};
   border: 1px solid
     ${({ $active, $tone }) => {
-      if ($active) return 'rgba(160, 230, 198, 0.84)';
-      if ($tone === 'assign') return 'rgba(124, 204, 154, 0.62)';
-      return 'rgba(111, 176, 230, 0.56)';
+      if ($active) return 'rgba(0, 255, 224, 0.92)';
+      if ($tone === 'assign') return 'rgba(190, 117, 255, 0.72)';
+      return 'rgba(0, 223, 255, 0.72)';
     }};
   background: ${({ $active, $tone }) => {
     if ($active) {
-      return 'linear-gradient(180deg, rgba(19, 58, 44, 0.96) 0%, rgba(13, 40, 30, 0.96) 100%)';
+      return 'linear-gradient(180deg, rgba(0, 92, 96, 0.9) 0%, rgba(4, 35, 47, 0.98) 100%)';
     }
     if ($tone === 'assign') {
-      return 'linear-gradient(180deg, rgba(14, 38, 28, 0.96) 0%, rgba(10, 28, 20, 0.96) 100%)';
+      return 'linear-gradient(180deg, rgba(48, 29, 74, 0.92) 0%, rgba(15, 24, 43, 0.98) 100%)';
     }
-    return 'linear-gradient(180deg, rgba(11, 28, 42, 0.96) 0%, rgba(8, 20, 31, 0.96) 100%)';
+    return 'linear-gradient(180deg, rgba(13, 48, 64, 0.94) 0%, rgba(8, 25, 39, 0.98) 100%)';
   }};
-  color: ${({ $active }) => ($active ? '#ecfff4' : '#d8eafc')};
-  font-size: 0.78rem;
+  color: ${({ $active, $tone }) => {
+    if ($active) return '#cffffb';
+    if ($tone === 'assign') return '#f0d7ff';
+    return '#c8f7ff';
+  }};
+  font-size: ${({ $compact }) => ($compact ? '0.57rem' : '0.78rem')};
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  padding: 0 0.78rem;
+  padding: ${({ $compact }) => ($compact ? '0 0.52rem' : '0 0.78rem')};
   cursor: pointer;
   text-align: center;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035), 0 0 8px
+    ${({ $active, $tone }) => {
+      if ($active) return 'rgba(0, 255, 224, 0.34)';
+      if ($tone === 'assign') return 'rgba(190, 117, 255, 0.18)';
+      return 'rgba(0, 223, 255, 0.18)';
+    }};
 
   &:hover:not(:disabled) {
-    border-color: ${({ $tone }) =>
-      $tone === 'assign'
-        ? 'rgba(152, 230, 182, 0.82)'
-        : 'rgba(140, 202, 255, 0.74)'};
-    box-shadow: 0 0 0 1px rgba(88, 150, 216, 0.18);
+    border-color: ${({ $tone }) => ($tone === 'assign' ? '#d59aff' : '#57f3ff')};
+    filter: brightness(1.14);
+    box-shadow: 0 0 0 1px rgba(0, 223, 255, 0.22), 0 0 12px
+      ${({ $tone }) => ($tone === 'assign' ? 'rgba(190, 117, 255, 0.42)' : 'rgba(0, 223, 255, 0.42)')};
   }
 
   &:disabled {
@@ -164,9 +186,9 @@ export const InlineActionButton = styled.button`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 40px;
-    border-radius: 10px;
-    font-size: 0.72rem;
+    min-height: ${({ $compact }) => ($compact ? '26px' : '40px')};
+    border-radius: ${({ $compact }) => ($compact ? '6px' : '10px')};
+    font-size: ${({ $compact }) => ($compact ? '0.52rem' : '0.72rem')};
   }
 `;
 

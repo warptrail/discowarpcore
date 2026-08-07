@@ -120,15 +120,31 @@ export default function useOperationsQuickPeekItemSelection(
     if (!selectedItem) return undefined;
 
     const handleKeyDown = (event) => {
-      if (event.key !== 'Escape') return;
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+
+      const target = event.target;
+      const isTypingTarget = target instanceof Element && Boolean(
+        target.closest('input, textarea, select, [contenteditable="true"]'),
+      );
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        backToItems();
+        return;
+      }
+
+      if (isTypingTarget) return;
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+
       event.preventDefault();
-      event.stopImmediatePropagation();
-      backToItems();
+      if (event.key === 'ArrowLeft') selectOffset(-1);
+      else selectOffset(1);
     };
 
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [backToItems, selectedItem]);
+  }, [backToItems, selectOffset, selectedItem]);
 
   return {
     selectedItem,

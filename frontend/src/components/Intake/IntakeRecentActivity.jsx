@@ -1,7 +1,8 @@
-import React from 'react';
-import styled from 'styled-components';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import styled, { css, keyframes } from 'styled-components';
 import { getBoxColorTones } from '../Retrieval/boxColors';
 import { hexToRgbString } from '../../util/inventoryColorTheme';
+import IntakeActivityFiltersSheet from './IntakeActivityFiltersSheet';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_FONT_SM,
@@ -18,6 +19,17 @@ const BATCH_ACCENTS = [
   '#E056FD',
   '#4D96FF',
 ];
+
+const activitySelectionPulse = keyframes`
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 0.9;
+  }
+`;
 
 function getBatchAccentRgb(index) {
   return hexToRgbString(BATCH_ACCENTS[index % BATCH_ACCENTS.length]);
@@ -57,71 +69,127 @@ const Counter = styled.span`
   font-size: 0.73rem;
 `;
 
-const Controls = styled.div`
+const FilterLauncher = styled.div`
+  min-height: 48px;
+  padding: 0.36rem 0.5rem;
   border-bottom: 1px solid rgba(76, 106, 132, 0.32);
-  padding: 0.46rem 0.5rem;
-  display: grid;
-  gap: 0.38rem;
   background: rgba(10, 16, 24, 0.72);
 `;
 
-const ControlRow = styled.div`
+const ControlGroup = styled.div`
   display: flex;
-  flex-wrap: wrap;
+  align-items: stretch;
+  min-height: 40px;
+  border: 1px solid rgba(86, 142, 157, 0.4);
+  border-radius: 5px;
+  background: rgba(9, 15, 23, 0.46);
+  overflow: hidden;
+`;
+
+const FilterButton = styled.button`
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0.38rem 0.5rem;
+  border: 0;
+  background: transparent;
+  color: #d8e6f4;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.34rem;
-`;
-
-const ToggleButton = styled.button`
-  min-height: 28px;
-  border-radius: 8px;
-  border: 1px solid ${({ $active }) => ($active ? 'rgba(218, 194, 122, 0.72)' : 'rgba(80, 113, 143, 0.52)')};
-  background: ${({ $active }) => ($active ? 'rgba(85, 67, 28, 0.64)' : 'rgba(13, 22, 33, 0.86)')};
-  color: ${({ $active }) => ($active ? '#f4e5b8' : '#afc4d8')};
-  padding: 0.2rem 0.45rem;
-  font-size: 0.66rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 
-  &:hover {
-    filter: brightness(1.08);
+  &:focus-visible {
+    outline: 2px solid #a78bfa;
+    outline-offset: 2px;
   }
 `;
 
-const BatchChip = styled.button`
-  min-height: 30px;
-  border-radius: 8px;
-  border: 1px solid ${({ $active, $accentRgb }) =>
-    $active ? `rgba(${$accentRgb}, 0.82)` : 'rgba(80, 113, 143, 0.5)'};
-  background: ${({ $active, $accentRgb }) =>
-    $active ? `rgba(${$accentRgb}, 0.22)` : 'rgba(13, 22, 33, 0.82)'};
-  color: ${({ $active, $accentRgb }) =>
-    $active ? `rgb(${$accentRgb})` : '#a9bed4'};
-  padding: 0.22rem 0.46rem;
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.3rem;
-  font-size: 0.68rem;
-  font-weight: 780;
+const SearchButton = styled.button`
+  display: grid;
+  flex: 0 0 40px;
+  width: 40px;
+  min-height: 40px;
+  place-items: center;
+  border: 0;
+  border-left: 1px solid rgba(86, 142, 157, 0.38);
+  background: transparent;
+  color: #8adfd7;
   cursor: pointer;
-  max-width: 100%;
+  font: inherit;
+  font-size: 1.2rem;
+  line-height: 1;
 
   &:hover {
-    filter: brightness(1.08);
+    color: #d8fffa;
+    background: rgba(81, 186, 173, 0.1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #a78bfa;
+    outline-offset: -2px;
   }
 `;
 
-const ChipLabel = styled.span`
+const SearchField = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  align-items: center;
+  width: 100%;
+  min-height: 40px;
+`;
+
+const SearchInput = styled.input`
   min-width: 0;
-  overflow-wrap: anywhere;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #e7faf7;
+  font: inherit;
+  font-size: 0.82rem;
+
+  &::placeholder {
+    color: #74908f;
+  }
 `;
 
-const ChipCount = styled.span`
-  color: #879db3;
-  font-size: 0.62rem;
+const SearchCloseButton = styled.button`
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 0;
+  border-left: 1px solid rgba(86, 142, 157, 0.38);
+  background: transparent;
+  color: #86a8aa;
+  cursor: pointer;
+  font: inherit;
+  font-size: 1rem;
+
+  &:hover { color: #d8fffa; }
+  &:focus-visible { outline: 2px solid #a78bfa; outline-offset: -2px; }
+`;
+
+const FilterSummary = styled.span`
+  min-width: 0;
+  color: ${({ $active }) => ($active ? '#d6fffa' : '#91a9be')};
+  font-size: 0.7rem;
+  overflow: hidden;
+  font-weight: ${({ $active }) => ($active ? 760 : 680)};
+  text-align: left;
+  text-overflow: ellipsis;
   white-space: nowrap;
+`;
+
+const FilterChevron = styled.span`
+  color: #83d8d0;
+  font-size: 0.9rem;
+  line-height: 1;
 `;
 
 const Body = styled.div`
@@ -138,35 +206,72 @@ const Body = styled.div`
 `;
 
 const Row = styled.div`
+  position: relative;
+  --activity-accent-rgb: ${({ $accentRgb }) => $accentRgb || '119, 213, 255'};
   border: 1px solid rgba(79, 105, 136, 0.46);
   border-radius: 9px;
   padding: 0.32rem 0.38rem;
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr);
-  align-items: center;
+  align-items: start;
   gap: 0.42rem;
   background: rgba(13, 20, 31, 0.87);
   background:
-    linear-gradient(90deg, ${({ $batchRgb }) => ($batchRgb ? `rgba(${$batchRgb}, 0.22)` : 'rgba(13, 20, 31, 0.87)')} 0%, rgba(13, 20, 31, 0.87) 38%),
+    linear-gradient(90deg, rgba(var(--activity-accent-rgb), 0.2) 0%, rgba(13, 20, 31, 0.87) 38%),
     rgba(13, 20, 31, 0.87);
   cursor: ${({ $clickable }) => ($clickable ? 'pointer' : 'default')};
-  border-color: ${({ $active, $batchRgb, $clickable }) =>
+  border-color: ${({ $active, $accentRgb, $clickable }) =>
     $active
-      ? 'rgba(223, 180, 96, 0.72)'
-      : $batchRgb
-        ? `rgba(${$batchRgb}, 0.58)`
-      : $clickable
-        ? 'rgba(94, 126, 158, 0.5)'
-        : 'rgba(79, 105, 136, 0.4)'};
-  box-shadow: ${({ $active, $batchRgb }) =>
+      ? `rgba(${$accentRgb || '119, 213, 255'}, 0.88)`
+      : $accentRgb
+        ? `rgba(${$accentRgb}, 0.58)`
+        : $clickable
+          ? 'rgba(94, 126, 158, 0.5)'
+          : 'rgba(79, 105, 136, 0.4)'};
+  box-shadow: ${({ $active, $accentRgb }) =>
     $active
-      ? '0 0 0 1px rgba(223, 180, 96, 0.24)'
-      : $batchRgb
-        ? `inset 3px 0 0 rgb(${$batchRgb})`
+      ? `inset 4px 0 0 rgb(${$accentRgb || '119, 213, 255'}), 0 0 0 1px rgba(${$accentRgb || '119, 213, 255'}, 0.22)`
+      : $accentRgb
+        ? `inset 3px 0 0 rgb(${$accentRgb})`
         : 'none'};
+  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    inset: -1px;
+    border: 1px solid rgba(var(--activity-accent-rgb), 0.9);
+    border-radius: 9px;
+    box-shadow: 0 0 13px rgba(var(--activity-accent-rgb), 0.36);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  ${({ $active }) =>
+    $active &&
+    css`
+      &::after {
+        animation: ${activitySelectionPulse} 2.8s ease-in-out infinite;
+      }
+    `}
 
   &:hover {
     ${({ $clickable }) => ($clickable ? 'filter: brightness(1.07);' : '')}
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &::after {
+      animation: none;
+      opacity: ${({ $active }) => ($active ? 0.56 : 0)};
+    }
   }
 `;
 
@@ -176,12 +281,21 @@ const Thumb = styled.div`
   border-radius: 7px;
   border: 1px solid rgba(88, 129, 173, 0.5);
   overflow: hidden;
-  background: rgba(12, 19, 30, 0.94);
+  background: ${({ $missing }) =>
+    $missing
+      ? `
+        linear-gradient(
+          135deg,
+          transparent 46%,
+          rgba(128, 205, 218, 0.34) 47%,
+          rgba(128, 205, 218, 0.34) 53%,
+          transparent 54%
+        ),
+        rgba(12, 19, 30, 0.94)
+      `
+      : 'rgba(12, 19, 30, 0.94)'};
   display: grid;
   place-items: center;
-  color: #99b6d4;
-  font-size: 0.56rem;
-  text-transform: uppercase;
 `;
 
 const ThumbImage = styled.img`
@@ -197,14 +311,11 @@ const RowBody = styled.div`
 `;
 
 const Primary = styled.div`
+  min-width: 0;
   font-size: 0.8rem;
   line-height: 1.24;
   font-weight: 600;
   overflow-wrap: anywhere;
-  display: grid;
-  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
-  align-items: baseline;
-  gap: 0.24rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_SM};
@@ -220,10 +331,8 @@ const PrimaryItem = styled.span`
 
 const PrimaryDestination = styled.span`
   min-width: 0;
-  color: #c5d9ee;
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.18rem;
+  color: ${({ $accentRgb }) => `rgb(${$accentRgb || '197, 217, 238'})`};
+  margin-left: 0.24rem;
   overflow-wrap: anywhere;
 `;
 
@@ -231,32 +340,36 @@ const Meta = styled.div`
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.24rem;
+  gap: 0.08rem 0.28rem;
 `;
 
-const MetaText = styled.span`
+const MetaToken = styled.span`
+  display: inline-block;
+  min-width: 0;
   color: #8ea6be;
   font-size: 0.64rem;
   line-height: 1.2;
+  white-space: nowrap;
+
+  & + &::before {
+    content: '·';
+    color: #6f89a3;
+    margin-right: 0.28rem;
+  }
 `;
 
-const MetaSep = styled.span`
-  color: #6f89a3;
-  font-size: 0.62rem;
-  line-height: 1;
+const ExactTimeToken = styled(MetaToken)`
+  color: #94adc7;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.61rem;
 `;
 
-const Arrow = styled.span`
-  color: #7f98b0;
-  font-weight: 500;
-`;
-
-const QtyValue = styled.span`
+const QuantityToken = styled(MetaToken)`
   color: #adc3d9;
-  font-weight: 650;
+  font-weight: 700;
 `;
 
-const LocatorToken = styled.span`
+const LocatorToken = styled(MetaToken)`
   color: ${({ $boxNeonRgb }) => `rgba(${$boxNeonRgb || '119, 213, 255'}, 1)`};
   text-shadow: ${({ $boxNeonRgb }) => `0 0 6px rgba(${$boxNeonRgb || '119, 213, 255'}, 0.34)`};
   font-size: 0.69rem;
@@ -266,12 +379,20 @@ const LocatorToken = styled.span`
   white-space: nowrap;
 `;
 
-const BatchToken = styled.span`
-  color: ${({ $batchRgb }) => ($batchRgb ? `rgb(${$batchRgb})` : '#9db2c7')};
+const BatchToken = styled(MetaToken)`
+  color: ${({ $accentRgb }) => ($accentRgb ? `rgb(${$accentRgb})` : '#9db2c7')};
   font-size: 0.62rem;
   line-height: 1.2;
   font-weight: 780;
-  overflow-wrap: anywhere;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  white-space: normal;
+`;
+
+const Arrow = styled.span`
+  color: #7f98b0;
+  font-weight: 500;
+  margin-right: 0.18rem;
 `;
 
 const StateText = styled.div`
@@ -293,18 +414,17 @@ function getItemTimestamp(item) {
   return 0;
 }
 
-function formatFullTimestamp(timestamp) {
-  if (!timestamp) return 'unknown time';
+function formatCompactTimestamp(timestamp) {
+  if (!timestamp) return 'time unknown';
 
-  return new Intl.DateTimeFormat(undefined, {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).format(timestamp);
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return 'time unknown';
+
+  const pad = (value) => String(value).padStart(2, '0');
+  return [
+    `${pad(date.getMonth() + 1)}/${pad(date.getDate())}/${String(date.getFullYear()).slice(-2)}`,
+    `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`,
+  ].join(' ');
 }
 
 function formatRelativeTime(timestamp) {
@@ -313,19 +433,19 @@ function formatRelativeTime(timestamp) {
   const now = Date.now();
   const diffMs = Math.max(0, now - timestamp);
   const seconds = Math.floor(diffMs / 1000);
-  if (seconds < 10) return 'just now';
-  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 10) return 'now';
+  if (seconds < 60) return `${seconds}s`;
 
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return `${minutes}m`;
 
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return `${hours}h`;
 
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
+  if (days < 7) return `${days}d`;
 
-  return `${Math.floor(days / 7)}w ago`;
+  return `${Math.floor(days / 7)}w`;
 }
 
 function getItemDestination(item, boxLookup) {
@@ -392,6 +512,31 @@ function getItemImageUrl(item) {
   );
 }
 
+function matchesActivitySearch(item, query) {
+  const terms = String(query || '')
+    .trim()
+    .toLocaleLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (terms.length === 0) return true;
+
+  const destination = item?.box && typeof item.box === 'object' ? item.box : {};
+  const searchableText = [
+    item?.name,
+    item?.category,
+    item?.description,
+    item?.notes,
+    item?.boxId,
+    destination?.box_id,
+    destination?.label,
+    ...(Array.isArray(item?.tags) ? item.tags : []),
+  ]
+    .map((value) => String(value || '').toLocaleLowerCase())
+    .join(' ');
+
+  return terms.every((term) => searchableText.includes(term));
+}
+
 export default function IntakeRecentActivity({
   items = [],
   boxLookup,
@@ -417,77 +562,105 @@ export default function IntakeRecentActivity({
     }),
   );
   const filtersActive = selectedBatchSet.size > 0 || onlyOrphanedItems;
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const filterTriggerRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const filterSummary = [
+    onlyOrphanedItems ? 'Orphaned' : '',
+    selectedBatchSet.size
+      ? `${selectedBatchSet.size} batch${selectedBatchSet.size === 1 ? '' : 'es'}`
+      : '',
+  ].filter(Boolean).join(' · ') || 'All activity';
+
+  const closeFilters = useCallback(() => {
+    setFiltersOpen(false);
+    if (typeof window === 'undefined') return;
+    window.requestAnimationFrame(() => filterTriggerRef.current?.focus());
+  }, []);
+
+  const matchingItems = useMemo(
+    () => (Array.isArray(items) ? items.filter((item) => matchesActivitySearch(item, searchQuery)) : []),
+    [items, searchQuery],
+  );
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    searchInputRef.current?.focus();
+  }, [searchOpen]);
+
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false);
+    setSearchQuery('');
+    if (typeof window === 'undefined') return;
+    window.requestAnimationFrame(() => filterTriggerRef.current?.focus());
+  }, []);
 
   return (
-    <Panel>
-      <Header>
-        <Title>Recent Intake Activity</Title>
-        <Counter>{items.length}</Counter>
-      </Header>
+    <>
+      <Panel>
+        <Header>
+          <Title>Recent Intake Activity</Title>
+          <Counter aria-live="polite">{matchingItems.length}</Counter>
+        </Header>
 
-      <Controls>
-        <ControlRow>
-          <ToggleButton
-            type="button"
-            $active={onlyOrphanedItems}
-            onClick={onToggleOnlyOrphaned}
-          >
-            Orphaned Only
-          </ToggleButton>
+        <FilterLauncher>
+          <ControlGroup>
+            {searchOpen ? (
+              <SearchField>
+                <SearchInput
+                  ref={searchInputRef}
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') closeSearch();
+                  }}
+                  placeholder="Search activity"
+                  aria-label="Search intake activity"
+                />
+                <SearchCloseButton type="button" onClick={closeSearch} aria-label="Close activity search">
+                  ×
+                </SearchCloseButton>
+              </SearchField>
+            ) : (
+              <>
+              <FilterButton
+                ref={filterTriggerRef}
+                type="button"
+                aria-controls="intake-activity-filters"
+                aria-expanded={filtersOpen}
+                onClick={() => setFiltersOpen(true)}
+              >
+                <FilterSummary $active={filtersActive}>{filterSummary}</FilterSummary>
+                <FilterChevron aria-hidden="true">⌃</FilterChevron>
+              </FilterButton>
+              <SearchButton type="button" onClick={() => setSearchOpen(true)} aria-label="Search intake activity">
+                <span aria-hidden="true">⌕</span>
+              </SearchButton>
+              </>
+            )}
+          </ControlGroup>
+        </FilterLauncher>
 
-          {filtersActive ? (
-            <ToggleButton type="button" onClick={onClearFilters}>
-              Clear Filters
-            </ToggleButton>
-          ) : null}
-        </ControlRow>
-
-        {batchOptions.length > 0 ? (
-          <ControlRow>
-            {batchOptions.map((batch, index) => {
-              const batchId = String(batch?.id || '').trim();
-              const accentRgb = batchToneMap.get(batchId) || getBatchAccentRgb(index);
-              const active = selectedBatchSet.has(batchId);
-              const batchLabel = batch?.label || batchId;
-              const countLabel = onlyOrphanedItems
-                ? `${batch?.orphanedCount || 0} orphaned of ${batch?.count || 0} total`
-                : `${batch?.count || 0} items`;
-
-              return (
-                <BatchChip
-                  key={batchId}
-                  type="button"
-                  $active={active}
-                  $accentRgb={accentRgb}
-                  aria-pressed={active}
-                  aria-label={`Toggle batch ${batchLabel}, ${countLabel}`}
-                  title={`${batchLabel} · ${countLabel}`}
-                  onClick={() => onToggleBatch?.(batchId)}
-                >
-                  <ChipLabel>{batchLabel}</ChipLabel>
-                  <ChipCount>
-                    {onlyOrphanedItems ? `${batch?.orphanedCount || 0}/${batch?.count || 0}` : batch?.count || 0}
-                  </ChipCount>
-                </BatchChip>
-              );
-            })}
-          </ControlRow>
-        ) : null}
-      </Controls>
-
-      <Body>
+        <Body>
         {loading ? <StateText>Loading recent activity…</StateText> : null}
         {!loading && error ? <StateText $error>{error}</StateText> : null}
 
-        {!loading && !error && items.length === 0 ? (
+        {!loading && !error && matchingItems.length === 0 ? (
           <StateText>
-            {filtersActive ? 'No intake activity matches the active filters.' : 'No recent intake activity yet.'}
+            {searchQuery.trim()
+              ? 'No intake activity matches this search.'
+              : filtersActive
+                ? 'No intake activity matches the active filters.'
+                : 'No recent intake activity yet.'}
           </StateText>
         ) : null}
 
         {!loading &&
           !error &&
-          items.map((item) => {
+          matchingItems.map((item) => {
             const timestamp = getItemTimestamp(item);
             const destination = getItemDestination(item, boxLookup);
             const itemName = item?.name || 'Unnamed item';
@@ -502,13 +675,14 @@ export default function IntakeRecentActivity({
             const batchId = getItemBatchId(item);
             const batchLabel = getItemBatchLabel(item);
             const batchRgb = batchId ? batchToneMap.get(batchId) || '' : '';
+            const activityAccentRgb = boxTones.primaryRgb || batchRgb;
 
             return (
               <Row
                 key={item?._id || `${item?.name || 'item'}-${timestamp}`}
                 $clickable={clickable}
                 $active={isActive}
-                $batchRgb={batchRgb}
+                $accentRgb={activityAccentRgb}
                 role={clickable ? 'button' : undefined}
                 tabIndex={clickable ? 0 : undefined}
                 onClick={() => {
@@ -522,46 +696,51 @@ export default function IntakeRecentActivity({
                   onMoveItem?.(itemId);
                 }}
               >
-                <Thumb>
-                  {imageUrl ? <ThumbImage src={imageUrl} alt="" /> : 'No Img'}
+                <Thumb $missing={!imageUrl} aria-hidden={!imageUrl}>
+                  {imageUrl ? <ThumbImage src={imageUrl} alt="" /> : null}
                 </Thumb>
 
                 <RowBody>
                   <Primary>
                     <PrimaryItem>{itemName}</PrimaryItem>
-                    <PrimaryDestination>
+                    <PrimaryDestination $accentRgb={activityAccentRgb}>
                       <Arrow>→</Arrow>
                       <span>{destination.label}</span>
                     </PrimaryDestination>
                   </Primary>
                   <Meta>
-                    <MetaText>{formatRelativeTime(timestamp)}</MetaText>
-                    <MetaSep>•</MetaSep>
-                    <MetaText>{formatFullTimestamp(timestamp)}</MetaText>
-                    <MetaSep>•</MetaSep>
-                    <MetaText>qty <QtyValue>{quantity}</QtyValue></MetaText>
+                    <MetaToken>{formatRelativeTime(timestamp)}</MetaToken>
+                    <ExactTimeToken>{formatCompactTimestamp(timestamp)}</ExactTimeToken>
+                    <QuantityToken>×{quantity}</QuantityToken>
                     {boxToken ? (
-                      <>
-                        <MetaSep>•</MetaSep>
-                        <LocatorToken $boxNeonRgb={boxTones.neonRgb}>
-                          {boxToken}
-                        </LocatorToken>
-                      </>
+                      <LocatorToken $boxNeonRgb={boxTones.neonRgb}>
+                        {boxToken}
+                      </LocatorToken>
                     ) : null}
                     {batchLabel ? (
-                      <>
-                        <MetaSep>•</MetaSep>
-                        <BatchToken $batchRgb={batchRgb}>
-                          {batchLabel}
-                        </BatchToken>
-                      </>
+                      <BatchToken $accentRgb={activityAccentRgb}>
+                        {batchLabel}
+                      </BatchToken>
                     ) : null}
                   </Meta>
                 </RowBody>
               </Row>
             );
           })}
-      </Body>
-    </Panel>
+        </Body>
+      </Panel>
+
+      <IntakeActivityFiltersSheet
+        open={filtersOpen}
+        batchOptions={batchOptions}
+        batchToneMap={batchToneMap}
+        selectedBatchIds={selectedBatchIds}
+        onlyOrphanedItems={onlyOrphanedItems}
+        onToggleBatch={onToggleBatch}
+        onToggleOnlyOrphaned={onToggleOnlyOrphaned}
+        onClearFilters={onClearFilters}
+        onClose={closeFilters}
+      />
+    </>
   );
 }

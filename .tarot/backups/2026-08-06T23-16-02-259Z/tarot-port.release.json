@@ -1,0 +1,33 @@
+{
+  "name": "Tarot Port",
+  "version": "1.9.0",
+  "channel": "stable",
+  "files": [
+    "scripts/tarot-dock.mjs",
+    "scripts/tarot-agent.mjs",
+    "scripts/tarot-update.mjs",
+    "scripts/tarot-install.mjs",
+    "scripts/tarot-static-server.mjs",
+    "scripts/tarot-terminal-storm.py",
+    "scripts/tarot-runtime/persistence.mjs",
+    "scripts/tarot-runtime/state.mjs",
+    "scripts/tarot-runtime/manifest.mjs",
+    "scripts/tarot-runtime/log-store.mjs",
+    "scripts/tarot-runtime/ipc.mjs",
+    "scripts/tarot-runtime/diagnostics.mjs"
+  ],
+  "hashes": {
+    "scripts/tarot-dock.mjs": "5d6fc6f3a24ef37123469a9b0a2236f2869e03ccdbc203b147c8f8b19eb78975",
+    "scripts/tarot-agent.mjs": "4825ebf3b1a996b571bd803b4302186671827b0fa10da4685b831f0c6d9b649c",
+    "scripts/tarot-update.mjs": "9573b257b37a57f06b39c917e7b5a7b0d25dfdff64e90c716d4833056a92f5f3",
+    "scripts/tarot-install.mjs": "15f75212eeff578800705743b854d76acebc720071e950e22e104c9e55615469",
+    "scripts/tarot-static-server.mjs": "2c54049372ea4ada6a82dd2dccd52b77e0d883d5659cfb75be67c75c02a1d616",
+    "scripts/tarot-terminal-storm.py": "7f70f8d53603b95f29deb459dbf4ff0c62600f4d8b9c8ec8979e89a4c165d181",
+    "scripts/tarot-runtime/persistence.mjs": "a4ae2bd5505315fa95a155271ff9b5e8cc767c0ebc2dafb6b7bea7fe49f42435",
+    "scripts/tarot-runtime/state.mjs": "1d6efed9c4f92dc6d67410e42ac9ca4073bec42450b665a70a2850e1ae2486d1",
+    "scripts/tarot-runtime/manifest.mjs": "e28d745e40c2df2e80d98166897461cc38374bf4fc9d3989a0c70f70e61764c6",
+    "scripts/tarot-runtime/log-store.mjs": "83696d3adb3476d47c5c56261860f771e7a530c077dc8214737947ec9ba66732",
+    "scripts/tarot-runtime/ipc.mjs": "40d13a33a688f9c7c20eb1bdfefa06ebef306539b2656e899ceca2a236d69817",
+    "scripts/tarot-runtime/diagnostics.mjs": "4d97fa23168ca9bd561afc7cd68370f95ad83f9573e87f01d92207fb77b1aa56"
+  }
+}

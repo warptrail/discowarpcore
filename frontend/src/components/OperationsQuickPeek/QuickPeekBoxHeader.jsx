@@ -4,6 +4,7 @@ import * as S from './OperationsQuickPeek.styles';
 export default function QuickPeekBoxHeader({
   box,
   imageUrl,
+  description,
   position,
   total,
   expanded,
@@ -11,6 +12,9 @@ export default function QuickPeekBoxHeader({
   canSelectNext,
   onPrevious,
   onNext,
+  onClose,
+  itemFocused = false,
+  onReturnToItems,
   onToggleExpanded,
   onPointerDown,
   onPointerUp,
@@ -19,8 +23,10 @@ export default function QuickPeekBoxHeader({
   searchQuery,
   onSearchChange,
   onSearchClose,
+  onSearchScroll,
 }) {
   const searchInputRef = useRef(null);
+  const searchScrollGestureRef = useRef(null);
   const boxId = String(box?.box_id || '').trim();
   const label = String(box?.label || box?.name || 'Untitled box').trim();
   const location = String(box?.location || '').trim();
@@ -42,7 +48,49 @@ export default function QuickPeekBoxHeader({
     searchInputRef.current?.focus({ preventScroll: true });
   }, [searchOpen]);
 
-  const stopSearchPointerEvent = (event) => event.stopPropagation();
+  const handleSearchPointerDown = (event) => {
+    event.stopPropagation();
+    if (event.pointerType !== 'touch') return;
+    searchScrollGestureRef.current = {
+      pointerId: event.pointerId,
+      lastY: event.clientY,
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+
+  const handleSearchPointerMove = (event) => {
+    event.stopPropagation();
+    const gesture = searchScrollGestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+
+    const deltaY = gesture.lastY - event.clientY;
+    if (Math.abs(deltaY) < 1) return;
+    event.preventDefault();
+    gesture.lastY = event.clientY;
+    onSearchScroll?.(deltaY);
+  };
+
+  const finishSearchPointerGesture = (event) => {
+    event.stopPropagation();
+    if (searchScrollGestureRef.current?.pointerId === event.pointerId) {
+      searchScrollGestureRef.current = null;
+    }
+  };
+
+  const handleSearchWheel = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onSearchScroll?.(event.deltaY);
+  };
+
+  const handleCloseEdgeClick = (event) => {
+    event.stopPropagation();
+    if (itemFocused) {
+      onReturnToItems?.();
+      return;
+    }
+    onClose?.();
+  };
 
   return (
     <S.DeckCap
@@ -62,9 +110,11 @@ export default function QuickPeekBoxHeader({
         <S.QuickPeekSearchDock
           role="search"
           aria-label={`Search direct items in box ${boxId}`}
-          onPointerDown={stopSearchPointerEvent}
-          onPointerUp={stopSearchPointerEvent}
-          onPointerCancel={stopSearchPointerEvent}
+          onPointerDown={handleSearchPointerDown}
+          onPointerMove={handleSearchPointerMove}
+          onPointerUp={finishSearchPointerGesture}
+          onPointerCancel={finishSearchPointerGesture}
+          onWheel={handleSearchWheel}
         >
           <S.QuickPeekSearchGlyph aria-hidden="true">⌕</S.QuickPeekSearchGlyph>
           <S.QuickPeekSearchInput
@@ -113,18 +163,25 @@ export default function QuickPeekBoxHeader({
           ‹
         </S.CapIconButton>
 
-        <S.BoxIdentity $expanded={expanded} aria-hidden={!expanded}>
-          <S.BoxTitleLine>
-            <S.BoxId>#{boxId}</S.BoxId>
-            <S.BoxName>{label}</S.BoxName>
-          </S.BoxTitleLine>
-          <S.BoxContextLine>
-            <S.BoxLocation>{location || 'Location not recorded'}</S.BoxLocation>
-            <S.PositionReadout>
-              {position} / {total}
-            </S.PositionReadout>
-          </S.BoxContextLine>
-        </S.BoxIdentity>
+        <S.CapIdentityStack>
+          <S.BoxIdentity $expanded={expanded} aria-hidden={!expanded}>
+            <S.BoxTitleLine>
+              <S.BoxId>#{boxId}</S.BoxId>
+              <S.BoxName>{label}</S.BoxName>
+            </S.BoxTitleLine>
+            <S.BoxContextLine>
+              <S.BoxLocation>{location || 'Location not recorded'}</S.BoxLocation>
+              <S.PositionReadout>
+                {position} / {total}
+              </S.PositionReadout>
+            </S.BoxContextLine>
+          </S.BoxIdentity>
+          {description ? (
+            <S.CapDescription title={description}>
+              {description}
+            </S.CapDescription>
+          ) : null}
+        </S.CapIdentityStack>
 
         <S.CapIconButton
           type="button"
@@ -135,6 +192,19 @@ export default function QuickPeekBoxHeader({
           ›
         </S.CapIconButton>
       </S.CapNavigation>
+
+      <S.CollapseEdgeButton
+        type="button"
+        $itemFocused={itemFocused}
+        aria-label={itemFocused ? 'Return to box item list' : 'Close box quick peek from navigation edge'}
+        data-quick-peek-close-edge
+        onClick={handleCloseEdgeClick}
+        onPointerDown={(event) => event.stopPropagation()}
+        onPointerUp={(event) => event.stopPropagation()}
+        onPointerCancel={(event) => event.stopPropagation()}
+      >
+        <S.CollapseEdgeHandle aria-hidden="true" />
+      </S.CollapseEdgeButton>
     </S.DeckCap>
   );
 }

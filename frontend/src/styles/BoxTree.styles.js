@@ -16,10 +16,11 @@ import {
 export * from './Lists.shared.styles';
 
 export const RailBack = styled(SharedRailBack)`
-  background: var(--box-primary, #7fd7ff);
+  background: rgba(var(--box-primary-rgb, 127, 215, 255), 0.18);
+  border: 1px solid rgba(var(--box-primary-rgb, 127, 215, 255), 0.32);
   filter: drop-shadow(
-    0 0 ${({ $isRoot }) => ($isRoot ? '3px' : '2px')}
-      rgba(var(--box-primary-rgb, 127, 215, 255), 0.18)
+    0 0 ${({ $isRoot }) => ($isRoot ? '5px' : '3px')}
+      rgba(var(--box-primary-rgb, 127, 215, 255), 0.1)
   );
 `;
 
@@ -61,16 +62,12 @@ export const FinderRevealContent = styled.div`
 
 export const RailFront = styled(SharedRailFront)`
   padding-left: ${({ $isRoot }) => ($isRoot ? '0.58rem' : '0.48rem')};
-  background:
-    linear-gradient(
-      var(--box-wash-angle, 140deg),
-      rgba(var(--box-primary-rgb, 127, 215, 255), 0.055),
-      rgba(12, 15, 17, 0.94) 42%,
-      rgba(12, 15, 17, 0.9) 100%
-    );
+  background: rgba(12, 15, 17, 0.97);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding-left: ${({ $isRoot }) => ($isRoot ? '0.36rem' : '0.32rem')};
+    background: rgba(12, 15, 17, 0.97);
   }
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
@@ -103,6 +100,99 @@ export const TreeSectionTitle = styled(SectionTitle)`
     margin-top: 0.28rem;
     margin-bottom: 0.16rem;
   }
+`;
+
+export const TreeSectionHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+
+  ${TreeSectionTitle} {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+`;
+
+export const AsciiTree = styled.section`
+  min-width: 0;
+  margin-top: 0.18rem;
+  padding: 0 0.12rem 0.22rem;
+  color: rgba(211, 228, 233, 0.86);
+`;
+
+export const AsciiBranch = styled.div`
+  margin: 0.18rem 0 0.1rem;
+  padding: 0.34rem 0.42rem 0.38rem;
+  border-left: 1px solid rgba(76, 198, 193, 0.28);
+  background: rgba(7, 13, 19, 0.32);
+  font: 600 0.75rem/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  overflow-x: auto;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.26rem 0.28rem 0.3rem;
+    font-size: 0.68rem;
+  }
+`;
+
+export const AsciiLine = styled.div`
+  display: flex;
+  align-items: baseline;
+  min-width: max-content;
+  min-height: 1.45rem;
+  padding-left: ${({ $depth = 0 }) => `${Math.min($depth, 8) * 0.18}rem`};
+`;
+
+export const AsciiPrefix = styled.span`
+  color: rgba(127, 215, 255, 0.62);
+  white-space: pre;
+  user-select: none;
+`;
+
+export const AsciiBoxLabel = styled.span`
+  color: rgba(229, 245, 247, 0.94);
+  font-weight: 800;
+`;
+
+export const AsciiItemButton = styled.button`
+  display: inline-flex;
+  align-items: baseline;
+  min-width: max-content;
+  min-height: 1.45rem;
+  padding: 0;
+  border: 0;
+  color: ${({ $active }) => ($active ? 'rgba(225, 255, 250, 0.98)' : 'rgba(197, 214, 220, 0.78)')};
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    color: rgba(225, 255, 250, 0.98);
+  }
+
+  &:focus-visible {
+    outline: 1px solid rgba(127, 215, 255, 0.72);
+    outline-offset: 3px;
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+`;
+
+export const AsciiLabel = styled.span`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+export const AsciiMeta = styled.span`
+  margin-left: 0.55rem;
+  color: rgba(167, 139, 250, 0.74);
+  font-size: 0.88em;
 `;
 
 export const TreeBoxIdChip = styled.span`

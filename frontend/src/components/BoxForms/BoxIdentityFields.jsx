@@ -3,6 +3,7 @@ import * as S from './BoxEditForm.styles';
 import BoxLocationField from './BoxLocationField';
 import BoxTagsField from './BoxTagsField';
 import BoxGroupField from './BoxGroupField';
+import { getBoxTheme } from '../../util/inventoryColorTheme';
 
 export default function BoxIdentityFields({
   compact = false,
@@ -39,6 +40,13 @@ export default function BoxIdentityFields({
     return null;
   }
 
+  const hasCompleteShortId = /^\d{3}$/.test(String(shortId || '').trim());
+  const shortIdTheme = hasCompleteShortId ? getBoxTheme(shortId) : null;
+  const shortIdPaletteProps = {
+    $palette: shortIdTheme?.primary || '',
+    $paletteRgb: shortIdTheme?.primaryRgb || '',
+  };
+
   if (compact) {
     return (
       <S.IdentityCompactGrid>
@@ -66,6 +74,7 @@ export default function BoxIdentityFields({
                       : 'default'
             }
             $compact
+            {...shortIdPaletteProps}
           />
           {shortIdChecking && <S.Hint $compact>Checking availability…</S.Hint>}
           {!shortIdValid && (
@@ -155,6 +164,7 @@ export default function BoxIdentityFields({
                         : 'default'
               }
               $compact={compact}
+              {...shortIdPaletteProps}
             />
             {shortIdChecking && <S.Hint $compact={compact}>Checking availability…</S.Hint>}
             {!shortIdValid && (

@@ -13,6 +13,7 @@ import {
   matchesBoxIdPrefix,
   normalizeBoxId,
 } from '../util/boxLocator';
+import { DECLUTTER_BOX_PURPOSE_LABELS } from '../util/declutterBoxPurpose';
 
 const MAX_PREFIX_LENGTH = 6;
 const RECENT_DEST_LIMIT = 5;
@@ -230,6 +231,8 @@ const MetaPill = styled.span`
 
 const StatusHint = styled(MetaPill)`
   margin-top: 0.44rem;
+  width: fit-content;
+  border-radius: 2px;
 `;
 
 const LevelPill = styled(MetaPill)`
@@ -258,6 +261,15 @@ const RecentPill = styled(MetaPill)`
   text-transform: uppercase;
 `;
 
+const SuggestedPill = styled(MetaPill)`
+  border-radius: 2px;
+  border-color: rgba(255, 184, 84, 0.62);
+  background: rgba(255, 160, 42, 0.11);
+  color: #ffd493;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+`;
+
 export default function MoveItemToOtherBox({
   itemId,
   itemIds,
@@ -265,6 +277,9 @@ export default function MoveItemToOtherBox({
   onBoxSelected, // ({ destBoxId, destLabel, destShortId, isOrphanedDestination, toState }) => void
   showOrphanOption = true,
   showRecentDestinations = true,
+  suggestedPurpose = '',
+  suggestedOnly = false,
+  disabled = false,
 }) {
   const [otherBoxes, setOtherBoxes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -423,7 +438,7 @@ export default function MoveItemToOtherBox({
   const handleSelectOrphaned = () => {
     onBoxSelected?.({
       destBoxId: null,
-      destLabel: 'No Box (Orphan)',
+      destLabel: 'Items Adrift',
       destShortId: null,
       isOrphanedDestination: true,
       toState: 'orphaned',
@@ -479,6 +494,13 @@ export default function MoveItemToOtherBox({
     );
   }, [boxIdPrefix, normalizedBoxes]);
 
+  const suggestedBoxes = useMemo(() => {
+    if (!suggestedPurpose) return [];
+    return filteredBoxes
+      .filter((box) => box?.declutterPurpose === suggestedPurpose)
+      .sort((left, right) => Number(Boolean(right?.declutterIsDefault)) - Number(Boolean(left?.declutterIsDefault)));
+  }, [filteredBoxes, suggestedPurpose]);
+
   const recentBoxes = useMemo(() => {
     if (!recentDestinations.length || !filteredBoxes.length) return [];
     const byMongoId = new Map(
@@ -487,34 +509,45 @@ export default function MoveItemToOtherBox({
         .map((box) => [String(box._id), box]),
     );
 
+    const suggestedIds = new Set(
+      suggestedBoxes.map((box) => String(box?._id || '')).filter(Boolean),
+    );
     return recentDestinations
       .map((entry) => byMongoId.get(String(entry.boxMongoId || '')))
-      .filter(Boolean)
+      .filter((box) => box && !suggestedIds.has(String(box._id || '')))
       .slice(0, RECENT_DEST_LIMIT);
-  }, [filteredBoxes, recentDestinations]);
+  }, [filteredBoxes, recentDestinations, suggestedBoxes]);
 
   const remainingBoxes = useMemo(() => {
-    if (!recentBoxes.length) return filteredBoxes;
-    const recentIds = new Set(
-      recentBoxes.map((box) => String(box?._id || '').trim()).filter(Boolean),
+    if (suggestedOnly) return [];
+    const promotedIds = new Set(
+      [...suggestedBoxes, ...recentBoxes]
+        .map((box) => String(box?._id || '').trim())
+        .filter(Boolean),
     );
     return filteredBoxes.filter((box) => {
       const id = String(box?._id || '').trim();
       if (!id) return true;
-      return !recentIds.has(id);
+      return !promotedIds.has(id);
     });
-  }, [filteredBoxes, recentBoxes]);
+  }, [filteredBoxes, recentBoxes, suggestedBoxes, suggestedOnly]);
 
   const hasFilter = normalizeBoxId(boxIdPrefix).length > 0;
-  const hasAnyMatches = recentBoxes.length > 0 || remainingBoxes.length > 0;
+  const hasAnyMatches = suggestedBoxes.length > 0
+    || recentBoxes.length > 0
+    || remainingBoxes.length > 0;
 
-  const renderBoxItem = (box, { isRecent = false } = {}) => (
+  const renderBoxItem = (box, { isRecent = false, isSuggested = false } = {}) => (
     <BoxItem
       key={box._id || `${box.box_id}-${box.label}`}
       role="button"
-      tabIndex={0}
-      onClick={() => handleSelect(box)}
+      tabIndex={disabled ? -1 : 0}
+      aria-disabled={disabled}
+      onClick={() => {
+        if (!disabled) handleSelect(box);
+      }}
       onKeyDown={(e) => {
+        if (disabled) return;
         if (e.key !== 'Enter' && e.key !== ' ') return;
         e.preventDefault();
         handleSelect(box);
@@ -525,6 +558,7 @@ export default function MoveItemToOtherBox({
         <BoxName>{box.label || '(Untitled Box)'}</BoxName>
       </BoxIdentityLane>
       <MetaLane>
+        {isSuggested ? <SuggestedPill>{box.declutterIsDefault ? 'Best match' : 'Suggested'}</SuggestedPill> : null}
         {isRecent ? <RecentPill>Recent</RecentPill> : null}
         <MetaPill>
           {box._itemCount} {box._itemCount === 1 ? 'item' : 'items'}
@@ -541,30 +575,52 @@ export default function MoveItemToOtherBox({
 
   return (
     <Container>
-      <FilterPanel>
-        <FilterLabel htmlFor={filterInputIdRef.current}>
-          Destination Box ID
-        </FilterLabel>
-        <BoxIdPrefixInput
-          inputAs={FilterInput}
-          id={filterInputIdRef.current}
-          namePrefix="move_box_locator"
-          maxLength={MAX_PREFIX_LENGTH}
-          value={boxIdPrefix}
-          onChange={handleFilterChange}
-          placeholder="Type box ID prefix (e.g. 107)"
-          ariaLabel="Destination box ID prefix search"
-        />
-      </FilterPanel>
+      {!suggestedOnly ? (
+        <FilterPanel>
+          <FilterLabel htmlFor={filterInputIdRef.current}>
+            Destination Box ID
+          </FilterLabel>
+          <BoxIdPrefixInput
+            inputAs={FilterInput}
+            id={filterInputIdRef.current}
+            namePrefix="move_box_locator"
+            maxLength={MAX_PREFIX_LENGTH}
+            value={boxIdPrefix}
+            onChange={handleFilterChange}
+            placeholder="Type box ID prefix (e.g. 107)"
+            ariaLabel="Destination box ID prefix search"
+          />
+        </FilterPanel>
+      ) : null}
+
+      {suggestedBoxes.length > 0 ? (
+        <>
+          <SectionHeading>
+            Suggested // {DECLUTTER_BOX_PURPOSE_LABELS[suggestedPurpose] || 'Departure staging'}
+          </SectionHeading>
+          <BoxList>
+            {suggestedBoxes.map((box) => renderBoxItem(box, { isSuggested: true }))}
+          </BoxList>
+        </>
+      ) : null}
+      {!loading && suggestedPurpose && suggestedBoxes.length === 0 ? (
+        <StatusHint>
+          No {DECLUTTER_BOX_PURPOSE_LABELS[suggestedPurpose]?.toLowerCase() || 'matching staging'} box is configured yet.
+        </StatusHint>
+      ) : null}
 
       {showOrphanOption ? (
         <BoxList>
           <OrphanItem
             key="__orphan-option__"
             role="button"
-            tabIndex={0}
-            onClick={handleSelectOrphaned}
+            tabIndex={disabled ? -1 : 0}
+            aria-disabled={disabled}
+            onClick={() => {
+              if (!disabled) handleSelectOrphaned();
+            }}
             onKeyDown={(e) => {
+              if (disabled) return;
               if (e.key !== 'Enter' && e.key !== ' ') return;
               e.preventDefault();
               handleSelectOrphaned();
@@ -572,10 +628,10 @@ export default function MoveItemToOtherBox({
           >
             <BoxIdentityLane $depth={0}>
               <OrphanIdChip>—</OrphanIdChip>
-              <BoxName>No Box (Orphan)</BoxName>
+              <BoxName>Items Adrift</BoxName>
             </BoxIdentityLane>
             <MetaLane>
-              <OrphanPill>ORPHAN</OrphanPill>
+              <OrphanPill>ADRIFT</OrphanPill>
             </MetaLane>
           </OrphanItem>
         </BoxList>
@@ -594,11 +650,15 @@ export default function MoveItemToOtherBox({
         </>
       ) : null}
 
-      <SectionHeading>
-        {hasFilter ? 'Matching Boxes' : 'All Boxes'}
-      </SectionHeading>
-      {remainingBoxes.length > 0 ? (
-        <BoxList>{remainingBoxes.map((box) => renderBoxItem(box))}</BoxList>
+      {!suggestedOnly ? (
+        <>
+          <SectionHeading>
+            {hasFilter ? 'Matching Boxes' : 'All Boxes'}
+          </SectionHeading>
+          {remainingBoxes.length > 0 ? (
+            <BoxList>{remainingBoxes.map((box) => renderBoxItem(box))}</BoxList>
+          ) : null}
+        </>
       ) : null}
 
       {loading && normalizedBoxes.length === 0 ? (

@@ -2,7 +2,7 @@ import React from 'react';
 
 import BoxTree from '../BoxTree';
 import ItemsFlatList from '../ItemsFlatList';
-import BoxInlineItemActions from './BoxInlineItemActions';
+import BoxDetailActionSection from './BoxDetailActionSection';
 import * as S from './BoxDetailTabContent.styles';
 
 export default function BoxDetailTabContent({
@@ -26,6 +26,7 @@ export default function BoxDetailTabContent({
   searchQuery,
   sortMode,
   onManageBox,
+  viewMode,
 }) {
   if (loading || error || !tree) return null;
 
@@ -47,8 +48,10 @@ export default function BoxDetailTabContent({
           refreshBox={refreshBox}
           searchQuery={searchQuery}
           sortMode={sortMode}
+          viewMode={viewMode}
+          scopeLabel={Array.isArray(tree?.childBoxes) && tree.childBoxes.length > 0 ? 'Tree' : 'List'}
+          onManageBox={onManageBox}
         />
-        <BoxInlineItemActions box={tree} onItemsChanged={refreshBox} />
       </S.TreeTabScope>
     );
   }
@@ -56,38 +59,32 @@ export default function BoxDetailTabContent({
   if (activeTab === 'flat') {
     return (
       <S.FlatTabScope>
-        <S.SectionHeading>
-          <S.SectionTitle>Items</S.SectionTitle>
-          <S.SectionCount>
-            {flatItems.length} {flatItems.length === 1 ? 'item' : 'items'}
-          </S.SectionCount>
-          {typeof onManageBox === 'function' ? (
-            <S.SectionManageButton type="button" onClick={onManageBox} aria-label="Manage box">
-              <S.ManageDot $i={0} /><S.ManageDot $i={1} /><S.ManageDot $i={2} /><S.ManageDot $i={3} />
-            </S.SectionManageButton>
+        <BoxDetailActionSection
+          title="Items"
+          count={flatItems.length}
+          box={tree}
+          onItemsChanged={refreshBox}
+          onManageBox={onManageBox}
+        >
+          {flatItems.length === 0 && searchQuery ? (
+            <S.FlatEmpty>Nothing in this box matches yet. Try one simpler word.</S.FlatEmpty>
           ) : null}
-          <S.SectionRule aria-hidden="true" />
-        </S.SectionHeading>
-        {flatItems.length === 0 && searchQuery ? (
-          <S.FlatEmpty>Nothing in this box matches yet. Try one simpler word.</S.FlatEmpty>
-        ) : null}
 
-        <ItemsFlatList
-          items={flatItems}
-          openItemId={openItemId}
-          onOpenItem={handleOpen}
-          accent={accent}
-          pulsing={pulsing}
-          collapseDurMs={collapseDurMs}
-          effectsById={effectsById}
-          onFlash={handleFlash}
-          showHeader={false}
-          triggerFlash={triggerFlash}
-          onItemSaved={handleItemSaved}
-          refreshBox={refreshBox}
-        />
-
-        <BoxInlineItemActions box={tree} onItemsChanged={refreshBox} />
+          <ItemsFlatList
+            items={flatItems}
+            openItemId={openItemId}
+            onOpenItem={handleOpen}
+            accent={accent}
+            pulsing={pulsing}
+            collapseDurMs={collapseDurMs}
+            effectsById={effectsById}
+            onFlash={handleFlash}
+            showHeader={false}
+            triggerFlash={triggerFlash}
+            onItemSaved={handleItemSaved}
+            refreshBox={refreshBox}
+          />
+        </BoxDetailActionSection>
       </S.FlatTabScope>
     );
   }

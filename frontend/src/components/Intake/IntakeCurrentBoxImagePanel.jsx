@@ -321,7 +321,7 @@ export default function IntakeCurrentBoxImagePanel({
       box={currentBox}
       boxId={boxId}
       title="Box Image"
-      placeholder="Box Image"
+      placeholder="No photo selected"
       messageSubject={`Box #${boxShortId} image`}
       uploadLabel="Upload"
       replaceLabel="Upload"

@@ -18,7 +18,6 @@ export default function EditItemLifecycleSection({
   item,
   disabled = false,
   onMarkGoneRequest,
-  onDeletePermanentlyRequest,
   onReclaimRequest,
 }) {
   const isGone = String(item?.item_status || '').toLowerCase() === 'gone';
@@ -26,13 +25,15 @@ export default function EditItemLifecycleSection({
 
   return (
     <S.LifecycleSection>
-      <S.LifecycleHeader>Inventory Lifecycle</S.LifecycleHeader>
+      <S.LifecycleHeaderRow>
+        <S.LifecycleHeader>
+          <S.LifecycleEyebrow>Lifecycle</S.LifecycleEyebrow>
+          Inventory Lifecycle
+        </S.LifecycleHeader>
+        <S.LifecycleStatusChip $gone={isGone}>{statusLabel}</S.LifecycleStatusChip>
+      </S.LifecycleHeaderRow>
 
       <S.LifecycleMetaGrid>
-        <S.LifecycleMetaRow>
-          <S.LifecycleMetaLabel>Status</S.LifecycleMetaLabel>
-          <S.LifecycleMetaValue>{statusLabel}</S.LifecycleMetaValue>
-        </S.LifecycleMetaRow>
         <S.LifecycleMetaRow>
           <S.LifecycleMetaLabel>Reason</S.LifecycleMetaLabel>
           <S.LifecycleMetaValue>{formatDisposition(item?.disposition)}</S.LifecycleMetaValue>
@@ -48,8 +49,7 @@ export default function EditItemLifecycleSection({
       </S.LifecycleMetaGrid>
 
       <S.FieldHint>
-        Lifecycle changes are restricted to this item page edit form and confirmed in
-        the console.
+        Lifecycle changes are confirmed through the header command console.
       </S.FieldHint>
 
       <S.InlineActions>
@@ -73,16 +73,6 @@ export default function EditItemLifecycleSection({
           </S.SmallActionButton>
         ) : null}
 
-        {typeof onDeletePermanentlyRequest === 'function' ? (
-          <S.SmallActionButton
-            type="button"
-            $tone="danger"
-            disabled={disabled}
-            onClick={onDeletePermanentlyRequest}
-          >
-            Delete Permanently
-          </S.SmallActionButton>
-        ) : null}
       </S.InlineActions>
     </S.LifecycleSection>
   );

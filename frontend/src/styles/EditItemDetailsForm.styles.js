@@ -1,23 +1,15 @@
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_CONTROL_MIN_HEIGHT,
   MOBILE_FONT_SM,
   MOBILE_FONT_XS,
-  MOBILE_PANEL_RADIUS,
 } from './tokens';
 
 const LCARS = {
-  panel: '#11161f',
-  panelSoft: '#171e2a',
   inset: '#0b1018',
-  line: 'rgba(130, 168, 196, 0.36)',
   text: '#e6edf4',
-  textDim: 'rgba(214, 226, 241, 0.8)',
   teal: '#4cc6c1',
-  coral: '#f08a7b',
-  amber: '#e8b15c',
-  lilac: '#a7b6ff',
 };
 
 const disabledStyles = `
@@ -26,135 +18,164 @@ const disabledStyles = `
 `;
 
 export const Form = styled.form`
-  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
   min-width: 0;
+  width: 100%;
   max-width: 100%;
-  padding: 1rem;
-  border-radius: 14px;
-  border: 1px solid ${LCARS.line};
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 34%),
-    ${LCARS.panel};
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
-    0 14px 28px rgba(0, 0, 0, 0.24);
-  overflow: hidden;
-  isolation: isolate;
-
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    pointer-events: none;
-  }
-
-  &::before {
-    left: 0.9rem;
-    right: 0.9rem;
-    top: 0.65rem;
-    height: 5px;
-    border-radius: 999px;
-    background: linear-gradient(
-      90deg,
-      ${LCARS.coral} 0 17%,
-      transparent 17% 21%,
-      ${LCARS.teal} 21% 56%,
-      transparent 56% 62%,
-      ${LCARS.amber} 62% 82%,
-      transparent 82% 86%,
-      ${LCARS.lilac} 86% 100%
-    );
-    opacity: 0.62;
-  }
-
-  &::after {
-    left: 0;
-    top: 1.15rem;
-    bottom: 1.15rem;
-    width: 8px;
-    border-radius: 0 999px 999px 0;
-    background: linear-gradient(180deg, ${LCARS.teal}, ${LCARS.lilac} 58%, ${LCARS.coral});
-    opacity: 0.48;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    gap: 0.72rem;
-    padding: 0.72rem 0.64rem 0.68rem;
-    border-radius: ${MOBILE_PANEL_RADIUS};
-    box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, 0.02),
-      0 7px 14px rgba(0, 0, 0, 0.2);
-
-    &::before {
-      left: 0.65rem;
-      right: 0.65rem;
-      top: 0.46rem;
-      height: 3px;
-      opacity: 0.42;
-    }
-
-    &::after {
-      top: 0.72rem;
-      bottom: 0.72rem;
-      width: 5px;
-      opacity: 0.36;
-    }
-  }
 `;
 
 export const Fieldset = styled.fieldset`
-  position: relative;
-  z-index: 1;
   border: 0;
   padding: 0;
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.95rem;
+  gap: 0.72rem;
 
   &:disabled {
     opacity: 0.66;
     pointer-events: none;
   }
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    gap: 0.65rem;
-  }
+  @media (max-width: 599px) { gap: 0.6rem; }
+`;
+
+export const CarouselShell = styled.section`
+  display: grid;
+  gap: 0.72rem;
+  min-width: 0;
+`;
+
+export const CarouselCap = styled.header`
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  min-height: 52px;
+  padding: 0.36rem 0 0.5rem;
+  border-bottom: 1px solid rgba(169, 187, 207, 0.16);
+  background: rgba(9, 13, 19, 0.94);
+  backdrop-filter: blur(12px);
+`;
+
+export const CarouselTitle = styled.h3`
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+  margin: 0;
+  color: #e7f3f8;
+  font-size: 0.92rem;
+  font-weight: 720;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+`;
+
+export const CarouselDirty = styled.span`
+  color: ${({ $dirty }) => ($dirty ? '#e7c17d' : 'rgba(214, 226, 241, 0.46)')};
+  font: 700 0.55rem/1.1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+`;
+
+export const CarouselControls = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  flex: 0 0 auto;
+`;
+
+export const CarouselArrow = styled.button`
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  color: rgba(218, 232, 240, 0.76);
+  background: transparent;
+  font-size: 1.38rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 180ms ease, background 180ms ease;
+
+  &:hover:not(:disabled) { color: #effcff; background: rgba(76, 198, 193, 0.08); }
+  &:focus-visible { outline: 2px solid rgba(76, 198, 193, 0.68); outline-offset: -3px; }
+  &:disabled { opacity: 0.28; cursor: default; }
+`;
+
+export const CarouselDots = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.24rem;
+
+  @media (max-width: 380px) { display: none; }
+`;
+
+export const CarouselDot = styled.button`
+  width: ${({ $active }) => ($active ? '12px' : '5px')};
+  height: 5px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: ${({ $active }) => ($active ? 'rgba(105, 211, 202, 0.78)' : 'rgba(201, 221, 232, 0.22)')};
+  cursor: pointer;
+  transition: width 160ms ease, background 160ms ease;
+
+  &:focus-visible { outline: 1px solid #e7f3f8; outline-offset: 2px; }
+`;
+
+export const CarouselTrack = styled.div`
+  display: block;
+  min-width: 0;
+`;
+
+const sectionEnter = keyframes`
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
+
+export const CarouselSlide = styled.section`
+  min-width: 0;
+  animation: ${sectionEnter} 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  @media (prefers-reduced-motion: reduce) { animation: none; }
+`;
+
+export const ClusterCard = styled.section`
+  display: grid;
+  gap: 0.62rem;
+  min-width: 0;
+  padding: 0.1rem 0 0.4rem;
+`;
+
+export const ClusterBody = styled.div`
+  display: grid;
+  gap: 0.82rem;
+  min-width: 0;
 `;
 
 export const Field = styled.div`
   display: grid;
-  gap: 0.4rem;
-  padding: 0.55rem 0.65rem;
-  border-radius: 10px;
-  border: 1px solid rgba(140, 160, 179, 0.2);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 70%),
-    ${LCARS.panelSoft};
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: 0.42rem 0.44rem;
-    border-radius: 9px;
-  }
+  gap: 0.34rem;
+  min-width: 0;
+  padding: 0;
 `;
 
 export const Label = styled.label`
-  font-size: 0.74rem;
-  font-weight: 700;
-  color: ${LCARS.textDim};
-  letter-spacing: 0.08em;
+  color: rgba(213, 222, 234, 0.68);
+  font: 720 0.65rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.06em;
-  }
 `;
 
 export const FieldHint = styled.span`
   color: rgba(214, 226, 241, 0.64);
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   line-height: 1.35;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -164,16 +185,16 @@ export const FieldHint = styled.span`
 
 const fieldControlStyles = `
   width: 100%;
-  border-radius: 9px;
-  border: 1px solid rgba(122, 142, 167, 0.45);
-  background: ${LCARS.inset};
+  border-radius: 7px;
+  border: 1px solid rgba(134, 154, 177, 0.34);
+  background: rgba(7, 11, 17, 0.92);
   color: ${LCARS.text};
-  font-size: 1.02rem;
-  font-weight: 520;
+  font-size: 0.96rem;
+  font-weight: 540;
   line-height: 1.35;
-  padding: 0.62rem 0.72rem;
-  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+  padding: 0.62rem 0.68rem;
+  min-height: 44px;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
 
   &::placeholder {
     color: rgba(214, 226, 241, 0.44);
@@ -182,19 +203,11 @@ const fieldControlStyles = `
   &:focus {
     outline: none;
     border-color: ${LCARS.teal};
-    box-shadow:
-      0 0 0 2px rgba(76, 198, 193, 0.25),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+    box-shadow: 0 0 0 2px rgba(76, 198, 193, 0.16);
     background: #0c121b;
   }
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${MOBILE_FONT_SM};
-    line-height: 1.3;
-    padding: 0.48rem 0.54rem;
-    border-radius: 8px;
-    min-height: 36px;
-  }
+  @media (max-width: 599px) { font-size: 0.92rem; padding: 0.58rem 0.62rem; }
 `;
 
 export const Input = styled.input`
@@ -203,12 +216,10 @@ export const Input = styled.input`
 
 export const TextArea = styled.textarea`
   ${fieldControlStyles}
-  min-height: 4.6rem;
+  min-height: 5.4rem;
   resize: vertical;
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 4rem;
-  }
+  @media (max-width: 599px) { min-height: 5.2rem; }
 `;
 
 export const Select = styled.select`
@@ -218,33 +229,27 @@ export const Select = styled.select`
 export const InlineGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
+  gap: 0.82rem;
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
+  @media (max-width: 599px) {
     grid-template-columns: 1fr;
-    gap: 0.6rem;
+    gap: 0.82rem;
   }
 `;
 
 export const ReadOnlyValue = styled.div`
-  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-  border-radius: 9px;
-  border: 1px solid rgba(122, 142, 167, 0.4);
-  background: rgba(12, 18, 27, 0.76);
+  min-height: 44px;
+  border-radius: 7px;
+  border: 1px solid rgba(122, 142, 167, 0.26);
+  background: rgba(12, 18, 27, 0.58);
   color: ${LCARS.text};
-  font-size: 0.96rem;
+  font-size: 0.92rem;
   font-weight: 560;
   line-height: 1.3;
   padding: 0.58rem 0.72rem;
   display: flex;
   align-items: center;
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 36px;
-    border-radius: 8px;
-    font-size: ${MOBILE_FONT_SM};
-    padding: 0.45rem 0.54rem;
-  }
 `;
 
 export const LinkRows = styled.div`
@@ -423,68 +428,109 @@ export const InlineActions = styled.div`
 
 export const LifecycleSection = styled.section`
   display: grid;
-  gap: 0.58rem;
-  padding: 0.62rem 0.68rem;
-  border-radius: 10px;
-  border: 1px solid rgba(140, 160, 179, 0.26);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 70%),
-    ${LCARS.panelSoft};
+  gap: 0.52rem;
+  padding: 0.58rem 0.62rem;
+  border: 1px solid rgba(76, 198, 193, 0.28);
+  border-radius: 7px;
+  background:
+    linear-gradient(180deg, rgba(76, 198, 193, 0.055), transparent 44%),
+    rgba(7, 14, 21, 0.88);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    gap: 0.44rem;
-    padding: 0.5rem 0.52rem;
-    border-radius: 9px;
+    gap: 0.46rem;
+    padding: 0.52rem 0.5rem;
+    border-radius: 6px;
   }
 `;
 
+export const LifecycleHeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+  min-width: 0;
+`;
+
 export const LifecycleHeader = styled.h3`
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
   margin: 0;
-  color: ${LCARS.text};
-  font-size: 0.78rem;
-  font-weight: 700;
+  color: #e7f3f8;
+  font: 780 0.72rem/1.1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+`;
+
+export const LifecycleEyebrow = styled.span`
+  color: var(--item-accent, ${LCARS.teal});
+  font: 800 0.5rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.14em;
+`;
+
+export const LifecycleStatusChip = styled.span`
+  flex: 0 0 auto;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.42rem;
+  border: 1px solid ${({ $gone }) => ($gone ? 'rgba(240, 138, 123, 0.58)' : 'rgba(100, 214, 167, 0.56)')};
+  border-radius: 4px;
+  color: ${({ $gone }) => ($gone ? '#ffd0c8' : '#c9ffe6')};
+  background: ${({ $gone }) => ($gone ? 'rgba(114, 42, 40, 0.24)' : 'rgba(29, 101, 67, 0.25)')};
+  font: 820 0.54rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.06em;
+    min-height: 28px;
   }
 `;
 
 export const LifecycleMetaGrid = styled.div`
   display: grid;
-  gap: 0.4rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.42rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: 1fr;
+    gap: 0.32rem;
+  }
 `;
 
 export const LifecycleMetaRow = styled.div`
   display: grid;
-  grid-template-columns: minmax(90px, 120px) minmax(0, 1fr);
-  gap: 0.54rem;
+  gap: 0.16rem;
+  min-width: 0;
+  padding: 0.34rem 0.4rem;
+  border-left: 1px solid rgba(127, 215, 255, 0.24);
+  background: rgba(255, 255, 255, 0.025);
   align-items: start;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: 1fr;
-    gap: 0.18rem;
+    grid-template-columns: minmax(74px, 0.32fr) minmax(0, 1fr);
+    gap: 0.42rem;
+    align-items: baseline;
   }
 `;
 
 export const LifecycleMetaLabel = styled.span`
-  color: rgba(214, 226, 241, 0.72);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  color: rgba(168, 206, 232, 0.66);
+  font: 760 0.52rem/1.15 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.05em;
   }
 `;
 
 export const LifecycleMetaValue = styled.span`
-  color: ${LCARS.text};
-  font-size: 0.84rem;
-  line-height: 1.35;
+  min-width: 0;
+  color: #e6edf4;
+  font-size: 0.72rem;
+  line-height: 1.3;
   word-break: break-word;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -495,20 +541,23 @@ export const LifecycleMetaValue = styled.span`
 export const SmallActionButton = styled.button`
   ${actionButtonBase}
   min-width: 0;
-  padding: 0.42rem 0.78rem;
-  font-size: 0.74rem;
-  border-radius: 10px;
+  min-height: 40px;
+  padding: 0.42rem 0.7rem;
+  font: 820 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  border-radius: 5px;
   border: 1px solid ${({ $tone }) =>
-    $tone === 'danger' ? 'rgba(240, 138, 123, 0.58)' : 'rgba(167, 182, 255, 0.58)'};
-  color: ${({ $tone }) => ($tone === 'danger' ? '#ffd8d3' : '#d7defd')};
+    $tone === 'danger' ? 'rgba(240, 138, 123, 0.62)' : 'rgba(167, 182, 255, 0.58)'};
+  color: ${({ $tone }) => ($tone === 'danger' ? '#ffd8d3' : '#e3e7ff')};
   background: ${({ $tone }) =>
-    $tone === 'danger'
-      ? 'linear-gradient(180deg, #5e2b2b, #462121)'
-      : 'linear-gradient(180deg, #2b3552, #20293f)'};
+    $tone === 'danger' ? 'rgba(114, 42, 40, 0.34)' : 'rgba(62, 68, 111, 0.34)'};
 
   &:hover:enabled {
     border-color: ${({ $tone }) =>
       $tone === 'danger' ? 'rgba(240, 138, 123, 0.82)' : 'rgba(167, 182, 255, 0.82)'};
+    background: ${({ $tone }) =>
+      $tone === 'danger' ? 'rgba(145, 51, 48, 0.45)' : 'rgba(76, 82, 136, 0.45)'};
+    box-shadow: 0 0 12px ${({ $tone }) =>
+      $tone === 'danger' ? 'rgba(240, 138, 123, 0.16)' : 'rgba(167, 182, 255, 0.16)'};
   }
 `;
 

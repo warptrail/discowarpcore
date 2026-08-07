@@ -27,40 +27,12 @@ function kidsOf(n) {
   return Array.isArray(a) ? a : [];
 }
 
-function normalizeToken(value) {
-  return String(value || '').trim().toLowerCase();
-}
-
 function withCacheBuster(url, token) {
   const source = String(url || '').trim();
   if (!source) return '';
   const marker = Number(token);
   if (!Number.isFinite(marker) || marker <= 0) return source;
   return `${source}${source.includes('?') ? '&' : '?'}v=${marker}`;
-}
-
-function getRenderableBoxTags(tags, { blockedValues = [] } = {}) {
-  const source = Array.isArray(tags) ? tags : [];
-  if (!source.length) return [];
-
-  const blocked = new Set(
-    (Array.isArray(blockedValues) ? blockedValues : [])
-      .map((entry) => normalizeToken(entry))
-      .filter(Boolean)
-  );
-  const seen = new Set();
-  const result = [];
-
-  for (const rawTag of source) {
-    const label = String(rawTag || '').trim();
-    if (!label) continue;
-    const key = normalizeToken(label);
-    if (!key || seen.has(key) || blocked.has(key)) continue;
-    seen.add(key);
-    result.push(label);
-  }
-
-  return result;
 }
 
 function walk(root, visit) {
@@ -133,7 +105,6 @@ export default function BoxMetaPanel({
   box,
   parentPath = [],
   onNavigateBox,
-  onManageBox,
   imageRefreshToken = 0,
 }) {
   const shortId = String(box?.box_id ?? box?.shortId ?? '');
@@ -189,7 +160,6 @@ export default function BoxMetaPanel({
 
   const depth = crumbs.length - 1;
   const currentCrumb = crumbs[crumbs.length - 1];
-  const ancestorCrumbs = crumbs.slice(0, -1);
   const descendantCount = useMemo(() => {
     if (!box) return 0;
     let count = 0;
@@ -203,10 +173,10 @@ export default function BoxMetaPanel({
     if (!box) return;
     window.dispatchEvent(
       new CustomEvent(BOX_CONTEXT_STATE_EVENT, {
-        detail: { shortId, title, location },
+        detail: { shortId, title, location, breadcrumb: crumbs },
       })
     );
-  }, [box, location, shortId, title]);
+  }, [box, crumbs, location, shortId, title]);
 
   // Child box click
   const goBox = (id) => {
@@ -225,36 +195,6 @@ export default function BoxMetaPanel({
             {!!depth && <S.DepthHint>level {depth}</S.DepthHint>}
           </S.IdentityActions>
         </S.IdentityHeader>
-
-        {ancestorCrumbs.length > 0 && (
-          <S.PathContext>
-            <S.PathLabel>Ancestors</S.PathLabel>
-            <S.Crumbs aria-label="Ancestor path">
-              {ancestorCrumbs.map((c, idx) => {
-                const isLastAncestor = idx === ancestorCrumbs.length - 1;
-                const id = c.id;
-                const label = c.label;
-                return (
-                  <React.Fragment key={`${id}:${idx}`}>
-                    <S.Crumb
-                      href={id ? `/boxes/${id}` : undefined}
-                      onClick={(e) => {
-                        if (!id) return;
-                        e.preventDefault();
-                        onNavigateBox?.(id);
-                      }}
-                      title={`${label}${id ? ` (${id})` : ''}`}
-                    >
-                      <S.BoxIdMono>{pad3(id)}</S.BoxIdMono>
-                      <S.CrumbLabel>{label}</S.CrumbLabel>
-                    </S.Crumb>
-                    {!isLastAncestor && <S.CrumbSep>›</S.CrumbSep>}
-                  </React.Fragment>
-                );
-              })}
-            </S.Crumbs>
-          </S.PathContext>
-        )}
 
         <S.SummaryGrid $hasImage={!!boxImageUrl}>
           <S.SummaryInfo>

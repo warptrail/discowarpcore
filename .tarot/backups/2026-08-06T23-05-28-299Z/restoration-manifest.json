@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-08-06T23:05:28.301Z",
+  "targetRoot": "/Volumes/Luna/Developer-Luna/discowarpcore",
+  "records": [
+    {
+      "destination": "/Volumes/Luna/Developer-Luna/discowarpcore/tarot.manifest.json",
+      "relative": "tarot.manifest.json",
+      "existed": true
+    },
+    {
+      "destination": "/Volumes/Luna/Developer-Luna/discowarpcore/package.json",
+      "relative": "package.json",
+      "existed": true
+    },
+    {
+      "destination": "/Volumes/Luna/Developer-Luna/discowarpcore/scripts/tarot-dock.mjs",
+      "relative": "scripts/tarot-dock.mjs",
+      "existed": true
+    },
+    {
+      "destination": "/Volumes/Luna/Developer-Luna/discowarpcore/scripts/tarot-agent.mjs",
+      "relative": "scripts/tarot-agent.mjs",
+      "existed": true
+    },
+    {
+      "destination": "/Volumes/Luna/Developer-Luna/discowarpcore/scripts/tarot-update.mjs",
+      "relative": "scripts/tarot-update.mjs",
+      "existed": true
+    },
+    {
+      "destination": "/Volumes/Luna/Developer-Luna/discowarpcore/scripts/tarot-install.mjs",
+      "relative": "scripts/tarot-install.mjs",
+      "existed": true
+    },
+    {
+      "destination": "/Volumes/Luna/Developer-Luna/discowarpcore/scripts/tarot-static-server.mjs",
+      "relative": "scripts/tarot-static-server.mjs",
+      "existed": true
+    },
+    {
+      "destination": "/Volumes/Luna/Developer-Luna/discowarpcore/scripts/tarot-terminal-storm.py",
+      "relative": "scripts/tarot-terminal-storm.py",
+      "existed": true
+    },
+    {
+      "destination": "/Volumes/Luna/Developer-Luna/discowarpcore/scripts/tarot-runtime/persistence.mjs",
+      "relative": "scripts/tarot-runtime/persistence.mjs",
+      "existed": false
+    },
+    {
+      "destination": "/Volumes/Luna/Developer-Luna/discowarpcore/scripts/tarot-runtime/state.mjs",
+      "relative": "scripts/tarot-runtime/state.mjs",
+      "existed": false
+    },
+    {
+      "destination": "/Volumes/Luna/Developer-Luna/discowarpcore/scripts/tarot-runtime/manifest.mjs",
+      "relative": "scripts/tarot-runtime/manifest.mjs",
+      "existed": false
+    },
+    {
+      "destination": "/Volumes/Luna/Developer-Luna/discowarpcore/scripts/tarot-runtime/log-store.mjs",
+      "relative": "scripts/tarot-runtime/log-store.mjs",
+      "existed": false
+    },
+    {
+      "destination": "/Volumes/Luna/Developer-Luna/discowarpcore/scripts/tarot-runtime/ipc.mjs",
+      "relative": "scripts/tarot-runtime/ipc.mjs",
+      "existed": false
+    },
+    {
+      "destination": "/Volumes/Luna/Developer-Luna/discowarpcore/scripts/tarot-runtime/diagnostics.mjs",
+      "relative": "scripts/tarot-runtime/diagnostics.mjs",
+      "existed": false
+    }
+  ]
+}

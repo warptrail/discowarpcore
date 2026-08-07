@@ -4,9 +4,22 @@ const Box = require('../models/Box');
 const { attachItemToBox, detachItem } = require('./boxItemService');
 const { markItemGone } = require('./itemService');
 const { writeBackendLog, serializeError } = require('../utils/backendLogger');
+const {
+  STAGING_BOX_PURPOSES,
+  getBoxPurposeForRoute,
+} = require('../utils/declutterBoxPurpose');
 
-const FINALIZING_STALE_MS = 5 * 60 * 1000;
 const DESTRUCTION_TAG = 'marked_for_destruction';
+const COMPLETION_DISPOSITION_BY_ROUTE = Object.freeze({
+  discard: 'trashed',
+  donate: 'donated',
+  sell: 'sold',
+  gift: 'gifted',
+});
+
+function getCompletionDispositionForRoute(route) {
+  return COMPLETION_DISPOSITION_BY_ROUTE[String(route || '').trim().toLowerCase()] || null;
+}
 
 function workflowLog(level, event, fields = {}) {
   writeBackendLog(level, `declutter.${event}`, fields);
@@ -45,14 +58,38 @@ async function setExitState(itemId, exitState, { destruction = false } = {}) {
 async function routeConfirmedRelease(candidate, route = candidate.stagingRoute) {
   await rememberPreActionBox(candidate);
   if (route === 'discard') {
-    await detachItem({ itemId: candidate.itemId });
+    // A discard decision is only a pending physical action. Keep the item in
+    // its original box while it is marked for destruction; the later Trash
+    // Run completion calls markItemGone(), which removes it from active views.
     await setExitState(candidate.itemId, 'marked_for_destruction', { destruction: true });
-    return { exitState: 'marked_for_destruction', boxId: null };
+    return {
+      exitState: 'marked_for_destruction',
+      boxId: candidate.preActionBoxId || null,
+    };
   }
   if (route === 'needs_routing') {
     await detachItem({ itemId: candidate.itemId });
     await setExitState(candidate.itemId, 'needs_routing');
     return { exitState: 'needs_routing', boxId: null };
+  }
+  if (route === 'gift') {
+    await Item.findByIdAndUpdate(candidate.itemId, {
+      $set: {
+        declutterReadiness: 'ready_to_declutter',
+        declutterExitState: 'awaiting_gift',
+        isIntendedGift: true,
+      },
+      $pull: { tags: DESTRUCTION_TAG },
+    });
+    workflowLog('info', 'action.gift_intent_confirmed', {
+      candidateId: String(candidate._id),
+      itemId: String(candidate.itemId),
+      boxId: candidate.preActionBoxId ? String(candidate.preActionBoxId) : null,
+    });
+    return {
+      exitState: 'awaiting_gift',
+      boxId: candidate.preActionBoxId || null,
+    };
   }
 
   const purpose = route === 'donate' ? 'donation_staging' : 'sale_staging';
@@ -118,7 +155,7 @@ async function finalizeClaimedCandidate(candidate) {
   candidate.confirmedAt = candidate.confirmedAt || now;
   candidate.resolvedAt = candidate.resolvedAt || now;
   await candidate.save();
-  workflowLog('info', 'cooling_off.confirmed', {
+  workflowLog('info', 'decision.confirmed', {
     candidateId: String(candidate._id),
     itemId: String(candidate.itemId),
     resolution: candidate.resolution,
@@ -150,47 +187,53 @@ async function reconcileGoneActionItems() {
   return result.modifiedCount || result.nModified || 0;
 }
 
-async function reconcileExpiredDeclutterCandidates({ limit = 100, source = 'sweep' } = {}) {
-  const now = new Date();
-  const staleBefore = new Date(now.getTime() - FINALIZING_STALE_MS);
-  await DeclutterCandidate.updateMany(
-    {
-      confirmationState: 'finalizing',
-      updatedAt: { $lte: staleBefore },
-    },
-    { $set: { confirmationState: 'cooling_off' } }
-  );
+async function finalizeCandidateImmediately(candidate, { source = 'consensus' } = {}) {
+  const finalized = await finalizeClaimedCandidate(candidate);
+  workflowLog('info', 'decision.finalized_immediately', {
+    source,
+    candidateId: String(finalized._id),
+    itemId: String(finalized.itemId),
+    deckState: finalized.deckState,
+    resolution: finalized.resolution,
+    stagingRoute: finalized.stagingRoute,
+  });
+  return finalized;
+}
 
+async function reconcileLegacyCoolingCandidates({ limit = 100, source = 'deck_read' } = {}) {
   let confirmed = 0;
   for (let index = 0; index < limit; index += 1) {
     const candidate = await DeclutterCandidate.findOneAndUpdate(
       {
         deckState: 'cooling_off',
-        confirmationState: 'cooling_off',
-        confirmationExpiresAt: { $lte: now },
+        confirmationState: { $ne: 'confirmed' },
       },
-      { $set: { confirmationState: 'finalizing' } },
-      { new: true, sort: { confirmationExpiresAt: 1 } }
+      {
+        $set: {
+          confirmationState: 'confirmed',
+        },
+      },
+      { new: true, sort: { updatedAt: 1 } }
     );
     if (!candidate) break;
-    workflowLog('info', 'cooling_off.claimed', {
+    workflowLog('info', 'legacy_cooling.promoting', {
       source,
       candidateId: String(candidate._id),
       itemId: String(candidate.itemId),
     });
     try {
-      await finalizeClaimedCandidate(candidate);
+      await finalizeCandidateImmediately(candidate, { source: 'legacy_cooling_reconciliation' });
       confirmed += 1;
     } catch (error) {
-      workflowLog('error', 'cooling_off.finalize_failed', {
+      workflowLog('error', 'legacy_cooling.promotion_failed', {
         source,
         candidateId: String(candidate._id),
         itemId: String(candidate.itemId),
         error: serializeError(error),
       });
       await DeclutterCandidate.updateOne(
-        { _id: candidate._id, confirmationState: 'finalizing' },
-        { $set: { confirmationState: 'cooling_off' } }
+        { _id: candidate._id, deckState: 'cooling_off' },
+        { $set: { confirmationState: 'voting' } }
       );
     }
   }
@@ -206,8 +249,8 @@ function archiveRound(candidate, reason) {
     resolution: candidate.resolution,
     stagingRoute: candidate.stagingRoute,
     consensusReachedAt: candidate.consensusReachedAt,
-    confirmationExpiresAt: candidate.confirmationExpiresAt,
     confirmedAt: candidate.confirmedAt,
+    actionCompletedAt: candidate.actionCompletedAt,
     resolvedAt: candidate.resolvedAt,
     notes: candidate.notes,
     reason,
@@ -232,7 +275,7 @@ async function restorePreActionPlacement(candidate) {
 
 async function getActionResources() {
   const stagingBoxes = await Box.find({
-    declutterPurpose: { $in: ['donation_staging', 'sale_staging'] },
+    declutterPurpose: { $in: STAGING_BOX_PURPOSES },
   })
     .select('_id box_id label declutterPurpose declutterIsDefault')
     .sort({ declutterPurpose: 1, declutterIsDefault: -1, label: 1 })
@@ -252,19 +295,34 @@ async function rerouteAction(candidateId, { player, route, boxId, reason = '' } 
   if (candidate.stagingRoute === 'needs_routing' && player !== 'laserfox') {
     throw Object.assign(new Error('Laserfox resolves Needs Routing decisions.'), { status: 403 });
   }
-  const normalizedRoute = ['discard', 'donate', 'sell'].includes(route) ? route : '';
-  if (!normalizedRoute) throw Object.assign(new Error('Route must be discard, donate, or sell.'), { status: 400 });
+  const normalizedRoute = ['discard', 'donate', 'sell', 'gift'].includes(route) ? route : '';
+  if (!normalizedRoute) throw Object.assign(new Error('Route must be discard, donate, sell, or gift.'), { status: 400 });
   const previousRoute = candidate.stagingRoute;
   candidate.stagingRoute = normalizedRoute;
-  if (boxId && ['donate', 'sell'].includes(normalizedRoute)) {
-    const expectedPurpose = normalizedRoute === 'donate' ? 'donation_staging' : 'sale_staging';
+  if (boxId) {
+    const expectedPurpose = getBoxPurposeForRoute(normalizedRoute);
     const box = await Box.findOne({ _id: boxId, declutterPurpose: expectedPurpose }).lean();
     if (!box) throw Object.assign(new Error('Choose a compatible staging box.'), { status: 400 });
     await attachItemToBox({ itemId: candidate.itemId, boxId: box._id });
-    await setExitState(
-      candidate.itemId,
-      normalizedRoute === 'donate' ? 'staged_for_donation' : 'staged_for_sale'
-    );
+    if (normalizedRoute === 'gift') {
+      await Item.findByIdAndUpdate(candidate.itemId, {
+        $set: {
+          declutterReadiness: 'ready_to_declutter',
+          declutterExitState: 'awaiting_gift',
+          isIntendedGift: true,
+        },
+        $pull: { tags: DESTRUCTION_TAG },
+      });
+    } else {
+      const exitState = {
+        discard: 'marked_for_destruction',
+        donate: 'staged_for_donation',
+        sell: 'staged_for_sale',
+      }[normalizedRoute];
+      await setExitState(candidate.itemId, exitState, {
+        destruction: normalizedRoute === 'discard',
+      });
+    }
   } else {
     await routeConfirmedRelease(candidate, normalizedRoute);
   }
@@ -322,8 +380,8 @@ async function reopenActionRound(candidateId, { player, reason = '' } = {}) {
   candidate.resolution = 'pending';
   candidate.stagingRoute = null;
   candidate.consensusReachedAt = null;
-  candidate.confirmationExpiresAt = null;
   candidate.confirmedAt = null;
+  candidate.actionCompletedAt = null;
   candidate.resolvedAt = null;
   candidate.actionOverride = {
     player: player || '',
@@ -343,17 +401,14 @@ async function reopenActionRound(candidateId, { player, reason = '' } = {}) {
 async function completeAction(candidateId, { disposition, notes = '' } = {}) {
   const candidate = await DeclutterCandidate.findById(candidateId);
   if (!candidate || candidate.deckState !== 'action') throw Object.assign(new Error('Action candidate was not found.'), { status: 404 });
-  const allowed = {
-    discard: 'trashed',
-    donate: 'donated',
-    sell: 'sold',
-  };
-  const expectedDisposition = allowed[candidate.stagingRoute];
+  const expectedDisposition = getCompletionDispositionForRoute(candidate.stagingRoute);
   if (!expectedDisposition || disposition !== expectedDisposition) {
     throw Object.assign(new Error(`This action must be completed as ${expectedDisposition || 'a routed exit'}.`), { status: 400 });
   }
+  const actionCompletedAt = new Date();
   const item = await markItemGone(candidate.itemId, {
     disposition,
+    dispositionAt: actionCompletedAt,
     dispositionNotes: notes,
     lastActiveBoxId: candidate.preActionBoxId,
   });
@@ -363,38 +418,25 @@ async function completeAction(candidateId, { disposition, notes = '' } = {}) {
     $pull: { tags: DESTRUCTION_TAG },
   });
   candidate.deckState = 'resolved';
+  candidate.actionCompletedAt = actionCompletedAt;
   await candidate.save();
   workflowLog('info', 'action.physically_completed', {
     candidateId: String(candidate._id),
     itemId: String(candidate.itemId),
     disposition,
+    actionCompletedAt,
   });
   return candidate;
 }
 
-let sweepTimer = null;
-function startDeclutterConfirmationSweep({ intervalMs = 60_000 } = {}) {
-  if (sweepTimer) return sweepTimer;
-  reconcileExpiredDeclutterCandidates({ source: 'startup' }).catch((error) => {
-    workflowLog('error', 'sweep.failed', { source: 'startup', error: serializeError(error) });
-  });
-  sweepTimer = setInterval(() => {
-    reconcileExpiredDeclutterCandidates({ source: 'interval' }).catch((error) => {
-      workflowLog('error', 'sweep.failed', { source: 'interval', error: serializeError(error) });
-    });
-  }, intervalMs);
-  sweepTimer.unref?.();
-  workflowLog('info', 'sweep.started', { intervalMs });
-  return sweepTimer;
-}
-
 module.exports = {
   completeAction,
+  finalizeCandidateImmediately,
+  getCompletionDispositionForRoute,
   getActionResources,
-  reconcileExpiredDeclutterCandidates,
+  reconcileLegacyCoolingCandidates,
   reopenActionRound,
   rerouteAction,
   restoreActionAsKeep,
   routeConfirmedRelease,
-  startDeclutterConfirmationSweep,
 };

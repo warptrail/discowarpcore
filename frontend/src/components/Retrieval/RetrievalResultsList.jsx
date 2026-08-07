@@ -4,7 +4,10 @@ import RetrievalResultRow from './RetrievalResultRow';
 export default function RetrievalResultsList({
   items = [],
   activeExpandedId = '',
+  activeDetailResource,
+  activeSectionKey,
   onToggleRow,
+  onSectionChange,
   onPreviewImage,
   onLifecycleAction,
   loading = false,
@@ -24,7 +27,10 @@ export default function RetrievalResultsList({
           key={item.id}
           item={item}
           isExpanded={activeExpandedId === item.id}
+          detailResource={activeExpandedId === item.id ? activeDetailResource : null}
+          activeSectionKey={activeExpandedId === item.id ? activeSectionKey : undefined}
           onToggle={onToggleRow}
+          onSectionChange={onSectionChange}
           onPreviewImage={onPreviewImage}
           onLifecycleAction={onLifecycleAction}
         />

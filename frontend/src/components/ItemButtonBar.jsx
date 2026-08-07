@@ -1,29 +1,58 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import MoveItemToOtherBox from './MoveItemToOtherBox';
 import * as S from '../styles/ItemPage.styles';
 import { getItemOwnershipContext } from '../util/itemOwnership';
+import { getDeclutterBoxPurposeForRoute } from '../util/declutterBoxPurpose';
+import {
+  formatDepartureRoute,
+  getItemDepartureRoute,
+  isItemPendingDeparture,
+} from '../util/itemDeparture';
 
 export default function ItemButtonBar({
   item,
-  isEditing = false,
   pending = false,
   error = '',
   onMoveItem,
   onRemoveFromBox,
-  onToggleConsumable,
   timestampActions = [],
+  onEditFields,
+  editLocatorActive = false,
+  fieldFocusLabel = '',
+  viewMode = 'all',
+  onViewModeChange,
+  mediaEditorOpen = false,
+  onToggleMedia,
+  inDeclutterDeck = false,
+  declutterPending = false,
+  onDeclutter,
 }) {
   const [showPicker, setShowPicker] = useState(false);
+  const [controlsOpen, setControlsOpen] = useState(false);
+  const controlsPanelId = useId();
   const ownership = getItemOwnershipContext(item);
   const box = ownership.box ?? null;
   const boxMongoId = ownership.boxMongoId || (box?._id ? String(box._id) : '');
   const isGone = String(item?.item_status || '').toLowerCase() === 'gone';
-  const isConsumable = Boolean(item?.isConsumable);
   const resolvedTimestampActions = Array.isArray(timestampActions)
     ? timestampActions
     : [];
+  const departurePending = isItemPendingDeparture(item);
+  const departureRoute = getItemDepartureRoute(item);
+  const suggestedBoxPurpose = getDeclutterBoxPurposeForRoute(departureRoute);
 
-  if (!isEditing && resolvedTimestampActions.length === 0) {
+  const hasEditAction = typeof onEditFields === 'function';
+  const hasMediaAction = typeof onToggleMedia === 'function';
+  const hasViewToggle = typeof onViewModeChange === 'function';
+  const hasDeclutterAction = typeof onDeclutter === 'function';
+
+  if (
+    resolvedTimestampActions.length === 0 &&
+    !hasEditAction &&
+    !hasMediaAction &&
+    !hasViewToggle &&
+    !hasDeclutterAction
+  ) {
     return null;
   }
 
@@ -56,82 +85,192 @@ export default function ItemButtonBar({
   };
 
   const showPickerButton = () => setShowPicker((prev) => !prev);
+  const editActions = hasEditAction || hasMediaAction ? (
+    <S.ItemModeActions aria-label="Item editing commands">
+      {hasEditAction ? (
+      <S.ItemModeButton
+        type="button"
+        $active={editLocatorActive}
+        aria-pressed={editLocatorActive}
+        onClick={onEditFields}
+      >
+        Edit fields
+      </S.ItemModeButton>
+      ) : null}
+      {hasMediaAction ? (
+      <S.ItemModeButton
+        type="button"
+        $active={mediaEditorOpen}
+        aria-pressed={mediaEditorOpen}
+        onClick={onToggleMedia}
+      >
+        Edit image
+      </S.ItemModeButton>
+      ) : null}
+    </S.ItemModeActions>
+  ) : null;
+  const viewToggle = hasViewToggle ? (
+    <S.ViewModeNav aria-label="Item detail view">
+      <S.ViewModeButton
+        type="button"
+        $active={viewMode === 'all'}
+        aria-current={viewMode === 'all' ? 'page' : undefined}
+        onClick={() => onViewModeChange('all')}
+      >
+        All Data
+      </S.ViewModeButton>
+      <S.ViewModeButton
+        type="button"
+        $active={viewMode === 'hierarchy'}
+        aria-current={viewMode === 'hierarchy' ? 'page' : undefined}
+        onClick={() => onViewModeChange('hierarchy')}
+      >
+        Hierarchy
+      </S.ViewModeButton>
+    </S.ViewModeNav>
+  ) : null;
 
   return (
-    <S.ItemButtonBar aria-label={isEditing ? 'Item actions' : 'Item timestamps'}>
-      {isEditing ? (
-        <S.ContainerActions>
-          {isGone ? (
-            <S.ContainerMuted>
-              Lifecycle actions for gone items are available in Edit mode.
-            </S.ContainerMuted>
-          ) : ownership.isBoxed ? (
-            <>
-              <S.ContainerButton type="button" disabled={pending} onClick={showPickerButton}>
-                Move item
-              </S.ContainerButton>
-              <S.ContainerButton
-                type="button"
-                disabled={pending || !boxMongoId}
-                onClick={handleRemoveFromBox}
-              >
-                Remove from box
-              </S.ContainerButton>
-              <S.ContainerButton
-                type="button"
-                disabled={pending}
-                onClick={onToggleConsumable}
-                $active={isConsumable}
-              >
-                {isConsumable ? 'Consumable on' : 'Consumable off'}
-              </S.ContainerButton>
-            </>
-          ) : (
-            <>
-              <S.ContainerButton type="button" disabled={pending} onClick={showPickerButton}>
-                Place in box
-              </S.ContainerButton>
-              <S.ContainerButton
-                type="button"
-                disabled={pending}
-                onClick={onToggleConsumable}
-                $active={isConsumable}
-              >
-                {isConsumable ? 'Consumable on' : 'Consumable off'}
-              </S.ContainerButton>
-            </>
-          )}
-        </S.ContainerActions>
-      ) : resolvedTimestampActions.length ? (
-        <S.ContainerTimestampSection>
-          <S.ContainerTimestampLabel>Item timestamps</S.ContainerTimestampLabel>
-          <S.ContainerTimestampActions>
-            {resolvedTimestampActions.map((action) => (
-              <S.ContainerTimestampButton
-                key={action.id}
-                type="button"
-                $tone={action.tone}
-                onClick={action.onClick}
-                disabled={pending || action.disabled}
-              >
-                {action.label}
-              </S.ContainerTimestampButton>
-            ))}
-          </S.ContainerTimestampActions>
-        </S.ContainerTimestampSection>
-      ) : null}
+    <S.ItemButtonBar aria-label="Item controls">
+      <S.ItemControlsToggle
+        type="button"
+        aria-expanded={controlsOpen}
+        aria-controls={controlsPanelId}
+        onClick={() => setControlsOpen((current) => !current)}
+      >
+        <S.ItemControlsToggleCopy>
+          <S.ItemControlsKicker>Item controls</S.ItemControlsKicker>
+          <S.ItemControlsSummary>
+            {fieldFocusLabel
+              ? `Field focus // ${fieldFocusLabel}`
+              : editLocatorActive
+                ? 'Field locator active'
+                : mediaEditorOpen
+                  ? 'Image management active'
+                  : viewMode === 'hierarchy'
+                ? 'Hierarchy view'
+                : 'All data view'}
+          </S.ItemControlsSummary>
+        </S.ItemControlsToggleCopy>
+        <S.ItemControlsChevron $open={controlsOpen} aria-hidden="true">⌄</S.ItemControlsChevron>
+      </S.ItemControlsToggle>
 
-      {isEditing && showPicker ? (
-        <S.ContainerPickerWrap>
-          <MoveItemToOtherBox
-            itemId={item?._id}
-            currentBoxId={boxMongoId || null}
-            onBoxSelected={handleSelectDestination}
-          />
-        </S.ContainerPickerWrap>
-      ) : null}
+      {controlsOpen ? (
+        <S.ItemControlsPanel id={controlsPanelId}>
+          {hasDeclutterAction ? (
+            <S.DeclutterControlGroup>
+              <S.DeclutterControlButton
+                type="button"
+                $active={inDeclutterDeck}
+                aria-pressed={inDeclutterDeck}
+                aria-label={inDeclutterDeck ? 'Remove from Declutter Deck' : 'Add to Declutter Deck'}
+                disabled={declutterPending || !item?._id}
+                onClick={onDeclutter}
+              >
+                <S.DeclutterControlContext>Joint decision</S.DeclutterControlContext>
+                <S.DeclutterControlTitle>
+                  {declutterPending
+                    ? inDeclutterDeck ? 'Removing from deck' : 'Adding to deck'
+                    : inDeclutterDeck ? 'In Declutter Deck' : 'Add to Declutter Deck'}
+                </S.DeclutterControlTitle>
+                <S.DeclutterControlState aria-hidden="true">
+                  {declutterPending ? '···' : inDeclutterDeck ? 'Set' : 'Add'}
+                </S.DeclutterControlState>
+              </S.DeclutterControlButton>
+            </S.DeclutterControlGroup>
+          ) : null}
 
-      {error ? <S.ContainerError role="alert">{error}</S.ContainerError> : null}
+          <S.ControlGroup $wide>
+            <S.ControlGroupLabel>Inventory</S.ControlGroupLabel>
+            <S.ContainerActions>
+              {isGone ? (
+                <S.ContainerMuted>
+                  Reclaim this item before assigning it to a container.
+                </S.ContainerMuted>
+              ) : ownership.isBoxed ? (
+                <>
+                  <S.ContainerButton type="button" disabled={pending} onClick={showPickerButton}>
+                    Move item
+                  </S.ContainerButton>
+                  <S.ContainerButton
+                    type="button"
+                    disabled={pending || !boxMongoId}
+                    onClick={handleRemoveFromBox}
+                  >
+                    Eject
+                  </S.ContainerButton>
+                </>
+              ) : (
+                <S.ContainerButton type="button" disabled={pending} onClick={showPickerButton}>
+                  Place in box
+                </S.ContainerButton>
+              )}
+            </S.ContainerActions>
+          </S.ControlGroup>
+
+          {resolvedTimestampActions.length ? (
+            <S.ControlGroup $activity>
+              <S.ControlGroupLabel>Activity</S.ControlGroupLabel>
+              <S.ContainerTimestampActions>
+                {resolvedTimestampActions.map((action) => (
+                  <S.ContainerTimestampButton
+                    key={action.id}
+                    type="button"
+                    $tone={action.tone}
+                    aria-label={action.label}
+                    onClick={action.onClick}
+                    disabled={departurePending || pending || action.disabled}
+                  >
+                    <S.TimestampLabelFull aria-hidden="true">{action.label}</S.TimestampLabelFull>
+                    <S.TimestampLabelCompact aria-hidden="true">
+                      {action.tone === 'maintained'
+                        ? 'Maint'
+                        : action.tone === 'checked'
+                          ? 'Check'
+                          : action.tone === 'consumed'
+                            ? 'Use'
+                            : action.label}
+                    </S.TimestampLabelCompact>
+                  </S.ContainerTimestampButton>
+                ))}
+              </S.ContainerTimestampActions>
+              {departurePending ? (
+                <S.ActivityLockNotice role="note">
+                  Activity locked // {formatDepartureRoute(departureRoute)} departure pending
+                </S.ActivityLockNotice>
+              ) : null}
+            </S.ControlGroup>
+          ) : null}
+
+          {viewToggle ? (
+            <S.ControlGroup>
+              <S.ControlGroupLabel>Display</S.ControlGroupLabel>
+              {viewToggle}
+            </S.ControlGroup>
+          ) : null}
+
+          {editActions ? (
+            <S.ControlGroup>
+              <S.ControlGroupLabel>Modify</S.ControlGroupLabel>
+              {editActions}
+            </S.ControlGroup>
+          ) : null}
+
+          {showPicker ? (
+            <S.ContainerPickerWrap>
+              <MoveItemToOtherBox
+                itemId={item?._id}
+                currentBoxId={boxMongoId || null}
+                suggestedPurpose={suggestedBoxPurpose}
+                onBoxSelected={handleSelectDestination}
+              />
+            </S.ContainerPickerWrap>
+          ) : null}
+
+          {error ? <S.ContainerError role="alert">{error}</S.ContainerError> : null}
+
+        </S.ItemControlsPanel>
+      ) : null}
     </S.ItemButtonBar>
   );
 }

@@ -40,8 +40,11 @@ const railTone = ({ $isRoot, $depth = 0 }) =>
 const toneAlpha = (hex, alpha = 'ff') => `${hex}${alpha}`;
 const boxTone = `var(--box-primary, ${ROOT_RAIL})`;
 const boxToneRgb = 'var(--box-primary-rgb, 127, 215, 255)';
+const boxSecondary = `var(--box-secondary, ${LCARS.cyan})`;
+const boxSecondaryRgb = 'var(--box-secondary-rgb, 103, 217, 211)';
 const boxMutedRgb = 'var(--box-muted-rgb, 92, 132, 150)';
 const boxToneAlpha = (alpha) => `rgba(${boxToneRgb}, ${alpha})`;
+const boxSecondaryAlpha = (alpha) => `rgba(${boxSecondaryRgb}, ${alpha})`;
 const boxMutedAlpha = (alpha) => `rgba(${boxMutedRgb}, ${alpha})`;
 const depthStep = ({ $depth = 0 }) => Math.min(Math.max($depth, 0), 4);
 const childIndent = ({ $depth = 1, $mobile = false }) => {
@@ -117,6 +120,71 @@ const notesPulse = keyframes`
   }
 `;
 
+const orphanSpectrumShift = keyframes`
+  from { background-position: 0 0, 0% 50%; }
+  to { background-position: 0 0, 200% 50%; }
+`;
+
+const orphanRailShift = keyframes`
+  from { background-position: 50% 0%; }
+  to { background-position: 50% 200%; }
+`;
+
+const orphanSignalTurn = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
+const selectedSignalFlow = keyframes`
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+`;
+
+const selectedBorderFlow = keyframes`
+  0% { background-position: 0 0, 0% 50%; }
+  100% { background-position: 0 0, 200% 50%; }
+`;
+
+const selectedRailPulse = keyframes`
+  0%, 100% {
+    filter:
+      drop-shadow(0 0 3px ${boxToneAlpha(0.24)})
+      drop-shadow(0 0 8px ${boxSecondaryAlpha(0.1)});
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 7px ${boxToneAlpha(0.52)})
+      drop-shadow(0 0 16px ${boxSecondaryAlpha(0.28)});
+  }
+`;
+
+const selectedCardPulse = keyframes`
+  0%, 100% {
+    box-shadow:
+      inset 0 0 0 1px ${boxToneAlpha(0.24)},
+      0 0 13px ${boxToneAlpha(0.14)};
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 1px ${boxSecondaryAlpha(0.42)},
+      0 0 27px ${boxToneAlpha(0.3)};
+  }
+`;
+
+const selectedWashOrbit = keyframes`
+  0% {
+    opacity: 0.12;
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    opacity: 0.23;
+    transform: rotate(180deg) scale(1.06);
+  }
+  100% {
+    opacity: 0.12;
+    transform: rotate(360deg) scale(1);
+  }
+`;
+
 const panelBase = css`
   background: ${LCARS.panel};
   border: 1px solid ${LCARS.line};
@@ -130,7 +198,7 @@ const Container = styled.div`
   --pad: clamp(12px, 3vw, 20px);
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.55rem;
   max-width: 940px;
   margin: 0 auto;
   padding: calc(var(--pad) * 1.2) var(--pad) calc(var(--pad) * 1.8);
@@ -182,6 +250,25 @@ const NodeSection = styled.div`
   min-width: 0;
   margin-top: 0.44rem;
   isolation: isolate;
+  transition:
+    opacity 180ms ease,
+    filter 180ms ease;
+
+  ${({ $ambientQuiet }) =>
+    $ambientQuiet &&
+    css`
+      opacity: 0.74;
+      filter: saturate(0.72) brightness(0.9);
+
+      &,
+      & *,
+      &::before,
+      &::after,
+      & *::before,
+      & *::after {
+        animation-play-state: paused !important;
+      }
+    `}
 `;
 
 const RailBack = styled.div`
@@ -200,6 +287,31 @@ const RailBack = styled.div`
   );
   pointer-events: none;
   z-index: 0;
+
+  ${({ $selected }) =>
+    $selected &&
+    css`
+      background: linear-gradient(
+        115deg,
+        ${boxTone} 0%,
+        ${boxSecondary} 20%,
+        ${LCARS.lilac} 40%,
+        ${LCARS.coral} 60%,
+        ${boxTone} 80%,
+        ${boxSecondary} 100%
+      );
+      background-size: 200% 200%;
+      opacity: 1;
+      animation:
+        ${selectedSignalFlow} 5.2s linear infinite,
+        ${selectedRailPulse} 2.8s ease-in-out infinite;
+
+      @media (prefers-reduced-motion: reduce) {
+        animation: none;
+        background-position: 48% 50%;
+        filter: drop-shadow(0 0 6px ${boxToneAlpha(0.34)});
+      }
+    `}
 
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
     margin-left: ${({ $depth = 0 }) => mobileRailBaseOffset({ $depth })};
@@ -246,7 +358,7 @@ const BoxCard = styled.button`
   width: 100%;
   min-width: 0;
   padding: 0;
-  overflow: hidden;
+  overflow: clip;
   isolation: isolate;
   color: inherit;
   font: inherit;
@@ -308,6 +420,27 @@ const BoxCard = styled.button`
     }
   }
 
+  &::after {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    inset: -115% -30%;
+    pointer-events: none;
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      ${boxToneAlpha(0.44)} 48deg,
+      transparent 104deg,
+      ${boxSecondaryAlpha(0.42)} 166deg,
+      transparent 222deg,
+      ${toneAlpha(LCARS.lilac, '52')} 284deg,
+      transparent 342deg
+    );
+    filter: blur(18px);
+    opacity: 0;
+    transform-origin: center;
+  }
+
   &:hover {
     transform: translateY(-1px);
     border-color: ${boxToneAlpha(0.48)};
@@ -341,17 +474,58 @@ const BoxCard = styled.button`
   ${({ $selected }) =>
     $selected &&
     css`
-      border-color: ${boxToneAlpha(0.88)};
+      border-color: transparent;
       background:
+        linear-gradient(${LCARS.panelAlt}, ${LCARS.panelAlt}) padding-box,
         linear-gradient(
-          var(--box-wash-angle, 92deg),
-          ${boxToneAlpha(0.2)} 0%,
-          transparent 52%
-        ),
-        ${LCARS.panelAlt};
-      box-shadow:
-        inset 0 0 0 1px ${boxToneAlpha(0.34)},
-        0 0 22px ${boxToneAlpha(0.18)};
+            115deg,
+            ${boxTone},
+            ${boxSecondary},
+            ${LCARS.lilac},
+            ${LCARS.coral},
+            ${boxTone}
+          )
+          border-box;
+      background-size: 100% 100%, 200% 200%;
+      animation:
+        ${breatheIn} 140ms ease both,
+        ${selectedBorderFlow} 5.2s linear infinite,
+        ${selectedCardPulse} 2.8s ease-in-out infinite;
+
+      &::before {
+        background: linear-gradient(
+          180deg,
+          ${boxTone},
+          ${boxSecondary},
+          ${LCARS.lilac},
+          ${boxTone}
+        );
+        background-size: 100% 200%;
+        opacity: 0.88;
+        animation: ${selectedSignalFlow} 4.4s linear infinite;
+      }
+
+      &::after {
+        animation: ${selectedWashOrbit} 7.2s linear infinite;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        animation: none;
+        background-position: 0 0, 48% 50%;
+        box-shadow:
+          inset 0 0 0 1px ${boxToneAlpha(0.3)},
+          0 0 16px ${boxToneAlpha(0.22)};
+
+        &::before,
+        &::after {
+          animation: none;
+        }
+
+        &::after {
+          opacity: 0.14;
+          transform: none;
+        }
+      }
     `}
 `;
 
@@ -508,6 +682,33 @@ const BoxImageFrame = styled.div`
     min-height: 92px;
     height: 100%;
     border-radius: 0;
+  }
+`;
+
+const BoxImageTrigger = styled(BoxImageFrame).attrs({
+  as: 'button',
+  type: 'button',
+})`
+  padding: 0;
+  color: inherit;
+  appearance: none;
+  cursor: zoom-in;
+  transition:
+    filter 160ms ease,
+    box-shadow 160ms ease;
+
+  &:hover,
+  &:focus-visible {
+    z-index: 2;
+    outline: none;
+    filter: brightness(1.12) saturate(1.08);
+    box-shadow:
+      inset 0 0 0 2px ${boxToneAlpha(0.86)},
+      0 0 16px ${boxToneAlpha(0.28)};
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 
@@ -911,7 +1112,8 @@ const BoxContent = styled.div`
   }
 `;
 
-const NotesSignal = styled.span`
+const NotesSignal = styled.button`
+  padding: 0;
   display: inline-grid;
   place-items: center;
   flex: 0 0 auto;
@@ -929,7 +1131,7 @@ const NotesSignal = styled.span`
   font-size: 0.64rem;
   font-weight: 900;
   line-height: 1;
-  cursor: inherit;
+  cursor: pointer;
   animation: ${notesPulse} 2.35s ease-in-out infinite;
   transition:
     border-color 150ms ease,
@@ -937,14 +1139,24 @@ const NotesSignal = styled.span`
     background 150ms ease,
     transform 150ms ease;
 
+  &:hover,
+  &:focus-visible {
+    color: ${LCARS.text};
+    border-color: ${toneAlpha(LCARS.lilac, 'd8')};
+    background: ${toneAlpha(LCARS.lilac, '2b')};
+    transform: translateY(-1px);
+    outline: none;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     animation: none;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
-    width: 18px;
-    height: 18px;
-    font-size: 0.58rem;
+    width: 34px;
+    height: 34px;
+    border-radius: 7px;
+    font-size: 0.7rem;
   }
 `;
 
@@ -1079,18 +1291,170 @@ const NestedChildrenIcon = styled.span`
   line-height: 1;
 `;
 
-const OrphanedRevealShell = styled.div`
+const OrphanedRailBack = styled(RailBack)`
+  background: linear-gradient(
+    180deg,
+    #ff5c7a,
+    #ff9f1c,
+    #ffe66d,
+    #62e6a8,
+    #38d9d1,
+    #4b9dff,
+    #9b7bff,
+    #ff67ca,
+    #ff5c7a
+  );
+  background-size: 100% 240%;
+  box-shadow: 0 0 14px rgba(111, 185, 255, 0.24);
+  animation: ${orphanRailShift} 7s linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+const OrphanedAttentionLink = styled(Link)`
+  ${panelBase};
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  overflow: clip;
+  isolation: isolate;
+  border-color: transparent;
+  border-radius: ${({ $isRoot, $depth = 0 }) =>
+    railInnerCorners({ $isRoot, $depth })};
+  color: ${LCARS.text};
+  text-align: left;
+  appearance: none;
+  cursor: pointer;
+  background:
+    linear-gradient(100deg, rgba(10, 16, 23, 0.99), rgba(8, 12, 18, 0.98)) padding-box,
+    linear-gradient(
+        110deg,
+        #ff5c7a,
+        #ff9f1c,
+        #ffe66d,
+        #62e6a8,
+        #38d9d1,
+        #4b9dff,
+        #9b7bff,
+        #ff67ca,
+        #ff5c7a
+      )
+      border-box;
+  background-size: 100% 100%, 240% 100%;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.045),
+    0 8px 24px rgba(0, 0, 0, 0.3),
+    0 0 18px rgba(107, 164, 255, 0.1);
+  text-decoration: none;
+  animation: ${orphanSpectrumShift} 8s linear infinite;
+
+  &:hover {
+    border-color: transparent;
+    background:
+      linear-gradient(100deg, rgba(11, 18, 25, 0.99), rgba(9, 13, 20, 0.98)) padding-box,
+      linear-gradient(
+          110deg,
+          #ff5c7a,
+          #ff9f1c,
+          #ffe66d,
+          #62e6a8,
+          #38d9d1,
+          #4b9dff,
+          #9b7bff,
+          #ff67ca,
+          #ff5c7a
+        )
+        border-box;
+    background-size: 100% 100%, 240% 100%;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.065),
+      0 10px 28px rgba(0, 0, 0, 0.34),
+      0 0 24px rgba(128, 122, 255, 0.18);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #7de9ff;
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    background-position: 0 0, 50% 50%;
+    transition: none;
+  }
+`;
+
+const OrphanedSignal = styled(BoxImageFrame)`
   display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.24rem;
+  border-right: 1px solid rgba(113, 210, 255, 0.15);
+  background:
+    radial-gradient(circle, rgba(119, 116, 255, 0.15), transparent 58%),
+    rgba(3, 8, 13, 0.72);
+
+  span {
+    color: rgba(164, 209, 255, 0.66);
+    font: 850 0.48rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.1em;
+  }
+
+  strong {
+    color: #d8faff;
+    font-size: 1.32rem;
+    line-height: 1;
+    text-shadow:
+      0 0 7px rgba(77, 218, 255, 0.76),
+      0 0 14px rgba(177, 99, 255, 0.38);
+    animation: ${orphanSignalTurn} 9s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    strong {
+      animation: none;
+    }
+  }
+`;
+
+const OrphanedAttentionCopy = styled(BoxContent)`
+  gap: 0.18rem;
+`;
+
+const OrphanedAttentionKicker = styled.span`
   overflow: hidden;
-  max-height: ${({ $open }) => ($open ? '2400px' : '0')};
-  opacity: ${({ $open }) => ($open ? 1 : 0)};
-  transform: translateY(${({ $open }) => ($open ? '0' : '-8px')});
-  pointer-events: ${({ $open }) => ($open ? 'auto' : 'none')};
-  transition:
-    max-height 340ms cubic-bezier(0.2, 0.7, 0.2, 1),
-    opacity 240ms ease,
-    transform 240ms ease;
-  will-change: max-height, opacity, transform;
+  color: rgba(113, 217, 255, 0.8);
+  font: 860 0.56rem/1.1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.12em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const OrphanedAttentionTitle = styled.strong`
+  overflow: hidden;
+  color: #f1f7ff;
+  font-size: clamp(0.98rem, 2.2vw, 1.14rem);
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  text-shadow: 0 0 12px rgba(118, 185, 255, 0.2);
+  white-space: nowrap;
+`;
+
+const OrphanedAttentionMeta = styled.span`
+  overflow: hidden;
+  color: rgba(224, 234, 245, 0.62);
+  font-size: 0.68rem;
+  line-height: 1.18;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
+    font-size: 0.6rem;
+  }
 `;
 
 const TerminalTable = styled.div`
@@ -1115,13 +1479,12 @@ const terminalGrid = css`
     minmax(120px, 0.78fr)
     minmax(150px, 1fr)
     minmax(72px, 0.34fr)
-    minmax(62px, 0.28fr)
-    34px;
+    minmax(62px, 0.28fr);
   align-items: center;
   gap: 0.42rem;
 
   @media (max-width: 780px) {
-    grid-template-columns: minmax(0, 1fr) 34px;
+    grid-template-columns: minmax(0, 1fr);
   }
 `;
 
@@ -1153,12 +1516,14 @@ const TerminalBranch = styled.div`
   min-width: 0;
 `;
 
-const TerminalRow = styled.div`
+const TerminalRow = styled.button`
   ${terminalGrid};
   position: relative;
   min-width: 0;
   min-height: 38px;
+  width: 100%;
   padding: 0.34rem 0.62rem;
+  border: 0;
   border-bottom: 1px solid rgba(127, 215, 255, 0.1);
   background:
     linear-gradient(
@@ -1169,6 +1534,9 @@ const TerminalRow = styled.div`
     ),
     rgba(10, 15, 18, 0.82);
   cursor: pointer;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   transition:
     background 140ms ease,
     box-shadow 140ms ease,
@@ -1194,6 +1562,11 @@ const TerminalRow = styled.div`
       rgba(14, 23, 28, 0.94);
     box-shadow: inset 0 0 0 1px ${toneAlpha(LCARS.ice, '2b')};
   }
+
+  &:focus-visible {
+    outline: 1px solid ${boxToneAlpha(0.74)};
+    outline-offset: -2px;
+  }
 `;
 
 const TerminalBoxCell = styled.div`
@@ -1209,14 +1582,21 @@ const TreeGlyph = styled.span`
   width: 1.15rem;
   color: ${boxMutedAlpha(0.95)};
   font-size: 0.92rem;
+  transform: rotate(${({ $expanded }) => ($expanded ? '90deg' : '0deg')});
+  transform-origin: center;
+  transition: transform 180ms ease, color 180ms ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 const TerminalShortId = styled.span`
   flex: 0 0 auto;
   color: ${boxTone};
   border: 1px solid ${boxToneAlpha(0.52)};
-  border-radius: 999px;
-  padding: 0.1rem 0.38rem;
+  border-radius: 3px;
+  padding: 0.08rem 0.3rem;
   font-size: 0.7rem;
   font-weight: 900;
   line-height: 1.2;
@@ -1263,31 +1643,6 @@ const TerminalMetric = styled.span`
   }
 `;
 
-const TerminalMoreButton = styled.button`
-  display: inline-grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  border: 1px solid ${toneAlpha(LCARS.ice, '66')};
-  color: ${toneAlpha(LCARS.ice, 'e2')};
-  background: linear-gradient(180deg, rgba(11, 26, 38, 0.94), rgba(7, 16, 24, 0.96));
-  font-size: 0.92rem;
-  font-weight: 900;
-  cursor: pointer;
-
-  &:hover:enabled {
-    border-color: ${toneAlpha(LCARS.lime, '8c')};
-    color: ${toneAlpha(LCARS.lime, 'f0')};
-    box-shadow: 0 0 12px ${toneAlpha(LCARS.lime, '24')};
-  }
-
-  &:disabled {
-    opacity: 0.34;
-    cursor: default;
-  }
-`;
-
 const TerminalChildrenToggle = styled.button`
   justify-self: stretch;
   min-height: 34px;
@@ -1306,71 +1661,6 @@ const TerminalChildrenToggle = styled.button`
   &:hover {
     border-color: ${toneAlpha(LCARS.lime, '86')};
     color: ${toneAlpha(LCARS.lime, 'ee')};
-  }
-`;
-
-const TerminalDetailPanel = styled.div`
-  overflow: hidden;
-  max-height: ${({ $open }) => ($open ? '260px' : '0')};
-  opacity: ${({ $open }) => ($open ? 1 : 0)};
-  transform: translateY(${({ $open }) => ($open ? '0' : '-6px')});
-  transition:
-    max-height 260ms cubic-bezier(0.2, 0.7, 0.2, 1),
-    opacity 180ms ease,
-    transform 180ms ease;
-`;
-
-const TerminalDetailInner = styled.div`
-  display: grid;
-  gap: 0.44rem;
-  margin: 0.22rem 0.62rem 0.52rem;
-  padding: 0.56rem 0.62rem;
-  border: 1px solid ${toneAlpha(LCARS.line, 'd8')};
-  border-radius: 10px;
-  background:
-    linear-gradient(90deg, ${toneAlpha(LCARS.ice, '12')}, transparent 64%),
-    rgba(7, 13, 18, 0.92);
-`;
-
-const TerminalDetailText = styled.p`
-  margin: 0;
-  color: ${toneAlpha(LCARS.text, 'dc')};
-  font-size: 0.74rem;
-  line-height: 1.42;
-`;
-
-const TerminalDetailNote = styled(TerminalDetailText)`
-  white-space: pre-wrap;
-`;
-
-const TerminalDetailLabel = styled.span`
-  display: block;
-  color: ${toneAlpha(LCARS.textDim, 'd0')};
-  font-size: 0.64rem;
-  font-weight: 850;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-bottom: 0.18rem;
-`;
-
-const TerminalTagRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-`;
-
-const TerminalLink = styled(Link)`
-  justify-self: start;
-  color: ${toneAlpha(LCARS.lime, 'eb')};
-  font-size: 0.72rem;
-  font-weight: 820;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  text-decoration: none;
-
-  &:hover {
-    color: ${toneAlpha(LCARS.text, 'f2')};
-    text-decoration: underline;
   }
 `;
 
@@ -1402,6 +1692,16 @@ const PaginationBar = styled.div`
   background:
     linear-gradient(90deg, ${toneAlpha(LCARS.ice, '18')}, transparent 55%),
     ${LCARS.panel};
+
+  @media (max-width: 560px) {
+    grid-template-columns: 30px minmax(0, 1fr) 30px;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 4px;
+    border-color: ${toneAlpha(LCARS.ice, '32')};
+    background: rgba(7, 13, 18, 0.54);
+    box-shadow: none;
+  }
 `;
 
 const PaginationButton = styled.button`
@@ -1429,6 +1729,29 @@ const PaginationButton = styled.button`
     opacity: 0.45;
     cursor: not-allowed;
   }
+
+  > span[aria-hidden='true'] {
+    display: none;
+  }
+
+  @media (max-width: 560px) {
+    min-width: 0;
+    min-height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 2px;
+    background: transparent;
+    box-shadow: none;
+    font: 800 1rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    .pagination-label {
+      display: none;
+    }
+
+    > span[aria-hidden='true'] {
+      display: inline;
+    }
+  }
 `;
 
 const PaginationInfo = styled.div`
@@ -1436,6 +1759,11 @@ const PaginationInfo = styled.div`
   color: ${toneAlpha(LCARS.textDim, 'df')};
   font-size: 0.77rem;
   letter-spacing: 0.04em;
+
+  @media (max-width: 560px) {
+    font: 760 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.08em;
+  }
 `;
 
 export const styledComponents = {
@@ -1452,6 +1780,7 @@ export const styledComponents = {
   CardManifest,
   CardManifestMuted,
   BoxImageFrame,
+  BoxImageTrigger,
   BoxImage,
   BoxImagePlaceholder,
   BoxHeader,
@@ -1495,7 +1824,13 @@ export const styledComponents = {
   NodeChildren,
   NestedChildrenToggle,
   NestedChildrenIcon,
-  OrphanedRevealShell,
+  OrphanedRailBack,
+  OrphanedAttentionLink,
+  OrphanedSignal,
+  OrphanedAttentionCopy,
+  OrphanedAttentionKicker,
+  OrphanedAttentionTitle,
+  OrphanedAttentionMeta,
   TerminalTable,
   TerminalHeader,
   TerminalHeadCell,
@@ -1507,15 +1842,7 @@ export const styledComponents = {
   TerminalTitle,
   TerminalCell,
   TerminalMetric,
-  TerminalMoreButton,
   TerminalChildrenToggle,
-  TerminalDetailPanel,
-  TerminalDetailInner,
-  TerminalDetailText,
-  TerminalDetailNote,
-  TerminalDetailLabel,
-  TerminalTagRow,
-  TerminalLink,
   TerminalChildren,
   EmptyMessage,
   PaginationBar,

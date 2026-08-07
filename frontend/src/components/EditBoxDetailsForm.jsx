@@ -54,6 +54,7 @@ export default function EditBoxDetailsForm({
   );
   const [declutterPurpose, setDeclutterPurpose] = useState(initial?.declutterPurpose || 'standard');
   const [declutterIsDefault, setDeclutterIsDefault] = useState(Boolean(initial?.declutterIsDefault));
+  const [isGiftBox, setIsGiftBox] = useState(Boolean(initial?.isGiftBox));
   const [busy, setBusy] = useState(false);
   const [destroyBusy, setDestroyBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -88,6 +89,7 @@ export default function EditBoxDetailsForm({
     setTags(Array.isArray(initial?.tags) ? initial.tags : []);
     setDeclutterPurpose(initial?.declutterPurpose || 'standard');
     setDeclutterIsDefault(Boolean(initial?.declutterIsDefault));
+    setIsGiftBox(Boolean(initial?.isGiftBox));
   }, [
     initial?._id,
     initial?.box_id,
@@ -99,6 +101,7 @@ export default function EditBoxDetailsForm({
     initial?.tags,
     initial?.declutterPurpose,
     initial?.declutterIsDefault,
+    initial?.isGiftBox,
     initialTagsKey,
   ]);
 
@@ -132,6 +135,7 @@ export default function EditBoxDetailsForm({
       JSON.stringify([...(initial?.tags || [])].sort());
     const sameDeclutterPurpose = declutterPurpose === (initial?.declutterPurpose || 'standard');
     const sameDeclutterDefault = declutterIsDefault === Boolean(initial?.declutterIsDefault);
+    const sameGiftBox = isGiftBox === Boolean(initial?.isGiftBox);
     return !(
       sameId &&
       sameLabel &&
@@ -141,9 +145,10 @@ export default function EditBoxDetailsForm({
       sameLocation &&
       sameTags &&
       sameDeclutterPurpose &&
-      sameDeclutterDefault
+      sameDeclutterDefault &&
+      sameGiftBox
     );
-  }, [shortId, label, group, description, notes, locationId, tags, declutterPurpose, declutterIsDefault, initial]);
+  }, [shortId, label, group, description, notes, locationId, tags, declutterPurpose, declutterIsDefault, isGiftBox, initial]);
 
   const canSave =
     !busy &&
@@ -208,6 +213,7 @@ export default function EditBoxDetailsForm({
         tags,
         declutterPurpose,
         declutterIsDefault,
+        isGiftBox,
       });
       onSaved?.(updated || {
         _id: boxMongoId,
@@ -334,6 +340,8 @@ export default function EditBoxDetailsForm({
                     setPurpose={setDeclutterPurpose}
                     isDefault={declutterIsDefault}
                     setIsDefault={setDeclutterIsDefault}
+                    isGiftBox={isGiftBox}
+                    setIsGiftBox={setIsGiftBox}
                   />
                 </S.SectionBody>
               </S.SectionCard>
@@ -386,82 +394,73 @@ export default function EditBoxDetailsForm({
         <>
           <BoxIdentityFields compact {...identityFieldProps} />
           <BoxDeclutterFields
+            compact
             purpose={declutterPurpose}
             setPurpose={setDeclutterPurpose}
             isDefault={declutterIsDefault}
             setIsDefault={setDeclutterIsDefault}
+            isGiftBox={isGiftBox}
+            setIsGiftBox={setIsGiftBox}
           />
 
-          <S.SectionCard $tone="lilac">
-            <S.SectionHeader>
-              <S.SectionLabel>Notes</S.SectionLabel>
-              <S.SectionTitle>Context</S.SectionTitle>
-            </S.SectionHeader>
-            <S.SectionBody>
-              <S.Field $compact>
-                <S.Label htmlFor="box-description-compact" $compact>
-                  Physical Description
-                </S.Label>
-                <S.Textarea
-                  id="box-description-compact"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe the physical box, color, size, markings, or condition..."
-                  $compact
-                />
-              </S.Field>
-              <S.Field $compact>
-                <S.Label htmlFor="box-notes-compact" $compact>Notes</S.Label>
-                <S.Textarea
-                  id="box-notes-compact"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add contextual notes for this box..."
-                  $compact
-                />
-              </S.Field>
-            </S.SectionBody>
-          </S.SectionCard>
-
-          <S.SectionCard $tone="amber">
-            <S.SectionHeader>
-              <S.SectionLabel>Photo</S.SectionLabel>
-              <S.SectionTitle>Media</S.SectionTitle>
-            </S.SectionHeader>
-            <S.SectionBody>
-              <BoxImageField
-                box={initial}
-                boxId={boxMongoId}
-                compact
-                disabled={busy || destroyBusy}
-                mobileHeaderPreview
-                title="Box Image"
-                showVariantLabel={false}
-                placeholder="No photo"
-                messageSubject="Image"
-                clearLabel="Delete Photo"
-                onBoxImageUpdated={({ image, imagePath }) => {
-                  void Promise.resolve(
-                    onImageUpdated?.({
-                      image: image || null,
-                      imagePath: imagePath || '',
-                    })
-                  );
-                }}
-                onProcessImage={onProcessImage}
-                processImageStatus={processImageStatus}
-                processImageBusy={processImageBusy}
-                processImageError={processImageError}
-                processImageProgressLabel={processImageProgressLabel}
-                processImageProgressPercent={processImageProgressPercent}
-                processImageJobId={processImageJobId}
-                processImageMediaId={processImageMediaId}
-                persistedRenderTokens={persistedRenderTokens}
-                processedPreviewUrl={processedPreviewUrl}
-                imageRefreshToken={imageRefreshToken}
+          <S.CompactContextGrid>
+            <S.Field $compact>
+              <S.Label htmlFor="box-description-compact" $compact>
+                Physical description
+              </S.Label>
+              <S.Textarea
+                id="box-description-compact"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Describe the physical box, color, size, markings, or condition..."
+                $compact
               />
-            </S.SectionBody>
-          </S.SectionCard>
+            </S.Field>
+            <S.Field $compact>
+              <S.Label htmlFor="box-notes-compact" $compact>Notes</S.Label>
+              <S.Textarea
+                id="box-notes-compact"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add contextual notes for this box..."
+                $compact
+              />
+            </S.Field>
+          </S.CompactContextGrid>
+
+          <S.CompactMediaRegion>
+            <BoxImageField
+              box={initial}
+              boxId={boxMongoId}
+              compact
+              disabled={busy || destroyBusy}
+              mobileHeaderPreview
+              title="Box Image"
+              showVariantLabel={false}
+              placeholder="No photo"
+              messageSubject="Image"
+              clearLabel="Delete Photo"
+              onBoxImageUpdated={({ image, imagePath }) => {
+                void Promise.resolve(
+                  onImageUpdated?.({
+                    image: image || null,
+                    imagePath: imagePath || '',
+                  })
+                );
+              }}
+              onProcessImage={onProcessImage}
+              processImageStatus={processImageStatus}
+              processImageBusy={processImageBusy}
+              processImageError={processImageError}
+              processImageProgressLabel={processImageProgressLabel}
+              processImageProgressPercent={processImageProgressPercent}
+              processImageJobId={processImageJobId}
+              processImageMediaId={processImageMediaId}
+              persistedRenderTokens={persistedRenderTokens}
+              processedPreviewUrl={processedPreviewUrl}
+              imageRefreshToken={imageRefreshToken}
+            />
+          </S.CompactMediaRegion>
         </>
       )}
 

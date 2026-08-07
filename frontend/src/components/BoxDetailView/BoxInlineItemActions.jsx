@@ -23,6 +23,7 @@ function formatBoxContextLabel(box) {
 export default function BoxInlineItemActions({
   box,
   onItemsChanged,
+  compact = false,
 }) {
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
@@ -70,9 +71,9 @@ export default function BoxInlineItemActions({
   };
 
   return (
-    <S.InlineActionsArea>
-      <S.InlineActionsRow>
-        <S.InlineActionButton
+    <S.InlineActionsArea $compact={compact}>
+      <S.InlineActionsRow $compact={compact}>
+        <S.InlineActionButton $compact={compact}
           type="button"
           $active={activePanel === 'create'}
           onClick={() => handleToggle('create')}
@@ -83,7 +84,7 @@ export default function BoxInlineItemActions({
             : 'Quick Create Item in This Box'}
         </S.InlineActionButton>
 
-        <S.InlineActionButton
+        <S.InlineActionButton $compact={compact}
           type="button"
           $tone="assign"
           $active={activePanel === 'assign'}
@@ -91,14 +92,14 @@ export default function BoxInlineItemActions({
           disabled={!selectedBox?._id}
         >
           {activePanel === 'assign'
-            ? 'Hide Orphan Assigner'
-            : 'Assign Orphaned Item to This Box'}
+            ? 'Hide Items Adrift'
+            : 'Assign Item Adrift to This Box'}
         </S.InlineActionButton>
       </S.InlineActionsRow>
 
       {!selectedBox?._id ? (
         <S.QuickCreateNotice>
-          Select a box to enable inline create and orphan assignment actions.
+          Select a box to enable inline create and Items Adrift assignment actions.
         </S.QuickCreateNotice>
       ) : null}
 
@@ -125,7 +126,7 @@ export default function BoxInlineItemActions({
       {activePanel === 'assign' && selectedBox?._id ? (
         <S.InlinePanelShell>
           <S.InlinePanelHeader>
-            <S.InlinePanelTitle>Assign Orphaned Items</S.InlinePanelTitle>
+            <S.InlinePanelTitle>Assign Items Adrift</S.InlinePanelTitle>
             <S.InlinePanelContext>
               Target: {selectedBoxContext}
             </S.InlinePanelContext>
@@ -133,19 +134,19 @@ export default function BoxInlineItemActions({
 
           <MiniOrphanedList
             boxMongoId={selectedBox._id}
-            title="Orphaned Items"
+            title="Items Adrift"
             assignLabel="Assign"
             showControls
             paginationMode="paged"
             fixedViewportHeight="min(68vh, 560px)"
-            searchPlaceholder="Search orphaned items..."
+            searchPlaceholder="Search Items Adrift..."
             sortOptions={ORPHAN_SORT_OPTIONS}
-            emptyText="No orphaned items match the current search."
+            emptyText="No Items Adrift match the current search."
             assignSuccessMessage={(item) => {
               const itemName = String(item?.name || '').trim();
               return itemName
-                ? `Assigned orphan "${itemName}" to ${selectedBoxContext}.`
-                : `Assigned orphaned item to ${selectedBoxContext}.`;
+                ? `Assigned "${itemName}" from Items Adrift to ${selectedBoxContext}.`
+                : `Assigned an item from Items Adrift to ${selectedBoxContext}.`;
             }}
             onItemAssigned={handleOrphanAssigned}
           />

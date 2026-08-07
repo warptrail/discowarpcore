@@ -9,6 +9,23 @@ function buildBreadcrumb(item, itemId) {
   const nodes = Array.isArray(item?.breadcrumb) ? item.breadcrumb : [];
   const ownership = getItemOwnershipContext(item);
 
+  if (String(item?.item_status || '').trim().toLowerCase() === 'gone') {
+    return [
+      home,
+      {
+        key: 'no-longer-have',
+        kind: 'link',
+        to: '/declutter/history?filter=physically_completed',
+        label: 'No Longer Have',
+      },
+      {
+        key: 'item-current',
+        kind: 'current',
+        label: safeItemName || safeItemId || 'Item',
+      },
+    ];
+  }
+
   const breadcrumbBoxes = nodes
     .map((node, index) => {
       const boxId = String(node?.box_id || '').trim();
@@ -58,7 +75,7 @@ function buildBreadcrumb(item, itemId) {
 
   return [
     home,
-    { key: 'orphaned', kind: 'link', to: '/all-items', label: 'Orphaned Items' },
+    { key: 'orphaned', kind: 'link', to: '/all-items', label: 'Items Adrift' },
     {
       key: 'item-current',
       kind: 'current',

@@ -107,7 +107,7 @@ export default function IntakeItemPanel({
           $active={activeTab === TAB_ORPHANED}
           onClick={() => setActiveTab(TAB_ORPHANED)}
         >
-          Orphaned
+          Items Adrift
         </TabButton>
 
         <TabButton

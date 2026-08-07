@@ -1,11 +1,18 @@
-import { useContext, useEffect, useRef, useState } from 'react';
+import { Fragment, useContext, useEffect, useRef, useState } from 'react';
 import styled, { css, keyframes } from 'styled-components';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Toast from './Toast/Toast';
 import { ToastContext } from './Toast';
+import houseCommandIcon from '../assets/house-command-icon.png';
 import useIsMobile from '../hooks/useIsMobile';
 import useRandomItemFlow from '../hooks/useRandomItemFlow';
 import RotatingDataAnnouncement from './RotatingDataAnnouncement';
+import DeclutterPlayerPicker from './Declutter/DeclutterPlayerPicker';
+import {
+  DECLUTTER_PENDING_COUNTS_EVENT,
+  DECLUTTER_PLAYER_CHANGE_EVENT,
+  getStoredDeclutterPlayer,
+} from './Declutter/declutterPlayers';
 import {
   BOX_FINDER_CLOSE_EVENT,
   BOX_FINDER_OPEN_EVENT,
@@ -17,6 +24,7 @@ import {
   INVENTORY_FINDER_STATE_EVENT,
   OPERATIONS_QUICK_PEEK_SEARCH_STATE_EVENT,
   OPERATIONS_QUICK_PEEK_SEARCH_TOGGLE_EVENT,
+  OPERATIONS_QUICK_PEEK_CLOSE_EVENT,
   RETRIEVAL_FINDER_STATE_EVENT,
   RETRIEVAL_FINDER_TOGGLE_EVENT,
   ALL_ITEMS_FILTERS_STATE_EVENT,
@@ -38,12 +46,56 @@ import {
 // LCARS-ish Styles
 // ===============
 
-const HEADER_SCROLL_RANGE = 120;
-const MIN_HEADER_SCROLL_RANGE = 72;
-const SHORT_PAGE_SCROLL_COMPLETION_RATIO = 0.42;
+// Header progress changes its own rendered height. Keep the scroll decision on
+// fixed document coordinates so a height transition can never feed back into
+// the next progress calculation through scroll anchoring or scrollHeight.
+const HEADER_SCROLL_STAGE = Object.freeze({
+  expanded: 0,
+  docked: 0.58,
+  compact: 1,
+});
+const HEADER_SCROLL_BAND = Object.freeze({
+  // Hysteresis keeps browser scroll anchoring from bouncing between stages
+  // while the header's layout height is settling.
+  enterDocked: 56,
+  leaveDocked: 0,
+  enterCompact: 112,
+  leaveCompact: 72,
+});
 
-const clamp = (value, min = 0, max = 1) =>
-  Math.min(max, Math.max(min, value));
+const getHeaderScrollStage = (scrollY, previousProgress) => {
+  const wasExpanded = previousProgress < HEADER_SCROLL_STAGE.docked / 2;
+  const wasCompact = previousProgress >
+    (HEADER_SCROLL_STAGE.docked + HEADER_SCROLL_STAGE.compact) / 2;
+
+  if (wasExpanded) {
+    if (scrollY >= HEADER_SCROLL_BAND.enterCompact) {
+      return HEADER_SCROLL_STAGE.compact;
+    }
+    if (scrollY >= HEADER_SCROLL_BAND.enterDocked) {
+      return HEADER_SCROLL_STAGE.docked;
+    }
+    return HEADER_SCROLL_STAGE.expanded;
+  }
+
+  if (wasCompact) {
+    if (scrollY <= HEADER_SCROLL_BAND.leaveDocked) {
+      return HEADER_SCROLL_STAGE.expanded;
+    }
+    if (scrollY <= HEADER_SCROLL_BAND.leaveCompact) {
+      return HEADER_SCROLL_STAGE.docked;
+    }
+    return HEADER_SCROLL_STAGE.compact;
+  }
+
+  if (scrollY <= HEADER_SCROLL_BAND.leaveDocked) {
+    return HEADER_SCROLL_STAGE.expanded;
+  }
+  if (scrollY >= HEADER_SCROLL_BAND.enterCompact) {
+    return HEADER_SCROLL_STAGE.compact;
+  }
+  return HEADER_SCROLL_STAGE.docked;
+};
 
 const HeaderShell = styled.header`
   --header-progress: 0;
@@ -69,7 +121,8 @@ const HeaderShell = styled.header`
     0 calc(10px - (4px * var(--header-progress))) calc(30px - (10px * var(--header-progress))) rgba(0, 0, 0, 0.35);
 
   /* Prevent content behind header from peeking through around rounded corners */
-  overflow: hidden;
+  overflow: ${({ $allowFinderOverflow }) =>
+    $allowFinderOverflow ? 'visible' : 'hidden'};
   transition:
     background var(--header-duration) var(--header-ease),
     backdrop-filter var(--header-duration) var(--header-ease),
@@ -82,6 +135,17 @@ const HeaderShell = styled.header`
     box-shadow:
       0 0 0 1px rgba(0, 255, 200, 0.09),
       0 4px 14px rgba(0, 0, 0, 0.28);
+  }
+
+  @media (min-width: calc(${MOBILE_BREAKPOINT} + 1px)) and (max-width: 899px) {
+    ${({ $retrievalPage }) =>
+      $retrievalPage &&
+      css`
+        border-radius: 3px 10px 3px 3px;
+        box-shadow:
+          inset 5px 0 0 rgba(76, 198, 193, 0.52),
+          0 8px 22px rgba(0, 0, 0, 0.28);
+      `}
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -102,6 +166,15 @@ const Inner = styled.div`
     padding-inline: calc(0.58rem - (0.16rem * var(--header-progress)));
   }
 
+  @media (min-width: calc(${MOBILE_BREAKPOINT} + 1px)) and (max-width: 899px) {
+    ${({ $retrievalPage }) =>
+      $retrievalPage &&
+      css`
+        padding-block: calc(0.64rem - (0.34rem * var(--header-progress)));
+        padding-inline: calc(0.72rem - (0.22rem * var(--header-progress)));
+      `}
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
@@ -111,6 +184,16 @@ const Inner = styled.div`
     css`
       padding-block: 0;
       padding-inline: 0.65rem;
+    `}
+
+  ${({ $itemPageRail }) =>
+    $itemPageRail &&
+    css`
+      padding: 0.18rem 0.65rem 0.24rem;
+
+      @media (max-width: ${MOBILE_BREAKPOINT}) {
+        padding: 0.14rem 0.46rem 0.2rem;
+      }
     `}
 `;
 
@@ -647,17 +730,13 @@ const NavRow = styled.nav`
   --nav-gap: calc(0.56rem - (0.24rem * var(--nav-progress)));
   --nav-expanded-size: calc((100% - (1.68rem - (0.72rem * var(--nav-progress)))) / 4);
 
-  margin-top: calc(0.72rem - (0.44rem * var(--header-progress)));
-  transition:
-    margin-top var(--header-duration) var(--header-ease),
-    gap var(--header-duration) var(--header-ease);
-
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--nav-gap);
+  margin-top: 0.52rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.42rem;
   align-items: stretch;
   justify-content: flex-start;
-  overflow-x: auto;
+  overflow: hidden;
   scrollbar-width: none;
 
   &::-webkit-scrollbar {
@@ -665,8 +744,20 @@ const NavRow = styled.nav`
   }
 
   @media (min-width: 1220px) {
-    --nav-gap: calc(0.6rem - (0.26rem * var(--nav-progress)));
-    --nav-expanded-size: calc((100% - (4.2rem - (1.82rem * var(--nav-progress)))) / 8);
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+
+    ${({ $retrievalPage }) =>
+      $retrievalPage &&
+      css`
+        --nav-readable-size: 0px;
+
+        > a,
+        > button {
+          width: 100%;
+          min-width: 0;
+          border-radius: 2px 6px 2px 2px;
+        }
+      `}
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -675,16 +766,72 @@ const NavRow = styled.nav`
     --nav-gap: calc(0.38rem - (0.14rem * var(--nav-progress)));
     --nav-expanded-size: calc((100% - (0.76rem - (0.28rem * var(--nav-progress)))) / 3);
 
-    margin-top: calc(0.42rem - (0.18rem * var(--header-progress)));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.32rem;
+    margin-top: 0.36rem;
+
+    ${({ $textOnly }) =>
+      $textOnly &&
+      css`
+        > a,
+        > button {
+          gap: 0;
+          padding-inline: clamp(0.28rem, 2.4vw, 0.58rem);
+        }
+
+        > a > span:first-child,
+        > button > span:first-child {
+          display: none;
+        }
+
+        > a > span:last-child,
+        > button > span:last-child {
+          display: block;
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          opacity: 1;
+          overflow: hidden;
+          transform: none;
+          font-size: clamp(0.62rem, 3.5vw, 0.82rem);
+          letter-spacing: clamp(0.02em, 0.3vw, 0.055em);
+          line-height: 1.05;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      `}
   }
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     --nav-expanded-size: calc((100% - (0.38rem - (0.14rem * var(--nav-progress)))) / 2);
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
+  @media (min-width: 900px) and (max-width: 1219px) {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
   }
+
+  @media (min-width: calc(${MOBILE_BREAKPOINT} + 1px)) and (max-width: 899px) {
+    ${({ $retrievalPage }) =>
+      $retrievalPage &&
+      css`
+        --nav-gap: calc(0.36rem - (0.12rem * var(--nav-progress)));
+        --nav-readable-size: 0px;
+        --nav-expanded-size: calc((100% - (1.08rem - (0.36rem * var(--nav-progress)))) / 4);
+
+        > a,
+        > button {
+          width: 100%;
+          min-width: 0;
+          min-height: calc(2.08rem - (0.16rem * var(--header-progress)));
+          gap: calc(0.34rem - (0.22rem * var(--nav-progress)));
+          padding: calc(0.34rem - (0.18rem * var(--nav-progress))) 0.36rem;
+          border-radius: 2px 6px 2px 2px;
+          font-size: calc(0.74rem + (0.08rem * var(--nav-progress)));
+        }
+      `}
+  }
+
 `;
 
 const MobileNavPanel = styled.div`
@@ -707,13 +854,12 @@ const navControlStyles = css`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: calc(0.48rem - (0.48rem * var(--nav-progress)));
-  padding-block: calc(0.55rem - (0.55rem * var(--nav-progress)));
-  padding-inline: calc(1rem - (1rem * var(--nav-progress)));
-  flex: 0 1 calc(max(var(--nav-expanded-size), var(--nav-readable-size)) - ((max(var(--nav-expanded-size), var(--nav-readable-size)) - var(--nav-icon-size)) * var(--nav-progress)));
-  width: calc(max(var(--nav-expanded-size), var(--nav-readable-size)) - ((max(var(--nav-expanded-size), var(--nav-readable-size)) - var(--nav-icon-size)) * var(--nav-progress)));
-  min-width: calc(var(--nav-readable-size) - ((var(--nav-readable-size) - var(--nav-icon-size)) * var(--nav-progress)));
-  min-height: calc(2.35rem - (0.3rem * var(--header-progress)));
+  gap: 0.36rem;
+  padding: 0.46rem 0.52rem;
+  flex: none;
+  width: 100%;
+  min-width: 0;
+  min-height: 2.35rem;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -728,7 +874,7 @@ const navControlStyles = css`
     'Courier New', monospace;
   letter-spacing: clamp(0.018em, 0.01em + 0.03vw, 0.04em);
   font-weight: 700;
-  font-size: calc(0.84rem + (0.16rem * var(--nav-progress)));
+  font-size: 0.84rem;
 
   color: rgba(240, 240, 240, 0.95);
   background: rgba(20, 34, 46, 0.9);
@@ -736,11 +882,6 @@ const navControlStyles = css`
   box-shadow: 0 0 0 2px rgba(0, 255, 200, 0.06);
 
   transition:
-    width var(--header-duration) var(--header-ease),
-    min-height var(--header-duration) var(--header-ease),
-    padding var(--header-duration) var(--header-ease),
-    gap var(--header-duration) var(--header-ease),
-    font-size var(--header-duration) var(--header-ease),
     transform 120ms ease,
     box-shadow 120ms ease,
     background 120ms ease;
@@ -759,11 +900,10 @@ const navControlStyles = css`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     justify-content: center;
-    min-height: calc(${MOBILE_CONTROL_MIN_HEIGHT} - (0.64rem * var(--nav-progress)));
-    padding-block: calc(0.36rem - (0.36rem * var(--nav-progress)));
-    padding-inline: calc(0.34rem - (0.34rem * var(--nav-progress)));
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+    padding: 0.32rem 0.34rem;
     border-radius: 8px;
-    font-size: calc(${MOBILE_FONT_SM} + (0.12rem * var(--nav-progress)));
+    font-size: ${MOBILE_FONT_SM};
     letter-spacing: 0.035em;
     box-shadow: 0 0 0 1px rgba(0, 255, 200, 0.08);
   }
@@ -831,6 +971,15 @@ const ToastRow = styled.div`
     padding-inline: calc(0.58rem - (0.16rem * var(--header-progress)));
   }
 
+  @media (min-width: calc(${MOBILE_BREAKPOINT} + 1px)) and (max-width: 899px) {
+    ${({ $retrievalPage }) =>
+      $retrievalPage &&
+      css`
+        padding-block: 0 calc(0.48rem - (0.18rem * var(--header-progress)));
+        padding-inline: calc(0.72rem - (0.22rem * var(--header-progress)));
+      `}
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
@@ -846,6 +995,16 @@ const ToastRow = styled.div`
         padding-block: 0.15rem;
       }
     `}
+`;
+
+const OperationsConsoleFinderMount = styled.div`
+  display: ${({ $active }) => ($active ? 'block' : 'none')};
+  flex: 1 1 auto;
+  min-width: 0;
+
+  &:empty {
+    display: none;
+  }
 `;
 
 const BoxConsoleMessage = styled.span`
@@ -905,16 +1064,107 @@ const BoxConsoleTrailingContext = styled.span`
   }
 `;
 
+const BoxConsoleBreadcrumb = styled.nav`
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  gap: 0.28rem;
+  overflow: hidden;
+`;
+
+const BoxConsoleCrumb = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  color: var(--box-muted);
+  font-weight: 760;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--box-neon);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+`;
+
+const BoxConsoleCurrentCrumb = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  color: var(--box-muted);
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const BoxConsoleHomeIcon = styled.img`
+  display: block;
+  width: clamp(1.55rem, 5vw, 2.15rem);
+  height: clamp(1.55rem, 5vw, 2.15rem);
+  object-fit: contain;
+
+  ${({ $twinkle }) =>
+    $twinkle &&
+    css`
+      filter: hue-rotate(var(--home-icon-hue, 0deg)) saturate(1.16)
+        brightness(1.08);
+      transition: filter var(--home-icon-transition, 340ms)
+        cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: filter;
+    `}
+
+  @media (prefers-reduced-motion: reduce) {
+    filter: none;
+    transition: none;
+  }
+`;
+
+const BoxConsoleCrumbSeparator = styled.span`
+  flex: 0 0 auto;
+  color: rgba(var(--box-secondary-rgb), 0.62);
+  font-family: ui-monospace, monospace;
+`;
+
 function BoxConsoleIdleMessage({
   shortId,
   title,
   location,
   query,
   matchCount,
+  breadcrumb = [],
 }) {
   const hasQuery = Boolean(query);
   const countLabel = `${matchCount} ${matchCount === 1 ? 'match' : 'matches'}`;
   const trailingContext = hasQuery ? countLabel : location;
+
+  if (!hasQuery && breadcrumb.length > 0) {
+    return (
+      <BoxConsoleBreadcrumb aria-label="Box breadcrumb">
+        <BoxConsoleCrumb to="/boxes" title="Browse all boxes" aria-label="Browse all boxes">
+          <BoxConsoleHomeIcon src={houseCommandIcon} alt="" aria-hidden="true" />
+        </BoxConsoleCrumb>
+        {breadcrumb.map((crumb, index) => {
+          const id = String(crumb?.id || '').trim();
+          const label = String(crumb?.label || 'Box').trim() || 'Box';
+          const isCurrent = index === breadcrumb.length - 1;
+          return (
+            <Fragment key={`${id}:${index}`}>
+              <BoxConsoleCrumbSeparator aria-hidden="true">›</BoxConsoleCrumbSeparator>
+              {isCurrent ? (
+                <BoxConsoleCurrentCrumb title={`${id ? `#${id} / ` : ''}${label}`}>
+                  {id ? `#${id} / ` : ''}{label}
+                </BoxConsoleCurrentCrumb>
+              ) : (
+                <BoxConsoleCrumb to={`/boxes/${encodeURIComponent(id)}`}>
+                  {id ? `#${id} / ` : ''}{label}
+                </BoxConsoleCrumb>
+              )}
+            </Fragment>
+          );
+        })}
+      </BoxConsoleBreadcrumb>
+    );
+  }
 
   return (
     <BoxConsoleMessage>
@@ -931,6 +1181,70 @@ function BoxConsoleIdleMessage({
   );
 }
 
+const IntakeConsoleMessage = styled.span`
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.34rem;
+  min-width: 0;
+  max-width: 100%;
+  color: rgba(234, 238, 242, 0.84);
+`;
+
+const IntakeConsoleDestination = styled.span`
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 58%;
+  overflow: hidden;
+  color: rgba(var(--box-neon-rgb), 0.96);
+  font-family:
+    'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace, Menlo,
+    Monaco, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.78rem;
+  font-weight: 860;
+  letter-spacing: 0.055em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const IntakeConsoleDivider = styled.span`
+  flex: 0 0 auto;
+  color: rgba(var(--box-primary-rgb), 0.48);
+`;
+
+const IntakeConsoleDraft = styled.span`
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(230, 235, 239, 0.8);
+  font-weight: 720;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+function IntakeConsoleIdleMessage({ draftName, context }) {
+  const shortId = String(context?.shortId || '').trim();
+  const label = String(context?.label || '').trim();
+  const destination = shortId ? `#${shortId}${label ? ` · ${label}` : ''}` : 'ORPHANED';
+  const draft = String(draftName || '').trim();
+  const mode = String(context?.mode || 'new');
+  const hasDestination = Boolean(shortId);
+  const modeCopy = {
+    new: draft ? `Staging: ${draft}` : 'Enter a new item',
+    box: hasDestination ? 'Review or change this box' : 'Choose a current box',
+    organize: 'Route recent activity',
+    edit: hasDestination ? 'Edit this box' : 'Choose a box to edit',
+  };
+  const activity = modeCopy[mode] || modeCopy.new;
+
+  return (
+    <IntakeConsoleMessage>
+      <IntakeConsoleDestination title={destination}>{destination}</IntakeConsoleDestination>
+      <IntakeConsoleDivider aria-hidden="true">/</IntakeConsoleDivider>
+      <IntakeConsoleDraft title={activity}>{activity}</IntakeConsoleDraft>
+    </IntakeConsoleMessage>
+  );
+}
+
 const geometryOrbit = keyframes`
   to { transform: rotate(360deg); }
 `;
@@ -944,12 +1258,24 @@ const geometryCommitPulse = keyframes`
   45% { box-shadow: 0 0 22px rgba(127, 215, 255, 0.95), 0 0 42px rgba(76, 198, 193, 0.52); }
 `;
 
+const geometryFilteredPulse = keyframes`
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(190, 120, 255, 0.18), 0 0 13px rgba(169, 92, 255, 0.32), inset 0 0 12px rgba(213, 166, 255, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(218, 174, 255, 0.34), 0 0 25px rgba(181, 105, 255, 0.58), inset 0 0 17px rgba(221, 181, 255, 0.16);
+  }
+`;
+
 const RescueConsoleTrigger = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
+  align-self: ${({ $operationsFinderOpen }) =>
+    $operationsFinderOpen ? 'flex-start' : 'center'};
+  margin-top: 0;
   margin-left: auto;
   border: 1px solid
     ${({ $active }) =>
@@ -1051,9 +1377,47 @@ const RescueConsoleTrigger = styled.button`
       }
     `}
 
+  ${({ $filtersActive }) =>
+    $filtersActive &&
+    css`
+      border-color: rgba(210, 157, 255, 0.96);
+      color: rgba(239, 218, 255, 0.98);
+      background:
+        linear-gradient(145deg, rgba(105, 42, 161, 0.9), rgba(35, 14, 61, 0.96)),
+        rgba(8, 14, 25, 0.96);
+      animation: ${geometryFilteredPulse} 2.4s ease-in-out infinite;
+
+      svg {
+        filter: drop-shadow(0 0 6px rgba(210, 157, 255, 0.95));
+      }
+
+      .orbit {
+        animation: ${geometryCounterOrbit} 4.2s linear infinite;
+      }
+
+      .counter-orbit {
+        animation: ${geometryOrbit} 6.8s linear infinite;
+      }
+
+      &:hover,
+      &:focus-visible {
+        border-color: rgba(235, 207, 255, 1);
+        color: #ffffff;
+        background:
+          linear-gradient(145deg, rgba(127, 52, 189, 0.96), rgba(47, 17, 79, 0.98)),
+          rgba(8, 14, 25, 0.98);
+        box-shadow: 0 0 28px rgba(193, 126, 255, 0.62), inset 0 0 18px rgba(226, 191, 255, 0.18);
+      }
+    `}
+
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    width: ${MOBILE_CONTROL_MIN_HEIGHT};
-    height: ${MOBILE_CONTROL_MIN_HEIGHT};
+    flex: 0 0
+      ${({ $operationsFinderOpen }) =>
+        $operationsFinderOpen ? '38px' : MOBILE_CONTROL_MIN_HEIGHT};
+    width: ${({ $operationsFinderOpen }) =>
+      $operationsFinderOpen ? '38px' : MOBILE_CONTROL_MIN_HEIGHT};
+    height: ${({ $operationsFinderOpen }) =>
+      $operationsFinderOpen ? '38px' : MOBILE_CONTROL_MIN_HEIGHT};
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1083,12 +1447,80 @@ function FinderGeometryGlyph() {
   );
 }
 
+const HOME_ICON_HUES = [0, 34, 78, 126, 176, 224, 278, 324];
+
+function getNextHomeIconSignal(currentHue = 0) {
+  const alternatives = HOME_ICON_HUES.filter((hue) => hue !== currentHue);
+  const nextHue = alternatives[Math.floor(Math.random() * alternatives.length)] || 0;
+
+  return {
+    hue: nextHue,
+    transitionMs: 220 + Math.floor(Math.random() * 281),
+  };
+}
+
+function usePrefersReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const syncPreference = () => setPrefersReducedMotion(mediaQuery.matches);
+
+    syncPreference();
+    mediaQuery.addEventListener('change', syncPreference);
+    return () => mediaQuery.removeEventListener('change', syncPreference);
+  }, []);
+
+  return prefersReducedMotion;
+}
+
+function OperationsHomeIcon() {
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const [signal, setSignal] = useState({ hue: 0, transitionMs: 340 });
+
+  useEffect(() => {
+    if (prefersReducedMotion) return undefined;
+
+    let timeoutId;
+    let cancelled = false;
+
+    const scheduleNextSignal = () => {
+      const waitMs = 500 + Math.floor(Math.random() * 1501);
+      timeoutId = window.setTimeout(() => {
+        if (cancelled) return;
+        setSignal((current) => getNextHomeIconSignal(current.hue));
+        scheduleNextSignal();
+      }, waitMs);
+    };
+
+    scheduleNextSignal();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [prefersReducedMotion]);
+
+  return (
+    <BoxConsoleHomeIcon
+      src={houseCommandIcon}
+      alt=""
+      $twinkle
+      style={{
+        '--home-icon-hue': `${signal.hue}deg`,
+        '--home-icon-transition': `${signal.transitionMs}ms`,
+      }}
+    />
+  );
+}
+
 export default function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [committedSearch, setCommittedSearch] = useState('');
   const [isOperationsFinderOpen, setIsOperationsFinderOpen] = useState(false);
+  const [operationsFiltersActive, setOperationsFiltersActive] = useState(false);
   const [isQuickPeekSearchOpen, setIsQuickPeekSearchOpen] = useState(false);
   const [boxContext, setBoxContext] = useState(null);
   const [boxFinderState, setBoxFinderState] = useState({
@@ -1108,27 +1540,58 @@ export default function Header() {
     expanded: true,
     searchQuery: '',
   });
+  const [declutterPlayer, setDeclutterPlayer] = useState(getStoredDeclutterPlayer);
+  const [declutterPendingCounts, setDeclutterPendingCounts] = useState({});
   const retrievalScrollTimerRef = useRef(null);
   const retrievalLastScrollYRef = useRef(0);
   const retrievalIgnoreScrollUntilRef = useRef(0);
   const isBoxDetailPage = /^\/boxes\/[^/]+\/?$/.test(location.pathname);
-  const isOperationsPage = /^\/operations\/?$/.test(location.pathname);
-  const isRetrievalPage = /^\/retrieval\/?$/.test(location.pathname);
+  const isOperationsPage = /^\/(?:operations\/?|)$/.test(location.pathname);
+  const isRetrievalPage = /^\/(?:retrieval|tags\/[^/]+)\/?$/.test(
+    location.pathname,
+  );
   const isAllItemsPage = /^\/all-items\/?$/.test(location.pathname);
+  const isIntakePage = /^\/intake\/?$/.test(location.pathname);
+  const isImportPage = /^\/import\/?$/.test(location.pathname);
+  const isDeclutterPage = /^\/declutter(?:\/|$)/.test(location.pathname);
   const hasOperationsQuickPeek =
     isOperationsPage && new URLSearchParams(location.search).has('peek');
-  const boxConsoleStyle =
-    isBoxDetailPage && boxContext
-      ? getBoxThemeCssVars(getBoxTheme(boxContext.shortId))
-      : undefined;
-  const isMobile = useIsMobile(MOBILE_MAX_WIDTH);
-  const mobileControlsId = 'mobile-header-controls';
 
   const toastCtx = useContext(ToastContext);
   const toast = toastCtx?.toast ?? null;
   const hideToast = toastCtx?.hideToast;
   const activeRetrievalItem = toastCtx?.activeRetrievalItem ?? null;
+  const intakeDraftName = String(toastCtx?.intakeDraftName || '').trim();
+  const intakeContext = toastCtx?.intakeContext ?? null;
+  const isIntakeEditMode = isIntakePage && intakeContext?.mode === 'edit';
+  const boxConsoleStyle =
+    isBoxDetailPage && boxContext
+      ? getBoxThemeCssVars(getBoxTheme(boxContext.shortId))
+      : isIntakePage && intakeContext?.shortId
+        ? getBoxThemeCssVars(
+            isIntakeEditMode
+              ? getBoxTheme(null, { kind: 'system' })
+              : getBoxTheme(intakeContext.shortId),
+          )
+        : undefined;
+  const isMobile = useIsMobile(MOBILE_MAX_WIDTH);
+  const mobileControlsId = 'mobile-header-controls';
   const { runRandomItem } = useRandomItemFlow();
+
+  useEffect(() => {
+    const syncPlayer = (event) => {
+      if (event.detail?.playerId) setDeclutterPlayer(event.detail.playerId);
+    };
+    const syncCounts = (event) => {
+      setDeclutterPendingCounts(event.detail?.pendingCounts || {});
+    };
+    window.addEventListener(DECLUTTER_PLAYER_CHANGE_EVENT, syncPlayer);
+    window.addEventListener(DECLUTTER_PENDING_COUNTS_EVENT, syncCounts);
+    return () => {
+      window.removeEventListener(DECLUTTER_PLAYER_CHANGE_EVENT, syncPlayer);
+      window.removeEventListener(DECLUTTER_PENDING_COUNTS_EVENT, syncCounts);
+    };
+  }, []);
 
   const openOperationsFinder = () => {
     if (isAllItemsPage) {
@@ -1155,6 +1618,21 @@ export default function Header() {
 
     const opening = !isOperationsFinderOpen;
     window.dispatchEvent(new CustomEvent(opening ? openEvent : closeEvent));
+  };
+
+  const returnToOperationsHome = () => {
+    window.dispatchEvent(new CustomEvent(INVENTORY_FINDER_CLOSE_EVENT));
+    if (hasOperationsQuickPeek) {
+      window.dispatchEvent(
+        new CustomEvent(OPERATIONS_QUICK_PEEK_SEARCH_STATE_EVENT, {
+          detail: { open: false },
+        }),
+      );
+    }
+    navigate('/operations');
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    });
   };
 
   useEffect(() => {
@@ -1189,6 +1667,9 @@ export default function Header() {
     const handleFinderState = (event) => {
       const minimized = Boolean(event.detail?.minimized);
       setIsOperationsFinderOpen(!minimized);
+      if (event.type === INVENTORY_FINDER_STATE_EVENT) {
+        setOperationsFiltersActive(Boolean(event.detail?.filtersActive));
+      }
       if (event.type === BOX_FINDER_STATE_EVENT) {
         setBoxFinderState((current) => ({ ...current, ...event.detail }));
       }
@@ -1206,6 +1687,10 @@ export default function Header() {
       window.removeEventListener(RETRIEVAL_FINDER_STATE_EVENT, handleFinderState);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isOperationsPage) setOperationsFiltersActive(false);
+  }, [isOperationsPage]);
 
   useEffect(() => {
     const handleQuickPeekSearchState = (event) => {
@@ -1302,6 +1787,13 @@ export default function Header() {
   };
 
   useEffect(() => {
+    // Quick Peek deliberately repositions the selected LCARS row. Keep the
+    // header presentation fixed while it does so rather than animate against
+    // the programmatic scroll.
+    if (hasOperationsQuickPeek) {
+      return undefined;
+    }
+
     let frameId = null;
     const scheduleFrame =
       typeof window.requestAnimationFrame === 'function'
@@ -1315,14 +1807,10 @@ export default function Header() {
     const updateProgress = () => {
       frameId = null;
       setScrollProgress((previousProgress) => {
-        const maxScrollable =
-          document.documentElement.scrollHeight - window.innerHeight;
-        const scrollRange = clamp(
-          maxScrollable * SHORT_PAGE_SCROLL_COMPLETION_RATIO,
-          MIN_HEADER_SCROLL_RANGE,
-          HEADER_SCROLL_RANGE
+        const nextProgress = getHeaderScrollStage(
+          window.scrollY,
+          previousProgress,
         );
-        const nextProgress = clamp(window.scrollY / scrollRange);
         return Math.abs(nextProgress - previousProgress) < 0.01
           ? previousProgress
           : nextProgress;
@@ -1343,7 +1831,7 @@ export default function Header() {
         cancelFrame(frameId);
       }
     };
-  }, []);
+  }, [hasOperationsQuickPeek]);
 
   useEffect(() => {
     if (!isMobile) {
@@ -1362,7 +1850,12 @@ export default function Header() {
   };
 
   const handleRandomSelection = () => {
-    runRandomItem();
+    if (hasOperationsQuickPeek) {
+      window.dispatchEvent(new CustomEvent(OPERATIONS_QUICK_PEEK_CLOSE_EVENT));
+      window.setTimeout(runRandomItem, 260);
+    } else {
+      runRandomItem();
+    }
     if (isMobile) {
       setIsMobileMenuOpen(false);
     }
@@ -1377,10 +1870,23 @@ export default function Header() {
   const isHeaderCondensed = effectiveHeaderProgress >= 0.98;
 
   return (
-    <HeaderShell style={headerStyle}>
-      <Inner $boxPage={isBoxDetailPage}>
+    <HeaderShell
+      style={headerStyle}
+      $retrievalPage={isRetrievalPage}
+      $allowFinderOverflow={isOperationsPage && isOperationsFinderOpen}
+    >
+      <Inner
+        $boxPage={isBoxDetailPage}
+        $retrievalPage={isRetrievalPage}
+      >
         <TopRow>
-          <Brand to="/">
+          <Brand
+            to="/operations"
+            onClick={(event) => {
+              event.preventDefault();
+              returnToOperationsHome();
+            }}
+          >
             <Title>
               <Big>DISCO WARP CORE</Big>
             </Title>
@@ -1418,7 +1924,10 @@ export default function Header() {
           aria-hidden={isMobile ? !isMobileMenuOpen : undefined}
           inert={isMobile && !isMobileMenuOpen ? true : undefined}
         >
-          <NavRow>
+          <NavRow
+            $retrievalPage={isRetrievalPage}
+            $textOnly={isMobile && isMobileMenuOpen}
+          >
             <NavButton
               to="/operations"
               aria-label="Operations"
@@ -1497,13 +2006,23 @@ export default function Header() {
 
       <Divider />
 
-      <ToastRow $boxPage={isBoxDetailPage} style={boxConsoleStyle}>
+      {(!isImportPage || toast) ? <ToastRow
+        $boxPage={isBoxDetailPage}
+        $retrievalPage={isRetrievalPage}
+        $itemPageRail={
+          toast?.presentation === 'item-page' || toast?.presentation === 'item-field'
+        }
+        style={toast?.themeStyle || boxConsoleStyle}
+      >
         <Toast
           open={!!toast}
           title={toast?.title}
           titleDetails={toast?.titleDetails}
           titleAlign={toast?.titleAlign}
           titleSize={toast?.titleSize}
+          presentation={toast?.presentation}
+          themeStyle={toast?.themeStyle}
+          allowOverflow={isOperationsPage && isOperationsFinderOpen}
           message={toast?.message}
           content={toast?.content}
           variant={toast?.variant ?? 'info'}
@@ -1511,17 +2030,39 @@ export default function Header() {
           actions={toast?.actions ?? []}
           onClose={
             toast &&
+            toast.dismissible !== false &&
             toast.id !== 'item-page-actions' &&
-            !String(toast.id || '').startsWith('edit-item-actions:')
+            !String(toast.id || '').startsWith('edit-item-actions:') &&
+            !String(toast.id || '').startsWith('edit-item-field:')
               ? handleToastClose
               : typeof activeRetrievalItem?.onCollapse === 'function'
                 ? activeRetrievalItem.onCollapse
                 : undefined
           }
           showIdle
-          idleIcon="📦"
+          idleIcon={
+            isDeclutterPage
+              ? ''
+              : isOperationsPage
+              ? <OperationsHomeIcon />
+              : isBoxDetailPage ? '' : <BoxConsoleHomeIcon src={houseCommandIcon} alt="" />
+          }
+          idleIconAction={
+            isOperationsPage
+              ? {
+                  onClick: returnToOperationsHome,
+                  ariaLabel: 'Return to Operations home and scroll to top',
+                  title: 'Operations home',
+                  alignTop: isOperationsFinderOpen,
+                }
+              : null
+          }
           idleText={
-            isBoxDetailPage && boxContext
+            isDeclutterPage
+              ? ''
+              : isOperationsPage
+              ? ''
+              : isBoxDetailPage && boxContext
               ? (
                   <BoxConsoleIdleMessage
                     shortId={boxContext.shortId}
@@ -1533,12 +2074,20 @@ export default function Header() {
                         : ''
                     }
                     matchCount={boxFinderState.matchCount}
+                    breadcrumb={boxContext.breadcrumb}
                   />
                 )
               : committedSearch
                 ? `Searching: ${committedSearch}`
-                : isAllItemsPage && allItemsFilterState.searchQuery
+              : isAllItemsPage && allItemsFilterState.searchQuery
                   ? `All Items · ${allItemsFilterState.searchQuery}`
+                : isIntakePage
+                  ? (
+                      <IntakeConsoleIdleMessage
+                        draftName={intakeDraftName}
+                        context={intakeContext}
+                      />
+                    )
                 : isRetrievalPage &&
                     retrievalFinderState.minimized &&
                     retrievalFinderState.retrievalMode === 'boxes' &&
@@ -1550,68 +2099,98 @@ export default function Header() {
                     )
                 : 'What are you looking for?'
           }
-          idleAction={{
-            onClick: openOperationsFinder,
-            ariaLabel: isBoxDetailPage
-              ? 'Open box search'
-              : isRetrievalPage
-                ? 'Open retrieval search'
-                : isAllItemsPage
-                  ? allItemsFilterState.expanded
-                    ? 'Collapse All Items filters'
-                    : 'Open All Items filters'
-                : hasOperationsQuickPeek
-                  ? 'Toggle Quick Peek item search'
-                  : 'Open item finder',
-          }}
-          calmIdle={isBoxDetailPage}
-          themedIdle={isBoxDetailPage && !!boxContext}
+          idleAction={
+            isDeclutterPage || isOperationsPage
+              ? null
+              : {
+                  onClick: openOperationsFinder,
+                  ariaLabel: isBoxDetailPage
+                    ? 'Open box search'
+                    : isRetrievalPage
+                      ? 'Open retrieval search'
+                      : isAllItemsPage
+                        ? allItemsFilterState.expanded
+                          ? 'Collapse All Items filters'
+                          : 'Open All Items filters'
+                        : hasOperationsQuickPeek
+                          ? 'Toggle Quick Peek item search'
+                          : 'Open item finder',
+                }
+          }
+          calmIdle={isBoxDetailPage || isIntakePage}
+          themedIdle={
+            (isBoxDetailPage && !!boxContext) ||
+            (isIntakePage && !!intakeContext?.shortId)
+          }
           idleAddon={
-            <RescueConsoleTrigger
-              type="button"
-              onClick={openOperationsFinder}
-              data-box-finder-trigger={isBoxDetailPage ? true : undefined}
-              aria-label={
-                isBoxDetailPage
-                  ? 'Toggle box quick search'
-                  : isRetrievalPage
-                    ? 'Toggle retrieval search'
-                    : isAllItemsPage
-                      ? 'Toggle All Items filters'
+            isDeclutterPage ? (
+              <DeclutterPlayerPicker
+                value={declutterPlayer}
+                pendingCounts={declutterPendingCounts}
+                onChange={setDeclutterPlayer}
+              />
+            ) : <>
+              {isOperationsPage ? (
+                <OperationsConsoleFinderMount
+                  id="operations-console-finder-mount"
+                  $active={isOperationsPage}
+                />
+              ) : null}
+              <RescueConsoleTrigger
+                type="button"
+                onClick={openOperationsFinder}
+                data-box-finder-trigger={isBoxDetailPage ? true : undefined}
+                aria-label={
+                  isBoxDetailPage
+                    ? 'Toggle box quick search'
+                    : isRetrievalPage
+                      ? 'Toggle retrieval search'
+                      : isAllItemsPage
+                        ? 'Toggle All Items filters'
                     : hasOperationsQuickPeek
-                      ? 'Toggle Quick Peek item search'
-                      : 'Open item finder from search icon'
-              }
-              title={
-                isBoxDetailPage
-                  ? 'Search this box'
-                  : isRetrievalPage
-                    ? 'Retrieval search'
-                  : isAllItemsPage
-                    ? 'All Items filters'
-                    : hasOperationsQuickPeek
-                      ? 'Search items in this box'
-                      : 'Open item finder'
-              }
-              $active={
-                isBoxDetailPage
-                  ? boxFinderState.mode === 'expanded' ||
-                    !!boxFinderState.query ||
-                    boxFinderState.sortMode !== 'treeOrder'
-                  : isOperationsFinderOpen || isQuickPeekSearchOpen
-              }
-              $pulse={searchPulse}
-              $boxThemed={isBoxDetailPage && !!boxContext}
-            >
-              <FinderGeometryGlyph />
-            </RescueConsoleTrigger>
+                          ? 'Toggle Quick Peek item search'
+                          : isOperationsFinderOpen
+                            ? 'Hide inventory options'
+                            : 'Expand inventory options'
+                }
+                title={
+                  isBoxDetailPage
+                    ? 'Search this box'
+                    : isRetrievalPage
+                      ? 'Retrieval search'
+                      : isAllItemsPage
+                        ? 'All Items filters'
+                        : hasOperationsQuickPeek
+                          ? 'Search items in this box'
+                          : isOperationsFinderOpen
+                            ? 'Hide inventory options'
+                            : 'Expand inventory options'
+                }
+                $active={
+                  isBoxDetailPage
+                    ? boxFinderState.mode === 'expanded' ||
+                      !!boxFinderState.query ||
+                      boxFinderState.sortMode !== 'treeOrder'
+                    : isOperationsFinderOpen || isQuickPeekSearchOpen
+                }
+                $pulse={searchPulse}
+                $boxThemed={
+                  (isBoxDetailPage && !!boxContext) ||
+                  (isIntakePage && !!intakeContext?.shortId)
+                }
+                $operationsFinderOpen={isOperationsPage && isOperationsFinderOpen}
+                $filtersActive={isOperationsPage && operationsFiltersActive}
+              >
+                <FinderGeometryGlyph />
+              </RescueConsoleTrigger>
+            </>
           }
           activeRetrievalItem={activeRetrievalItem}
           retrievalScrollCompact={retrievalScrollCompact}
           compact={isHeaderCondensed}
           compactProgress={isBoxDetailPage ? 1.35 : effectiveHeaderProgress}
         />
-      </ToastRow>
+      </ToastRow> : null}
     </HeaderShell>
   );
 }

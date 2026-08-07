@@ -7,20 +7,27 @@ import { formatItemCategory } from '../../util/itemCategories';
 import { pickImageUrl } from './intakeImageHelpers';
 
 const Panel = styled.section`
-  border: 1px solid rgba(83, 131, 177, 0.44);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(12, 20, 31, 0.93) 0%, rgba(9, 15, 24, 0.96) 100%);
-  overflow: hidden;
+  min-width: 0;
+  border-top: 1px solid rgba(var(--box-primary-rgb), 0.34);
+  border-bottom: 1px solid rgba(var(--box-primary-rgb), 0.28);
+  background: linear-gradient(90deg, rgba(var(--box-primary-rgb), 0.055), transparent 44%);
 `;
 
-const Header = styled.header`
+const Header = styled.button`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
   gap: 0.5rem;
-  padding: 0.56rem 0.7rem;
-  border-bottom: 1px solid rgba(73, 110, 148, 0.42);
-  background: linear-gradient(90deg, rgba(86, 142, 202, 0.18) 0%, rgba(86, 142, 202, 0) 56%);
+  min-height: 44px;
+  padding: 0.34rem 0.15rem;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover { background: rgba(var(--box-primary-rgb), 0.08); }
+  &:focus-visible { outline: 2px solid var(--box-neon); outline-offset: -2px; }
 `;
 
 const Title = styled.h3`
@@ -28,7 +35,7 @@ const Title = styled.h3`
   font-size: 0.8rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #d7e8fb;
+  color: rgba(var(--box-neon-rgb), 0.84);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
@@ -36,39 +43,41 @@ const Title = styled.h3`
 `;
 
 const Count = styled.span`
-  color: #a8c1da;
-  font-size: 0.72rem;
+  color: rgba(var(--box-primary-rgb), 0.78);
+  font-family: 'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
 `;
 
 const Viewport = styled.div`
-  max-height: min(40vh, 320px);
+  max-height: min(38dvh, 320px);
   overflow: auto;
-  padding: 0.48rem;
+  padding: 0 0.15rem 0.3rem;
   display: grid;
-  gap: 0.34rem;
+  gap: 0;
+  overscroll-behavior: contain;
 `;
 
 const Row = styled.div`
-  border: 1px solid rgba(72, 109, 151, 0.44);
-  border-radius: 9px;
-  background: rgba(10, 17, 27, 0.88);
-  padding: 0.34rem 0.42rem;
+  min-height: 48px;
+  border-top: 1px solid rgba(var(--box-primary-rgb), 0.24);
+  padding: 0.36rem 0.08rem;
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  gap: 0.46rem;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 0.5rem;
   align-items: center;
 `;
 
 const Thumb = styled.div`
-  width: 42px;
-  height: 42px;
-  border-radius: 7px;
-  border: 1px solid rgba(88, 129, 173, 0.5);
+  width: 34px;
+  height: 34px;
+  border-radius: 4px;
+  border: 1px solid rgba(var(--box-secondary-rgb), 0.44);
   overflow: hidden;
   background: rgba(12, 19, 30, 0.94);
   display: grid;
   place-items: center;
-  color: #99b6d4;
+  color: rgba(var(--box-secondary-rgb), 0.76);
   font-size: 0.6rem;
   text-transform: uppercase;
 `;
@@ -86,7 +95,7 @@ const Body = styled.div`
 `;
 
 const NameLink = styled(Link)`
-  color: #eaf4ff;
+  color: rgba(var(--box-neon-rgb), 0.94);
   text-decoration: none;
   font-size: 0.86rem;
   font-weight: 700;
@@ -104,7 +113,7 @@ const NameLink = styled(Link)`
 `;
 
 const Name = styled.div`
-  color: #eaf4ff;
+  color: rgba(var(--box-neon-rgb), 0.94);
   font-size: 0.86rem;
   font-weight: 700;
   line-height: 1.2;
@@ -112,16 +121,16 @@ const Name = styled.div`
 `;
 
 const Meta = styled.div`
-  color: #a8c1da;
+  color: rgba(var(--box-secondary-rgb), 0.74);
   font-size: 0.69rem;
 `;
 
 const StateText = styled.div`
-  color: ${({ $error }) => ($error ? '#f3c1c1' : '#9fb8d2')};
+  color: ${({ $error }) =>
+    $error ? '#f3c1c1' : 'rgba(var(--box-secondary-rgb), 0.76)'};
   font-size: 0.75rem;
-  border: 1px dashed rgba(83, 121, 167, 0.45);
-  border-radius: 8px;
-  padding: 0.46rem 0.52rem;
+  border-top: 1px dashed rgba(var(--box-primary-rgb), 0.42);
+  padding: 0.58rem 0.08rem;
 `;
 
 export default function IntakeCurrentBoxItemsPanel({
@@ -131,15 +140,23 @@ export default function IntakeCurrentBoxItemsPanel({
   error = '',
 }) {
   const safeItems = Array.isArray(items) ? items : [];
+  const [expanded, setExpanded] = React.useState(false);
+
+  React.useEffect(() => setExpanded(false), [currentBox?._id]);
 
   return (
     <Panel>
-      <Header>
+      <Header
+        type="button"
+        aria-expanded={expanded}
+        aria-controls="intake-current-box-items"
+        onClick={() => setExpanded((value) => !value)}
+      >
         <Title>Current Box Items</Title>
-        <Count>{safeItems.length}</Count>
+        <Count>{safeItems.length} {expanded ? '−' : '+'}</Count>
       </Header>
 
-      <Viewport>
+      {expanded ? <Viewport id="intake-current-box-items">
         {!currentBox?._id ? (
           <StateText>Select or create a box to view its contents.</StateText>
         ) : null}
@@ -177,7 +194,7 @@ export default function IntakeCurrentBoxItemsPanel({
               </Row>
             );
           })}
-      </Viewport>
+      </Viewport> : null}
     </Panel>
   );
 }

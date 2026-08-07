@@ -21,8 +21,9 @@ const SECONDARY_DECISIONS = REVIEW_DECISIONS.filter((option) => !['keep', 'toss'
 const DECISION_ICONS = {
   keep: '🛡',
   toss: '🗑',
-  donate: '🎁',
+  donate: '💙',
   sell: '🏷',
+  gift: '🎁',
   unsure: '?',
 };
 

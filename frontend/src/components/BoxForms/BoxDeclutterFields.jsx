@@ -3,10 +3,13 @@ import styled from 'styled-components';
 const Panel = styled.div`
   display: grid;
   gap: 0.55rem;
-  padding: 0.65rem;
-  border: 1px solid rgba(130, 168, 196, 0.28);
-  border-radius: 9px;
-  background: rgba(8, 15, 23, 0.55);
+  padding: ${({ $compact }) => ($compact ? '7px 0 0' : '0.65rem')};
+  border: ${({ $compact }) =>
+    $compact ? '0' : '1px solid rgba(130, 168, 196, 0.28)'};
+  border-top: ${({ $compact }) =>
+    $compact ? '1px solid rgba(151, 163, 176, 0.24)' : undefined};
+  border-radius: ${({ $compact }) => ($compact ? '0' : '9px')};
+  background: ${({ $compact }) => ($compact ? 'transparent' : 'rgba(8, 15, 23, 0.55)')};
 `;
 
 const Label = styled.div`
@@ -21,11 +24,11 @@ const Label = styled.div`
 
 const FlagGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 0.35rem;
 
-  @media (max-width: 520px) {
-    grid-template-columns: 1fr;
+  @media (max-width: 390px) {
+    gap: 0.25rem;
   }
 `;
 
@@ -89,19 +92,24 @@ const Check = styled.label`
 `;
 
 export default function BoxDeclutterFields({
+  compact = false,
   purpose,
   setPurpose,
   isDefault,
   setIsDefault,
+  isGiftBox,
+  setIsGiftBox,
 }) {
   const canBeDefault = purpose !== 'standard';
   const flags = [
     { value: 'standard', title: 'Standard inventory', hint: 'Keep and retrieve', tone: '#4cc6c1' },
     { value: 'donation_staging', title: 'Donation staging', hint: 'Route to donate', tone: '#a78bfa' },
     { value: 'sale_staging', title: 'Sale staging', hint: 'Route to sell', tone: '#e8b15c' },
+    { value: 'gift_staging', title: 'Gift staging', hint: 'Route to handoff', tone: '#f09ab8' },
+    { value: 'discard_staging', title: 'Trash staging', hint: 'Route to discard', tone: '#f08a7b' },
   ];
   return (
-    <Panel>
+    <Panel $compact={compact}>
       <Label>
         Declutter purpose
         <FlagGrid role="radiogroup" aria-label="Declutter purpose">
@@ -138,6 +146,14 @@ export default function BoxDeclutterFields({
           onChange={(event) => setIsDefault(event.target.checked)}
         />
         Default destination for this staging purpose
+      </Check>
+      <Check>
+        <input
+          type="checkbox"
+          checked={Boolean(isGiftBox)}
+          onChange={(event) => setIsGiftBox(event.target.checked)}
+        />
+        Future gift box — contents stay in inventory for friends or family
       </Check>
     </Panel>
   );

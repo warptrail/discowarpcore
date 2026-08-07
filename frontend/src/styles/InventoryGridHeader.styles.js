@@ -28,52 +28,208 @@ const panelBase = css`
 
 export const HeaderShell = styled.section`
   position: relative;
+  z-index: 30;
   display: grid;
-  gap: 0.56rem;
+  gap: 0.38rem;
   min-width: 0;
-  margin-bottom: 0.5rem;
+  margin-bottom: -0.4rem;
+`;
+
+export const ControlConsole = styled.div`
+  position: relative;
+  display: grid;
+  grid-template-areas:
+    'utility utility'
+    'map telemetry';
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.24rem 0.5rem;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0.3rem 0.18rem 0.26rem;
+  overflow: visible;
+  border: 2px solid rgba(127, 215, 255, 0.48);
+  border-radius: 14px 5px 14px 5px;
+  background:
+    linear-gradient(90deg, rgba(76, 198, 193, 0.08), transparent 28%),
+    rgba(7, 13, 19, 0.88);
+  box-shadow:
+    inset 5px 0 0 rgba(76, 198, 193, 0.68),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 18px rgba(2, 8, 13, 0.16);
+
+  @media (min-width: 660px) {
+    display: grid;
+    grid-template-areas:
+      'map utility spacer'
+      'telemetry telemetry telemetry';
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-rows: minmax(40px, auto) auto;
+    align-items: center;
+    gap: 0.18rem 0.36rem;
+    padding: 0.28rem 0.42rem 0.34rem;
+  }
 `;
 
 const finderCollapse = keyframes`
   from {
     opacity: 1;
-    transform: translateX(-50%) scale(1);
+    transform: translateY(0) scale(1);
   }
 
   to {
     opacity: 0;
-    transform: translate(calc(-50% + 38vw), -5.4rem) scale(0.2);
+    transform: translateY(-0.35rem) scale(0.98);
   }
 `;
 
 export const FloatingFinder = styled.div`
-  position: fixed;
-  top: 10.9rem;
-  left: 50%;
-  z-index: 500;
-  width: min(720px, calc(100vw - 1rem));
-  max-height: calc(100vh - 11.4rem);
-  overflow: auto;
+  position: relative;
+  z-index: 20;
+  width: 100%;
+  min-width: 0;
   pointer-events: none;
-  transform: translateX(-50%);
-  transform-origin: 92% 0%;
+  transform-origin: 50% 0%;
   animation: ${({ $collapsing }) => ($collapsing ? css`${finderCollapse} 180ms cubic-bezier(0.4, 0, 1, 1) forwards` : 'none')};
-
-  @media (max-width: 560px) {
-    top: 10.9rem;
-    width: calc(100vw - 0.8rem);
-    max-height: calc(100vh - 11.4rem);
-  }
 `;
 
 export const TitleRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  justify-content: space-between;
+  gap: 0.7rem;
+  width: 100%;
 
   @media (max-width: 560px) {
     order: 1;
   }
+`;
+
+export const TitleActions = styled.div`
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 0.42rem);
+  right: 0;
+  display: grid;
+  gap: 0.18rem;
+  width: min(18rem, calc(100vw - 2rem));
+  min-width: 0;
+  padding: 0.3rem;
+  border: 1px solid ${toneAlpha(LCARS.line, 'c8')};
+  border-radius: 5px;
+  background: rgba(7, 13, 19, 0.985);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.045),
+    0 16px 30px rgba(0, 0, 0, 0.58);
+  opacity: ${({ $mobileOpen }) => ($mobileOpen ? 1 : 0)};
+  visibility: ${({ $mobileOpen }) => ($mobileOpen ? 'visible' : 'hidden')};
+  pointer-events: ${({ $mobileOpen }) => ($mobileOpen ? 'auto' : 'none')};
+  transform: translateY(${({ $mobileOpen }) => ($mobileOpen ? '0' : '-5px')});
+  transition:
+    opacity 180ms ease,
+    visibility 0s linear ${({ $mobileOpen }) => ($mobileOpen ? '0s' : '180ms')},
+    transform 180ms ease;
+
+  > button {
+    width: 100%;
+    min-height: 40px;
+    justify-content: flex-start;
+    padding-inline: 0.62rem;
+    border-radius: 3px;
+  }
+
+  @media (min-width: 660px) {
+    position: static;
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    width: auto;
+    padding: 1px;
+    overflow: hidden;
+    border-color: ${toneAlpha(LCARS.line, 'b0')};
+    border-radius: 3px;
+    background: rgba(4, 10, 15, 0.66);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+    transition: none;
+
+    > button {
+      width: auto;
+      min-height: 38px;
+      justify-content: center;
+      border: 0;
+      border-radius: 2px 0 0 2px;
+      padding-inline: 0.32rem;
+      font-size: 0.49rem;
+      letter-spacing: 0.035em;
+    }
+  }
+
+  @media (min-width: 800px) {
+    > button {
+      padding-inline: 0.42rem;
+      font-size: 0.52rem;
+      letter-spacing: 0.04em;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+export const TitleOrphanActions = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.18rem;
+  min-width: 0;
+
+  button {
+    width: 100%;
+    min-height: 40px;
+    justify-content: flex-start;
+    padding-inline: 0.62rem;
+    border-radius: 3px;
+    font-size: 0.56rem;
+    letter-spacing: 0.055em;
+    white-space: nowrap;
+  }
+
+  @media (min-width: 660px) {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+
+    button {
+      width: auto;
+      min-height: 38px;
+      justify-content: center;
+      padding-inline: 0.28rem;
+      border: 0;
+      border-left: 1px solid ${toneAlpha(LCARS.line, '8a')};
+      border-radius: 0;
+      font-size: 0.48rem;
+      letter-spacing: 0.025em;
+    }
+  }
+
+  @media (min-width: 800px) {
+    button {
+      padding-inline: 0.36rem;
+      font-size: 0.52rem;
+      letter-spacing: 0.04em;
+    }
+  }
+`;
+
+export const TitleIdentity = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
 `;
 
 export const MinimizedBar = styled.div`
@@ -164,40 +320,52 @@ export const Title = styled.h2`
 `;
 
 export const TelemetryRow = styled.div`
-  position: absolute;
-  top: 0.72rem;
-  right: 0.16rem;
-  display: grid;
-  justify-items: end;
-  gap: 0.1rem;
+  position: static;
+  grid-area: telemetry;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.16rem 0.34rem;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.06rem 0.18rem 0;
+  border: 0;
+  background: transparent;
   color: ${LCARS.textDim};
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
     'Courier New', monospace;
-  font-size: clamp(0.96rem, 2.45vw, 1.42rem);
+  font-size: 0.56rem;
   font-weight: 900;
   letter-spacing: 0.06em;
-  opacity: 0.28;
+  opacity: 0.72;
   pointer-events: none;
   white-space: nowrap;
   text-transform: uppercase;
-  text-shadow: 0 0 16px rgba(127, 215, 255, 0.22);
+  text-shadow: 0 0 10px rgba(127, 215, 255, 0.18);
 
-  @media (max-width: 560px) {
-    position: static;
-    order: 3;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    justify-items: start;
+  @media (min-width: 660px) {
+    grid-area: telemetry;
+    justify-self: stretch;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    min-height: 20px;
+    gap: 0.12rem;
+    width: 100%;
+    padding: 0.1rem 0.48rem 0.12rem;
+    border-top: 1px solid rgba(104, 154, 186, 0.34);
+    border-left: 0;
+    background: linear-gradient(90deg, transparent, rgba(20, 32, 40, 0.58));
+    opacity: 0.58;
+    font-size: clamp(0.68rem, 1.35vw, 0.96rem);
+    letter-spacing: 0.055em;
+  }
+
+  @media (min-width: 800px) {
     gap: 0.16rem 0.34rem;
-    max-width: 100%;
-    margin-top: -0.18rem;
-    padding-left: 0.12rem;
-    font-size: 0.68rem;
-    opacity: 0.72;
-    overflow: visible;
-    text-shadow: 0 0 10px rgba(127, 215, 255, 0.18);
+    padding-right: 0.48rem;
+    letter-spacing: 0.065em;
   }
 `;
 
@@ -248,14 +416,14 @@ export const SearchSortRow = styled.div`
 export const FilterRow = styled.div`
   display: grid;
   min-width: 0;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.55rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.42rem 0.58rem;
 
   @media (max-width: 820px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  @media (max-width: 560px) {
+  @media (max-width: 370px) {
     grid-template-columns: 1fr;
   }
 `;
@@ -263,57 +431,132 @@ export const FilterRow = styled.div`
 export const UtilityRow = styled.div`
   position: relative;
   z-index: 20;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.55rem;
-  min-height: 30px;
-  margin-top: -0.08rem;
+  grid-area: utility;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 0.36rem;
+  width: 100%;
+  min-height: 40px;
+  margin: 0;
 
-  @media (max-width: 560px) {
-    order: 2;
-    align-items: flex-start;
-    flex-direction: row;
+  @media (min-width: 660px) {
+    display: flex;
+    align-items: stretch;
+    gap: 0.38rem;
+    width: auto;
+  }
+`;
+
+export const MapStatus = styled.span`
+  grid-area: map;
+  align-self: center;
+  min-width: 0;
+  padding-left: 0.18rem;
+  color: rgba(167, 182, 255, 0.5);
+  font: 850 0.5rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  @media (min-width: 660px) {
+    flex: 0 0 auto;
+    padding: 0 0.28rem 0 0;
+    border-right: 1px solid ${toneAlpha(LCARS.line, '72')};
+    font-size: 0.45rem;
+    letter-spacing: 0.055em;
+  }
+
+  @media (min-width: 800px) {
+    padding-right: 0.42rem;
+    font-size: 0.5rem;
+    letter-spacing: 0.08em;
+  }
+`;
+
+export const MobileActionsButton = styled.button`
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.34rem;
+  min-width: 5.35rem;
+  min-height: 40px;
+  padding: 0 0.58rem;
+  border: 1px solid ${toneAlpha(LCARS.root, '62')};
+  border-radius: 4px 10px 3px 3px;
+  color: ${({ $active }) =>
+    $active ? toneAlpha(LCARS.text, 'ff') : 'rgba(230, 237, 243, 0.58)'};
+  background: ${({ $active }) =>
+    $active
+      ? 'linear-gradient(180deg, rgba(76, 198, 193, 0.32), rgba(24, 63, 78, 0.72))'
+      : 'rgba(4, 9, 14, 0.82)'};
+  box-shadow: ${({ $active }) =>
+    $active
+      ? `inset 4px 0 0 ${LCARS.teal}, inset 0 1px 0 rgba(255, 255, 255, 0.14)`
+      : 'inset 0 1px 0 rgba(255, 255, 255, 0.045), inset 0 -6px 14px rgba(0, 0, 0, 0.2)'};
+  font: 900 0.58rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: ${({ $active }) =>
+    $active ? '0 0 9px rgba(127, 215, 255, 0.28)' : 'none'};
+  cursor: pointer;
+  transition:
+    color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease,
+    text-shadow 140ms ease,
+    transform 120ms ease;
+
+  span {
+    color: ${({ $active }) =>
+      $active ? toneAlpha(LCARS.text, 'f0') : toneAlpha(LCARS.teal, 'c8')};
+    font-size: 0.72rem;
+    line-height: 1;
+  }
+
+  &:hover {
+    color: ${toneAlpha(LCARS.text, 'f4')};
+    background: rgba(76, 198, 193, 0.12);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${toneAlpha(LCARS.root, 'b0')};
+    outline-offset: -3px;
+  }
+
+  @media (min-width: 660px) {
+    display: none;
   }
 `;
 
 export const ViewModeToggle = styled.div`
   position: relative;
   display: inline-grid;
-  grid-template-columns: repeat(2, minmax(0, auto));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
-  padding: 0.16rem;
-  border: 1px solid ${toneAlpha(LCARS.root, '64')};
-  border-radius: 999px;
-  background:
-    linear-gradient(180deg, rgba(4, 8, 13, 0.98), rgba(10, 18, 28, 0.98)),
-    ${LCARS.bg};
+  width: 100%;
+  padding: 0;
+  border: 1px solid ${toneAlpha(LCARS.root, '62')};
+  border-radius: 4px 10px 3px 3px;
+  background: rgba(4, 9, 14, 0.82);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    inset 0 -8px 18px rgba(0, 0, 0, 0.36),
-    0 0 16px ${toneAlpha(LCARS.root, '12')};
+    inset 0 1px 0 rgba(255, 255, 255, 0.045),
+    inset 0 -6px 14px rgba(0, 0, 0, 0.2);
   overflow: hidden;
 
   &::before {
     content: '';
     position: absolute;
-    inset: 3px auto 3px 3px;
-    width: calc(50% - 3px);
-    border-radius: 999px;
-    background:
-      linear-gradient(180deg, rgba(42, 117, 146, 0.82), rgba(12, 45, 66, 0.92)),
-      radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.18), transparent 34%);
-    box-shadow:
-      inset 0 0 0 1px ${toneAlpha(LCARS.root, '72')},
-      inset 0 1px 0 rgba(255, 255, 255, 0.16),
-      0 0 18px ${toneAlpha(LCARS.root, '28')};
-    transform: translateX(${({ $mode }) => ($mode === 'terminal' ? '100%' : '0')});
-    transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    inset: 0 auto 0 0;
+    width: 3px;
+    z-index: 2;
+    background: rgba(76, 198, 193, 0.72);
+    pointer-events: none;
   }
 
   @media (max-width: 560px) {
-    grid-template-columns: repeat(2, 4.65rem);
-    padding: 0.1rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     border-color: ${toneAlpha(LCARS.root, '46')};
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.035),
@@ -321,14 +564,19 @@ export const ViewModeToggle = styled.div`
       0 0 10px ${toneAlpha(LCARS.root, '0c')};
 
     &::before {
-      inset: 2px auto 2px 2px;
-      width: calc(50% - 2px);
-      opacity: 0.72;
-      box-shadow:
-        inset 0 0 0 1px ${toneAlpha(LCARS.root, '58')},
-        inset 0 1px 0 rgba(255, 255, 255, 0.1),
-        0 0 10px ${toneAlpha(LCARS.root, '1c')};
+      display: none;
     }
+  }
+
+  @media (min-width: 660px) {
+    align-self: center;
+    box-sizing: border-box;
+    height: 36px;
+    width: 6.45rem;
+  }
+
+  @media (min-width: 800px) {
+    width: 7rem;
   }
 `;
 
@@ -338,15 +586,24 @@ export const ViewModeButton = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  min-width: 84px;
+  min-height: 38px;
+  min-width: 70px;
   border: 0;
-  border-radius: 999px;
-  padding: 0 0.58rem;
+  border-right: 1px solid rgba(127, 215, 255, 0.26);
+  border-radius: 0;
+  padding: 0 0.42rem;
   color: ${({ $active }) =>
     $active ? toneAlpha(LCARS.text, 'ff') : 'rgba(230, 237, 243, 0.58)'};
-  background: transparent;
-  font-size: 0.66rem;
+  background: ${({ $active }) =>
+    $active
+      ? 'linear-gradient(180deg, rgba(76, 198, 193, 0.32), rgba(24, 63, 78, 0.72))'
+      : 'transparent'};
+  box-shadow: ${({ $active }) =>
+    $active
+      ? `inset 4px 0 0 ${LCARS.teal}, inset 0 1px 0 rgba(255, 255, 255, 0.14)`
+      : 'none'};
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.58rem;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -360,15 +617,32 @@ export const ViewModeButton = styled.button`
 
   &:hover {
     color: ${toneAlpha(LCARS.text, 'f2')};
-    transform: translateY(-1px);
+    background: rgba(76, 198, 193, 0.12);
+  }
+
+  &:last-child {
+    border-right: 0;
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${toneAlpha(LCARS.root, 'b0')};
+    outline-offset: -3px;
   }
 
   @media (max-width: 560px) {
     min-width: 0;
-    min-height: 40px;
-    padding-inline: 0.38rem;
-    font-size: 0.6rem;
-    letter-spacing: 0.065em;
+    min-height: 38px;
+    padding-inline: 0.28rem;
+    font-size: 0.54rem;
+    letter-spacing: 0.055em;
+  }
+
+  @media (min-width: 660px) {
+    min-width: clamp(3.25rem, 5.4vw, 4.2rem);
+    min-height: 32px;
+    padding-inline: 0.28rem;
+    font-size: 0.54rem;
+    letter-spacing: 0.055em;
   }
 `;
 
@@ -380,8 +654,8 @@ export const OrphanToggleButton = styled.button`
   border: 1px solid
     ${({ $active }) =>
       $active ? toneAlpha(LCARS.teal, '9e') : toneAlpha(LCARS.root, '6e')};
-  border-radius: 9px;
-  min-height: 28px;
+  border-radius: 5px;
+  min-height: 36px;
   padding: 0 0.72rem;
   font-size: 0.68rem;
   font-weight: 760;
@@ -389,12 +663,8 @@ export const OrphanToggleButton = styled.button`
   text-transform: uppercase;
   color: ${({ $active }) => ($active ? '#d9fffa' : '#d7e4f1')};
   background: ${({ $active }) =>
-    $active
-      ? 'linear-gradient(180deg, rgba(23, 63, 59, 0.92), rgba(15, 43, 40, 0.95))'
-      : 'linear-gradient(180deg, rgba(11, 22, 34, 0.92), rgba(8, 17, 28, 0.95))'};
-  box-shadow: inset 0 0 0 1px
-    ${({ $active }) =>
-      $active ? toneAlpha(LCARS.teal, '28') : toneAlpha(LCARS.root, '1d')};
+    $active ? 'rgba(76, 198, 193, 0.08)' : 'transparent'};
+  box-shadow: none;
   cursor: pointer;
   transition:
     border-color 140ms ease,
@@ -476,17 +746,17 @@ export const FilterCount = styled.span`
 
 export const FilterPanel = styled.div`
   display: grid;
-  gap: 0.62rem;
+  gap: 0.4rem;
   min-width: 0;
-  padding: 0.7rem;
-  border: 1px solid ${toneAlpha(LCARS.teal, '55')};
-  border-radius: 12px;
-  background:
-    linear-gradient(100deg, ${toneAlpha(LCARS.teal, '12')} 0%, transparent 52%),
-    linear-gradient(180deg, rgba(10, 20, 29, 0.96), rgba(8, 15, 23, 0.98));
-  box-shadow:
-    inset 0 0 0 1px ${toneAlpha(LCARS.teal, '13')},
-    0 12px 24px rgba(2, 9, 16, 0.46);
+  max-height: ${({ $scrollable }) => ($scrollable ? 'min(58dvh, 520px)' : 'none')};
+  padding: 0.5rem 0.08rem 0.06rem;
+  border: 0;
+  border-top: 1px solid ${toneAlpha(LCARS.teal, '32')};
+  border-radius: 0;
+  background: transparent;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.018);
+  overflow-y: ${({ $scrollable }) => ($scrollable ? 'auto' : 'visible')};
+  overscroll-behavior: contain;
   opacity: ${({ $hidden }) => ($hidden ? 0 : 1)};
   visibility: ${({ $hidden }) => ($hidden ? 'hidden' : 'visible')};
   pointer-events: ${({ $hidden }) => ($hidden ? 'none' : 'auto')};
@@ -527,54 +797,62 @@ export const FinderModeButton = styled.button`
 `;
 
 export const AdvancedFiltersToggle = styled.button`
-  display: flex;
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.7rem;
-  width: 100%;
-  min-height: 42px;
-  padding: 0.5rem 0.62rem;
-  border: 1px solid
-    ${({ $active }) =>
-      $active ? toneAlpha(LCARS.teal, '9a') : toneAlpha(LCARS.root, '55')};
-  border-radius: 10px;
+  justify-content: center;
+  width: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  flex: 0 0 38px;
+  padding: 0;
+  border: 1px solid ${({ $active }) =>
+    $active ? toneAlpha(LCARS.teal, '92') : toneAlpha(LCARS.line, '72')};
+  border-radius: 4px;
   color: ${({ $active }) =>
-    $active ? toneAlpha(LCARS.teal, 'f0') : toneAlpha(LCARS.root, 'd4')};
+    $active ? toneAlpha(LCARS.teal, 'f0') : toneAlpha(LCARS.textDim, 'cc')};
   background: ${({ $active }) =>
     $active
-      ? 'linear-gradient(100deg, rgba(18, 57, 59, 0.68), rgba(9, 24, 31, 0.9))'
-      : 'linear-gradient(100deg, rgba(14, 31, 45, 0.8), rgba(8, 17, 27, 0.92))'};
-  font-size: 0.7rem;
+      ? 'linear-gradient(180deg, rgba(25, 78, 78, 0.58), rgba(8, 33, 39, 0.72))'
+      : 'rgba(4, 10, 16, 0.52)'};
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  font-size: 0.54rem;
   font-weight: 780;
   letter-spacing: 0.07em;
-  text-align: left;
+  text-align: center;
   text-transform: uppercase;
   cursor: pointer;
-  transition: border-color 130ms ease, background 130ms ease, color 130ms ease;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease, box-shadow 160ms ease;
 
-  &:hover {
-    border-color: ${toneAlpha(LCARS.teal, 'b8')};
+  &:hover,
+  &:focus-visible {
+    border-color: ${toneAlpha(LCARS.teal, 'bc')};
     color: ${toneAlpha(LCARS.text, 'f2')};
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 0 10px ${toneAlpha(LCARS.teal, '18')};
+    outline: none;
   }
 `;
 
 export const AdvancedFiltersIcon = styled.span`
   display: inline-grid;
   place-items: center;
-  width: 1.28rem;
-  height: 1.28rem;
-  border: 1px solid ${toneAlpha(LCARS.teal, '68')};
-  border-radius: 6px;
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 0;
+  border-radius: 0;
   color: ${toneAlpha(LCARS.teal, 'ec')};
-  font-size: 1rem;
+  font-size: 0.9rem;
+  font-weight: 760;
   line-height: 1;
 `;
 
 export const AdvancedFilters = styled.div`
   display: grid;
-  gap: 0.62rem;
+  gap: 0.48rem;
   min-width: 0;
-  padding-top: 0.08rem;
+  padding: 0 0.38rem 0.38rem;
 `;
 
 export const SortControlRow = styled.div`
@@ -595,22 +873,16 @@ export const SortDirectionButton = styled.button`
   border: 1px solid
     ${({ $descending }) =>
       $descending ? toneAlpha(LCARS.amber, 'b4') : toneAlpha(LCARS.root, '9a')};
-  border-radius: 9px;
+  border-radius: 5px;
   color: ${({ $descending }) =>
     $descending ? toneAlpha(LCARS.amber, 'f4') : toneAlpha(LCARS.root, 'ec')};
   background: ${({ $descending }) =>
-    $descending
-      ? 'linear-gradient(180deg, rgba(61, 43, 16, 0.96), rgba(31, 22, 8, 0.98))'
-      : 'linear-gradient(180deg, rgba(13, 31, 47, 0.96), rgba(8, 19, 29, 0.98))'};
-  box-shadow:
-    inset 0 0 0 1px
-      ${({ $descending }) =>
-        $descending ? toneAlpha(LCARS.amber, '20') : toneAlpha(LCARS.root, '18')},
-    0 0 14px
-      ${({ $descending }) =>
-        $descending ? toneAlpha(LCARS.amber, '16') : toneAlpha(LCARS.root, '14')};
-  font-size: 1rem;
+    $descending ? 'rgba(232, 177, 92, 0.08)' : 'rgba(127, 215, 255, 0.05)'};
+  box-shadow: none;
+  font-size: 1.18rem;
+  font-weight: 900;
   line-height: 1;
+  text-shadow: 0 0 10px currentColor;
   cursor: pointer;
   transition:
     border-color 130ms ease,
@@ -639,38 +911,45 @@ export const SortDirectionButton = styled.button`
 `;
 
 export const ControlGroup = styled.label`
-  ${panelBase};
   display: grid;
   min-width: 0;
-  gap: 0.28rem;
-  padding: 0.44rem 0.56rem 0.5rem;
-  border-color: ${({ $tone = LCARS.root }) => toneAlpha($tone, '66')};
-  box-shadow:
-    inset 0 0 0 1px ${({ $tone = LCARS.root }) => toneAlpha($tone, '20')},
-    0 10px 24px rgba(2, 9, 16, 0.52),
-    0 0 14px ${({ $tone = LCARS.root }) => toneAlpha($tone, '18')};
-  background:
-    linear-gradient(
-      94deg,
-      ${({ $tone = LCARS.root }) => toneAlpha($tone, '1d')} 0%,
-      transparent 58%
-    ),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 70%),
-    ${LCARS.panel};
+  width: 100%;
+  gap: 0.2rem;
+  padding: 0.2rem 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
 
   ${({ $active, $tone = LCARS.root }) =>
     $active &&
     css`
-      border-color: ${toneAlpha($tone, 'c8')};
-      box-shadow:
-        inset 0 0 0 1px ${toneAlpha($tone, '42')},
-        0 10px 24px rgba(2, 9, 16, 0.52),
-        0 0 18px ${toneAlpha($tone, '32')};
-      background:
-        linear-gradient(94deg, ${toneAlpha($tone, '32')} 0%, transparent 62%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 70%),
-        ${LCARS.panel};
+      color: ${toneAlpha($tone, 'f0')};
     `}
+
+  button[aria-haspopup='listbox'] {
+    display: flex;
+    width: 100%;
+    min-height: 36px;
+    min-width: 0;
+    gap: 0.3rem;
+    border-radius: 5px;
+    padding-inline: 0.48rem 0.38rem;
+    background: rgba(4, 10, 16, 0.52);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+
+    > span:first-child {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    > span:last-child {
+      flex: 0 0 auto;
+      margin-left: auto;
+    }
+  }
 `;
 
 export const ControlLabel = styled.span`
@@ -737,15 +1016,49 @@ export const BoxLocatorScope = styled.div`
       ? `inset 0 0 0 1px ${toneAlpha(LCARS.lime, '24')}, 0 0 16px ${toneAlpha(LCARS.lime, '18')}`
       : `inset 0 0 0 1px ${toneAlpha(LCARS.root, '16')}`};
 
+  ${({ $compact, $active }) => $compact && css`
+    grid-template-columns: auto 28px;
+    gap: 0.12rem;
+    min-height: 38px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    align-items: center;
+    background: ${$active
+      ? `linear-gradient(90deg, ${toneAlpha(LCARS.lime, '12')}, transparent 82%)`
+      : 'transparent'};
+    box-shadow: ${$active ? `0 0 12px ${toneAlpha(LCARS.lime, '12')}` : 'none'};
+  `}
+
   @media (max-width: 560px) {
-    grid-template-columns: auto minmax(0, 1fr) 34px;
-    min-height: 52px;
+    ${({ $compact }) => $compact
+      ? css`
+          grid-template-columns: auto 28px;
+          min-height: 38px;
+        `
+      : css`
+          grid-template-columns: auto minmax(0, 1fr) 34px;
+          min-height: 52px;
+        `}
   }
 `;
 
 export const BoxLocatorInputGroup = styled.label`
   display: grid;
   gap: 0.22rem;
+
+  ${({ $compact }) => $compact && css`
+    gap: 0;
+
+    > ${ControlLabel} {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+  `}
 `;
 
 export const BoxLocatorInput = styled.input`
@@ -761,6 +1074,21 @@ export const BoxLocatorInput = styled.input`
   font-weight: 760;
   letter-spacing: 0.18em;
   font-variant-numeric: tabular-nums;
+
+  ${({ $compact }) => $compact && css`
+    min-height: 38px;
+    border-color: ${toneAlpha(LCARS.line, '64')};
+    border-radius: 5px;
+    background: rgba(4, 10, 16, 0.52);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+
+    &:focus {
+      border-color: ${toneAlpha(LCARS.lime, 'b8')};
+      box-shadow:
+        0 0 0 1px ${toneAlpha(LCARS.lime, '28')},
+        0 0 12px ${toneAlpha(LCARS.lime, '1d')};
+    }
+  `}
 `;
 
 export const BoxLocatorReadout = styled.div`
@@ -780,6 +1108,15 @@ export const BoxLocatorReadout = styled.div`
   letter-spacing: 0.06em;
   text-transform: uppercase;
   overflow: hidden;
+
+  ${({ $compact }) => $compact && css`
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  `}
 
   span,
   small {
@@ -813,6 +1150,124 @@ export const BoxLocatorClear = styled.button`
     background: ${toneAlpha(LCARS.lime, '15')};
     outline: 1px solid ${toneAlpha(LCARS.lime, '70')};
   }
+`;
+
+export const PrimaryFinderRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 1fr) auto auto;
+  align-items: stretch;
+  gap: 0.38rem;
+  min-width: 0;
+
+  @media (max-width: 720px) {
+    grid-template-columns: minmax(6.5rem, 1fr) auto 40px;
+    gap: 0.26rem;
+  }
+`;
+
+export const UnifiedFinderWorkspace = styled.div`
+  display: grid;
+  gap: 0.38rem;
+  min-width: 0;
+  width: 100%;
+`;
+
+export const PrimarySearchGroup = styled.label`
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 38px;
+
+  ${SearchInput} {
+    min-height: 38px;
+    border-color: ${toneAlpha(LCARS.line, '64')};
+    border-radius: 5px;
+    background: rgba(4, 10, 16, 0.52);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+
+    &:focus {
+      border-color: ${toneAlpha(LCARS.root, 'b8')};
+      box-shadow:
+        0 0 0 1px ${toneAlpha(LCARS.root, '28')},
+        0 0 12px ${toneAlpha(LCARS.root, '1d')};
+    }
+  }
+`;
+
+export const FinderActionLabel = styled.span`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+`;
+
+export const QuickCreateLaunchButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  min-width: 40px;
+  min-height: 38px;
+  border: 1px solid ${({ $active }) =>
+    $active ? toneAlpha(LCARS.amber, 'b0') : toneAlpha(LCARS.amber, '58')};
+  border-radius: 2px 7px 2px 2px;
+  padding: 0 0.68rem;
+  color: ${toneAlpha(LCARS.amber, 'f2')};
+  background: ${({ $active }) => $active
+    ? 'rgba(93, 60, 17, 0.32)'
+    : 'rgba(20, 18, 13, 0.38)'};
+  font: 820 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: ${LCARS.amber};
+    box-shadow: 0 0 12px ${toneAlpha(LCARS.amber, '20')};
+    outline: none;
+  }
+
+  @media (max-width: 420px) {
+    padding-inline: 0.52rem;
+    font-size: 0.58rem;
+  }
+
+  @media (min-width: 660px) {
+    min-height: 38px;
+    padding-inline: 0.42rem;
+    font-size: 0.54rem;
+    letter-spacing: 0.055em;
+  }
+`;
+
+export const CompactFilterCount = styled.span`
+  position: absolute;
+  top: -0.22rem;
+  right: -0.2rem;
+  display: grid;
+  place-items: center;
+  min-width: 1rem;
+  height: 1rem;
+  padding: 0 0.18rem;
+  border-radius: 999px;
+  color: ${LCARS.bg};
+  background: ${LCARS.lime};
+  font: 900 0.56rem/1 ui-monospace, monospace;
+  letter-spacing: 0;
+  box-shadow: 0 0 8px ${toneAlpha(LCARS.lime, '32')};
+`;
+
+export const AdvancedUtilityRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.38rem;
+  padding-top: 0.1rem;
 `;
 
 export const LocatorWrap = styled.div`
@@ -1096,14 +1551,12 @@ export const QuickActionsRow = styled.div`
 export const QuickActionButton = styled.button`
   min-width: 0;
   min-height: 40px;
-  border-radius: 11px;
+  border-radius: 5px;
   border: 1px solid
     ${({ $active }) =>
       $active ? toneAlpha(LCARS.teal, 'cf') : toneAlpha(LCARS.root, '6b')};
   background: ${({ $active }) =>
-    $active
-      ? 'linear-gradient(180deg, rgba(15, 53, 58, 0.95), rgba(10, 41, 47, 0.95))'
-      : 'linear-gradient(180deg, rgba(14, 30, 44, 0.96), rgba(10, 22, 34, 0.96))'};
+    $active ? 'rgba(76, 198, 193, 0.08)' : 'transparent'};
   color: ${({ $active }) =>
     $active ? toneAlpha(LCARS.teal, 'f2') : toneAlpha(LCARS.root, 'da')};
   font-size: 0.78rem;
@@ -1125,10 +1578,110 @@ export const QuickActionButton = styled.button`
 
 export const QuickActionPanel = styled.div`
   ${panelBase};
-  padding: 0.58rem;
+  padding: 0.52rem;
   border-color: ${toneAlpha(LCARS.root, '58')};
   background:
     radial-gradient(circle at 95% 8%, ${toneAlpha(LCARS.lilac, '22')} 0%, transparent 44%),
     linear-gradient(180deg, #0f1822 0%, #0a121a 100%);
   min-width: 0;
+`;
+
+export const QuickOrphanInlinePanel = styled.div`
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin-top: 0.16rem;
+  border-top: 1px solid ${toneAlpha(LCARS.amber, '64')};
+  padding: 0.48rem 0.08rem 0.08rem;
+  background: linear-gradient(90deg, rgba(232, 177, 92, 0.08), transparent 58%);
+`;
+
+export const QuickCaptureComposer = styled.section`
+  display: grid;
+  gap: 0.42rem;
+  min-width: 0;
+`;
+
+export const QuickCaptureForm = styled.form`
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
+  gap: 0.42rem;
+  align-items: end;
+  min-width: 0;
+
+  @media (max-width: 899px) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+`;
+
+export const QuickCaptureField = styled.label`
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+  color: ${toneAlpha(LCARS.textDim, 'd4')};
+  font-size: 0.56rem;
+  font-weight: 780;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+
+  &:first-child { grid-column: 1; }
+
+  @media (max-width: 899px) {
+    &:first-child { grid-column: 1 / -1; }
+  }
+`;
+
+export const QuickCaptureInput = styled.input`
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  border: 1px solid rgba(104, 154, 186, 0.78);
+  border-radius: 3px 8px 3px 3px;
+  padding: 0 0.58rem;
+  color: ${toneAlpha(LCARS.text, 'f2')};
+  background: rgba(4, 10, 15, 0.88);
+  font: 700 0.82rem ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  outline: none;
+
+  &::placeholder { color: ${toneAlpha(LCARS.textDim, 'a0')}; }
+  &:focus { border-color: ${toneAlpha(LCARS.teal, 'e8')}; box-shadow: 0 0 0 2px ${toneAlpha(LCARS.teal, '24')}; }
+  &:disabled { opacity: 0.58; cursor: not-allowed; }
+`;
+
+export const QuickCaptureActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
+  justify-content: flex-end;
+  min-width: max-content;
+
+  @media (max-width: 899px) {
+    grid-column: 2;
+    grid-row: 2;
+  }
+`;
+
+export const QuickCaptureButton = styled.button`
+  min-height: 40px;
+  border: 1px solid ${({ $primary }) => ($primary ? toneAlpha(LCARS.amber, 'd8') : 'rgba(104, 154, 186, 0.69)')};
+  border-radius: ${({ $primary }) => ($primary ? '3px 9px 3px 3px' : '3px')};
+  padding: 0 0.62rem;
+  color: ${({ $primary }) => ($primary ? toneAlpha(LCARS.amber, 'f2') : LCARS.text)};
+  background: ${({ $primary }) => ($primary ? 'rgba(104, 63, 14, 0.28)' : 'rgba(18, 30, 42, 0.96)')};
+  cursor: pointer;
+  font: 800 0.6rem ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  &:hover:not(:disabled) {
+    border-color: ${({ $primary }) => ($primary ? toneAlpha(LCARS.amber, 'f2') : toneAlpha(LCARS.teal, 'e0'))};
+    background: ${({ $primary }) => ($primary ? 'rgba(104, 63, 14, 0.38)' : 'rgba(24, 45, 58, 0.98)')};
+  }
+  &:focus-visible { outline: 2px solid ${toneAlpha(LCARS.lilac, 'ee')}; outline-offset: 2px; }
+  &:disabled { opacity: 0.48; cursor: not-allowed; }
+`;
+
+export const QuickCaptureError = styled.div`
+  color: #ffb2a7;
+  font-size: 0.68rem;
+  line-height: 1.3;
 `;

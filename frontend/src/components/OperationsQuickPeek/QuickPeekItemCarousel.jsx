@@ -1,8 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { getItemThumbnailUrl } from '../../util/itemImage';
+import React, { useContext, useEffect, useState } from 'react';
+import {
+  getItemOriginalImageUrl,
+  getItemPreviewImageUrl,
+  getItemThumbnailUrl,
+} from '../../util/itemImage';
+import RetrievalImageLightbox from '../Retrieval/RetrievalImageLightbox';
+import { ToastContext } from '../Toast';
+import useItemDeclutterDeck from '../../hooks/useItemDeclutterDeck';
 import * as S from './OperationsQuickPeek.styles';
-
-const HORIZONTAL_SWIPE_THRESHOLD = 48;
 
 function quantityLabel(item) {
   const quantity = Number(item?.quantity);
@@ -18,11 +23,14 @@ function getTags(item) {
 }
 
 function ItemPreviewImage({ item, name }) {
-  const imageUrl = getItemThumbnailUrl(item);
+  const imageUrl = getItemPreviewImageUrl(item);
+  const fallbackUrl = getItemThumbnailUrl(item);
   const [source, setSource] = useState(imageUrl);
+  const [framing, setFraming] = useState('square');
 
   useEffect(() => {
     setSource(imageUrl);
+    setFraming('square');
   }, [imageUrl]);
 
   if (!source) {
@@ -30,12 +38,37 @@ function ItemPreviewImage({ item, name }) {
   }
 
   return (
-    <S.ItemCarouselImage
-      src={source}
-      alt={`Photo of ${name}`}
-      decoding="async"
-      onError={() => setSource('')}
-    />
+    <>
+      <S.ItemCarouselImageBackdrop
+        src={source}
+        alt=""
+        aria-hidden="true"
+        decoding="async"
+      />
+      <S.ItemCarouselImage
+        src={source}
+        alt={`Photo of ${name}`}
+        decoding="async"
+        $framing={framing}
+        onLoad={(event) => {
+          const { naturalWidth, naturalHeight } = event.currentTarget;
+          if (!naturalWidth || !naturalHeight) return;
+
+          if (naturalHeight > naturalWidth * 1.15) {
+            setFraming('portrait');
+          } else if (naturalWidth > naturalHeight * 1.15) {
+            setFraming('landscape');
+          } else {
+            setFraming('square');
+          }
+        }}
+        onError={() => {
+          setSource((currentSource) =>
+            fallbackUrl && currentSource !== fallbackUrl ? fallbackUrl : '',
+          );
+        }}
+      />
+    </>
   );
 }
 
@@ -49,8 +82,22 @@ export default function QuickPeekItemCarousel({
   onPrevious,
   onNext,
   onBack,
+  onDeclutterStateChange,
 }) {
-  const gestureRef = useRef(null);
+  const itemId = String(item?._id || item?.id || '');
+  const lightboxImageUrl = getItemOriginalImageUrl(item);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const { showToast, hideToast } = useContext(ToastContext) || {};
+  const {
+    declutterPending,
+    inDeclutterDeck,
+    toggleDeclutterDeck,
+  } = useItemDeclutterDeck({
+    item,
+    showToast,
+    hideToast,
+    onStateChange: onDeclutterStateChange,
+  });
   const name = String(item?.name || item?.label || 'Untitled item').trim();
   const category = String(item?.category || '').trim();
   const description = String(item?.description || '').trim();
@@ -58,50 +105,37 @@ export default function QuickPeekItemCarousel({
   const tags = getTags(item);
   const hasDetails = Boolean(description || notes || tags.length > 0);
 
-  const handlePointerDown = (event) => {
-    if (event.button !== 0 || event.target.closest('button, a')) return;
-    gestureRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-    };
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-  };
+  useEffect(() => {
+    setLightboxOpen(false);
+  }, [itemId]);
 
-  const handlePointerUp = (event) => {
-    const gesture = gestureRef.current;
-    gestureRef.current = null;
-    if (!gesture || gesture.pointerId !== event.pointerId) return;
-
-    const deltaX = event.clientX - gesture.startX;
-    const deltaY = event.clientY - gesture.startY;
-    if (
-      Math.abs(deltaX) < HORIZONTAL_SWIPE_THRESHOLD ||
-      Math.abs(deltaX) <= Math.abs(deltaY) * 1.2
-    ) {
-      return;
-    }
-
-    if (deltaX < 0) onNext?.();
-    else onPrevious?.();
-  };
-
-  const cancelGesture = () => {
-    gestureRef.current = null;
+  const openLightbox = () => {
+    if (lightboxImageUrl) setLightboxOpen(true);
   };
 
   return (
     <S.ItemCarousel
       $direction={transitionDirection}
       aria-label={`Item ${position} of ${total}: ${name}`}
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={cancelGesture}
     >
-      <S.ItemCarouselNavigation>
+      <S.ItemCarouselCard>
+        <S.ItemCarouselMedia
+          $interactive={Boolean(lightboxImageUrl)}
+        >
+          <ItemPreviewImage item={item} name={name} />
+
+          {lightboxImageUrl ? (
+            <S.ItemCarouselLightboxTrigger
+              type="button"
+              aria-label={`Open original image for ${name}`}
+              onClick={openLightbox}
+            />
+          ) : null}
+
         <S.ItemCarouselArrow
           type="button"
           aria-label="Previous item"
+          $side="previous"
           disabled={!canSelectPrevious}
           onClick={onPrevious}
         >
@@ -120,50 +154,74 @@ export default function QuickPeekItemCarousel({
           <S.ItemCarouselPosition>{position} / {total}</S.ItemCarouselPosition>
         </S.ItemCarouselReturn>
 
+        <S.ItemCarouselDeckToggle
+          type="button"
+          $active={inDeclutterDeck}
+          aria-label={inDeclutterDeck ? `Remove ${name} from Declutter Deck` : `Add ${name} to Declutter Deck`}
+          aria-pressed={inDeclutterDeck}
+          title={inDeclutterDeck ? 'Remove from Declutter Deck' : 'Add to Declutter Deck'}
+          disabled={declutterPending || !itemId || item?.item_status === 'gone'}
+          onClick={toggleDeclutterDeck}
+        >
+          <S.ItemDeckIcon aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+            <path d="M5.5 6.5h9v10h-9z" />
+            <path d="M7.5 3.5h7v3" />
+            {inDeclutterDeck ? <path d="m8 11 1.5 1.5L12.5 9" /> : <path d="M10 9v5M7.5 11.5h5" />}
+          </S.ItemDeckIcon>
+        </S.ItemCarouselDeckToggle>
+
         <S.ItemCarouselArrow
           type="button"
           aria-label="Next item"
+          $side="next"
           disabled={!canSelectNext}
           onClick={onNext}
         >
           ›
         </S.ItemCarouselArrow>
-      </S.ItemCarouselNavigation>
+        </S.ItemCarouselMedia>
 
-      <S.ItemCarouselHero>
-        <ItemPreviewImage item={item} name={name} />
-        <S.ItemCarouselIdentity>
-          <S.ItemCarouselName>{name}</S.ItemCarouselName>
-          <S.ItemCarouselMeta>
-            <code>QTY {quantityLabel(item)}</code>
-            {category ? <span>{category}</span> : null}
-          </S.ItemCarouselMeta>
-        </S.ItemCarouselIdentity>
-      </S.ItemCarouselHero>
+        <S.ItemCarouselBody>
+          <S.ItemCarouselIdentity>
+            <S.ItemCarouselName>{name}</S.ItemCarouselName>
+            <S.ItemCarouselMeta>
+              <code>QTY {quantityLabel(item)}</code>
+              {category ? <span>{category}</span> : null}
+            </S.ItemCarouselMeta>
+          </S.ItemCarouselIdentity>
 
-      {hasDetails ? (
-        <S.ItemCarouselDetails>
-          {description ? (
-            <S.ItemCarouselDetail>
-              <S.MetaLabel>Description</S.MetaLabel>
-              <p>{description}</p>
-            </S.ItemCarouselDetail>
-          ) : null}
-          {notes ? (
-            <S.ItemCarouselDetail>
-              <S.MetaLabel>Notes</S.MetaLabel>
-              <p>{notes}</p>
-            </S.ItemCarouselDetail>
-          ) : null}
-          {tags.length > 0 ? (
-            <S.ItemCarouselTags aria-label="Item tags">
-              {tags.map((tag) => <span key={tag}>#{tag}</span>)}
-            </S.ItemCarouselTags>
-          ) : null}
-        </S.ItemCarouselDetails>
-      ) : (
-        <S.ItemCarouselEmpty>No additional details recorded.</S.ItemCarouselEmpty>
-      )}
+          {hasDetails ? (
+            <S.ItemCarouselDetails>
+              {description ? (
+                <S.ItemCarouselDetail>
+                  <S.MetaLabel>Description</S.MetaLabel>
+                  <p>{description}</p>
+                </S.ItemCarouselDetail>
+              ) : null}
+              {notes ? (
+                <S.ItemCarouselDetail>
+                  <S.MetaLabel>Notes</S.MetaLabel>
+                  <p>{notes}</p>
+                </S.ItemCarouselDetail>
+              ) : null}
+              {tags.length > 0 ? (
+                <S.ItemCarouselTags aria-label="Item tags">
+                  {tags.map((tag) => <span key={tag}>#{tag}</span>)}
+                </S.ItemCarouselTags>
+              ) : null}
+            </S.ItemCarouselDetails>
+          ) : (
+            <S.ItemCarouselEmpty>No additional details recorded.</S.ItemCarouselEmpty>
+          )}
+        </S.ItemCarouselBody>
+      </S.ItemCarouselCard>
+
+      <RetrievalImageLightbox
+        isOpen={lightboxOpen}
+        imageSrc={lightboxImageUrl}
+        itemName={name}
+        onClose={() => setLightboxOpen(false)}
+      />
     </S.ItemCarousel>
   );
 }

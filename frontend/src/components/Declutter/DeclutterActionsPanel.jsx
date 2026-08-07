@@ -1,106 +1,77 @@
-import { useRef, useState } from 'react';
-
 import * as S from './Declutter.styles';
+import DeclutterActionOptions from './DeclutterActionOptions';
 import { getItemName, getSessionItemItem } from './declutterUtils';
 
-const HOLD_MS = 1200;
+const ROUTE_LABELS = {
+  discard: 'Trash',
+  donate: 'Donate',
+  sell: 'Sell',
+  gift: 'Gift',
+  needs_routing: 'Needs routing',
+};
 
-function laneTitle(candidate) {
-  const state = candidate?.item?.declutterExitState;
-  if (state === 'marked_for_destruction') return 'Trash Run';
-  if (state === 'staged_for_donation') return 'Donation Staging';
-  if (state === 'staged_for_sale') return 'Sale Staging';
-  if (state === 'needs_staging') return 'Needs Staging';
-  return 'Needs Routing';
+const COMPLETION_DISPOSITIONS = {
+  discard: 'trashed',
+  donate: 'donated',
+  sell: 'sold',
+  gift: 'gifted',
+};
+
+function itemLocation(item) {
+  const box = item?.box;
+  if (box) {
+    const boxLabel = [box.box_id ? `#${box.box_id}` : '', box.label || 'Box']
+      .filter(Boolean)
+      .join(' ');
+    return box.locationName ? `${boxLabel} • ${box.locationName}` : boxLabel;
+  }
+  return item?.location || 'No box assigned';
 }
 
-function ActionCard({ candidate, player, stagingBoxes, busy, onAction }) {
+function ActionRow({ candidate, player, stagingBoxes, busy, onAction }) {
   const item = getSessionItemItem(candidate);
-  const [route, setRoute] = useState(candidate.stagingRoute === 'needs_routing' ? 'donate' : candidate.stagingRoute);
-  const [boxId, setBoxId] = useState('');
-  const [holding, setHolding] = useState(false);
-  const holdTimer = useRef(null);
-  const isTrash = item?.declutterExitState === 'marked_for_destruction';
-  const compatibleBoxes = stagingBoxes.filter((box) =>
-    box.declutterPurpose === (route === 'sell' ? 'sale_staging' : 'donation_staging')
-  );
-
-  const cancelHold = () => {
-    window.clearTimeout(holdTimer.current);
-    holdTimer.current = null;
-    setHolding(false);
-  };
-  const startHold = () => {
-    setHolding(true);
-    holdTimer.current = window.setTimeout(() => {
-      setHolding(false);
-      onAction(candidate, 'complete', { disposition: 'trashed' });
-    }, HOLD_MS);
-  };
+  const currentRoute = candidate.stagingRoute || 'needs_routing';
+  const itemName = getItemName(item);
+  const disposition = COMPLETION_DISPOSITIONS[currentRoute];
 
   return (
-    <S.WorkflowCard>
-      <S.WorkflowCardTop>
-        <div><S.Eyebrow>{laneTitle(candidate)}</S.Eyebrow><S.ItemName>{getItemName(item)}</S.ItemName></div>
-        <S.DecisionPill $tone={isTrash ? 'toss' : route}>{candidate.stagingRoute}</S.DecisionPill>
-      </S.WorkflowCardTop>
-      {isTrash ? (
-        <S.HoldButton
+    <S.ActionTableRow>
+      <S.ActionItemCell>
+        {item?.id ? (
+          <S.ItemNameLink to={`/items/${encodeURIComponent(item.id)}`}>
+            {itemName}
+          </S.ItemNameLink>
+        ) : <S.ItemName>{itemName}</S.ItemName>}
+        <small>{item?.isIntendedGift ? 'Gift intent retained' : 'Active inventory'}</small>
+      </S.ActionItemCell>
+
+      <S.ActionPlanCell>
+        <S.ActionRouteChip $tone={currentRoute === 'discard' ? 'toss' : currentRoute}>
+          {ROUTE_LABELS[currentRoute] || currentRoute}
+        </S.ActionRouteChip>
+      </S.ActionPlanCell>
+
+      <S.ActionLocationCell>{itemLocation(item)}</S.ActionLocationCell>
+
+      <S.ActionPrimaryCell>
+        <S.ActionCompleteButton
           type="button"
-          $holding={holding}
-          disabled={busy}
-          onPointerDown={startHold}
-          onPointerUp={cancelHold}
-          onPointerLeave={cancelHold}
-          onPointerCancel={cancelHold}
-          onKeyDown={(event) => {
-            if ((event.key === ' ' || event.key === 'Enter') && !holding) startHold();
-          }}
-          onKeyUp={cancelHold}
+          disabled={busy || !disposition}
+          onClick={() => onAction(candidate, 'complete', { disposition })}
         >
-          Hold to make it glorious: TRASHED
-        </S.HoldButton>
-      ) : (
-        <S.ActionControls>
-          <select value={route || 'donate'} onChange={(event) => setRoute(event.target.value)}>
-            <option value="donate">Donate</option>
-            <option value="sell">Sell</option>
-            <option value="discard">Trash</option>
-          </select>
-          {route !== 'discard' ? (
-            <select value={boxId} onChange={(event) => setBoxId(event.target.value)}>
-              <option value="">Use default staging box</option>
-              {compatibleBoxes.map((box) => (
-                <option key={box.id} value={box.id}>{box.box_id} {box.label}</option>
-              ))}
-            </select>
-          ) : null}
-          <S.Button
-            type="button"
-            disabled={busy || (candidate.stagingRoute === 'needs_routing' && player !== 'laserfox')}
-            onClick={() => onAction(candidate, 'reroute', { route, boxId })}
-          >
-            Apply route
-          </S.Button>
-          {['donate', 'sell'].includes(candidate.stagingRoute) ? (
-            <S.Button
-              type="button"
-              $tone="success"
-              disabled={busy}
-              onClick={() => onAction(candidate, 'complete', {
-                disposition: candidate.stagingRoute === 'donate' ? 'donated' : 'sold',
-              })}
-            >
-              Mark physically {candidate.stagingRoute === 'donate' ? 'donated' : 'sold'}
-            </S.Button>
-          ) : null}
-        </S.ActionControls>
-      )}
-      <S.QueueActions>
-        <S.Button type="button" disabled={busy} onClick={() => onAction(candidate, 'restore')}>Restore as Keep</S.Button>
-        <S.Button type="button" disabled={busy} onClick={() => onAction(candidate, 'reopen')}>Fresh vote round</S.Button>
-      </S.QueueActions>
-    </S.WorkflowCard>
+          {busy ? 'Working…' : 'Mark destroyed'}
+        </S.ActionCompleteButton>
+        <DeclutterActionOptions
+          candidate={candidate}
+          itemName={itemName}
+          currentRoute={currentRoute}
+          player={player}
+          stagingBoxes={stagingBoxes}
+          busy={busy}
+          onAction={onAction}
+        />
+      </S.ActionPrimaryCell>
+    </S.ActionTableRow>
   );
 }
 
@@ -111,29 +82,32 @@ export default function DeclutterActionsPanel({
   busyCandidateId = '',
   onAction,
 }) {
-  const lanes = ['Trash Run', 'Donation Staging', 'Sale Staging', 'Needs Staging', 'Needs Routing'];
+  if (!candidates.length) {
+    return <S.StatusPanel>No items are currently marked for destruction.</S.StatusPanel>;
+  }
+
   return (
-    <S.WorkflowGrid>
-      {lanes.map((title) => {
-        const entries = candidates.filter((candidate) => laneTitle(candidate) === title);
-        if (!entries.length) return null;
-        return (
-          <section key={title}>
-            <S.WorkflowLaneTitle>{title} <span>{entries.length}</span></S.WorkflowLaneTitle>
-            {entries.map((candidate) => (
-              <ActionCard
-                key={candidate.id}
-                candidate={candidate}
-                player={player}
-                stagingBoxes={stagingBoxes}
-                busy={busyCandidateId === candidate.id}
-                onAction={onAction}
-              />
-            ))}
-          </section>
-        );
-      })}
-      {!candidates.length ? <S.StatusPanel>No physical exit actions are waiting.</S.StatusPanel> : null}
-    </S.WorkflowGrid>
+    <S.ActionConsole>
+      <S.ActionConsoleHeading>
+        <div>
+          <S.Eyebrow>Exit todo list</S.Eyebrow>
+          <h2>Marked for Destruction</h2>
+          <S.SmallText>Agreed exits stay active inventory until you confirm they are actually gone.</S.SmallText>
+        </div>
+        <strong>{candidates.length}</strong>
+      </S.ActionConsoleHeading>
+      <S.ActionTable>
+        {candidates.map((candidate) => (
+          <ActionRow
+            key={candidate.id}
+            candidate={candidate}
+            player={player}
+            stagingBoxes={stagingBoxes}
+            busy={busyCandidateId === candidate.id}
+            onAction={onAction}
+          />
+        ))}
+      </S.ActionTable>
+    </S.ActionConsole>
   );
 }

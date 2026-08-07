@@ -15,55 +15,15 @@ import {
   formatCentsToUsdInput,
   parseUsdInputToCents,
 } from '../../util/usdMoney';
+import {
+  normalizeLinksForForm,
+  sanitizeLinksForSave,
+} from '../../util/itemLinks';
 
 const toNullableTrimmedString = (value) => {
   if (value == null) return null;
   const s = String(value).trim();
   return s ? s : null;
-};
-
-const normalizeLinksForForm = (links) => {
-  if (!Array.isArray(links)) return [];
-  return links
-    .map((row) => ({
-      label: String(row?.label || '').trim(),
-      url: String(row?.url || '').trim(),
-    }))
-    .filter((row) => row.label || row.url);
-};
-
-const isValidExternalUrl = (value) => {
-  try {
-    const parsed = new URL(String(value || '').trim());
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-  } catch {
-    return false;
-  }
-};
-
-const sanitizeLinksForSave = (links) => {
-  if (!Array.isArray(links)) return [];
-
-  const normalized = [];
-  for (let i = 0; i < links.length; i += 1) {
-    const row = links[i];
-    const label = String(row?.label || '').trim();
-    const url = String(row?.url || '').trim();
-
-    if (!label && !url) continue;
-    if (!label) throw new Error(`Link ${i + 1}: label is required.`);
-    if (label.length > 80) {
-      throw new Error(`Link ${i + 1}: label must be 80 characters or fewer.`);
-    }
-    if (!url) throw new Error(`Link ${i + 1}: url is required.`);
-    if (!isValidExternalUrl(url)) {
-      throw new Error(`Link ${i + 1}: url must be a valid http/https URL.`);
-    }
-
-    normalized.push({ label, url });
-  }
-
-  return normalized;
 };
 
 const buildFormState = (item) => ({
@@ -80,6 +40,7 @@ const buildFormState = (item) => ({
   condition: item?.condition || 'unknown',
   category: normalizeItemCategory(item?.category),
   isConsumable: !!item?.isConsumable,
+  isIntendedGift: !!item?.isIntendedGift,
   acquisitionType: item?.acquisitionType || 'unknown',
   valueUsd: formatCentsToUsdInput(item?.valueCents),
   purchasePriceUsd: formatCentsToUsdInput(item?.purchasePriceCents),
@@ -244,6 +205,7 @@ export default function useEditItemDetailsFormState({ item, triggerFlash, onSave
         links: sanitizeLinksForSave(formData.links),
         category: normalizeItemCategory(formData.category),
         isConsumable: !!formData.isConsumable,
+        isIntendedGift: !!formData.isIntendedGift,
         location: String(formData.location || '').trim(),
         tags: normalizeTags(formData.tags)
           .filter((t) => t.status !== 'deleted')

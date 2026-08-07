@@ -1,0 +1,348 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-06T23:17:05.624Z",
+  "project": {
+    "id": "discowarpcore",
+    "name": "Disco Warp Core",
+    "root": "$PROJECT_ROOT",
+    "profile": "development",
+    "manifestVersion": 1,
+    "tarotVersion": "1.9.0",
+    "releaseVersion": "1.9.0",
+    "checksumStatus": {
+      "ok": true,
+      "files": [
+        {
+          "file": "scripts/tarot-dock.mjs",
+          "ok": true,
+          "expected": "87508d328fe36cf097cbdfa045e585de78bd88492bec6d2732ae0e8d234c1281",
+          "actual": "87508d328fe36cf097cbdfa045e585de78bd88492bec6d2732ae0e8d234c1281"
+        },
+        {
+          "file": "scripts/tarot-agent.mjs",
+          "ok": true,
+          "expected": "4825ebf3b1a996b571bd803b4302186671827b0fa10da4685b831f0c6d9b649c",
+          "actual": "4825ebf3b1a996b571bd803b4302186671827b0fa10da4685b831f0c6d9b649c"
+        },
+        {
+          "file": "scripts/tarot-update.mjs",
+          "ok": true,
+          "expected": "4772e8e76b61324a76cf8e7951578ce9ca25a7535cafd26e022062cc39c363d7",
+          "actual": "4772e8e76b61324a76cf8e7951578ce9ca25a7535cafd26e022062cc39c363d7"
+        },
+        {
+          "file": "scripts/tarot-install.mjs",
+          "ok": true,
+          "expected": "15f75212eeff578800705743b854d76acebc720071e950e22e104c9e55615469",
+          "actual": "15f75212eeff578800705743b854d76acebc720071e950e22e104c9e55615469"
+        },
+        {
+          "file": "scripts/tarot-static-server.mjs",
+          "ok": true,
+          "expected": "2c54049372ea4ada6a82dd2dccd52b77e0d883d5659cfb75be67c75c02a1d616",
+          "actual": "2c54049372ea4ada6a82dd2dccd52b77e0d883d5659cfb75be67c75c02a1d616"
+        },
+        {
+          "file": "scripts/tarot-terminal-storm.py",
+          "ok": true,
+          "expected": "7f70f8d53603b95f29deb459dbf4ff0c62600f4d8b9c8ec8979e89a4c165d181",
+          "actual": "7f70f8d53603b95f29deb459dbf4ff0c62600f4d8b9c8ec8979e89a4c165d181"
+        },
+        {
+          "file": "scripts/tarot-runtime/persistence.mjs",
+          "ok": true,
+          "expected": "a4ae2bd5505315fa95a155271ff9b5e8cc767c0ebc2dafb6b7bea7fe49f42435",
+          "actual": "a4ae2bd5505315fa95a155271ff9b5e8cc767c0ebc2dafb6b7bea7fe49f42435"
+        },
+        {
+          "file": "scripts/tarot-runtime/state.mjs",
+          "ok": true,
+          "expected": "1d6efed9c4f92dc6d67410e42ac9ca4073bec42450b665a70a2850e1ae2486d1",
+          "actual": "1d6efed9c4f92dc6d67410e42ac9ca4073bec42450b665a70a2850e1ae2486d1"
+        },
+        {
+          "file": "scripts/tarot-runtime/manifest.mjs",
+          "ok": true,
+          "expected": "e28d745e40c2df2e80d98166897461cc38374bf4fc9d3989a0c70f70e61764c6",
+          "actual": "e28d745e40c2df2e80d98166897461cc38374bf4fc9d3989a0c70f70e61764c6"
+        },
+        {
+          "file": "scripts/tarot-runtime/log-store.mjs",
+          "ok": true,
+          "expected": "83696d3adb3476d47c5c56261860f771e7a530c077dc8214737947ec9ba66732",
+          "actual": "83696d3adb3476d47c5c56261860f771e7a530c077dc8214737947ec9ba66732"
+        },
+        {
+          "file": "scripts/tarot-runtime/ipc.mjs",
+          "ok": true,
+          "expected": "40d13a33a688f9c7c20eb1bdfefa06ebef306539b2656e899ceca2a236d69817",
+          "actual": "40d13a33a688f9c7c20eb1bdfefa06ebef306539b2656e899ceca2a236d69817"
+        },
+        {
+          "file": "scripts/tarot-runtime/diagnostics.mjs",
+          "ok": true,
+          "expected": "4d97fa23168ca9bd561afc7cd68370f95ad83f9573e87f01d92207fb77b1aa56",
+          "actual": "4d97fa23168ca9bd561afc7cd68370f95ad83f9573e87f01d92207fb77b1aa56"
+        },
+        {
+          "file": "scripts/tarot-runtime/lifecycle.mjs",
+          "ok": true,
+          "expected": "5b203bb74c1622ff3688c85b6d3ef30925c5d897bc081a9c0c8c4cab3e517f2e",
+          "actual": "5b203bb74c1622ff3688c85b6d3ef30925c5d897bc081a9c0c8c4cab3e517f2e"
+        },
+        {
+          "file": "scripts/tarot-runtime/probe.mjs",
+          "ok": true,
+          "expected": "c284e72c8077bb46e11df1e6de0c1c2c1938702b629986853cde97c03ef25f53",
+          "actual": "c284e72c8077bb46e11df1e6de0c1c2c1938702b629986853cde97c03ef25f53"
+        },
+        {
+          "file": "scripts/tarot-runtime/process.mjs",
+          "ok": true,
+          "expected": "ede8731e28286088346a838585650d7223498f75f72e24baa4e71f50d77c83b2",
+          "actual": "ede8731e28286088346a838585650d7223498f75f72e24baa4e71f50d77c83b2"
+        }
+      ]
+    }
+  },
+  "summary": {
+    "validManifest": true,
+    "errors": [],
+    "warnings": [],
+    "serviceCount": 3,
+    "listeningCount": 3
+  },
+  "agent": {
+    "lock": {
+      "schemaVersion": 1,
+      "pid": 68685,
+      "processStartedAt": "Thu Aug  6 16:16:26 2026",
+      "projectRoot": "$PROJECT_ROOT",
+      "projectId": "discowarpcore",
+      "agentSessionId": "agent-1786058186773-90e2e011",
+      "tarotVersion": "1.9.0",
+      "socketPath": "$PROJECT_ROOT/.runtime/tarot-dock.sock",
+      "acquiredAt": "2026-08-06T23:16:26.776Z"
+    },
+    "socketExists": true,
+    "socketMode": "600",
+    "stateUpdatedAt": "2026-08-06T23:17:04.985Z"
+  },
+  "tools": {
+    "node": {
+      "available": true,
+      "version": "v25.4.0"
+    },
+    "lsof": {
+      "available": true,
+      "version": "lsof version information:"
+    },
+    "ps": {
+      "available": true,
+      "version": "/opt/homebrew/Cellar/node/25.4.0/bin/node $PROJECT_ROOT/scripts/tarot-agent.mjs"
+    },
+    "brew": {
+      "available": true,
+      "version": "Homebrew 6.0.15"
+    }
+  },
+  "system": {
+    "platform": "darwin",
+    "release": "25.5.0",
+    "hostname": "quantumzephyr.local",
+    "freeMemory": 699105280,
+    "uptimeSeconds": 9522,
+    "disk": {
+      "availableBytes": 1050184765440,
+      "totalBytes": 2000364306432
+    }
+  },
+  "registry": {
+    "url": "http://localhost:7609/api/port-index",
+    "projectId": "discowarpcore",
+    "status": "offline",
+    "pendingRegistry": true,
+    "lastSyncAt": "2026-08-06T23:16:02.317Z",
+    "lastError": "fetch failed"
+  },
+  "services": [
+    {
+      "id": "frontend",
+      "label": "Vite frontend",
+      "scrySlot": 1,
+      "port": 7611,
+      "protocol": "http",
+      "dependsOn": [
+        "backend"
+      ],
+      "health": {
+        "type": "http",
+        "path": "/",
+        "timeoutMs": 1500,
+        "startupTimeoutMs": 60000,
+        "intervalMs": 15000,
+        "acceptedStatusCodes": null
+      },
+      "listeners": [
+        {
+          "pid": 72805,
+          "command": "node",
+          "address": "*:7611"
+        }
+      ],
+      "runtime": {
+        "state": "live",
+        "processState": "running",
+        "healthState": "healthy",
+        "ownershipState": "tarot",
+        "reason": "HTTP 200 from /.",
+        "lastTransitionAt": "2026-08-06T23:17:04.979Z",
+        "lastProbeAt": "2026-08-06T23:17:04.977Z",
+        "runId": "frontend-1786058191889-eebf1ca3"
+      },
+      "lan": {
+        "enabled": true,
+        "adapter": "vite",
+        "host": "0.0.0.0"
+      },
+      "envKeys": [
+        "VITE_PORT",
+        "VITE_STRICT_PORT",
+        "VITE_API_TARGET"
+      ]
+    },
+    {
+      "id": "backend",
+      "label": "Express API",
+      "scrySlot": 2,
+      "port": 7610,
+      "protocol": "http",
+      "dependsOn": [
+        "mongodb"
+      ],
+      "health": {
+        "type": "http",
+        "path": "/api/health",
+        "timeoutMs": 1500,
+        "startupTimeoutMs": 60000,
+        "intervalMs": 15000,
+        "acceptedStatusCodes": null
+      },
+      "listeners": [
+        {
+          "pid": 71727,
+          "command": "node",
+          "address": "127.0.0.1:7610"
+        }
+      ],
+      "runtime": {
+        "state": "live",
+        "processState": "running",
+        "healthState": "healthy",
+        "ownershipState": "tarot",
+        "reason": "HTTP 200 from /api/health.",
+        "lastTransitionAt": "2026-08-06T23:17:04.984Z",
+        "lastProbeAt": "2026-08-06T23:17:04.983Z",
+        "runId": "backend-1786058190550-9516a6d1"
+      },
+      "lan": {},
+      "envKeys": [
+        "HOST",
+        "PORT"
+      ]
+    },
+    {
+      "id": "mongodb",
+      "label": "MongoDB",
+      "scrySlot": 3,
+      "port": 27017,
+      "protocol": "mongodb",
+      "dependsOn": [],
+      "health": {
+        "type": "tcp",
+        "path": "/",
+        "timeoutMs": 1500,
+        "startupTimeoutMs": 30000,
+        "intervalMs": 15000,
+        "acceptedStatusCodes": null
+      },
+      "listeners": [
+        {
+          "pid": 97356,
+          "command": "mongod",
+          "address": "[::1]:27017"
+        }
+      ],
+      "runtime": {
+        "state": "observed",
+        "processState": "running",
+        "healthState": "healthy",
+        "ownershipState": "system",
+        "reason": "Observed a system-managed listener.",
+        "lastTransitionAt": "2026-08-06T23:17:04.944Z",
+        "lastProbeAt": null,
+        "runId": ""
+      },
+      "lan": {},
+      "envKeys": []
+    }
+  ],
+  "mongo": {
+    "port": 27017,
+    "listeners": [
+      {
+        "pid": 97356,
+        "command": "mongod",
+        "address": "[::1]:27017"
+      }
+    ],
+    "brew": {
+      "ok": true,
+      "status": 0,
+      "stdout": "Name              Status User   File\ncloudflared       none                   \nmongodb-community started         zephyr ~/Library/LaunchAgents/homebrew.mxcl.mongodb-community.plist\ntailscale         none",
+      "stderr": "",
+      "error": ""
+    },
+    "launchd": {
+      "ok": true,
+      "status": 0,
+      "stdout": "gui/501/homebrew.mxcl.mongodb-community = {\n\tactive count = 1\n\tpath = $HOME/Library/LaunchAgents/homebrew.mxcl.mongodb-community.plist\n\ttype = LaunchAgent\n\tstate = running\n\n\tprogram = /opt/homebrew/opt/mongodb-community/bin/mongod\n\targuments = {\n\t\t/opt/homebrew/opt/mongodb-community/bin/mongod\n\t\t--config\n\t\t/opt/homebrew/etc/mongod.conf\n\t}\n\n\tworking directory = /opt/homebrew\n\n\tstdout path = /opt/homebrew/var/log/mongodb/output.log\n\tstderr path = /opt/homebrew/var/log/mongodb/output.log\n\tinherited environment = {\n\t\tSSH_AUTH_SOCK => /var/run/com.apple.launchd.Nvr6L08YCI/Listeners\n\t}\n\n\tdefault environment = {\n\t\tPATH => /usr/bin:/bin:/usr/sbin:/sbin\n\t}\n\n\tenvironment = {\n\t\tOSLogRateLimit => 64\n\t\tXPC_SERVICE_NAME => homebrew.mxcl.mongodb-community\n\t}\n\n\tdomain = gui/501 [100025]\n\tasid = 100025\n\tminimum runtime = 10\n\texit timeout = 5\n\truns = 1\n\tpid = 97356\n\timmediate reason = speculative\n\tforks = 0\n\texecs = 1\n\tinitialized = 1\n\ttrampolined = 1\n\tstarted suspended = 0\n\tproxy started suspended = 0\n\tchecked allocations = 0 (queried = 1)\n\tchecked allocations reason = no host\n\tchecked allocations flags = 0x0\n\tlast exit code = (never exited)\n\n\tresource coalition = {\n\t\tID = 3718\n\t\ttype = resource\n\t\tstate = active\n\t\tactive count = 1\n\t\tname = homebrew.mxcl.mongodb-community\n\t}\n\n\tjetsam coalition = {\n\t\tID = 3719\n\t\ttype = jetsam\n\t\tstate = active\n\t\tactive count = 1\n\t\tname = homebrew.mxcl.mongodb-community\n\t}\n\n\tspawn type = daemon (3)\n\tjetsam priority = 40\n\tjetsam memory limit (active) = (unlimited)\n\tjetsam memory limit (inactive) = (unlimited)\n\tjetsamproperties category = daemon\n\tjetsam thread limit = 32\n\tcpumon = default\n\tresource limits = {\n\t\tmaxfiles (soft) => 64000\n\t\tmaxfiles (hard) => 64000\n\t}\n\n\n\tproperties = runatload | inferred program\n}",
+      "stderr": "",
+      "error": ""
+    },
+    "plist": "$HOME/Library/LaunchAgents/homebrew.mxcl.mongodb-community.plist",
+    "serviceLog": [
+      "{\"t\":{\"$date\":\"2026-04-26T16:35:06.458-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":4282992603}}",
+      "{\"t\":{\"$date\":\"2026-04-27T21:54:54.300-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":2420868152}}",
+      "{\"t\":{\"$date\":\"2026-05-04T01:25:05.438-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":2454245331}}",
+      "{\"t\":{\"$date\":\"2026-05-06T09:31:00.671-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":1009788385}}",
+      "{\"t\":{\"$date\":\"2026-05-07T08:35:17.280-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":3438228401}}",
+      "{\"t\":{\"$date\":\"2026-05-12T17:11:31.254-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":2593189135}}",
+      "{\"t\":{\"$date\":\"2026-05-13T13:00:55.954-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":2566692633}}",
+      "{\"t\":{\"$date\":\"2026-05-14T20:31:28.677-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":2362314084}}",
+      "{\"t\":{\"$date\":\"2026-05-27T12:42:18.930-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":1570346709}}",
+      "{\"t\":{\"$date\":\"2026-06-18T18:11:10.659-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":4144076331}}",
+      "{\"t\":{\"$date\":\"2026-06-18T18:52:44.378-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":3471548236}}",
+      "{\"t\":{\"$date\":\"2026-06-23T17:06:48.155-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":609274518}}",
+      "{\"t\":{\"$date\":\"2026-06-26T18:13:03.560-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":483540162}}",
+      "{\"t\":{\"$date\":\"2026-06-27T09:46:50.161-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":3587926499}}",
+      "{\"t\":{\"$date\":\"2026-07-06T08:54:27.617-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":4286713263}}",
+      "{\"t\":{\"$date\":\"2026-07-08T14:57:56.412-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":3552169829}}",
+      "{\"t\":{\"$date\":\"2026-07-17T19:32:58.688-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":1082003428}}",
+      "{\"t\":{\"$date\":\"2026-07-18T00:54:47.590-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":4195891152}}",
+      "{\"t\":{\"$date\":\"2026-07-22T14:52:01.388-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":1782655886}}",
+      "{\"t\":{\"$date\":\"2026-07-23T11:59:55.098-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":1105751645}}",
+      "{\"t\":{\"$date\":\"2026-07-24T01:46:12.618-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":719761163}}",
+      "{\"t\":{\"$date\":\"2026-07-26T14:06:34.857-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":205505858}}",
+      "{\"t\":{\"$date\":\"2026-07-26T17:25:12.093-07:00\"},\"s\":\"F\",  \"c\":\"CONTROL\",  \"id\":4522200, \"ctx\":\"ftdc\",\"msg\":\"Writing to log file failed, aborting application\",\"attr\":{\"files\":[\"/opt/homebrew/var/log/mongodb/mongo.log\"]}}",
+      "{\"t\":{\"$date\":\"2026-07-26T17:56:24.251-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":3944307278}}",
+      "{\"t\":{\"$date\":\"2026-07-28T21:55:08.770-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":3793409303}}",
+      "{\"t\":{\"$date\":\"2026-07-30T02:16:22.933-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":1240151012}}",
+      "{\"t\":{\"$date\":\"2026-07-31T12:05:13.479-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":3235701391}}",
+      "{\"t\":{\"$date\":\"2026-08-01T00:52:11.582-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":1433531405}}",
+      "{\"t\":{\"$date\":\"2026-08-04T05:36:50.657-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":477901874}}",
+      "{\"t\":{\"$date\":\"2026-08-06T15:05:21.724-07:00\"},\"s\":\"I\",  \"c\":\"-\",        \"id\":8991200, \"ctx\":\"thread1\",\"msg\":\"Shuffling initializers\",\"attr\":{\"seed\":947095714}}"
+    ]
+  },
+  "incidents": []
+}

@@ -18,6 +18,7 @@ const DECLUTTER_EXIT_STATES = [
   'needs_staging',
   'staged_for_donation',
   'staged_for_sale',
+  'awaiting_gift',
   'marked_for_destruction',
   'completed',
 ];
@@ -246,6 +247,7 @@ const itemSchema = new mongoose.Schema(
       default: 'none',
       index: true,
     },
+    isIntendedGift: { type: Boolean, default: false, index: true },
     last_active_box: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Box',

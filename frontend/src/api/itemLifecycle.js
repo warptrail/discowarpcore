@@ -54,17 +54,3 @@ export async function restoreItemToActive(itemId) {
   const data = await res.json().catch(() => ({}));
   return data?.data ?? data;
 }
-
-export async function deleteItemPermanently(itemId) {
-  if (!itemId) throw new Error('itemId is required');
-
-  const res = await fetch(`${API_BASE}/api/items/${encodeURIComponent(itemId)}`, {
-    method: 'DELETE',
-  });
-
-  if (!res.ok) {
-    throw new Error(await readApiError(res, 'Failed to permanently delete item'));
-  }
-
-  return res.json().catch(() => ({}));
-}

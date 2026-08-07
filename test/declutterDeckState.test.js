@@ -5,12 +5,19 @@ const {
   deriveCandidateState,
   emptyVotes,
   getVisibleVoteChoice,
+  matchesHistoryFilter,
+  matchesHistoryRoute,
   normalizeVote,
   toClientCandidate,
 } = require('../backend/services/declutterDeckService');
 const {
   buildReleaseMigration,
 } = require('../backend/utils/declutterReleaseMigration');
+const Item = require('../backend/models/Item');
+const { shouldSetGiftIntent } = require('../backend/services/boxItemService');
+const {
+  getCompletionDispositionForRoute,
+} = require('../backend/services/declutterActionService');
 
 function voteFor(choice, decidedAt = null) {
   if (choice === 'pending') {
@@ -25,7 +32,6 @@ function voteFor(choice, decidedAt = null) {
 }
 
 const NOW = new Date('2026-07-27T12:00:00.000Z');
-const EXPIRES = new Date('2026-07-28T12:00:00.000Z');
 
 function stateFor(discofish, laserfox) {
   const votes = emptyVotes();
@@ -37,13 +43,11 @@ function stateFor(discofish, laserfox) {
 const votingFields = {
   confirmationState: 'voting',
   consensusReachedAt: null,
-  confirmationExpiresAt: null,
 };
 
-const coolingFields = {
-  confirmationState: 'cooling_off',
+const confirmedFields = {
+  confirmationState: 'confirmed',
   consensusReachedAt: NOW,
-  confirmationExpiresAt: EXPIRES,
 };
 
 test('visible choices normalize to canonical decisions and exit preferences', () => {
@@ -67,11 +71,66 @@ test('visible choices normalize to canonical decisions and exit preferences', ()
     decision: 'release',
     exitPreference: 'sell',
   });
+  assert.deepEqual(normalizeVote('gift'), {
+    choice: 'gift',
+    decision: 'release',
+    exitPreference: 'gift',
+  });
   assert.deepEqual(normalizeVote('unsure'), {
     choice: 'unsure',
     decision: 'unsure',
     exitPreference: null,
   });
+});
+
+test('physical departure completion enforces the agreed route disposition', () => {
+  assert.equal(getCompletionDispositionForRoute('discard'), 'trashed');
+  assert.equal(getCompletionDispositionForRoute('donate'), 'donated');
+  assert.equal(getCompletionDispositionForRoute('sell'), 'sold');
+  assert.equal(getCompletionDispositionForRoute('gift'), 'gifted');
+  assert.equal(getCompletionDispositionForRoute('needs_routing'), null);
+});
+
+test('approved-to-leave history excludes items that have already departed', () => {
+  const candidate = { resolution: 'release_approved', deckState: 'resolved' };
+
+  assert.equal(matchesHistoryFilter(candidate, {
+    item_status: 'active',
+    declutterExitState: 'staged_for_sale',
+  }, 'release_approved'), true);
+  assert.equal(matchesHistoryFilter(candidate, {
+    item_status: 'gone',
+    declutterExitState: 'completed',
+  }, 'release_approved'), false);
+  assert.equal(matchesHistoryFilter(candidate, {
+    item_status: 'gone',
+    declutterExitState: 'completed',
+  }, 'physically_completed'), true);
+});
+
+test('history route filters prefer actual disposition over the planned route', () => {
+  const candidate = { stagingRoute: 'discard' };
+
+  assert.equal(matchesHistoryRoute(candidate, {
+    item_status: 'active',
+    disposition: null,
+  }, 'discard'), true);
+  assert.equal(matchesHistoryRoute(candidate, {
+    item_status: 'gone',
+    disposition: 'donated',
+  }, 'donate'), true);
+  assert.equal(matchesHistoryRoute(candidate, {
+    item_status: 'gone',
+    disposition: 'donated',
+  }, 'discard'), false);
+});
+
+test('gift intent defaults false and entering a gift box sets it only when needed', () => {
+  const item = new Item({ name: 'Future present' });
+  assert.equal(item.isIntendedGift, false);
+  assert.equal(shouldSetGiftIntent(item, { isGiftBox: true }), true);
+  assert.equal(shouldSetGiftIntent({ isIntendedGift: true }, { isGiftBox: true }), false);
+  assert.equal(shouldSetGiftIntent({ isIntendedGift: false }, { isGiftBox: false }), false);
 });
 
 test('pending votes keep a candidate in the active deck', () => {
@@ -94,13 +153,13 @@ test('pending takes precedence over Unsure until both players have decided', () 
   });
 });
 
-test('matching Keep votes enter the cooling-off lane', () => {
+test('matching Keep votes resolve immediately', () => {
   assert.deepEqual(stateFor('keep', 'keep'), {
-    deckState: 'cooling_off',
+    deckState: 'resolved',
     resolution: 'kept',
-    readiness: 'in_deck',
+    readiness: 'kept',
     stagingRoute: null,
-    ...coolingFields,
+    ...confirmedFields,
   });
 });
 
@@ -112,6 +171,13 @@ const releasePairings = [
   ['sell', 'toss', 'sell'],
   ['donate', 'donate', 'donate'],
   ['sell', 'sell', 'sell'],
+  ['toss', 'gift', 'gift'],
+  ['gift', 'toss', 'gift'],
+  ['gift', 'gift', 'gift'],
+  ['donate', 'gift', 'needs_routing'],
+  ['gift', 'donate', 'needs_routing'],
+  ['sell', 'gift', 'needs_routing'],
+  ['gift', 'sell', 'needs_routing'],
   ['donate', 'sell', 'needs_routing'],
   ['sell', 'donate', 'needs_routing'],
 ];
@@ -119,16 +185,16 @@ const releasePairings = [
 for (const [first, second, stagingRoute] of releasePairings) {
   test(`${first} + ${second} approves release through ${stagingRoute}`, () => {
     assert.deepEqual(stateFor(first, second), {
-      deckState: 'cooling_off',
+      deckState: 'action',
       resolution: 'release_approved',
-      readiness: 'in_deck',
+      readiness: 'ready_to_declutter',
       stagingRoute,
-      ...coolingFields,
+      ...confirmedFields,
     });
   });
 }
 
-for (const releaseChoice of ['toss', 'donate', 'sell']) {
+for (const releaseChoice of ['toss', 'donate', 'sell', 'gift']) {
   test(`Keep + ${releaseChoice} routes the candidate to discussion`, () => {
     assert.deepEqual(stateFor('keep', releaseChoice), {
       deckState: 'discussion',
@@ -140,7 +206,7 @@ for (const releaseChoice of ['toss', 'donate', 'sell']) {
   });
 }
 
-for (const otherChoice of ['keep', 'toss', 'donate', 'sell', 'unsure']) {
+for (const otherChoice of ['keep', 'toss', 'donate', 'sell', 'gift', 'unsure']) {
   test(`Unsure + ${otherChoice} defers the candidate`, () => {
     assert.deepEqual(stateFor('unsure', otherChoice), {
       deckState: 'discussion',
@@ -164,6 +230,10 @@ test('stored release votes retain their original visible choice', () => {
   assert.equal(
     getVisibleVoteChoice({ decision: 'release', exitPreference: 'sell' }),
     'sell'
+  );
+  assert.equal(
+    getVisibleVoteChoice({ decision: 'release', exitPreference: 'gift' }),
+    'gift'
   );
 });
 
@@ -219,7 +289,7 @@ test('migration converts legacy release-family votes and preserves timestamps', 
   assert.equal(migration.candidateUpdate.resolution, 'release_approved');
   assert.equal(migration.candidateUpdate.stagingRoute, 'donate');
   assert.deepEqual(migration.itemUpdate, {
-    declutterReadiness: 'in_deck',
+    declutterReadiness: 'ready_to_declutter',
   });
   assert.equal(
     Object.prototype.hasOwnProperty.call(migration.itemUpdate, 'item_status'),

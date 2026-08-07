@@ -1,5 +1,6 @@
 // models/Box.js
 const mongoose = require('mongoose');
+const { DECLUTTER_BOX_PURPOSES } = require('../utils/declutterBoxPurpose');
 
 function normalizeOptionalString(value) {
   if (value == null) return undefined;
@@ -24,11 +25,12 @@ const boxSchema = new mongoose.Schema({
   tags: [String],
   declutterPurpose: {
     type: String,
-    enum: ['standard', 'donation_staging', 'sale_staging'],
+    enum: DECLUTTER_BOX_PURPOSES,
     default: 'standard',
     index: true,
   },
   declutterIsDefault: { type: Boolean, default: false },
+  isGiftBox: { type: Boolean, default: false, index: true },
   imagePath: { type: String, default: '' },
   image: {
     mediaId: { type: String, default: '', trim: true },
@@ -76,7 +78,7 @@ boxSchema.statics.newId = function () {
 // 🔎 New helper: fetch slim set for breadcrumb maps
 boxSchema.statics.findAllBoxesForMaps = async function () {
   return this.find()
-    .select('_id box_id label group description notes parentBox location locationId')
+    .select('_id box_id label group description notes parentBox location locationId isGiftBox declutterPurpose declutterIsDefault')
     .lean();
 };
 

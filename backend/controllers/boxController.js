@@ -213,6 +213,9 @@ async function createBoxApi(req, res) {
     location,
     locationId,
     tags,
+    declutterPurpose,
+    declutterIsDefault,
+    isGiftBox,
   } = req.body;
 
   // 👇 you can now safely use box_id
@@ -235,6 +238,9 @@ async function createBoxApi(req, res) {
       location,
       locationId,
       tags,
+      declutterPurpose,
+      declutterIsDefault,
+      isGiftBox,
     });
     res.status(201).json(newBox);
   } catch (err) {

@@ -44,6 +44,56 @@ export async function fetchDeclutterDeck(player) {
   return sendJson(DECK_PATH, { params: { player } });
 }
 
+const HISTORY_ROUTE_BY_DISPOSITION = {
+  trashed: 'discard',
+  donated: 'donate',
+  sold: 'sell',
+  gifted: 'gift',
+};
+
+function getCandidateHistoryRoute(candidate) {
+  const item = candidate?.item || {};
+  const dispositionRoute = HISTORY_ROUTE_BY_DISPOSITION[
+    String(item?.disposition || '').trim().toLowerCase()
+  ];
+  const completed = item?.declutterExitState === 'completed'
+    || String(item?.item_status || '').trim().toLowerCase() === 'gone';
+  return completed && dispositionRoute
+    ? dispositionRoute
+    : String(candidate?.stagingRoute || '').trim().toLowerCase();
+}
+
+export async function fetchDeclutterHistory({ filter = 'all', route = '', player = '', page = 1, limit = 10 } = {}) {
+  const payload = await sendJson(`${DECK_PATH}/history`, {
+    params: { filter, route, player, page, limit },
+  });
+  const normalizedRoute = route === 'toss' ? 'discard' : route;
+  const backendSupportsPagination = Number.isFinite(Number(payload?.page));
+  const backendAppliedRoute = !normalizedRoute || payload?.route === normalizedRoute;
+
+  if (backendSupportsPagination && backendAppliedRoute) return payload;
+
+  const sourceCandidates = Array.isArray(payload?.candidates) ? payload.candidates : [];
+  const filteredCandidates = normalizedRoute && !backendAppliedRoute
+    ? sourceCandidates.filter((candidate) => getCandidateHistoryRoute(candidate) === normalizedRoute)
+    : sourceCandidates;
+  const pageSize = Math.max(1, Number(limit) || 10);
+  const total = filteredCandidates.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(Math.max(1, Number(page) || 1), totalPages);
+  const offset = (currentPage - 1) * pageSize;
+
+  return {
+    ...payload,
+    route: normalizedRoute,
+    candidates: filteredCandidates.slice(offset, offset + pageSize),
+    total,
+    page: currentPage,
+    limit: pageSize,
+    totalPages,
+  };
+}
+
 export async function nominateDeclutterCandidates(itemIds, { nominatedBy = '' } = {}) {
   const ids = Array.from(new Set((Array.isArray(itemIds) ? itemIds : [itemIds])
     .map((itemId) => String(itemId || '').trim())

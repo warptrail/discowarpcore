@@ -30,7 +30,7 @@ const Hint = styled.div`
 
 const Select = styled.select`
   min-height: 36px;
-  border-radius: 8px;
+  border-radius: 3px;
   border: 1px solid #496473;
   background: #13212c;
   color: #f2f6f9;
@@ -39,7 +39,7 @@ const Select = styled.select`
 
 const TextArea = styled.textarea`
   min-height: 88px;
-  border-radius: 8px;
+  border-radius: 3px;
   border: 1px solid #496473;
   background: #13212c;
   color: #f2f6f9;
@@ -47,13 +47,35 @@ const TextArea = styled.textarea`
   resize: vertical;
 `;
 
-const Input = styled.input`
+const ReadOnlyDisposition = styled.div`
   min-height: 36px;
-  border-radius: 8px;
-  border: 1px solid #745156;
-  background: #241619;
-  color: #ffe8ea;
+  display: flex;
+  align-items: center;
   padding: 0 0.56rem;
+  border: 1px solid rgba(240, 138, 123, 0.58);
+  border-radius: 3px;
+  color: #ffe7e1;
+  background: rgba(94, 35, 41, 0.34);
+  font-size: 0.82rem;
+`;
+
+const Verification = styled.label`
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.5rem;
+  padding: 0.55rem 0.58rem;
+  border: 1px solid rgba(240, 138, 123, 0.48);
+  border-radius: 3px;
+  color: #ffe5df;
+  background: rgba(94, 35, 41, 0.2);
+  font-size: 0.78rem;
+  line-height: 1.35;
+
+  input {
+    margin-top: 0.12rem;
+    accent-color: #f08a7b;
+  }
 `;
 
 const ActionRow = styled.div`
@@ -64,7 +86,7 @@ const ActionRow = styled.div`
 
 const Button = styled.button`
   min-height: 36px;
-  border-radius: 8px;
+  border-radius: 3px;
   border: 1px solid transparent;
   padding: 0 0.78rem;
   font-size: 0.76rem;
@@ -104,51 +126,11 @@ const dispositionLabelMap = {
   sold: 'Sold',
 };
 
-export function ItemHardDeleteConsolePanel({
-  busy = false,
-  itemName,
-  onCancel,
-  onConfirm,
-}) {
-  const [confirmText, setConfirmText] = useState('');
-  const isValid = confirmText === 'delete';
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (!isValid || busy) return;
-    await onConfirm?.();
-  };
-
-  return (
-    <Panel onSubmit={handleSubmit}>
-      <Body>
-        Permanently delete <strong>{itemName || 'this item'}</strong> from the database.
-      </Body>
-      <Hint>
-        This cannot be undone. Type exactly <strong>delete</strong> to continue.
-      </Hint>
-      <Input
-        value={confirmText}
-        onChange={(event) => setConfirmText(event.target.value)}
-        placeholder="delete"
-        disabled={busy}
-      />
-
-      <ActionRow>
-        <Button type="submit" $tone="danger" disabled={busy || !isValid}>
-          {busy ? 'Deleting…' : 'Delete Permanently'}
-        </Button>
-        <Button type="button" onClick={onCancel} disabled={busy}>
-          Cancel
-        </Button>
-      </ActionRow>
-    </Panel>
-  );
-}
-
 export function ItemMarkGoneConsolePanel({
   busy = false,
   itemName,
+  initialDisposition = '',
+  lockDisposition = false,
   onCancel,
   onConfirm,
 }) {
@@ -160,12 +142,16 @@ export function ItemMarkGoneConsolePanel({
       })),
     []
   );
-  const [disposition, setDisposition] = useState('');
+  const normalizedInitialDisposition = GONE_DISPOSITIONS.includes(initialDisposition)
+    ? initialDisposition
+    : '';
+  const [disposition, setDisposition] = useState(normalizedInitialDisposition);
   const [notes, setNotes] = useState('');
+  const [verified, setVerified] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!disposition || busy) return;
+    if (!disposition || !verified || busy) return;
     await onConfirm?.({
       disposition,
       dispositionNotes: notes.trim(),
@@ -175,25 +161,35 @@ export function ItemMarkGoneConsolePanel({
   return (
     <Panel onSubmit={handleSubmit}>
       <Body>
-        Mark <strong>{itemName || 'this item'}</strong> as no longer owned.
+        Confirm that <strong>{itemName || 'this item'}</strong> has physically left the household.
       </Body>
+
+      <Hint>
+        This completes the departure job, removes active box placement, and archives the item under No Longer Have.
+      </Hint>
 
       <Label>
         What happened?
-        <Select
-          value={disposition}
-          onChange={(event) => setDisposition(event.target.value)}
-          disabled={busy}
-        >
-          <option value="" disabled>
-            Select a reason…
-          </option>
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
+        {lockDisposition && disposition ? (
+          <ReadOnlyDisposition>
+            {dispositionLabelMap[disposition] || disposition}
+          </ReadOnlyDisposition>
+        ) : (
+          <Select
+            value={disposition}
+            onChange={(event) => setDisposition(event.target.value)}
+            disabled={busy}
+          >
+            <option value="" disabled>
+              Select a reason…
             </option>
-          ))}
-        </Select>
+            {options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        )}
       </Label>
 
       <Label>
@@ -206,9 +202,19 @@ export function ItemMarkGoneConsolePanel({
         />
       </Label>
 
+      <Verification>
+        <input
+          type="checkbox"
+          checked={verified}
+          disabled={busy}
+          onChange={(event) => setVerified(event.target.checked)}
+        />
+        <span>Yes, I am sure this item is no longer in our possession.</span>
+      </Verification>
+
       <ActionRow>
-        <Button type="submit" $tone="primary" disabled={busy || !disposition}>
-          {busy ? 'Saving…' : 'Confirm Mark Gone'}
+        <Button type="submit" $tone="danger" disabled={busy || !disposition || !verified}>
+          {busy ? 'Archiving…' : 'Archive as No Longer Have'}
         </Button>
         <Button type="button" onClick={onCancel} disabled={busy}>
           Cancel

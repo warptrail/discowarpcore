@@ -2,16 +2,15 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import {
   MOBILE_BREAKPOINT,
-  MOBILE_CONTROL_MIN_HEIGHT,
   MOBILE_FONT_SM,
   MOBILE_FONT_XS,
 } from '../../styles/tokens';
+import { getBoxTheme, getBoxThemeCssVars } from '../../util/inventoryColorTheme';
 
 const Panel = styled.section`
-  border: 1px solid rgba(70, 126, 139, 0.45);
-  border-radius: 10px;
-  background: rgba(11, 20, 25, 0.78);
-  padding: 0.58rem;
+  border-top: 1px solid rgba(105, 179, 174, 0.34);
+  background: transparent;
+  padding-top: 0.7rem;
   display: grid;
   gap: 0.54rem;
 `;
@@ -21,6 +20,7 @@ const Header = styled.header`
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  min-height: 40px;
 `;
 
 const Title = styled.h3`
@@ -36,10 +36,10 @@ const Title = styled.h3`
 `;
 
 const CloseButton = styled.button`
-  min-height: 34px;
-  border-radius: 8px;
-  border: 1px solid rgba(123, 162, 177, 0.55);
-  background: rgba(15, 30, 37, 0.92);
+  min-height: 40px;
+  border-radius: 4px;
+  border: 0;
+  background: transparent;
   color: #d3e8f1;
   font-size: 0.72rem;
   text-transform: uppercase;
@@ -53,10 +53,61 @@ const CloseButton = styled.button`
   }
 `;
 
+const OrphanedDestinationButton = styled.button`
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid rgba(var(--box-primary-rgb), ${({ $active }) => ($active ? '0.72' : '0.34')});
+  border-radius: 5px;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(var(--box-primary-rgb), ${({ $active }) => ($active ? '0.18' : '0.07')}) 0%,
+      rgba(9, 17, 23, 0) 54%
+    ),
+    rgba(9, 17, 23, 0.62);
+  color: #d5e8ef;
+  padding: 0.42rem 0.62rem;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  cursor: pointer;
+  box-shadow: ${({ $active }) =>
+    $active ? 'inset 3px 0 0 rgba(var(--box-neon-rgb), 0.8)' : 'none'};
+
+  &:hover {
+    border-color: rgba(var(--box-neon-rgb), 0.72);
+    background:
+      linear-gradient(90deg, rgba(var(--box-primary-rgb), 0.2) 0%, rgba(9, 17, 23, 0) 58%),
+      rgba(9, 17, 23, 0.72);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--box-neon);
+    outline-offset: 2px;
+  }
+`;
+
+const OrphanedDestinationLabel = styled.span`
+  color: ${({ $active }) => ($active ? 'var(--box-neon)' : '#bfd2db')};
+  font-size: 0.74rem;
+  font-weight: 760;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+`;
+
+const OrphanedDestinationHint = styled.span`
+  color: rgba(var(--box-secondary-rgb), 0.76);
+  font-size: 0.72rem;
+  text-align: right;
+`;
+
 const FilterGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.42rem;
+  grid-template-columns: ${({ $showFacets }) =>
+    $showFacets ? 'minmax(0, 1.5fr) repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)'};
+  gap: 0.5rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     grid-template-columns: 1fr;
@@ -79,7 +130,7 @@ const Label = styled.label`
 const Input = styled.input`
   width: 100%;
   min-height: 44px;
-  border-radius: 10px;
+  border-radius: 5px;
   border: 1px solid rgba(90, 138, 152, 0.5);
   background: rgba(9, 17, 22, 0.95);
   color: #e8f1f6;
@@ -93,7 +144,7 @@ const Input = styled.input`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+    min-height: 40px;
     font-size: ${MOBILE_FONT_SM};
   }
 `;
@@ -101,7 +152,7 @@ const Input = styled.input`
 const Select = styled.select`
   width: 100%;
   min-height: 44px;
-  border-radius: 10px;
+  border-radius: 5px;
   border: 1px solid rgba(90, 138, 152, 0.5);
   background: rgba(9, 17, 22, 0.95);
   color: #e8f1f6;
@@ -115,21 +166,23 @@ const Select = styled.select`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+    min-height: 40px;
     font-size: ${MOBILE_FONT_SM};
   }
 `;
 
 const Results = styled.div`
   display: grid;
-  gap: 0.42rem;
-  max-height: min(540px, 56vh);
+  gap: 0;
+  max-height: min(360px, 44vh);
+  border-top: 1px solid rgba(76, 128, 143, 0.32);
+  border-bottom: 1px solid rgba(76, 128, 143, 0.32);
   overflow-y: auto;
   padding-right: 0.18rem;
   overscroll-behavior: contain;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    max-height: min(460px, 52vh);
+    max-height: min(380px, 46vh);
   }
 `;
 
@@ -138,10 +191,7 @@ const PaginationBar = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 0.48rem;
-  border: 1px solid rgba(76, 128, 143, 0.44);
-  border-radius: 9px;
-  background: rgba(8, 18, 23, 0.72);
-  padding: 0.36rem 0.44rem;
+  padding: 0.08rem 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     align-items: stretch;
@@ -161,10 +211,10 @@ const PageActions = styled.div`
 `;
 
 const PageButton = styled.button`
-  min-height: 30px;
-  border-radius: 8px;
-  border: 1px solid rgba(123, 162, 177, 0.55);
-  background: rgba(15, 30, 37, 0.92);
+  min-height: 40px;
+  border-radius: 4px;
+  border: 1px solid rgba(123, 162, 177, 0.42);
+  background: transparent;
   color: #d3e8f1;
   font-size: 0.68rem;
   font-weight: 700;
@@ -179,50 +229,63 @@ const PageButton = styled.button`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+    min-height: 40px;
     flex: 1;
   }
 `;
 
 const ResultButton = styled.button`
   width: 100%;
-  min-height: 96px;
-  border-radius: 10px;
-  border: 1px solid
-    ${({ $active }) => ($active ? 'rgba(124, 222, 194, 0.82)' : 'rgba(84, 133, 150, 0.52)')};
-  background: ${({ $active }) =>
-    $active
-      ? 'linear-gradient(180deg, rgba(21, 47, 44, 0.96) 0%, rgba(14, 35, 31, 0.96) 100%)'
-      : 'rgba(9, 17, 23, 0.9)'};
+  min-height: 62px;
+  border: 0;
+  border-bottom: 1px solid rgba(var(--box-primary-rgb), 0.24);
+  border-left: 3px solid rgba(var(--box-primary-rgb), 0.78);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(var(--box-primary-rgb), ${({ $active }) => ($active ? '0.18' : '0.07')}) 0%,
+      rgba(9, 17, 23, 0) 42%
+    );
   color: #e5f2f6;
-  padding: 0.62rem 0.6rem;
+  padding: 0.42rem 0.18rem;
   text-align: left;
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
-  gap: 0.54rem;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 0.5rem;
   align-items: start;
   cursor: pointer;
-  overflow: visible;
+  box-shadow: ${({ $active }) =>
+    $active ? 'inset 0 0 0 1px rgba(var(--box-neon-rgb), 0.56)' : 'none'};
 
   &:hover {
-    filter: brightness(1.06);
+    background:
+      linear-gradient(
+        90deg,
+        rgba(var(--box-primary-rgb), 0.18) 0%,
+        rgba(9, 17, 23, 0) 48%
+      );
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--box-neon);
+    outline-offset: -2px;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 104px;
+    min-height: 64px;
   }
 `;
 
 const Thumb = styled.div`
-  width: 52px;
-  height: 52px;
-  border-radius: 8px;
-  border: 1px solid rgba(111, 162, 177, 0.48);
+  width: 42px;
+  height: 42px;
+  border-radius: 5px;
+  border: 1px solid rgba(var(--box-primary-rgb), 0.62);
   overflow: hidden;
   background: rgba(9, 17, 23, 0.95);
   display: grid;
   place-items: center;
-  color: #8fb2be;
+  color: var(--box-muted);
   font-size: 0.66rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -239,43 +302,33 @@ const ThumbImage = styled.img`
 const Identity = styled.div`
   min-width: 0;
   display: grid;
-  gap: 0.2rem;
+  align-content: center;
+  gap: 0.16rem;
 `;
 
 const Name = styled.div`
   font-size: 0.9rem;
   color: #edf8ff;
   font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   overflow-wrap: anywhere;
 `;
 
-const Meta = styled.div`
-  color: #9fc2cf;
-  font-size: 0.73rem;
-  line-height: 1.3;
-`;
-
-const TagRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.24rem;
-  padding-top: 0.08rem;
-`;
-
-const Tag = styled.span`
-  border-radius: 999px;
-  border: 1px solid rgba(88, 145, 161, 0.5);
-  background: rgba(10, 24, 31, 0.86);
-  color: #b8d4df;
-  font-size: 0.66rem;
-  line-height: 1;
-  padding: 0.2rem 0.38rem;
+const ShortId = styled.div`
+  color: var(--box-neon);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.15;
+  text-shadow: 0 0 8px rgba(var(--box-neon-rgb), 0.22);
 `;
 
 const EmptyState = styled.div`
-  border: 1px dashed rgba(93, 138, 153, 0.5);
-  border-radius: 9px;
-  padding: 0.52rem;
+  padding: 0.68rem 0.12rem;
   color: #9fc2ce;
   font-size: 0.75rem;
 `;
@@ -284,6 +337,27 @@ const BOXES_PER_PAGE = 50;
 
 function normalize(value) {
   return String(value || '').trim().toLowerCase();
+}
+
+function getSearchTerms(value) {
+  return normalize(value).split(/\s+/).filter(Boolean);
+}
+
+function getBoxSearchText(box) {
+  const tags = Array.isArray(box?.tags) ? box.tags : [];
+  return [
+    box?.label,
+    box?.description,
+    box?.notes,
+    box?.group,
+    box?.location?.name,
+    box?.locationName,
+    box?.location,
+    ...tags,
+  ]
+    .map(normalize)
+    .filter(Boolean)
+    .join(' ');
 }
 
 function getBoxImageUrl(box) {
@@ -313,6 +387,8 @@ export default function IntakeBoxSelectorPanel({
   onSelectBox,
   onClose,
   title = 'Select Intake Box',
+  showClose = true,
+  showFacets = true,
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
@@ -339,26 +415,39 @@ export default function IntakeBoxSelectorPanel({
 
   const filteredBoxes = useMemo(() => {
     const search = normalize(searchTerm);
+    const searchTerms = getSearchTerms(search);
     const location = normalize(locationFilter);
     const tag = normalize(tagFilter);
+    const numericPrefix = /^\d{1,3}/.exec(search)?.[0] || '';
+    const prioritizesBoxId = numericPrefix.length > 0;
 
-    return boxes.filter((box) => {
-      const name = normalize(box?.label);
+    return boxes
+      .map((box, index) => {
       const boxId = normalize(box?.box_id);
-      const boxGroup = normalize(box?.group);
-      const boxLocation = normalize(box?.location);
+      const boxLocation = normalize(
+        box?.location?.name || box?.locationName || box?.location,
+      );
       const tags = Array.isArray(box?.tags) ? box.tags.map(normalize) : [];
+      const searchableText = getBoxSearchText(box);
+      const matchesShortId = prioritizesBoxId && boxId.startsWith(numericPrefix);
+      const matchesFuzzySearch =
+        !searchTerms.length ||
+        searchTerms.every((term) => searchableText.includes(term));
 
-      if (search) {
-        const haystack = [name, boxId, boxGroup, boxLocation, ...tags].join(' ');
-        if (!haystack.includes(search)) return false;
-      }
+      if (search && !matchesShortId && !matchesFuzzySearch) return null;
 
-      if (location && boxLocation !== location) return false;
-      if (tag && !tags.includes(tag)) return false;
+      if (location && boxLocation !== location) return null;
+      if (tag && !tags.includes(tag)) return null;
 
-      return true;
-    });
+      return {
+        box,
+        index,
+        rank: matchesShortId ? 0 : 1,
+      };
+    })
+      .filter(Boolean)
+      .sort((a, b) => a.rank - b.rank || a.index - b.index)
+      .map(({ box }) => box);
   }, [boxes, locationFilter, searchTerm, tagFilter]);
 
   useEffect(() => {
@@ -384,12 +473,28 @@ export default function IntakeBoxSelectorPanel({
     <Panel>
       <Header>
         <Title>{title}</Title>
-        <CloseButton type="button" onClick={onClose}>
-          Close
-        </CloseButton>
+        {showClose ? (
+          <CloseButton type="button" onClick={onClose}>
+            Close
+          </CloseButton>
+        ) : null}
       </Header>
 
-      <FilterGrid>
+      <OrphanedDestinationButton
+        type="button"
+        $active={!selectedBoxId}
+        aria-pressed={!selectedBoxId}
+        onClick={() => onSelectBox?.('')}
+      >
+        <OrphanedDestinationLabel $active={!selectedBoxId}>
+          No box · orphaned
+        </OrphanedDestinationLabel>
+        <OrphanedDestinationHint>
+          {selectedBoxId ? 'Clear current target' : 'Current destination'}
+        </OrphanedDestinationHint>
+      </OrphanedDestinationButton>
+
+      <FilterGrid $showFacets={showFacets}>
         <Field>
           <Label htmlFor="intake-box-search">Search</Label>
           <Input
@@ -401,37 +506,41 @@ export default function IntakeBoxSelectorPanel({
           />
         </Field>
 
-        <Field>
-          <Label htmlFor="intake-box-location-filter">Location</Label>
-          <Select
-            id="intake-box-location-filter"
-            value={locationFilter}
-            onChange={(event) => setLocationFilter(event.target.value)}
-          >
-            <option value="">All locations</option>
-            {locationOptions.map((location) => (
-              <option key={location} value={location}>
-                {location}
-              </option>
-            ))}
-          </Select>
-        </Field>
+        {showFacets ? (
+          <>
+            <Field>
+              <Label htmlFor="intake-box-location-filter">Location</Label>
+              <Select
+                id="intake-box-location-filter"
+                value={locationFilter}
+                onChange={(event) => setLocationFilter(event.target.value)}
+              >
+                <option value="">All locations</option>
+                {locationOptions.map((location) => (
+                  <option key={location} value={location}>
+                    {location}
+                  </option>
+                ))}
+              </Select>
+            </Field>
 
-        <Field>
-          <Label htmlFor="intake-box-tag-filter">Tag</Label>
-          <Select
-            id="intake-box-tag-filter"
-            value={tagFilter}
-            onChange={(event) => setTagFilter(event.target.value)}
-          >
-            <option value="">All tags</option>
-            {tagOptions.map((tag) => (
-              <option key={tag} value={tag}>
-                {tag}
-              </option>
-            ))}
-          </Select>
-        </Field>
+            <Field>
+              <Label htmlFor="intake-box-tag-filter">Tag</Label>
+              <Select
+                id="intake-box-tag-filter"
+                value={tagFilter}
+                onChange={(event) => setTagFilter(event.target.value)}
+              >
+                <option value="">All tags</option>
+                {tagOptions.map((tag) => (
+                  <option key={tag} value={tag}>
+                    {tag}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </>
+        ) : null}
       </FilterGrid>
 
       {filteredBoxes.length > 0 ? (
@@ -470,13 +579,14 @@ export default function IntakeBoxSelectorPanel({
           pagedBoxes.map((box) => {
             const key = String(box?._id || '');
             const imageUrl = getBoxImageUrl(box);
-            const tags = Array.isArray(box?.tags) ? box.tags : [];
+            const boxTheme = getBoxTheme(box?.box_id);
 
             return (
               <ResultButton
                 key={key || `${box?.box_id || 'box'}-${box?.label || 'unnamed'}`}
                 type="button"
                 $active={key === String(selectedBoxId || '')}
+                style={getBoxThemeCssVars(boxTheme)}
                 onClick={() => onSelectBox?.(key)}
               >
                 <Thumb>
@@ -485,16 +595,7 @@ export default function IntakeBoxSelectorPanel({
 
                 <Identity>
                   <Name>{box?.label || 'Unnamed Box'}</Name>
-                  <Meta>Box #{box?.box_id || '---'}</Meta>
-                  {box?.group ? <Meta>Group: {box.group}</Meta> : null}
-                  {box?.location ? <Meta>Location: {box.location}</Meta> : null}
-                  {tags.length ? (
-                    <TagRow>
-                      {tags.slice(0, 4).map((tag) => (
-                        <Tag key={`${key}-${tag}`}>{tag}</Tag>
-                      ))}
-                    </TagRow>
-                  ) : null}
+                  <ShortId>#{box?.box_id || '---'}</ShortId>
                 </Identity>
               </ResultButton>
             );

@@ -1,28 +1,31 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { API_BASE } from '../../api/API_BASE';
-import {
-  MOBILE_BREAKPOINT,
-  MOBILE_FONT_SM,
-} from '../../styles/tokens';
+import { MOBILE_BREAKPOINT } from '../../styles/tokens';
+import { getBoxTheme, getBoxThemeCssVars } from '../../util/inventoryColorTheme';
 import { ToastContext } from '../Toast';
 import IntakeCurrentBoxPanel from './IntakeCurrentBoxPanel';
+import IntakeBoxEditorPanel from './IntakeBoxEditorPanel';
 import IntakeCurrentBoxItemsPanel from './IntakeCurrentBoxItemsPanel';
 import IntakeRapidActions from './IntakeRapidActions';
 import IntakeRecentActivity from './IntakeRecentActivity';
 import IntakeQuickItemMaker from './IntakeQuickItemMaker';
+import IntakeWorkspaceTabs from './IntakeWorkspaceTabs';
 import BoxCreate from '../BoxCreate';
 
 const CURRENT_BOX_STORAGE_KEY = 'intake.currentBoxId';
 const BATCH_FILTER_STORAGE_KEY = 'intake.selectedBatchIds';
 const ORPHAN_FILTER_STORAGE_KEY = 'intake.onlyOrphanedItems';
+const ORGANIZE_CONSOLE_TOAST_ID = 'intake-organize-console';
 
 const Wrap = styled.div`
   display: grid;
-  gap: 0.58rem;
+  gap: 0.8rem;
   min-width: 0;
   width: 100%;
-  max-width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0.35rem 0 2rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     input,
@@ -33,87 +36,52 @@ const Wrap = styled.div`
   }
 `;
 
-const Intro = styled.section`
-  border: 1px solid rgba(77, 138, 180, 0.4);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(13, 22, 31, 0.93) 0%, rgba(9, 16, 24, 0.96) 100%);
-  padding: 0.62rem 0.74rem;
-`;
+const Workspace = styled.main`
+  display: grid;
+  gap: 0.58rem;
+  min-width: 0;
+  width: 100%;
+  position: relative;
 
-const IntroTitle = styled.h1`
-  margin: 0;
-  font-size: 1.1rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #e2effc;
+  &::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: -0.4rem -0.5rem -0.9rem;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        circle at 14% 0%,
+        rgba(var(--box-primary-rgb), 0.1),
+        transparent 38%
+      ),
+      radial-gradient(
+        circle at 88% 12%,
+        rgba(var(--box-secondary-rgb), 0.055),
+        transparent 34%
+      );
+    opacity: 0.82;
+    transition: background 220ms ease;
+  }
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: 0.98rem;
+  @media (prefers-reduced-motion: reduce) {
+    &::before {
+      transition: none;
+    }
   }
 `;
 
-const IntroText = styled.p`
-  margin: 0.26rem 0 0;
-  color: #a8c0d8;
-  font-size: 0.79rem;
-  line-height: 1.35;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${MOBILE_FONT_SM};
-  }
-`;
-
-const Workbench = styled.div`
+const WorkspacePanel = styled.section`
   display: grid;
-  gap: 0.56rem;
+  gap: 0.58rem;
   min-width: 0;
   width: 100%;
-  max-width: 100%;
-
-  @media (min-width: 980px) {
-    grid-template-columns: minmax(0, 1.02fr) minmax(0, 1.18fr);
-    align-items: start;
-  }
-`;
-
-const Column = styled.div`
-  display: grid;
-  gap: 0.56rem;
-  align-content: start;
-  min-width: 0;
-  width: 100%;
-  max-width: 100%;
-`;
-
-const Section = styled.section`
-  display: grid;
-  gap: 0.36rem;
-  min-width: 0;
-  width: 100%;
-  max-width: 100%;
-`;
-
-const SectionHeading = styled.h2`
-  margin: 0;
-  font-size: 0.8rem;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: #b7d2e8;
-  padding-left: 0.12rem;
 `;
 
 const StateText = styled.div`
-  border-radius: 10px;
-  border: 1px solid ${({ $error }) => ($error ? 'rgba(208, 128, 128, 0.52)' : 'rgba(109, 156, 201, 0.44)')};
-  background: ${({ $error }) => ($error ? 'rgba(60, 24, 24, 0.84)' : 'rgba(13, 23, 34, 0.84)')};
-  color: ${({ $error }) => ($error ? '#f2c6c6' : '#b5c8dc')};
-  padding: 0.42rem 0.5rem;
-  font-size: 0.74rem;
-`;
-
-const StatusStack = styled.div`
-  display: grid;
-  gap: 0.36rem;
+  color: ${({ $error }) => ($error ? '#ffc5c5' : '#a6d7d0')};
+  font-size: 0.8rem;
+  line-height: 1.4;
 `;
 
 function readStoredCurrentBoxId() {
@@ -360,11 +328,15 @@ export default function IntakePage({ boxes = [] }) {
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
   const hideToast = toastCtx?.hideToast;
+  const setIntakeDraftName = toastCtx?.setIntakeDraftName;
+  const setIntakeContext = toastCtx?.setIntakeContext;
 
   const [selectedBoxId, setSelectedBoxId] = useState(() => readStoredCurrentBoxId());
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [activeAction, setActiveAction] = useState('');
+  const [activeWorkspaceView, setActiveWorkspaceView] = useState('new');
   const [moveSeedItemId, setMoveSeedItemId] = useState('');
+  const [routeConsoleSuppressed, setRouteConsoleSuppressed] = useState(false);
   const [boxImageOverrides, setBoxImageOverrides] = useState({});
   const [createdBoxes, setCreatedBoxes] = useState([]);
   const [selectedBatchIds, setSelectedBatchIds] = useState(() => readStoredBatchIds());
@@ -413,6 +385,35 @@ export default function IntakePage({ boxes = [] }) {
       flattenedBoxes.find((box) => String(box?._id || '') === String(selectedBoxId || '')) ||
       null,
     [flattenedBoxes, selectedBoxId],
+  );
+  const currentBoxTheme = useMemo(
+    () => getBoxTheme(currentBox?.box_id || currentBox?.shortId),
+    [currentBox?.box_id, currentBox?.shortId],
+  );
+  const workspaceTheme = useMemo(
+    () =>
+      activeWorkspaceView === 'edit'
+        ? getBoxTheme(null, { kind: 'system' })
+        : currentBoxTheme,
+    [activeWorkspaceView, currentBoxTheme],
+  );
+
+  useEffect(() => {
+    if (!currentBox) {
+      setIntakeContext?.({ mode: activeWorkspaceView });
+      return;
+    }
+
+    setIntakeContext?.({
+      shortId: String(currentBox.box_id || currentBox.shortId || '').trim(),
+      label: String(currentBox.label || currentBox.name || '').trim(),
+      mode: activeWorkspaceView,
+    });
+  }, [activeWorkspaceView, currentBox, setIntakeContext]);
+
+  useEffect(
+    () => () => setIntakeContext?.(null),
+    [setIntakeContext],
   );
 
   const boxInsightsById = useMemo(() => {
@@ -730,7 +731,7 @@ export default function IntakePage({ boxes = [] }) {
     if (!normalized) {
       setActiveAction('');
       setMoveSeedItemId('');
-      setStatusMessage('');
+      setStatusMessage('Intake now targets Items Adrift.');
       return;
     }
 
@@ -779,11 +780,6 @@ export default function IntakePage({ boxes = [] }) {
       setStatusMessage('Created new box and set it as current intake box.');
     }
   }, []);
-
-  const handleMoveFromRecent = (itemId) => {
-    if (!itemId) return;
-    setMoveSeedItemId(String(itemId));
-  };
 
   const handleItemMutation = useCallback(({ message, item, itemId, destBoxId, sourceBoxId, sourceBox } = {}) => {
     if (message) {
@@ -975,9 +971,54 @@ export default function IntakePage({ boxes = [] }) {
     handleItemMutation(payload);
   }, [handleItemMutation]);
 
-  const handleClearCurrentBox = () => {
-    handleSelectBox('');
-  };
+  useEffect(() => {
+    if (activeWorkspaceView !== 'organize' || routeConsoleSuppressed) {
+      hideToast?.(ORGANIZE_CONSOLE_TOAST_ID);
+      return undefined;
+    }
+
+    const hasDestination = Boolean(String(currentBox?._id || '').trim());
+    const hasSelectedItem = Boolean(String(selectedRoutingItem?._id || '').trim());
+    const canRoute = hasDestination && hasSelectedItem;
+    const destinationTheme = getBoxTheme(currentBox?.box_id);
+    const routeHint = hasDestination
+      ? 'Choose an activity item below.'
+      : hasSelectedItem
+        ? 'Choose a current box first.'
+        : 'Choose a box and activity item.';
+
+    showToast?.({
+      id: ORGANIZE_CONSOLE_TOAST_ID,
+      variant: 'command',
+      sticky: true,
+      dismissible: false,
+      presentation: 'item-field',
+      themeStyle: getBoxThemeCssVars(destinationTheme),
+      title: 'Route',
+      message: canRoute ? null : routeHint,
+      content: canRoute ? (
+        <IntakeRapidActions
+          currentBox={currentBox}
+          selectedItem={selectedRoutingItem}
+          onItemMoved={handleItemMutation}
+          onComplete={() => {
+            setMoveSeedItemId('');
+            setRouteConsoleSuppressed(true);
+          }}
+        />
+      ) : null,
+    });
+
+    return () => hideToast?.(ORGANIZE_CONSOLE_TOAST_ID);
+  }, [
+    activeWorkspaceView,
+    currentBox,
+    handleItemMutation,
+    hideToast,
+    routeConsoleSuppressed,
+    selectedRoutingItem,
+    showToast,
+  ]);
 
   const handleBoxPhotoMutation = ({ boxId, image, imagePath, message } = {}) => {
     if (boxId) {
@@ -1020,81 +1061,37 @@ export default function IntakePage({ boxes = [] }) {
     }
   }, []);
 
-  const handleCurrentBoxDestroyed = useCallback(({ boxId, boxShortId } = {}) => {
-    const destroyedId = String(boxId || '').trim();
-    if (!destroyedId) return;
-
-    setCreatedBoxes((prev) =>
-      (Array.isArray(prev) ? prev : []).filter(
-        (entry) => String(entry?._id || '').trim() !== destroyedId,
-      ),
-    );
-
-    setBoxImageOverrides((prev) => {
-      if (!prev || !prev[destroyedId]) return prev;
-      const next = { ...prev };
-      delete next[destroyedId];
-      return next;
-    });
-
-    setSelectedBoxId((prev) => (
-      String(prev || '').trim() === destroyedId ? '' : prev
-    ));
-    setSelectorOpen(false);
-    setActiveAction('');
-    setMoveSeedItemId('');
-    setStatusMessage(
-      boxShortId
-        ? `Destroyed box #${boxShortId}. Select another current box to continue intake.`
-        : 'Destroyed current box. Select another box to continue intake.',
-    );
-
-    loadItems();
-  }, [loadItems]);
-
   return (
     <Wrap>
-      <Intro>
-        <IntroTitle>Intake Workbench</IntroTitle>
-        <IntroText>
-          Dense admin layout for fast capture and box movement. Keep a current box set,
-          then create, move, and verify items without leaving this screen.
-        </IntroText>
-      </Intro>
+      <Workspace style={getBoxThemeCssVars(workspaceTheme)}>
+        <IntakeWorkspaceTabs
+          activeView={activeWorkspaceView}
+          onChange={(nextView) => {
+            setActiveWorkspaceView(nextView);
+            if (nextView === 'organize') {
+              setRouteConsoleSuppressed(false);
+            }
+          }}
+        />
 
-      <Workbench>
-        <Column>
-          <Section>
+        {activeWorkspaceView === 'new' ? (
+          <WorkspacePanel id="intake-workspace-panel-new" aria-label="New item">
             <IntakeQuickItemMaker
               mode={currentBox ? 'inBox' : 'orphan'}
               targetBox={currentBox}
+              showTitle={false}
               onItemCreated={handleQuickOrphanCreated}
-              onClearTargetBox={handleClearCurrentBox}
+              onDraftNameChange={setIntakeDraftName}
+              onChangeTargetBox={() => {
+                setActiveWorkspaceView('box');
+                setSelectorOpen(true);
+              }}
             />
-          </Section>
+          </WorkspacePanel>
+        ) : null}
 
-          <Section>
-            <SectionHeading>Item Routing</SectionHeading>
-            <IntakeRapidActions
-              currentBox={currentBox}
-              selectedItem={selectedRoutingItem}
-              onItemMoved={handleItemMutation}
-            />
-          </Section>
-
-          {statusMessage || itemsError ? (
-            <Section>
-              <SectionHeading>Status</SectionHeading>
-              <StatusStack>
-                {statusMessage ? <StateText>{statusMessage}</StateText> : null}
-                {itemsError ? <StateText $error>{itemsError}</StateText> : null}
-              </StatusStack>
-            </Section>
-          ) : null}
-        </Column>
-
-        <Column>
-          <Section>
+        {activeWorkspaceView === 'box' ? (
+          <WorkspacePanel id="intake-workspace-panel-box" aria-label="Current box">
             <IntakeCurrentBoxPanel
               boxes={flattenedBoxes}
               selectedBox={currentBox}
@@ -1104,40 +1101,52 @@ export default function IntakePage({ boxes = [] }) {
               onSelectBox={handleSelectBox}
               onToggleSelector={() => setSelectorOpen((prev) => !prev)}
               onCreateBox={handleCreateBox}
+              onAddItem={() => setActiveWorkspaceView('new')}
+              onEditBox={() => setActiveWorkspaceView('edit')}
               onCurrentBoxPhotoUpdated={handleBoxPhotoMutation}
-              onCurrentBoxUpdated={handleCurrentBoxUpdated}
-              onCurrentBoxDestroyed={handleCurrentBoxDestroyed}
             />
-          </Section>
-
-          {activeAction === 'create-box' ? (
-            <Section>
+            {activeAction === 'create-box' ? (
               <BoxCreate
                 embedded
                 autoNavigate={false}
-                title="Create Box In Intake"
+                title="Create box"
                 onCreated={handleBoxCreated}
                 onCancel={() => setActiveAction('')}
               />
-            </Section>
-          ) : null}
+            ) : null}
+            {currentBox ? (
+              <IntakeCurrentBoxItemsPanel
+                currentBox={currentBox}
+                items={currentBoxItems}
+                loading={loadingItems}
+                error={itemsError}
+              />
+            ) : null}
+          </WorkspacePanel>
+        ) : null}
 
-          <Section>
-            <IntakeCurrentBoxItemsPanel
-              currentBox={currentBox}
-              items={currentBoxItems}
-              loading={loadingItems}
-              error={itemsError}
+        {activeWorkspaceView === 'edit' ? (
+          <WorkspacePanel id="intake-workspace-panel-edit" aria-label="Edit box">
+            <IntakeBoxEditorPanel
+              box={currentBox}
+              onBoxUpdated={handleCurrentBoxUpdated}
+              onBoxImageUpdated={handleBoxPhotoMutation}
+              onExit={() => setActiveWorkspaceView('box')}
             />
-          </Section>
+          </WorkspacePanel>
+        ) : null}
 
-          <Section>
+        {activeWorkspaceView === 'organize' ? (
+          <WorkspacePanel id="intake-workspace-panel-organize" aria-label="Organize Intake">
             <IntakeRecentActivity
               items={filteredRecentActivityItems}
               boxLookup={boxesById}
               loading={loadingItems}
               error={itemsError}
-              onMoveItem={handleMoveFromRecent}
+              onMoveItem={(itemId) => {
+                setRouteConsoleSuppressed(false);
+                setMoveSeedItemId(String(itemId || ''));
+              }}
               selectedItemId={moveSeedItemId}
               batchOptions={batchFilterOptions}
               selectedBatchIds={selectedBatchIds}
@@ -1146,9 +1155,16 @@ export default function IntakePage({ boxes = [] }) {
               onToggleOnlyOrphaned={() => setOnlyOrphanedItems((prev) => !prev)}
               onClearFilters={handleClearActivityFilters}
             />
-          </Section>
-        </Column>
-      </Workbench>
+          </WorkspacePanel>
+        ) : null}
+
+        {statusMessage || itemsError ? (
+          <div>
+            {statusMessage ? <StateText>{statusMessage}</StateText> : null}
+            {itemsError ? <StateText $error>{itemsError}</StateText> : null}
+          </div>
+        ) : null}
+      </Workspace>
     </Wrap>
   );
 }

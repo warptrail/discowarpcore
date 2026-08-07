@@ -111,9 +111,9 @@ export default function CondensedBatchMovePanel({
       } else {
         showToast?.({
           variant: 'success',
-          title: isOrphanedDestination ? 'Items orphaned' : 'Items moved',
+          title: isOrphanedDestination ? 'Items ejected' : 'Items moved',
           message: isOrphanedDestination
-            ? `Moved ${movedCount} ${movedCount === 1 ? 'item' : 'items'} to No Box.`
+            ? `Ejected ${movedCount} ${movedCount === 1 ? 'item' : 'items'} to Items Adrift.`
             : `Moved ${movedCount} ${movedCount === 1 ? 'item' : 'items'} to ${
                 destLabel ||
                 (destShortId ? `Box #${destShortId}` : 'destination box')

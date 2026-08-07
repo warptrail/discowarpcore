@@ -103,3 +103,18 @@ awaken
 npm run neonazoth:tui
 awaken
 farewell
+awaken
+links
+copy lan
+git status
+git add .
+git commit -m "nice operations slide up quick peek card"
+git push -u origin main
+npm run deploy:neonazoth
+git status
+git add .
+git commit -m "update"
+git push -u origin main
+npm run deploy:neonazoth
+npm run neonazoth:tui
+K

@@ -7,6 +7,7 @@ export const DECISION_OPTIONS = [
   { value: 'toss', label: 'Toss', shortLabel: 'Toss', tone: 'toss' },
   { value: 'donate', label: 'Donate', shortLabel: 'Donate', tone: 'donate' },
   { value: 'sell', label: 'Sell', shortLabel: 'Sell', tone: 'sell' },
+  { value: 'gift', label: 'Gift', shortLabel: 'Gift', tone: 'gift' },
   { value: 'unsure', label: 'Unsure', shortLabel: 'Unsure', tone: 'unsure' },
 ];
 
@@ -37,6 +38,7 @@ export function getVotePresentationChoice(vote) {
   if (decision !== 'release') return normalizeDecision(decision);
   if (vote?.exitPreference === 'donate') return 'donate';
   if (vote?.exitPreference === 'sell') return 'sell';
+  if (vote?.exitPreference === 'gift') return 'gift';
   return 'toss';
 }
 

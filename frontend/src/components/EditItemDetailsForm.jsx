@@ -1,13 +1,7 @@
 import React from 'react';
 import * as S from '../styles/EditItemDetailsForm.styles';
 
-import EditItemTextFieldsSection from './EditItemDetailsForm/EditItemTextFieldsSection';
-import EditItemTagsSection from './EditItemDetailsForm/EditItemTagsSection';
-import EditItemQuantitySection from './EditItemDetailsForm/EditItemQuantitySection';
-import EditItemStructuredFieldsSection from './EditItemDetailsForm/EditItemStructuredFieldsSection';
-import EditItemExternalLinksSection from './EditItemDetailsForm/EditItemExternalLinksSection';
-import EditItemImageSection from './EditItemDetailsForm/EditItemImageSection';
-import EditItemLifecycleSection from './EditItemDetailsForm/EditItemLifecycleSection';
+import ItemDossierCarousel from './EditItemDetailsForm/ItemDossierCarousel';
 import useEditItemDetailsFormState from './EditItemDetailsForm/useEditItemDetailsFormState';
 import useEditItemActionToast from './EditItemDetailsForm/useEditItemActionToast';
 
@@ -34,7 +28,6 @@ export default function EditItemDetailsForm({
   preserveToastOnCancel = false,
   lifecycleBusy = false,
   onMarkGoneRequest,
-  onDeletePermanentlyRequest,
   onReclaimRequest,
 }) {
   const {
@@ -74,9 +67,23 @@ export default function EditItemDetailsForm({
   return (
     <S.Form onSubmit={handleSave}>
       <S.Fieldset disabled={saving || lifecycleBusy}>
-        <EditItemImageSection
+        <ItemDossierCarousel
           item={item}
-          disabled={saving}
+          formData={formData}
+          derivedDates={derivedDates}
+          ownership={ownership}
+          isDirty={isDirty}
+          disabled={saving || lifecycleBusy}
+          onTextChange={handleTextChange}
+          onTagsChange={handleTagsChange}
+          onQuantityChange={handleQuantityChange}
+          onMetadataChange={handleMetadataChange}
+          onHistoryDateChange={handleHistoryDateChange}
+          onAddHistoryDate={handleAddHistoryDate}
+          onRemoveHistoryDate={handleRemoveHistoryDate}
+          onLinkChange={handleLinkChange}
+          onAddLink={handleAddLink}
+          onRemoveLink={handleRemoveLink}
           onItemImageUpdated={onItemImageUpdated}
           onProcessImage={onProcessImage}
           processImageStatus={processImageStatus}
@@ -92,45 +99,9 @@ export default function EditItemDetailsForm({
           switchVariantError={switchVariantError}
           processedPreviewUrl={processedPreviewUrl}
           imageRefreshToken={imageRefreshToken}
-        />
-
-        <EditItemTextFieldsSection
-          formData={formData}
-          onTextChange={handleTextChange}
-          ownership={ownership}
-        />
-
-        <EditItemTagsSection tags={formData.tags} onTagsChange={handleTagsChange} />
-
-        <EditItemQuantitySection
-          quantity={formData.quantity}
-          onQuantityChange={handleQuantityChange}
-        />
-
-        <EditItemStructuredFieldsSection
-          formData={formData}
-          derivedDates={derivedDates}
-          onMetadataChange={handleMetadataChange}
-          onHistoryDateChange={handleHistoryDateChange}
-          onAddHistoryDate={handleAddHistoryDate}
-          onRemoveHistoryDate={handleRemoveHistoryDate}
-        />
-
-        <EditItemExternalLinksSection
-          links={formData.links}
-          onLinkChange={handleLinkChange}
-          onAddLink={handleAddLink}
-          onRemoveLink={handleRemoveLink}
-        />
-
-        <EditItemLifecycleSection
-          item={item}
-          disabled={saving || lifecycleBusy}
           onMarkGoneRequest={onMarkGoneRequest}
-          onDeletePermanentlyRequest={onDeletePermanentlyRequest}
           onReclaimRequest={onReclaimRequest}
         />
-
       </S.Fieldset>
     </S.Form>
   );

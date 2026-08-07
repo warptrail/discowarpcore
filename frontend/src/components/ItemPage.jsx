@@ -1,23 +1,32 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 import { API_BASE } from '../api/API_BASE';
 import { ToastContext } from './Toast';
 import {
-  deleteItemPermanently,
   markItemGone,
   restoreItemToActive,
 } from '../api/itemLifecycle';
+import { completeDeclutterAction } from '../api/declutterDeck';
 import { editItem } from '../api/editItem';
-import ItemDetails from './ItemDetails';
-import ItemPageConsoleActions from './ItemPageConsoleActions';
+import ItemPageConsoleView from './ItemPageConsoleView';
+import ItemPageImageHero from './ItemPageImageHero';
 import ItemPageBreadcrumb from './ItemPageBreadcrumb';
-import EditItemDetailsForm from './EditItemDetailsForm';
+import ItemLifecyclePanel from './ItemLifecyclePanel';
 import ItemButtonBar from './ItemButtonBar';
 import ItemPageConsoleDetails from './ItemPageConsoleDetails';
+import ItemImageField from './ImageFields/ItemImageField';
+import useEditItemActionToast from './EditItemDetailsForm/useEditItemActionToast';
+import useItemFieldEditor from './ItemFieldEditor/useItemFieldEditor';
+import { getItemFieldDescriptor } from './ItemFieldEditor/itemFieldRegistry';
 import useItemTimestampActions from '../hooks/useItemTimestampActions';
 import useItemImageProcessing from '../hooks/useItemImageProcessing';
+import useItemDeclutterDeck from '../hooks/useItemDeclutterDeck';
 import {
-  ItemHardDeleteConsolePanel,
   ItemMarkGoneConsolePanel,
   ItemReclaimConsolePanel,
 } from './ItemLifecycleConsolePanels';
@@ -27,7 +36,18 @@ import {
   isImageProcessingInFlight,
 } from './Processing/imageProcessingToastUtils';
 import { getItemOwnershipContext } from '../util/itemOwnership';
+import {
+  getItemDepartureRoute,
+  isItemPendingDeparture,
+} from '../util/itemDeparture';
+import {
+  getBoxTheme,
+  getBoxThemeCssVars,
+  getItemTheme,
+  getItemThemeCssVars,
+} from '../util/inventoryColorTheme';
 import * as S from '../styles/ItemPage.styles';
+import * as ConsoleS from '../styles/ItemPageConsoleView.styles';
 
 const getBoxName = (box, fallback = 'Box') => {
   if (!box) return fallback;
@@ -36,10 +56,37 @@ const getBoxName = (box, fallback = 'Box') => {
 
 const getItemName = (item) => item?.name || 'Item';
 
+const DISPOSITION_BY_DEPARTURE_ROUTE = {
+  discard: 'trashed',
+  donate: 'donated',
+  sell: 'sold',
+  gift: 'gifted',
+};
+
+const getItemConsoleThemeStyle = (item) => {
+  const ownership = getItemOwnershipContext(item);
+  const itemId = String(item?._id || item?.id || '');
+
+  return {
+    ...getBoxThemeCssVars(getBoxTheme(ownership.boxId)),
+    ...getItemThemeCssVars(getItemTheme(ownership.boxId, itemId, {
+      selected: true,
+      varied: true,
+    })),
+  };
+};
+
 export default function ItemPage() {
   const { itemId } = useParams();
   const [searchParams] = useSearchParams();
-  const urlWantsEdit = searchParams.get('mode') === 'edit';
+  const location = useLocation();
+  const legacyEditRequested = searchParams.get('mode') === 'edit';
+  const requestedEditKey = String(searchParams.get('edit') || '')
+    .trim()
+    .toLocaleLowerCase();
+  const locatorActive = requestedEditKey === 'choose';
+  const activeFieldKey = locatorActive ? '' : requestedEditKey;
+  const viewMode = searchParams.get('view') === 'hierarchy' ? 'hierarchy' : 'all';
   const navigate = useNavigate();
 
   const toastCtx = useContext(ToastContext);
@@ -51,25 +98,85 @@ export default function ItemPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState(null);
-  const [isEditing, setIsEditing] = useState(urlWantsEdit);
   const [containerPending, setContainerPending] = useState(false);
   const [containerError, setContainerError] = useState('');
   const [lifecycleDialog, setLifecycleDialog] = useState(null);
   const [lifecycleBusy, setLifecycleBusy] = useState(false);
+  const [mediaEditorOpen, setMediaEditorOpen] = useState(false);
+  const [discardPromptOpen, setDiscardPromptOpen] = useState(false);
+  const [fieldToastRevision, setFieldToastRevision] = useState(0);
+  const [pendingFieldSuccess, setPendingFieldSuccess] = useState(null);
   const [imageRefreshToken, setImageRefreshToken] = useState(0);
   const [processedPreviewUrl, setProcessedPreviewUrl] = useState('');
   const lastImageLifecycleStatusRef = useRef('');
 
+  const {
+    declutterPending,
+    inDeclutterDeck,
+    toggleDeclutterDeck,
+  } = useItemDeclutterDeck({ item, showToast, hideToast });
+
   const undoInFlightRef = useRef(new Set());
+  const fieldUndoInFlightRef = useRef(new Set());
+  const pendingDiscardActionRef = useRef(null);
   const activeLoadIdRef = useRef(0);
 
+  const updateEditRoute = useCallback((nextFieldKey, { replace = false } = {}) => {
+    const params = new URLSearchParams(location.search);
+    const normalized = String(nextFieldKey || '').trim().toLocaleLowerCase();
+
+    params.delete('mode');
+    if (normalized) {
+      params.set('edit', normalized);
+      params.delete('view');
+    } else {
+      params.delete('edit');
+    }
+
+    navigate(
+      {
+        pathname: location.pathname,
+        search: params.toString() ? `?${params.toString()}` : '',
+        hash: location.hash,
+      },
+      { replace },
+    );
+  }, [location.hash, location.pathname, location.search, navigate]);
+
+  const restoreFieldTriggerFocus = useCallback((fieldKey) => {
+    const normalized = String(fieldKey || '').trim();
+    if (!normalized) return;
+
+    window.requestAnimationFrame(() => {
+      const trigger = document.querySelector(`[data-item-field="${normalized}"]`);
+      trigger?.focus({ preventScroll: true });
+    });
+  }, []);
+
   useEffect(() => {
-    setIsEditing(urlWantsEdit);
-  }, [itemId, urlWantsEdit]);
+    if (!legacyEditRequested) return;
+
+    const params = new URLSearchParams(location.search);
+    params.delete('mode');
+    params.delete('view');
+    params.set('edit', 'choose');
+    navigate(
+      {
+        pathname: location.pathname,
+        search: `?${params.toString()}`,
+        hash: location.hash,
+      },
+      { replace: true },
+    );
+  }, [legacyEditRequested, location.hash, location.pathname, location.search, navigate]);
 
   useEffect(() => {
     setProcessedPreviewUrl('');
     setImageRefreshToken(0);
+    setMediaEditorOpen(false);
+    setDiscardPromptOpen(false);
+    setPendingFieldSuccess(null);
+    pendingDiscardActionRef.current = null;
     lastImageLifecycleStatusRef.current = '';
   }, [itemId]);
 
@@ -156,6 +263,329 @@ export default function ItemPage() {
       abort.abort();
     };
   }, [loadItem]);
+
+  const handleUndoFieldPatch = useCallback(async ({
+    fieldKey,
+    itemId: undoItemId,
+    label,
+    payload,
+  }) => {
+    const undoKey = `${undoItemId}:${fieldKey}:${JSON.stringify(payload)}`;
+    if (!undoItemId || fieldUndoInFlightRef.current.has(undoKey)) return;
+
+    fieldUndoInFlightRef.current.add(undoKey);
+    hideToast?.();
+
+    try {
+      const restored = await editItem(undoItemId, payload);
+      if (String(restored?._id || restored?.id || '') === String(itemId || '')) {
+        setItem(restored);
+      }
+      showToast?.({
+        id: `item-field-undo-complete:${undoItemId}:${fieldKey}`,
+        variant: 'success',
+        title: 'PATCH RESTORED',
+        message: `${label} is back to its previous saved value.`,
+        presentation: 'item-field',
+        themeStyle: getItemConsoleThemeStyle(restored),
+        sticky: true,
+      });
+      restoreFieldTriggerFocus(fieldKey);
+    } catch (undoError) {
+      showToast?.({
+        id: `item-field-undo-error:${undoItemId}:${fieldKey}`,
+        variant: 'danger',
+        title: 'PATCH RESTORE FAILED',
+        message: undoError?.message || `Could not restore ${label}.`,
+        presentation: 'item-field',
+        themeStyle: getItemConsoleThemeStyle(item),
+        sticky: true,
+      });
+    } finally {
+      fieldUndoInFlightRef.current.delete(undoKey);
+    }
+  }, [hideToast, item, itemId, restoreFieldTriggerFocus, showToast]);
+
+  const handleFieldSaved = useCallback(async ({
+    descriptor,
+    fieldKey,
+    itemId: savedItemId,
+    undoPayload,
+    updated,
+  }) => {
+    if (!updated) return;
+
+    setItem(updated);
+    setMediaEditorOpen(false);
+    updateEditRoute('', { replace: true });
+    restoreFieldTriggerFocus(fieldKey);
+    setPendingFieldSuccess({
+      descriptor,
+      fieldKey,
+      itemId: savedItemId,
+      undoPayload,
+      updated,
+    });
+  }, [restoreFieldTriggerFocus, updateEditRoute]);
+
+  const fieldEditor = useItemFieldEditor({
+    item,
+    fieldKey: activeFieldKey,
+    onSaved: handleFieldSaved,
+  });
+
+  const continueEditing = useCallback(() => {
+    pendingDiscardActionRef.current = null;
+    setDiscardPromptOpen(false);
+    hideToast?.('item-field-discard-confirmation');
+    setFieldToastRevision((current) => current + 1);
+  }, [hideToast]);
+
+  const confirmDiscard = useCallback(() => {
+    if (fieldEditor.saving) return;
+    const nextAction = pendingDiscardActionRef.current;
+    pendingDiscardActionRef.current = null;
+    fieldEditor.reset();
+    setDiscardPromptOpen(false);
+    hideToast?.('item-field-discard-confirmation');
+    nextAction?.();
+  }, [fieldEditor, hideToast]);
+
+  const requestDiscardBefore = useCallback((nextAction, reason = '') => {
+    if (fieldEditor.saving) return false;
+
+    if (!fieldEditor.isDirty) {
+      fieldEditor.reset();
+      nextAction?.();
+      return true;
+    }
+
+    pendingDiscardActionRef.current = nextAction;
+    setDiscardPromptOpen(true);
+    showToast?.({
+      id: 'item-field-discard-confirmation',
+      variant: 'warning',
+      title: `VERIFY EXIT // ${fieldEditor.descriptor?.label || 'FIELD'}`,
+      message: reason || 'This field has a local draft that has not been patched.',
+      presentation: 'item-field',
+      themeStyle: getItemConsoleThemeStyle(item),
+      sticky: true,
+      actions: [
+        {
+          id: 'continue-item-field-editing',
+          label: 'Continue editing',
+          kind: 'primary',
+          onClick: continueEditing,
+        },
+        {
+          id: 'discard-item-field-editing',
+          label: 'Discard changes',
+          kind: 'danger',
+          onClick: confirmDiscard,
+        },
+      ],
+      onClose: continueEditing,
+    });
+    return false;
+  }, [confirmDiscard, continueEditing, fieldEditor, item, showToast]);
+
+  const handleRequestField = useCallback((fieldKey) => {
+    const normalized = String(fieldKey || '').trim().toLocaleLowerCase();
+    if (!normalized) return;
+
+    if (normalized === fieldEditor.descriptor?.key) {
+      requestDiscardBefore(() => {
+        updateEditRoute('', { replace: true });
+        restoreFieldTriggerFocus(normalized);
+      }, 'Choose whether to keep editing or discard this draft before closing the field.');
+      return;
+    }
+
+    const openField = () => {
+      setMediaEditorOpen(false);
+      updateEditRoute(normalized, {
+        replace: locatorActive || fieldEditor.isActive,
+      });
+    };
+
+    requestDiscardBefore(openField, 'Choose whether to keep editing or discard this draft before opening another field.');
+  }, [fieldEditor, locatorActive, requestDiscardBefore, restoreFieldTriggerFocus, updateEditRoute]);
+
+  const handleRequestCloseField = useCallback(() => {
+    const closingFieldKey = fieldEditor.descriptor?.key || activeFieldKey;
+    requestDiscardBefore(() => {
+      updateEditRoute('', { replace: true });
+      restoreFieldTriggerFocus(closingFieldKey);
+    });
+  }, [activeFieldKey, fieldEditor.descriptor?.key, requestDiscardBefore, restoreFieldTriggerFocus, updateEditRoute]);
+
+  const handleStartFieldLocator = useCallback(() => {
+    requestDiscardBefore(() => {
+      setMediaEditorOpen(false);
+      updateEditRoute('choose', {
+        replace: locatorActive || fieldEditor.isActive,
+      });
+    });
+  }, [fieldEditor.isActive, locatorActive, requestDiscardBefore, updateEditRoute]);
+
+  const setViewMode = useCallback((nextMode) => {
+    requestDiscardBefore(() => {
+      const params = new URLSearchParams(location.search);
+      params.delete('mode');
+      params.delete('edit');
+      if (nextMode === 'hierarchy') params.set('view', 'hierarchy');
+      else params.delete('view');
+      setMediaEditorOpen(false);
+      navigate(
+        {
+          pathname: location.pathname,
+          search: params.toString() ? `?${params.toString()}` : '',
+          hash: location.hash,
+        },
+      );
+    }, 'The current field draft must be resolved before changing item views.');
+  }, [location.hash, location.pathname, location.search, navigate, requestDiscardBefore]);
+
+  const handleToggleMediaEditor = useCallback(() => {
+    requestDiscardBefore(() => {
+      updateEditRoute('', { replace: Boolean(requestedEditKey) });
+      setMediaEditorOpen((current) => !current);
+    }, 'The field draft must be resolved before opening image management.');
+  }, [requestDiscardBefore, requestedEditKey, updateEditRoute]);
+
+  const handleOpenLifecycleDialog = useCallback((nextDialog) => {
+    requestDiscardBefore(() => {
+      setMediaEditorOpen(false);
+      updateEditRoute('', { replace: Boolean(requestedEditKey) });
+      setLifecycleDialog(nextDialog);
+    }, 'The field draft must be resolved before opening lifecycle commands.');
+  }, [requestDiscardBefore, requestedEditKey, updateEditRoute]);
+
+  useEffect(() => {
+    if (!item?._id || legacyEditRequested) return;
+    if (requestedEditKey && viewMode === 'hierarchy') {
+      updateEditRoute(requestedEditKey, { replace: true });
+      return;
+    }
+    if (
+      requestedEditKey &&
+      requestedEditKey !== 'choose' &&
+      !getItemFieldDescriptor(requestedEditKey, item)
+    ) {
+      updateEditRoute('', { replace: true });
+    }
+  }, [item, legacyEditRequested, requestedEditKey, updateEditRoute, viewMode]);
+
+  useEditItemActionToast({
+    enabled: fieldEditor.isActive && !discardPromptOpen,
+    item,
+    isDirty: fieldEditor.isDirty,
+    saving: fieldEditor.saving,
+    lifecycleBusy: false,
+    onCancel: handleRequestCloseField,
+    onSave: fieldEditor.save,
+    onRevert: handleRequestCloseField,
+    modeLabel: `Field focus // ${fieldEditor.descriptor?.label || ''}`,
+    revertLabel: 'Discard',
+    revertRequiresDirty: false,
+    saveLabel: 'Save patch',
+    presentation: 'item-field',
+    title: fieldEditor.descriptor
+      ? `FIELD FOCUS // ${fieldEditor.descriptor.label.toLocaleUpperCase()}`
+      : '',
+    toastId: fieldEditor.descriptor
+      ? `edit-item-field:${itemId}:${fieldEditor.descriptor.key}:${fieldToastRevision}`
+      : '',
+  });
+
+  useEffect(() => {
+    if (!pendingFieldSuccess || fieldEditor.isActive) return;
+
+    const {
+      descriptor,
+      fieldKey,
+      itemId: savedItemId,
+      undoPayload,
+      updated,
+    } = pendingFieldSuccess;
+
+    showToast?.({
+      id: `item-field-saved:${savedItemId}:${fieldKey}:${Date.now()}`,
+      variant: 'success',
+      title: 'PATCH VERIFIED',
+      message: `${descriptor.label} synchronized for "${getItemName(updated)}".`,
+      presentation: 'item-field',
+      themeStyle: getItemConsoleThemeStyle(updated),
+      sticky: true,
+      actions: [
+        {
+          id: `undo-item-field-${savedItemId}-${fieldKey}`,
+          label: 'Undo',
+          kind: 'primary',
+          onClick: () => handleUndoFieldPatch({
+            fieldKey,
+            itemId: savedItemId,
+            label: descriptor.label,
+            payload: undoPayload,
+          }),
+        },
+      ],
+    });
+    setPendingFieldSuccess(null);
+  }, [fieldEditor.isActive, handleUndoFieldPatch, pendingFieldSuccess, showToast]);
+
+  useEffect(() => {
+    if (!fieldEditor.isDirty) return undefined;
+
+    const guardedRoute = `${location.pathname}${location.search}${location.hash}`;
+    const handleBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    const handleDocumentClick = (event) => {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+      }
+      const anchor = event.target instanceof Element
+        ? event.target.closest('a[href]')
+        : null;
+      if (!anchor || anchor.target === '_blank' || anchor.hasAttribute('download')) return;
+
+      const nextUrl = new URL(anchor.href, window.location.href);
+      const currentUrl = new URL(window.location.href);
+      if (nextUrl.href === currentUrl.href) return;
+
+      event.preventDefault();
+      requestDiscardBefore(() => {
+        if (nextUrl.origin === currentUrl.origin) {
+          navigate(`${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
+        } else {
+          window.location.assign(nextUrl.href);
+        }
+      }, 'Discard the current field draft before following this link.');
+    };
+
+    const handlePopState = () => {
+      const intendedRoute = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      if (intendedRoute === guardedRoute) return;
+
+      navigate(guardedRoute, { replace: true });
+      requestDiscardBefore(
+        () => navigate(intendedRoute, { replace: true }),
+        'Discard the current field draft before using browser history.',
+      );
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+    document.addEventListener('click', handleDocumentClick, true);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+      document.removeEventListener('click', handleDocumentClick, true);
+    };
+  }, [fieldEditor.isDirty, location.hash, location.pathname, location.search, navigate, requestDiscardBefore]);
 
   const requestMoveMutation = useCallback(
     async ({ movingItemId, sourceBoxId, destBoxId }) => {
@@ -418,45 +848,6 @@ export default function ItemPage() {
     [item, loadItem, requestRemoveFromBoxMutation, showToast, showUndoToast]
   );
 
-  const handleToggleConsumable = useCallback(async () => {
-    if (!item?._id) return false;
-
-    const nextConsumable = !item?.isConsumable;
-    const itemName = getItemName(item);
-
-    try {
-      setContainerPending(true);
-      setContainerError('');
-
-      await editItem(item._id, { isConsumable: nextConsumable });
-      const refreshed = await loadItem({ preserveLoading: true });
-      const resolvedName = getItemName(refreshed || item);
-
-      showToast?.({
-        variant: 'success',
-        title: nextConsumable ? 'Consumable enabled' : 'Consumable cleared',
-        message: nextConsumable
-          ? `"${resolvedName}" now tracks as consumable inventory.`
-          : `"${resolvedName}" no longer tracks as consumable inventory.`,
-        timeoutMs: 3600,
-      });
-
-      return true;
-    } catch (err) {
-      const message = err?.message || `Could not update consumable state for "${itemName}".`;
-      setContainerError(message);
-      showToast?.({
-        variant: 'danger',
-        title: 'Consumable update failed',
-        message,
-        timeoutMs: 4600,
-      });
-      return false;
-    } finally {
-      setContainerPending(false);
-    }
-  }, [item, loadItem, showToast]);
-
   const dismissLifecycleDialog = useCallback(() => {
     setLifecycleDialog(null);
     hideToast?.();
@@ -485,12 +876,10 @@ export default function ItemPage() {
 
   useEffect(() => {
     if (loading || error || notFound || !item?._id) return undefined;
-    const editActionToastId = `edit-item-actions:${item._id}`;
-    const handingOffFromEdit = !isEditing && activeToastId === editActionToastId;
+    if (fieldEditor.isActive || discardPromptOpen) return undefined;
     if (
       activeToastId &&
-      activeToastId !== 'item-page-actions' &&
-      !handingOffFromEdit
+      activeToastId !== 'item-page-actions'
     ) {
       return undefined;
     }
@@ -499,17 +888,12 @@ export default function ItemPage() {
       id: 'item-page-actions',
       variant: 'command',
       title: getItemName(item),
-      titleDetails: <ItemPageConsoleDetails item={item} />,
+      titleDetails: <ItemPageConsoleDetails item={item} viewMode={viewMode} />,
       titleAlign: 'start',
       titleSize: 'hero',
+      presentation: 'item-page',
+      themeStyle: getItemConsoleThemeStyle(item),
       sticky: true,
-      content: (
-        <ItemPageConsoleActions
-          isEditing={isEditing}
-          onView={() => setIsEditing(false)}
-          onEdit={() => setIsEditing(true)}
-        />
-      ),
     });
 
     return () => {
@@ -517,13 +901,15 @@ export default function ItemPage() {
     };
   }, [
     activeToastId,
+    discardPromptOpen,
     error,
+    fieldEditor.isActive,
     hideToast,
-    isEditing,
     item,
     loading,
     notFound,
     showToast,
+    viewMode,
   ]);
 
   const handleImageProcessingCompleted = useCallback(async ({ state } = {}) => {
@@ -578,6 +964,21 @@ export default function ItemPage() {
     onCompleted: handleImageProcessingCompleted,
     onFailed: handleImageProcessingFailed,
   });
+
+  const handleItemImageUpdated = useCallback(({ image, imagePath }) => {
+    setProcessedPreviewUrl('');
+    setItem((previous) => {
+      if (!previous) return previous;
+      return {
+        ...previous,
+        image: image || null,
+        imagePath: imagePath || '',
+      };
+    });
+    void refreshMediaState().catch(() => {
+      // Media state may not exist yet after image mutation.
+    });
+  }, [refreshMediaState]);
 
   useEffect(() => {
     const normalizedVariant = String(processImageState?.activeVariant || '').trim().toLowerCase();
@@ -710,27 +1111,44 @@ export default function ItemPage() {
     async ({ disposition, dispositionNotes }) => {
       if (!item?._id || lifecycleBusy) return false;
 
+      const candidateId = String(item?.declutterCandidate?.id || '').trim();
+      const isPendingDeclutterAction = item?.declutterCandidate?.deckState === 'action'
+        && Boolean(candidateId);
+
       try {
         setLifecycleBusy(true);
-        await markItemGone(item._id, {
-          disposition,
-          dispositionNotes,
-        });
-        await loadItem({ preserveLoading: true });
-
+        if (isPendingDeclutterAction) {
+          await completeDeclutterAction(candidateId, {
+            disposition,
+            notes: dispositionNotes,
+          });
+        } else {
+          await markItemGone(item._id, {
+            disposition,
+            dispositionNotes,
+          });
+        }
         setLifecycleDialog(null);
         hideToast?.();
 
-        const readableDisposition = String(disposition || '').trim().toLowerCase();
-        showToast?.({
-          variant: 'success',
-          title: 'Item marked gone',
-          message: `"${getItemName(item)}" moved to No Longer Have (${readableDisposition}).`,
-          timeoutMs: 4600,
+        navigate('/', {
+          replace: true,
+          state: {
+            departureFlow: 'completed',
+            at: Date.now(),
+            toastHandoff: {
+              id: `item-lifecycle-completed:${item._id}`,
+              variant: 'success',
+              title: `${getItemName(item)} was destroyed`,
+              message: 'The item was logged in the No Longer Have archive and the system log.',
+              timeoutMs: 7000,
+            },
+          },
         });
         return true;
       } catch (err) {
         showToast?.({
+          id: `item-lifecycle-error:${item._id}`,
           variant: 'danger',
           title: 'Mark Gone failed',
           message: err?.message || 'Could not mark this item as gone.',
@@ -741,7 +1159,7 @@ export default function ItemPage() {
         setLifecycleBusy(false);
       }
     },
-    [hideToast, item, lifecycleBusy, loadItem, showToast]
+    [hideToast, item, lifecycleBusy, navigate, showToast]
   );
 
   const handleConfirmReclaim = useCallback(async () => {
@@ -758,6 +1176,7 @@ export default function ItemPage() {
       const restoredBox = refreshed?.box ?? null;
       const restoredLabel = getBoxName(restoredBox, '');
       showToast?.({
+        id: `item-lifecycle-reclaimed:${item._id}`,
         variant: 'success',
         title: 'Item reclaimed',
         message: restoredLabel
@@ -768,6 +1187,7 @@ export default function ItemPage() {
       return true;
     } catch (err) {
       showToast?.({
+        id: `item-lifecycle-reclaim-error:${item._id}`,
         variant: 'danger',
         title: 'Reclaim failed',
         message: err?.message || 'Could not reclaim this item.',
@@ -779,45 +1199,6 @@ export default function ItemPage() {
     }
   }, [hideToast, item, lifecycleBusy, loadItem, showToast]);
 
-  const handleConfirmDeletePermanently = useCallback(async () => {
-    if (!item?._id || lifecycleBusy) return false;
-
-    const ownership = getItemOwnershipContext(item);
-    const fallbackHref = ownership?.boxId
-      ? `/boxes/${encodeURIComponent(ownership.boxId)}`
-      : '/all-items';
-
-    try {
-      setLifecycleBusy(true);
-      await deleteItemPermanently(item._id);
-
-      setLifecycleDialog(null);
-      hideToast?.();
-      showToast?.({
-        variant: 'success',
-        title: 'Item permanently deleted',
-        message: `"${getItemName(item)}" was removed from the database.`,
-        timeoutMs: 2200,
-      });
-
-      setTimeout(() => {
-        navigate(fallbackHref, { replace: true });
-      }, 220);
-
-      return true;
-    } catch (err) {
-      showToast?.({
-        variant: 'danger',
-        title: 'Delete failed',
-        message: err?.message || 'Could not permanently delete this item.',
-        timeoutMs: 5200,
-      });
-      return false;
-    } finally {
-      setLifecycleBusy(false);
-    }
-  }, [hideToast, item, lifecycleBusy, navigate, showToast]);
-
   useEffect(() => {
     if (!lifecycleDialog || !item?._id) return;
 
@@ -828,35 +1209,22 @@ export default function ItemPage() {
         ? `Box #${ownership.boxId}`
         : '';
 
-    if (lifecycleDialog === 'delete') {
-      showToast?.({
-        variant: 'danger',
-        title: `Delete ${getItemName(item)}`,
-        message: 'Permanent action. Confirm carefully.',
-        sticky: true,
-        content: (
-          <ItemHardDeleteConsolePanel
-            busy={lifecycleBusy}
-            itemName={item?.name}
-            onCancel={dismissLifecycleDialog}
-            onConfirm={handleConfirmDeletePermanently}
-          />
-        ),
-        onClose: dismissLifecycleDialog,
-      });
-      return;
-    }
-
     if (lifecycleDialog === 'markGone') {
+      const departureRoute = getItemDepartureRoute(item);
+      const suggestedDisposition = DISPOSITION_BY_DEPARTURE_ROUTE[departureRoute] || '';
+      const isPendingDeclutterAction = item?.declutterCandidate?.deckState === 'action';
       showToast?.({
+        id: `item-lifecycle-confirm-gone:${item._id}`,
         variant: 'warning',
-        title: `Mark ${getItemName(item)} Gone`,
-        message: 'Provide lifecycle details before confirming.',
+        title: `Confirm ${getItemName(item)} Is Gone`,
+        message: 'Verification required before this item enters the archive.',
         sticky: true,
         content: (
           <ItemMarkGoneConsolePanel
             busy={lifecycleBusy}
             itemName={item?.name}
+            initialDisposition={suggestedDisposition}
+            lockDisposition={isPendingDeclutterAction}
             onCancel={dismissLifecycleDialog}
             onConfirm={handleConfirmMarkGone}
           />
@@ -868,6 +1236,7 @@ export default function ItemPage() {
 
     if (lifecycleDialog === 'reclaim') {
       showToast?.({
+        id: `item-lifecycle-reclaim:${item._id}`,
         variant: 'info',
         title: `Reclaim ${getItemName(item)}`,
         message: 'Return this item to active inventory.',
@@ -886,7 +1255,6 @@ export default function ItemPage() {
     }
   }, [
     dismissLifecycleDialog,
-    handleConfirmDeletePermanently,
     handleConfirmMarkGone,
     handleConfirmReclaim,
     item,
@@ -894,12 +1262,6 @@ export default function ItemPage() {
     lifecycleDialog,
     showToast,
   ]);
-
-  useEffect(() => {
-    if (isEditing) return;
-    if (!lifecycleDialog) return;
-    dismissLifecycleDialog();
-  }, [dismissLifecycleDialog, isEditing, lifecycleDialog]);
 
   if (loading) {
     return (
@@ -937,84 +1299,104 @@ export default function ItemPage() {
     );
   }
 
+  const ownership = getItemOwnershipContext(item);
+  const pageThemeStyle = {
+    ...getBoxThemeCssVars(getBoxTheme(ownership.boxId)),
+    ...getItemThemeCssVars(getItemTheme(ownership.boxId, item?._id, {
+      selected: true,
+      varied: true,
+    })),
+  };
+  const itemPendingDeparture = isItemPendingDeparture(item);
+  const lifecyclePanel = (
+    <ItemLifecyclePanel
+      item={item}
+      disabled={containerPending || fieldEditor.isActive || lifecycleBusy}
+      onMoveItem={handleMoveItem}
+      onMarkGoneRequest={() => handleOpenLifecycleDialog('markGone')}
+      onReclaimRequest={() => handleOpenLifecycleDialog('reclaim')}
+    />
+  );
+
   return (
-    <S.Page>
+    <S.Page style={pageThemeStyle}>
       <ItemPageBreadcrumb item={item} itemId={itemId} />
 
-      <ItemButtonBar
+      <S.PageMainGrid>
+        <S.PageVisualColumn>
+          <ItemPageImageHero
+            item={item}
+            imageUrlOverride={processedPreviewUrl}
+            imageRefreshToken={imageRefreshToken}
+            imageEditorOpen={mediaEditorOpen}
+            onEditImage={handleToggleMediaEditor}
+          />
+
+          {mediaEditorOpen ? (
+        <ConsoleS.MediaEditorPanel id="item-page-media-editor">
+          <ConsoleS.MediaEditorHeader>
+            <strong>MEDIA CHANNEL // IMAGE</strong>
+            <span>Dedicated asset workflow</span>
+          </ConsoleS.MediaEditorHeader>
+          <ItemImageField
+            item={item}
+            disabled={fieldEditor.saving}
+            onItemImageUpdated={handleItemImageUpdated}
+            onProcessImage={handleProcessItemImage}
+            processImageStatus={processImageStatus}
+            processImageBusy={processImageBusy}
+            processImageError={processImageError}
+            processImageProgressLabel={processImageProgressLabel}
+            processImageProgressPercent={processImageProgressPercent}
+            persistedRenderTokens={processImageState?.renderTokens || null}
+            activeVariant={activeVariant}
+            hasProcessedVariant={hasProcessedVariant}
+            onSwitchActiveVariant={handleSwitchItemVariant}
+            switchVariantBusy={isSwitchingVariant}
+            switchVariantError={variantSwitchError}
+            processedPreviewUrl={processedPreviewUrl}
+            imageRefreshToken={imageRefreshToken}
+          />
+        </ConsoleS.MediaEditorPanel>
+          ) : null}
+
+          {itemPendingDeparture ? lifecyclePanel : null}
+
+          <ItemButtonBar
         item={item}
-        isEditing={isEditing}
-        pending={containerPending}
+        pending={containerPending || fieldEditor.isActive}
         error={containerError}
         onMoveItem={handleMoveItem}
         onRemoveFromBox={handleRemoveFromBox}
-        onToggleConsumable={handleToggleConsumable}
         timestampActions={isGoneItem ? [] : timestampActions}
-      />
+        onEditFields={handleStartFieldLocator}
+        editLocatorActive={locatorActive}
+        fieldFocusLabel={fieldEditor.descriptor?.label || ''}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        mediaEditorOpen={mediaEditorOpen}
+        onToggleMedia={handleToggleMediaEditor}
+        inDeclutterDeck={inDeclutterDeck}
+        declutterPending={declutterPending}
+        onDeclutter={toggleDeclutterDeck}
+          />
+        </S.PageVisualColumn>
 
-      {isEditing ? (
-        <EditItemDetailsForm
-          item={item}
-          lifecycleBusy={lifecycleBusy}
-          onMarkGoneRequest={() => setLifecycleDialog('markGone')}
-          onDeletePermanentlyRequest={() => setLifecycleDialog('delete')}
-          onReclaimRequest={() => setLifecycleDialog('reclaim')}
-          onItemImageUpdated={({ image, imagePath }) => {
-            setProcessedPreviewUrl('');
-            setItem((prev) => {
-              if (!prev) return prev;
-              return {
-                ...prev,
-                image: image || null,
-                imagePath: imagePath || '',
-              };
-            });
-            void refreshMediaState().catch(() => {
-              // Media state may not exist yet after image mutation.
-            });
-          }}
-          onProcessImage={handleProcessItemImage}
-          processImageStatus={processImageStatus}
-          processImageBusy={processImageBusy}
-          processImageError={processImageError}
-          processImageProgressLabel={processImageProgressLabel}
-          processImageProgressPercent={processImageProgressPercent}
-          persistedRenderTokens={processImageState?.renderTokens || null}
-          activeVariant={activeVariant}
-          hasProcessedVariant={hasProcessedVariant}
-          onSwitchActiveVariant={handleSwitchItemVariant}
-          switchVariantBusy={isSwitchingVariant}
-          switchVariantError={variantSwitchError}
-          processedPreviewUrl={processedPreviewUrl}
-          imageRefreshToken={imageRefreshToken}
-          onCancel={async () => {
-            setIsEditing(false);
-            try {
-              await loadItem({ preserveLoading: true });
-            } catch {
-              // loadItem reports failures through the page state.
-            }
-          }}
-          onSaved={async (updated) => {
-            if (!updated) return;
-            setItem(updated);
-            try {
-              await loadItem({ preserveLoading: true });
-            } finally {
-              setIsEditing(false);
-            }
-          }}
-          preserveToastOnCancel
-        />
-      ) : (
-        <ItemDetails
-          itemId={itemId}
-          itemData={item}
-          enableImageLightbox
-          imageUrlOverride={processedPreviewUrl}
-          imageRefreshToken={imageRefreshToken}
-        />
-      )}
+        <S.PageDataColumn>
+          <ItemPageConsoleView
+            fieldEditor={fieldEditor.isActive ? fieldEditor : null}
+            item={item}
+            itemId={itemId}
+            locatorActive={locatorActive}
+            onRequestDiscard={handleRequestCloseField}
+            onRequestEdit={handleRequestField}
+            onSave={fieldEditor.save}
+            viewMode={viewMode}
+          />
+        </S.PageDataColumn>
+      </S.PageMainGrid>
+
+      {!itemPendingDeparture ? lifecyclePanel : null}
 
     </S.Page>
   );

@@ -1,7 +1,7 @@
 // src/components/BoxTree.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import * as S from '../styles/BoxTree.styles';
-import ItemRow from './ItemRow';
+import BoxDetailActionSection from './BoxDetailView/BoxDetailActionSection';
 import CondensedBoxItemList from './CondensedBoxItemList';
 import CondensedBatchMovePanel from './CondensedBatchMovePanel';
 import CondensedBatchDispositionPanel from './CondensedBatchDispositionPanel';
@@ -10,10 +10,6 @@ import {
   matchesItemQuery,
   normalizeItemQuery,
 } from '../util/itemBrowse';
-import {
-  getBoxTheme,
-  getBoxThemeCssVars,
-} from '../util/inventoryColorTheme';
 
 const DEFAULT_SORT = 'recentlyAdded';
 
@@ -24,104 +20,86 @@ function formatBoxChipId(value) {
   return `#${raw}`;
 }
 
-function BoxSection({
-  node,
-  depth,
-  openItemId,
-  onOpenItem,
-  accent,
-  pulsing,
-  collapseDurMs,
-  effectsById,
-  triggerFlash,
-  onItemSaved,
-  refreshBox,
-}) {
+function AsciiTreeNode({ node, depth = 0, prefix = '', onOpenItem, openItemId }) {
   if (!node) return null;
 
-  const parentBoxLabel = node.label ?? node.name ?? 'Box';
-  const parentBoxId = node.box_id ?? node.shortId ?? '';
-  const parentBoxMongoId = node._id ?? node.id ?? '';
   const items = Array.isArray(node.items) ? node.items : [];
-  const kids = Array.isArray(node.childBoxes) ? node.childBoxes : [];
-  const isRootSection = depth === 0;
-  const boxThemeStyle = getBoxThemeCssVars(getBoxTheme(parentBoxId));
+  const children = Array.isArray(node.childBoxes) ? node.childBoxes : [];
+  const entries = [
+    ...items.map((item, index) => ({ kind: 'item', value: item, key: `item-${index}` })),
+    ...children.map((child, index) => ({ kind: 'box', value: child, key: `box-${index}` })),
+  ];
 
   return (
-    <S.SectionGroup $isRoot={isRootSection} $depth={depth} style={boxThemeStyle}>
-      <S.RailBack aria-hidden="true" $isRoot={isRootSection} $depth={depth} />
+    <>
+      {entries.map((entry, index) => {
+        const isLast = index === entries.length - 1;
+        const branch = `${prefix}${isLast ? '└── ' : '├── '}`;
 
-      <S.RailFront $isRoot={isRootSection} $depth={depth}>
-        <S.TreeSectionTitle $isRoot={isRootSection} $depth={depth}>
-          <S.TreeBoxIdChip>{formatBoxChipId(parentBoxId)}</S.TreeBoxIdChip>
-          <S.TreeBoxLabel>{parentBoxLabel}</S.TreeBoxLabel>
-        </S.TreeSectionTitle>
+        if (entry.kind === 'item') {
+          const item = entry.value;
+          const itemId = String(item?._id ?? item?.id ?? '').trim();
+          const itemName = String(item?.name || 'Unnamed item').trim();
+          const quantity = Number(item?.quantity ?? 0);
 
-        {items.length > 0 && (
-          <S.List>
-            {items.map((it, idx) => {
-              const id = String(it?._id ?? it?.id ?? '');
-              const key = id || `noid-${depth}-${idx}`;
-              const annotated = {
-                ...it,
-                parentBoxLabel,
-                parentBoxId,
-                parentBoxMongoId,
-              };
-              const isOpen = id && openItemId === id;
-              const isPulsing = Array.isArray(pulsing) && pulsing.includes(id);
-              const flashColor = effectsById?.[id]?.flash || 'blue';
-              const isFlashing = !!effectsById?.[id]?.flash;
+          return (
+            <S.AsciiLine key={entry.key} $depth={depth}>
+              <S.AsciiItemButton
+                type="button"
+                $active={itemId && openItemId === itemId}
+                onClick={() => onOpenItem?.(itemId)}
+                disabled={!itemId}
+                aria-label={`Open item ${itemName}`}
+              >
+                <S.AsciiPrefix aria-hidden="true">{branch}</S.AsciiPrefix>
+                <S.AsciiLabel>{itemName}</S.AsciiLabel>
+                {quantity > 0 ? <S.AsciiMeta>×{quantity}</S.AsciiMeta> : null}
+              </S.AsciiItemButton>
+            </S.AsciiLine>
+          );
+        }
 
-              return (
-                <ItemRow
-                  key={key}
-                  item={annotated}
-                  isOpen={isOpen}
-                  onOpen={() => onOpenItem?.(id)}
-                  accent={accent}
-                  collapseDurMs={collapseDurMs}
-                  pulsing={isPulsing}
-                  flashing={isFlashing}
-                  flashColor={flashColor}
-                  triggerFlash={triggerFlash}
-                  onSaved={(updated) => onItemSaved?.(updated)}
-                  refreshBox={refreshBox}
-                />
-              );
-            })}
-          </S.List>
-        )}
+        const child = entry.value;
+        const childId = child?.box_id ?? child?.shortId ?? '';
+        const childLabel = child?.label ?? child?.name ?? 'Box';
+        const childPrefix = `${prefix}${isLast ? '    ' : '│   '}`;
 
-        {kids.map((child, i) => (
-          <S.Nest
-            key={String(
-              child?._id ??
-                child?.id ??
-                child?.box_id ??
-                child?.shortId ??
-                `child-${depth}-${i}`,
-            )}
-            $depth={depth + 1}
-          >
-            <BoxSection
-              key={child._id}
+        return (
+          <React.Fragment key={entry.key}>
+            <S.AsciiLine $depth={depth}>
+              <S.AsciiPrefix aria-hidden="true">{branch}</S.AsciiPrefix>
+              <S.AsciiBoxLabel>
+                {formatBoxChipId(childId)} {childLabel}
+              </S.AsciiBoxLabel>
+            </S.AsciiLine>
+            <AsciiTreeNode
               node={child}
               depth={depth + 1}
-              openItemId={openItemId}
+              prefix={childPrefix}
               onOpenItem={onOpenItem}
-              accent={accent}
-              pulsing={pulsing}
-              collapseDurMs={collapseDurMs}
-              effectsById={effectsById}
-              triggerFlash={triggerFlash}
-              onItemSaved={onItemSaved}
-              refreshBox={refreshBox}
+              openItemId={openItemId}
             />
-          </S.Nest>
-        ))}
-      </S.RailFront>
-    </S.SectionGroup>
+          </React.Fragment>
+        );
+      })}
+    </>
+  );
+}
+
+function AsciiTree({ node, onOpenItem, openItemId }) {
+  const label = node?.label ?? node?.name ?? 'Box';
+  const boxId = node?.box_id ?? node?.shortId ?? '';
+
+  return (
+    <S.AsciiTree role="tree" aria-label={`${label} box tree`}>
+      <S.AsciiLine>
+        <S.AsciiPrefix aria-hidden="true">. </S.AsciiPrefix>
+        <S.AsciiBoxLabel>{formatBoxChipId(boxId)} {label}</S.AsciiBoxLabel>
+      </S.AsciiLine>
+      <S.AsciiBranch>
+        <AsciiTreeNode node={node} onOpenItem={onOpenItem} openItemId={openItemId} />
+      </S.AsciiBranch>
+    </S.AsciiTree>
   );
 }
 
@@ -129,21 +107,17 @@ export default function BoxTree({
   node,
   openItemId,
   onOpenItem,
-  accent,
-  pulsing,
-  effectsById,
-  collapseDurMs,
-  triggerFlash,
-  onItemSaved,
   refreshBox,
   searchQuery: controlledSearchQuery,
   sortMode: controlledSortMode,
+  viewMode = 'full',
+  scopeLabel = 'Tree',
+  onManageBox,
 }) {
   const [localSearchQuery, setLocalSearchQuery] = useState('');
   const [localSortMode, setLocalSortMode] = useState(DEFAULT_SORT);
   const searchQuery = controlledSearchQuery ?? localSearchQuery;
   const sortMode = controlledSortMode ?? localSortMode;
-  const [viewMode, setViewMode] = useState('full');
   const [condensedSelectionEnabled, setCondensedSelectionEnabled] = useState(false);
   const [selectedCondensedItemIds, setSelectedCondensedItemIds] = useState(() => new Set());
   const [condensedMovePickerOpen, setCondensedMovePickerOpen] = useState(false);
@@ -255,25 +229,14 @@ export default function BoxTree({
 
   return (
     <S.TreeRoot>
-      <S.ViewModeBar>
-        <S.ViewModeLabel htmlFor="box-tree-condensed-view">
-          <S.ViewModeLabelText>Full view</S.ViewModeLabelText>
-          <S.ViewModeSwitch>
-            <S.ViewModeCheckbox
-              id="box-tree-condensed-view"
-              type="checkbox"
-              checked={viewMode === 'condensed'}
-              onChange={(event) =>
-                setViewMode(event.target.checked ? 'condensed' : 'full')
-              }
-            />
-            <S.ViewModeSlider aria-hidden="true" />
-          </S.ViewModeSwitch>
-          <S.ViewModeLabelText>Condensed</S.ViewModeLabelText>
-        </S.ViewModeLabel>
-      </S.ViewModeBar>
-
-      {viewMode === 'condensed' ? (
+      <BoxDetailActionSection
+        title={scopeLabel}
+        count={visibleItemCount}
+        box={node}
+        onItemsChanged={refreshBox}
+        onManageBox={onManageBox}
+      >
+        {viewMode === 'condensed' ? (
         <S.CondensedControlsPanel>
           <S.ViewModeLabel htmlFor="box-tree-condensed-selection">
             <S.ViewModeLabelText>Select items</S.ViewModeLabelText>
@@ -333,7 +296,7 @@ export default function BoxTree({
             </S.SelectionButton>
           </S.SelectionActions>
         </S.CondensedControlsPanel>
-      ) : null}
+        ) : null}
 
       {viewMode !== 'condensed' && displayTree && visibleItemCount === 0 && normalizedQuery ? (
         <S.MetaRow>
@@ -341,8 +304,8 @@ export default function BoxTree({
         </S.MetaRow>
       ) : null}
 
-      {viewMode === 'condensed' ? (
-        <>
+        {viewMode === 'condensed' ? (
+          <>
           <CondensedBatchMovePanel
             selectedItems={selectedCondensedItems}
             isOpen={condensedMovePickerOpen}
@@ -368,22 +331,15 @@ export default function BoxTree({
             selectedItemIds={selectedCondensedItemIds}
             onSelectionChange={handleCondensedItemSelectionChange}
           />
-        </>
-      ) : (
-        <BoxSection
-          node={displayTree}
-          depth={0}
-          openItemId={openItemId}
-          onOpenItem={onOpenItem}
-          accent={accent}
-          pulsing={pulsing}
-          effectsById={effectsById}
-          collapseDurMs={collapseDurMs}
-          triggerFlash={triggerFlash}
-          onItemSaved={onItemSaved}
-          refreshBox={refreshBox}
-        />
-      )}
+          </>
+        ) : (
+          <AsciiTree
+            node={displayTree}
+            openItemId={openItemId}
+            onOpenItem={onOpenItem}
+          />
+        )}
+      </BoxDetailActionSection>
     </S.TreeRoot>
   );
 }

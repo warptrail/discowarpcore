@@ -4,8 +4,11 @@ import { ToastContext } from './ToastContext';
 
 export function ToastProvider({ children }) {
   const location = useLocation();
+  const routeToastHandoff = location.state?.toastHandoff ?? null;
   const [toast, setToast] = useState(null);
   const [activeRetrievalItem, setActiveRetrievalItem] = useState(null);
+  const [intakeDraftName, setIntakeDraftName] = useState('');
+  const [intakeContext, setIntakeContext] = useState(null);
   const dismissTimerRef = useRef(null);
 
   const clearTimer = () => {
@@ -42,7 +45,10 @@ export function ToastProvider({ children }) {
       titleDetails = null,
       titleAlign = 'start',
       titleSize = 'default',
+      presentation = 'default',
+      themeStyle = null,
       onClose,
+      dismissible = true,
       sticky = false,
       timeoutMs = 4500,
       loading = false,
@@ -58,7 +64,10 @@ export function ToastProvider({ children }) {
       titleDetails,
       titleAlign,
       titleSize,
+      presentation,
+      themeStyle,
       onClose,
+      dismissible,
       sticky,
       loading,
     });
@@ -74,10 +83,17 @@ export function ToastProvider({ children }) {
   useEffect(() => {
     // Clear route-scoped console/toast state on path navigation.
     hideToast();
+    if (routeToastHandoff) {
+      showToast(routeToastHandoff);
+    }
     if (!String(location.pathname || '').startsWith('/retrieval')) {
       setActiveRetrievalItem(null);
     }
-  }, [location.pathname, hideToast]);
+    if (!String(location.pathname || '').startsWith('/intake')) {
+      setIntakeDraftName('');
+      setIntakeContext(null);
+    }
+  }, [location.pathname, routeToastHandoff, hideToast, showToast]);
 
   return (
     <ToastContext.Provider
@@ -87,6 +103,10 @@ export function ToastProvider({ children }) {
         hideToast,
         activeRetrievalItem,
         setActiveRetrievalItem,
+        intakeDraftName,
+        setIntakeDraftName,
+        intakeContext,
+        setIntakeContext,
       }}
     >
       {children}

@@ -5,6 +5,7 @@ export default function EditItemTextFieldsSection({
   formData,
   onTextChange,
   ownership,
+  fields = ['name', 'description', 'notes', 'location'],
 }) {
   const isBoxed = !!ownership?.isBoxed;
   const parentBoxLabel = ownership?.parentBoxLabel || '';
@@ -12,34 +13,34 @@ export default function EditItemTextFieldsSection({
 
   return (
     <>
-      <S.Field>
+      {fields.includes('name') ? <S.Field>
         <S.Label>Name</S.Label>
         <S.Input
           name="name"
           value={formData.name || ''}
           onChange={onTextChange}
         />
-      </S.Field>
+      </S.Field> : null}
 
-      <S.Field>
+      {fields.includes('description') ? <S.Field>
         <S.Label>Description</S.Label>
         <S.TextArea
           name="description"
           value={formData.description || ''}
           onChange={onTextChange}
         />
-      </S.Field>
+      </S.Field> : null}
 
-      <S.Field>
+      {fields.includes('notes') ? <S.Field>
         <S.Label>Notes</S.Label>
         <S.TextArea
           name="notes"
           value={formData.notes || ''}
           onChange={onTextChange}
         />
-      </S.Field>
+      </S.Field> : null}
 
-      <S.Field>
+      {fields.includes('location') ? <S.Field>
         <S.Label>Location</S.Label>
         <S.Input
           name="location"
@@ -55,7 +56,7 @@ export default function EditItemTextFieldsSection({
             {parentBoxLabel ? ` (${parentBoxLabel})` : ''}.
           </S.FieldHint>
         ) : null}
-      </S.Field>
+      </S.Field> : null}
     </>
   );
 }

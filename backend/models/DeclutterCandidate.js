@@ -2,11 +2,11 @@ const mongoose = require('mongoose');
 
 const DECLUTTER_PLAYERS = ['discofish', 'laserfox'];
 const VOTE_VALUES = ['pending', 'keep', 'release', 'unsure'];
-const VISIBLE_VOTE_CHOICES = ['keep', 'toss', 'donate', 'sell', 'unsure'];
-const EXIT_PREFERENCES = ['discard', 'donate', 'sell'];
-const STAGING_ROUTES = ['discard', 'donate', 'sell', 'needs_routing'];
-const DECK_STATES = ['active', 'discussion', 'cooling_off', 'action', 'resolved'];
-const CONFIRMATION_STATES = ['voting', 'cooling_off', 'finalizing', 'confirmed'];
+const VISIBLE_VOTE_CHOICES = ['keep', 'toss', 'donate', 'sell', 'gift', 'unsure'];
+const EXIT_PREFERENCES = ['discard', 'donate', 'sell', 'gift'];
+const STAGING_ROUTES = ['discard', 'donate', 'sell', 'gift', 'needs_routing'];
+const DECK_STATES = ['active', 'discussion', 'action', 'resolved'];
+const CONFIRMATION_STATES = ['voting', 'confirmed'];
 const RESOLUTIONS = ['pending', 'kept', 'release_approved', 'review_later', 'conflict'];
 
 const voteSchema = new mongoose.Schema(
@@ -52,8 +52,8 @@ const declutterCandidateSchema = new mongoose.Schema(
       index: true,
     },
     consensusReachedAt: { type: Date, default: null },
-    confirmationExpiresAt: { type: Date, default: null, index: true },
     confirmedAt: { type: Date, default: null },
+    actionCompletedAt: { type: Date, default: null, index: true },
     preActionBoxId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Box',
@@ -78,8 +78,8 @@ const declutterCandidateSchema = new mongoose.Schema(
         resolution: { type: String, default: '' },
         stagingRoute: { type: String, default: null },
         consensusReachedAt: { type: Date, default: null },
-        confirmationExpiresAt: { type: Date, default: null },
         confirmedAt: { type: Date, default: null },
+        actionCompletedAt: { type: Date, default: null },
         resolvedAt: { type: Date, default: null },
         notes: { type: String, default: '' },
         reason: { type: String, default: '' },

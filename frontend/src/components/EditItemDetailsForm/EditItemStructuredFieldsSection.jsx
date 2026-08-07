@@ -137,6 +137,18 @@ export default function EditItemStructuredFieldsSection({
             Track as consumable inventory
           </S.CheckboxRow>
         </S.Field>
+        <S.Field>
+          <S.Label>Gift Intent</S.Label>
+          <S.CheckboxRow>
+            <S.Checkbox
+              type="checkbox"
+              name="isIntendedGift"
+              checked={!!formData.isIntendedGift}
+              onChange={onMetadataChange}
+            />
+            Intended as a future gift
+          </S.CheckboxRow>
+        </S.Field>
       </S.InlineGrid>
 
       <S.InlineGrid>

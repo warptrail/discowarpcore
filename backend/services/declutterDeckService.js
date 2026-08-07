@@ -9,12 +9,12 @@ const PLAYERS = DeclutterCandidate.PLAYERS;
 const VOTES = DeclutterCandidate.VOTES;
 const VISIBLE_VOTE_CHOICES = DeclutterCandidate.VISIBLE_VOTE_CHOICES;
 const EXIT_PREFERENCES = DeclutterCandidate.EXIT_PREFERENCES;
-const CONFIRMATION_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const RELEASE_CHOICE_TO_PREFERENCE = Object.freeze({
   toss: 'discard',
   donate: 'donate',
   sell: 'sell',
+  gift: 'gift',
 });
 
 const LEGACY_RELEASE_RESOLUTIONS = Object.freeze({
@@ -111,6 +111,7 @@ function getVisibleVoteChoice(vote) {
   if (normalized.decision !== 'release') return normalized.decision;
   if (normalized.exitPreference === 'donate') return 'donate';
   if (normalized.exitPreference === 'sell') return 'sell';
+  if (normalized.exitPreference === 'gift') return 'gift';
   return 'toss';
 }
 
@@ -125,7 +126,7 @@ function deriveStagingRoute(votes) {
   return 'needs_routing';
 }
 
-function deriveCandidateState(rawVotes, { now = new Date(), confirmationWindowMs = CONFIRMATION_WINDOW_MS } = {}) {
+function deriveCandidateState(rawVotes, { now = new Date() } = {}) {
   const votes = normalizeVotes(rawVotes);
   const discofish = votes.discofish.decision;
   const laserfox = votes.laserfox.decision;
@@ -137,7 +138,6 @@ function deriveCandidateState(rawVotes, { now = new Date(), confirmationWindowMs
       stagingRoute: null,
       confirmationState: 'voting',
       consensusReachedAt: null,
-      confirmationExpiresAt: null,
     };
   }
   if (discofish === 'unsure' || laserfox === 'unsure') {
@@ -148,29 +148,26 @@ function deriveCandidateState(rawVotes, { now = new Date(), confirmationWindowMs
       stagingRoute: null,
       confirmationState: 'voting',
       consensusReachedAt: null,
-      confirmationExpiresAt: null,
     };
   }
   if (discofish === 'keep' && laserfox === 'keep') {
     return {
-      deckState: 'cooling_off',
+      deckState: 'resolved',
       resolution: 'kept',
-      readiness: 'in_deck',
+      readiness: 'kept',
       stagingRoute: null,
-      confirmationState: 'cooling_off',
+      confirmationState: 'confirmed',
       consensusReachedAt: now,
-      confirmationExpiresAt: new Date(now.getTime() + confirmationWindowMs),
     };
   }
   if (discofish === 'release' && laserfox === 'release') {
     return {
-      deckState: 'cooling_off',
+      deckState: 'action',
       resolution: 'release_approved',
-      readiness: 'in_deck',
+      readiness: 'ready_to_declutter',
       stagingRoute: deriveStagingRoute(votes),
-      confirmationState: 'cooling_off',
+      confirmationState: 'confirmed',
       consensusReachedAt: now,
-      confirmationExpiresAt: new Date(now.getTime() + confirmationWindowMs),
     };
   }
   return {
@@ -180,7 +177,6 @@ function deriveCandidateState(rawVotes, { now = new Date(), confirmationWindowMs
     stagingRoute: null,
     confirmationState: 'voting',
     consensusReachedAt: null,
-    confirmationExpiresAt: null,
   };
 }
 
@@ -239,8 +235,8 @@ function toClientCandidate(candidate, item, player = '') {
     stagingRoute: getCanonicalStagingRoute(candidate, votes),
     confirmationState: candidate.confirmationState || 'voting',
     consensusReachedAt: candidate.consensusReachedAt || null,
-    confirmationExpiresAt: candidate.confirmationExpiresAt || null,
     confirmedAt: candidate.confirmedAt || null,
+    actionCompletedAt: candidate.actionCompletedAt || null,
     preActionBoxId: candidate.preActionBoxId ? String(candidate.preActionBoxId) : null,
     actionOverride: candidate.actionOverride || null,
     resolvedAt: candidate.resolvedAt || null,
@@ -269,7 +265,7 @@ async function hydrateCandidates(candidates, player) {
   const [items, boxes] = itemIds.length
     ? await Promise.all([
         Item.find({ _id: { $in: itemIds } })
-          .select('_id name quantity description notes tags image imagePath category keepPriority primaryOwnerName item_status declutterReadiness declutterExitState location orphanedAt')
+          .select('_id name quantity description notes tags image imagePath category keepPriority primaryOwnerName item_status disposition disposition_at disposition_notes declutterReadiness declutterExitState isIntendedGift location orphanedAt')
           .lean(),
         Box.find({ items: { $in: itemIds } })
           .select('_id box_id label group location locationId items')
@@ -309,18 +305,17 @@ function sortActiveCandidates(left, right) {
 
 async function getDeclutterDeck({ player } = {}) {
   const activePlayer = normalizePlayer(player, { required: true });
-  const { reconcileExpiredDeclutterCandidates } = require('./declutterActionService');
-  await reconcileExpiredDeclutterCandidates({ limit: 25, source: 'deck_read' });
+  const { reconcileLegacyCoolingCandidates } = require('./declutterActionService');
+  await reconcileLegacyCoolingCandidates({ limit: 100, source: 'deck_read' });
   const candidateItemIds = await DeclutterCandidate.distinct('itemId');
   const activeItemIds = await Item.distinct('_id', {
     _id: { $in: candidateItemIds },
     item_status: 'active',
   });
   const eligibleCandidateFilter = { itemId: { $in: activeItemIds } };
-  const [activeRows, discussionRows, coolingRows, actionRows, resolvedRows, metricRows, physicallyCompleted] = await Promise.all([
+  const [activeRows, discussionRows, actionRows, resolvedRows, metricRows, physicallyCompleted] = await Promise.all([
     DeclutterCandidate.find({ ...eligibleCandidateFilter, deckState: 'active' }).sort({ updatedAt: 1, _id: 1 }).lean(),
     DeclutterCandidate.find({ ...eligibleCandidateFilter, deckState: 'discussion' }).sort({ updatedAt: -1, _id: -1 }).limit(100).lean(),
-    DeclutterCandidate.find({ ...eligibleCandidateFilter, deckState: 'cooling_off' }).sort({ confirmationExpiresAt: 1, _id: 1 }).lean(),
     DeclutterCandidate.find({ ...eligibleCandidateFilter, deckState: 'action' }).sort({ confirmedAt: -1, _id: -1 }).lean(),
     DeclutterCandidate.find({ deckState: 'resolved' }).sort({ resolvedAt: -1, _id: -1 }).limit(40).lean(),
     DeclutterCandidate.aggregate([
@@ -331,11 +326,16 @@ async function getDeclutterDeck({ player } = {}) {
           total: { $sum: 1 },
           active: { $sum: { $cond: [{ $eq: ['$deckState', 'active'] }, 1, 0] } },
           discussion: { $sum: { $cond: [{ $eq: ['$deckState', 'discussion'] }, 1, 0] } },
-          coolingOff: { $sum: { $cond: [{ $eq: ['$deckState', 'cooling_off'] }, 1, 0] } },
           action: { $sum: { $cond: [{ $eq: ['$deckState', 'action'] }, 1, 0] } },
           resolved: { $sum: { $cond: [{ $eq: ['$deckState', 'resolved'] }, 1, 0] } },
           discofishReviewed: { $sum: { $cond: [{ $ne: ['$votes.discofish.decision', 'pending'] }, 1, 0] } },
           laserfoxReviewed: { $sum: { $cond: [{ $ne: ['$votes.laserfox.decision', 'pending'] }, 1, 0] } },
+          discofishKeepVotes: { $sum: { $cond: [{ $eq: ['$votes.discofish.decision', 'keep'] }, 1, 0] } },
+          laserfoxKeepVotes: { $sum: { $cond: [{ $eq: ['$votes.laserfox.decision', 'keep'] }, 1, 0] } },
+          discofishReleaseVotes: { $sum: { $cond: [{ $eq: ['$votes.discofish.decision', 'release'] }, 1, 0] } },
+          laserfoxReleaseVotes: { $sum: { $cond: [{ $eq: ['$votes.laserfox.decision', 'release'] }, 1, 0] } },
+          discofishUnsureVotes: { $sum: { $cond: [{ $eq: ['$votes.discofish.decision', 'unsure'] }, 1, 0] } },
+          laserfoxUnsureVotes: { $sum: { $cond: [{ $eq: ['$votes.laserfox.decision', 'unsure'] }, 1, 0] } },
           kept: { $sum: { $cond: [{ $eq: ['$resolution', 'kept'] }, 1, 0] } },
           releaseApproved: {
             $sum: {
@@ -399,6 +399,9 @@ async function getDeclutterDeck({ player } = {}) {
               ],
             },
           },
+          stagingGift: {
+            $sum: { $cond: [{ $eq: ['$stagingRoute', 'gift'] }, 1, 0] },
+          },
           stagingNeedsRouting: {
             $sum: { $cond: [{ $eq: ['$stagingRoute', 'needs_routing'] }, 1, 0] },
           },
@@ -409,40 +412,41 @@ async function getDeclutterDeck({ player } = {}) {
   ]);
   const activeLength = activeRows.length;
   const discussionLength = discussionRows.length;
-  const coolingLength = coolingRows.length;
   const actionLength = actionRows.length;
   const hydrated = await hydrateCandidates(
-    [...activeRows, ...discussionRows, ...coolingRows, ...actionRows, ...resolvedRows],
+    [...activeRows, ...discussionRows, ...actionRows, ...resolvedRows],
     activePlayer
   );
   const activeCandidates = hydrated.slice(0, activeLength).sort(sortActiveCandidates);
   const discussionCandidates = hydrated.slice(activeLength, activeLength + discussionLength);
-  const coolingOffCandidates = hydrated.slice(
-    activeLength + discussionLength,
-    activeLength + discussionLength + coolingLength
-  );
   const actionCandidates = hydrated.slice(
-    activeLength + discussionLength + coolingLength,
-    activeLength + discussionLength + coolingLength + actionLength
+    activeLength + discussionLength,
+    activeLength + discussionLength + actionLength
   );
   const resolvedCandidates = hydrated.slice(
-    activeLength + discussionLength + coolingLength + actionLength
+    activeLength + discussionLength + actionLength
   );
   const metrics = {
     total: 0,
     active: 0,
     discussion: 0,
-    coolingOff: 0,
     action: 0,
     resolved: 0,
     discofishReviewed: 0,
     laserfoxReviewed: 0,
+    discofishKeepVotes: 0,
+    laserfoxKeepVotes: 0,
+    discofishReleaseVotes: 0,
+    laserfoxReleaseVotes: 0,
+    discofishUnsureVotes: 0,
+    laserfoxUnsureVotes: 0,
     kept: 0,
     releaseApproved: 0,
     unsure: 0,
     stagingDiscard: 0,
     stagingDonate: 0,
     stagingSell: 0,
+    stagingGift: 0,
     stagingNeedsRouting: 0,
     physicallyCompleted,
     ...(metricRows[0] || {}),
@@ -451,13 +455,11 @@ async function getDeclutterDeck({ player } = {}) {
   return {
     activeCandidates,
     discussionCandidates,
-    coolingOffCandidates,
     actionCandidates,
     resolvedCandidates,
     counts: {
       active: metrics.active,
       discussion: metrics.discussion,
-      coolingOff: metrics.coolingOff,
       action: metrics.action,
       resolved: metrics.resolved,
     },
@@ -466,8 +468,87 @@ async function getDeclutterDeck({ player } = {}) {
       discard: metrics.stagingDiscard,
       donate: metrics.stagingDonate,
       sell: metrics.stagingSell,
+      gift: metrics.stagingGift,
       needsRouting: metrics.stagingNeedsRouting,
     },
+  };
+}
+
+const HISTORY_FILTERS = new Set([
+  'all',
+  'resolved',
+  'active',
+  'discussion',
+  'action',
+  'kept',
+  'release_approved',
+  'physically_completed',
+]);
+const HISTORY_ROUTE_FILTERS = new Set(['discard', 'donate', 'sell', 'gift']);
+const HISTORY_ROUTE_BY_DISPOSITION = Object.freeze({
+  trashed: 'discard',
+  donated: 'donate',
+  sold: 'sell',
+  gifted: 'gift',
+});
+
+function matchesHistoryFilter(candidate, item, filter) {
+  if (!filter || filter === 'all') return true;
+  const isPhysicallyCompleted = item?.declutterExitState === 'completed'
+    || String(item?.item_status || '').trim().toLowerCase() === 'gone';
+  if (filter === 'physically_completed') return isPhysicallyCompleted;
+  if (filter === 'kept') return candidate.resolution === 'kept';
+  if (filter === 'release_approved') {
+    return !isPhysicallyCompleted
+      && ['release_approved', 'ready_to_declutter', 'ready_to_donate', 'ready_to_sell']
+      .includes(candidate.resolution);
+  }
+  return candidate.deckState === filter;
+}
+
+function matchesHistoryRoute(candidate, item, routeFilter) {
+  if (!routeFilter) return true;
+  const dispositionRoute = HISTORY_ROUTE_BY_DISPOSITION[
+    String(item?.disposition || '').trim().toLowerCase()
+  ];
+  const isPhysicallyCompleted = item?.declutterExitState === 'completed'
+    || String(item?.item_status || '').trim().toLowerCase() === 'gone';
+  const authoritativeRoute = isPhysicallyCompleted && dispositionRoute
+    ? dispositionRoute
+    : String(candidate?.stagingRoute || '').trim().toLowerCase();
+  return authoritativeRoute === routeFilter;
+}
+
+async function getDeclutterHistory({ filter = 'all', route = '', player = '', page = 1, limit = 10 } = {}) {
+  const normalizedFilter = HISTORY_FILTERS.has(String(filter || '').trim().toLowerCase())
+    ? String(filter || '').trim().toLowerCase()
+    : 'all';
+  const pageSize = Math.min(50, Math.max(1, Number.parseInt(limit, 10) || 10));
+  const requestedPage = Math.max(1, Number.parseInt(page, 10) || 1);
+  const normalizedRoute = String(route || '').trim().toLowerCase() === 'toss'
+    ? 'discard'
+    : String(route || '').trim().toLowerCase();
+  const routeFilter = HISTORY_ROUTE_FILTERS.has(normalizedRoute) ? normalizedRoute : '';
+  const candidates = await DeclutterCandidate.find({})
+    .sort({ resolvedAt: -1, updatedAt: -1, _id: -1 })
+    .lean();
+  const hydrated = await hydrateCandidates(candidates, normalizePlayer(player));
+  const filtered = hydrated.filter((candidate) => (
+    matchesHistoryFilter(candidate, candidate.item, normalizedFilter)
+      && matchesHistoryRoute(candidate, candidate.item, routeFilter)
+  ));
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(requestedPage, totalPages);
+  const offset = (currentPage - 1) * pageSize;
+  return {
+    filter: normalizedFilter,
+    route: routeFilter,
+    candidates: filtered.slice(offset, offset + pageSize),
+    total,
+    page: currentPage,
+    limit: pageSize,
+    totalPages,
   };
 }
 
@@ -497,8 +578,8 @@ async function nominateDeclutterCandidate(payload = {}) {
     resolvedAt: null,
     confirmationState: 'voting',
     consensusReachedAt: null,
-    confirmationExpiresAt: null,
     confirmedAt: null,
+    actionCompletedAt: null,
     preActionBoxId: null,
     actionOverride: {},
     notes: String(payload.notes || '').trim().slice(0, 2000),
@@ -533,11 +614,9 @@ async function voteOnDeclutterCandidate(candidateId, payload = {}) {
   const id = assertObjectId(candidateId, 'candidateId');
   const player = normalizePlayer(payload.player, { required: true });
   const vote = normalizeVote(payload.vote);
-  const { reconcileExpiredDeclutterCandidates } = require('./declutterActionService');
-  await reconcileExpiredDeclutterCandidates({ limit: 25, source: 'vote_request' });
   const candidate = await DeclutterCandidate.findById(id);
   if (!candidate) throw createHttpError(404, 'Declutter candidate was not found.');
-  if (!['active', 'cooling_off'].includes(candidate.deckState)) {
+  if (candidate.deckState !== 'active') {
     throw createHttpError(409, 'This decision is locked. Use an Actions command to reopen a confirmed result.');
   }
   const item = await Item.findById(candidate.itemId).select('_id item_status').lean();
@@ -562,40 +641,38 @@ async function voteOnDeclutterCandidate(candidateId, payload = {}) {
     candidate.notes = String(payload.notes || '').trim().slice(0, 2000);
   }
   const state = deriveCandidateState(candidate.votes);
-  const previousDeadline = candidate.confirmationExpiresAt;
   candidate.deckState = state.deckState;
   candidate.resolution = state.resolution;
   candidate.stagingRoute = state.stagingRoute;
   candidate.confirmationState = state.confirmationState;
   candidate.consensusReachedAt = state.consensusReachedAt;
-  candidate.confirmationExpiresAt = state.confirmationExpiresAt;
   candidate.confirmedAt = null;
   candidate.resolvedAt = null;
   await candidate.save();
   await syncItemReadiness(candidate.itemId, state.readiness);
-  writeBackendLog('info', state.deckState === 'cooling_off'
-    ? 'declutter.cooling_off.timer_created'
-    : previousDeadline
-      ? 'declutter.cooling_off.timer_cancelled'
-      : 'declutter.candidate.vote_changed', {
+  let finalizedCandidate = candidate;
+  if (state.confirmationState === 'confirmed') {
+    const { finalizeCandidateImmediately } = require('./declutterActionService');
+    finalizedCandidate = await finalizeCandidateImmediately(candidate, { source: 'vote_consensus' });
+  }
+  writeBackendLog('info', state.confirmationState === 'confirmed'
+    ? 'declutter.candidate.consensus_confirmed'
+    : 'declutter.candidate.vote_changed', {
     candidateId: String(candidate._id),
     itemId: String(candidate.itemId),
     player,
     deckState: state.deckState,
     resolution: state.resolution,
-    confirmationExpiresAt: state.confirmationExpiresAt,
   });
-  return (await hydrateCandidates([candidate.toObject()], player))[0];
+  return (await hydrateCandidates([finalizedCandidate.toObject()], player))[0];
 }
 
 async function resetOwnDeclutterVote(candidateId, payload = {}) {
   const id = assertObjectId(candidateId, 'candidateId');
   const player = normalizePlayer(payload.player, { required: true });
-  const { reconcileExpiredDeclutterCandidates } = require('./declutterActionService');
-  await reconcileExpiredDeclutterCandidates({ limit: 25, source: 'vote_reset_request' });
   const candidate = await DeclutterCandidate.findById(id);
   if (!candidate) throw createHttpError(404, 'Declutter candidate was not found.');
-  if (!['active', 'cooling_off'].includes(candidate.deckState)) {
+  if (candidate.deckState !== 'active') {
     throw createHttpError(409, 'Confirmed decisions can only be changed through Actions.');
   }
   const item = await Item.findById(candidate.itemId).select('_id item_status').lean();
@@ -608,13 +685,11 @@ async function resetOwnDeclutterVote(candidateId, payload = {}) {
   candidate.votes[player] = { decision: 'pending', exitPreference: null, decidedAt: null };
   candidate.markModified('votes');
   const state = deriveCandidateState(candidate.votes);
-  const cancelledDeadline = candidate.confirmationExpiresAt;
   candidate.deckState = state.deckState;
   candidate.resolution = state.resolution;
   candidate.stagingRoute = state.stagingRoute;
   candidate.confirmationState = state.confirmationState;
   candidate.consensusReachedAt = state.consensusReachedAt;
-  candidate.confirmationExpiresAt = state.confirmationExpiresAt;
   candidate.confirmedAt = null;
   candidate.resolvedAt = null;
   await candidate.save();
@@ -623,33 +698,27 @@ async function resetOwnDeclutterVote(candidateId, payload = {}) {
     candidateId: String(candidate._id),
     itemId: String(candidate.itemId),
     player,
-    timerCancelled: Boolean(cancelledDeadline),
   });
   return (await hydrateCandidates([candidate.toObject()], player))[0];
 }
 
 async function resetAllOwnDeclutterVotes(payload = {}) {
   const player = normalizePlayer(payload.player, { required: true });
-  const { reconcileExpiredDeclutterCandidates } = require('./declutterActionService');
-  await reconcileExpiredDeclutterCandidates({ limit: 100, source: 'bulk_vote_reset_request' });
   const candidates = await DeclutterCandidate.find({
-    deckState: { $in: ['active', 'cooling_off'] },
+    deckState: 'active',
     [`votes.${player}.decision`]: { $ne: 'pending' },
   });
   const resetIds = [];
-  let timersCancelled = 0;
   for (const candidate of candidates) {
     candidate.votes = normalizeVotes(candidate);
     candidate.votes[player] = { decision: 'pending', exitPreference: null, decidedAt: null };
     candidate.markModified('votes');
-    if (candidate.confirmationExpiresAt) timersCancelled += 1;
     const state = deriveCandidateState(candidate.votes);
     candidate.deckState = state.deckState;
     candidate.resolution = state.resolution;
     candidate.stagingRoute = state.stagingRoute;
     candidate.confirmationState = state.confirmationState;
     candidate.consensusReachedAt = state.consensusReachedAt;
-    candidate.confirmationExpiresAt = state.confirmationExpiresAt;
     candidate.confirmedAt = null;
     candidate.resolvedAt = null;
     await candidate.save();
@@ -659,10 +728,9 @@ async function resetAllOwnDeclutterVotes(payload = {}) {
   writeBackendLog('info', 'declutter.candidate.vote_reset_all', {
     player,
     resetCount: resetIds.length,
-    timersCancelled,
     candidateIds: resetIds,
   });
-  return { player, resetCount: resetIds.length, timersCancelled, candidateIds: resetIds };
+  return { player, resetCount: resetIds.length, candidateIds: resetIds };
 }
 
 async function reopenDeclutterCandidate(candidateId) {
@@ -682,7 +750,6 @@ async function reopenDeclutterCandidate(candidateId) {
     resolution: existing.resolution,
     stagingRoute: existing.stagingRoute,
     consensusReachedAt: existing.consensusReachedAt,
-    confirmationExpiresAt: existing.confirmationExpiresAt,
     confirmedAt: existing.confirmedAt,
     resolvedAt: existing.resolvedAt,
     notes: existing.notes,
@@ -700,7 +767,6 @@ async function reopenDeclutterCandidate(candidateId) {
         resolvedAt: null,
         confirmationState: 'voting',
         consensusReachedAt: null,
-        confirmationExpiresAt: null,
         confirmedAt: null,
       },
       $push: { roundHistory: historyEntry },
@@ -714,6 +780,9 @@ async function reopenDeclutterCandidate(candidateId) {
 
 module.exports = {
   getDeclutterDeck,
+  getDeclutterHistory,
+  matchesHistoryFilter,
+  matchesHistoryRoute,
   nominateDeclutterCandidate,
   removeDeclutterCandidateByItem,
   voteOnDeclutterCandidate,
@@ -732,5 +801,4 @@ module.exports = {
   normalizePlayer,
   createHttpError,
   assertItemIsReviewable,
-  CONFIRMATION_WINDOW_MS,
 };

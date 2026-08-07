@@ -17,8 +17,8 @@ import { ToastContext } from './Toast';
 const DEFAULT_PAGE_SIZE = 20;
 
 const DEFAULT_SORT_OPTIONS = [
-  { value: 'recent', label: 'Date Orphaned (Newest)' },
-  { value: 'oldest', label: 'Date Orphaned (Oldest)' },
+  { value: 'recent', label: 'Date Set Adrift (Newest)' },
+  { value: 'oldest', label: 'Date Set Adrift (Oldest)' },
   { value: 'alpha', label: 'Alphabetical (A-Z)' },
 ];
 
@@ -490,12 +490,12 @@ export default function MiniOrphanedList({
   fetchOrphanedItems,
   refreshKey = 0,
   assignLabel = 'Assign',
-  title = 'Orphaned Items',
-  emptyText = 'No orphaned items.',
+  title = 'Items Adrift',
+  emptyText = 'No items adrift.',
   showControls = false,
   paginationMode = 'loadMore',
   pageSize = DEFAULT_PAGE_SIZE,
-  searchPlaceholder = 'Search orphaned items...',
+  searchPlaceholder = 'Search Items Adrift...',
   defaultSort = 'recent',
   sortOptions = DEFAULT_SORT_OPTIONS,
   fixedViewportHeight = '',
@@ -571,7 +571,7 @@ export default function MiniOrphanedList({
       const body = await res.json().catch(() => ({}));
       if (requestSeqRef.current !== requestSeq) return;
       if (!res.ok) {
-        throw new Error(body?.error || body?.message || 'Failed to load orphaned items');
+        throw new Error(body?.error || body?.message || 'Failed to load Items Adrift');
       }
 
       const pageItems = Array.isArray(body)
@@ -593,7 +593,7 @@ export default function MiniOrphanedList({
       ));
     } catch (e) {
       if (requestSeqRef.current !== requestSeq) return;
-      setError(e?.message || 'Failed to load orphaned items');
+      setError(e?.message || 'Failed to load Items Adrift');
       if (!append) {
         setLocalItems([]);
         setHasMore(false);
@@ -719,13 +719,13 @@ export default function MiniOrphanedList({
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
               placeholder={searchPlaceholder}
-              aria-label="Search orphaned items"
+              aria-label="Search Items Adrift"
             />
 
             <SortSelect
               value={sortBy}
               onChange={(event) => setSortBy(event.target.value)}
-              aria-label="Sort orphaned items"
+              aria-label="Sort Items Adrift"
             >
               {(Array.isArray(sortOptions) ? sortOptions : DEFAULT_SORT_OPTIONS).map((option) => (
                 <option key={option.value} value={option.value}>
@@ -737,7 +737,7 @@ export default function MiniOrphanedList({
         ) : null}
 
         <ListViewport $maxHeight={fixedViewportHeight}>
-          {showInitialLoading ? <StateText>Loading orphaned items…</StateText> : null}
+          {showInitialLoading ? <StateText>Loading Items Adrift…</StateText> : null}
           {showUpdatingState ? <StateText>Updating results…</StateText> : null}
           {!loading && error ? <StateText $error>{error}</StateText> : null}
           {!loading && !error && visibleItems.length === 0 ? (

@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
 import { spawn, spawnSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
-  appendFileSync,
+  chmodSync,
   closeSync,
+  cpSync,
   existsSync,
   mkdirSync,
   openSync,
@@ -16,15 +17,25 @@ import {
 import net from 'node:net';
 import os from 'node:os';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { buildDiagnosticReport, renderDoctor, renderSupportMarkdown } from './tarot-runtime/diagnostics.mjs';
+import { attachJsonLineHandler, requestJsonLine } from './tarot-runtime/ipc.mjs';
+import { createLineCollector, appendLogEntries, readLogEntries, rotateLog } from './tarot-runtime/log-store.mjs';
+import { createActionSerializer, nextRetry } from './tarot-runtime/lifecycle.mjs';
+import { healthContract, validateManifest } from './tarot-runtime/manifest.mjs';
+import { atomicWriteFile, atomicWriteJson, redactValue, safeReadJson } from './tarot-runtime/persistence.mjs';
+import { probeReadiness } from './tarot-runtime/probe.mjs';
+import { commandFingerprint, signalProcessGroup } from './tarot-runtime/process.mjs';
+import { createRuntimeService, displayState, newRunId, publicServiceState, transitionService } from './tarot-runtime/state.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const runtime = resolve(root, '.runtime');
 const manifestPath = resolve(root, 'tarot.manifest.json');
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-if (migrateFrontendLanContracts(manifest)) writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 const profileName = process.argv.includes('production') ? 'production' : 'development';
 const profile = manifest.profiles?.[profileName] || manifest.profiles.development;
+const manifestValidation = validateManifest(manifest, root, profileName);
+if (!manifestValidation.valid) throw new Error(`Invalid tarot.manifest.json:\n- ${manifestValidation.errors.join('\n- ')}`);
 const withoutMongo = process.argv.includes('--without-mongo') || process.env.TAROT_WITHOUT_MONGO === '1';
 const recoverRequested = process.argv.includes('--recover');
 const projectName = manifest.displayName || manifest.projectId || 'Tarot project';
@@ -32,22 +43,21 @@ const socketPath = resolve(runtime, 'tarot-dock.sock');
 const lockPath = resolve(runtime, 'tarot-dock.lock');
 const statePath = resolve(runtime, 'tarot-dock-state.json');
 const logsDirectory = resolve(runtime, 'tarot-logs');
+const incidentPath = resolve(runtime, 'tarot-incidents.json');
+const supportDirectory = resolve(runtime, 'tarot-support');
+const bootstrapLogPath = resolve(runtime, 'tarot-agent-bootstrap.log');
 const shellDirectory = resolve(runtime, 'tarot-dock-shell');
 const dockScript = resolve(root, 'scripts/tarot-dock.mjs');
+const agentScript = resolve(root, 'scripts/tarot-agent.mjs');
 const sigilSymbols = ['⌁', '⋮', '⟡', '◌', '╳', '∷', '◇', '⊹', '◈', '░', '▒', '▓'];
 const terminalPalette = [31, 32, 33, 34, 35, 36, 91, 92, 93, 94, 95, 96];
 const hash = createHash('sha256').update(projectName).digest();
 const sigil = Array.from({ length: 8 }, (_, index) => sigilSymbols[hash[index] % sigilSymbols.length]).join('');
 const requestedAccent = Number(manifest.branding?.terminalColor);
 const accentColor = terminalPalette.includes(requestedAccent) ? requestedAccent : terminalPalette[hash[8] % terminalPalette.length];
-const services = new Map((profile.services || []).map((service) => [service.id, {
-  ...service,
-  state: 'quiet',
-  process: null,
-  verified: false,
-  logs: [],
-  error: '',
-}]));
+const services = new Map((profile.services || []).map((service) => [service.id, createRuntimeService(service)]));
+const agentSessionId = `agent-${Date.now()}-${randomUUID().slice(0, 8)}`;
+let incidents = safeReadJson(incidentPath, []);
 let selectedAddress = 2;
 let viewMode = 'status';
 let logServiceId = '';
@@ -57,6 +67,21 @@ let observationTimer = null;
 let lastHeartbeatAt = 0;
 let warpFrame = 0;
 let logSequence = 0;
+let agentServer = null;
+const enqueueAction = createActionSerializer();
+
+function recordIncident(type, service, message, details = {}) {
+  incidents.push({
+    id: randomUUID(),
+    at: new Date().toISOString(),
+    type,
+    serviceId: service?.id || '',
+    message,
+    ...details,
+  });
+  incidents = incidents.slice(-500);
+  atomicWriteJson(incidentPath, incidents);
+}
 
 function paint(code, value) {
   return process.stdout.isTTY ? `\u001b[${code}m${value}\u001b[0m` : value;
@@ -123,26 +148,52 @@ function acquireLock() {
   mkdirSync(runtime, { recursive: true });
   try {
     const descriptor = openSync(lockPath, 'wx');
-    writeFileSync(descriptor, String(process.pid));
+    writeFileSync(descriptor, JSON.stringify({
+      schemaVersion: 1,
+      pid: process.pid,
+      processStartedAt: processStartTime(process.pid),
+      projectRoot: root,
+      projectId: manifest.projectId,
+      agentSessionId,
+      tarotVersion: manifest.tarotVersion || manifest.version || '',
+      socketPath,
+      acquiredAt: new Date().toISOString(),
+    }, null, 2));
     closeSync(descriptor);
     lockOwned = true;
   } catch (error) {
     if (error.code !== 'EEXIST') throw error;
-    const pid = Number(existsSync(lockPath) ? readFileSync(lockPath, 'utf8').trim() : 0);
+    const pid = readLock().pid;
     if (isTarotDockProcess(pid)) throw new Error('Tarot Dock is already running in this project.');
     unlinkSync(lockPath);
     acquireLock();
   }
 }
 
+function readLock() {
+  if (!existsSync(lockPath)) return { pid: 0 };
+  const raw = readFileSync(lockPath, 'utf8').trim();
+  try {
+    const parsed = JSON.parse(raw);
+    return { ...parsed, pid: Number(parsed.pid) || 0 };
+  } catch { return { pid: Number(raw) || 0, legacy: true }; }
+}
+
+function processStartTime(pid) {
+  const result = spawnSync('ps', ['-p', String(pid), '-o', 'lstart='], { encoding: 'utf8' });
+  return result.status === 0 ? result.stdout.trim() : '';
+}
+
 function isTarotDockProcess(pid) {
   if (!Number.isInteger(pid) || pid < 1) return false;
   try { process.kill(pid, 0); } catch { return false; }
   const inspection = spawnSync('ps', ['-p', String(pid), '-o', 'command='], { encoding: 'utf8' });
-  if (inspection.status !== 0 || !/(?:^|[\\/ ])tarot-dock\.mjs(?:\s|$)/.test(inspection.stdout || '')) return false;
+  if (inspection.status !== 0 || !/(?:^|[\\/ ])tarot-(?:dock|agent)\.mjs(?:\s|$)/.test(inspection.stdout || '')) return false;
   const cwd = spawnSync('lsof', ['-a', '-p', String(pid), '-d', 'cwd', '-Fn'], { encoding: 'utf8' });
   const processRoot = (cwd.stdout || '').split(/\r?\n/).find((line) => line.startsWith('n'))?.slice(1);
-  return Boolean(processRoot && resolve(processRoot) === root);
+  if (!processRoot || resolve(processRoot) !== root) return false;
+  const lock = readLock();
+  return !lock.processStartedAt || !processStartTime(pid) || lock.processStartedAt === processStartTime(pid);
 }
 
 async function waitForDockExit(pid, timeoutMs = 5000) {
@@ -156,7 +207,7 @@ async function waitForDockExit(pid, timeoutMs = 5000) {
 
 async function recoverExistingDock() {
   if (!recoverRequested || !existsSync(lockPath)) return;
-  const pid = Number(readFileSync(lockPath, 'utf8').trim());
+  const pid = readLock().pid;
   if (!isTarotDockProcess(pid)) return;
   console.log(`Recovering the prior Tarot Dock for ${projectName} (PID ${pid})…`);
   try { process.kill(pid, 'SIGTERM'); } catch (error) { throw new Error(`Could not signal the prior Tarot Dock: ${error.message}`); }
@@ -168,7 +219,7 @@ async function recoverExistingDock() {
 
 function releaseLock() {
   if (!lockOwned) return;
-  try { if (Number(readFileSync(lockPath, 'utf8').trim()) === process.pid) unlinkSync(lockPath); } catch {}
+  try { if (readLock().pid === process.pid) unlinkSync(lockPath); } catch {}
   lockOwned = false;
 }
 
@@ -266,36 +317,94 @@ async function listeners(port) {
   const result = await run('lsof', ['-nP', `-iTCP:${port}`, '-sTCP:LISTEN', '-Fp']);
   const pids = [...new Set([...result.stdout.matchAll(/^p(\d+)$/gm)].map((match) => Number(match[1])))];
   return Promise.all(pids.map(async (pid) => {
-    const [command, cwd] = await Promise.all([
+    const [command, executable, parent, started, cwd] = await Promise.all([
       run('ps', ['-p', String(pid), '-o', 'command=']),
+      run('ps', ['-p', String(pid), '-o', 'comm=']),
+      run('ps', ['-p', String(pid), '-o', 'ppid=']),
+      run('ps', ['-p', String(pid), '-o', 'lstart=']),
       run('lsof', ['-a', '-p', String(pid), '-d', 'cwd', '-Fn']),
     ]);
-    return { pid, command: command.stdout.trim(), cwd: (cwd.stdout.split(/\r?\n/).find((line) => line.startsWith('n')) || '').slice(1) };
+    return {
+      pid,
+      ppid: Number(parent.stdout.trim()) || null,
+      command: command.stdout.trim(),
+      executable: executable.stdout.trim(),
+      processStartedAt: started.stdout.trim(),
+      cwd: (cwd.stdout.split(/\r?\n/).find((line) => line.startsWith('n')) || '').slice(1),
+    };
   }));
 }
 
-function belongsTo(serviceCommand, listener) {
+function commandIdentityTokens(service, serviceCommand) {
+  const source = [service.command, ...(service.args || []), serviceCommand.command, ...serviceCommand.args].join(' ').toLowerCase();
+  const tokens = new Set();
+  ['vite', 'vinext', 'next', 'react-scripts', 'uvicorn', 'flask', 'nodemon'].forEach((token) => { if (source.includes(token)) tokens.add(token); });
+  for (const argument of service.args || []) {
+    if (/\.(?:m?js|cjs|py|rb|go)$/i.test(argument)) tokens.add(argument.split('/').pop().toLowerCase());
+  }
+  if (service.command && service.command !== 'npm') tokens.add(service.command.split('/').pop().toLowerCase());
+  return [...tokens].filter((token) => token.length > 2);
+}
+
+function belongsTo(serviceCommand, listener, service = {}) {
   if (!listener.cwd) return false;
   const expected = resolve(serviceCommand.cwd);
   const actual = resolve(listener.cwd);
-  return actual === expected || actual.startsWith(`${expected}/`);
+  if (!(actual === expected || actual.startsWith(`${expected}/`))) return false;
+  if (service.process?.pid && listener.pid === service.process.pid) return true;
+  const tokens = commandIdentityTokens(service, serviceCommand);
+  if (!tokens.length) return false;
+  const observed = `${listener.executable || ''} ${listener.command || ''}`.toLowerCase();
+  return tokens.some((token) => observed.includes(token));
 }
 
-async function refresh() {
+async function probeService(service) {
+  const contract = healthContract(service);
+  const activeListeners = await listeners(service.port);
+  return probeReadiness({ contract: service.protocol === 'mongodb' ? { ...contract, type: 'tcp' } : contract, port: service.port, listenerPresent: activeListeners.length > 0 });
+}
+
+async function refresh(forceHealth = false) {
   await Promise.all([...services.values()].map(async (service) => {
     const activeListeners = await listeners(service.port);
     if (service.monitorOnly) {
-      service.verified = false;
-      if (withoutMongo && service.protocol === 'mongodb') service.state = 'bypassed';
-      else if (activeListeners.length) service.state = 'observed';
-      else if (service.state !== 'error') service.state = 'quiet';
+      if (withoutMongo && service.protocol === 'mongodb') {
+        service.state = 'bypassed';
+        transitionService(service, { processState: 'absent', healthState: 'unknown', ownershipState: 'system' }, 'Bypassed by --without-mongo.');
+        service.state = 'bypassed';
+      } else {
+        transitionService(service, {
+          processState: activeListeners.length ? 'running' : 'absent',
+          healthState: activeListeners.length ? 'healthy' : 'unknown',
+          ownershipState: 'system',
+        }, activeListeners.length ? 'Observed a system-managed listener.' : 'System service is not listening.');
+      }
       return;
     }
     const command = resolveCommand(service);
-    service.verified = !command.error && activeListeners.length > 0 && activeListeners.every((listener) => belongsTo(command, listener));
-    if (!service.process) {
-      service.state = activeListeners.length ? 'observed' : 'quiet';
-      if (service.state === 'observed') service.error = '';
+    const verified = !command.error && activeListeners.length > 0 && activeListeners.every((listener) => belongsTo(command, listener, service));
+    const owned = Boolean(service.process && service.process.exitCode == null);
+    const ownershipState = owned ? 'tarot' : verified ? 'verified-project' : activeListeners.length ? 'unknown' : 'unknown';
+    const processState = owned
+      ? (service.processState === 'stopping' ? 'stopping' : activeListeners.length ? 'running' : 'starting')
+      : activeListeners.length ? 'running' : service.processState === 'exited' ? 'exited' : 'absent';
+    service.observedPids = activeListeners.map((listener) => listener.pid);
+    service.observedProcessStartedAt = activeListeners.map((listener) => listener.processStartedAt).filter(Boolean);
+    transitionService(service, { processState, ownershipState }, activeListeners.length ? 'Live listener evidence reconciled.' : owned ? 'Process is running but has not opened its port yet.' : 'No live process or listener evidence.');
+    if (activeListeners.length && (forceHealth || Date.now() >= (service.nextProbeAt || 0))) {
+      const previousHealth = service.healthState;
+      transitionService(service, { healthState: 'checking' }, 'Checking declared readiness contract.');
+      const result = await probeService(service);
+      service.probe = result;
+      service.lastProbeAt = result.checkedAt;
+      service.nextProbeAt = Date.now() + healthContract(service).intervalMs;
+      transitionService(service, { healthState: result.ok ? 'healthy' : 'unhealthy', processState: 'running' }, result.message);
+      service.error = result.ok ? '' : result.message;
+      if (previousHealth !== service.healthState && previousHealth !== 'checking') {
+        recordIncident('health-transition', service, `${previousHealth} -> ${service.healthState}: ${result.message}`);
+      }
+    } else if (!activeListeners.length && !owned) {
+      transitionService(service, { healthState: 'unknown' });
     }
   }));
   persist();
@@ -305,13 +414,14 @@ async function ensureMongo() {
   const mongo = [...services.values()].find((service) => service.protocol === 'mongodb');
   if (!mongo) return true;
   if (withoutMongo) {
+    transitionService(mongo, { processState: 'absent', healthState: 'unknown', ownershipState: 'system' }, 'Bypassed by --without-mongo.');
     mongo.state = 'bypassed';
     mongo.error = 'Bypassed by --without-mongo.';
     persist();
     return true;
   }
   if ((await listeners(mongo.port)).length) {
-    mongo.state = 'observed';
+    transitionService(mongo, { processState: 'running', healthState: 'healthy', ownershipState: 'system' }, 'Observed a ready system-managed MongoDB listener.');
     mongo.error = '';
     persist();
     return true;
@@ -323,27 +433,27 @@ async function ensureMongo() {
     persist();
     return false;
   }
-  mongo.state = 'starting';
+  transitionService(mongo, { processState: 'starting', healthState: 'checking', ownershipState: 'system' }, 'Requested the declared MongoDB manager to start the service.');
   mongo.error = '';
   persist();
   const started = await run(command, args, { cwd: root });
-  if (started.error || started.code !== 0) {
-    mongo.state = 'error';
-    mongo.error = [started.stderr.trim(), started.stdout.trim(), started.error?.message].filter(Boolean).join(' · ') || `Could not run ${command} ${args.join(' ')}.`;
-    persist();
-    return false;
-  }
+  const managementFailure = started.error || started.code !== 0
+    ? [started.stderr.trim(), started.stdout.trim(), started.error?.message].filter(Boolean).join(' · ') || `Could not run ${command} ${args.join(' ')}.`
+    : '';
   const attempts = Math.ceil((mongo.startupTimeoutMs || 30000) / 500);
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     if ((await listeners(mongo.port)).length) {
-      mongo.state = 'observed';
+      transitionService(mongo, { processState: 'running', healthState: 'healthy', ownershipState: 'system' }, managementFailure ? 'MongoDB became ready even though its management command reported an error.' : 'MongoDB is ready.');
+      mongo.error = managementFailure ? `Warning: ${managementFailure}` : '';
+      if (managementFailure) recordIncident('mongo-management-warning', mongo, mongo.error);
       persist();
       return true;
     }
     await new Promise((resolveWait) => setTimeout(resolveWait, 500));
   }
-  mongo.state = 'error';
-  mongo.error = `MongoDB did not listen on :${mongo.port} after its start command.`;
+  transitionService(mongo, { processState: 'absent', healthState: 'unhealthy', ownershipState: 'system' }, `MongoDB did not listen on :${mongo.port} during the observation window.`);
+  mongo.error = managementFailure || `MongoDB did not listen on :${mongo.port} after its start command.`;
+  recordIncident('mongo-start-failed', mongo, mongo.error);
   persist();
   return false;
 }
@@ -380,8 +490,8 @@ function addressIndex(reference) {
 }
 
 function persist() {
-  const publicServices = [...services.values()].map(({ process, logs, ...service }) => ({ ...service, owned: Boolean(process), logs: logs.slice(-24) }));
-  writeFileSync(statePath, JSON.stringify({ projectName, profile: profile.label || profileName.toUpperCase(), sigil, accentColor, selectedAddress, viewMode, logServiceId, services: publicServices, addresses: addresses() }, null, 2));
+  const publicServices = [...services.values()].map((service, index) => ({ ...publicServiceState(service, index), logs: service.logs.slice(-24) }));
+  atomicWriteJson(statePath, { schemaVersion: 1, agentSessionId, updatedAt: new Date().toISOString(), projectName, profile: profile.label || profileName.toUpperCase(), sigil, accentColor, selectedAddress, viewMode, logServiceId, services: publicServices, addresses: addresses() });
   heartbeatRegistry(publicServices);
 }
 
@@ -427,52 +537,66 @@ function toggleView(reference) {
 }
 
 function stopTree(child, signal = 'SIGTERM') {
-  if (!child?.pid) return;
-  try { process.kill(-child.pid, signal); } catch { try { child.kill(signal); } catch {} }
+  signalProcessGroup(child, signal);
 }
 
 async function releasePort(service, command) {
   const activeListeners = await listeners(service.port);
-  const unknown = activeListeners.filter((listener) => !belongsTo(command, listener));
+  const unknown = activeListeners.filter((listener) => !belongsTo(command, listener, service));
   if (unknown.length) return `:${service.port} belongs to unverified ${unknown.map((item) => `PID ${item.pid}`).join(', ')}; left untouched.`;
   for (const listener of activeListeners) {
     try { process.kill(listener.pid, 'SIGTERM'); } catch {}
   }
-  for (let attempt = 0; attempt < 16; attempt += 1) {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
     if (!(await listeners(service.port)).length) return null;
     await new Promise((resolveWait) => setTimeout(resolveWait, 125));
   }
   return `Could not release :${service.port} from the prior verified ${service.label} process.`;
 }
 
-async function serviceReady(service) {
-  const healthPath = String(service.healthPath || '/');
-  const path = healthPath.startsWith('/') ? healthPath : `/${healthPath}`;
-  try {
-    const response = await fetch(`http://127.0.0.1:${service.port}${path}`, {
-      signal: AbortSignal.timeout(1000),
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
+function startupTimeoutMs(service) {
+  const configured = Number(healthContract(service).startupTimeoutMs || service.startupTimeoutMs);
+  return Number.isFinite(configured) && configured > 0 ? configured : 60000;
 }
 
-async function start(serviceId) {
+async function waitForServiceReady(service, timeoutMs = startupTimeoutMs(service)) {
+  const deadline = Date.now() + timeoutMs;
+  service.startupDeadlineAt = new Date(deadline).toISOString();
+  while (Date.now() < deadline) {
+    const result = await probeService(service);
+    service.probe = result;
+    service.lastProbeAt = result.checkedAt;
+    if (result.ok) return true;
+    if (!service.process || service.process.exitCode != null) return false;
+    await new Promise((resolveWait) => setTimeout(resolveWait, 250));
+  }
+  return false;
+}
+
+async function start(serviceId, options = {}) {
   const service = services.get(serviceId);
   if (!service) return `Unknown service: ${serviceId}.`;
   if (service.monitorOnly) return `${service.label} is observed only; Tarot will not start or stop it.`;
-  if (service.process) return `${service.label} is already Tarot-owned.`;
+  if (service.process && service.process.exitCode == null) return `${service.label} is already Tarot-owned.`;
+  if (service.verified && service.healthState === 'healthy') return `${service.label} is already running under a verified project listener; Tarot did not replace it.`;
   if (service.dependsOn?.includes('mongodb') && !(await ensureMongo()) && !withoutMongo) {
     return 'MongoDB could not be started. Fix the MongoDB service or restart Tarot with npm run tarot -- --without-mongo.';
   }
   const command = resolveCommand(service);
   if (command.error) return command.error;
+  service.commandFingerprint = commandFingerprint(command);
   const portProblem = await releasePort(service, command);
   if (portProblem) { service.state = 'error'; service.error = portProblem; persist(); return portProblem; }
-  service.state = 'starting'; service.error = ''; service.logs = [];
+  service.runId = newRunId(service.id);
+  if (!options.retry) service.restartAttempts = 0;
+  service.startedAt = Date.now();
+  service.intentionalStop = false;
+  service.exitCode = null;
+  service.exitSignal = null;
+  transitionService(service, { processState: 'starting', healthState: 'checking', ownershipState: 'tarot' }, `Starting run ${service.runId}.`);
+  service.error = ''; service.logs = [];
   mkdirSync(logsDirectory, { recursive: true });
-  writeFileSync(serviceLogPath(service), '');
+  appendLogEntries(serviceLogPath(service), [{ type: 'run-start', message: `Run ${service.runId} started.`, stream: 'tarot', runId: service.runId, capturedAt: Date.now(), sequence: ++logSequence }]);
   const childEnvironment = { ...process.env, ...command.env, DECKONE_TAROT_ACTIVE: '1' };
   if (withoutMongo) childEnvironment.TAROT_WITHOUT_MONGO = '1';
   const child = spawn(command.command, command.args, {
@@ -482,35 +606,94 @@ async function start(serviceId) {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   service.process = child;
-  const log = (stream) => (chunk) => {
-    const entries = chunk.toString().split(/\r?\n/).filter(Boolean).map((message) => ({ message, stream, capturedAt: Date.now(), sequence: ++logSequence }));
+  service.pid = child.pid;
+  service.processStartedAt = processStartTime(child.pid);
+  const collectEntries = (entries) => {
     service.logs.push(...entries);
     service.logs = service.logs.slice(-24);
-    if (entries.length) appendFileSync(serviceLogPath(service), `${entries.map((entry) => JSON.stringify(entry)).join('\n')}\n`);
+    appendLogEntries(serviceLogPath(service), entries);
     persist();
   };
-  child.stdout.on('data', log('out')); child.stderr.on('data', log('error'));
-  child.once('exit', (code) => {
+  const stdout = createLineCollector({ stream: 'out', runId: service.runId, onEntries: collectEntries, nextSequence: () => ++logSequence });
+  const stderr = createLineCollector({ stream: 'error', runId: service.runId, onEntries: collectEntries, nextSequence: () => ++logSequence });
+  child.stdout.on('data', (chunk) => stdout.write(chunk));
+  child.stderr.on('data', (chunk) => stderr.write(chunk));
+  child.once('error', (error) => {
+    service.error = `Could not spawn ${service.label}: ${error.message}`;
+    transitionService(service, { processState: 'exited', healthState: 'unhealthy', ownershipState: 'tarot' }, service.error);
+    recordIncident('spawn-error', service, service.error, { code: error.code || '' });
+    persist();
+  });
+  child.once('exit', (code, signal) => {
+    stdout.flush(); stderr.flush();
+    const intentional = service.intentionalStop;
     service.process = null;
-    service.state = code === 0 ? 'quiet' : 'error';
-    if (code !== 0) {
-      service.error = `Exited (${code}).`;
-      service.logs.push({ message: service.error, stream: 'error' });
+    service.exitCode = code;
+    service.exitSignal = signal;
+    const exitDetail = signal || (code ?? 'unknown');
+    const message = intentional ? `Stopped intentionally${signal ? ` by ${signal}` : ''}.` : `Exited unexpectedly (${exitDetail}).`;
+    transitionService(service, { processState: intentional ? 'absent' : 'exited', healthState: 'unknown', ownershipState: 'unknown' }, message);
+    service.error = intentional ? '' : message;
+    if (!intentional) {
+      recordIncident('unexpected-exit', service, message, { code, signal, runId: service.runId });
+      const early = Date.now() - (service.startedAt || 0) <= startupTimeoutMs(service);
+      const retry = nextRetry(service.restartAttempts, early);
+      if (retry) {
+        service.restartAttempts = retry.attempt;
+        recordIncident('retry-scheduled', service, `Retry ${retry.attempt}/2 scheduled in ${retry.delayMs} ms.`, { runId: service.runId });
+        setTimeout(() => enqueueAction(() => start(service.id, { retry: true })).catch(() => {}), retry.delayMs);
+      }
     }
     persist();
   });
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    if ((await listeners(service.port)).length && await serviceReady(service)) {
-      service.state = 'live';
-      persist();
-      return `${service.label} awakened on :${service.port}.`;
-    }
-    await new Promise((resolveWait) => setTimeout(resolveWait, 250));
+  if (await waitForServiceReady(service)) {
+    transitionService(service, { processState: 'running', healthState: 'healthy', ownershipState: 'tarot' }, service.probe?.message || 'Readiness contract passed.');
+    service.error = '';
+    persist();
+    return `${service.label} awakened on :${service.port}.`;
   }
-  service.state = 'error';
-  service.error = `Service did not pass ${service.healthPath || '/'} on :${service.port}.`;
+  // Keep a still-running process in starting state.  It may be completing a
+  // backfill or other legitimate boot work; refresh() will promote it to live
+  // as soon as the listener and health endpoint become available.
+  if (service.process && service.process.exitCode == null) {
+    const contract = healthContract(service);
+    transitionService(service, { processState: 'running', healthState: 'unhealthy', ownershipState: 'tarot' }, `Startup deadline expired while ${contract.type.toUpperCase()} readiness was still failing.`);
+    service.error = service.probe?.message || `Readiness did not pass on :${service.port}.`;
+    recordIncident('startup-timeout', service, service.error, { runId: service.runId });
+    persist();
+    return `${service.label} is running but unhealthy on :${service.port}: ${service.error}`;
+  }
+  transitionService(service, { processState: 'exited', healthState: 'unhealthy', ownershipState: 'unknown' }, 'The process exited before readiness passed.');
+  service.error ||= `Service exited before becoming ready on :${service.port}.`;
   persist();
   return `${service.label} did not become healthy.`;
+}
+
+async function startWithDependencies(serviceId, visited = new Set()) {
+  const service = services.get(serviceId);
+  if (!service) return [{ serviceId, status: 'failed', message: `Unknown service: ${serviceId}.` }];
+  if (visited.has(serviceId)) return [];
+  visited.add(serviceId);
+  const outcomes = [];
+  for (const dependency of service.dependsOn || []) {
+    const dependencyService = services.get(dependency);
+    if (!dependencyService) {
+      outcomes.push({ serviceId, status: 'blocked', message: `${service.label} requires missing dependency ${dependency}.` });
+      return outcomes;
+    }
+    if (dependencyService.healthState !== 'healthy') {
+      outcomes.push(...await startWithDependencies(dependency, visited));
+      await refresh(true);
+      if (dependencyService.healthState !== 'healthy') {
+        outcomes.push({ serviceId, status: 'blocked', message: `${service.label} could not start because ${dependencyService.label} is unavailable.` });
+        return outcomes;
+      }
+    }
+  }
+  const message = await start(serviceId);
+  await refresh();
+  outcomes.push({ serviceId, status: /awakened on|already Tarot-owned|already running under a verified/.test(message) ? 'succeeded' : 'failed', message });
+  return outcomes;
 }
 
 async function stop(serviceId) {
@@ -521,7 +704,7 @@ async function stop(serviceId) {
     const command = resolveCommand(service);
     if (command.error) return command.error;
     const activeListeners = await listeners(service.port);
-    const verified = activeListeners.length > 0 && activeListeners.every((listener) => belongsTo(command, listener));
+    const verified = activeListeners.length > 0 && activeListeners.every((listener) => belongsTo(command, listener, service));
     if (!verified) return `${service.label} is not a verified DeckOne service, so it was left running.`;
     const portProblem = await releasePort(service, command);
     if (portProblem) return portProblem;
@@ -530,8 +713,24 @@ async function stop(serviceId) {
     persist();
     return `${service.label} released from its verified DeckOne provider.`;
   }
-  stopTree(service.process);
-  service.process = null; service.verified = false; service.state = 'quiet'; persist();
+  const child = service.process;
+  service.intentionalStop = true;
+  transitionService(service, { processState: 'stopping' }, 'An intentional Tarot stop was requested.');
+  persist();
+  stopTree(child, 'SIGTERM');
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    if (child.exitCode != null || !(await listeners(service.port)).length) break;
+    await new Promise((resolveWait) => setTimeout(resolveWait, 125));
+  }
+  if (child.exitCode == null && (await listeners(service.port)).length) {
+    stopTree(child, 'SIGKILL');
+    recordIncident('stop-escalated', service, 'SIGTERM exceeded five seconds; Tarot sent SIGKILL to the verified owned process group.');
+  }
+  service.process = null;
+  transitionService(service, { processState: 'absent', healthState: 'unknown', ownershipState: 'unknown' }, 'Tarot verified the service stopped.');
+  service.error = '';
+  persist();
   return `${service.label} released.`;
 }
 
@@ -558,6 +757,164 @@ async function copy(reference) {
   return `Copied ${address.label}: ${address.url}`;
 }
 
+function diagnosticReport() {
+  return buildDiagnosticReport({
+    root,
+    manifest,
+    profileName,
+    statePath,
+    lockPath,
+    socketPath,
+    releasePath: resolve(root, 'tarot-port.release.json'),
+    incidents,
+    state: safeReadJson(statePath, null),
+  });
+}
+
+function filteredReport(report, reference) {
+  if (!reference || reference.startsWith('--')) return report;
+  const service = resolveService(reference);
+  if (!service) throw new Error(`Unknown service: ${reference}.`);
+  return { ...report, services: report.services.filter((entry) => entry.id === service.id) };
+}
+
+function diagnosticsCommand(args = []) {
+  const report = filteredReport(diagnosticReport(), args.find((argument) => !argument.startsWith('--')));
+  return args.includes('--json') ? JSON.stringify(report, null, 2) : renderDoctor(report);
+}
+
+function explainService(reference) {
+  const service = reference ? resolveService(reference) : [...services.values()].find((entry) => entry.healthState === 'unhealthy' || entry.processState === 'exited') || [...services.values()][0];
+  if (!service) return 'This Tarot manifest has no services.';
+  const next = service.ownershipState === 'unknown' && service.processState === 'running'
+    ? 'Do not stop it automatically. Run tarot doctor for ownership evidence.'
+    : service.healthState === 'unhealthy'
+      ? `Inspect scry ${[...services.keys()].indexOf(service.id) + 1}, then restart ${service.id} if its error is understood.`
+      : service.processState === 'absent'
+        ? `Run start ${service.id}, or awaken for the complete dependency-safe stack.`
+        : 'No repair is currently required.';
+  return [
+    `✦ TAROT EXPLAINS / ${service.label}`,
+    `  Display: ${displayState(service).toUpperCase()}`,
+    `  Process: ${service.processState} · health: ${service.healthState} · ownership: ${service.ownershipState}`,
+    `  Evidence: ${service.stateReason || 'No transition reason recorded.'}`,
+    `  Last probe: ${service.lastProbeAt || 'not yet'}${service.probe?.message ? ` · ${service.probe.message}` : ''}`,
+    `  Safest next action: ${next}`,
+  ].join('\n');
+}
+
+function incidentsCommand(args = []) {
+  const limitIndex = args.indexOf('--limit');
+  const reference = args.find((argument, index) => !argument.startsWith('--') && index !== limitIndex + 1);
+  const service = reference ? resolveService(reference) : null;
+  if (reference && !service) return `Unknown service: ${reference}.`;
+  const limit = Math.min(200, Math.max(1, Number(args[limitIndex + 1]) || 20));
+  const selected = incidents.filter((incident) => !service || incident.serviceId === service.id).slice(-limit);
+  return selected.length ? selected.map((incident) => `${incident.at}  ${incident.serviceId || 'tarot'}  ${incident.type}  ${incident.message}`).join('\n') : 'No matching Tarot incidents are recorded.';
+}
+
+function copyText(value) {
+  if (process.platform !== 'darwin') return false;
+  const child = spawn('pbcopy', [], { stdio: ['pipe', 'ignore', 'ignore'] });
+  child.stdin.end(value);
+  return true;
+}
+
+function reportCommand(args = []) {
+  const unsafeFull = args.includes('--unsafe-full');
+  const asJson = args.includes('--json');
+  const reference = args.find((argument) => !argument.startsWith('--') && args[args.indexOf(argument) - 1] !== '--output');
+  const report = filteredReport(diagnosticReport(), reference);
+  const output = asJson ? JSON.stringify(unsafeFull ? report : redactValue(report, { projectRoot: root }), null, 2) : renderSupportMarkdown(report, unsafeFull);
+  const outputIndex = args.indexOf('--output');
+  const defaultPath = resolve(supportDirectory, `${new Date().toISOString().replace(/[:.]/g, '-')}.${asJson ? 'json' : 'md'}`);
+  const outputPath = outputIndex >= 0 && args[outputIndex + 1] ? resolve(root, args[outputIndex + 1]) : defaultPath;
+  mkdirSync(dirname(outputPath), { recursive: true });
+  atomicWriteFile(outputPath, `${output}\n`, 0o600);
+  if (args.includes('--copy')) copyText(output);
+  return `Tarot support report written to ${outputPath}${args.includes('--copy') ? ' and copied to the clipboard' : ''}.`;
+}
+
+function repairCommand(args = []) {
+  if (args.includes('--preview')) return [
+    '✦ TAROT REPAIR PREVIEW',
+    '  rotate-logs   Rotate Tarot-managed service logs without touching application data.',
+    '  rebuild-state Reconcile runtime state from live listeners and health evidence.',
+    'Apply one repair explicitly: tarot repair --apply <repair-id>',
+  ].join('\n');
+  const applyIndex = args.indexOf('--apply');
+  const repairId = applyIndex >= 0 ? args[applyIndex + 1] : '';
+  if (repairId === 'rotate-logs') {
+    for (const service of services.values()) rotateLog(serviceLogPath(service), true);
+    recordIncident('repair', null, 'Rotated Tarot service logs by explicit request.');
+    return 'Tarot service logs were rotated.';
+  }
+  if (repairId === 'rebuild-state') {
+    refresh(true).catch(() => {});
+    recordIncident('repair', null, 'Requested runtime-state reconciliation from live evidence.');
+    return 'Tarot is rebuilding runtime state from live evidence.';
+  }
+  return 'Use tarot repair --preview, then tarot repair --apply <repair-id>.';
+}
+
+async function registryCommand(args = []) {
+  if (args[0] !== 'reconcile') return 'Use tarot registry reconcile for a preview, then tarot registry reconcile --apply after review.';
+  const baseUrl = String(manifest.registry?.url || '').replace(/\/$/, '');
+  if (!baseUrl) return 'This project does not declare a DeckOne registry URL.';
+  const request = async (apply) => {
+    const response = await fetch(`${baseUrl}/reconcile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId: manifest.projectId, apply }),
+      signal: AbortSignal.timeout(5000),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.message || `Registry returned ${response.status}.`);
+    return body;
+  };
+  const preview = await request(false);
+  if (!args.includes('--apply')) {
+    if (!preview.changes?.length) return `Registry reconciliation preview: ${preview.pendingAllocations || 0} temporary allocation(s), no port moves required.`;
+    return ['Registry reconciliation preview:', ...preview.changes.map((change) => `  ${change.serviceId}: :${change.oldPort} → :${change.newPort}`), 'Nothing was changed. Re-run with --apply only after reviewing these exact moves.'].join('\n');
+  }
+  for (const change of preview.changes || []) {
+    const service = services.get(change.serviceId);
+    const adapter = service?.portAdapter || change.adapter || {};
+    const configPath = adapter.file ? resolve(root, adapter.file) : '';
+    if (!service || !adapter.file || !adapter.match || !configPath.startsWith(`${root}/`) || !existsSync(configPath) || !new RegExp(adapter.match, 'm').test(readFileSync(configPath, 'utf8'))) {
+      throw new Error(`Cannot safely move ${change.serviceId}; its recorded port adapter did not validate. Nothing was changed.`);
+    }
+  }
+  const running = new Set((preview.changes || []).filter((change) => services.get(change.serviceId)?.processState === 'running').map((change) => change.serviceId));
+  for (const serviceId of running) await stop(serviceId);
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupRoot = resolve(root, '.tarot', 'backups', `registry-reconcile-${stamp}`);
+  mkdirSync(backupRoot, { recursive: true });
+  cpSync(manifestPath, resolve(backupRoot, 'tarot.manifest.json'));
+  for (const change of preview.changes || []) {
+    const adapter = services.get(change.serviceId).portAdapter || change.adapter;
+    const configPath = resolve(root, adapter.file);
+    const backup = resolve(backupRoot, adapter.file);
+    mkdirSync(dirname(backup), { recursive: true });
+    cpSync(configPath, backup);
+  }
+  const applied = await request(true);
+  for (const change of applied.changes || []) {
+    const service = services.get(change.serviceId);
+    const adapter = service.portAdapter || change.adapter;
+    const configPath = resolve(root, adapter.file);
+    const matcher = new RegExp(adapter.match, 'm');
+    const replacement = adapter.strategy === 'capture' ? `$1${change.newPort}` : String(change.newPort);
+    atomicWriteFile(configPath, readFileSync(configPath, 'utf8').replace(matcher, replacement));
+    service.port = change.newPort;
+    const manifestService = manifest.profiles?.[profileName]?.services?.find((entry) => entry.id === change.serviceId);
+    if (manifestService) manifestService.port = change.newPort;
+  }
+  atomicWriteJson(manifestPath, manifest);
+  for (const serviceId of running) await startWithDependencies(serviceId);
+  return applied.changes?.length ? `Registry reconciliation applied. Backup: ${backupRoot}\n${applied.changes.map((change) => `${change.serviceId}: :${change.oldPort} → :${change.newPort}`).join('\n')}` : 'Registry reconciliation completed; no port moves were required.';
+}
+
 async function control(parts) {
   const [verb = 'status', argument] = parts;
   // Legacy hooks are deliberately no-ops. A normal shell must never have a
@@ -566,29 +923,17 @@ async function control(parts) {
   if (verb === 'awaken' || verb === 'raise') {
     if (!(await ensureMongo()) && !withoutMongo) return mongoFailureMessage();
     const outcomes = [];
-    const pending = new Map([...services.values()].filter((service) => service.autostart && !service.monitorOnly).map((service) => [service.id, service]));
-    while (pending.size) {
-      const ready = [...pending.values()].filter((service) => (service.dependsOn || []).every((dependency) => {
-        const required = services.get(dependency);
-        return !pending.has(dependency) && (!required || ['live', 'observed'].includes(required.state));
-      }));
-      if (!ready.length) {
-        outcomes.push(...[...pending.values()].map((service) => {
-          const unavailable = (service.dependsOn || []).find((dependency) => !services.has(dependency) || !['live', 'observed'].includes(services.get(dependency)?.state));
-          return unavailable
-            ? `${service.label} could not start because dependency ${unavailable} is unavailable.`
-            : `${service.label} could not start because its declared dependencies form a cycle.`;
-        }));
-        break;
-      }
-      for (const service of ready) {
-        outcomes.push(await start(service.id));
-        pending.delete(service.id);
+    const seen = new Set();
+    for (const service of [...services.values()].filter((item) => item.autostart && !item.monitorOnly)) {
+      for (const outcome of await startWithDependencies(service.id)) {
+        if (seen.has(outcome.serviceId) && outcome.status === 'succeeded') continue;
+        seen.add(outcome.serviceId);
+        outcomes.push(outcome.message);
       }
     }
-    await refresh(); return outcomes.join('\n');
+    await refresh(true); return outcomes.join('\n');
   }
-  if (verb === 'start') return start(argument);
+  if (verb === 'start') return (await startWithDependencies(argument)).map((outcome) => outcome.message).join('\n');
   if (verb === 'mongo') {
     const mongo = [...services.values()].find((service) => service.protocol === 'mongodb');
     if (!mongo) return 'This Tarot manifest does not declare MongoDB.';
@@ -603,13 +948,13 @@ async function control(parts) {
       if (service.monitorOnly) continue;
       const command = resolveCommand(service);
       const activeListeners = command.error ? [] : await listeners(service.port);
-      const verified = Boolean(service.process) || (activeListeners.length > 0 && activeListeners.every((listener) => belongsTo(command, listener)));
+      const verified = Boolean(service.process) || (activeListeners.length > 0 && activeListeners.every((listener) => belongsTo(command, listener, service)));
       if (verified) outcomes.push(await stop(service.id));
     }
     await refresh();
     return outcomes.length ? outcomes.join('\n') : 'No verified DeckOne services were running.';
   }
-  if (verb === 'restart') { await stop(argument); return start(argument); }
+  if (verb === 'restart') { await stop(argument); return (await startWithDependencies(argument)).map((outcome) => outcome.message).join('\n'); }
   if (verb === 'scry-all') return 'Open the live all-service relay with scry-all.';
   if (verb === 'view' || verb === 'scry') return toggleView(argument);
   if (verb === 'logs') return openLogs(argument);
@@ -624,26 +969,38 @@ async function control(parts) {
   if (verb === 'links') return addresses().map((address, index) => `${index + 1}. ${address.label}: ${address.url}`).join('\n');
   if (verb === 'select') { const index = addressIndex(argument); if (!addresses()[index]) return 'Choose local, computer, lan, or a link number.'; selectedAddress = index; persist(); return `Selected ${addresses()[index].label}.`; }
   if (verb === 'copy') return copy(argument);
+  if (verb === 'doctor') return diagnosticsCommand(parts.slice(1));
+  if (verb === 'explain') return explainService(argument);
+  if (verb === 'incidents') return incidentsCommand(parts.slice(1));
+  if (verb === 'report') return reportCommand(parts.slice(1));
+  if (verb === 'repair') return repairCommand(parts.slice(1));
+  if (verb === 'registry') return registryCommand(parts.slice(1));
   if (verb === 'help') return [
     paint(String(accentColor), `✦ TAROT GUIDE / ${projectName.toUpperCase()}`),
     paint('35', '  AWAKEN  awaken · awaken --scry · start <service> · restart <service> · stop [service] · banish'),
     paint('35', '  OBSERVE scry = status portal · scry-all = live all-service relay · scry <1–n> / logs <1–n> = snapshot'),
-    paint('35', '  MAP     status · deck · ports · links'),
+    paint('35', '  MAP     status · deck · ports · links · tarot registry reconcile'),
     paint('35', '  RELAYS  copy = choose · copy local / lan / computer · 1–3 = direct copy · C / c = LAN'),
-    paint('35', '  SYSTEM  mongo [start] · farewell = release Tarot services and close'),
+    paint('35', '  DIAGNOSE tarot doctor [service] · tarot explain [service] · tarot incidents · tarot report --copy'),
+    paint('35', '  SYSTEM  mongo [start] · tarot repair --preview · farewell = release Tarot services and close'),
     paint('2', '  Scry Portal keys: [1–9] logs · [a] all-service relay · [s] status · [q / Esc] return to shell'),
   ].join('\n');
-  if (verb === 'farewell') { await shutdown(); return 'Tarot released its services.'; }
+  if (verb === 'farewell') {
+    await shutdown();
+    setTimeout(() => agentServer?.close(() => process.exit(0)), 20);
+    return 'Tarot released its services and closed its agent.';
+  }
   return `Unknown Tarot command: ${verb}. Try tarot help.`;
 }
 
 function servicePresentation(service, index) {
-  const live = ['live', 'observed'].includes(service.state);
-  const external = !service.owned && !service.verified && service.state === 'observed';
-  const owner = service.monitorOnly ? 'SYSTEM' : external ? 'UNKNOWN' : service.owned ? 'TAROT' : service.verified ? 'DECKONE' : 'IDLE';
-  const status = service.state === 'error' ? 'ERROR' : live ? 'ONLINE' : service.state === 'starting' ? 'WAKING' : service.state === 'bypassed' ? 'BYPASS' : 'QUIET';
-  const color = service.state === 'error' ? '91' : live ? (external || service.monitorOnly ? '96' : '92') : '2';
-  const marker = live ? '●' : service.state === 'error' ? '×' : '○';
+  const live = service.healthState === 'healthy';
+  const external = service.ownershipState === 'unknown' && service.processState === 'running';
+  const owner = service.monitorOnly ? 'SYSTEM' : external ? 'UNKNOWN' : service.ownershipState === 'tarot' ? 'TAROT' : service.ownershipState === 'verified-project' ? 'PROJECT' : 'IDLE';
+  const failing = ['unhealthy', 'error'].includes(service.state) || service.healthState === 'unhealthy';
+  const status = failing ? 'ERROR' : live ? 'ONLINE' : service.processState === 'starting' ? 'WAKING' : service.state === 'bypassed' ? 'BYPASS' : service.processState === 'running' ? 'OBSERVED' : 'QUIET';
+  const color = failing ? '91' : live ? (external || service.monitorOnly ? '96' : '92') : '2';
+  const marker = live ? '●' : failing ? '×' : '○';
   const lan = serviceLan(service);
   const lanState = service.monitorOnly ? '' : lan.adapter ? `  LAN / ${lan.enabled ? 'READY' : 'OFF'}` : lan.enabled ? '  LAN / MANUAL' : '';
   return paint(color, `${marker} ${index + 1} · ${service.label} :${service.port}  ${status}  OWNER / ${owner}${lanState}${service.error ? ` · ${service.error}` : ''}`);
@@ -651,8 +1008,8 @@ function servicePresentation(service, index) {
 
 function liveSummary() {
   const managed = [...services.values()].filter((service) => !service.monitorOnly);
-  const running = managed.filter((service) => (service.owned || service.verified) && ['live', 'observed'].includes(service.state)).length;
-  const external = managed.filter((service) => !service.owned && !service.verified && service.state === 'observed').length;
+  const running = managed.filter((service) => ['tarot', 'verified-project'].includes(service.ownershipState) && service.healthState === 'healthy').length;
+  const external = managed.filter((service) => service.ownershipState === 'unknown' && service.processState === 'running').length;
   return { running, total: managed.length, external, active: running > 0 };
 }
 
@@ -733,9 +1090,7 @@ function formatAllLogEntry(service, serviceIndex, entry) {
 function readDurableEntries(service, serviceIndex) {
   const path = serviceLogPath(service);
   if (!existsSync(path)) return [];
-  return readFileSync(path, 'utf8').split(/\r?\n/).filter(Boolean).flatMap((line) => {
-    try { return [{ service, serviceIndex, entry: JSON.parse(line) }]; } catch { return []; }
-  });
+  return readLogEntries(path, { runId: service.runId, limit: 1000 }).map((entry) => ({ service, serviceIndex, entry }));
 }
 
 async function followAllLogs() {
@@ -750,7 +1105,8 @@ async function followAllLogs() {
   };
   const initial = load();
   const initialServices = initial?.services || [];
-  const history = initialServices.flatMap((service, serviceIndex) => readDurableEntries(service, serviceIndex))
+  const activeServices = initialServices.filter((service) => service.owned || ['starting', 'live'].includes(service.state));
+  const history = activeServices.flatMap((service) => readDurableEntries(service, initialServices.indexOf(service)))
     .sort((left, right) => (left.entry.capturedAt || 0) - (right.entry.capturedAt || 0) || (left.entry.sequence || 0) - (right.entry.sequence || 0));
   initialServices.forEach((service) => {
     const path = serviceLogPath(service);
@@ -946,16 +1302,98 @@ RPROMPT=''
 `);
 }
 
+function publicService(service, index) {
+  const safe = publicServiceState(service, index);
+  const route = String(service.route || '/');
+  const suffix = route.startsWith('/') ? route : `/${route}`;
+  const lan = serviceLan(service);
+  const hostname = computerLanHostname();
+  const networkAddresses = Object.values(os.networkInterfaces()).flat().filter((item) => item?.family === 'IPv4' && !item.internal);
+  const accessUrls = service.port && ['http', 'https'].includes(service.protocol)
+    ? [
+      { label: 'localhost', url: `${service.protocol}://localhost:${service.port}${suffix}` },
+      ...(lan.enabled && lan.adapter && hostname ? [{ label: hostname, url: `${service.protocol}://${hostname}:${service.port}${suffix}` }] : []),
+      ...(lan.enabled && lan.adapter ? networkAddresses.map((network) => ({ label: 'LAN IP', url: `${service.protocol}://${network.address}:${service.port}${suffix}` })) : []),
+    ]
+    : [];
+  return {
+    ...safe,
+    id: service.id,
+    controlId: `${manifest.projectId}:${service.id}`,
+    scrySlot: index + 1,
+    logs: service.logs.slice(-24),
+    accessUrls,
+  };
+}
+
+function agentSnapshot() {
+  return {
+    ok: true,
+    agent: { state: 'available', pid: process.pid, socket: socketPath, startedAt: process.uptime() },
+    project: { projectId: manifest.projectId, projectName, profile: profileName, tarotVersion: manifest.tarotVersion || manifest.version || '' },
+    services: [...services.values()].map(publicService),
+    addresses: addresses(),
+  };
+}
+
+function boundedLogs(reference, requestedLines = 200) {
+  const service = resolveService(reference);
+  if (!service) return { ok: false, error: `Unknown service: ${reference}.` };
+  const lines = Math.min(1000, Math.max(1, Number(requestedLines) || 200));
+  const path = serviceLogPath(service);
+  const entries = existsSync(path)
+    ? readLogEntries(path, { runId: service.runId, limit: lines })
+    : service.logs.slice(-lines);
+  return { ok: true, serviceId: service.id, name: service.label, lines, entries };
+}
+
+function serviceDependents(serviceId) {
+  return [...services.values()].filter((service) => (service.dependsOn || []).includes(serviceId));
+}
+
+async function fleetAction(request = {}) {
+  const action = String(request.action || '').toLowerCase();
+  const selectedIds = [...new Set((request.serviceIds || []).map(String))];
+  const selected = selectedIds.length ? selectedIds : [...services.keys()];
+  const results = [];
+  if (!['awaken', 'banish', 'restart'].includes(action)) return { ok: false, error: `Unsupported fleet action: ${action}.`, results };
+  if (action === 'banish') {
+    const targetSet = new Set(selected);
+    for (const serviceId of selected) {
+      const service = services.get(serviceId);
+      if (!service) { results.push({ serviceId, status: 'failed', message: `Unknown service: ${serviceId}.` }); continue; }
+      if (service.monitorOnly) { results.push({ serviceId, status: 'skipped', message: `${service.label} is monitor-only.` }); continue; }
+      const liveDependents = serviceDependents(serviceId).filter((dependent) => ['live', 'observed', 'starting'].includes(dependent.state) && !targetSet.has(dependent.id));
+      if (liveDependents.length) {
+        results.push({ serviceId, status: 'blocked', message: `${service.label} remains running because ${liveDependents.map((dependent) => dependent.label).join(', ')} still depends on it.` });
+        continue;
+      }
+      results.push({ serviceId, status: 'succeeded', message: await stop(serviceId) });
+    }
+  } else {
+    for (const serviceId of selected) {
+      const service = services.get(serviceId);
+      if (!service) { results.push({ serviceId, status: 'failed', message: `Unknown service: ${serviceId}.` }); continue; }
+      if (service.monitorOnly) { results.push({ serviceId, status: 'skipped', message: `${service.label} is monitor-only.` }); continue; }
+      if (action === 'restart') await stop(serviceId);
+      results.push(...await startWithDependencies(serviceId));
+    }
+  }
+  await refresh();
+  return { ok: !results.some((result) => ['failed', 'blocked'].includes(result.status)), action, results, snapshot: agentSnapshot() };
+}
+
+async function handleAgentMessage(message = {}) {
+  if (message.kind !== 'fleet') return { legacy: true, body: `${await control(message.parts || [])}\n` };
+  if (message.operation === 'snapshot') { await refresh(); return agentSnapshot(); }
+  if (message.operation === 'logs') return boundedLogs(message.serviceId, message.lines);
+  if (message.operation === 'action') return enqueueAction(() => fleetAction(message));
+  return { ok: false, error: `Unknown fleet operation: ${message.operation}.` };
+}
+
 async function requestControl(parts) {
-  const response = await new Promise((resolveResponse, rejectResponse) => {
-    const client = net.createConnection(socketPath);
-    let body = '';
-    client.once('error', rejectResponse);
-    client.on('data', (chunk) => { body += chunk; });
-    client.once('end', () => resolveResponse(body));
-    client.once('connect', () => client.write(JSON.stringify({ parts })));
-  });
-  process.stdout.write(response);
+  const response = await requestJsonLine(socketPath, { parts }, 120000);
+  process.stdout.write(response.body || `${response.error || ''}\n`);
 }
 
 async function shutdown() {
@@ -968,38 +1406,77 @@ async function shutdown() {
   releaseLock();
 }
 
-async function launchDock() {
+export async function launchAgent() {
   await recoverExistingDock();
   acquireLock();
-  writeShellConfig();
-  await ensureMongo();
   await refresh();
   heartbeatRegistry([...services.values()].map(({ process, logs, ...service }) => ({ ...service, owned: Boolean(process), logs: logs.slice(-24) })), true);
-  const server = net.createServer((connection) => {
-    let body = '';
-    connection.once('data', async (chunk) => {
-      body += chunk;
-      try { const message = JSON.parse(body); connection.end(`${await control(message.parts || [])}\n`); }
-      catch (error) { connection.end(`Tarot command failed: ${error.message}\n`); }
-    });
-  });
+  agentServer = net.createServer((connection) => attachJsonLineHandler(connection, handleAgentMessage));
   try { rmSync(socketPath, { force: true }); } catch {}
-  await new Promise((resolveListen) => server.listen(socketPath, resolveListen));
+  await new Promise((resolveListen) => agentServer.listen(socketPath, resolveListen));
+  chmodSync(socketPath, 0o600);
   observationTimer = setInterval(() => refresh().catch(() => {}), 2000);
+  process.once('SIGTERM', async () => { await shutdown(); agentServer?.close(() => process.exit(0)); });
+  process.once('SIGINT', () => {});
+}
+
+async function waitForAgent(timeoutMs = 5000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const response = await requestJsonLine(socketPath, { kind: 'fleet', operation: 'snapshot' });
+      if (response.ok) return;
+    } catch {}
+    await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+  }
+  throw new Error('Tarot agent did not become available. Run npm run tarot -- --recover to release a stale project lock.');
+}
+
+async function ensureAgentForShell() {
+  try {
+    const response = await requestJsonLine(socketPath, { kind: 'fleet', operation: 'snapshot' });
+    if (response.ok) return;
+  } catch {}
+  mkdirSync(runtime, { recursive: true });
+  const bootstrap = openSync(bootstrapLogPath, 'a', 0o600);
+  const child = spawn(process.execPath, [agentScript, ...(recoverRequested ? ['--recover'] : [])], {
+    cwd: root,
+    detached: process.platform !== 'win32',
+    stdio: ['ignore', bootstrap, bootstrap],
+  });
+  child.unref();
+  closeSync(bootstrap);
+  try {
+    await waitForAgent(10000);
+  } catch (error) {
+    const tail = existsSync(bootstrapLogPath) ? readFileSync(bootstrapLogPath, 'utf8').split(/\r?\n/).filter(Boolean).slice(-12).join('\n') : '';
+    throw new Error(`${error.message}${tail ? `\nAgent bootstrap tail:\n${tail}` : ''}`);
+  }
+}
+
+async function launchDockClient() {
+  writeShellConfig();
+  await ensureAgentForShell();
   const shell = spawn(process.env.SHELL || '/bin/zsh', ['-i'], {
     cwd: root,
     stdio: 'inherit',
     env: { ...process.env, ZDOTDIR: shellDirectory, TAROT_DOCK_SCRIPT: dockScript, TAROT_PROJECT: projectName.toLowerCase(), TAROT_SIGIL: sigil, TAROT_ACCENT_COLOR: String(accentColor) },
   });
-  shell.once('exit', async () => { server.close(); await shutdown(); });
+  shell.once('exit', () => {});
   // Ctrl-C belongs to the foreground command; do not forward it or tear down
   // the controller. Zsh remains the normal interactive job-control shell.
   process.on('SIGINT', () => {});
   process.once('SIGTERM', () => shell.kill('SIGTERM'));
 }
 
-if (process.argv[2] === 'control') requestControl(process.argv.slice(3)).catch(() => { console.error('Tarot Dock is not running. Start it with npm run tarot.'); process.exitCode = 1; });
-else if (process.argv[2] === 'portal') openScryPortal(process.argv[3]).catch((error) => { console.error(`Scry Portal could not open: ${error.message}`); process.exitCode = 1; });
-else if (process.argv[2] === 'follow-all') followAllLogs().catch((error) => { console.error(`Scry-All could not open: ${error.message}`); process.exitCode = 1; });
-else if (process.argv[2] === 'render') process.stdout.write(`${renderDeck()}\n`);
-else launchDock().catch((error) => { console.error(`Tarot Dock could not open: ${error.message}`); process.exitCode = 1; });
+const directInvocation = process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url;
+if (directInvocation) {
+  if (process.argv[2] === 'control') requestControl(process.argv.slice(3)).catch(() => { console.error('Tarot Dock is not running. Start it with npm run tarot.'); process.exitCode = 1; });
+  else if (process.argv[2] === 'agent') launchAgent().catch((error) => { console.error(`Tarot agent could not open: ${error.message}`); process.exitCode = 1; });
+  else if (process.argv[2] === 'doctor') process.stdout.write(`${diagnosticsCommand(process.argv.slice(3))}\n`);
+  else if (process.argv[2] === 'report') process.stdout.write(`${reportCommand(process.argv.slice(3))}\n`);
+  else if (process.argv[2] === 'portal') openScryPortal(process.argv[3]).catch((error) => { console.error(`Scry Portal could not open: ${error.message}`); process.exitCode = 1; });
+  else if (process.argv[2] === 'follow-all') followAllLogs().catch((error) => { console.error(`Scry-All could not open: ${error.message}`); process.exitCode = 1; });
+  else if (process.argv[2] === 'render') process.stdout.write(`${renderDeck()}\n`);
+  else launchDockClient().catch((error) => { console.error(`Tarot Dock could not open: ${error.message}`); process.exitCode = 1; });
+}

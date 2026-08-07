@@ -425,7 +425,7 @@ export default function BoxImageField({
         onUpload: handleUpload,
         disabled: disabled || mutationBusy || !resolvedBoxId,
       }}
-      clearAction={allowClear
+      clearAction={allowClear && hasImage
         ? {
           id: 'clear',
           label: clearLabel,
@@ -442,7 +442,7 @@ export default function BoxImageField({
           disabled: disabled || mutationBusy || !resolvedBoxId,
         }
         : null}
-      processAction={typeof onProcessImage === 'function'
+      processAction={typeof onProcessImage === 'function' && (hasImage || processImageBusy)
         ? {
           id: 'process',
           label: processLabel,

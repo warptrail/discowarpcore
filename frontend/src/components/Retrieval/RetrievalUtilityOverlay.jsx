@@ -78,7 +78,7 @@ export default function RetrievalUtilityOverlay({
         role="region"
         aria-label="Item finder results"
       >
-        <S.PanelHint>Use the Header console to search and refine. Tap outside this panel to collapse it.</S.PanelHint>
+        <S.PanelHint>Search in the Header console. Sort directly above the list.</S.PanelHint>
         <RetrievalPage
           onToggleResults={isOpen ? handleRequestClose : handleRequestOpen}
           resultsVisible={isOpen}

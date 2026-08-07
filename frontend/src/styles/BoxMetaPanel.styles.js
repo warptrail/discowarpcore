@@ -582,65 +582,6 @@ export const BoxImage = styled.img`
   object-position: center;
 `;
 
-export const Crumbs = styled.nav`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  min-width: 0;
-`;
-
-export const PathContext = styled.div`
-  display: grid;
-  gap: 6px;
-`;
-
-export const PathLabel = styled.span`
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: ${LCARS.textDim};
-`;
-
-export const Crumb = styled.a`
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  padding: 6px 9px;
-  border-radius: 8px;
-  border: 1px solid ${LCARS.line};
-  color: ${LCARS.text};
-  text-decoration: none;
-  background: ${LCARS.panelSoft};
-  opacity: 0.9;
-  transition: border-color ${FAST}, background ${FAST}, opacity ${FAST},
-    transform ${FAST};
-
-  &:hover {
-    opacity: 1;
-    border-color: ${LCARS.teal}42;
-    background: linear-gradient(98deg, ${LCARS.teal}14, transparent 52%),
-      ${LCARS.panelSoft};
-    transform: translateY(-1px);
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    gap: 6px;
-    padding: 5px 7px;
-    border-radius: 7px;
-  }
-`;
-
-export const CrumbSep = styled.span`
-  color: ${LCARS.textDim};
-  font-size: 0.9rem;
-  line-height: 1;
-  user-select: none;
-`;
-
 export const BoxIdMono = styled.span`
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     'Liberation Mono', 'Courier New', monospace;
@@ -653,18 +594,6 @@ export const BoxIdMono = styled.span`
   color: ${LCARS.textDim};
   background: ${LCARS.panelSoft};
   border: 1px solid ${LCARS.line};
-`;
-
-export const CrumbLabel = styled.span`
-  max-width: 200px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    max-width: 130px;
-    font-size: ${MOBILE_FONT_SM};
-  }
 `;
 
 export const MetaZone = styled.div`

@@ -31,10 +31,10 @@ Each item has two separate partner votes. The database stores a binary household
 
 ```text
 decision:       pending | keep | release | unsure
-exitPreference: discard | donate | sell | null
+exitPreference: discard | donate | sell | gift | null
 ```
 
-The five visible buttons normalize into that model:
+The six visible buttons normalize into that model:
 
 | Visible choice | Stored decision | Exit preference |
 |---|---|---|
@@ -42,6 +42,7 @@ The five visible buttons normalize into that model:
 | Toss | `release` | `discard` |
 | Donate | `release` | `donate` |
 | Sell | `release` | `sell` |
+| Gift | `release` | `gift` |
 | Unsure | `unsure` | `null` |
 
 The app derives a shared result from the two normalized decisions:
@@ -54,12 +55,14 @@ The app derives a shared result from the two normalized decisions:
 | Keep + any Release-family choice | `conflict` |
 | Either completed choice is Unsure | `review_later` |
 
-Toss + Donate and Toss + Sell are agreements. Donate + Sell also approves Release, but its staging route is `needs_routing`.
+Toss plus any specific destination is an agreement using that destination. Two
+different named destinations—Donate, Sell, or Gift—approve Release with a
+`needs_routing` staging route.
 
 ### Formal glossary
 
 - **Release decision** — agreement that the household should stop keeping the item.
-- **Exit preference** — a player’s suggested method: discard, donate, or sell.
+- **Exit preference** — a player’s suggested method: discard, donate, sell, or gift.
 - **Staging route** — the destination derived from both exit preferences for the future physical workflow.
 - **Declutter readiness** — inventory planning state: not considered, in the deck, kept, or ready to declutter.
 - **Disposition** — what physically happened after the item actually left the household.
@@ -410,7 +413,7 @@ Vintage Wool Coat
 Box 117 · Coat Closet
 
 Resolve as:
-[Keep] [Toss] [Donate] [Sell] [Unsure]
+[Keep] [Toss] [Donate] [Sell] [Gift] [Unsure]
 ```
 
 ### Useful actions
@@ -773,37 +776,46 @@ The MVP succeeds when the couple can rapidly process a large inventory and reduc
 
 ---
 
-# 19. Cooling-off and physical exit protocol
+# 19. Immediate decision and physical exit protocol
 
-The Declutter Deck has three separate responsibilities:
+The Declutter Deck has two separate responsibilities:
 
 1. **Decision** records each player’s private choice.
-2. **Cooling Off** gives unanimous Keep or Release decisions 24 hours to be changed.
-3. **Actions** manages approved household exits without pretending they have already happened.
+2. **Actions** immediately prepares unanimous Release decisions without pretending the items have already left.
 
 These terms are deliberately not interchangeable:
 
 - **Release decision** — agreement that the household should stop keeping the item.
-- **Exit preference** — one player’s suggested method: discard, donate, or sell.
+- **Exit preference** — one player’s suggested method: discard, donate, sell, or gift.
 - **Staging route** — the shared route derived from both exit preferences.
 - **Declutter readiness** — the inventory planning summary.
 - **Declutter exit state** — the current post-decision physical workflow state.
 - **Disposition** — the final record of what physically happened after the item left.
 
-Unanimous decisions enter `cooling_off`, with a persisted UTC deadline. Changing or
-resetting either player’s vote cancels that deadline. Repeating the same vote is
-idempotent and does not restart it.
+Unanimous decisions are immediate. Keep resolves at once. Release-family
+agreement enters Actions at once and applies the selected preparation route.
+Repeating the same vote remains idempotent.
 
-After confirmation:
+After agreement:
 
 - Keep becomes a resolved result and does not move the item.
-- Discard becomes `marked_for_destruction`, detaches the active item from boxes,
-  and enters Trash Run.
+- Discard becomes `marked_for_destruction`, retains its physical placement until
+  completion, and enters Trash Run.
 - Donate and Sell move active inventory into configured staging boxes.
+- Gift becomes `awaiting_gift`, sets `isIntendedGift: true`, and retains its
+  current physical placement.
 - Missing staging boxes produce `needs_staging`.
-- Donate plus Sell produces `needs_routing`, resolved by Laserfox.
+- Different named destinations produce `needs_routing`, resolved by Laserfox.
 
 The Actions stage may reroute, restore Keep, or open a fresh voting round. Only
-Trash, Donate, or Sell completion invokes the normal Mark Gone lifecycle.
+Trash, Donate, Sell, or Gift completion invokes the normal Mark Gone lifecycle.
 Orphaned inventory is still owned; approved Release is still active inventory;
 only Disposition means the item physically left.
+
+`Box.isGiftBox` marks a physical container used for future gifts. Entering one
+sets `Item.isIntendedGift` to true through the shared box-assignment service.
+Leaving the box never clears the item flag; only an explicit item edit does.
+
+The Review screen’s **Marked for Destruction** card is a derived system
+collection, not a persisted Box. It is hidden when empty, contains confirmed
+Action candidates across every Release route, and opens the Actions tab.

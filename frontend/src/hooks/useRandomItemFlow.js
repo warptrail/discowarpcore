@@ -55,6 +55,7 @@ export default function useRandomItemFlow() {
       title: 'Random Item',
       message: pickScanningMessage(),
       sticky: true,
+      dismissible: false,
     });
 
     try {
@@ -92,7 +93,7 @@ export default function useRandomItemFlow() {
 
       showToast?.({
         variant: 'info',
-        title: `Selected: ${itemName}`,
+        dismissible: false,
         content: createElement(RandomItemToastContent, {
           boxIdLabel,
           itemName,
@@ -102,6 +103,9 @@ export default function useRandomItemFlow() {
           onOpenItem: () => {
             hideToast?.();
             navigate(getItemHomeHref(itemId));
+          },
+          onCloseRandom: () => {
+            hideToast?.();
           },
           onRandomAgain: () => {
             runRandomItem();

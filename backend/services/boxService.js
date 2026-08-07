@@ -6,6 +6,7 @@ const Location = require('../models/Location');
 const { orphanAllItemsInBox } = require('./itemService');
 const { resolveBoxLocationFields } = require('./locationService');
 const { withNormalizedItemCategory } = require('../utils/itemCategory');
+const { STAGING_BOX_PURPOSES } = require('../utils/declutterBoxPurpose');
 
 const { computeStats, flattenBoxes } = require('../utils/boxHelpers');
 const { wouldCreateCycle } = require('../utils/wouldCreateCycle');
@@ -44,6 +45,36 @@ function toTrimmedOrNull(value) {
   if (value == null) return null;
   const trimmed = String(value).trim();
   return trimmed || null;
+}
+
+async function markGiftIntentForBoxItems(box, trigger) {
+  if (!box?.isGiftBox || !Array.isArray(box.items) || !box.items.length) return 0;
+  const result = await Item.updateMany(
+    {
+      _id: { $in: box.items },
+      ...ACTIVE_ITEM_FILTER,
+      isIntendedGift: { $ne: true },
+    },
+    { $set: { isIntendedGift: true } }
+  );
+  const updatedCount = result.modifiedCount || result.nModified || 0;
+  if (updatedCount) {
+    await logEventBestEffort(
+      {
+        event_type: 'gift_box_intent_applied',
+        entity_type: 'box',
+        entity_id: toIdString(box._id),
+        entity_label: formatBoxLabel(box, 'Gift Box'),
+        summary: `Marked ${updatedCount} item${updatedCount === 1 ? '' : 's'} in ${quoteLabel(formatBoxLabel(box, 'Gift Box'))} as intended gifts`,
+        details: {
+          trigger,
+          updated_item_count: updatedCount,
+        },
+      },
+      { label: `gift_box_intent_applied:${toIdString(box._id)}` }
+    );
+  }
+  return updatedCount;
 }
 
 function normalizeOptionalBoxGroupInput(rawValue) {
@@ -834,10 +865,11 @@ async function getBoxesByParent(parentId) {
 
 async function createBox(data) {
   const payload = { ...data };
+  payload.isGiftBox = data?.isGiftBox === true;
   if (payload.declutterPurpose === 'standard') payload.declutterIsDefault = false;
   if (
     payload.declutterIsDefault &&
-    ['donation_staging', 'sale_staging'].includes(payload.declutterPurpose)
+    STAGING_BOX_PURPOSES.includes(payload.declutterPurpose)
   ) {
     await Box.updateMany(
       { declutterPurpose: payload.declutterPurpose, declutterIsDefault: true },
@@ -896,6 +928,7 @@ async function createBox(data) {
   }
   const created = await Box.create(payload);
   const createdPlain = toPlain(created);
+  await markGiftIntentForBoxItems(createdPlain, 'gift_box_created');
   const createdRef = toBoxRef(createdPlain, 'Box');
 
   let parentRef = { id: null, label: FLOOR_LABEL, box_id: null };
@@ -916,6 +949,7 @@ async function createBox(data) {
       details: {
         box_id: createdRef.box_id,
         group: toTrimmedOrNull(createdPlain?.group),
+        is_gift_box: Boolean(createdPlain?.isGiftBox),
         parent_box_id: parentRef.id,
         parent_box_label: parentRef.label,
       },
@@ -928,10 +962,13 @@ async function createBox(data) {
 
 async function updateBox(id, data) {
   const patch = { ...data };
+  if (Object.prototype.hasOwnProperty.call(patch, 'isGiftBox')) {
+    patch.isGiftBox = patch.isGiftBox === true;
+  }
   if (patch.declutterPurpose === 'standard') patch.declutterIsDefault = false;
   if (
     patch.declutterIsDefault &&
-    ['donation_staging', 'sale_staging'].includes(patch.declutterPurpose)
+    STAGING_BOX_PURPOSES.includes(patch.declutterPurpose)
   ) {
     await Box.updateMany(
       {
@@ -1073,6 +1110,12 @@ async function updateBox(id, data) {
   if (!updated) return null;
 
   const updatedPlain = toPlain(updated);
+  if (
+    updatedPlain.isGiftBox &&
+    (patchFields.has('isGiftBox') || patchFields.has('items'))
+  ) {
+    await markGiftIntentForBoxItems(updatedPlain, 'gift_box_updated');
+  }
   const boxRef = toBoxRef(updatedPlain, 'Box');
 
   const parentChanged = hasMeaningfulValueChange(

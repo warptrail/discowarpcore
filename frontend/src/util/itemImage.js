@@ -33,6 +33,28 @@ export function getItemThumbnailUrl(item) {
   return normalizeMediaUrl(item?.imagePath);
 }
 
+export function getItemPreviewImageUrl(item) {
+  const variants = [item?.image?.display, item?.image?.original, item?.image?.thumb];
+
+  for (const variant of variants) {
+    const url = normalizeMediaUrl(variant?.url || variant?.storagePath);
+    if (url) return url;
+  }
+
+  return normalizeMediaUrl(item?.imagePath);
+}
+
+export function getItemOriginalImageUrl(item) {
+  const variants = [item?.image?.original, item?.image?.display, item?.image?.thumb];
+
+  for (const variant of variants) {
+    const url = normalizeMediaUrl(variant?.url || variant?.storagePath);
+    if (url) return url;
+  }
+
+  return normalizeMediaUrl(item?.imagePath);
+}
+
 export function getItemTinyThumbnailUrl(item) {
   return normalizeMediaUrl(item?.image?.tiny?.url || item?.image?.tiny?.storagePath);
 }

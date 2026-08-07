@@ -33,6 +33,7 @@ export default function BoxLocatorControl({
   visibleBoxCount = 0,
   exactMatch = null,
   onActivateExact,
+  compact = false,
 }) {
   const normalizedQuery = normalizeBoxId(query).slice(0, MAX_PREFIX_LENGTH);
   const readout = getScopeReadout({
@@ -46,11 +47,12 @@ export default function BoxLocatorControl({
   };
 
   return (
-    <S.BoxLocatorScope $active={Boolean(normalizedQuery)}>
-      <S.BoxLocatorInputGroup>
+    <S.BoxLocatorScope $active={Boolean(normalizedQuery)} $compact={compact} title={compact ? readout : undefined}>
+      <S.BoxLocatorInputGroup $compact={compact}>
         <S.ControlLabel>Box Locator</S.ControlLabel>
         <BoxIdPrefixInput
           inputAs={S.BoxLocatorInput}
+          $compact={compact}
           id="bx-locator"
           namePrefix="box_scope"
           maxLength={MAX_PREFIX_LENGTH}
@@ -75,7 +77,7 @@ export default function BoxLocatorControl({
         />
       </S.BoxLocatorInputGroup>
 
-      <S.BoxLocatorReadout aria-live="polite" title={readout}>
+      <S.BoxLocatorReadout aria-live="polite" title={readout} $compact={compact}>
         <span>{readout}</span>
         {normalizedQuery && normalizedQuery.length < 3 ? (
           <small>{matchingRootCount} matching roots</small>

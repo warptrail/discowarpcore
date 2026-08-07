@@ -1,77 +1,75 @@
 import React, { useMemo, useState } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { API_BASE } from '../../api/API_BASE';
-import {
-  MOBILE_BREAKPOINT,
-  MOBILE_CONTROL_MIN_HEIGHT,
-  MOBILE_FONT_SM,
-} from '../../styles/tokens';
+import { MOBILE_BREAKPOINT } from '../../styles/tokens';
+import { getBoxTheme, getBoxThemeCssVars } from '../../util/inventoryColorTheme';
 
-const Section = styled.section`
+const routeReadyPulse = keyframes`
+  0%,
+  100% {
+    box-shadow:
+      inset 0 1px 0 rgba(var(--route-secondary-rgb), 0.34),
+      0 0 0 1px rgba(var(--route-primary-rgb), 0.2),
+      0 0 10px rgba(var(--route-primary-rgb), 0.18);
+  }
+
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(var(--route-secondary-rgb), 0.5),
+      0 0 0 1px rgba(var(--route-primary-rgb), 0.46),
+      0 0 16px rgba(var(--route-primary-rgb), 0.34);
+  }
+`;
+
+const Command = styled.section`
+  --route-primary-rgb: ${({ $primaryRgb }) => $primaryRgb || '100, 220, 213'};
+  --route-secondary-rgb: ${({ $secondaryRgb }) => $secondaryRgb || '167, 182, 255'};
+  --route-neon-rgb: ${({ $neonRgb }) => $neonRgb || '217, 255, 250'};
+  --route-neon: ${({ $neon }) => $neon || '#d9fffa'};
   display: grid;
-  gap: 0.46rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  width: min(100%, 390px);
   min-width: 0;
-  width: 100%;
-  max-width: 100%;
+  padding: 0.38rem 0.42rem;
+  border: 1px solid rgba(var(--route-primary-rgb), 0.56);
+  border-left: 3px solid rgb(var(--route-primary-rgb));
+  border-radius: 5px;
+  background:
+    linear-gradient(
+      106deg,
+      rgba(var(--route-primary-rgb), 0.16),
+      rgba(var(--route-secondary-rgb), 0.075) 48%,
+      rgba(5, 10, 16, 0.72) 88%
+    );
+  box-shadow: inset 0 1px 0 rgba(var(--route-secondary-rgb), 0.16);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+  }
 `;
 
-const Panel = styled.section`
-  border: 1px solid rgba(177, 134, 75, 0.45);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(33, 25, 16, 0.94) 0%, rgba(23, 18, 13, 0.96) 100%);
-  padding: 0.58rem;
+const ItemContext = styled.div`
   display: grid;
-  gap: 0.44rem;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  overflow: hidden;
-`;
-
-const Hint = styled.p`
-  margin: 0;
-  color: #d0ba95;
-  font-size: 0.74rem;
-  line-height: 1.35;
-`;
-
-const Card = styled.div`
-  border: 1px solid rgba(177, 145, 91, 0.48);
-  border-radius: 10px;
-  background: rgba(19, 13, 8, 0.85);
-  padding: 0.44rem;
-  display: grid;
-  gap: 0.36rem;
-  min-width: 0;
-`;
-
-const CardLabel = styled.div`
-  margin: 0;
-  font-size: 0.67rem;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: #d4bf9f;
-`;
-
-const SelectedItemRow = styled.div`
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
+  grid-template-columns: ${({ $hasImage }) => ($hasImage ? '32px minmax(0, 1fr)' : 'minmax(0, 1fr)')};
   gap: 0.42rem;
-  align-items: start;
+  align-items: center;
   min-width: 0;
 `;
 
 const Thumb = styled.div`
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  border: 1px solid rgba(167, 132, 84, 0.5);
+  width: 32px;
+  height: 32px;
   overflow: hidden;
-  background: rgba(27, 20, 12, 0.95);
+  border: 1px solid rgba(var(--route-primary-rgb), 0.46);
+  border-radius: 6px;
+  background: rgba(9, 17, 24, 0.86);
+  color: rgba(164, 214, 211, 0.74);
   display: grid;
   place-items: center;
-  color: #bd9f71;
-  font-size: 0.58rem;
+  font-size: 0.54rem;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 `;
 
@@ -81,65 +79,83 @@ const ThumbImage = styled.img`
   object-fit: cover;
 `;
 
-const SelectedBody = styled.div`
-  min-width: 0;
+const ContextText = styled.div`
   display: grid;
-  gap: 0.12rem;
+  gap: 0.08rem;
+  min-width: 0;
 `;
 
-const SelectedName = styled.div`
-  font-size: 0.82rem;
+const ItemName = styled.div`
+  overflow: hidden;
+  color: #e8f5f2;
+  font-size: 0.78rem;
   font-weight: 700;
-  color: #f7e8cf;
-  overflow-wrap: anywhere;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
-const SelectedMeta = styled.div`
-  font-size: 0.68rem;
-  color: #d2b98f;
-  line-height: 1.25;
-`;
-
-const EmptyState = styled.div`
-  border: 1px dashed rgba(191, 155, 94, 0.52);
-  border-radius: 10px;
-  padding: 0.52rem;
-  font-size: 0.76rem;
-  color: #d6c39f;
+const ItemMeta = styled.div`
+  overflow: hidden;
+  color: rgba(var(--route-secondary-rgb), 0.9);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.64rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const ActionButton = styled.button`
-  width: 100%;
-  min-height: 36px;
-  border-radius: 10px;
-  border: 1px solid rgba(228, 176, 92, 0.76);
-  background: linear-gradient(180deg, rgba(116, 74, 25, 0.92) 0%, rgba(83, 53, 19, 0.95) 100%);
-  color: #fff0d7;
-  font-size: 0.76rem;
+  min-width: 132px;
+  min-height: 40px;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid ${({ $ready }) =>
+    $ready ? 'rgba(var(--route-primary-rgb), 0.94)' : 'rgba(var(--route-primary-rgb), 0.38)'};
+  border-radius: 5px;
+  background: ${({ $ready }) =>
+    $ready
+      ? 'linear-gradient(112deg, rgba(var(--route-primary-rgb), 0.3), rgba(var(--route-secondary-rgb), 0.18))'
+      : 'rgba(12, 24, 30, 0.72)'};
+  color: ${({ $ready }) => ($ready ? 'var(--route-neon)' : 'rgba(var(--route-secondary-rgb), 0.68)')};
+  font-size: 0.68rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.055em;
+  line-height: 1.1;
   text-transform: uppercase;
   cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+
+  ${({ $ready }) => ($ready ? `animation: ${routeReadyPulse} 2.8s ease-in-out infinite;` : '')}
 
   &:hover:not(:disabled) {
-    filter: brightness(1.06);
+    border-color: rgba(var(--route-neon-rgb), 0.98);
+    background: linear-gradient(112deg, rgba(var(--route-primary-rgb), 0.4), rgba(var(--route-secondary-rgb), 0.24));
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #a78bfa;
+    outline-offset: 2px;
   }
 
   &:disabled {
-    opacity: 0.54;
+    border-color: rgba(123, 154, 157, 0.34);
+    background: rgba(20, 30, 34, 0.66);
+    color: rgba(185, 207, 207, 0.54);
     cursor: not-allowed;
   }
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-    font-size: ${MOBILE_FONT_SM};
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    animation: none;
   }
 `;
 
 const StateText = styled.div`
-  color: ${({ $error }) => ($error ? '#f6c3c3' : '#d6c39e')};
-  font-size: 0.74rem;
-  min-height: 0.96rem;
+  grid-column: 1 / -1;
+  color: ${({ $error }) => ($error ? '#ffc4ce' : '#a9e6db')};
+  font-size: 0.68rem;
+  line-height: 1.25;
 `;
 
 function getItemImageUrl(item) {
@@ -156,7 +172,7 @@ function getItemImageUrl(item) {
 function getCurrentBoxLabel(item) {
   const label = String(item?.box?.label || '').trim();
   const boxId = String(item?.box?.box_id || '').trim();
-  if (label && boxId) return `${label} (#${boxId})`;
+  if (label && boxId) return `${label} · #${boxId}`;
   if (label) return label;
   if (boxId) return `#${boxId}`;
   return 'Orphaned';
@@ -166,6 +182,7 @@ export default function IntakeRapidActions({
   currentBox,
   selectedItem = null,
   onItemMoved,
+  onComplete,
 }) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
@@ -174,14 +191,33 @@ export default function IntakeRapidActions({
   const selectedItemId = String(selectedItem?._id || '').trim();
   const currentBoxId = String(currentBox?._id || '').trim();
   const itemInCurrentBox = useMemo(
-    () => String(selectedItem?.box?._id || selectedItem?.boxId || '') === currentBoxId,
+    () =>
+      Boolean(currentBoxId) &&
+      String(selectedItem?.box?._id || selectedItem?.boxId || '') === currentBoxId,
     [currentBoxId, selectedItem?.box?._id, selectedItem?.boxId],
   );
-  const canMove = !!selectedItemId && !!currentBoxId && !busy && !itemInCurrentBox;
-  const destinationLabel = currentBox?.box_id
-    ? `${currentBox?.label || 'Unnamed Box'} (#${currentBox.box_id})`
-    : 'No current box selected';
+  const canMove = Boolean(selectedItemId && currentBoxId && !busy && !itemInCurrentBox);
   const imageUrl = getItemImageUrl(selectedItem);
+  const destinationId = String(currentBox?.box_id || '').trim();
+  const destinationTheme = getBoxTheme(destinationId);
+  const destinationLabel = destinationId ? `#${destinationId}` : 'No destination';
+  const buttonLabel = busy
+    ? 'Moving…'
+    : !selectedItemId
+      ? 'Choose item'
+      : !currentBoxId
+        ? 'Choose box'
+        : itemInCurrentBox
+          ? 'Already there'
+          : `Move to ${destinationLabel}`;
+  const contextName = selectedItemId
+    ? selectedItem?.name || 'Unnamed item'
+    : 'Choose an activity item';
+  const contextMeta = selectedItemId
+    ? `${getCurrentBoxLabel(selectedItem)} → ${destinationLabel}`
+    : currentBoxId
+      ? `Destination ${destinationLabel}`
+      : 'Select a box, then an activity item';
 
   const handleMoveToCurrent = async () => {
     if (!canMove) return;
@@ -206,7 +242,6 @@ export default function IntakeRapidActions({
 
       const movedMessage = `Moved ${selectedItem?.name || 'item'} to box #${currentBox?.box_id || '---'}.`;
       setStatus(movedMessage);
-
       onItemMoved?.({
         itemId: selectedItemId,
         destBoxId: currentBoxId,
@@ -229,6 +264,7 @@ export default function IntakeRapidActions({
         },
         message: movedMessage,
       });
+      onComplete?.();
     } catch (moveError) {
       setError(moveError?.message || 'Failed to move item.');
     } finally {
@@ -237,44 +273,29 @@ export default function IntakeRapidActions({
   };
 
   return (
-    <Section>
-      <Panel>
-        <Hint>
-          Route selected intake items into the current box.
-        </Hint>
-
-        <Card>
-          <CardLabel>Selected Item</CardLabel>
-          {selectedItemId ? (
-            <SelectedItemRow>
-              <Thumb>
-                {imageUrl ? <ThumbImage src={imageUrl} alt="" /> : 'No Img'}
-              </Thumb>
-              <SelectedBody>
-                <SelectedName>{selectedItem?.name || 'Unnamed item'}</SelectedName>
-                <SelectedMeta>Current: {getCurrentBoxLabel(selectedItem)}</SelectedMeta>
-              </SelectedBody>
-            </SelectedItemRow>
-          ) : (
-            <EmptyState>Select an item from recent activity to move it.</EmptyState>
-          )}
-        </Card>
-
-        <Card>
-          <CardLabel>Destination</CardLabel>
-          <SelectedMeta>{destinationLabel}</SelectedMeta>
-        </Card>
-
-        <ActionButton type="button" disabled={!canMove} onClick={handleMoveToCurrent}>
-          {busy
-            ? 'Moving…'
-            : itemInCurrentBox
-              ? 'Already In Current Box'
-              : 'Move To Current Box'}
-        </ActionButton>
-
-        <StateText $error={!!error}>{error || status || ' '}</StateText>
-      </Panel>
-    </Section>
+    <Command
+      aria-label="Move selected item to current box"
+      $primaryRgb={destinationTheme.primaryRgb}
+      $secondaryRgb={destinationTheme.secondaryRgb}
+      $neonRgb={destinationTheme.neonRgb}
+      $neon={destinationTheme.neon}
+      style={getBoxThemeCssVars(destinationTheme)}
+    >
+      <ItemContext $hasImage={Boolean(imageUrl)}>
+        {imageUrl ? (
+          <Thumb aria-hidden="true">
+            <ThumbImage src={imageUrl} alt="" />
+          </Thumb>
+        ) : null}
+        <ContextText>
+          <ItemName title={contextName}>{contextName}</ItemName>
+          <ItemMeta title={contextMeta}>{contextMeta}</ItemMeta>
+        </ContextText>
+      </ItemContext>
+      <ActionButton type="button" $ready={canMove} disabled={!canMove} onClick={handleMoveToCurrent}>
+        {buttonLabel}
+      </ActionButton>
+      {error || status ? <StateText $error={Boolean(error)}>{error || status}</StateText> : null}
+    </Command>
   );
 }

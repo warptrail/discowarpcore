@@ -16,8 +16,12 @@ import OperationsBoxQuickPeek from './OperationsQuickPeek/OperationsBoxQuickPeek
 import useOperationsQuickPeek, {
   getOperationsBoxAnchorId,
 } from './OperationsQuickPeek/useOperationsQuickPeek';
+import TerminalItemTable from './OperationsTerminal/TerminalItemTable';
+import OperationsArchivedItemsLane from './OperationsArchivedItems/OperationsArchivedItemsLane';
+import { API_BASE } from '../api/API_BASE';
+import { normalizeKeepPriority } from '../util/keepPriority';
+import { OPERATIONS_QUICK_PEEK_CLOSE_EVENT } from '../constants/inventoryFinderEvents';
 
-const ORPHANED_CONTAINER_ID = '__system-orphaned-items__';
 const ORPHANED_CONTAINER_ROUTE = '/all-items?filter=orphaned';
 
 /**
@@ -41,8 +45,8 @@ export default function BoxList({
   const [searchParams, setSearchParams] = useSearchParams();
   const [quickCreatedBoxes, setQuickCreatedBoxes] = useState([]);
   const [quickOrphanedDelta, setQuickOrphanedDelta] = useState(0);
-  const [showOrphanedVirtual, setShowOrphanedVirtual] = useState(false);
   const [viewMode, setViewMode] = useState('cards');
+  const [expandedTerminalBoxId, setExpandedTerminalBoxId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchScope, setSearchScope] = useState('all');
   const density = 'compact';
@@ -56,6 +60,10 @@ export default function BoxList({
   const [locationFilter, setLocationFilter] = useState('all');
   const [groupFilter, setGroupFilter] = useState('all');
   const [ownerFilter, setOwnerFilter] = useState('all');
+  const [keepPriorityFilter, setKeepPriorityFilter] = useState('all');
+  const [archivedItems, setArchivedItems] = useState([]);
+  const [archivedItemsLoading, setArchivedItemsLoading] = useState(false);
+  const [archivedItemsError, setArchivedItemsError] = useState('');
   const currentPage = Math.max(1, Number(pagination?.page) || 1);
   const totalCount = Number.isFinite(Number(pagination?.total))
     ? Number(pagination.total)
@@ -77,19 +85,50 @@ export default function BoxList({
     [mergedBoxes, groups],
   );
   const effectiveOrphanedCount = Number(orphanedCount || 0) + quickOrphanedDelta;
+  const showingArchivedItems = keepPriorityFilter === 'gone';
+
+  const visibleOrphanedItems = useMemo(
+    () =>
+      filterOrphanedItems(orphanedItems, {
+        searchQuery,
+        boxLocatorQuery,
+        filterBy,
+        categoryFilter,
+        locationFilter,
+        groupFilter,
+        ownerFilter,
+        keepPriorityFilter,
+        locations,
+      }),
+    [
+      orphanedItems,
+      searchQuery,
+      boxLocatorQuery,
+      filterBy,
+      categoryFilter,
+      locationFilter,
+      groupFilter,
+      ownerFilter,
+      keepPriorityFilter,
+      locations,
+    ],
+  );
+  const orphanFiltersActive = Boolean(
+    String(searchQuery || '').trim() ||
+      normalizeBoxId(boxLocatorQuery) ||
+      filterBy !== 'all' ||
+      categoryFilter !== 'all' ||
+      locationFilter !== 'all' ||
+      groupFilter !== 'all' ||
+      ownerFilter !== 'all' ||
+      keepPriorityFilter !== 'all',
+  );
+  const visibleOrphanedCount =
+    visibleOrphanedItems.length + (orphanFiltersActive ? 0 : quickOrphanedDelta);
 
   const telemetry = useMemo(
     () => summarizeTree(mergedBoxes, effectiveOrphanedCount),
     [mergedBoxes, effectiveOrphanedCount],
-  );
-
-  const orphanedContainer = useMemo(
-    () =>
-      buildOrphanedContainerNode({
-        orphanedItems,
-        orphanedCount: effectiveOrphanedCount,
-      }),
-    [orphanedItems, effectiveOrphanedCount],
   );
 
   const locatorFilteredBoxes = useMemo(
@@ -110,6 +149,7 @@ export default function BoxList({
         locationFilter: boxLocatorActive ? 'all' : locationFilter,
         groupFilter: boxLocatorActive ? 'all' : groupFilter,
         ownerFilter: boxLocatorActive ? 'all' : ownerFilter,
+        keepPriorityFilter: boxLocatorActive ? 'all' : keepPriorityFilter,
       }),
     [
       locatorFilteredBoxes,
@@ -123,6 +163,41 @@ export default function BoxList({
       locationFilter,
       groupFilter,
       ownerFilter,
+      keepPriorityFilter,
+    ],
+  );
+
+  const archivedItemsWithContext = useMemo(
+    () => attachArchivedBoxContext(archivedItems, mergedBoxes),
+    [archivedItems, mergedBoxes],
+  );
+  const legacyDecommissionedItems = useMemo(
+    () => collectDecommissionedItemsFromBoxes(mergedBoxes),
+    [mergedBoxes],
+  );
+  const combinedArchivedItems = useMemo(
+    () => mergeItemsById(archivedItemsWithContext, legacyDecommissionedItems),
+    [archivedItemsWithContext, legacyDecommissionedItems],
+  );
+  const visibleArchivedItems = useMemo(
+    () => filterArchivedItems(combinedArchivedItems, {
+      searchQuery,
+      categoryFilter,
+      locationFilter,
+      groupFilter,
+      ownerFilter,
+      sortBy,
+      sortDirection,
+    }),
+    [
+      combinedArchivedItems,
+      searchQuery,
+      categoryFilter,
+      locationFilter,
+      groupFilter,
+      ownerFilter,
+      sortBy,
+      sortDirection,
     ],
   );
 
@@ -156,31 +231,10 @@ export default function BoxList({
     openBox: openQuickPeek,
     selectedBoxId: quickPeekSelectedBoxId,
   } = quickPeek;
+  const [notesEmphasisBoxId, setNotesEmphasisBoxId] = useState('');
+  const [quickPeekSurface, setQuickPeekSurface] = useState('items');
   const lastAutoActivatedLocatorRef = useRef('');
   const autoOpenedPeekIdRef = useRef('');
-
-  const orphanedMatchesControls = useMemo(
-    () =>
-      matchesNodeControls(orphanedContainer, {
-        query: normalize(searchQuery),
-        searchScope,
-        filterBy,
-        categoryFilter,
-        locationFilter,
-        groupFilter,
-        ownerFilter,
-      }),
-    [
-      orphanedContainer,
-      searchQuery,
-      searchScope,
-      filterBy,
-      categoryFilter,
-      locationFilter,
-      groupFilter,
-      ownerFilter,
-    ],
-  );
 
   useEffect(() => {
     if (groupFilter === 'all') return;
@@ -192,6 +246,48 @@ export default function BoxList({
       setGroupFilter('all');
     }
   }, [groupFilter, groupOptions]);
+
+  useEffect(() => {
+    if (!showingArchivedItems) return undefined;
+
+    const controller = new AbortController();
+    setArchivedItemsLoading(true);
+    setArchivedItemsError('');
+
+    const apiRoot = String(API_BASE || '').replace(/\/+$/, '');
+    fetch(`${apiRoot}/api/items?status=gone&view=list`, {
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Failed to load no longer have items (${response.status})`);
+        }
+        return response.json();
+      })
+      .then((payload) => {
+        if (!controller.signal.aborted) {
+          setArchivedItems(Array.isArray(payload) ? payload : []);
+        }
+      })
+      .catch((error) => {
+        if (error?.name !== 'AbortError' && !controller.signal.aborted) {
+          setArchivedItemsError(error?.message || 'Could not load archived items.');
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setArchivedItemsLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [showingArchivedItems]);
+
+  useEffect(() => {
+    if (!showingArchivedItems) return;
+    setBoxLocatorQuery('');
+    setExpandedTerminalBoxId('');
+    setNotesEmphasisBoxId('');
+    closeQuickPeek();
+  }, [closeQuickPeek, showingArchivedItems]);
 
   useEffect(() => {
     if (!searchParams.has('boxPrefix')) return;
@@ -214,14 +310,12 @@ export default function BoxList({
     onInventoryQueryChange,
   ]);
 
-  const orphanedCanRender = !boxLocatorActive && orphanedMatchesControls;
-  const showOrphanedContainer = showOrphanedVirtual && orphanedCanRender;
   const hasAnyData = effectiveTotalCount > 0 || effectiveOrphanedCount > 0;
   const noData = !hasAnyData;
   const hasNoMatches =
     hasAnyData &&
     pagedVisibleBoxes.length === 0 &&
-    !showOrphanedContainer;
+    visibleOrphanedCount === 0;
 
   const handleQuickBoxCreated = (createdBox) => {
     const nextId = String(createdBox?._id || '').trim();
@@ -252,6 +346,50 @@ export default function BoxList({
   const handleQuickOrphanCreated = () => {
     setQuickOrphanedDelta((prev) => prev + 1);
   };
+
+  const handleOpenQuickPeek = useCallback(
+    (box, triggerElement) => {
+      setNotesEmphasisBoxId('');
+      setQuickPeekSurface('items');
+      openQuickPeek(box, triggerElement);
+    },
+    [openQuickPeek],
+  );
+
+  const handleOpenPhotoQuickPeek = useCallback(
+    (box, triggerElement) => {
+      setNotesEmphasisBoxId('');
+      setQuickPeekSurface('photo');
+      openQuickPeek(box, triggerElement, { forceOpen: true });
+    },
+    [openQuickPeek],
+  );
+
+  const handleOpenNotesQuickPeek = useCallback(
+    (box, triggerElement) => {
+      const nextId = normalizeBoxId(box?.box_id);
+      if (!nextId) return;
+
+      setNotesEmphasisBoxId(nextId);
+      setQuickPeekSurface('items');
+      openQuickPeek(box, triggerElement, { forceOpen: true });
+    },
+    [openQuickPeek],
+  );
+
+  const handleCloseQuickPeek = useCallback(() => {
+    setNotesEmphasisBoxId('');
+    setQuickPeekSurface('items');
+    closeQuickPeek();
+  }, [closeQuickPeek]);
+
+  useEffect(() => {
+    window.addEventListener(OPERATIONS_QUICK_PEEK_CLOSE_EVENT, handleCloseQuickPeek);
+    return () => window.removeEventListener(
+      OPERATIONS_QUICK_PEEK_CLOSE_EVENT,
+      handleCloseQuickPeek,
+    );
+  }, [handleCloseQuickPeek]);
 
   const activateExactBox = useCallback(() => {
     const exactId = normalizeBoxId(boxLocatorExactMatch?.box_id);
@@ -298,6 +436,7 @@ export default function BoxList({
     locationFilter,
     groupFilter,
     ownerFilter,
+    keepPriorityFilter,
     onPageChange,
   ]);
 
@@ -305,6 +444,14 @@ export default function BoxList({
     if (currentPage <= filteredTotalPages) return;
     onPageChange?.(filteredTotalPages);
   }, [currentPage, filteredTotalPages, onPageChange]);
+
+  useEffect(() => {
+    setExpandedTerminalBoxId('');
+  }, [pagedVisibleBoxes, viewMode]);
+
+  const toggleTerminalBox = useCallback((boxId) => {
+    setExpandedTerminalBoxId((current) => (current === boxId ? '' : boxId));
+  }, []);
 
   return (
     <S.Container $quickPeekOpen={Boolean(quickPeek.selectedBox)}>
@@ -338,10 +485,8 @@ export default function BoxList({
         ownerFilter={ownerFilter}
         onOwnerFilterChange={setOwnerFilter}
         owners={ownerOptions}
-        showOrphanedVirtual={showOrphanedVirtual}
-        onToggleOrphanedVirtual={() =>
-          setShowOrphanedVirtual((prev) => !prev)
-        }
+        keepPriorityFilter={keepPriorityFilter}
+        onKeepPriorityFilterChange={setKeepPriorityFilter}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         density={density}
@@ -350,7 +495,23 @@ export default function BoxList({
         locations={locations}
       />
 
-      {noData ? (
+      {showingArchivedItems ? (
+        <OperationsArchivedItemsLane
+          items={visibleArchivedItems}
+          totalCount={combinedArchivedItems.length}
+          loading={archivedItemsLoading}
+          error={archivedItemsError}
+        />
+      ) : (
+        visibleOrphanedCount > 0 ? (
+          <OrphanedAttentionPanel
+            count={visibleOrphanedCount}
+            ambientQuiet={Boolean(quickPeek.selectedBox)}
+          />
+        ) : null
+      )}
+
+      {showingArchivedItems ? null : noData ? (
         <S.EmptyMessage>No boxes yet.</S.EmptyMessage>
       ) : hasNoMatches ? (
         <S.EmptyMessage>No boxes match the current search/filter.</S.EmptyMessage>
@@ -365,18 +526,6 @@ export default function BoxList({
                 <S.TerminalHeadCell>Children</S.TerminalHeadCell>
                 <S.TerminalHeadCell>Items</S.TerminalHeadCell>
               </S.TerminalHeader>
-              {orphanedCanRender ? (
-                <S.OrphanedRevealShell $open={showOrphanedContainer}>
-                  <CompactBranch
-                    key={orphanedContainer._id}
-                    node={orphanedContainer}
-                    depth={0}
-                    searchQuery={searchQuery}
-                    searchScope={searchScope}
-                    density={density}
-                  />
-                </S.OrphanedRevealShell>
-              ) : null}
               {pagedVisibleBoxes.map((node) => (
                 <CompactBranch
                   key={node._id || node.box_id}
@@ -385,25 +534,13 @@ export default function BoxList({
                   searchQuery={searchQuery}
                   searchScope={searchScope}
                   density={density}
+                  expandedBoxId={expandedTerminalBoxId}
+                  onToggleBox={toggleTerminalBox}
                 />
               ))}
             </S.TerminalTable>
           ) : (
             <>
-              {orphanedCanRender ? (
-                <S.OrphanedRevealShell $open={showOrphanedContainer}>
-                  <Branch
-                    key={orphanedContainer._id}
-                    node={orphanedContainer}
-                    depth={0}
-                    searchQuery={searchQuery}
-                    searchScope={searchScope}
-                    density={density}
-                    selectedBoxId={quickPeek.selectedBoxId}
-                    onOpenQuickPeek={quickPeek.openBox}
-                  />
-                </S.OrphanedRevealShell>
-              ) : null}
               {pagedVisibleBoxes.map((node) => (
                 <Branch
                   key={node._id || node.box_id}
@@ -413,7 +550,9 @@ export default function BoxList({
                   searchScope={searchScope}
                   density={density}
                   selectedBoxId={quickPeek.selectedBoxId}
-                  onOpenQuickPeek={quickPeek.openBox}
+                  onOpenQuickPeek={handleOpenQuickPeek}
+                  onOpenPhotoQuickPeek={handleOpenPhotoQuickPeek}
+                  onOpenNotesQuickPeek={handleOpenNotesQuickPeek}
                 />
               ))}
             </>
@@ -421,28 +560,32 @@ export default function BoxList({
         </>
       )}
 
-      {effectiveTotalCount > 0 ? (
+      {!showingArchivedItems && effectiveTotalCount > 0 ? (
         <S.PaginationBar>
           <S.PaginationButton
             type="button"
+            aria-label="Previous page"
             onClick={() => onPageChange?.(currentPage - 1)}
             disabled={currentPage <= 1}
           >
-            Previous
+            <span aria-hidden="true">‹</span>
+            <span className="pagination-label">Previous</span>
           </S.PaginationButton>
 
-          <S.PaginationInfo>
-            Page {safeCurrentPage} of {filteredTotalPages}
-            {` // ${visibleTopLevelCount} matching top-level boxes`}
-            {` // ${visibleBoxCount} / ${telemetry.totalBoxes} boxes shown`}
+          <S.PaginationInfo
+            aria-label={`Page ${safeCurrentPage} of ${filteredTotalPages}. ${visibleTopLevelCount} matching top-level boxes. ${visibleBoxCount} of ${telemetry.totalBoxes} boxes shown.`}
+          >
+            {safeCurrentPage} / {filteredTotalPages}
           </S.PaginationInfo>
 
           <S.PaginationButton
             type="button"
+            aria-label="Next page"
             onClick={() => onPageChange?.(currentPage + 1)}
             disabled={safeCurrentPage >= filteredTotalPages}
           >
-            Next
+            <span className="pagination-label">Next</span>
+            <span aria-hidden="true">›</span>
           </S.PaginationButton>
         </S.PaginationBar>
       ) : null}
@@ -454,18 +597,85 @@ export default function BoxList({
         expanded={quickPeek.expanded}
         closing={quickPeek.closing}
         transitionDirection={quickPeek.transitionDirection}
+        notesEmphasized={
+          normalizeBoxId(quickPeek.selectedBox?.box_id) ===
+          notesEmphasisBoxId
+        }
+        surface={quickPeekSurface}
         canSelectPrevious={quickPeek.canSelectPrevious}
         canSelectNext={quickPeek.canSelectNext}
-        onPrevious={quickPeek.selectPrevious}
-        onNext={quickPeek.selectNext}
+        onPrevious={() => {
+          setNotesEmphasisBoxId('');
+          setQuickPeekSurface('items');
+          quickPeek.selectPrevious();
+        }}
+        onNext={() => {
+          setNotesEmphasisBoxId('');
+          setQuickPeekSurface('items');
+          quickPeek.selectNext();
+        }}
         onToggleExpanded={() =>
           quickPeek.setExpanded((current) => !current)
         }
         onSetExpanded={quickPeek.setExpanded}
-        onClose={quickPeek.close}
+        onShowItems={() => {
+          setNotesEmphasisBoxId('');
+          setQuickPeekSurface('items');
+        }}
+        onClose={handleCloseQuickPeek}
         onOpenFullBox={quickPeek.openFullBox}
       />
     </S.Container>
+  );
+}
+
+function OrphanedAttentionPanel({ count = 0, ambientQuiet = false }) {
+  const resolvedCount = Math.max(0, Number(count) || 0);
+
+  return (
+    <S.NodeSection
+      $isRoot
+      $depth={0}
+      $ambientQuiet={ambientQuiet}
+      style={{
+        '--box-primary': '#A7B6FF',
+        '--box-primary-rgb': '167, 182, 255',
+        '--box-secondary': '#67D9D3',
+        '--box-secondary-rgb': '103, 217, 211',
+      }}
+    >
+      <S.OrphanedRailBack aria-hidden="true" $isRoot $depth={0} />
+      <S.RailFront $isRoot $depth={0}>
+        <S.OrphanedAttentionLink
+          to={ORPHANED_CONTAINER_ROUTE}
+          aria-label={`Open ${resolvedCount} Items Adrift ${resolvedCount === 1 ? 'item' : 'items'}`}
+          $isRoot
+          $depth={0}
+          $density="compact"
+        >
+          <S.BoxBodyRow $density="compact">
+            <S.OrphanedSignal aria-hidden="true" $density="compact">
+              <span>TRANSIT</span>
+              <strong>◇</strong>
+            </S.OrphanedSignal>
+            <S.OrphanedAttentionCopy>
+              <S.OrphanedAttentionKicker>
+                UNASSIGNED // ATTENTION QUEUE
+              </S.OrphanedAttentionKicker>
+              <S.OrphanedAttentionTitle>Items Adrift</S.OrphanedAttentionTitle>
+              <S.OrphanedAttentionMeta>
+                In transit or intentionally kept outside a box
+              </S.OrphanedAttentionMeta>
+            </S.OrphanedAttentionCopy>
+          </S.BoxBodyRow>
+          <S.CardManifest aria-hidden="true" $isRoot $depth={0}>
+            <span>
+              {resolvedCount} {resolvedCount === 1 ? 'item' : 'items'}
+            </span>
+          </S.CardManifest>
+        </S.OrphanedAttentionLink>
+      </S.RailFront>
+    </S.NodeSection>
   );
 }
 
@@ -475,15 +685,13 @@ function CompactBranch({
   searchQuery = '',
   searchScope = 'all',
   density = 'compact',
+  expandedBoxId = '',
+  onToggleBox,
 }) {
-  const navigate = useNavigate();
-  const [expanded, setExpanded] = useState(false);
   const [childrenExpanded, setChildrenExpanded] = useState(false);
   const childBoxes = Array.isArray(node.childBoxes) ? node.childBoxes : [];
-  const tags = getRenderableBoxTags(node);
   const group = String(node?.group || '').trim();
   const description = String(node?.description || '').trim();
-  const notes = String(node?.notes || '').trim();
   const isSystemContainer = !!node?.isSystemContainer;
   const isOrphanedContainer = node?.systemType === 'orphaned';
   const boxTheme = getBoxTheme(node?.box_id, {
@@ -502,17 +710,9 @@ function CompactBranch({
     childBoxes.length > 0 &&
     (depth < 2 || childrenExpanded || autoExpandChildren);
   const nestedCount = countDescendants(node);
-  const hasMoreInfo =
-    !!group || !!description || !!notes || tags.length > 0 || isSystemContainer;
-
-  const go = () => {
-    navigate(route);
-  };
-
-  const stopAndToggle = (event) => {
-    event.stopPropagation();
-    setExpanded((prev) => !prev);
-  };
+  const branchId = String(node?._id || node?.box_id || 'terminal-box');
+  const expanded = expandedBoxId === branchId;
+  const panelId = `terminal-items-${branchId.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
   const toggleChildren = (event) => {
     event.stopPropagation();
@@ -522,16 +722,18 @@ function CompactBranch({
   return (
     <S.TerminalBranch $depth={depth} style={boxThemeStyle}>
       <S.TerminalRow
+        type="button"
         role="treeitem"
-        aria-expanded={hasMoreInfo ? expanded : undefined}
+        aria-expanded={expanded}
+        aria-controls={panelId}
         $depth={depth}
         $isSystem={isSystemContainer}
         $density={density}
-        onClick={go}
+        onClick={() => onToggleBox?.(branchId)}
       >
         <S.TerminalBoxCell $depth={depth}>
-          <S.TreeGlyph aria-hidden="true" $depth={depth}>
-            {childBoxes.length > 0 ? '>' : '-'}
+          <S.TreeGlyph aria-hidden="true" $depth={depth} $expanded={expanded}>
+            ›
           </S.TreeGlyph>
           <S.TerminalShortId $depth={depth} $isSystem={isSystemContainer}>
             {isSystemContainer ? 'SYS' : `#${node.box_id}`}
@@ -542,48 +744,16 @@ function CompactBranch({
         <S.TerminalCell>{group || description || '-'}</S.TerminalCell>
         <S.TerminalMetric>{isOrphanedContainer ? 'virtual' : childBoxes.length}</S.TerminalMetric>
         <S.TerminalMetric>{itemQtyTotal}</S.TerminalMetric>
-        <S.TerminalMoreButton
-          type="button"
-          disabled={!hasMoreInfo}
-          aria-label={`${expanded ? 'Hide' : 'Show'} details for ${title}`}
-          aria-expanded={expanded}
-          onClick={stopAndToggle}
-        >
-          {expanded ? '-' : '+'}
-        </S.TerminalMoreButton>
       </S.TerminalRow>
 
-      <S.TerminalDetailPanel $open={expanded}>
-        <S.TerminalDetailInner>
-          {isSystemContainer ? (
-            <S.TerminalDetailText>Virtual system container.</S.TerminalDetailText>
-          ) : null}
-          {description ? (
-            <S.TerminalDetailText>{description}</S.TerminalDetailText>
-          ) : null}
-          {notes ? (
-            <S.TerminalDetailNote>
-              <S.TerminalDetailLabel>Notes</S.TerminalDetailLabel>
-              {notes}
-            </S.TerminalDetailNote>
-          ) : null}
-          {tags.length > 0 ? (
-            <S.TerminalTagRow>
-              {tags.map((tag, index) => (
-                <S.TagBubble
-                  $tiny
-                  $depth={depth}
-                  $isSystem={isSystemContainer}
-                  key={`${node._id || node.box_id}-terminal-tag-${index}`}
-                >
-                  {tag}
-                </S.TagBubble>
-              ))}
-            </S.TerminalTagRow>
-          ) : null}
-          <S.TerminalLink to={route}>Open box page</S.TerminalLink>
-        </S.TerminalDetailInner>
-      </S.TerminalDetailPanel>
+      {expanded ? (
+        <TerminalItemTable
+          boxTitle={title}
+          boxHref={route}
+          panelId={panelId}
+          items={node.items}
+        />
+      ) : null}
 
       {childBoxes.length > 0 && depth >= 2 ? (
         <S.TerminalChildrenToggle
@@ -605,6 +775,8 @@ function CompactBranch({
               searchQuery={searchQuery}
               searchScope={searchScope}
               density={density}
+              expandedBoxId={expandedBoxId}
+              onToggleBox={onToggleBox}
             />
           ))}
         </S.TerminalChildren>
@@ -621,6 +793,8 @@ function Branch({
   density = 'compact',
   selectedBoxId = '',
   onOpenQuickPeek,
+  onOpenPhotoQuickPeek,
+  onOpenNotesQuickPeek,
 }) {
   const navigate = useNavigate();
   const [childrenExpanded, setChildrenExpanded] = useState(false);
@@ -656,11 +830,35 @@ function Branch({
     normalizeBoxId(node?.box_id) === normalizeBoxId(selectedBoxId);
 
   const go = (event) => {
+    if (
+      event.target instanceof Element &&
+      event.target !== event.currentTarget &&
+      event.target.closest('button, a')
+    ) {
+      return;
+    }
     if (isOrphanedContainer) {
       navigate(ORPHANED_CONTAINER_ROUTE);
       return;
     }
     onOpenQuickPeek?.(node, event.currentTarget);
+  };
+
+  const handleCardKeyDown = (event) => {
+    if (event.target !== event.currentTarget) return;
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    go(event);
+  };
+
+  const openNotes = (event) => {
+    event.stopPropagation();
+    onOpenNotesQuickPeek?.(node, event.currentTarget);
+  };
+
+  const openPhoto = (event) => {
+    event.stopPropagation();
+    onOpenPhotoQuickPeek?.(node, event.currentTarget);
   };
 
   const toggleChildren = (event) => {
@@ -679,14 +877,22 @@ function Branch({
       $depth={depth}
       style={boxThemeStyle}
     >
-      <S.RailBack aria-hidden="true" $isRoot={isRoot} $depth={depth} />
+      <S.RailBack
+        aria-hidden="true"
+        $isRoot={isRoot}
+        $depth={depth}
+        $selected={isSelected}
+      />
       <S.RailFront $isRoot={isRoot} $depth={depth}>
         <S.BoxCard
-          type="button"
+          as="div"
+          role="button"
+          tabIndex={0}
           onClick={go}
+          onKeyDown={handleCardKeyDown}
           aria-label={
             isOrphanedContainer
-              ? 'Open orphaned items'
+              ? 'Open Items Adrift'
               : `Preview box ${node.box_id}, ${
                   node.label || node.name || 'Untitled'
                 }`
@@ -705,16 +911,24 @@ function Branch({
           $selected={isSelected}
         >
           <S.BoxBodyRow $density={density}>
-            <S.BoxImageFrame $density={density}>
-              {boxImageUrl ? (
+            {boxImageUrl ? (
+              <S.BoxImageTrigger
+                $density={density}
+                aria-label={`View box photo for ${node.label || node.name || `box ${node.box_id}`}`}
+                title="Open box photo preview"
+                data-operations-box-preview-trigger="true"
+                onClick={openPhoto}
+              >
                 <S.BoxImage
                   src={boxImageUrl}
                   alt={`${node.label || node.name || `Box ${node.box_id || ''}`} image`}
                 />
-              ) : (
+              </S.BoxImageTrigger>
+            ) : (
+              <S.BoxImageFrame $density={density}>
                 <S.BoxImagePlaceholder>No image</S.BoxImagePlaceholder>
-              )}
-            </S.BoxImageFrame>
+              </S.BoxImageFrame>
+            )}
 
             <S.BoxContent>
               <S.BoxHeader>
@@ -734,7 +948,7 @@ function Branch({
                   $isSystem={isSystemContainer}
                   $density={density}
                 >
-                  {node.label || node.name || 'Untitled'}
+                  {isOrphanedContainer ? 'Items Adrift' : node.label || node.name || 'Untitled'}
                 </S.BoxTitle>
               </S.BoxHeader>
 
@@ -752,9 +966,9 @@ function Branch({
                 </S.BoxMetaRow>
               ) : null}
 
-              {description && (
+              {description && density === 'roomy' ? (
                 <S.BoxSummary $density={density}>{description}</S.BoxSummary>
-              )}
+              ) : null}
 
               {isSystemContainer ? (
                 <S.BoxSummary $density={density}>Virtual system container</S.BoxSummary>
@@ -778,8 +992,10 @@ function Branch({
                   ) : null}
                   {notes ? (
                     <S.NotesSignal
-                      aria-label="Notes available"
-                      title="Notes available in quick peek"
+                      type="button"
+                      aria-label={`Show notes for ${node.label || node.name || `box ${node.box_id}`}`}
+                      title="Open quick peek with notes"
+                      onClick={openNotes}
                     >
                       N
                     </S.NotesSignal>
@@ -851,6 +1067,8 @@ function Branch({
                 density={density}
                 selectedBoxId={selectedBoxId}
                 onOpenQuickPeek={onOpenQuickPeek}
+                onOpenPhotoQuickPeek={onOpenPhotoQuickPeek}
+                onOpenNotesQuickPeek={onOpenNotesQuickPeek}
               />
             ))}
           </S.NodeChildren>
@@ -911,6 +1129,7 @@ function applyTreeControls(
     locationFilter = 'all',
     groupFilter = 'all',
     ownerFilter = 'all',
+    keepPriorityFilter = 'all',
   },
 ) {
   const query = normalize(searchQuery);
@@ -931,6 +1150,7 @@ function applyTreeControls(
         locationFilter,
         groupFilter,
         ownerFilter,
+        keepPriorityFilter,
       }) || children.length > 0;
     if (!include) return null;
 
@@ -954,6 +1174,7 @@ function matchesNodeControls(
     locationFilter = 'all',
     groupFilter = 'all',
     ownerFilter = 'all',
+    keepPriorityFilter = 'all',
   } = {},
 ) {
   const matchesSearch = !query || matchesQuery(node, query, searchScope);
@@ -982,6 +1203,11 @@ function matchesNodeControls(
   const matchesOwner =
     normalizedOwnerFilter === 'all' ||
     hasItemWithOwner(node?.items, normalizedOwnerFilter);
+  const normalizedPriorityFilter =
+    keepPriorityFilter === 'all' ? '' : normalizeKeepPriority(keepPriorityFilter);
+  const matchesKeepPriority =
+    !normalizedPriorityFilter ||
+    hasItemWithKeepPriority(node?.items, normalizedPriorityFilter);
 
   return (
     matchesSearch &&
@@ -989,7 +1215,8 @@ function matchesNodeControls(
     matchesCategory &&
     matchesLocation &&
     matchesGroup &&
-    matchesOwner
+    matchesOwner &&
+    matchesKeepPriority
   );
 }
 
@@ -1191,6 +1418,202 @@ function hasItemWithOwner(items, ownerFilter) {
   return items.some((item) => normalize(item?.primaryOwnerName) === ownerFilter);
 }
 
+function hasItemWithKeepPriority(items, priorityFilter) {
+  if (!priorityFilter) return true;
+  if (!Array.isArray(items) || items.length === 0) return false;
+  return items.some(
+    (item) => normalizeKeepPriority(item?.keepPriority) === priorityFilter,
+  );
+}
+
+function filterOrphanedItems(
+  items,
+  {
+    searchQuery = '',
+    boxLocatorQuery = '',
+    filterBy = 'all',
+    categoryFilter = 'all',
+    locationFilter = 'all',
+    groupFilter = 'all',
+    ownerFilter = 'all',
+    keepPriorityFilter = 'all',
+    locations = [],
+  } = {},
+) {
+  if (normalizeBoxId(boxLocatorQuery)) return [];
+  if (filterBy !== 'all' || groupFilter !== 'all') return [];
+  if (keepPriorityFilter === 'gone') return [];
+
+  const terms = normalize(searchQuery).split(/\s+/).filter(Boolean);
+  const normalizedCategory =
+    categoryFilter === 'all' ? 'all' : normalizeItemCategory(categoryFilter);
+  const normalizedOwner = normalize(ownerFilter);
+  const normalizedPriority =
+    keepPriorityFilter === 'all' ? '' : normalizeKeepPriority(keepPriorityFilter);
+  const selectedLocation = (locations || []).find(
+    (location) => String(location?._id || '') === String(locationFilter),
+  );
+  const normalizedLocation = normalize(selectedLocation?.name || locationFilter);
+
+  return (items || []).filter((item) => {
+    const haystack = normalize(
+      [
+        item?.name,
+        item?.label,
+        item?.description,
+        item?.notes,
+        item?.category,
+        item?.location,
+        item?.primaryOwnerName,
+        item?.keepPriority,
+        ...(Array.isArray(item?.tags) ? item.tags : []),
+      ]
+        .filter(Boolean)
+        .join(' '),
+    );
+    const matchesTerms = terms.every((term) => haystack.includes(term));
+    const matchesCategory =
+      normalizedCategory === 'all' ||
+      normalizeItemCategory(item?.category) === normalizedCategory;
+    const matchesLocation =
+      locationFilter === 'all' || normalize(item?.location) === normalizedLocation;
+    const matchesOwner =
+      normalizedOwner === 'all' ||
+      normalize(item?.primaryOwnerName) === normalizedOwner;
+    const matchesPriority =
+      !normalizedPriority ||
+      normalizeKeepPriority(item?.keepPriority) === normalizedPriority;
+
+    return (
+      matchesTerms &&
+      matchesCategory &&
+      matchesLocation &&
+      matchesOwner &&
+      matchesPriority
+    );
+  });
+}
+
+function collectDecommissionedItemsFromBoxes(nodes, target = []) {
+  for (const box of nodes || []) {
+    for (const item of box?.items || []) {
+      if (normalizeKeepPriority(item?.keepPriority) !== 'decommissioned') continue;
+      target.push({
+        ...item,
+        operationsBox: box,
+      });
+    }
+    collectDecommissionedItemsFromBoxes(box?.childBoxes, target);
+  }
+  return target;
+}
+
+function mergeItemsById(...collections) {
+  const byId = new Map();
+  let anonymousIndex = 0;
+
+  for (const items of collections) {
+    for (const item of items || []) {
+      const id = String(item?._id || item?.id || '').trim();
+      const key = id || `anonymous-${anonymousIndex++}`;
+      byId.set(key, { ...byId.get(key), ...item });
+    }
+  }
+
+  return [...byId.values()];
+}
+
+function flattenAllBoxes(nodes, target = []) {
+  for (const node of nodes || []) {
+    target.push(node);
+    flattenAllBoxes(node?.childBoxes, target);
+  }
+  return target;
+}
+
+function attachArchivedBoxContext(items, boxes) {
+  const byMongoId = new Map(
+    flattenAllBoxes(boxes, []).map((box) => [String(box?._id || ''), box]),
+  );
+
+  return (items || []).map((item) => ({
+    ...item,
+    operationsBox:
+      item?.box || byMongoId.get(String(item?.last_active_box || '')) || null,
+  }));
+}
+
+function filterArchivedItems(
+  items,
+  {
+    searchQuery = '',
+    categoryFilter = 'all',
+    locationFilter = 'all',
+    groupFilter = 'all',
+    ownerFilter = 'all',
+    sortBy = 'boxId',
+    sortDirection = 'asc',
+  } = {},
+) {
+  const terms = normalize(searchQuery).split(/\s+/).filter(Boolean);
+  const normalizedCategory =
+    categoryFilter === 'all' ? 'all' : normalizeItemCategory(categoryFilter);
+  const normalizedGroup = normalize(groupFilter);
+  const normalizedOwner = normalize(ownerFilter);
+
+  const filtered = (items || []).filter((item) => {
+    const box = item?.operationsBox;
+    const haystack = normalize([
+      item?.name,
+      item?.description,
+      item?.notes,
+      item?.disposition,
+      item?.disposition_notes,
+      item?.category,
+      item?.primaryOwnerName,
+      item?.keepPriority,
+      ...(Array.isArray(item?.tags) ? item.tags : []),
+      box?.box_id,
+      box?.label,
+      box?.location,
+      box?.group,
+    ].filter(Boolean).join(' '));
+    const matchesTerms = terms.every((term) => haystack.includes(term));
+    const matchesCategory =
+      normalizedCategory === 'all' ||
+      normalizeItemCategory(item?.category) === normalizedCategory;
+    const matchesLocation =
+      locationFilter === 'all' ||
+      String(getLocationId(box) || '') === String(locationFilter);
+    const matchesGroup =
+      normalizedGroup === 'all' || normalize(box?.group) === normalizedGroup;
+    const matchesOwner =
+      normalizedOwner === 'all' ||
+      normalize(item?.primaryOwnerName) === normalizedOwner;
+
+    return matchesTerms && matchesCategory && matchesLocation && matchesGroup && matchesOwner;
+  });
+
+  const direction = sortDirection === 'desc' ? -1 : 1;
+  return filtered.sort((a, b) => {
+    const aBox = a?.operationsBox || {};
+    const bBox = b?.operationsBox || {};
+    if (sortBy === 'location') {
+      return compareText(aBox.location, bBox.location) * direction ||
+        compareText(a?.name, b?.name) * direction;
+    }
+    if (sortBy === 'group') {
+      return compareText(aBox.group, bBox.group) * direction ||
+        compareText(a?.name, b?.name) * direction;
+    }
+    if (sortBy === 'boxId') {
+      return compareNodeBoxId(aBox, bBox) * direction ||
+        compareText(a?.name, b?.name) * direction;
+    }
+    return compareText(a?.name, b?.name) * direction;
+  });
+}
+
 function collectOwnerOptions(nodes) {
   const byKey = new Map();
 
@@ -1320,28 +1743,6 @@ function countMissingQuickCreatedBoxes(baseNodes, quickCreatedBoxes) {
 
 function getLocationId(node) {
   return node?.locationId?._id ?? node?.locationId ?? null;
-}
-
-function buildOrphanedContainerNode({ orphanedItems = [], orphanedCount = 0 } = {}) {
-  const items = Array.isArray(orphanedItems) ? orphanedItems : [];
-  const resolvedCount = Number.isFinite(Number(orphanedCount))
-    ? Math.max(0, Number(orphanedCount))
-    : items.length;
-
-  return {
-    _id: ORPHANED_CONTAINER_ID,
-    box_id: 'SYS',
-    label: 'Orphaned Items',
-    location: 'System',
-    description: 'Virtual container for unassigned items.',
-    notes: 'Items remain orphaned in the data model.',
-    tags: ['system', 'virtual'],
-    items,
-    childBoxes: [],
-    isSystemContainer: true,
-    systemType: 'orphaned',
-    itemCountOverride: resolvedCount,
-  };
 }
 
 function findBoxById(nodes, boxId) {

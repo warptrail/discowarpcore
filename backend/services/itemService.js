@@ -3,6 +3,7 @@ const Item = require('../models/Item');
 const Box = require('../models/Box');
 const Batch = require('../models/Batch');
 const MediaState = require('../models/MediaState');
+const DeclutterCandidate = require('../models/DeclutterCandidate');
 const path = require('path');
 const { MEDIA_ROOT, toMediaUrl } = require('../config/media');
 const {
@@ -545,13 +546,28 @@ async function getItemById(id, { select, perf = false } = {}) {
   const startNs = perfEnabled ? process.hrtime.bigint() : null;
   const item = await Item.findItemById(id, { select, perf: perfEnabled });
   const [itemWithSourceBatch] = await attachSourceBatchSummaries(item ? [item] : []);
+  const detail = withNormalizedItemCategory(itemWithSourceBatch || item);
+  if (detail?._id) {
+    const candidate = await DeclutterCandidate.findOne({ itemId: detail._id })
+      .select('_id deckState resolution stagingRoute confirmedAt')
+      .lean();
+    detail.declutterCandidate = candidate
+      ? {
+          id: String(candidate._id),
+          deckState: candidate.deckState,
+          resolution: candidate.resolution,
+          stagingRoute: candidate.stagingRoute,
+          confirmedAt: candidate.confirmedAt,
+        }
+      : null;
+  }
   if (perfEnabled && startNs) {
     const totalMs = Number(process.hrtime.bigint() - startNs) / 1e6;
     console.log(
       `[perf][item-detail] service.getItemById itemId=${String(id)} totalMs=${totalMs.toFixed(2)}`
     );
   }
-  return withNormalizedItemCategory(itemWithSourceBatch || item);
+  return detail;
 }
 
 /**
@@ -961,18 +977,22 @@ async function bulkCreateItems({
 }
 
 async function updateItem(id, data) {
+  const patch = { ...data };
+  if (Object.prototype.hasOwnProperty.call(patch, 'isIntendedGift')) {
+    patch.isIntendedGift = patch.isIntendedGift === true;
+  }
   const existing = await Item.findById(id).lean();
   if (!existing) return null;
 
-  assertValidCentsPayload(data);
-  const updated = await Item.findByIdAndUpdate(id, data, {
+  assertValidCentsPayload(patch);
+  const updated = await Item.findByIdAndUpdate(id, patch, {
     new: true,
     runValidators: true,
   });
   if (!updated) return null;
 
   const updatedPlain = toPlain(updated);
-  const changedFields = computeChangedFields(existing, updatedPlain, Object.keys(data));
+  const changedFields = computeChangedFields(existing, updatedPlain, Object.keys(patch));
 
   if (changedFields.length) {
     const itemRef = toItemRef(updatedPlain);
@@ -991,6 +1011,24 @@ async function updateItem(id, data) {
       },
       { label: `item_updated:${itemRef.id}` }
     );
+
+    if (changedFields.includes('isIntendedGift')) {
+      await logEventBestEffort(
+        {
+          event_type: 'item_gift_intent_changed',
+          entity_type: 'item',
+          entity_id: itemRef.id,
+          entity_label: itemRef.label,
+          summary: `${updatedPlain.isIntendedGift ? 'Marked' : 'Unmarked'} item ${quoteLabel(itemRef.label)} as intended for gifting`,
+          details: {
+            previous_value: Boolean(existing.isIntendedGift),
+            next_value: Boolean(updatedPlain.isIntendedGift),
+            trigger: 'manual_item_edit',
+          },
+        },
+        { label: `item_gift_intent_changed:${itemRef.id}` }
+      );
+    }
   }
 
   return updated;

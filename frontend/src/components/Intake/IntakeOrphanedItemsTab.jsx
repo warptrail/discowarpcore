@@ -47,7 +47,7 @@ export default function IntakeOrphanedItemsTab({
   return (
     <Wrap>
       <Info>
-        Assign orphaned items directly into the current Intake box.
+        Assign Items Adrift directly into the current Intake box.
       </Info>
 
       <Viewport>
@@ -58,7 +58,7 @@ export default function IntakeOrphanedItemsTab({
           onItemAssigned={(itemId, context = {}) => {
             if (!boxId) return;
             const item = context?.item || null;
-            const message = `Added ${item?.name || 'orphaned item'} to box #${currentBox?.box_id || '---'}.`;
+            const message = `Added ${item?.name || 'adrift item'} to box #${currentBox?.box_id || '---'}.`;
             onItemMoved?.({
               itemId,
               destBoxId: boxId,

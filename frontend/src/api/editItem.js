@@ -28,6 +28,7 @@ export async function editItem(itemId, payload) {
     lastMaintainedAt,
     maintenanceHistory,
     maintenanceNotes,
+    isIntendedGift,
   } = payload;
 
   const safePayload = {
@@ -56,6 +57,7 @@ export async function editItem(itemId, payload) {
     lastMaintainedAt,
     maintenanceHistory,
     maintenanceNotes,
+    isIntendedGift,
   };
 
   const url = `${API_BASE}/api/items/${itemId}`;

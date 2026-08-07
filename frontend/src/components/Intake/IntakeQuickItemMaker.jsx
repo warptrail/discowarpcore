@@ -1,378 +1,141 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import styled from 'styled-components';
 import { API_BASE } from '../../api/API_BASE';
-import {
-  MOBILE_BREAKPOINT,
-  MOBILE_CONTROL_MIN_HEIGHT,
-  MOBILE_FONT_SM,
-  MOBILE_FONT_XS,
-} from '../../styles/tokens';
-import {
-  DEFAULT_ITEM_CATEGORY,
-  ITEM_CATEGORIES,
-  formatItemCategory,
-  normalizeItemCategory,
-} from '../../util/itemCategories';
-import ImageSourcePicker from '../ImageSourcePicker';
+import { DEFAULT_ITEM_CATEGORY } from '../../util/itemCategories';
 import { uploadCroppedItemImage } from './intakeImageHelpers';
-import BoxTagsField from '../BoxForms/BoxTagsField';
-import QuantityInput from '../QuantityInput';
+import NewItemPhotoControl from './NewItemPhotoControl';
+import NewItemPostSaveDetails from './NewItemPostSaveDetails';
+import NewItemQuantityControl from './NewItemQuantityControl';
+import * as GridStyles from '../../styles/InventoryGridHeader.styles';
+import {
+  Composer,
+  DestinationKicker,
+  DestinationLabel,
+  DestinationMeta,
+  DestinationRail,
+  Field,
+  Form,
+  InlineMessage,
+  Input,
+  ItemTitle,
+  Label,
+  PrimaryButton,
+  ProgressContent,
+  ProgressDisclosure,
+  ProgressToggle,
+  QuickDetails,
+  QuantityRow,
+  QuietButton,
+  TagChip,
+  TagComposer,
+  TagDraftInput,
+  TagStageButton,
+} from './NewItemComposer.styles';
 
-const Panel = styled.section`
-  border: 1px solid rgba(108, 171, 203, 0.45);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(12, 21, 31, 0.94) 0%, rgba(9, 16, 24, 0.96) 100%);
-  padding: 0.54rem;
-  display: grid;
-  gap: 0.42rem;
+function normalizeTags(values = []) {
+  return Array.from(new Set(
+    (Array.isArray(values) ? values : [])
+      .map((value) => String(value || '').trim())
+      .filter(Boolean),
+  ));
+}
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: 0.54rem;
-    gap: 0.46rem;
-  }
-`;
+function normalizeCreatedItem(createdItem, {
+  isInBoxMode,
+  targetBoxId,
+  targetBoxShortId,
+  targetBoxLabel,
+  orphanedAt,
+}) {
+  const createdAt = createdItem?.createdAt || createdItem?.created_at || new Date().toISOString();
+  const normalized = {
+    ...createdItem,
+    createdAt,
+    created_at: createdItem?.created_at || createdAt,
+    category: createdItem?.category || DEFAULT_ITEM_CATEGORY,
+    image: createdItem?.image || null,
+    imagePath: createdItem?.imagePath || '',
+  };
 
-const Heading = styled.h2`
-  margin: 0;
-  font-size: 0.8rem;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: #d8eaf8;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${MOBILE_FONT_XS};
-  }
-`;
-
-const Hint = styled.p`
-  margin: 0;
-  color: #a9c2dc;
-  font-size: 0.73rem;
-  line-height: 1.35;
-`;
-
-const DestinationBar = styled.div`
-  border: 1px solid rgba(105, 166, 143, 0.5);
-  border-radius: 10px;
-  background: rgba(13, 32, 27, 0.82);
-  padding: 0.34rem 0.42rem;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.44rem;
-  align-items: center;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: 1fr;
-    align-items: stretch;
-  }
-`;
-
-const DestinationText = styled.div`
-  min-width: 0;
-  color: #dff7ee;
-  font-size: 0.72rem;
-  line-height: 1.35;
-`;
-
-const DestinationLabel = styled.span`
-  color: #8fb8a8;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.64rem;
-  font-weight: 700;
-  margin-right: 0.28rem;
-`;
-
-const DestinationValue = styled.span`
-  font-weight: 700;
-  overflow-wrap: anywhere;
-`;
-
-const ClearDestinationButton = styled.button`
-  min-height: 30px;
-  border-radius: 8px;
-  border: 1px solid rgba(119, 171, 202, 0.58);
-  background: rgba(16, 30, 41, 0.92);
-  color: #d6eaff;
-  font-size: 0.68rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 0 0.5rem;
-  cursor: pointer;
-
-  &:hover {
-    filter: brightness(1.08);
+  if (isInBoxMode) {
+    return {
+      ...normalized,
+      box: {
+        _id: targetBoxId,
+        box_id: targetBoxShortId || null,
+        label: targetBoxLabel || '',
+      },
+      boxId: targetBoxId,
+      orphanedAt: null,
+    };
   }
 
-  &:disabled {
-    opacity: 0.56;
-    cursor: not-allowed;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-  }
-`;
-
-const Form = styled.form`
-  display: grid;
-  gap: 0.4rem;
-`;
-
-const TopRow = styled.div`
-  display: grid;
-  gap: 0.42rem;
-  grid-template-columns: minmax(0, 1fr) 104px;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: 1fr;
-    gap: 0.4rem;
-  }
-`;
-
-const Field = styled.div`
-  display: grid;
-  gap: 0.24rem;
-  min-width: 0;
-`;
-
-const FullRowField = styled(Field)`
-  grid-column: 1 / -1;
-`;
-
-const Label = styled.label`
-  margin: 0;
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #98b4c8;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  min-height: 34px;
-  border-radius: 9px;
-  border: 1px solid rgba(116, 145, 198, 0.5);
-  background: rgba(7, 11, 18, 0.9);
-  color: #eaf2ff;
-  font-size: 0.84rem;
-  padding: 0 0.52rem;
-
-  &:focus {
-    outline: none;
-    border-color: rgba(145, 187, 255, 0.9);
-    box-shadow: 0 0 0 2px rgba(91, 141, 236, 0.22);
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-    font-size: 16px;
-  }
-`;
-
-const Select = styled.select`
-  width: 100%;
-  min-height: 34px;
-  border-radius: 9px;
-  border: 1px solid rgba(116, 145, 198, 0.5);
-  background: rgba(7, 11, 18, 0.9);
-  color: #eaf2ff;
-  font-size: 0.84rem;
-  padding: 0 0.52rem;
-
-  &:focus {
-    outline: none;
-    border-color: rgba(145, 187, 255, 0.9);
-    box-shadow: 0 0 0 2px rgba(91, 141, 236, 0.22);
-  }
-
-  &:disabled {
-    opacity: 0.64;
-    cursor: not-allowed;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-    font-size: 16px;
-  }
-`;
-
-const TextArea = styled.textarea`
-  width: 100%;
-  min-height: 54px;
-  border-radius: 9px;
-  border: 1px solid rgba(116, 145, 198, 0.5);
-  background: rgba(7, 11, 18, 0.9);
-  color: #eaf2ff;
-  font-size: 0.8rem;
-  line-height: 1.35;
-  padding: 0.38rem 0.5rem;
-  resize: vertical;
-
-  &:focus {
-    outline: none;
-    border-color: rgba(145, 187, 255, 0.9);
-    box-shadow: 0 0 0 2px rgba(91, 141, 236, 0.22);
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: 16px;
-  }
-`;
-
-const ImageRow = styled.div`
-  display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  gap: 0.42rem;
-  align-items: start;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const Preview = styled.img`
-  width: 72px;
-  height: 72px;
-  border-radius: 10px;
-  border: 1px solid rgba(112, 164, 200, 0.52);
-  object-fit: cover;
-  background: rgba(9, 14, 21, 0.9);
-`;
-
-const PreviewStub = styled.div`
-  width: 72px;
-  height: 72px;
-  border-radius: 10px;
-  border: 1px dashed rgba(112, 164, 200, 0.48);
-  background: rgba(9, 14, 21, 0.64);
-  color: #8fa8bd;
-  font-size: 0.66rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 0.35rem;
-`;
-
-const ImageActions = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-`;
-
-const ActionButton = styled.button`
-  min-height: 30px;
-  border-radius: 8px;
-  border: 1px solid ${({ $tone }) =>
-    $tone === 'danger'
-      ? 'rgba(203, 127, 127, 0.64)'
-      : 'rgba(104, 168, 143, 0.58)'};
-  background: ${({ $tone }) =>
-    $tone === 'danger'
-      ? 'rgba(63, 24, 24, 0.92)'
-      : 'rgba(14, 36, 30, 0.94)'};
-  color: ${({ $tone }) => ($tone === 'danger' ? '#ffd7d7' : '#dff7ee')};
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 0 0.52rem;
-  cursor: pointer;
-
-  &:disabled {
-    opacity: 0.56;
-    cursor: not-allowed;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-  }
-`;
-
-const SubmitButton = styled.button`
-  width: 100%;
-  min-height: 36px;
-  border-radius: 10px;
-  border: 1px solid rgba(100, 188, 151, 0.82);
-  background: linear-gradient(180deg, rgba(23, 75, 60, 0.96) 0%, rgba(16, 51, 42, 0.96) 100%);
-  color: #e8fff5;
-  font-size: 0.76rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  cursor: pointer;
-
-  &:disabled {
-    opacity: 0.56;
-    cursor: not-allowed;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-  }
-`;
-
-const StateText = styled.div`
-  min-height: 1.05rem;
-  color: ${({ $error }) => ($error ? '#f2bebe' : '#9ac6b3')};
-  font-size: 0.72rem;
-`;
-
-function tagsToPayload(tags = []) {
-  return (Array.isArray(tags) ? tags : [])
-    .map((t) => String(t || '').trim())
-    .filter(Boolean);
+  return {
+    ...normalized,
+    box: null,
+    boxId: '',
+    orphanedAt: createdItem?.orphanedAt || orphanedAt,
+  };
 }
 
 export default function IntakeQuickItemMaker({
   onItemCreated,
   mode = 'orphan',
   targetBox = null,
-  title = 'Quick Item Maker',
-  hint,
+  title = 'New item',
+  showTitle = true,
+  hint = '',
   submitLabel,
-  onClearTargetBox,
+  onChangeTargetBox,
+  onDraftNameChange,
+  compact = false,
+  onItemError,
+  onCancel,
 }) {
   const normalizedMode = mode === 'inBox' ? 'inBox' : 'orphan';
   const isInBoxMode = normalizedMode === 'inBox';
   const targetBoxId = String(targetBox?._id || targetBox?.id || '').trim();
-  const targetBoxShortId = String(
-    targetBox?.box_id || targetBox?.shortId || '',
-  ).trim();
+  const targetBoxShortId = String(targetBox?.box_id || targetBox?.shortId || '').trim();
   const targetBoxLabel = String(targetBox?.label || targetBox?.name || '').trim();
   const hasTargetBox = !isInBoxMode || !!targetBoxId;
-  const fieldIdPrefix = isInBoxMode ? 'quick-maker-inbox' : 'quick-maker';
-
-  const defaultHint = isInBoxMode
-    ? hasTargetBox
-      ? `Create directly inside ${targetBoxLabel || `box #${targetBoxShortId || '???'}`}.`
-      : 'Select a box first to create an item inside it.'
-    : 'Fast orphan capture. Items created here are unassigned and can be organized into boxes later.';
-  const resolvedHint = String(hint || defaultHint).trim();
-  const resolvedSubmitLabel = submitLabel || (isInBoxMode ? 'Create Item In Box' : 'Create Orphan Item');
-
+  const hasSelectedBox = isInBoxMode && !!targetBoxId;
   const nameRef = useRef(null);
+
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [category, setCategory] = useState(DEFAULT_ITEM_CATEGORY);
   const [description, setDescription] = useState('');
-  const [notes, setNotes] = useState('');
   const [tags, setTags] = useState([]);
+  const [tagDraft, setTagDraft] = useState('');
   const [photoFile, setPhotoFile] = useState(null);
   const [photoSource, setPhotoSource] = useState('');
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState('');
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState('');
   const [error, setError] = useState('');
+  const [createdItem, setCreatedItem] = useState(null);
+  const [photoError, setPhotoError] = useState('');
+  const [photoRetrying, setPhotoRetrying] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
+  useEffect(() => {
+    onDraftNameChange?.(createdItem ? '' : name);
+  }, [createdItem, name, onDraftNameChange]);
+
+  useEffect(
+    () => () => onDraftNameChange?.(''),
+    [onDraftNameChange],
+  );
+
+  const destinationLabel = hasSelectedBox
+    ? (targetBoxLabel || `Box #${targetBoxShortId || '---'}`)
+    : 'Items Adrift';
+  const defaultSubmitLabel = hasSelectedBox
+    ? `Add to ${targetBoxLabel || `box #${targetBoxShortId || '---'}`}`
+    : 'Add to Items Adrift';
+  const resolvedSubmitLabel = submitLabel || defaultSubmitLabel;
   const canSubmit = useMemo(() => {
-    if (!hasTargetBox) return false;
-    if (!name.trim()) return false;
-    const qty = Number(quantity);
-    if (!Number.isFinite(qty) || qty <= 0) return false;
-    return !busy;
+    const normalizedQuantity = Number(quantity);
+    return hasTargetBox && !!name.trim() && Number.isFinite(normalizedQuantity)
+      && normalizedQuantity > 0 && !busy;
   }, [busy, hasTargetBox, name, quantity]);
 
   useEffect(() => {
@@ -385,12 +148,42 @@ export default function IntakeQuickItemMaker({
     return () => URL.revokeObjectURL(url);
   }, [photoFile]);
 
+  const emitItem = (item, message) => {
+    onItemCreated?.({
+      itemId: item?._id,
+      item,
+      message,
+      ...(isInBoxMode ? {} : { refreshOrphaned: true }),
+    });
+  };
+
+  const applyUploadedPhoto = async (item, file) => {
+    const upload = await uploadCroppedItemImage(item._id, file);
+    return {
+      ...item,
+      image: upload?.image || item.image || null,
+      imagePath:
+        upload?.image?.display?.url ||
+        upload?.image?.original?.url ||
+        item.imagePath ||
+        '',
+    };
+  };
+
   const handlePhotoPick = (picked, meta = {}) => {
-    if (!picked) return;
+    if (!picked || busy) return;
     setPhotoFile(picked);
     setPhotoSource(meta?.source || '');
-    setStatus('');
+    setPhotoError('');
     setError('');
+    setPhotoOpen(true);
+  };
+
+  const stageTag = (value = tagDraft) => {
+    const nextTag = String(value || '').trim();
+    if (!nextTag) return;
+    setTags((current) => normalizeTags([...current, nextTag]));
+    setTagDraft('');
   };
 
   const handleSubmit = async (event) => {
@@ -398,321 +191,330 @@ export default function IntakeQuickItemMaker({
     if (!canSubmit) return;
 
     setBusy(true);
-    setStatus('');
     setError('');
+    setPhotoError('');
 
-    let createdItem = null;
-    const orphanedAt = new Date().toISOString();
     const trimmedName = name.trim();
     const normalizedQuantity = Number(quantity);
-    const normalizedCategory = normalizeItemCategory(category);
+    const normalizedTags = normalizeTags([...tags, tagDraft]);
     const normalizedDescription = description.trim();
-    const normalizedNotes = notes.trim();
-    const normalizedTags = tagsToPayload(tags);
+    const orphanedAt = new Date().toISOString();
+    const endpoint = isInBoxMode
+      ? `${API_BASE}/api/boxed-items/boxes/${encodeURIComponent(targetBoxId)}/items`
+      : `${API_BASE}/api/items`;
+    const requestBody = isInBoxMode
+      ? {
+          name: trimmedName,
+          quantity: normalizedQuantity,
+          category: DEFAULT_ITEM_CATEGORY,
+          description: normalizedDescription,
+          tags: normalizedTags,
+        }
+      : {
+          name: trimmedName,
+          quantity: normalizedQuantity,
+          category: DEFAULT_ITEM_CATEGORY,
+          description: normalizedDescription,
+          tags: normalizedTags,
+          orphanedAt,
+          location: '',
+        };
 
     try {
-      const endpoint = isInBoxMode
-        ? `${API_BASE}/api/boxed-items/boxes/${encodeURIComponent(targetBoxId)}/items`
-        : `${API_BASE}/api/items`;
-      const requestBody = isInBoxMode
-        ? {
-            name: trimmedName,
-            quantity: normalizedQuantity,
-            category: normalizedCategory,
-            description: normalizedDescription,
-            notes: normalizedNotes,
-            tags: normalizedTags,
-          }
-        : {
-            name: trimmedName,
-            quantity: normalizedQuantity,
-            category: normalizedCategory,
-            description: normalizedDescription,
-            notes: normalizedNotes,
-            tags: normalizedTags,
-            orphanedAt,
-            location: '',
-          };
-
-      const res = await fetch(endpoint, {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
       });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body?.error || body?.message || `Create failed (${response.status})`);
 
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(
-          body?.error || body?.message || `Create failed (${res.status})`,
-        );
-      }
+      const returnedItem = isInBoxMode ? body?.item || body : body;
+      if (!returnedItem?._id) throw new Error('Item created but no item id returned.');
 
-      createdItem = isInBoxMode ? body?.item || body : body;
-      if (!createdItem?._id) {
-        throw new Error('Item created but no item id returned.');
-      }
-
-      let uploadedImage = null;
-      if (photoFile) {
-        const upload = await uploadCroppedItemImage(createdItem._id, photoFile);
-        uploadedImage = upload?.image || null;
-      }
-
-      const sourceSuffix = photoSource ? ` via ${photoSource}` : '';
-      const boxLabelForMessage = targetBoxLabel || `box #${targetBoxShortId || '???'}`;
-      const message = isInBoxMode
-        ? (photoFile
-          ? `Created item "${trimmedName}" in ${boxLabelForMessage} with photo${sourceSuffix}.`
-          : `Created item "${trimmedName}" in ${boxLabelForMessage}.`)
-        : (photoFile
-          ? `Created orphan item "${trimmedName}" with photo${sourceSuffix}.`
-          : `Created orphan item "${trimmedName}".`);
-      const createdAt =
-        createdItem?.createdAt || createdItem?.created_at || new Date().toISOString();
-
-      const normalizedItem = isInBoxMode
-        ? {
-            ...createdItem,
-            createdAt,
-            created_at: createdItem?.created_at || createdAt,
-            box: {
-              _id: targetBoxId,
-              box_id: targetBoxShortId || null,
-              label: targetBoxLabel || '',
-            },
-            boxId: targetBoxId,
-            category: normalizeItemCategory(createdItem?.category || normalizedCategory),
-            orphanedAt: null,
-            image: uploadedImage || createdItem?.image || null,
-            imagePath:
-              uploadedImage?.display?.url ||
-              uploadedImage?.original?.url ||
-              createdItem?.imagePath ||
-              '',
-          }
-        : {
-            ...createdItem,
-            createdAt,
-            created_at: createdItem?.created_at || createdAt,
-            category: normalizeItemCategory(createdItem?.category || normalizedCategory),
-            orphanedAt: createdItem?.orphanedAt || orphanedAt,
-            box: null,
-            boxId: '',
-            image: uploadedImage || createdItem?.image || null,
-            imagePath:
-              uploadedImage?.display?.url ||
-              uploadedImage?.original?.url ||
-              createdItem?.imagePath ||
-              '',
-          };
-
-      onItemCreated?.({
-        itemId: createdItem._id,
-        item: normalizedItem,
-        message,
-        ...(isInBoxMode ? {} : { refreshOrphaned: true }),
+      const normalizedItem = normalizeCreatedItem(returnedItem, {
+        isInBoxMode,
+        targetBoxId,
+        targetBoxShortId,
+        targetBoxLabel,
+        orphanedAt,
       });
+      const placement = hasSelectedBox ? `in ${destinationLabel}` : 'to Items Adrift';
+      emitItem(normalizedItem, `Added "${trimmedName}" ${placement}.`);
+      setCreatedItem(normalizedItem);
 
-      setStatus(message);
-      setName('');
-      setQuantity(1);
-      setCategory(DEFAULT_ITEM_CATEGORY);
-      setDescription('');
-      setNotes('');
-      setTags([]);
-      setPhotoFile(null);
-      setPhotoSource('');
-      window.setTimeout(() => {
-        nameRef.current?.focus();
-      }, 0);
-    } catch (submitError) {
-      if (createdItem?._id && photoFile) {
-        const partial = submitError?.message || 'Item created but photo upload failed.';
-        setError(partial);
-        const createdAt =
-          createdItem?.createdAt || createdItem?.created_at || new Date().toISOString();
-        onItemCreated?.({
-          itemId: createdItem._id,
-          item: isInBoxMode
-            ? {
-                ...createdItem,
-                createdAt,
-                created_at: createdItem?.created_at || createdAt,
-                box: {
-                  _id: targetBoxId,
-                  box_id: targetBoxShortId || null,
-                  label: targetBoxLabel || '',
-                },
-                boxId: targetBoxId,
-                category: normalizeItemCategory(createdItem?.category || normalizedCategory),
-                orphanedAt: null,
-              }
-            : {
-                ...createdItem,
-                category: normalizeItemCategory(createdItem?.category || normalizedCategory),
-                orphanedAt: createdItem?.orphanedAt || orphanedAt,
-                box: null,
-                boxId: '',
-          },
-          message: partial,
-          ...(isInBoxMode ? {} : { refreshOrphaned: true }),
-        });
-      } else {
-        setError(
-          submitError?.message ||
-            (isInBoxMode ? 'Failed to create item in box.' : 'Failed to create orphan item.'),
-        );
+      if (photoFile) {
+        try {
+          const withPhoto = await applyUploadedPhoto(normalizedItem, photoFile);
+          setCreatedItem(withPhoto);
+          emitItem(withPhoto, `Added "${trimmedName}" ${placement} with photo${photoSource ? ` via ${photoSource}` : ''}.`);
+        } catch (uploadError) {
+          setPhotoError(uploadError?.message || 'Photo upload failed.');
+        }
       }
+    } catch (submitError) {
+      const message = submitError?.message || 'Could not add this item. Try again.';
+      setError(message);
+      onItemError?.(submitError);
     } finally {
       setBusy(false);
     }
   };
 
-  return (
-    <Panel>
-      <Heading>{title}</Heading>
-      <Hint>{resolvedHint}</Hint>
+  const handleRetryPhoto = async () => {
+    if (!createdItem?._id || !photoFile || photoRetrying) return;
+    setPhotoRetrying(true);
+    setPhotoError('');
+    try {
+      const withPhoto = await applyUploadedPhoto(createdItem, photoFile);
+      setCreatedItem(withPhoto);
+      emitItem(withPhoto, `Photo added to "${withPhoto.name || 'item'}".`);
+    } catch (uploadError) {
+      setPhotoError(uploadError?.message || 'Photo upload failed.');
+    } finally {
+      setPhotoRetrying(false);
+    }
+  };
 
-      {isInBoxMode && hasTargetBox ? (
-        <DestinationBar>
-          <DestinationText>
-            <DestinationLabel>Destination</DestinationLabel>
-            <DestinationValue>
-              {targetBoxLabel || 'Selected Box'}
-              {targetBoxShortId ? ` #${targetBoxShortId}` : ''}
-            </DestinationValue>
-          </DestinationText>
-          <ClearDestinationButton
-            type="button"
-            onClick={onClearTargetBox}
-            disabled={busy}
-          >
-            No Box
-          </ClearDestinationButton>
-        </DestinationBar>
-      ) : null}
+  const handleItemUpdated = (updatedItem) => {
+    const normalized = normalizeCreatedItem(updatedItem, {
+      isInBoxMode,
+      targetBoxId,
+      targetBoxShortId,
+      targetBoxLabel,
+      orphanedAt: createdItem?.orphanedAt || new Date().toISOString(),
+    });
+    setCreatedItem(normalized);
+    emitItem(normalized, `Updated "${normalized.name || 'item'}".`);
+  };
 
-      <Form onSubmit={handleSubmit}>
-        <TopRow>
-          <FullRowField>
-            <Label htmlFor={`${fieldIdPrefix}-name`}>Item name</Label>
-            <Input
-              id={`${fieldIdPrefix}-name`}
+  const handleAddAnother = () => {
+    setCreatedItem(null);
+    setName('');
+    setQuantity(1);
+    setDescription('');
+    setTags([]);
+    setTagDraft('');
+    setPhotoFile(null);
+    setPhotoSource('');
+    setPhotoError('');
+    setError('');
+    setPhotoOpen(false);
+    setDetailsOpen(false);
+    window.setTimeout(() => nameRef.current?.focus(), 0);
+  };
+
+  if (createdItem) {
+    return (
+      <Composer>
+        <NewItemPostSaveDetails
+          item={createdItem}
+          photoError={photoError}
+          photoRetrying={photoRetrying}
+          onRetryPhoto={handleRetryPhoto}
+          onItemUpdated={handleItemUpdated}
+          onAddAnother={handleAddAnother}
+        />
+      </Composer>
+    );
+  }
+
+  if (compact) {
+    return (
+      <GridStyles.QuickCaptureComposer>
+        <GridStyles.QuickCaptureForm onSubmit={handleSubmit}>
+          <GridStyles.QuickCaptureField>
+            Item name
+            <GridStyles.QuickCaptureInput
+              id="quick-orphan-name"
               ref={nameRef}
               type="text"
-              autoCapitalize="sentences"
-              autoCorrect="on"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="What are you capturing?"
+              placeholder="What do you need to remember?"
               disabled={busy}
+              autoFocus
               required
             />
-          </FullRowField>
-
-          <Field>
-            <Label htmlFor={`${fieldIdPrefix}-category`}>Category</Label>
-            <Select
-              id={`${fieldIdPrefix}-category`}
-              value={category}
-              onChange={(event) => setCategory(normalizeItemCategory(event.target.value))}
-              disabled={busy}
-            >
-              {ITEM_CATEGORIES.map((value) => (
-                <option key={value} value={value}>
-                  {formatItemCategory(value)}
-                </option>
-              ))}
-            </Select>
-          </Field>
-
-          <Field>
-            <Label htmlFor={`${fieldIdPrefix}-qty`}>Quantity</Label>
-            <QuantityInput
-              id={`${fieldIdPrefix}-qty`}
-              value={quantity}
-              onChange={setQuantity}
-              min={1}
-              max={9999}
-              ariaLabel="Quantity"
+          </GridStyles.QuickCaptureField>
+          <GridStyles.QuickCaptureField>
+            Description
+            <GridStyles.QuickCaptureInput
+              id="quick-orphan-description"
+              type="text"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              placeholder="A little identifying detail"
               disabled={busy}
             />
-          </Field>
-        </TopRow>
+          </GridStyles.QuickCaptureField>
+          <GridStyles.QuickCaptureActions>
+            {onCancel ? (
+              <GridStyles.QuickCaptureButton type="button" onClick={onCancel} disabled={busy}>
+                Cancel
+              </GridStyles.QuickCaptureButton>
+            ) : null}
+            <GridStyles.QuickCaptureButton type="submit" $primary disabled={!canSubmit}>
+              {busy ? 'Saving…' : 'Capture'}
+            </GridStyles.QuickCaptureButton>
+          </GridStyles.QuickCaptureActions>
+        </GridStyles.QuickCaptureForm>
+        {error ? <GridStyles.QuickCaptureError role="alert">{error}</GridStyles.QuickCaptureError> : null}
+      </GridStyles.QuickCaptureComposer>
+    );
+  }
 
-        <Field>
-          <Label htmlFor={`${fieldIdPrefix}-description`}>Description</Label>
-          <TextArea
-            id={`${fieldIdPrefix}-description`}
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            placeholder="Short identifying details"
-            disabled={busy}
-          />
-        </Field>
+  return (
+    <Composer>
+      {showTitle || hint ? (
+        <div>
+          {showTitle ? <ItemTitle>{title}</ItemTitle> : null}
+          {hint ? <InlineMessage>{hint}</InlineMessage> : null}
+        </div>
+      ) : null}
+      <DestinationRail>
+        <div>
+          <DestinationKicker>Going to</DestinationKicker>
+          <DestinationLabel>
+            {destinationLabel}
+            {targetBoxShortId ? <DestinationMeta> #{targetBoxShortId}</DestinationMeta> : null}
+          </DestinationLabel>
+        </div>
+        {onChangeTargetBox ? (
+          <QuietButton type="button" onClick={onChangeTargetBox} disabled={busy}>
+            Change
+          </QuietButton>
+        ) : null}
+      </DestinationRail>
 
-        <Field>
-          <Label htmlFor={`${fieldIdPrefix}-notes`}>Notes</Label>
-          <TextArea
-            id={`${fieldIdPrefix}-notes`}
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-            placeholder="Optional context"
-            disabled={busy}
-          />
-        </Field>
-
-        <BoxTagsField
-          compact
-          tags={tags}
-          setTags={setTags}
-        />
-
-        <Field>
-          <Label>Image</Label>
-          <ImageRow>
-            {photoPreviewUrl ? (
-              <Preview src={photoPreviewUrl} alt="Selected item preview" />
-            ) : (
-              <PreviewStub>No image selected</PreviewStub>
-            )}
-
-            <ImageActions>
-              <ImageSourcePicker
+      <Form onSubmit={handleSubmit}>
+        <ProgressDisclosure>
+          <ProgressToggle
+            type="button"
+            aria-expanded={photoOpen}
+            aria-controls="new-item-photo-controls"
+            onClick={() => setPhotoOpen((value) => !value)}
+          >
+            <span>{photoFile ? 'Photo ready' : 'Add photo'}</span>
+            <span aria-hidden="true">{photoOpen ? '−' : '+'}</span>
+          </ProgressToggle>
+          {photoOpen ? (
+            <ProgressContent id="new-item-photo-controls">
+              <NewItemPhotoControl
                 disabled={busy}
-                label={photoFile ? 'Replace Photo' : 'Add Photo'}
+                photoFile={photoFile}
+                previewUrl={photoPreviewUrl}
                 onFileSelected={handlePhotoPick}
-                renderAction={({ label, onClick, disabled }) => (
-                  <ActionButton
-                    type="button"
-                    onClick={onClick}
-                    disabled={disabled}
-                  >
-                    {label}
-                  </ActionButton>
-                )}
-              />
-              <ActionButton
-                type="button"
-                $tone="danger"
-                disabled={busy || !photoFile}
-                onClick={() => {
+                onRemove={() => {
                   setPhotoFile(null);
                   setPhotoSource('');
+                  setPhotoError('');
                 }}
-              >
-                Clear Photo
-              </ActionButton>
-            </ImageActions>
-          </ImageRow>
+              />
+            </ProgressContent>
+          ) : null}
+        </ProgressDisclosure>
+
+        <Field>
+          <Label htmlFor="new-item-name">Whaychya got there?</Label>
+          <Input
+            id="new-item-name"
+            ref={nameRef}
+            type="text"
+            autoCapitalize="sentences"
+            autoCorrect="on"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Extension cord, blue bowl…"
+            disabled={busy}
+            required
+          />
         </Field>
 
-        <SubmitButton type="submit" disabled={!canSubmit}>
-          {busy ? 'Creating…' : resolvedSubmitLabel}
-        </SubmitButton>
-      </Form>
+        <QuantityRow>
+          <Label htmlFor="new-item-quantity">How many?</Label>
+          <NewItemQuantityControl
+            value={quantity}
+            onChange={setQuantity}
+            min={1}
+            max={9999}
+            disabled={busy}
+          />
+        </QuantityRow>
 
-      <StateText $error={!!error}>{error || status || ' '}</StateText>
-    </Panel>
+        <ProgressDisclosure>
+          <ProgressToggle
+            type="button"
+            aria-expanded={detailsOpen}
+            aria-controls="new-item-optional-details"
+            onClick={() => setDetailsOpen((value) => !value)}
+          >
+            <span>Details <em>optional</em></span>
+            <span aria-hidden="true">{detailsOpen ? '−' : '+'}</span>
+          </ProgressToggle>
+          {detailsOpen ? (
+            <ProgressContent id="new-item-optional-details">
+              <QuickDetails>
+                <Field>
+                  <Label htmlFor="new-item-description">Description</Label>
+                  <Input
+                    id="new-item-description"
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    placeholder="A little identifying detail"
+                    disabled={busy}
+                  />
+                </Field>
+                <Field>
+                  <Label htmlFor="new-item-tags">Tags</Label>
+                  <TagComposer>
+                    {tags.map((tag) => (
+                      <TagChip
+                        key={tag}
+                        type="button"
+                        onClick={() => setTags((current) => current.filter((entry) => entry !== tag))}
+                        disabled={busy}
+                        aria-label={`Remove ${tag}`}
+                      >
+                        {tag} ×
+                      </TagChip>
+                    ))}
+                    <TagDraftInput
+                      id="new-item-tags"
+                      value={tagDraft}
+                      onKeyDown={(event) => {
+                        if (event.key !== 'Enter') return;
+                        event.preventDefault();
+                        stageTag();
+                      }}
+                      onChange={(event) => {
+                        const nextValue = event.target.value;
+                        if (/\s{2}$/.test(nextValue)) {
+                          stageTag(nextValue);
+                          return;
+                        }
+                        setTagDraft(nextValue);
+                      }}
+                      placeholder="Add a tag"
+                      disabled={busy}
+                    />
+                    {tagDraft.trim() ? (
+                      <TagStageButton type="button" onClick={() => stageTag()} disabled={busy}>
+                        Stage
+                      </TagStageButton>
+                    ) : null}
+                  </TagComposer>
+                </Field>
+              </QuickDetails>
+            </ProgressContent>
+          ) : null}
+        </ProgressDisclosure>
+
+        {error ? <InlineMessage $error>{error}</InlineMessage> : null}
+        <PrimaryButton type="submit" disabled={!canSubmit}>
+          {busy ? 'Adding…' : resolvedSubmitLabel}
+        </PrimaryButton>
+      </Form>
+    </Composer>
   );
 }

@@ -27,7 +27,6 @@ const {
 const { backfillBoxLocations } = require('./services/locationService');
 const { recoverQueuedMediaJobs } = require('./services/mediaJobService');
 const { backfillMissingMediaIds } = require('./services/mediaProcessingService');
-const { startDeclutterConfirmationSweep } = require('./services/declutterActionService');
 
 const PORT = process.env.PORT || 7610;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -75,7 +74,6 @@ app.get(/^\/(?!api|media).*/, (_req, res) => {
 async function startServer() {
   await connectDB(process.env.MONGO_URI);
   ensureMediaDirs();
-  startDeclutterConfirmationSweep();
 
   try {
     const result = await backfillBoxLocations();
