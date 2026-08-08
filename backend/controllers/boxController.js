@@ -719,6 +719,10 @@ async function exportBoxLabelHtmlApi(req, res) {
     const frontendBaseOrigin = resolveFrontendBaseOrigin(req);
     const exportResult = await buildBoxLabelHtmlExport(req.params.id, {
       frontendBaseOrigin,
+      // This endpoint is the fixed-format laser sticker export, rather than
+      // the configurable HTML export surface used by other integrations.
+      labelWidthMm: 58,
+      labelHeightMm: 30,
     });
 
     if (!exportResult) {

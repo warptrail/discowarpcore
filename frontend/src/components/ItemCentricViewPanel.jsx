@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { formatItemCategory, normalizeItemCategory } from '../util/itemCategories';
 import { getItemOwnershipContext } from '../util/itemOwnership';
+import { getItemPreviewImageUrl } from '../util/itemImage';
 
 /**
  * ItemCentricViewPanel
@@ -17,13 +18,7 @@ export default function ItemCentricViewPanel({
   fallbackSrc = '/assets/filler-item.png',
   onClose,
 }) {
-  const resolvedItemImage =
-    item?.image?.display?.url ||
-    item?.image?.thumb?.url ||
-    item?.image?.original?.url ||
-    item?.image?.url ||
-    item?.imagePath ||
-    fallbackSrc;
+  const resolvedItemImage = getItemPreviewImageUrl(item) || fallbackSrc;
   const [imgSrc, setImgSrc] = useState(resolvedItemImage);
   useEffect(() => {
     setImgSrc(resolvedItemImage);

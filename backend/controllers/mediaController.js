@@ -14,6 +14,9 @@ const {
   toMediaErrorPayload,
   getMediaErrorHttpStatus,
 } = require('../services/mediaErrors');
+const {
+  getOrCreateImageDerivative,
+} = require('../services/onDemandImageDerivativeService');
 
 function toTrimmedString(value) {
   return value == null ? '' : String(value).trim();
@@ -29,6 +32,28 @@ function sendMediaError(res, error, extra = {}) {
       message: 'Media request failed',
     }),
   });
+}
+
+async function getImageDerivativeApi(req, res) {
+  try {
+    const derivative = await getOrCreateImageDerivative({
+      source: req.query?.source,
+      variant: req.query?.variant,
+    });
+
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.type('image/webp');
+    return res.sendFile(derivative.targetAbsolutePath);
+  } catch (error) {
+    if (error?.code === 'SOURCE_NOT_FOUND') {
+      return res.status(404).json({ ok: false, error: 'Source image not found' });
+    }
+    if (error?.code === 'INVALID_DERIVATIVE_REQUEST') {
+      return res.status(400).json({ ok: false, error: 'Invalid derivative request' });
+    }
+    console.error('Failed to create image derivative:', error);
+    return res.status(500).json({ ok: false, error: 'Failed to create image derivative' });
+  }
 }
 
 async function postMediaProcessTestApi(req, res) {
@@ -219,6 +244,7 @@ async function getMediaJobEventsApi(req, res) {
 }
 
 module.exports = {
+  getImageDerivativeApi,
   postMediaProcessTestApi,
   postMediaBatchTestApi,
   postMediaJobEnqueueApi,

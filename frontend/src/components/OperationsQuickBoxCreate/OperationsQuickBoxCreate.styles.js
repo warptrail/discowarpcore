@@ -4,10 +4,16 @@ const mono = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation
 
 export const Shell = styled.section`
   position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 760px;
   min-width: 0;
-  padding: 0.18rem 0.12rem 0.1rem 0.62rem;
-  border-left: 5px solid #e8b15c;
-  background: linear-gradient(90deg, rgba(232,177,92,.1), transparent 46%);
+  margin: 0 auto;
+  border: 1px solid rgba(112,157,187,.38);
+  border-radius: 8px;
+  padding: .68rem;
+  background: rgba(7,12,18,.96);
+  box-shadow: inset 0 1px rgba(255,255,255,.025), 0 12px 32px rgba(0,0,0,.24);
 `;
 
 export const Header = styled.header`
@@ -15,7 +21,9 @@ export const Header = styled.header`
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.7rem;
-  margin-bottom: 0.58rem;
+  margin: -.12rem -.12rem .58rem;
+  border-bottom: 1px solid rgba(127,215,255,.18);
+  padding: .08rem .12rem .55rem;
 `;
 
 export const Eyebrow = styled.span`
@@ -55,6 +63,8 @@ export const IdentityRow = styled.div`
   display: grid;
   grid-template-columns: 5.4rem minmax(0,1fr);
   gap: .48rem;
+
+  @media(max-width:430px){ grid-template-columns:1fr; }
 `;
 
 export const Field = styled.label`
@@ -104,7 +114,7 @@ export const Availability = styled.span`
   font: 700 .54rem/1.2 ${mono};
 `;
 
-export const PhotoField = styled.label`
+export const PhotoField = styled.div`
   display: grid;
   grid-template-columns: 54px minmax(0,1fr) auto;
   align-items: center;
@@ -112,7 +122,10 @@ export const PhotoField = styled.label`
   min-height: 58px;
   border-block: 1px solid rgba(127,215,255,.2);
   padding: .38rem 0;
-  cursor: pointer;
+
+  @media(max-width:430px) {
+    grid-template-columns: 48px minmax(0,1fr);
+  }
 `;
 
 export const PhotoPreview = styled.div`
@@ -125,6 +138,11 @@ export const PhotoPreview = styled.div`
   place-items: center;
   color: rgba(127,215,255,.48);
   font: 800 .52rem ${mono};
+
+  @media(max-width:430px) {
+    width: 48px;
+    height: 48px;
+  }
 `;
 
 export const PhotoCopy = styled.span`
@@ -136,19 +154,35 @@ export const PhotoCopy = styled.span`
   small { margin-top:.15rem; color:rgba(230,237,243,.52); font-size:.62rem; }
 `;
 
-export const PhotoAction = styled.span`
+export const PhotoPickerSlot = styled.div`
+  min-width: 0;
+
+  @media(max-width:430px) {
+    grid-column: 1 / -1;
+  }
+`;
+
+export const PhotoAction = styled.button`
+  min-height: 40px;
+  border: 1px solid rgba(232,177,92,.45);
+  border-radius: 5px;
+  padding: .42rem .56rem;
   color: #e8b15c;
+  background: rgba(232,177,92,.05);
   font: 800 .58rem ${mono};
   letter-spacing: .08em;
   text-transform: uppercase;
-`;
+  cursor: pointer;
 
-export const HiddenInput = styled.input`
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
+  &:hover:not(:disabled), &:focus-visible {
+    border-color: #e8b15c;
+    outline: none;
+    box-shadow: 0 0 12px rgba(232,177,92,.14);
+  }
+
+  &:disabled { opacity: .42; cursor: not-allowed; }
+
+  @media(max-width:430px) { width: 100%; }
 `;
 
 export const Details = styled.details`

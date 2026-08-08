@@ -4,12 +4,13 @@ import useShortIdAvailability from '../../hooks/useShortIdAvailability';
 import useLocationRegistry from '../../hooks/useLocationRegistry';
 import cropImageToSquare from '../../util/cropImageToSquare';
 import BoxLocationField from '../BoxForms/BoxLocationField';
+import ImageSourcePicker from '../ImageSourcePicker';
 import QuickBoxStagingPurpose from './QuickBoxStagingPurpose';
 import * as S from './OperationsQuickBoxCreate.styles';
 
 const normalizeTags = (value) => [...new Set(String(value || '').split(',').map((tag) => tag.trim()).filter(Boolean))];
 
-export default function OperationsQuickBoxCreate({ onCreated, onCancel }) {
+export default function OperationsQuickBoxCreate({ onCreated, onCancel, eyebrow = 'Operations intake' }) {
   const [boxId, setBoxId] = useState('');
   const [label, setLabel] = useState('');
   const [locationId, setLocationId] = useState('');
@@ -100,7 +101,7 @@ export default function OperationsQuickBoxCreate({ onCreated, onCancel }) {
   return (
     <S.Shell aria-label="Quick create a new box">
       <S.Header>
-        <div><S.Eyebrow>Operations intake</S.Eyebrow><S.Title>Create a new box</S.Title></div>
+        <div><S.Eyebrow>{eyebrow}</S.Eyebrow><S.Title>Create a new box</S.Title></div>
         <S.Close type="button" onClick={onCancel} aria-label="Close quick box creator">×</S.Close>
       </S.Header>
       <S.Form onSubmit={submit}>
@@ -115,8 +116,18 @@ export default function OperationsQuickBoxCreate({ onCreated, onCancel }) {
         <S.PhotoField>
           <S.PhotoPreview $src={previewUrl}>{previewUrl ? '' : 'PHOTO'}</S.PhotoPreview>
           <S.PhotoCopy><strong>{photo ? photo.name : 'Optional box photo'}</strong><small>Crop and upload after creation</small></S.PhotoCopy>
-          <S.PhotoAction>{photo ? 'Change' : 'Add'}</S.PhotoAction>
-          <S.HiddenInput type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files?.[0] || null)} />
+          <S.PhotoPickerSlot>
+            <ImageSourcePicker
+              disabled={busy}
+              label={photo ? 'Change photo' : 'Add photo'}
+              onFileSelected={setPhoto}
+              renderAction={({ label: actionLabel, onClick, disabled }) => (
+                <S.PhotoAction type="button" onClick={onClick} disabled={disabled}>
+                  {actionLabel}
+                </S.PhotoAction>
+              )}
+            />
+          </S.PhotoPickerSlot>
         </S.PhotoField>
         <S.Details>
           <S.Summary>Optional details</S.Summary>

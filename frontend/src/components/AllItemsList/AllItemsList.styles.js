@@ -664,6 +664,27 @@ export const MobileWrap = styled.div`
   }
 `;
 
+export const ProgressiveLoadRegion = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.72rem;
+  min-height: 72px;
+  padding: 0.8rem;
+  border-top: 1px solid ${LCARS.line};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+  }
+`;
+
+export const ProgressiveLoadText = styled.span`
+  color: ${LCARS.textMuted};
+  font: 700 0.68rem/1.3 "SFMono-Regular", Consolas, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+`;
+
 export const TableScroll = styled.div`
   width: 100%;
   overflow-x: auto;

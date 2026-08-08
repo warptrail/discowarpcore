@@ -19,6 +19,7 @@ export default function RetrievalResultRow({
   onSectionChange,
   onPreviewImage,
   onLifecycleAction,
+  compact = false,
 }) {
   if (!item) return null;
   const panelId = `retrieval-row-panel-${item.id}`;
@@ -73,7 +74,24 @@ export default function RetrievalResultRow({
   };
 
   return (
-    <S.ResultCard $expanded={isExpanded} style={boxThemeStyle}>
+    <S.ResultCard $expanded={isExpanded} $compact={compact} style={boxThemeStyle}>
+      {compact ? (
+        <S.AsciiResultButton
+          type="button"
+          onClick={handleToggle}
+          aria-expanded={isExpanded}
+          aria-controls={panelId}
+          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} details for ${item.name}`}
+          $expanded={isExpanded}
+        >
+          <S.AsciiBranch aria-hidden="true">{isExpanded ? '└─' : '├─'}</S.AsciiBranch>
+          <S.AsciiItemName>{item.name}</S.AsciiItemName>
+          <S.AsciiPlacement aria-hidden="true">
+            {' // '}{hasKnownBox ? boxSummary : 'NO BOX'}{' @ '}{locationSummary}
+          </S.AsciiPlacement>
+          <S.AsciiDisclosure aria-hidden="true">{isExpanded ? '−' : '+'}</S.AsciiDisclosure>
+        </S.AsciiResultButton>
+      ) : (
       <S.SummaryButton
         onClick={handleSummaryClick}
         onKeyDown={handleSummaryKeyDown}
@@ -163,6 +181,7 @@ export default function RetrievalResultRow({
 
         </S.SummaryTop>
       </S.SummaryButton>
+      )}
 
       {isExpanded ? (
         <RetrievalExpandedPanel

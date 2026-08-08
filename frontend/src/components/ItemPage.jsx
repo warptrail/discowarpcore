@@ -12,7 +12,6 @@ import {
   restoreItemToActive,
 } from '../api/itemLifecycle';
 import { completeDeclutterAction } from '../api/declutterDeck';
-import { editItem } from '../api/editItem';
 import ItemPageConsoleView from './ItemPageConsoleView';
 import ItemPageImageHero from './ItemPageImageHero';
 import ItemPageBreadcrumb from './ItemPageBreadcrumb';
@@ -20,7 +19,6 @@ import ItemLifecyclePanel from './ItemLifecyclePanel';
 import ItemButtonBar from './ItemButtonBar';
 import ItemPageConsoleDetails from './ItemPageConsoleDetails';
 import ItemImageField from './ImageFields/ItemImageField';
-import useEditItemActionToast from './EditItemDetailsForm/useEditItemActionToast';
 import useItemFieldEditor from './ItemFieldEditor/useItemFieldEditor';
 import { getItemFieldDescriptor } from './ItemFieldEditor/itemFieldRegistry';
 import useItemTimestampActions from '../hooks/useItemTimestampActions';
@@ -104,8 +102,6 @@ export default function ItemPage() {
   const [lifecycleDialog, setLifecycleDialog] = useState(null);
   const [lifecycleBusy, setLifecycleBusy] = useState(false);
   const [mediaEditorOpen, setMediaEditorOpen] = useState(false);
-  const [discardPromptOpen, setDiscardPromptOpen] = useState(false);
-  const [fieldToastRevision, setFieldToastRevision] = useState(0);
   const [pendingFieldSuccess, setPendingFieldSuccess] = useState(null);
   const [imageRefreshToken, setImageRefreshToken] = useState(0);
   const [processedPreviewUrl, setProcessedPreviewUrl] = useState('');
@@ -118,8 +114,6 @@ export default function ItemPage() {
   } = useItemDeclutterDeck({ item, showToast, hideToast });
 
   const undoInFlightRef = useRef(new Set());
-  const fieldUndoInFlightRef = useRef(new Set());
-  const pendingDiscardActionRef = useRef(null);
   const activeLoadIdRef = useRef(0);
 
   const updateEditRoute = useCallback((nextFieldKey, { replace = false } = {}) => {
@@ -182,9 +176,7 @@ export default function ItemPage() {
     setProcessedPreviewUrl('');
     setImageRefreshToken(0);
     setMediaEditorOpen(false);
-    setDiscardPromptOpen(false);
     setPendingFieldSuccess(null);
-    pendingDiscardActionRef.current = null;
     lastImageLifecycleStatusRef.current = '';
   }, [itemId]);
 
@@ -272,48 +264,6 @@ export default function ItemPage() {
     };
   }, [loadItem]);
 
-  const handleUndoFieldPatch = useCallback(async ({
-    fieldKey,
-    itemId: undoItemId,
-    label,
-    payload,
-  }) => {
-    const undoKey = `${undoItemId}:${fieldKey}:${JSON.stringify(payload)}`;
-    if (!undoItemId || fieldUndoInFlightRef.current.has(undoKey)) return;
-
-    fieldUndoInFlightRef.current.add(undoKey);
-    hideToast?.();
-
-    try {
-      const restored = await editItem(undoItemId, payload);
-      if (String(restored?._id || restored?.id || '') === String(itemId || '')) {
-        setItem(restored);
-      }
-      showToast?.({
-        id: `item-field-undo-complete:${undoItemId}:${fieldKey}`,
-        variant: 'success',
-        title: 'PATCH RESTORED',
-        message: `${label} is back to its previous saved value.`,
-        presentation: 'item-field',
-        themeStyle: getItemConsoleThemeStyle(restored),
-        sticky: true,
-      });
-      restoreFieldTriggerFocus(fieldKey);
-    } catch (undoError) {
-      showToast?.({
-        id: `item-field-undo-error:${undoItemId}:${fieldKey}`,
-        variant: 'danger',
-        title: 'PATCH RESTORE FAILED',
-        message: undoError?.message || `Could not restore ${label}.`,
-        presentation: 'item-field',
-        themeStyle: getItemConsoleThemeStyle(item),
-        sticky: true,
-      });
-    } finally {
-      fieldUndoInFlightRef.current.delete(undoKey);
-    }
-  }, [hideToast, item, itemId, restoreFieldTriggerFocus, showToast]);
-
   const handleFieldSaved = useCallback(async ({
     descriptor,
     fieldKey,
@@ -342,24 +292,7 @@ export default function ItemPage() {
     onSaved: handleFieldSaved,
   });
 
-  const continueEditing = useCallback(() => {
-    pendingDiscardActionRef.current = null;
-    setDiscardPromptOpen(false);
-    hideToast?.('item-field-discard-confirmation');
-    setFieldToastRevision((current) => current + 1);
-  }, [hideToast]);
-
-  const confirmDiscard = useCallback(() => {
-    if (fieldEditor.saving) return;
-    const nextAction = pendingDiscardActionRef.current;
-    pendingDiscardActionRef.current = null;
-    fieldEditor.reset();
-    setDiscardPromptOpen(false);
-    hideToast?.('item-field-discard-confirmation');
-    nextAction?.();
-  }, [fieldEditor, hideToast]);
-
-  const requestDiscardBefore = useCallback((nextAction, reason = '') => {
+  const requestDiscardBefore = useCallback((nextAction) => {
     if (fieldEditor.saving) return false;
 
     if (!fieldEditor.isDirty) {
@@ -368,34 +301,13 @@ export default function ItemPage() {
       return true;
     }
 
-    pendingDiscardActionRef.current = nextAction;
-    setDiscardPromptOpen(true);
-    showToast?.({
-      id: 'item-field-discard-confirmation',
-      variant: 'warning',
-      title: `VERIFY EXIT // ${fieldEditor.descriptor?.label || 'FIELD'}`,
-      message: reason || 'This field has a local draft that has not been patched.',
-      presentation: 'item-field',
-      themeStyle: getItemConsoleThemeStyle(item),
-      sticky: true,
-      actions: [
-        {
-          id: 'continue-item-field-editing',
-          label: 'Continue editing',
-          kind: 'primary',
-          onClick: continueEditing,
-        },
-        {
-          id: 'discard-item-field-editing',
-          label: 'Discard changes',
-          kind: 'danger',
-          onClick: confirmDiscard,
-        },
-      ],
-      onClose: continueEditing,
+    // Closing an editor commits its draft. Keep errors in the editor so the
+    // user can correct them without an extra confirmation step in the header.
+    void fieldEditor.save().then((updated) => {
+      if (updated) nextAction?.();
     });
     return false;
-  }, [confirmDiscard, continueEditing, fieldEditor, item, showToast]);
+  }, [fieldEditor]);
 
   const handleRequestField = useCallback((fieldKey) => {
     const normalized = String(fieldKey || '').trim().toLocaleLowerCase();
@@ -475,28 +387,6 @@ export default function ItemPage() {
     }
   }, [item, legacyEditRequested, requestedEditKey, updateEditRoute, viewMode]);
 
-  useEditItemActionToast({
-    enabled: fieldEditor.isActive && !discardPromptOpen,
-    item,
-    isDirty: fieldEditor.isDirty,
-    saving: fieldEditor.saving,
-    lifecycleBusy: false,
-    onCancel: handleRequestCloseField,
-    onSave: fieldEditor.save,
-    onRevert: handleRequestCloseField,
-    modeLabel: `Field focus // ${fieldEditor.descriptor?.label || ''}`,
-    revertLabel: 'Discard',
-    revertRequiresDirty: false,
-    saveLabel: 'Save patch',
-    presentation: 'item-field',
-    title: fieldEditor.descriptor
-      ? `FIELD FOCUS // ${fieldEditor.descriptor.label.toLocaleUpperCase()}`
-      : '',
-    toastId: fieldEditor.descriptor
-      ? `edit-item-field:${itemId}:${fieldEditor.descriptor.key}:${fieldToastRevision}`
-      : '',
-  });
-
   useEffect(() => {
     if (!pendingFieldSuccess || fieldEditor.isActive) return;
 
@@ -504,34 +394,20 @@ export default function ItemPage() {
       descriptor,
       fieldKey,
       itemId: savedItemId,
-      undoPayload,
       updated,
     } = pendingFieldSuccess;
 
     showToast?.({
       id: `item-field-saved:${savedItemId}:${fieldKey}:${Date.now()}`,
       variant: 'success',
-      title: 'PATCH VERIFIED',
-      message: `${descriptor.label} synchronized for "${getItemName(updated)}".`,
+      title: 'FIELD UPDATED',
+      message: `${descriptor.label} saved for "${getItemName(updated)}".`,
       presentation: 'item-field',
       themeStyle: getItemConsoleThemeStyle(updated),
-      sticky: true,
-      actions: [
-        {
-          id: `undo-item-field-${savedItemId}-${fieldKey}`,
-          label: 'Undo',
-          kind: 'primary',
-          onClick: () => handleUndoFieldPatch({
-            fieldKey,
-            itemId: savedItemId,
-            label: descriptor.label,
-            payload: undoPayload,
-          }),
-        },
-      ],
+      timeoutMs: 2800,
     });
     setPendingFieldSuccess(null);
-  }, [fieldEditor.isActive, handleUndoFieldPatch, pendingFieldSuccess, showToast]);
+  }, [fieldEditor.isActive, pendingFieldSuccess, showToast]);
 
   useEffect(() => {
     if (!fieldEditor.isDirty) return undefined;
@@ -875,7 +751,7 @@ export default function ItemPage() {
 
   useEffect(() => {
     if (loading || error || notFound || !item?._id) return undefined;
-    if (fieldEditor.isActive || discardPromptOpen) return undefined;
+    if (fieldEditor.isActive) return undefined;
     if (
       activeToastId &&
       activeToastId !== 'item-page-actions'
@@ -900,7 +776,6 @@ export default function ItemPage() {
     };
   }, [
     activeToastId,
-    discardPromptOpen,
     error,
     fieldEditor.isActive,
     hideToast,
@@ -1319,8 +1194,6 @@ export default function ItemPage() {
 
   return (
     <S.Page style={pageThemeStyle}>
-      <ItemPageBreadcrumb item={item} itemId={itemId} />
-
       <S.PageMainGrid>
         <S.PageVisualColumn>
           <ItemPageImageHero
@@ -1368,7 +1241,6 @@ export default function ItemPage() {
         onMoveItem={handleMoveItem}
         onRemoveFromBox={handleRemoveFromBox}
         timestampActions={isGoneItem ? [] : timestampActions}
-        fieldFocusLabel={fieldEditor.descriptor?.label || ''}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         mediaEditorOpen={mediaEditorOpen}

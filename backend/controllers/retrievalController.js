@@ -9,6 +9,7 @@ async function getRetrievalItemsApi(req, res) {
       q: req.query.q,
       category: req.query.category,
       tag: req.query.tag,
+      tagOperator: req.query.tagOperator,
       location: req.query.location,
       owner: req.query.owner,
       keepPriority: req.query.keepPriority,

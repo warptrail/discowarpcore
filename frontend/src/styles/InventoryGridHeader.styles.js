@@ -46,7 +46,7 @@ export const ControlConsole = styled.div`
   width: 100%;
   min-width: 0;
   margin: 0;
-  padding: 0.3rem 0.18rem 0.26rem;
+  padding: 0.42rem 0.24rem 0.32rem clamp(0.42rem, 1.1vw, 0.7rem);
   overflow: visible;
   border: 2px solid rgba(127, 215, 255, 0.48);
   border-radius: 14px 5px 14px 5px;
@@ -67,7 +67,7 @@ export const ControlConsole = styled.div`
     grid-template-rows: minmax(40px, auto) auto;
     align-items: center;
     gap: 0.18rem 0.36rem;
-    padding: 0.28rem 0.42rem 0.34rem;
+    padding: 0.28rem 0.42rem 0.34rem clamp(0.42rem, 1.1vw, 0.7rem);
   }
 `;
 
@@ -142,7 +142,7 @@ export const TitleActions = styled.div`
     position: static;
     display: flex;
     align-items: stretch;
-    gap: 0;
+    gap: 0.18rem;
     width: auto;
     padding: 1px;
     overflow: hidden;
@@ -160,8 +160,6 @@ export const TitleActions = styled.div`
       width: auto;
       min-height: 38px;
       justify-content: center;
-      border: 0;
-      border-radius: 2px 0 0 2px;
       padding-inline: 0.32rem;
       font-size: 0.49rem;
       letter-spacing: 0.035em;
@@ -201,16 +199,13 @@ export const TitleOrphanActions = styled.div`
   @media (min-width: 660px) {
     display: flex;
     align-items: stretch;
-    gap: 0;
+    gap: 0.18rem;
 
     button {
       width: auto;
       min-height: 38px;
       justify-content: center;
       padding-inline: 0.28rem;
-      border: 0;
-      border-left: 1px solid ${toneAlpha(LCARS.line, '8a')};
-      border-radius: 0;
       font-size: 0.48rem;
       letter-spacing: 0.025em;
     }
@@ -536,6 +531,7 @@ export const ViewModeToggle = styled.div`
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
   width: 100%;
+  margin: 0.04rem 0 0.12rem;
   padding: 0;
   border: 1px solid ${toneAlpha(LCARS.root, '62')};
   border-radius: 4px 10px 3px 3px;
@@ -586,7 +582,7 @@ export const ViewModeButton = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 38px;
+  min-height: 32px;
   min-width: 70px;
   border: 0;
   border-right: 1px solid rgba(127, 215, 255, 0.26);
@@ -631,7 +627,7 @@ export const ViewModeButton = styled.button`
 
   @media (max-width: 560px) {
     min-width: 0;
-    min-height: 38px;
+    min-height: 32px;
     padding-inline: 0.28rem;
     font-size: 0.54rem;
     letter-spacing: 0.055em;
@@ -1210,13 +1206,15 @@ export const QuickCreateLaunchButton = styled.button`
   gap: 0.28rem;
   min-width: 40px;
   min-height: 38px;
-  border: 1px solid ${({ $active }) =>
-    $active ? toneAlpha(LCARS.amber, 'b0') : toneAlpha(LCARS.amber, '58')};
+  border: 1px solid ${({ $active, $tone }) =>
+    $active
+      ? toneAlpha($tone === 'teal' ? LCARS.teal : LCARS.amber, 'b0')
+      : toneAlpha($tone === 'teal' ? LCARS.root : LCARS.amber, '58')};
   border-radius: 2px 7px 2px 2px;
   padding: 0 0.68rem;
-  color: ${toneAlpha(LCARS.amber, 'f2')};
-  background: ${({ $active }) => $active
-    ? 'rgba(93, 60, 17, 0.32)'
+  color: ${({ $tone }) => toneAlpha($tone === 'teal' ? LCARS.root : LCARS.amber, 'f2')};
+  background: ${({ $active, $tone }) => $active
+    ? ($tone === 'teal' ? 'rgba(76, 198, 193, 0.14)' : 'rgba(93, 60, 17, 0.32)')
     : 'rgba(20, 18, 13, 0.38)'};
   font: 820 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   letter-spacing: 0.08em;
@@ -1225,10 +1223,18 @@ export const QuickCreateLaunchButton = styled.button`
   cursor: pointer;
   transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
 
+  &::before {
+    content: ${({ $symbol = '+' }) => JSON.stringify($symbol)};
+    display: inline-block;
+    font-size: 1.08em;
+    font-weight: 950;
+    line-height: 1;
+  }
+
   &:hover,
   &:focus-visible {
-    border-color: ${LCARS.amber};
-    box-shadow: 0 0 12px ${toneAlpha(LCARS.amber, '20')};
+    border-color: ${({ $tone }) => $tone === 'teal' ? LCARS.root : LCARS.amber};
+    box-shadow: ${({ $tone }) => `0 0 12px ${toneAlpha($tone === 'teal' ? LCARS.root : LCARS.amber, '20')}`};
     outline: none;
   }
 

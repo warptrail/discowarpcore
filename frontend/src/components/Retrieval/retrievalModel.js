@@ -7,6 +7,7 @@ import {
   normalizeKeepPriority,
 } from '../../util/keepPriority';
 import { getItemOwnershipContext } from '../../util/itemOwnership';
+import { getOnDemandImageDerivativeUrl } from '../../util/itemImage';
 
 const UNKNOWN_LOCATION_LABEL = 'Unknown Location';
 const UNKNOWN_BOX_NAME = 'Unknown Box';
@@ -207,15 +208,29 @@ function resolveItemImageUrls(item) {
   );
 
   if (activeVariant === 'processed' || (!activeVariant && processedUrl)) {
+    const sourceUrl = processedUrl || originalUrl || thumbUrl;
     return {
-      imageUrl: firstNonEmpty(thumbUrl, displayUrl, processedUrl),
-      previewImageUrl: firstNonEmpty(processedUrl, displayUrl, originalUrl, thumbUrl),
+      imageUrl: firstNonEmpty(
+        thumbUrl,
+        getOnDemandImageDerivativeUrl(displayUrl || sourceUrl, 'thumb'),
+      ),
+      previewImageUrl: firstNonEmpty(
+        displayUrl,
+        getOnDemandImageDerivativeUrl(sourceUrl, 'display'),
+      ),
     };
   }
 
+  const sourceUrl = originalUrl || processedUrl || thumbUrl;
   return {
-    imageUrl: firstNonEmpty(thumbUrl, displayUrl, processedUrl),
-    previewImageUrl: firstNonEmpty(originalUrl, displayUrl, thumbUrl, processedUrl),
+    imageUrl: firstNonEmpty(
+      thumbUrl,
+      getOnDemandImageDerivativeUrl(displayUrl || sourceUrl, 'thumb'),
+    ),
+    previewImageUrl: firstNonEmpty(
+      displayUrl,
+      getOnDemandImageDerivativeUrl(sourceUrl, 'display'),
+    ),
   };
 }
 

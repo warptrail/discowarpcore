@@ -3,10 +3,19 @@ import styled, { css, keyframes } from 'styled-components';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Toast from './Toast/Toast';
 import { ToastContext } from './Toast';
-import houseCommandIcon from '../assets/house-command-icon.png';
+import HomeCommandIcon from './HomeCommandIcon';
+import operationsNavIcon from '../assets/nav-icon-concepts-v1/logoist/operations.svg';
+import retrievalNavIcon from '../assets/nav-icon-concepts-v1/logoist/retrieval.svg';
+import intakeNavIcon from '../assets/nav-icon-concepts-v1/logoist/intake.svg';
+import importNavIcon from '../assets/nav-icon-concepts-v1/logoist/import.svg';
+import allItemsNavIcon from '../assets/nav-icon-concepts-v1/logoist/all-items.svg';
+import declutterNavIcon from '../assets/nav-icon-concepts-v1/logoist/declutter.svg';
+import logsNavIcon from '../assets/nav-icon-concepts-v1/logoist/logs.svg';
+import randomNavIcon from '../assets/nav-icon-concepts-v1/logoist/random.svg';
 import useIsMobile from '../hooks/useIsMobile';
 import useRandomItemFlow from '../hooks/useRandomItemFlow';
 import RotatingDataAnnouncement from './RotatingDataAnnouncement';
+import AllItemsHeaderTicker from './AllItemsList/AllItemsHeaderTicker';
 import DeclutterPlayerPicker from './Declutter/DeclutterPlayerPicker';
 import {
   DECLUTTER_PENDING_COUNTS_EVENT,
@@ -26,9 +35,9 @@ import {
   OPERATIONS_QUICK_PEEK_SEARCH_TOGGLE_EVENT,
   OPERATIONS_QUICK_PEEK_CLOSE_EVENT,
   RETRIEVAL_FINDER_STATE_EVENT,
-  RETRIEVAL_FINDER_TOGGLE_EVENT,
   ALL_ITEMS_FILTERS_STATE_EVENT,
   ALL_ITEMS_FILTERS_TOGGLE_EVENT,
+  ALL_ITEMS_INSIGHTS_STATE_EVENT,
 } from '../constants/inventoryFinderEvents';
 import {
   MOBILE_BREAKPOINT,
@@ -41,60 +50,26 @@ import {
   getBoxTheme,
   getBoxThemeCssVars,
 } from '../util/inventoryColorTheme';
+import {
+  getOperationsReturnNavigation,
+  saveOperationsReturnPosition,
+} from '../util/operationsReturnPosition';
 
 // ===============
 // LCARS-ish Styles
 // ===============
 
-// Header progress changes its own rendered height. Keep the scroll decision on
-// fixed document coordinates so a height transition can never feed back into
-// the next progress calculation through scroll anchoring or scrollHeight.
-const HEADER_SCROLL_STAGE = Object.freeze({
-  expanded: 0,
-  docked: 0.58,
-  compact: 1,
-});
-const HEADER_SCROLL_BAND = Object.freeze({
-  // Hysteresis keeps browser scroll anchoring from bouncing between stages
-  // while the header's layout height is settling.
-  enterDocked: 56,
-  leaveDocked: 0,
-  enterCompact: 112,
-  leaveCompact: 72,
-});
-
-const getHeaderScrollStage = (scrollY, previousProgress) => {
-  const wasExpanded = previousProgress < HEADER_SCROLL_STAGE.docked / 2;
-  const wasCompact = previousProgress >
-    (HEADER_SCROLL_STAGE.docked + HEADER_SCROLL_STAGE.compact) / 2;
-
-  if (wasExpanded) {
-    if (scrollY >= HEADER_SCROLL_BAND.enterCompact) {
-      return HEADER_SCROLL_STAGE.compact;
-    }
-    if (scrollY >= HEADER_SCROLL_BAND.enterDocked) {
-      return HEADER_SCROLL_STAGE.docked;
-    }
-    return HEADER_SCROLL_STAGE.expanded;
+// Two states with a simple latch. Compacting changes the header's height by
+// roughly 127px at the target viewport, so the enter and leave thresholds need
+// enough separation to keep the header from moving its own scroll position
+// back across the trigger.
+const HEADER_COMPACT_ENTER_Y = 180;
+const HEADER_COMPACT_LEAVE_Y = 24;
+const getHeaderScrollProgress = (scrollY, previousProgress) => {
+  if (previousProgress >= 0.5) {
+    return scrollY <= HEADER_COMPACT_LEAVE_Y ? 0 : 1;
   }
-
-  if (wasCompact) {
-    if (scrollY <= HEADER_SCROLL_BAND.leaveDocked) {
-      return HEADER_SCROLL_STAGE.expanded;
-    }
-    if (scrollY <= HEADER_SCROLL_BAND.leaveCompact) {
-      return HEADER_SCROLL_STAGE.docked;
-    }
-    return HEADER_SCROLL_STAGE.compact;
-  }
-
-  if (scrollY <= HEADER_SCROLL_BAND.leaveDocked) {
-    return HEADER_SCROLL_STAGE.expanded;
-  }
-  if (scrollY >= HEADER_SCROLL_BAND.enterCompact) {
-    return HEADER_SCROLL_STAGE.compact;
-  }
-  return HEADER_SCROLL_STAGE.docked;
+  return scrollY >= HEADER_COMPACT_ENTER_Y ? 1 : 0;
 };
 
 const HeaderShell = styled.header`
@@ -808,7 +783,7 @@ const NavRow = styled.nav`
   }
 
   @media (min-width: 900px) and (max-width: 1219px) {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   @media (min-width: calc(${MOBILE_BREAKPOINT} + 1px)) and (max-width: 899px) {
@@ -832,6 +807,26 @@ const NavRow = styled.nav`
       `}
   }
 
+  ${({ $condensed, $textOnly }) =>
+    $condensed &&
+    !$textOnly &&
+    css`
+      --nav-icon-size: clamp(1.34rem, 3.2vw, 1.72rem);
+
+      grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+      gap: clamp(0.16rem, 0.5vw, 0.34rem);
+      margin-top: calc(0.3rem - (0.16rem * var(--nav-progress)));
+
+      > a,
+      > button {
+        justify-content: center;
+        min-width: 0;
+        min-height: 2.12rem;
+        padding-inline: clamp(0.2rem, 0.7vw, 0.42rem);
+        border-radius: 7px;
+      }
+    `}
+
 `;
 
 const MobileNavPanel = styled.div`
@@ -853,9 +848,9 @@ const MobileNavPanel = styled.div`
 const navControlStyles = css`
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.36rem;
-  padding: 0.46rem 0.52rem;
+  padding: 0.46rem 0.68rem;
   flex: none;
   width: 100%;
   min-width: 0;
@@ -864,7 +859,7 @@ const navControlStyles = css`
   white-space: nowrap;
   text-overflow: ellipsis;
   line-height: 1.14;
-  text-align: center;
+  text-align: left;
 
   border-radius: 10px;
   text-decoration: none;
@@ -877,9 +872,15 @@ const navControlStyles = css`
   font-size: 0.84rem;
 
   color: rgba(240, 240, 240, 0.95);
-  background: rgba(20, 34, 46, 0.9);
-  border: 1px solid rgba(0, 255, 200, 0.22);
-  box-shadow: 0 0 0 2px rgba(0, 255, 200, 0.06);
+  background:
+    radial-gradient(circle at 16% 18%, rgba(108, 162, 255, 0.24) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 76% 70%, rgba(161, 246, 255, 0.38) 0 1px, transparent 1.7px),
+    linear-gradient(135deg, rgba(20, 31, 66, 0.96), rgba(10, 35, 54, 0.94) 52%, rgba(37, 17, 66, 0.94));
+  border: 1px solid rgba(97, 221, 255, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 0 2px rgba(0, 255, 200, 0.06),
+    0 0 14px rgba(73, 137, 255, 0.08);
 
   transition:
     transform 120ms ease,
@@ -887,10 +888,15 @@ const navControlStyles = css`
     background 120ms ease;
 
   &:hover {
-    background: rgba(0, 255, 200, 0.14);
+    background:
+      radial-gradient(circle at 16% 18%, rgba(184, 222, 255, 0.42) 0 1px, transparent 1.6px),
+      radial-gradient(circle at 76% 70%, rgba(161, 246, 255, 0.52) 0 1px, transparent 1.7px),
+      linear-gradient(135deg, rgba(34, 57, 112, 0.98), rgba(11, 58, 76, 0.96) 52%, rgba(66, 28, 102, 0.96));
     box-shadow:
-      0 0 0 2px rgba(0, 255, 200, 0.12),
-      0 0 18px rgba(0, 255, 200, 0.2);
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      0 0 0 2px rgba(0, 255, 200, 0.14),
+      0 0 22px rgba(0, 206, 255, 0.24),
+      0 0 34px rgba(122, 82, 255, 0.14);
     transform: translateY(-1px);
   }
 
@@ -899,9 +905,9 @@ const navControlStyles = css`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    justify-content: center;
+    justify-content: flex-start;
     min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-    padding: 0.32rem 0.34rem;
+    padding: 0.32rem 0.48rem;
     border-radius: 8px;
     font-size: ${MOBILE_FONT_SM};
     letter-spacing: 0.035em;
@@ -917,7 +923,21 @@ const navControlStyles = css`
 `;
 
 const NavIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--nav-icon-size);
+  height: var(--nav-icon-size);
+  flex: 0 0 var(--nav-icon-size);
   line-height: 1;
+`;
+
+const NavIconImage = styled.img`
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 5px rgba(60, 217, 255, 0.24));
 `;
 
 const NavLabel = styled.span`
@@ -1097,28 +1117,6 @@ const BoxConsoleCurrentCrumb = styled.span`
   white-space: nowrap;
 `;
 
-const BoxConsoleHomeIcon = styled.img`
-  display: block;
-  width: clamp(1.55rem, 5vw, 2.15rem);
-  height: clamp(1.55rem, 5vw, 2.15rem);
-  object-fit: contain;
-
-  ${({ $twinkle }) =>
-    $twinkle &&
-    css`
-      filter: hue-rotate(var(--home-icon-hue, 0deg)) saturate(1.16)
-        brightness(1.08);
-      transition: filter var(--home-icon-transition, 340ms)
-        cubic-bezier(0.22, 1, 0.36, 1);
-      will-change: filter;
-    `}
-
-  @media (prefers-reduced-motion: reduce) {
-    filter: none;
-    transition: none;
-  }
-`;
-
 const BoxConsoleCrumbSeparator = styled.span`
   flex: 0 0 auto;
   color: rgba(var(--box-secondary-rgb), 0.62);
@@ -1132,6 +1130,7 @@ function BoxConsoleIdleMessage({
   query,
   matchCount,
   breadcrumb = [],
+  onReturnHome,
 }) {
   const hasQuery = Boolean(query);
   const countLabel = `${matchCount} ${matchCount === 1 ? 'match' : 'matches'}`;
@@ -1144,8 +1143,9 @@ function BoxConsoleIdleMessage({
           to="/operations"
           title="Operations home"
           aria-label="Go to Operations home"
+          onClick={onReturnHome}
         >
-          <BoxConsoleHomeIcon src={houseCommandIcon} alt="" aria-hidden="true" />
+          <HomeCommandIcon alt="" aria-hidden="true" />
         </BoxConsoleCrumb>
         {breadcrumb.map((crumb, index) => {
           const id = String(crumb?.id || '').trim();
@@ -1451,69 +1451,81 @@ function FinderGeometryGlyph() {
   );
 }
 
-const HOME_ICON_HUES = [0, 34, 78, 126, 176, 224, 278, 324];
+const IDLE_SIGNAL_COLORS = [
+  { primary: '#78f5c8', secondary: '#74d4ff' },
+  { primary: '#c9a7ff', secondary: '#ff8ecf' },
+  { primary: '#f3bc76', secondary: '#ff7f78' },
+  { primary: '#8ed7ff', secondary: '#a9ff68' },
+];
 
-function getNextHomeIconSignal(currentHue = 0) {
-  const alternatives = HOME_ICON_HUES.filter((hue) => hue !== currentHue);
-  const nextHue = alternatives[Math.floor(Math.random() * alternatives.length)] || 0;
+const IDLE_SIGNAL_FRAMES = [
+  '╾━ ◇ ━━━━━╼',
+  '╾━━ ◇ ━━━━╼',
+  '╾━━━ ◈ ━━━╼',
+  '╾━━━━ ◇ ━━╼',
+  '╾━━━━━ ◇ ━╼',
+  '╾━━━━ ◈ ━━╼',
+  '╾━━━ ◇ ━━━╼',
+  '╾━━ ◇ ━━━━╼',
+];
 
-  return {
-    hue: nextHue,
-    transitionMs: 220 + Math.floor(Math.random() * 281),
-  };
-}
+const IdleAsciiArt = styled.span`
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+  color: var(--idle-signal-primary);
+  font-family: 'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace,
+    Menlo, Monaco, Consolas, monospace;
+  font-size: clamp(0.68rem, 1.6vw, 0.82rem);
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--idle-signal-primary) 42%, transparent);
+`;
 
-function usePrefersReducedMotion() {
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+const IdleAsciiFrame = styled.span`
+  color: var(--idle-signal-primary);
+  white-space: pre;
+`;
+
+const IdleAsciiStatus = styled.span`
+  color: var(--idle-signal-secondary);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  opacity: 0.74;
+  white-space: nowrap;
+
+  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
+    display: none;
+  }
+`;
+
+function IdleAsciiSignal({ palette }) {
+  const [frame, setFrame] = useState(0);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const syncPreference = () => setPrefersReducedMotion(mediaQuery.matches);
+    if (mediaQuery.matches) return undefined;
 
-    syncPreference();
-    mediaQuery.addEventListener('change', syncPreference);
-    return () => mediaQuery.removeEventListener('change', syncPreference);
+    const intervalId = window.setInterval(() => {
+      setFrame((current) => (current + 1) % IDLE_SIGNAL_FRAMES.length);
+    }, 260);
+
+    return () => window.clearInterval(intervalId);
   }, []);
 
-  return prefersReducedMotion;
-}
-
-function OperationsHomeIcon() {
-  const prefersReducedMotion = usePrefersReducedMotion();
-  const [signal, setSignal] = useState({ hue: 0, transitionMs: 340 });
-
-  useEffect(() => {
-    if (prefersReducedMotion) return undefined;
-
-    let timeoutId;
-    let cancelled = false;
-
-    const scheduleNextSignal = () => {
-      const waitMs = 500 + Math.floor(Math.random() * 1501);
-      timeoutId = window.setTimeout(() => {
-        if (cancelled) return;
-        setSignal((current) => getNextHomeIconSignal(current.hue));
-        scheduleNextSignal();
-      }, waitMs);
-    };
-
-    scheduleNextSignal();
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeoutId);
-    };
-  }, [prefersReducedMotion]);
-
   return (
-    <BoxConsoleHomeIcon
-      src={houseCommandIcon}
-      alt=""
-      $twinkle
+    <IdleAsciiArt
+      role="img"
+      aria-label="Idle warp core signal"
       style={{
-        '--home-icon-hue': `${signal.hue}deg`,
-        '--home-icon-transition': `${signal.transitionMs}ms`,
+        '--idle-signal-primary': palette.primary,
+        '--idle-signal-secondary': palette.secondary,
       }}
-    />
+    >
+      <IdleAsciiFrame aria-hidden="true">{IDLE_SIGNAL_FRAMES[frame]}</IdleAsciiFrame>
+      <IdleAsciiStatus aria-hidden="true">CORE IDLE // SIGNAL NOMINAL</IdleAsciiStatus>
+    </IdleAsciiArt>
   );
 }
 
@@ -1521,6 +1533,9 @@ export default function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const [scrollProgress, setScrollProgress] = useState(0);
+  const scrollProgressRef = useRef(0);
+  const scrollTransitionLockRef = useRef(false);
+  const scrollTransitionTimerRef = useRef(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [committedSearch, setCommittedSearch] = useState('');
   const [isOperationsFinderOpen, setIsOperationsFinderOpen] = useState(false);
@@ -1534,7 +1549,7 @@ export default function Header() {
     sortMode: 'treeOrder',
   });
   const [searchPulse, setSearchPulse] = useState(false);
-  const [retrievalScrollCompact, setRetrievalScrollCompact] = useState(false);
+  const [idleSignalColor, setIdleSignalColor] = useState(0);
   const [retrievalFinderState, setRetrievalFinderState] = useState({
     minimized: true,
     retrievalMode: 'items',
@@ -1544,20 +1559,20 @@ export default function Header() {
     expanded: true,
     searchQuery: '',
   });
+  const [allItemsTickerData, setAllItemsTickerData] = useState({ loading: true });
   const [declutterPlayer, setDeclutterPlayer] = useState(getStoredDeclutterPlayer);
   const [declutterPendingCounts, setDeclutterPendingCounts] = useState({});
-  const retrievalScrollTimerRef = useRef(null);
-  const retrievalLastScrollYRef = useRef(0);
-  const retrievalIgnoreScrollUntilRef = useRef(0);
   const isBoxDetailPage = /^\/boxes\/[^/]+\/?$/.test(location.pathname);
   const isOperationsPage = /^\/(?:operations\/?|)$/.test(location.pathname);
   const isRetrievalPage = /^\/(?:retrieval|tags\/[^/]+)\/?$/.test(
     location.pathname,
   );
   const isAllItemsPage = /^\/all-items\/?$/.test(location.pathname);
+  const isItemPage = /^\/items\/[^/]+\/?$/.test(location.pathname);
   const isIntakePage = /^\/intake\/?$/.test(location.pathname);
   const isImportPage = /^\/import\/?$/.test(location.pathname);
   const isDeclutterPage = /^\/declutter(?:\/|$)/.test(location.pathname);
+  const isLogsPage = /^\/logs\/?$/.test(location.pathname);
   const hasOperationsQuickPeek =
     isOperationsPage && new URLSearchParams(location.search).has('peek');
 
@@ -1568,6 +1583,11 @@ export default function Header() {
   const intakeDraftName = String(toastCtx?.intakeDraftName || '').trim();
   const intakeContext = toastCtx?.intakeContext ?? null;
   const isIntakeEditMode = isIntakePage && intakeContext?.mode === 'edit';
+  const isIntakeIdleSignal =
+    isIntakePage &&
+    !intakeDraftName &&
+    !String(intakeContext?.shortId || '').trim() &&
+    String(intakeContext?.mode || 'new') === 'new';
   const boxConsoleStyle =
     isBoxDetailPage && boxContext
       ? getBoxThemeCssVars(getBoxTheme(boxContext.shortId))
@@ -1581,6 +1601,11 @@ export default function Header() {
   const isMobile = useIsMobile(MOBILE_MAX_WIDTH);
   const mobileControlsId = 'mobile-header-controls';
   const { runRandomItem } = useRandomItemFlow();
+  const idleSignalPalette = IDLE_SIGNAL_COLORS[idleSignalColor];
+  const operationsScrollFrameRef = useRef(0);
+  const cycleIdleSignalColor = () => {
+    setIdleSignalColor((current) => (current + 1) % IDLE_SIGNAL_COLORS.length);
+  };
 
   useEffect(() => {
     const syncPlayer = (event) => {
@@ -1600,10 +1625,6 @@ export default function Header() {
   const openOperationsFinder = () => {
     if (isAllItemsPage) {
       window.dispatchEvent(new CustomEvent(ALL_ITEMS_FILTERS_TOGGLE_EVENT));
-      return;
-    }
-    if (isRetrievalPage) {
-      window.dispatchEvent(new CustomEvent(RETRIEVAL_FINDER_TOGGLE_EVENT));
       return;
     }
     if (hasOperationsQuickPeek) {
@@ -1633,11 +1654,53 @@ export default function Header() {
         }),
       );
     }
+    const shouldRestorePosition = isBoxDetailPage || isItemPage;
+    const destination = shouldRestorePosition
+      ? getOperationsReturnNavigation()
+      : null;
+
+    if (destination) {
+      navigate(destination.to, {
+        state: destination.state,
+        preventScrollReset: true,
+      });
+      return;
+    }
+
     navigate('/operations');
     window.requestAnimationFrame(() => {
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     });
   };
+
+  useEffect(() => {
+    if (!isOperationsPage) return undefined;
+
+    const persistPosition = () => {
+      operationsScrollFrameRef.current = 0;
+      if (!/^\/(?:operations\/?|)$/.test(window.location.pathname)) return;
+      saveOperationsReturnPosition({
+        pathname: location.pathname,
+        search: location.search,
+        hash: location.hash,
+        scrollY: window.scrollY,
+      });
+    };
+    const handleScroll = () => {
+      if (operationsScrollFrameRef.current) return;
+      operationsScrollFrameRef.current = window.requestAnimationFrame(persistPosition);
+    };
+
+    persistPosition();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (operationsScrollFrameRef.current) {
+        window.cancelAnimationFrame(operationsScrollFrameRef.current);
+        operationsScrollFrameRef.current = 0;
+      }
+    };
+  }, [isOperationsPage, location.hash, location.pathname, location.search]);
 
   useEffect(() => {
     let pulseTimer = null;
@@ -1664,6 +1727,16 @@ export default function Header() {
     window.addEventListener(ALL_ITEMS_FILTERS_STATE_EVENT, handleAllItemsFilters);
     return () => {
       window.removeEventListener(ALL_ITEMS_FILTERS_STATE_EVENT, handleAllItemsFilters);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleAllItemsInsights = (event) => {
+      setAllItemsTickerData(event.detail || { loading: true });
+    };
+    window.addEventListener(ALL_ITEMS_INSIGHTS_STATE_EVENT, handleAllItemsInsights);
+    return () => {
+      window.removeEventListener(ALL_ITEMS_INSIGHTS_STATE_EVENT, handleAllItemsInsights);
     };
   }, []);
 
@@ -1729,47 +1802,6 @@ export default function Header() {
   }, [location.pathname]);
 
   useEffect(() => {
-    if (!isRetrievalPage || !isOperationsFinderOpen) {
-      setRetrievalScrollCompact(false);
-      retrievalLastScrollYRef.current = window.scrollY;
-      if (retrievalScrollTimerRef.current) {
-        window.clearTimeout(retrievalScrollTimerRef.current);
-        retrievalScrollTimerRef.current = null;
-      }
-      return undefined;
-    }
-
-    retrievalLastScrollYRef.current = window.scrollY;
-    const handleRetrievalScroll = () => {
-      const nextScrollY = window.scrollY;
-      if (Date.now() < retrievalIgnoreScrollUntilRef.current) {
-        retrievalLastScrollYRef.current = nextScrollY;
-        return;
-      }
-      if (Math.abs(nextScrollY - retrievalLastScrollYRef.current) < 1) return;
-      retrievalLastScrollYRef.current = nextScrollY;
-      setRetrievalScrollCompact(true);
-      if (retrievalScrollTimerRef.current) {
-        window.clearTimeout(retrievalScrollTimerRef.current);
-      }
-      retrievalScrollTimerRef.current = window.setTimeout(() => {
-        retrievalIgnoreScrollUntilRef.current = Date.now() + 500;
-        setRetrievalScrollCompact(false);
-        retrievalScrollTimerRef.current = null;
-      }, 2000);
-    };
-
-    window.addEventListener('scroll', handleRetrievalScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', handleRetrievalScroll);
-      if (retrievalScrollTimerRef.current) {
-        window.clearTimeout(retrievalScrollTimerRef.current);
-        retrievalScrollTimerRef.current = null;
-      }
-    };
-  }, [isOperationsFinderOpen, isRetrievalPage]);
-
-  useEffect(() => {
     const handleBoxContext = (event) => setBoxContext(event?.detail || null);
     window.addEventListener(BOX_CONTEXT_STATE_EVENT, handleBoxContext);
     return () => window.removeEventListener(BOX_CONTEXT_STATE_EVENT, handleBoxContext);
@@ -1810,15 +1842,25 @@ export default function Header() {
 
     const updateProgress = () => {
       frameId = null;
-      setScrollProgress((previousProgress) => {
-        const nextProgress = getHeaderScrollStage(
-          window.scrollY,
-          previousProgress,
-        );
-        return Math.abs(nextProgress - previousProgress) < 0.01
-          ? previousProgress
-          : nextProgress;
-      });
+      if (scrollTransitionLockRef.current) return;
+
+      const previousProgress = scrollProgressRef.current;
+      const nextProgress = getHeaderScrollProgress(window.scrollY, previousProgress);
+      if (Math.abs(nextProgress - previousProgress) < 0.01) return;
+
+      // Keep the latch synchronous. The header's height change can itself
+      // emit another scroll event before React has committed the state update.
+      scrollProgressRef.current = nextProgress;
+      setScrollProgress(nextProgress);
+      scrollTransitionLockRef.current = true;
+      if (scrollTransitionTimerRef.current !== null) {
+        window.clearTimeout(scrollTransitionTimerRef.current);
+      }
+      scrollTransitionTimerRef.current = window.setTimeout(() => {
+        scrollTransitionTimerRef.current = null;
+        scrollTransitionLockRef.current = false;
+        updateProgress();
+      }, 360);
     };
 
     const onScroll = () => {
@@ -1834,6 +1876,11 @@ export default function Header() {
       if (frameId !== null) {
         cancelFrame(frameId);
       }
+      if (scrollTransitionTimerRef.current !== null) {
+        window.clearTimeout(scrollTransitionTimerRef.current);
+        scrollTransitionTimerRef.current = null;
+      }
+      scrollTransitionLockRef.current = false;
     };
   }, [hasOperationsQuickPeek]);
 
@@ -1930,6 +1977,7 @@ export default function Header() {
         >
           <NavRow
             $retrievalPage={isRetrievalPage}
+            $condensed={isHeaderCondensed}
             $textOnly={isMobile && isMobileMenuOpen}
           >
             <NavButton
@@ -1938,7 +1986,9 @@ export default function Header() {
               title="Operations"
               onClick={handleNavSelection}
             >
-              <NavIcon aria-hidden="true">🚀</NavIcon>
+              <NavIcon aria-hidden="true">
+                <NavIconImage src={operationsNavIcon} alt="" />
+              </NavIcon>
               <NavLabel>Operations</NavLabel>
             </NavButton>
             <NavButton
@@ -1947,7 +1997,9 @@ export default function Header() {
               title="Retrieval"
               onClick={handleNavSelection}
             >
-              <NavIcon aria-hidden="true">🔎</NavIcon>
+              <NavIcon aria-hidden="true">
+                <NavIconImage src={logsNavIcon} alt="" />
+              </NavIcon>
               <NavLabel>Retrieval</NavLabel>
             </NavButton>
             <NavButton
@@ -1956,7 +2008,9 @@ export default function Header() {
               title="Intake"
               onClick={handleNavSelection}
             >
-              <NavIcon aria-hidden="true">📲</NavIcon>
+              <NavIcon aria-hidden="true">
+                <NavIconImage src={declutterNavIcon} alt="" />
+              </NavIcon>
               <NavLabel>Intake</NavLabel>
             </NavButton>
             <NavButton
@@ -1965,7 +2019,9 @@ export default function Header() {
               title="Import"
               onClick={handleNavSelection}
             >
-              <NavIcon aria-hidden="true">📥</NavIcon>
+              <NavIcon aria-hidden="true">
+                <NavIconImage src={allItemsNavIcon} alt="" />
+              </NavIcon>
               <NavLabel>Import</NavLabel>
             </NavButton>
             <NavButton
@@ -1974,7 +2030,9 @@ export default function Header() {
               title="All Items"
               onClick={handleNavSelection}
             >
-              <NavIcon aria-hidden="true">🧾</NavIcon>
+              <NavIcon aria-hidden="true">
+                <NavIconImage src={importNavIcon} alt="" />
+              </NavIcon>
               <NavLabel>All Items</NavLabel>
             </NavButton>
             <NavButton
@@ -1983,7 +2041,9 @@ export default function Header() {
               title="Declutter"
               onClick={handleNavSelection}
             >
-              <NavIcon aria-hidden="true">🧹</NavIcon>
+              <NavIcon aria-hidden="true">
+                <NavIconImage src={intakeNavIcon} alt="" />
+              </NavIcon>
               <NavLabel>Declutter</NavLabel>
             </NavButton>
             <NavButton
@@ -1992,7 +2052,9 @@ export default function Header() {
               title="Logs"
               onClick={handleNavSelection}
             >
-              <NavIcon aria-hidden="true">🛰️</NavIcon>
+              <NavIcon aria-hidden="true">
+                <NavIconImage src={retrievalNavIcon} alt="" />
+              </NavIcon>
               <NavLabel>Logs</NavLabel>
             </NavButton>
             <NavActionButton
@@ -2001,7 +2063,9 @@ export default function Header() {
               title="Random"
               onClick={handleRandomSelection}
             >
-              <NavIcon aria-hidden="true">🎲</NavIcon>
+              <NavIcon aria-hidden="true">
+                <NavIconImage src={randomNavIcon} alt="" />
+              </NavIcon>
               <NavLabel>Random</NavLabel>
             </NavActionButton>
           </NavRow>
@@ -2048,11 +2112,11 @@ export default function Header() {
             isDeclutterPage
               ? ''
               : isOperationsPage
-              ? <OperationsHomeIcon />
-              : isBoxDetailPage ? '' : <BoxConsoleHomeIcon src={houseCommandIcon} alt="" />
+              ? <HomeCommandIcon alt="" />
+              : isBoxDetailPage ? '' : <HomeCommandIcon alt="" />
           }
           idleIconAction={
-            isOperationsPage
+            isOperationsPage || isLogsPage || isIntakeIdleSignal
               ? {
                   onClick: returnToOperationsHome,
                   ariaLabel: 'Return to Operations home and scroll to top',
@@ -2079,12 +2143,20 @@ export default function Header() {
                     }
                     matchCount={boxFinderState.matchCount}
                     breadcrumb={boxContext.breadcrumb}
+                    onReturnHome={(event) => {
+                      event.preventDefault();
+                      returnToOperationsHome();
+                    }}
                   />
                 )
               : committedSearch
                 ? `Searching: ${committedSearch}`
               : isAllItemsPage && allItemsFilterState.searchQuery
                   ? `All Items · ${allItemsFilterState.searchQuery}`
+                : isAllItemsPage
+                  ? <AllItemsHeaderTicker data={allItemsTickerData} />
+                : isIntakeIdleSignal
+                  ? <IdleAsciiSignal palette={idleSignalPalette} />
                 : isIntakePage
                   ? (
                       <IntakeConsoleIdleMessage
@@ -2101,10 +2173,12 @@ export default function Header() {
                         analytics={retrievalFinderState.boxAnalytics}
                       />
                     )
-                : 'What are you looking for?'
+                : isLogsPage
+                  ? <IdleAsciiSignal palette={idleSignalPalette} />
+                  : 'What are you looking for?'
           }
           idleAction={
-            isDeclutterPage || isOperationsPage || isBoxDetailPage
+            isDeclutterPage || isOperationsPage || isBoxDetailPage || isRetrievalPage || isLogsPage || isIntakeIdleSignal
               ? null
               : {
                   onClick: openOperationsFinder,
@@ -2142,11 +2216,13 @@ export default function Header() {
               ) : null}
               <RescueConsoleTrigger
                 type="button"
-                onClick={openOperationsFinder}
+                onClick={isLogsPage || isIntakeIdleSignal ? cycleIdleSignalColor : openOperationsFinder}
                 data-box-finder-trigger={isBoxDetailPage ? true : undefined}
                 aria-label={
                   isBoxDetailPage
                     ? 'Toggle box quick search'
+                    : isLogsPage || isIntakeIdleSignal
+                      ? 'Change idle signal color'
                     : isRetrievalPage
                       ? 'Toggle retrieval search'
                       : isAllItemsPage
@@ -2160,6 +2236,8 @@ export default function Header() {
                 title={
                   isBoxDetailPage
                     ? 'Search this box'
+                    : isLogsPage || isIntakeIdleSignal
+                      ? 'Change signal color'
                     : isRetrievalPage
                       ? 'Retrieval search'
                       : isAllItemsPage
@@ -2190,7 +2268,6 @@ export default function Header() {
             </>
           }
           activeRetrievalItem={activeRetrievalItem}
-          retrievalScrollCompact={retrievalScrollCompact}
           compact={isHeaderCondensed}
           compactProgress={isBoxDetailPage ? 1.35 : effectiveHeaderProgress}
         />

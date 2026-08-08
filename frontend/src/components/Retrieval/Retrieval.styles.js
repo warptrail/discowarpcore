@@ -430,20 +430,20 @@ export const SearchWrap = styled.label`
 `;
 
 export const SearchLabel = styled.span`
-  font-size: 0.68rem;
-  font-weight: 760;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: ${RETRIEVAL.textDim};
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${MOBILE_FONT_XS};
-  }
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 `;
 
 export const SearchInput = styled.input`
   ${controlField};
-  min-height: 44px;
+  min-height: 40px;
   font-size: 0.92rem;
   border-left: 4px solid rgba(76, 198, 193, 0.66);
   border-radius: 2px 7px 2px 2px;
@@ -452,7 +452,7 @@ export const SearchInput = styled.input`
     ${RETRIEVAL.bg};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 48px;
+    min-height: 44px;
     font-size: 0.94rem;
     border-radius: 2px 6px 2px 2px;
   }
@@ -1069,10 +1069,39 @@ export const ExplorerTrayHeader = styled.div`
 `;
 
 export const ExplorerTrayTitle = styled.span`
+  margin-right: auto;
   color: rgba(216, 237, 247, 0.76);
   font: 800 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+`;
+
+export const TagOperatorToggle = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  min-height: 28px;
+  padding: 0.12rem 0.4rem;
+  border: 1px solid ${({ $and }) =>
+    $and ? 'rgba(167, 182, 255, 0.72)' : 'rgba(76, 198, 193, 0.58)'};
+  border-radius: 2px;
+  background: ${({ $and }) =>
+    $and ? 'rgba(167, 182, 255, 0.14)' : 'rgba(76, 198, 193, 0.1)'};
+  color: rgba(218, 232, 238, 0.66);
+  font: 750 0.54rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  strong {
+    color: ${({ $and }) => ($and ? '#e5e8ff' : '#c8fff2')};
+    font-size: 0.64rem;
+  }
+
+  &:focus-visible {
+    outline: 1px solid rgba(127, 215, 255, 0.84);
+    outline-offset: 2px;
+  }
 `;
 
 export const ExplorerTrayClose = styled.button`
@@ -1171,6 +1200,38 @@ export const ResultsHeaderTop = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+`;
+
+export const ResultsHeaderActions = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+`;
+
+export const ExplorerViewTrigger = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  min-height: 32px;
+  padding: 0.18rem 0.42rem;
+  border: 1px solid rgba(76, 198, 193, 0.38);
+  border-radius: 2px;
+  background: ${({ $active }) =>
+    $active ? 'rgba(76, 198, 193, 0.14)' : 'rgba(7, 13, 19, 0.72)'};
+  color: rgba(220, 238, 240, 0.76);
+  font: 750 0.56rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+
+  strong {
+    color: #bff8ed;
+    font-size: 0.6rem;
+  }
+
+  &:focus-visible {
+    outline: 1px solid rgba(127, 215, 255, 0.82);
+    outline-offset: 2px;
+  }
 `;
 
 export const ResultsCount = styled.span`
@@ -1280,14 +1341,73 @@ export const ResultsList = styled.div`
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-auto-flow: row;
-  gap: 3px;
-  padding: 3px;
+  gap: ${({ $compact }) => ($compact ? '0' : '3px')};
+  padding: ${({ $compact }) => ($compact ? '3px' : '3px')};
 
   @media (min-width: ${RETRIEVAL_WIDE_BREAKPOINT}) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.62rem;
-    padding: 0.62rem;
+    grid-template-columns: ${({ $compact }) =>
+      $compact ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))'};
+    gap: ${({ $compact }) => ($compact ? '0' : '0.62rem')};
+    padding: ${({ $compact }) => ($compact ? '3px' : '0.62rem')};
   }
+`;
+
+export const AsciiResultButton = styled.button`
+  display: grid;
+  grid-template-columns: auto minmax(0, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.42rem;
+  width: 100%;
+  min-height: 40px;
+  padding: 0.22rem 0.5rem;
+  border: 0;
+  border-bottom: 1px solid rgba(127, 215, 255, 0.12);
+  border-radius: 0;
+  background: ${({ $expanded }) =>
+    $expanded ? 'rgba(76, 198, 193, 0.11)' : 'rgba(7, 13, 19, 0.52)'};
+  color: #dfeaf1;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(76, 198, 193, 0.08);
+  }
+
+  &:focus-visible {
+    position: relative;
+    z-index: 1;
+    outline: 1px solid rgba(127, 215, 255, 0.82);
+    outline-offset: -1px;
+  }
+`;
+
+export const AsciiBranch = styled.span`
+  color: var(--box-neon, #7fd7ff);
+  font: 800 0.72rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: pre;
+`;
+
+export const AsciiItemName = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  color: #edf5f8;
+  font: 760 0.76rem/1.1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+export const AsciiPlacement = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(184, 204, 216, 0.52);
+  font: 650 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+export const AsciiDisclosure = styled.span`
+  color: rgba(167, 182, 255, 0.8);
+  font: 900 0.78rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 `;
 
 export const BoxCentricLayout = styled.div`

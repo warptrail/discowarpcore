@@ -1,4 +1,4 @@
-import { Fragment, memo } from 'react';
+import { Fragment, memo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import ItemFieldEditor from './ItemFieldEditor/ItemFieldEditor';
@@ -9,6 +9,7 @@ import { formatKeepPriorityLabel } from '../util/keepPriority';
 import { getImportBatchHref } from '../api/intakeBatches';
 import { getRetrievalTagHref } from './Retrieval/retrievalModel';
 import * as S from '../styles/ItemPageConsoleView.styles';
+import ItemNoteSheet from './ItemNoteSheet';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const date = (value) => (value ? new Date(value).toLocaleDateString() : '—');
@@ -44,6 +45,7 @@ const TableRow = memo(function TableRow({
   locatorActive = false,
   onRequestDiscard,
   onRequestEdit,
+  onOpenNote,
   onSave,
   value,
 }) {
@@ -80,6 +82,23 @@ const TableRow = memo(function TableRow({
                 EDIT
               </S.EditableTagButton>
             </S.TagValueEditorRow>
+          ) : fieldKey === 'notes' && String(value || '').trim() ? (
+            <S.NotePreviewRow>
+              <S.NotePreviewButton
+                type="button"
+                aria-label="Open full item notes"
+                onClick={() => onOpenNote?.(String(value))}
+              >
+                <S.NotePreview>{value}</S.NotePreview>
+              </S.NotePreviewButton>
+              <S.NoteEditButton
+                type="button"
+                aria-label={`Edit ${descriptor.label}`}
+                onClick={() => onRequestEdit?.(descriptor.key)}
+              >
+                EDIT
+              </S.NoteEditButton>
+            </S.NotePreviewRow>
           ) : isEditable ? (
             <S.EditableValueButton
               type="button"
@@ -134,6 +153,7 @@ function AllDataView({
   onRequestEdit,
   onSave,
 }) {
+  const [noteSheetOpen, setNoteSheetOpen] = useState(false);
   const ownership = getItemOwnershipContext(item);
   const box = ownership.box || item?.box || null;
   const tags = Array.isArray(item?.tags) ? item.tags.filter(Boolean) : [];
@@ -312,8 +332,11 @@ function AllDataView({
     },
   ];
 
+  const note = String(item?.notes || '').trim();
+
   return (
-    <S.ConsoleFrame $fieldMode={locatorActive || Boolean(fieldEditor?.descriptor)}>
+    <>
+      <S.ConsoleFrame $fieldMode={locatorActive || Boolean(fieldEditor?.descriptor)}>
       {locatorActive ? (
         <S.FieldLocatorStatus role="status">
           <strong>FIELD LOCATOR //</strong>
@@ -342,13 +365,22 @@ function AllDataView({
                 locatorActive={locatorActive}
                 onRequestDiscard={onRequestDiscard}
                 onRequestEdit={onRequestEdit}
+                onOpenNote={() => setNoteSheetOpen(true)}
                 onSave={onSave}
               />
             ))}
           </S.DomainGroup>
         ))}
       </S.ConsoleTable>
-    </S.ConsoleFrame>
+      </S.ConsoleFrame>
+      {noteSheetOpen && note ? (
+        <ItemNoteSheet
+          itemName={item?.name}
+          note={note}
+          onClose={() => setNoteSheetOpen(false)}
+        />
+      ) : null}
+    </>
   );
 }
 

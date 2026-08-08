@@ -37,7 +37,10 @@ const FRONTEND_INDEX = path.join(FRONTEND_DIST, 'index.html');
 app.use(cors());
 app.use(compression());
 app.use(express.json());
-app.use(MEDIA_URL_BASE, express.static(MEDIA_ROOT, { maxAge: '1h' }));
+app.use(MEDIA_URL_BASE, express.static(MEDIA_ROOT, {
+  maxAge: '1y',
+  immutable: true,
+}));
 app.use('/api', backendRequestLogger);
 
 // Connect to Mongo
@@ -56,9 +59,22 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
 });
 
-app.use(express.static(FRONTEND_DIST));
+app.use('/assets', express.static(path.join(FRONTEND_DIST, 'assets'), {
+  maxAge: '1y',
+  immutable: true,
+}));
+app.use(express.static(FRONTEND_DIST, {
+  index: false,
+  maxAge: 0,
+  setHeaders(res, filePath) {
+    if (filePath === FRONTEND_INDEX) {
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+    }
+  },
+}));
 
 app.get(/^\/(?!api|media).*/, (_req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
   res.sendFile(FRONTEND_INDEX);
 });
 

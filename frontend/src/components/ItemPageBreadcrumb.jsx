@@ -1,6 +1,9 @@
 import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import * as S from '../styles/ItemPage.styles';
 import { getItemOwnershipContext } from '../util/itemOwnership';
+import HomeCommandIcon from './HomeCommandIcon';
+import { getOperationsReturnNavigation } from '../util/operationsReturnPosition';
 
 function buildBreadcrumb(item, itemId) {
   const safeItemName = String(item?.name || 'Unnamed Item').trim() || 'Unnamed Item';
@@ -84,17 +87,27 @@ function buildBreadcrumb(item, itemId) {
   ];
 }
 
-function BreadcrumbPart({ part }) {
+function BreadcrumbPart({ part, onReturnHome }) {
   const content = (
     <>
-      {part.boxId ? <S.CrumbId>{part.boxId}</S.CrumbId> : null}
-      <S.CrumbLabel>{part.label}</S.CrumbLabel>
+      {part.label === 'Home' ? (
+        <HomeCommandIcon size="1.15rem" alt="" aria-hidden="true" />
+      ) : (
+        <>
+          {part.boxId ? <S.CrumbId>{part.boxId}</S.CrumbId> : null}
+          <S.CrumbLabel>{part.label}</S.CrumbLabel>
+        </>
+      )}
     </>
   );
 
   if (part.kind === 'link' && part.to) {
     return (
-      <S.BreadcrumbLink to={part.to} title={part.label}>
+      <S.BreadcrumbLink
+        to={part.to}
+        title={part.label}
+        onClick={part.label === 'Home' ? onReturnHome : undefined}
+      >
         {content}
       </S.BreadcrumbLink>
     );
@@ -111,14 +124,24 @@ function BreadcrumbPart({ part }) {
   return <S.BreadcrumbText>{content}</S.BreadcrumbText>;
 }
 
-export default function ItemPageBreadcrumb({ item, itemId }) {
+export default function ItemPageBreadcrumb({ item, itemId, compact = false }) {
+  const navigate = useNavigate();
   const parts = useMemo(() => buildBreadcrumb(item, itemId), [item, itemId]);
+  const handleReturnHome = (event) => {
+    const destination = getOperationsReturnNavigation();
+    if (!destination) return;
+    event.preventDefault();
+    navigate(destination.to, {
+      state: destination.state,
+      preventScrollReset: true,
+    });
+  };
 
   return (
-    <S.BreadcrumbNav aria-label="Item breadcrumb">
+    <S.BreadcrumbNav aria-label="Item breadcrumb" $compact={compact}>
       {parts.map((part, index) => (
         <React.Fragment key={part.key || `${part.label}-${index}`}>
-          <BreadcrumbPart part={part} />
+          <BreadcrumbPart part={part} onReturnHome={handleReturnHome} />
           {index < parts.length - 1 ? <S.CrumbSep>›</S.CrumbSep> : null}
         </React.Fragment>
       ))}

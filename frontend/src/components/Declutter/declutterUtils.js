@@ -1,5 +1,9 @@
 import { formatItemCategory } from '../../util/itemCategories';
 import { formatKeepPriorityLabel } from '../../util/keepPriority';
+import {
+  getItemPreviewImageUrl as getSharedItemPreviewImageUrl,
+  getItemThumbnailUrl as getSharedItemThumbnailUrl,
+} from '../../util/itemImage';
 
 export const DECISION_OPTIONS = [
   { value: 'pending', label: 'Pending Review', shortLabel: 'Pending', tone: 'pending' },
@@ -111,24 +115,14 @@ export function getItemOwnerLabel(item) {
 }
 
 export function getItemThumbnailUrl(item) {
-  return String(
-    item?.thumbnailUrl ||
-      item?.image?.thumb?.url ||
-      item?.image?.display?.url ||
-      item?.image?.processed?.url ||
-      ''
-  ).trim();
+  return String(item?.thumbnailUrl || getSharedItemThumbnailUrl(item)).trim();
 }
 
 export function getItemPreviewImageUrl(item) {
   return String(
     item?.previewImageUrl ||
       item?.thumbnailUrl ||
-      item?.image?.display?.url ||
-      item?.image?.processed?.url ||
-      item?.image?.original?.url ||
-      item?.imagePath ||
-      ''
+      getSharedItemPreviewImageUrl(item)
   ).trim();
 }
 

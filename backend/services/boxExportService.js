@@ -21,10 +21,11 @@ const BOX_EXPORT_CSV_COLUMNS = [
   'notes',
 ];
 const EXPORT_HTML_TITLE_PREFIX = 'Disco Warp Core Box Export';
-const LABEL_EXPORT_HTML_TITLE_PREFIX = 'Disco Warp Core Box Label';
+const LABEL_EXPORT_HTML_TITLE_PREFIX = 'Disco Warp Core 58 x 30 mm Box Label';
 const PDF_ENGINE_MISSING_CODE = 'PDF_ENGINE_MISSING';
 const QR_ENGINE_MISSING_CODE = 'QR_ENGINE_MISSING';
-const DEFAULT_LABEL_WIDTH_MM = 50;
+// Standard 2.28 x 1.18 inch (58 x 30 mm) laser sticker stock.
+const DEFAULT_LABEL_WIDTH_MM = 58;
 const DEFAULT_LABEL_HEIGHT_MM = 30;
 const DEFAULT_LABEL_MARGIN_MM = 1.2;
 const DEFAULT_LABEL_GAP_MM = 1.6;
@@ -869,7 +870,7 @@ function buildBoxLabelHtmlFromPayload(payload, { qrPngDataUrl = '', labelConfig 
         </figure>
 
         <section class="meta">
-          <h1 class="box-id" data-fit="box-id" data-min-font-pt="8.2" data-max-font-pt="${idInitialFontPt}">${escapeHtml(boxId)}</h1>
+          <h1 class="box-id" data-fit="box-id" data-min-font-pt="8.2" data-max-font-pt="${idInitialFontPt}">#${escapeHtml(boxId)}</h1>
           <p class="box-label" data-fit="box-label" data-min-font-pt="5.7" data-max-font-pt="${labelInitialFontPt}">${escapeHtml(boxLabel)}</p>
         </section>
       </section>

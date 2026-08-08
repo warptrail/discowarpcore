@@ -264,7 +264,7 @@ export const CondensedControlsPanel = styled.div`
   margin: 0.52rem 0 0.72rem;
   padding: 0.55rem 0.68rem;
   border: 1px solid rgba(127, 215, 255, 0.16);
-  border-radius: 10px;
+  border-radius: 3px;
   background: rgba(255, 255, 255, 0.035);
   flex-wrap: wrap;
   animation: ${slideCondensedControlsDown} 180ms ease-out;
@@ -310,7 +310,7 @@ export const SelectionButton = styled.button`
         : $tone === 'dispose'
           ? 'rgba(240, 180, 104, 0.54)'
           : 'rgba(127, 215, 255, 0.2)'};
-  border-radius: 8px;
+  border-radius: 2px;
   background: ${({ $tone }) =>
     $tone === 'move'
       ? 'rgba(32, 113, 83, 0.44)'

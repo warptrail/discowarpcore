@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import RetrievalImageLightbox from './Retrieval/RetrievalImageLightbox';
-import { getItemPreviewImageUrl } from '../util/itemImage';
+import { getItemOriginalImageUrl, getItemPreviewImageUrl } from '../util/itemImage';
 import { formatItemCategory, normalizeItemCategory } from '../util/itemCategories';
 import * as S from '../styles/ItemPageConsoleView.styles';
 
@@ -30,6 +30,12 @@ export default function ItemPageImageHero({
     ),
     [imageRefreshToken, imageUrlOverride, item]
   );
+  const originalImageUrl = useMemo(
+    () => withCacheBuster(getItemOriginalImageUrl(item), imageRefreshToken),
+    [imageRefreshToken, item],
+  );
+  const [renderedImageUrl, setRenderedImageUrl] = useState(imageUrl);
+  useEffect(() => setRenderedImageUrl(imageUrl), [imageUrl]);
   const category = formatItemCategory(normalizeItemCategory(item?.category));
   const status = String(item?.item_status || '').toLowerCase() === 'gone'
     ? 'No longer have'
@@ -38,13 +44,26 @@ export default function ItemPageImageHero({
   return (
     <>
       <S.WikiHero aria-label="Item visual record">
-        {imageUrl ? (
+        {renderedImageUrl ? (
           <S.WikiImageButton
             type="button"
             onClick={() => setLightboxOpen(true)}
             aria-label={`Open full-size ${item?.name || 'item'} image`}
           >
-            <S.WikiImage src={imageUrl} alt={`${item?.name || 'Item'} visual record`} />
+            <S.WikiImage
+              src={renderedImageUrl}
+              alt={`${item?.name || 'Item'} visual record`}
+              decoding="async"
+              fetchPriority="high"
+              loading="eager"
+              onError={() => {
+                if (originalImageUrl && renderedImageUrl !== originalImageUrl) {
+                  setRenderedImageUrl(originalImageUrl);
+                } else {
+                  setRenderedImageUrl('');
+                }
+              }}
+            />
             <S.WikiImageCaption>
               <S.WikiImageKicker>Visual record</S.WikiImageKicker>
               <S.WikiImageAction>Open full size ↗</S.WikiImageAction>
@@ -74,10 +93,6 @@ export default function ItemPageImageHero({
 
         {typeof onEditImage === 'function' ? (
           <S.WikiHeroCommandRail>
-            <S.WikiHeroCommandCopy>
-              <strong>MEDIA CHANNEL //</strong>
-              <span>{imageUrl ? 'Original and processed variants available.' : 'No visual record stored.'}</span>
-            </S.WikiHeroCommandCopy>
             <S.WikiHeroEditButton
               type="button"
               $active={imageEditorOpen}
@@ -93,7 +108,7 @@ export default function ItemPageImageHero({
 
       <RetrievalImageLightbox
         isOpen={lightboxOpen}
-        imageSrc={imageUrl}
+        imageSrc={originalImageUrl || renderedImageUrl}
         itemName={item?.name || ''}
         onClose={() => setLightboxOpen(false)}
       />

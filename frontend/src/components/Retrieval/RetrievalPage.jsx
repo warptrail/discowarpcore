@@ -17,11 +17,7 @@ import RetrievalBoxCentricView from './RetrievalBoxCentricView';
 import RetrievalExplorer from './RetrievalExplorer';
 import useRetrievalItemDetails from './useRetrievalItemDetails';
 import { ToastContext } from '../Toast';
-import {
-  RETRIEVAL_FINDER_CLOSE_EVENT,
-  RETRIEVAL_FINDER_OPEN_EVENT,
-  RETRIEVAL_FINDER_STATE_EVENT,
-} from '../../constants/inventoryFinderEvents';
+import { RETRIEVAL_FINDER_STATE_EVENT } from '../../constants/inventoryFinderEvents';
 import {
   buildActiveFilterChips,
   normalizeRetrievalFacetKey,
@@ -140,7 +136,9 @@ function itemMatchesQuery(item, queryState) {
     const itemTagKeys = Array.isArray(source?.tags)
       ? source.tags.map((tag) => toKey(tag))
       : [];
-    const hasMatch = itemTagKeys.some((tagKey) => tags.includes(tagKey));
+    const hasMatch = queryState?.tagOperator === 'and'
+      ? tags.every((tagKey) => itemTagKeys.includes(tagKey))
+      : tags.some((tagKey) => itemTagKeys.includes(tagKey));
     if (!hasMatch) return false;
   }
 
@@ -256,6 +254,14 @@ function sanitizeMode(rawMode) {
   return rawMode === 'boxes' ? 'boxes' : 'items';
 }
 
+function sanitizePresentation(rawPresentation) {
+  return rawPresentation === 'ascii' ? 'ascii' : 'cards';
+}
+
+function sanitizeTagOperator(rawOperator) {
+  return rawOperator === 'and' ? 'and' : 'or';
+}
+
 function sanitizeSort(rawSort, options = DEFAULT_SORT_OPTIONS) {
   const value = String(rawSort || '').trim();
   if (!value) return DEFAULT_ITEM_SORT;
@@ -349,11 +355,7 @@ function writePersistedRetrievalState({ key, pathname, snapshot }) {
   }
 }
 
-export default function RetrievalPage({
-  finderOpen,
-  onToggleResults,
-  resultsVisible = false,
-}) {
+export default function RetrievalPage() {
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
   const hideToast = toastCtx?.hideToast;
@@ -399,10 +401,13 @@ export default function RetrievalPage({
   const [selectedSort, setSelectedSort] = useState(() =>
     sanitizeSort(initialItemState?.selectedSort, DEFAULT_SORT_OPTIONS),
   );
-  const finderVisibilityIsControlled = typeof finderOpen === 'boolean';
-  const [finderMinimized, setFinderMinimized] = useState(
-    () => (finderVisibilityIsControlled ? !finderOpen : false),
+  const [resultsPresentation, setResultsPresentation] = useState(() =>
+    sanitizePresentation(initialItemState?.presentation),
   );
+  const [tagOperator, setTagOperator] = useState(() =>
+    sanitizeTagOperator(initialItemState?.tagOperator),
+  );
+  const finderMinimized = false;
   const [activeExpandedId, setActiveExpandedId] = useState(
     () => sanitizeExpandedIds(initialItemState?.expandedIds)[0] || '',
   );
@@ -432,25 +437,6 @@ export default function RetrievalPage({
   const latestSnapshotRef = useRef(null);
 
   useEffect(() => {
-    if (finderVisibilityIsControlled) return undefined;
-
-    const handleFinderOpen = () => setFinderMinimized(false);
-    const handleFinderClose = () => setFinderMinimized(true);
-
-    window.addEventListener(RETRIEVAL_FINDER_OPEN_EVENT, handleFinderOpen);
-    window.addEventListener(RETRIEVAL_FINDER_CLOSE_EVENT, handleFinderClose);
-    return () => {
-      window.removeEventListener(RETRIEVAL_FINDER_OPEN_EVENT, handleFinderOpen);
-      window.removeEventListener(RETRIEVAL_FINDER_CLOSE_EVENT, handleFinderClose);
-    };
-  }, [finderVisibilityIsControlled]);
-
-  useEffect(() => {
-    if (!finderVisibilityIsControlled) return;
-    setFinderMinimized(!finderOpen);
-  }, [finderOpen, finderVisibilityIsControlled]);
-
-  useEffect(() => {
     window.dispatchEvent(
       new CustomEvent(RETRIEVAL_FINDER_STATE_EVENT, {
         detail: {
@@ -467,12 +453,13 @@ export default function RetrievalPage({
       q: debouncedSearchValue,
       categories: activeFilters.categories,
       tags: hasTagScope ? [routeTagKey] : activeFilters.tags,
+      tagOperator,
       locations: activeFilters.locations,
       owners: activeFilters.owners,
       keepPriorities: activeFilters.keepPriorities,
       sort: selectedSort,
     }),
-    [debouncedSearchValue, activeFilters, hasTagScope, routeTagKey, selectedSort],
+    [debouncedSearchValue, activeFilters, hasTagScope, routeTagKey, selectedSort, tagOperator],
   );
 
   const tagScope = useMemo(() => {
@@ -503,6 +490,8 @@ export default function RetrievalPage({
         activeFilters: sanitizeFilters(activeFilters),
         expandedIds: activeExpandedId ? [activeExpandedId] : [],
         selectedSort: sanitizeSort(selectedSort),
+        presentation: sanitizePresentation(resultsPresentation),
+        tagOperator: sanitizeTagOperator(tagOperator),
       },
       boxes: sanitizeBoxModeState(boxModeState),
       scrollY: typeof window === 'undefined' ? 0 : window.scrollY,
@@ -522,8 +511,10 @@ export default function RetrievalPage({
     location.key,
     location.pathname,
     retrievalMode,
+    resultsPresentation,
     searchValue,
     selectedSort,
+    tagOperator,
   ]);
 
   useEffect(() => {
@@ -846,8 +837,6 @@ export default function RetrievalPage({
         onKeepPriorityChange: handleKeepPriorityFilterChange,
         onRemoveChip: removeFilter,
         onClearAllChips: clearAllFilters,
-        onToggleResults,
-        resultsVisible,
       });
       return;
     }
@@ -894,8 +883,6 @@ export default function RetrievalPage({
     setActiveRetrievalItem,
     sortOptions,
     tagScope,
-    onToggleResults,
-    resultsVisible,
   ]);
 
   useEffect(
@@ -1341,7 +1328,11 @@ export default function RetrievalPage({
             tagScope={tagScope}
             sortOptions={sortOptions}
             selectedSort={selectedSort}
+            presentation={resultsPresentation}
+            tagOperator={tagOperator}
             onSortChange={setSelectedSort}
+            onPresentationChange={setResultsPresentation}
+            onTagOperatorChange={setTagOperator}
             onToggleFilter={toggleFilter}
             onRemoveChip={removeFilter}
             onClearAll={clearAllFilters}
@@ -1358,6 +1349,7 @@ export default function RetrievalPage({
           onPreviewImage={handlePreviewImage}
           onLifecycleAction={handleLifecycleAction}
           loading={loading}
+          presentation={resultsPresentation}
         />
 
         {!loading && items.length ? (

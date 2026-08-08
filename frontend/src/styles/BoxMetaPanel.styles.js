@@ -26,7 +26,6 @@ const PANEL_RADIUS = '14px';
 const NODE_RADIUS = '10px';
 const TERMINAL_CHIP_RADIUS = '6px';
 const FAST = '150ms ease';
-const DESKTOP_SUMMARY_BREAKPOINT = '980px';
 
 const toneColor = (tone) =>
   tone === 'coral'
@@ -74,61 +73,146 @@ export const IdentityZone = styled.div`
   gap: 10px;
 `;
 
-export const SummaryGrid = styled.div`
-  display: grid;
-  gap: 10px;
+export const PresentationHero = styled.div`
+  position: relative;
   min-width: 0;
+  padding-bottom: 2px;
+`;
 
-  @media (min-width: ${DESKTOP_SUMMARY_BREAKPOINT}) {
-    grid-template-columns: ${({ $hasImage }) =>
-      $hasImage ? 'minmax(260px, 360px) minmax(0, 1fr)' : 'minmax(0, 1fr)'};
-    grid-template-areas: ${({ $hasImage }) =>
-      $hasImage ? '"media info"' : '"info"'};
-    align-items: start;
-    column-gap: 14px;
-  }
+export const HeroMediaStage = styled.div`
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: clamp(240px, 31vw, 320px);
+  overflow: hidden;
+  border: 1px solid rgba(var(--box-primary-rgb, 125, 168, 182), 0.25);
+  border-radius: 10px;
+  background: #0d1318;
+  box-shadow: inset 0 0 42px rgba(0, 0, 0, 0.4);
 
-  @media (min-width: 600px) and (max-width: 979px) {
-    grid-template-columns: minmax(0, 1fr) minmax(180px, 0.72fr);
-    grid-template-areas: "info preview" "media preview";
-    align-items: start;
-    column-gap: 18px;
-  }
-
-  @media (max-width: 599px) {
-    display: flex;
-    flex-direction: column;
-    gap: 9px;
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 230px;
+    border-radius: 8px;
   }
 `;
 
-export const SummaryInfo = styled.div`
-  display: grid;
-  gap: 10px;
-  min-width: 0;
+export const HeroImageBackdrop = styled.img`
+  position: absolute;
+  inset: -8%;
+  width: 116%;
+  height: 116%;
+  object-fit: cover;
+  opacity: 0.2;
+  filter: blur(24px) saturate(1.18);
+  transform: scale(1.04);
+`;
 
-  @media (min-width: ${DESKTOP_SUMMARY_BREAKPOINT}) {
-    grid-area: info;
-    align-content: start;
+export const HeroImageButton = styled.button`
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 10px 10px 58px;
+  border: 0;
+  color: var(--box-neon, #edf3ff);
+  background: linear-gradient(180deg, transparent 54%, rgba(3, 7, 11, 0.42));
+  cursor: zoom-in;
+
+  &:focus-visible {
+    outline: 2px solid var(--box-neon, #7fd7ff);
+    outline-offset: -3px;
   }
 `;
 
-export const MetaPreview = styled.aside`
-  grid-area: preview;
+export const HeroImage = styled.img`
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 15px 24px rgba(0, 0, 0, 0.42));
+`;
+
+export const HeroExpandHint = styled.span`
+  position: absolute;
+  top: 10px;
+  right: 10px;
   display: grid;
-  align-content: start;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(var(--box-primary-rgb, 125, 168, 182), 0.42);
+  border-radius: 7px;
+  background: rgba(5, 10, 16, 0.66);
+  font: 800 0.9rem/1 ui-monospace, monospace;
+  backdrop-filter: blur(10px);
+`;
+
+export const HeroImagePlaceholder = styled.div`
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(
+      118% 94% at var(--placeholder-primary-x, 48%) var(--placeholder-primary-y, 34%),
+      rgba(var(--box-primary-rgb, 125, 168, 182), 0.3) 0%,
+      rgba(var(--box-primary-rgb, 125, 168, 182), 0.13) 34%,
+      transparent 70%
+    ),
+    radial-gradient(
+      104% 88% at var(--placeholder-secondary-x, 67%) var(--placeholder-secondary-y, 72%),
+      rgba(var(--box-secondary-rgb, 167, 182, 255), 0.21) 0%,
+      transparent 68%
+    ),
+    linear-gradient(
+      var(--placeholder-wash-angle, 104deg),
+      rgba(8, 13, 19, 0.24),
+      rgba(8, 13, 19, 0.82) 78%
+    ),
+    #0d1318;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.48;
+    background:
+      linear-gradient(135deg, transparent 36%, rgba(var(--box-primary-rgb, 125, 168, 182), 0.09) 50%, transparent 64%),
+      repeating-linear-gradient(0deg, transparent 0 5px, rgba(255, 255, 255, 0.018) 6px 7px);
+  }
+`;
+
+export const HeroHeaderCard = styled.div`
+  position: relative;
+  z-index: 2;
+  display: grid;
   gap: 12px;
-  min-width: 0;
-  padding: 8px 0 0 14px;
-  border-left: 1px solid rgba(125, 168, 182, 0.16);
-  color: rgba(218, 230, 236, 0.72);
+  width: calc(100% - 34px);
+  margin: -66px auto 0;
+  padding: 14px 16px 15px;
+  border: 1px solid rgba(var(--box-primary-rgb, 125, 168, 182), 0.32);
+  border-radius: 10px;
+  background:
+    linear-gradient(112deg, rgba(var(--box-primary-rgb, 125, 168, 182), 0.16), transparent 44%),
+    rgba(10, 16, 23, 0.74);
+  box-shadow: 0 18px 35px rgba(0, 0, 0, 0.4), inset 0 1px rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px) saturate(1.14);
 
-  @media (max-width: 599px) {
-    grid-area: auto;
-    padding: 8px 0 0;
-    border-left: 0;
-    border-top: 1px solid rgba(125, 168, 182, 0.16);
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: calc(100% - 18px);
+    margin-top: -54px;
+    padding: 12px;
   }
+`;
+
+export const HeroMetadata = styled.div`
+  display: grid;
+  gap: 11px;
+  min-width: 0;
 `;
 
 export const MetaPreviewBlock = styled.div`
@@ -147,7 +231,7 @@ export const MetaPreviewLabel = styled.div`
 export const MetaPreviewText = styled.div`
   display: -webkit-box;
   overflow: hidden;
-  color: rgba(218, 230, 236, 0.74);
+  color: rgba(226, 235, 240, 0.84);
   font-size: 0.78rem;
   line-height: 1.38;
   -webkit-box-orient: vertical;
@@ -543,43 +627,6 @@ export const CurrentBoxLocationValue = styled.span`
     font-size: ${MOBILE_FONT_SM};
     max-width: min(60vw, 240px);
   }
-`;
-
-export const BoxImageWrap = styled.div`
-  width: min(360px, 100%);
-  aspect-ratio: 1 / 1;
-  grid-area: media;
-
-  @media (max-width: 599px) {
-    order: 3;
-    width: 100%;
-    max-height: 290px;
-    overflow: hidden;
-    aspect-ratio: 16 / 10;
-  }
-  display: grid;
-  place-items: center;
-  border-radius: ${NODE_RADIUS};
-  overflow: hidden;
-  border: 1px solid ${LCARS.line};
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.06), transparent 62%),
-    ${LCARS.panelSoft};
-
-  @media (min-width: ${DESKTOP_SUMMARY_BREAKPOINT}) {
-    grid-area: media;
-    width: 100%;
-    max-width: 360px;
-    justify-self: start;
-    align-self: start;
-  }
-`;
-
-export const BoxImage = styled.img`
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center;
 `;
 
 export const BoxIdMono = styled.span`

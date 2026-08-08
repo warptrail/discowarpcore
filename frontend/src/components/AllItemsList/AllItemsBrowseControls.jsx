@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import FilterCombobox from '../Retrieval/FilterCombobox';
+import * as GridStyles from '../../styles/InventoryGridHeader.styles';
 import {
   BASE_FILTER_OPTIONS,
   COLOR_BY_OPTIONS,
@@ -176,11 +177,13 @@ export default function AllItemsBrowseControls({
   statusFilter,
   filter,
   sortBy,
+  sortDirection,
   searchQuery,
   colorBy,
   onStatusChange,
   onFilterChange,
   onSortChange,
+  onSortDirectionChange,
   onColorByChange,
   onSearchChange,
   categoryOptions = [],
@@ -267,17 +270,30 @@ export default function AllItemsBrowseControls({
 
           <RefineField>
             <Label>Sort results</Label>
-            <FilterCombobox
-              id="all-items-sort"
-              name="all_items_sort"
-              ariaLabel="Sort all items"
-              variant="sort"
-              options={toComboboxOptions(SORT_OPTIONS)}
-              selectedKey={sortBy}
-              onSelectedKeyChange={onSortChange}
-              clearSelectedOnInput={false}
-              emptyMessage="No sorts match"
-            />
+            <GridStyles.SortControlRow>
+              <FilterCombobox
+                id="all-items-sort"
+                name="all_items_sort"
+                ariaLabel="Sort all items"
+                variant="sort"
+                options={toComboboxOptions(SORT_OPTIONS)}
+                selectedKey={sortBy}
+                onSelectedKeyChange={onSortChange}
+                clearSelectedOnInput={false}
+                emptyMessage="No sorts match"
+              />
+              <GridStyles.SortDirectionButton
+                type="button"
+                onClick={() =>
+                  onSortDirectionChange?.(sortDirection === 'desc' ? 'asc' : 'desc')
+                }
+                aria-label={`Sort direction: ${sortDirection === 'desc' ? 'Descending' : 'Ascending'}`}
+                title={`Sort direction: ${sortDirection === 'desc' ? 'Descending' : 'Ascending'}`}
+                $descending={sortDirection === 'desc'}
+              >
+                <span aria-hidden="true">{sortDirection === 'desc' ? '⬇' : '⬆'}</span>
+              </GridStyles.SortDirectionButton>
+            </GridStyles.SortControlRow>
           </RefineField>
 
           <ColorField>

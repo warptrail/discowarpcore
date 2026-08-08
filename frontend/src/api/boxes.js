@@ -390,17 +390,26 @@ export async function downloadBoxQrExport(
 
 export async function downloadBoxLabelHtmlExport(
   boxMongoId,
-  { signal, fallbackFilename = 'discowarpcore-box-export-label.html' } = {},
+  {
+    signal,
+    fallbackFilename = 'discowarpcore-box-export-label.html',
+    frontendBaseOrigin = typeof window !== 'undefined' ? window.location.origin : '',
+  } = {},
 ) {
   if (!boxMongoId) throw new Error('boxMongoId is required');
 
-  const res = await fetch(
+  const labelUrl = new URL(
     `${API_BASE}/api/boxes/${encodeURIComponent(boxMongoId)}/export-label.html`,
-    {
-      method: 'GET',
-      signal,
-    },
+    window.location.origin,
   );
+  if (frontendBaseOrigin) {
+    labelUrl.searchParams.set('frontendBaseOrigin', frontendBaseOrigin);
+  }
+
+  const res = await fetch(labelUrl.toString(), {
+    method: 'GET',
+    signal,
+  });
 
   if (!res.ok) {
     let errorMessage = 'Failed to export printable box label';

@@ -205,7 +205,7 @@ function getSummary(selectedBatchIds, onlyOrphanedItems) {
     onlyOrphanedItems ? 'orphaned only' : '',
     selectedCount ? `${selectedCount} batch${selectedCount === 1 ? '' : 'es'}` : '',
   ].filter(Boolean);
-  return filters.length ? filters.join(' · ') : 'All activity';
+  return filters.length ? filters.join(' · ') : 'All inventory';
 }
 
 export default function IntakeActivityFiltersSheet({
@@ -252,7 +252,7 @@ export default function IntakeActivityFiltersSheet({
       <Sheet id="intake-activity-filters" role="dialog" aria-modal="true" aria-labelledby="intake-activity-filters-title">
         <SheetHeader>
           <SheetHeading>
-            <SheetTitle id="intake-activity-filters-title">Activity filters</SheetTitle>
+            <SheetTitle id="intake-activity-filters-title">Inventory scope</SheetTitle>
             <SheetSummary>{getSummary(selectedBatchIds, onlyOrphanedItems)}</SheetSummary>
           </SheetHeading>
           <HeaderActions>
@@ -265,7 +265,7 @@ export default function IntakeActivityFiltersSheet({
 
         <SheetBody>
           <ToggleRow type="button" $active={onlyOrphanedItems} aria-pressed={onlyOrphanedItems} onClick={onToggleOnlyOrphaned}>
-            Orphaned only
+            Items Adrift only
             <ToggleState $active={onlyOrphanedItems}>{onlyOrphanedItems ? 'On' : 'Off'}</ToggleState>
           </ToggleRow>
 

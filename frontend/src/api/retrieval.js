@@ -18,6 +18,7 @@ export async function fetchRetrievalItemsPage(
     q = '',
     categories = [],
     tags = [],
+    tagOperator = 'or',
     locations = [],
     owners = [],
     keepPriorities = [],
@@ -33,6 +34,7 @@ export async function fetchRetrievalItemsPage(
 
   appendCsvParam(params, 'category', categories);
   appendCsvParam(params, 'tag', tags);
+  if (tags.length > 1 && tagOperator === 'and') params.set('tagOperator', 'and');
   appendCsvParam(params, 'location', locations);
   appendCsvParam(params, 'owner', owners);
   appendCsvParam(params, 'keepPriority', keepPriorities);

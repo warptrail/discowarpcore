@@ -16,6 +16,10 @@ import {
   OPERATIONS_QUICK_PEEK_SEARCH_TOGGLE_EVENT,
 } from '../../constants/inventoryFinderEvents';
 import * as S from './OperationsQuickPeek.styles';
+import {
+  getBoxPreviewImageUrl,
+  getBoxThumbnailUrl,
+} from '../../util/itemImage';
 
 const HORIZONTAL_SWIPE_THRESHOLD = 54;
 const VERTICAL_DETENT_THRESHOLD = 42;
@@ -30,25 +34,11 @@ function normalizeItemSearchText(value) {
 }
 
 function getBoxImageUrl(box) {
-  return (
-    box?.image?.thumb?.url ||
-    box?.image?.display?.url ||
-    box?.image?.original?.url ||
-    box?.image?.url ||
-    box?.imagePath ||
-    ''
-  );
+  return getBoxThumbnailUrl(box);
 }
 
 function getBoxDisplayImageUrl(box) {
-  return (
-    box?.image?.display?.url ||
-    box?.image?.original?.url ||
-    box?.image?.url ||
-    box?.imagePath ||
-    box?.image?.thumb?.url ||
-    ''
-  );
+  return getBoxPreviewImageUrl(box);
 }
 
 export default function OperationsBoxQuickPeek({

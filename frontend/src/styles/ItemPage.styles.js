@@ -103,10 +103,33 @@ export const BreadcrumbNav = styled.nav`
   border-radius: 6px;
   background: linear-gradient(90deg, rgba(var(--box-primary-rgb, 76, 198, 193), 0.07), transparent 38%), ${LCARS.panelSoft};
 
+  ${({ $compact }) => $compact && `
+    gap: 0.2rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+
+    & > a,
+    & > span {
+      gap: 0.18rem;
+      padding: 0.08rem 0.14rem;
+      border: 0;
+      border-radius: 2px;
+      background: transparent;
+      font-size: 0.66rem;
+    }
+  `}
+
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    gap: 0.26rem;
-    padding: 0.45rem 0.52rem;
-    border-radius: 6px;
+    ${({ $compact }) => ($compact ? `
+      gap: 0.2rem;
+      padding: 0;
+      border-radius: 0;
+    ` : `
+      gap: 0.26rem;
+      padding: 0.45rem 0.52rem;
+      border-radius: 6px;
+    `)}
   }
 `;
 

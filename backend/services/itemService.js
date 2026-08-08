@@ -1,5 +1,6 @@
 // services/itemService.js
 const Item = require('../models/Item');
+const mongoose = require('mongoose');
 const Box = require('../models/Box');
 const Batch = require('../models/Batch');
 const MediaState = require('../models/MediaState');
@@ -97,7 +98,7 @@ function toSourceBatchSummary(batch) {
   };
 }
 
-async function attachSourceBatchSummaries(rawItems = []) {
+async function attachSourceBatchSummaries(rawItems = [], { batchDocs: providedBatchDocs } = {}) {
   const items = Array.isArray(rawItems) ? rawItems : [];
   if (!items.length) return [];
 
@@ -115,11 +116,13 @@ async function attachSourceBatchSummaries(rawItems = []) {
     }));
   }
 
-  const batchDocs = await Batch.find({ _id: { $in: sourceBatchIds } })
-    .select(
-      '_id identity.batchId identity.batchName identity.createdAt identity.updatedAt archiveState importSnapshot'
-    )
-    .lean();
+  const batchDocs = Array.isArray(providedBatchDocs)
+    ? providedBatchDocs.filter((batch) => sourceBatchIds.includes(toSourceBatchId(batch?._id)))
+    : await Batch.find({ _id: { $in: sourceBatchIds } })
+      .select(
+        '_id identity.batchId identity.batchName identity.createdAt identity.updatedAt archiveState importSnapshot'
+      )
+      .lean();
 
   const summaryById = new Map(
     (Array.isArray(batchDocs) ? batchDocs : []).map((batch) => [
@@ -165,7 +168,10 @@ function buildItemStatusFilter(statusScope = 'active') {
   return ACTIVE_ITEM_FILTER;
 }
 
-async function enrichItemsWithBoxContext(rawItems = []) {
+async function enrichItemsWithBoxContext(
+  rawItems = [],
+  { boxes: providedBoxes, batchDocs: providedBatchDocs } = {},
+) {
   const items = (Array.isArray(rawItems) ? rawItems : []).map((item) =>
     withNormalizedItemCategory(
       typeof item?.toObject === 'function'
@@ -175,9 +181,28 @@ async function enrichItemsWithBoxContext(rawItems = []) {
   );
   if (!items.length) return [];
 
-  const boxes = await Box.find()
-    .select('_id box_id label description items parentBox')
-    .lean();
+  const boxesPromise = Array.isArray(providedBoxes)
+    ? Promise.resolve(providedBoxes)
+    : Box.find()
+      .select('_id box_id label description items parentBox')
+      .lean();
+  const mediaPromise = attachMediaStateSummaries(items);
+  const batchPromise = Array.isArray(providedBatchDocs)
+    ? Promise.resolve(providedBatchDocs)
+    : Batch.find({
+      _id: {
+        $in: items.map((item) => item?.sourceBatchId).filter(Boolean),
+      },
+    })
+      .select(
+        '_id identity.batchId identity.batchName identity.createdAt identity.updatedAt archiveState importSnapshot'
+      )
+      .lean();
+  const [boxes, itemsWithMedia, batchDocs] = await Promise.all([
+    boxesPromise,
+    mediaPromise,
+    batchPromise,
+  ]);
 
   // itemId -> leaf box id
   const itemToLeafId = new Map();
@@ -191,7 +216,11 @@ async function enrichItemsWithBoxContext(rawItems = []) {
   const { buildBoxMaps, makeBreadcrumb } = require('../utils/boxHelpers');
   const maps = buildBoxMaps(boxes);
 
-  const itemsWithBoxContext = items.map((i) => {
+  const mediaById = new Map(
+    itemsWithMedia.map((item) => [String(item?._id || ''), item]),
+  );
+  const itemsWithBoxContext = items.map((rawItem) => {
+    const i = mediaById.get(String(rawItem?._id || '')) || rawItem;
     const leafId = itemToLeafId.get(String(i._id));
     const { breadcrumb, depth, rootBox, leafBox } = makeBreadcrumb(
       leafId,
@@ -211,8 +240,7 @@ async function enrichItemsWithBoxContext(rawItems = []) {
     return withNormalizedItemCategory({ ...i, box, breadcrumb, depth, topBox: rootBox });
   });
 
-  const itemsWithMedia = await attachMediaStateSummaries(itemsWithBoxContext);
-  return attachSourceBatchSummaries(itemsWithMedia);
+  return attachSourceBatchSummaries(itemsWithBoxContext, { batchDocs });
 }
 
 async function attachMediaStateSummaries(rawItems = []) {
@@ -380,14 +408,29 @@ function buildItemListFilter({
   query = '',
   category = '',
   tag = '',
-  orphanedOnly = false,
+  scope = 'all',
+  sourceBatchId = '',
+  boxedItemIds = [],
+  searchBoxItemIds = [],
+  searchBatchIds = [],
 } = {}) {
   const filter = {
     ...buildItemStatusFilter(statusScope),
   };
 
-  if (orphanedOnly) {
+  const normalizedScope = String(scope || 'all').trim();
+  if (normalizedScope === 'boxed') {
+    filter._id = { $in: boxedItemIds };
+    filter.$and = [...(filter.$and || []), ACTIVE_ITEM_FILTER];
+  } else if (normalizedScope === 'orphaned') {
     filter.orphanedAt = { $ne: null };
+    filter.$and = [...(filter.$and || []), ACTIVE_ITEM_FILTER];
+  } else if (normalizedScope === 'consumable') {
+    filter.isConsumable = true;
+  } else if (normalizedScope === 'nonConsumable') {
+    filter.isConsumable = { $ne: true };
+  } else if (normalizedScope === 'decommissioned') {
+    filter.keepPriority = 'decommissioned';
   }
 
   const normalizedCategory = String(category || '').trim();
@@ -400,36 +443,199 @@ function buildItemListFilter({
     filter.tags = { $regex: escapeRegex(tagQuery), $options: 'i' };
   }
 
+  const normalizedSourceBatchId = String(sourceBatchId || '').trim();
+  if (normalizedSourceBatchId) {
+    filter.sourceBatchId = mongoose.isValidObjectId(normalizedSourceBatchId)
+      ? normalizedSourceBatchId
+      : { $in: [] };
+  }
+
   const textQuery = String(query || '').trim();
   if (textQuery) {
     const regex = new RegExp(escapeRegex(textQuery), 'i');
     filter.$or = [
       { name: regex },
+      { description: regex },
+      { notes: regex },
+      { disposition_notes: regex },
+      { maintenanceNotes: regex },
       { tags: regex },
       { category: regex },
       { location: regex },
+      { primaryOwnerName: regex },
+      { keepPriority: regex },
+      { condition: regex },
+      { acquisitionType: regex },
+      { item_status: regex },
+      { disposition: regex },
     ];
+    if (searchBoxItemIds.length) filter.$or.push({ _id: { $in: searchBoxItemIds } });
+    if (searchBatchIds.length) {
+      filter.$or.push({ sourceBatchId: { $in: searchBatchIds } });
+    }
   }
 
   return filter;
 }
 
-function buildPagedSort(sort = 'alphabetical') {
-  const value = String(sort || '').trim();
+function buildPagedSort(sort = 'alpha', direction = 'asc') {
+  const value = String(sort || 'alpha').trim();
+  const sortDirection = String(direction || '').trim().toLowerCase() === 'desc' ? -1 : 1;
+  const legacyMatch = value.match(/^(created|updated|acquired|lastUsed|orphaned):(asc|desc)$/);
+  if (legacyMatch) {
+    const fieldByLegacySort = {
+      created: 'createdAt',
+      updated: 'updatedAt',
+      acquired: 'dateAcquired',
+      lastUsed: 'dateLastUsed',
+      orphaned: 'orphanedAt',
+    };
+    const legacyDirection = legacyMatch[2] === 'desc' ? -1 : 1;
+    return {
+      mode: 'find',
+      sort: { [fieldByLegacySort[legacyMatch[1]]]: legacyDirection, _id: legacyDirection },
+    };
+  }
 
-  if (value === 'boxId') return { mode: 'boxId' };
-  if (value === 'created:asc') return { mode: 'find', sort: { createdAt: 1, _id: 1 } };
-  if (value === 'created:desc') return { mode: 'find', sort: { createdAt: -1, _id: -1 } };
-  if (value === 'updated:asc') return { mode: 'find', sort: { updatedAt: 1, _id: 1 } };
-  if (value === 'updated:desc') return { mode: 'find', sort: { updatedAt: -1, _id: -1 } };
-  if (value === 'acquired:asc') return { mode: 'find', sort: { dateAcquired: 1, _id: 1 } };
-  if (value === 'acquired:desc') return { mode: 'find', sort: { dateAcquired: -1, _id: -1 } };
-  if (value === 'lastUsed:asc') return { mode: 'find', sort: { dateLastUsed: 1, _id: 1 } };
-  if (value === 'lastUsed:desc') return { mode: 'find', sort: { dateLastUsed: -1, _id: -1 } };
-  if (value === 'orphaned:asc') return { mode: 'find', sort: { orphanedAt: 1, _id: 1 } };
-  if (value === 'orphaned:desc') return { mode: 'find', sort: { orphanedAt: -1, _id: -1 } };
+  if (value === 'boxId' || value === 'box' || value === 'batch' || value === 'keepPriority') {
+    return { mode: 'memory', key: value === 'boxId' ? 'box' : value, direction: sortDirection };
+  }
 
-  return { mode: 'find', sort: { name: 1, _id: 1 } };
+  const fieldBySort = {
+    alpha: 'name',
+    alphabetical: 'name',
+    date: 'createdAt',
+    owner: 'primaryOwnerName',
+    lastMaintained: 'lastMaintainedAt',
+    purchasePrice: 'purchasePriceCents',
+    category: 'category',
+    dispositionAt: 'disposition_at',
+  };
+  const field = fieldBySort[value] || 'name';
+  return { mode: 'find', sort: { [field]: sortDirection, _id: sortDirection } };
+}
+
+const ITEM_LIST_SELECT = [
+  '_id', 'name', 'quantity', 'description', 'notes', 'tags', 'links',
+  'imagePath', 'image', 'location', 'sourceBatchId', 'orphanedAt',
+  'item_status', 'disposition', 'disposition_at', 'disposition_notes',
+  'declutterReadiness', 'last_active_box', 'dateAcquired', 'dateLastUsed',
+  'valueCents', 'keepPriority', 'primaryOwnerName', 'condition', 'category',
+  'isConsumable', 'lastCheckedAt', 'acquisitionType', 'purchasePriceCents',
+  'lastMaintainedAt', 'maintenanceNotes', 'createdAt', 'updatedAt',
+].join(' ');
+
+function collectBoxItemContext(boxes = []) {
+  const boxedItemIds = [];
+  const boxByItemId = new Map();
+  for (const box of boxes) {
+    for (const itemId of box?.items || []) {
+      boxedItemIds.push(itemId);
+      boxByItemId.set(String(itemId), box);
+    }
+  }
+  return { boxedItemIds, boxByItemId };
+}
+
+function compareText(left, right) {
+  return String(left || '').localeCompare(String(right || ''), undefined, {
+    numeric: true,
+    sensitivity: 'base',
+  });
+}
+
+function compareMemorySortedItems(left, right, plan, { boxByItemId, batchById }) {
+  let result = 0;
+  if (plan.key === 'box') {
+    result = compareText(
+      boxByItemId.get(String(left?._id))?.box_id,
+      boxByItemId.get(String(right?._id))?.box_id,
+    );
+  } else if (plan.key === 'batch') {
+    const leftBatch = batchById.get(String(left?.sourceBatchId || ''));
+    const rightBatch = batchById.get(String(right?.sourceBatchId || ''));
+    result = compareText(
+      `${leftBatch?.identity?.batchId || ''} ${leftBatch?.identity?.batchName || ''}`,
+      `${rightBatch?.identity?.batchId || ''} ${rightBatch?.identity?.batchName || ''}`,
+    );
+  } else if (plan.key === 'keepPriority') {
+    const priorityRank = { essential: 0, high: 1, medium: 2, low: 3, decommissioned: 4 };
+    result = (priorityRank[left?.keepPriority] ?? 5) - (priorityRank[right?.keepPriority] ?? 5);
+  }
+  if (result === 0) result = compareText(left?.name, right?.name);
+  if (result === 0) result = compareText(left?._id, right?._id);
+  return result * plan.direction;
+}
+
+async function getItemListMetadata({ boxes, batchDocs, boxedItemIds }) {
+  const [summaryRows, boxed] = await Promise.all([
+    Item.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          active: { $sum: { $cond: [{ $ne: ['$item_status', 'gone'] }, 1, 0] } },
+          gone: { $sum: { $cond: [{ $eq: ['$item_status', 'gone'] }, 1, 0] } },
+          orphaned: {
+            $sum: {
+              $cond: [
+                { $and: [{ $ne: ['$item_status', 'gone'] }, { $ne: ['$orphanedAt', null] }] },
+                1,
+                0,
+              ],
+            },
+          },
+          consumableCount: { $sum: { $cond: ['$isConsumable', 1, 0] } },
+          imageCount: {
+            $sum: {
+              $cond: [
+                {
+                  $or: [
+                    { $ne: [{ $ifNull: ['$imagePath', ''] }, ''] },
+                    { $ne: [{ $ifNull: ['$image.original.url', ''] }, ''] },
+                    { $ne: [{ $ifNull: ['$image.original.storagePath', ''] }, ''] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          tagCount: { $sum: { $size: { $ifNull: ['$tags', []] } } },
+          totalQuantity: { $sum: { $ifNull: ['$quantity', 0] } },
+          categories: { $addToSet: '$category' },
+          locations: { $addToSet: '$location' },
+        },
+      },
+    ]),
+    boxedItemIds.length
+      ? Item.countDocuments({ ...ACTIVE_ITEM_FILTER, _id: { $in: boxedItemIds } })
+      : Promise.resolve(0),
+  ]);
+  const summary = summaryRows[0] || {};
+  const categories = (summary.categories || []).filter(Boolean).sort(compareText);
+  const locations = (summary.locations || []).filter(Boolean);
+
+  return {
+    counts: {
+      total: Number(summary.total || 0),
+      active: Number(summary.active || 0),
+      gone: Number(summary.gone || 0),
+      orphaned: Number(summary.orphaned || 0),
+      boxed,
+      consumableCount: Number(summary.consumableCount || 0),
+      imageCount: Number(summary.imageCount || 0),
+      tagCount: Number(summary.tagCount || 0),
+      totalQuantity: Number(summary.totalQuantity || 0),
+      categoryCount: categories.length,
+      locationCount: locations.length,
+    },
+    facets: {
+      categories,
+      batches: batchDocs.map(toSourceBatchSummary).filter(Boolean),
+    },
+    boxes,
+  };
 }
 
 /**
@@ -449,93 +655,103 @@ async function getItemsPage({
   query = '',
   category = '',
   tag = '',
-  sort = 'alphabetical',
+  scope = 'all',
+  sourceBatchId = '',
+  sort = 'alpha',
+  direction = 'asc',
+  listView = false,
 } = {}) {
+  const totalStartNs = process.hrtime.bigint();
   const safeLimit = Math.max(1, Math.min(100, Number(limit) || 20));
   const safeOffset = Math.max(0, Number(offset) || 0);
+  const contextStartNs = process.hrtime.bigint();
+  const [boxes, batchDocs] = await Promise.all([
+    Box.find().select('_id box_id label description location items parentBox').lean(),
+    Batch.find()
+      .select('_id identity.batchId identity.batchName identity.createdAt identity.updatedAt archiveState importSnapshot')
+      .lean(),
+  ]);
+  const { boxedItemIds, boxByItemId } = collectBoxItemContext(boxes);
+  const batchById = new Map(batchDocs.map((batch) => [String(batch?._id || ''), batch]));
+  const queryRegex = String(query || '').trim()
+    ? new RegExp(escapeRegex(String(query).trim()), 'i')
+    : null;
+  const searchBoxItemIds = queryRegex
+    ? boxes
+      .filter((box) => [box?.box_id, box?.label, box?.description, box?.location]
+        .some((value) => queryRegex.test(String(value || ''))))
+      .flatMap((box) => box?.items || [])
+    : [];
+  const searchBatchIds = queryRegex
+    ? batchDocs
+      .filter((batch) => [batch?.identity?.batchId, batch?.identity?.batchName, batch?.archiveState?.status]
+        .some((value) => queryRegex.test(String(value || ''))))
+      .map((batch) => batch._id)
+    : [];
   const filter = buildItemListFilter({
     statusScope,
     query,
     category,
     tag,
-    orphanedOnly: false,
+    scope,
+    sourceBatchId,
+    boxedItemIds,
+    searchBoxItemIds,
+    searchBatchIds,
   });
-  const total = await Item.countDocuments(filter);
-  const sortPlan = buildPagedSort(sort);
+  const contextMs = Number(process.hrtime.bigint() - contextStartNs) / 1e6;
+  const sortPlan = buildPagedSort(sort, direction);
 
+  const queryStartNs = process.hrtime.bigint();
+  const totalPromise = Item.countDocuments(filter);
   let pageItems = [];
-  if (sortPlan.mode === 'boxId') {
-    pageItems = await Item.aggregate([
-      { $match: filter },
-      {
-        $lookup: {
-          from: 'boxes',
-          let: { itemId: '$_id' },
-          pipeline: [
-            { $match: { $expr: { $in: ['$$itemId', '$items'] } } },
-            { $project: { _id: 1, box_id: 1 } },
-            { $limit: 1 },
-          ],
-          as: '_sortBox',
-        },
-      },
-      { $addFields: { _sortBoxDoc: { $arrayElemAt: ['$_sortBox', 0] } } },
-      {
-        $addFields: {
-          _sortBoxMissing: { $cond: [{ $ifNull: ['$_sortBoxDoc._id', false] }, 0, 1] },
-          _sortBoxNumeric: {
-            $convert: {
-              input: '$_sortBoxDoc.box_id',
-              to: 'int',
-              onError: null,
-              onNull: null,
-            },
-          },
-        },
-      },
-      {
-        $addFields: {
-          _sortBoxNumericMissing: { $cond: [{ $eq: ['$_sortBoxNumeric', null] }, 1, 0] },
-        },
-      },
-      {
-        $sort: {
-          _sortBoxMissing: 1,
-          _sortBoxNumericMissing: 1,
-          _sortBoxNumeric: 1,
-          '_sortBoxDoc.box_id': 1,
-          name: 1,
-          _id: 1,
-        },
-      },
-      { $skip: safeOffset },
-      { $limit: safeLimit },
-      {
-        $project: {
-          _sortBox: 0,
-          _sortBoxDoc: 0,
-          _sortBoxMissing: 0,
-          _sortBoxNumeric: 0,
-          _sortBoxNumericMissing: 0,
-        },
-      },
-    ]);
+  if (sortPlan.mode === 'memory') {
+    const matchingItems = await Item.find(filter).select(ITEM_LIST_SELECT).lean();
+    matchingItems.sort((left, right) => compareMemorySortedItems(
+      left,
+      right,
+      sortPlan,
+      { boxByItemId, batchById },
+    ));
+    pageItems = matchingItems.slice(safeOffset, safeOffset + safeLimit);
   } else {
     pageItems = await Item.find(filter)
+      .select(ITEM_LIST_SELECT)
       .sort(sortPlan.sort)
       .skip(safeOffset)
       .limit(safeLimit)
       .lean();
   }
+  const total = await totalPromise;
+  const queryMs = Number(process.hrtime.bigint() - queryStartNs) / 1e6;
 
-  const items = await enrichItemsWithBoxContext(pageItems);
-  return {
+  const enrichStartNs = process.hrtime.bigint();
+  const enrichedItems = await enrichItemsWithBoxContext(pageItems, { boxes, batchDocs });
+  const items = listView ? enrichedItems.map(toItemListSummary) : enrichedItems;
+  const enrichMs = Number(process.hrtime.bigint() - enrichStartNs) / 1e6;
+  const metadataStartNs = process.hrtime.bigint();
+  const metadata = await getItemListMetadata({ boxes, batchDocs, boxedItemIds });
+  const metadataMs = Number(process.hrtime.bigint() - metadataStartNs) / 1e6;
+  const payload = {
     items,
     total,
     limit: safeLimit,
     offset: safeOffset,
     hasMore: safeOffset + items.length < total,
+    counts: metadata.counts,
+    facets: metadata.facets,
   };
+  Object.defineProperty(payload, '_timing', {
+    enumerable: false,
+    value: {
+      contextMs,
+      queryMs,
+      enrichMs,
+      metadataMs,
+      totalMs: Number(process.hrtime.bigint() - totalStartNs) / 1e6,
+    },
+  });
+  return payload;
 }
 
 /**
@@ -1722,4 +1938,8 @@ module.exports = {
   backfillOrphanedTimestamps,
   orphanAllItemsInBox,
   BULK_IMPORT_ITEM_NAME_MAX_LENGTH,
+  buildItemListFilter,
+  buildPagedSort,
+  compareMemorySortedItems,
+  toItemListSummary,
 };

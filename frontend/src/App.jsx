@@ -1,26 +1,23 @@
-import { useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 
 import GlobalStyles from './styles/globalStyles';
 
 import Header from './components/Header';
-import BoxList from './components/BoxList';
-import AllItemsList from './components/AllItemsList';
-import BoxDetailView from './components/BoxDetailView';
-import BoxCreate from './components/BoxCreate';
-import ItemPage from './components/ItemPage';
-import IntakePage from './components/Intake/IntakePage';
-import BulkImportPage from './components/BulkImport/BulkImportPage';
-import RetrievalPage from './components/Retrieval/RetrievalPage';
-import DeclutterDeckPage from './components/Declutter/DeclutterDeckPage';
-import DeclutterHistoryPage from './components/Declutter/DeclutterHistoryPage';
-import LogsPage from './components/SystemLogsPage';
-import { API_BASE } from './api/API_BASE';
 import { MOBILE_BREAKPOINT, MOBILE_PAGE_GAP } from './styles/tokens';
-import { RETRIEVAL_FINDER_TOGGLE_EVENT } from './constants/inventoryFinderEvents';
 
-const OPERATIONS_PAGE_LIMIT = 50;
+const OperationsPage = lazy(() => import('./components/OperationsPage'));
+const AllItemsList = lazy(() => import('./components/AllItemsList'));
+const BoxDetailView = lazy(() => import('./components/BoxDetailView'));
+const BoxCreate = lazy(() => import('./components/BoxCreate'));
+const ItemPage = lazy(() => import('./components/ItemPage'));
+const IntakeRoutePage = lazy(() => import('./components/Intake/IntakeRoutePage'));
+const BulkImportPage = lazy(() => import('./components/BulkImport/BulkImportPage'));
+const RetrievalPage = lazy(() => import('./components/Retrieval/RetrievalPage'));
+const DeclutterDeckPage = lazy(() => import('./components/Declutter/DeclutterDeckPage'));
+const DeclutterHistoryPage = lazy(() => import('./components/Declutter/DeclutterHistoryPage'));
+const LogsPage = lazy(() => import('./components/SystemLogsPage'));
 
 // ! STYLES
 const AppContainer = styled.div`
@@ -41,6 +38,16 @@ const AppContainer = styled.div`
     max-width: 100%;
     padding: ${MOBILE_PAGE_GAP};
   }
+`;
+
+const RouteLoading = styled.div`
+  min-height: 35vh;
+  display: grid;
+  place-items: center;
+  color: rgba(230, 237, 243, 0.66);
+  font: 800 0.72rem/1.2 "SFMono-Regular", Consolas, monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 `;
 
 // ! End STYLES
@@ -93,163 +100,12 @@ function disableAutofillWithin(root) {
   }
 }
 
-function normalizeGroupLabel(value) {
-  return String(value || '').trim();
-}
-
-function collectGroupOptionsFromTree(nodes) {
-  const byKey = new Map();
-
-  const walk = (list) => {
-    for (const node of list || []) {
-      const label = normalizeGroupLabel(node?.group);
-      if (label) {
-        const key = label.toLowerCase();
-        if (!byKey.has(key)) byKey.set(key, label);
-      }
-      walk(node?.childBoxes);
-    }
-  };
-
-  walk(nodes);
-
-  return [...byKey.values()].sort((left, right) =>
-    String(left).localeCompare(String(right), undefined, {
-      sensitivity: 'base',
-      numeric: true,
-    }),
-  );
-}
-
 function App() {
-  const [boxes, setBoxes] = useState([]);
-  const [boxGroups, setBoxGroups] = useState([]);
-  const [boxesPage, setBoxesPage] = useState(1);
-  const [boxesTotal, setBoxesTotal] = useState(0);
-  const [boxesTotalPages, setBoxesTotalPages] = useState(1);
-  const [operationsRefreshTick, setOperationsRefreshTick] = useState(0);
-  const [orphanedCount, setOrphanedCount] = useState(0);
-  const [orphanedItems, setOrphanedItems] = useState([]);
-  const [locations, setLocations] = useState([]);
-  const [retrievalFinderOpen, setRetrievalFinderOpen] = useState(true);
-
-  // for refreshing the home page on location change
   const location = useLocation();
   const isRetrievalPage = /^\/(?:retrieval|tags\/[^/]+)\/?$/.test(
     location.pathname,
   );
   const isItemPage = /^\/items\/[^/]+\/?$/.test(location.pathname);
-  const handleOperationsDataRefreshRequest = useCallback(() => {
-    setOperationsRefreshTick((prev) => prev + 1);
-  }, []);
-
-  useEffect(() => {
-    const handleRetrievalFinderToggle = () => {
-      setRetrievalFinderOpen((current) => !current);
-    };
-
-    window.addEventListener(RETRIEVAL_FINDER_TOGGLE_EVENT, handleRetrievalFinderToggle);
-    return () => {
-      window.removeEventListener(RETRIEVAL_FINDER_TOGGLE_EVENT, handleRetrievalFinderToggle);
-    };
-  }, []);
-
-  useEffect(() => {
-    let isAlive = true;
-
-    const loadHomeData = async () => {
-      try {
-        const buildBoxesQuery = (page) =>
-          new URLSearchParams({
-            page: String(page),
-            limit: String(OPERATIONS_PAGE_LIMIT),
-          });
-
-        const [boxesRes, orphanedRes, locationsRes] = await Promise.all([
-          fetch(`${API_BASE}/api/boxes/tree?${buildBoxesQuery(1)}`),
-          fetch(`${API_BASE}/api/items/orphaned?sort=recent&limit=10000`),
-          fetch(`${API_BASE}/api/locations`),
-        ]);
-
-        const boxesBody = await boxesRes.json();
-        const firstPageBoxes = Array.isArray(boxesBody?.items)
-          ? boxesBody.items
-          : Array.isArray(boxesBody)
-            ? boxesBody
-            : [];
-        const apiTotal = Number(boxesBody?.total);
-        const apiTotalPages = Number(boxesBody?.totalPages);
-        let totalPages = Number.isFinite(apiTotalPages)
-          ? Math.max(1, apiTotalPages)
-          : Math.max(1, Math.ceil(firstPageBoxes.length / OPERATIONS_PAGE_LIMIT));
-        let boxesData = firstPageBoxes;
-
-        if (totalPages > 1) {
-          const remainingPages = await Promise.all(
-            Array.from({ length: totalPages - 1 }, async (_, index) => {
-              const page = index + 2;
-              const response = await fetch(
-                `${API_BASE}/api/boxes/tree?${buildBoxesQuery(page)}`,
-              );
-              const body = await response.json();
-              return Array.isArray(body?.items)
-                ? body.items
-                : Array.isArray(body)
-                  ? body
-                  : [];
-            }),
-          );
-          boxesData = [firstPageBoxes, ...remainingPages].flat();
-        }
-
-        const total = Number.isFinite(apiTotal) ? apiTotal : boxesData.length;
-        totalPages = Math.max(1, Math.ceil(total / OPERATIONS_PAGE_LIMIT));
-        const apiGroups = Array.isArray(boxesBody?.filters?.groups)
-          ? boxesBody.filters.groups
-          : null;
-        const groups = (Array.isArray(apiGroups) ? apiGroups : collectGroupOptionsFromTree(boxesData))
-          .map((entry) => normalizeGroupLabel(entry))
-          .filter(Boolean);
-        const orphanedBody = orphanedRes.ok ? await orphanedRes.json() : [];
-        const orphanedData = Array.isArray(orphanedBody)
-          ? orphanedBody
-          : Array.isArray(orphanedBody?.items)
-            ? orphanedBody.items
-            : [];
-        const locationsData = locationsRes.ok ? await locationsRes.json() : {};
-
-        if (!isAlive) return;
-        setBoxes(Array.isArray(boxesData) ? boxesData : []);
-        setBoxGroups(groups);
-        setBoxesTotal(total);
-        setBoxesTotalPages(totalPages);
-        setOrphanedCount(orphanedData.length);
-        setOrphanedItems(orphanedData);
-        setLocations(
-          Array.isArray(locationsData?.locations) ? locationsData.locations : [],
-        );
-      } catch (err) {
-        if (!isAlive) return;
-        console.error('Error fetching home data:', err);
-        setBoxes([]);
-        setBoxGroups([]);
-        setBoxesTotal(0);
-        setBoxesTotalPages(1);
-        setOrphanedCount(0);
-        setOrphanedItems([]);
-        setLocations([]);
-      }
-    };
-
-    loadHomeData();
-    return () => {
-      isAlive = false;
-    };
-  }, [
-    location.pathname,
-    operationsRefreshTick,
-  ]);
-
   useEffect(() => {
     disableAutofillWithin(document.body);
 
@@ -270,53 +126,30 @@ function App() {
     return () => observer.disconnect();
   }, []);
 
-  const operationsPage = (
-    <BoxList
-      boxes={boxes}
-      groups={boxGroups}
-      orphanedCount={orphanedCount}
-      orphanedItems={orphanedItems}
-      locations={locations}
-      pagination={{
-        page: boxesPage,
-        limit: OPERATIONS_PAGE_LIMIT,
-        total: boxesTotal,
-        totalPages: boxesTotalPages,
-      }}
-      onPageChange={setBoxesPage}
-      onOperationsDataRefreshRequest={handleOperationsDataRefreshRequest}
-    />
-  );
-
-  const retrievalPage = (
-    <RetrievalPage
-      key={location.pathname}
-      finderOpen={retrievalFinderOpen}
-      onToggleResults={() => setRetrievalFinderOpen((current) => !current)}
-      resultsVisible={retrievalFinderOpen}
-    />
-  );
+  const retrievalPage = <RetrievalPage key={location.pathname} />;
 
   return (
     <AppContainer $retrievalPage={isRetrievalPage} $itemPage={isItemPage}>
       <GlobalStyles />
       <Header />
 
-      <Routes>
-        <Route path="/" element={operationsPage} />
-        <Route path="/operations" element={operationsPage} />
-        <Route path="/boxes/:shortId" element={<BoxDetailView />} />
-        <Route path="/create-box" element={<BoxCreate />} />
-        <Route path="/intake" element={<IntakePage boxes={boxes} />} />
-        <Route path="/import" element={<BulkImportPage />} />
-        <Route path="/all-items" element={<AllItemsList />} />
-        <Route path="/declutter" element={<DeclutterDeckPage />} />
-        <Route path="/declutter/history" element={<DeclutterHistoryPage />} />
-        <Route path="/logs" element={<LogsPage />} />
-        <Route path="/retrieval" element={retrievalPage} />
-        <Route path="/tags/:tag" element={retrievalPage} />
-        <Route path="/items/:itemId" element={<ItemPage />} />
-      </Routes>
+      <Suspense fallback={<RouteLoading>Loading console…</RouteLoading>}>
+        <Routes>
+          <Route path="/" element={<OperationsPage />} />
+          <Route path="/operations" element={<OperationsPage />} />
+          <Route path="/boxes/:shortId" element={<BoxDetailView />} />
+          <Route path="/create-box" element={<BoxCreate />} />
+          <Route path="/intake" element={<IntakeRoutePage />} />
+          <Route path="/import" element={<BulkImportPage />} />
+          <Route path="/all-items" element={<AllItemsList />} />
+          <Route path="/declutter" element={<DeclutterDeckPage />} />
+          <Route path="/declutter/history" element={<DeclutterHistoryPage />} />
+          <Route path="/logs" element={<LogsPage />} />
+          <Route path="/retrieval" element={retrievalPage} />
+          <Route path="/tags/:tag" element={retrievalPage} />
+          <Route path="/items/:itemId" element={<ItemPage />} />
+        </Routes>
+      </Suspense>
     </AppContainer>
   );
 }

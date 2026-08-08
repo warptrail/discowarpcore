@@ -102,9 +102,9 @@ export default function CondensedBoxItemList({
               </ItemText>
 
               {quantity !== null ? (
-                <QuantityPill $selectionEnabled={selectionEnabled}>
+                <QuantityTag $selectionEnabled={selectionEnabled}>
                   Qty {quantity}
-                </QuantityPill>
+                </QuantityTag>
               ) : null}
             </Row>
           );
@@ -128,7 +128,7 @@ const List = styled.ul`
   margin: 0;
   padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  border-radius: 3px;
   overflow: hidden;
   background: #0d1012;
 `;
@@ -271,13 +271,13 @@ const ItemContext = styled.span`
   }
 `;
 
-const QuantityPill = styled.span`
+const QuantityTag = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 28px;
   padding: 0 0.5rem;
-  border-radius: 999px;
+  border-radius: 2px;
   border: 1px solid rgba(167, 182, 255, 0.34);
   background: rgba(167, 182, 255, 0.1);
   color: #dce4ff;

@@ -5,6 +5,7 @@ import {
   OBJECT_GLOW_DEFAULT_RENDER_RESOLVED,
   OBJECT_GLOW_GLOW_VARIANT_IDS,
 } from '../../constants/objectGlowRenderOptions';
+import { getEntityPreviewImageUrl } from '../../util/itemImage';
 
 export function toTrimmed(value) {
   return value == null ? '' : String(value).trim();
@@ -140,14 +141,7 @@ export function createImageAssetState({
 }
 
 export function pickEntityImageUrl(entity) {
-  return toTrimmed(
-    entity?.imagePath ||
-    entity?.image?.display?.url ||
-    entity?.image?.thumb?.url ||
-    entity?.image?.original?.url ||
-    entity?.image?.url ||
-    ''
-  );
+  return toTrimmed(getEntityPreviewImageUrl(entity));
 }
 
 export function formatProcessActionLabel(status, labels = {}) {

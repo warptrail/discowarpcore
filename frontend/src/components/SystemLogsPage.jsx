@@ -2,16 +2,28 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { API_BASE } from '../api/API_BASE';
 import { DEFAULT_LOGS_LIMIT, fetchLogsPage } from '../api/logs';
 import * as S from './SystemLogs.styles';
-import {
-  getBoxTheme,
-  getBoxThemeCssVars,
-} from '../util/inventoryColorTheme';
 
 const TIMESTAMP_FORMATTER = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
   timeStyle: 'short',
 });
 const EXPORT_PAGE_LIMIT = 100;
+const LOG_STREAMS = Object.freeze({
+  system: {
+    label: 'SYS.ACTIVITY',
+    title: 'System activity',
+    subtitle: 'Newest first // append-only event stream',
+    eventType: '',
+    exportPrefix: 'system-logs',
+  },
+  disposition: {
+    label: 'ITEMS.JETTISONED',
+    title: 'Items jettisoned',
+    subtitle: 'Disposition ledger // inventory we no longer have',
+    eventType: 'item_marked_gone',
+    exportPrefix: 'items-jettisoned',
+  },
+});
 
 function formatFileTimestamp(date = new Date()) {
   const pad = (n) => String(n).padStart(2, '0');
@@ -112,17 +124,10 @@ function formatTimestamp(value) {
   return TIMESTAMP_FORMATTER.format(date);
 }
 
-function toEventBadgeLabel(eventType) {
+function toEventLabel(eventType) {
   const normalized = String(eventType || '').trim();
   if (!normalized) return 'event';
   return normalized.replace(/_/g, ' ');
-}
-
-function toEntityBadgeLabel(entityType) {
-  const normalized = String(entityType || '').trim().toLowerCase();
-  if (normalized === 'item') return 'item';
-  if (normalized === 'box') return 'box';
-  return 'entity';
 }
 
 function isBulkImportedItemCreated(entry) {
@@ -182,24 +187,7 @@ function getBulkImportedItemContext(entry, inferredMap) {
   return { isImported: false, sourceFileName: '' };
 }
 
-function buildMetaChips(entry, importedContext) {
-  if (importedContext.isImported) {
-    const chips = [{ tone: 'import', label: 'item bulk imported' }];
-    const sourceFileName = String(importedContext.sourceFileName || '').trim();
-    if (sourceFileName) {
-      chips.push({ tone: 'file', label: sourceFileName });
-    }
-    chips.push({ tone: 'entity', label: toEntityBadgeLabel(entry.entity_type) });
-    return chips;
-  }
-
-  return [
-    { tone: 'event', label: toEventBadgeLabel(entry.event_type) },
-    { tone: 'entity', label: toEntityBadgeLabel(entry.entity_type) },
-  ];
-}
-
-function getBoxPrimaryChipParts(entry, boxShortIdMap) {
+function getBoxPrimaryParts(entry, boxShortIdMap) {
   const rawLabel = String(entry?.entity_label || '').trim();
   const canonicalBoxId =
     resolveBoxShortId(entry?.entity_id, boxShortIdMap) ||
@@ -244,15 +232,11 @@ function buildPrimaryParts(entry, importedContext, boxShortIdMap) {
   }
 
   if (entry?.event_type === 'box_created') {
-    const { boxId, boxLabel } = getBoxPrimaryChipParts(entry, boxShortIdMap);
-    const chips = [];
-
-    if (boxId) chips.push({ kind: 'boxId', label: boxId });
-    if (boxLabel) chips.push({ kind: 'boxLabel', label: boxLabel });
+    const { boxId, boxLabel } = getBoxPrimaryParts(entry, boxShortIdMap);
 
     return {
       prefix: 'Created box:',
-      chips,
+      value: [boxId, boxLabel].filter(Boolean).join(' // '),
     };
   }
 
@@ -358,6 +342,7 @@ function resolveEntryHref(entry, boxShortIdMap) {
 }
 
 export default function LogsPage() {
+  const [activeStream, setActiveStream] = useState('system');
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -373,11 +358,14 @@ export default function LogsPage() {
   const loadMoreRequestRef = useRef(null);
   const pendingOffsetsRef = useRef(new Set());
 
+  const streamConfig = LOG_STREAMS[activeStream];
+
   const fetchPage = useCallback(async ({ offset, append }) => {
     const safeOffset = Math.max(0, Number(offset) || 0);
-    if (pendingOffsetsRef.current.has(safeOffset)) return;
+    const requestKey = `${activeStream}:${safeOffset}`;
+    if (pendingOffsetsRef.current.has(requestKey)) return;
 
-    pendingOffsetsRef.current.add(safeOffset);
+    pendingOffsetsRef.current.add(requestKey);
     setError('');
 
     const controller = new AbortController();
@@ -400,6 +388,7 @@ export default function LogsPage() {
         {
           limit: DEFAULT_LOGS_LIMIT,
           offset: safeOffset,
+          eventType: LOG_STREAMS[activeStream].eventType,
         },
         { signal: controller.signal }
       );
@@ -433,7 +422,7 @@ export default function LogsPage() {
         setNextOffset(0);
       }
     } finally {
-      pendingOffsetsRef.current.delete(safeOffset);
+      pendingOffsetsRef.current.delete(requestKey);
 
       if (append) {
         if (loadMoreRequestRef.current === controller) {
@@ -451,7 +440,7 @@ export default function LogsPage() {
         }
       }
     }
-  }, []);
+  }, [activeStream]);
 
   const fetchBoxMap = useCallback(async () => {
     try {
@@ -498,6 +487,7 @@ export default function LogsPage() {
       const payload = await fetchLogsPage({
         limit: EXPORT_PAGE_LIMIT,
         offset,
+        eventType: streamConfig.eventType,
       });
       const pageEntries = Array.isArray(payload?.entries)
         ? payload.entries.map(normalizeLogEntry).filter(Boolean)
@@ -520,7 +510,7 @@ export default function LogsPage() {
       entries: collected,
       total: lastTotal || collected.length,
     };
-  }, []);
+  }, [streamConfig.eventType]);
 
   const runExport = useCallback(
     async (format) => {
@@ -540,7 +530,7 @@ export default function LogsPage() {
             entries: serialized,
           };
           triggerFileDownload(
-            `system-logs-${timestamp}.json`,
+            `${streamConfig.exportPrefix}-${timestamp}.json`,
             `${JSON.stringify(payload, null, 2)}\n`,
             'application/json'
           );
@@ -549,7 +539,7 @@ export default function LogsPage() {
 
         if (format === 'markdown') {
           triggerFileDownload(
-            `system-logs-${timestamp}.md`,
+            `${streamConfig.exportPrefix}-${timestamp}.md`,
             toMarkdownExport(serialized),
             'text/markdown'
           );
@@ -560,7 +550,7 @@ export default function LogsPage() {
         setExportingFormat('');
       }
     },
-    [exportingFormat, fetchAllLogsForExport]
+    [exportingFormat, fetchAllLogsForExport, streamConfig.exportPrefix]
   );
 
   const handleExportJson = useCallback(() => {
@@ -578,77 +568,40 @@ export default function LogsPage() {
         const href = resolveEntryHref(entry, boxShortIdMap);
         const bulkSecondary = getBulkSecondaryText(entry);
         const importedContext = getBulkImportedItemContext(entry, inferredImportMap);
-        const chips = buildMetaChips(entry, importedContext);
         const primaryParts = buildPrimaryParts(entry, importedContext, boxShortIdMap);
-        const boxIdChip = primaryParts?.chips?.find((chip) => chip.kind === 'boxId');
-        const boxThemeStyle = boxIdChip
-          ? getBoxThemeCssVars(getBoxTheme(boxIdChip.label))
-          : undefined;
+        const disposition = String(entry.details?.disposition || '').trim();
+        const priorLocation = String(entry.details?.from_box_label || '').trim();
+        const dispositionNotes = String(entry.details?.disposition_notes || '').trim();
+        const eventLabel = toEventLabel(entry.event_type).toUpperCase();
 
         return (
           <S.EntryRow key={entry.id}>
+            <S.Timestamp>{formatTimestamp(entry.created_at)}</S.Timestamp>
+            <S.EventCode>{eventLabel}</S.EventCode>
             <S.EntryPrimary>
-              {primaryParts ? (
-                <S.EntryPrimaryStructured>
-                  {primaryParts.prefix ? <S.EntryPrefix>{primaryParts.prefix}</S.EntryPrefix> : null}
-                  {primaryParts.chips?.length ? (
-                    href ? (
-                      <S.BoxChipLink to={href} style={boxThemeStyle}>
-                        {primaryParts.chips.map((chip) =>
-                          chip.kind === 'boxId' ? (
-                            <S.BoxIdChip key={`${entry.id}-${chip.kind}`}>{chip.label}</S.BoxIdChip>
-                          ) : (
-                            <S.BoxLabelChip key={`${entry.id}-${chip.kind}`}>{chip.label}</S.BoxLabelChip>
-                          )
-                        )}
-                      </S.BoxChipLink>
-                    ) : (
-                      <S.BoxChipGroup style={boxThemeStyle}>
-                        {primaryParts.chips.map((chip) =>
-                          chip.kind === 'boxId' ? (
-                            <S.BoxIdChip key={`${entry.id}-${chip.kind}`}>{chip.label}</S.BoxIdChip>
-                          ) : (
-                            <S.BoxLabelChip key={`${entry.id}-${chip.kind}`}>{chip.label}</S.BoxLabelChip>
-                          )
-                        )}
-                      </S.BoxChipGroup>
-                    )
-                  ) : href ? (
-                    <S.NameChipLink to={href} $tone={primaryParts.chipTone}>
-                      {primaryParts.chipLabel}
-                    </S.NameChipLink>
-                  ) : (
-                    <S.NameChip $tone={primaryParts.chipTone}>
-                      {primaryParts.chipLabel}
-                    </S.NameChip>
-                  )}
-                </S.EntryPrimaryStructured>
+              <S.TreeGlyph aria-hidden="true">├─</S.TreeGlyph>
+              {href ? (
+                <S.EntrySummaryLink to={href}>
+                  {activeStream === 'disposition' ? entry.entity_label : primaryParts?.value || primaryParts?.chipLabel || entry.summary}
+                </S.EntrySummaryLink>
               ) : (
-                <>
-                  {href ? (
-                    <S.EntrySummaryLink to={href}>{entry.summary}</S.EntrySummaryLink>
-                  ) : (
-                    <S.EntrySummaryText>{entry.summary}</S.EntrySummaryText>
-                  )}
-                </>
+                <S.EntrySummaryText>{primaryParts?.value || primaryParts?.chipLabel || entry.summary}</S.EntrySummaryText>
+              )}
+              {activeStream === 'disposition' ? (
+                <S.DispositionMeta>
+                  <span>OUTCOME={disposition || 'UNKNOWN'}</span>
+                  <span>FROM={priorLocation || 'UNKNOWN'}</span>
+                  {dispositionNotes ? <span>NOTE={dispositionNotes}</span> : null}
+                </S.DispositionMeta>
+              ) : (
+                <S.SecondaryText>{bulkSecondary || entry.summary}</S.SecondaryText>
               )}
             </S.EntryPrimary>
-
-            <S.EntryMeta>
-              <S.Timestamp>{formatTimestamp(entry.created_at)}</S.Timestamp>
-              {chips.map((chip) => (
-                <S.Badge key={`${entry.id}-${chip.tone}-${chip.label}`} $tone={chip.tone}>
-                  {chip.label}
-                </S.Badge>
-              ))}
-            </S.EntryMeta>
-
-            {bulkSecondary ? <S.BulkDetails>{bulkSecondary}</S.BulkDetails> : null}
           </S.EntryRow>
         );
       });
     },
-    [boxShortIdMap, entries]
+    [activeStream, boxShortIdMap, entries]
   );
 
   return (
@@ -657,13 +610,13 @@ export default function LogsPage() {
         <S.HeadingRow>
           <S.HeadingGroup>
             <S.TitleRow>
-              <S.TitlePip aria-hidden="true" />
-              <S.Title>System Logs</S.Title>
+              <S.TitlePip aria-hidden="true">&gt;_</S.TitlePip>
+              <S.Title>{streamConfig.title}</S.Title>
             </S.TitleRow>
-            <S.Subtitle>Newest first • append-only activity console</S.Subtitle>
+            <S.Subtitle>{streamConfig.subtitle}</S.Subtitle>
           </S.HeadingGroup>
           <S.HeaderActions>
-            <S.CountPill>{total}</S.CountPill>
+            <S.CountReadout>COUNT={String(total).padStart(4, '0')}</S.CountReadout>
             <S.ExportButton
               type="button"
               onClick={handleExportJson}
@@ -682,6 +635,20 @@ export default function LogsPage() {
         </S.HeadingRow>
         {exportError ? <S.ExportError role="alert">{exportError}</S.ExportError> : null}
       </S.IntroPanel>
+
+      <S.StreamNav aria-label="Log stream">
+        {Object.entries(LOG_STREAMS).map(([key, config]) => (
+          <S.StreamButton
+            key={key}
+            type="button"
+            $active={activeStream === key}
+            aria-pressed={activeStream === key}
+            onClick={() => setActiveStream(key)}
+          >
+            {activeStream === key ? '[*]' : '[ ]'} {config.label}
+          </S.StreamButton>
+        ))}
+      </S.StreamNav>
 
       {loading ? <S.StatePanel>Loading activity…</S.StatePanel> : null}
 
@@ -710,6 +677,9 @@ export default function LogsPage() {
           ) : null}
 
           <S.FeedPanel>
+            <S.TerminalHeader aria-hidden="true">
+              <span>TIMESTAMP</span><span>EVENT</span><span>RECORD</span>
+            </S.TerminalHeader>
             <S.FeedList>{renderedEntries}</S.FeedList>
 
             <S.FeedFooter>

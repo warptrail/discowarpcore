@@ -11,6 +11,7 @@ export default function RetrievalResultsList({
   onPreviewImage,
   onLifecycleAction,
   loading = false,
+  presentation = 'cards',
 }) {
   if (loading) {
     return <S.LoadingState>Loading retrieval results…</S.LoadingState>;
@@ -21,7 +22,7 @@ export default function RetrievalResultsList({
   }
 
   return (
-    <S.ResultsList>
+    <S.ResultsList $compact={presentation === 'ascii'}>
       {items.map((item) => (
         <RetrievalResultRow
           key={item.id}
@@ -33,6 +34,7 @@ export default function RetrievalResultsList({
           onSectionChange={onSectionChange}
           onPreviewImage={onPreviewImage}
           onLifecycleAction={onLifecycleAction}
+          compact={presentation === 'ascii'}
         />
       ))}
     </S.ResultsList>

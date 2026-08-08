@@ -10,6 +10,7 @@ import {
 import { getItemOwnershipContext } from '../../util/itemOwnership';
 import { getRetrievalTagHref } from './retrievalModel';
 import NoteReaderModal from '../NoteReaderModal/NoteReaderModal';
+import { getItemPreviewImageUrl } from '../../util/itemImage';
 
 const DECK_SECTION_DEFINITIONS = {
   overview: { code: '01', label: 'Overview' },
@@ -540,9 +541,8 @@ export default function RetrievalExpandedPanel({
   const maintenanceActionType = isConsumable ? 'consumed' : 'maintained';
   const maintenanceActionLabel = isConsumable ? 'Consumed' : 'Maintained';
   const imageUrl = firstText(
-    fullItem?.image?.display?.url,
-    fullItem?.image?.original?.url,
     resolvedItem?.previewImageUrl,
+    getItemPreviewImageUrl(fullItem),
     resolvedItem?.imageUrl,
   );
   const useAmbientMediaBackdrop = mediaShape === 'portrait' || mediaShape === 'square';

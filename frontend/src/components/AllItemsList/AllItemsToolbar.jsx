@@ -11,11 +11,13 @@ export default function AllItemsToolbar({
   statusFilter = 'active',
   filter = 'all',
   sortBy = 'alpha',
+  sortDirection = 'asc',
   searchQuery = '',
   colorBy = 'none',
   onStatusChange,
   onFilterChange,
   onSortChange,
+  onSortDirectionChange,
   onColorByChange,
   onSearchChange,
   categoryOptions = [],
@@ -98,11 +100,13 @@ export default function AllItemsToolbar({
           statusFilter={statusFilter}
           filter={filter}
           sortBy={sortBy}
+          sortDirection={sortDirection}
           searchQuery={searchQuery}
           colorBy={colorBy}
           onStatusChange={onStatusChange}
           onFilterChange={onFilterChange}
           onSortChange={onSortChange}
+          onSortDirectionChange={onSortDirectionChange}
           onColorByChange={onColorByChange}
           onSearchChange={onSearchChange}
           categoryOptions={safeCategoryOptions}

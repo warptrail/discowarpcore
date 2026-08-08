@@ -4,8 +4,8 @@ import {
   useNavigationType,
   useSearchParams,
 } from 'react-router-dom';
-import { API_BASE } from '../api/API_BASE';
 import { ITEM_CATEGORIES, formatItemCategory } from '../util/itemCategories';
+import useIsMobile from '../hooks/useIsMobile';
 import AllItemsToolbar from './AllItemsList/AllItemsToolbar';
 import AllItemsDesktopTable from './AllItemsList/AllItemsDesktopTable';
 import AllItemsMobileCards from './AllItemsList/AllItemsMobileCards';
@@ -13,16 +13,18 @@ import AllItemsSelectionPanel from './AllItemsList/AllItemsSelectionPanel';
 import RetrievalImageLightbox from './Retrieval/RetrievalImageLightbox';
 import * as S from './AllItemsList/AllItemsList.styles';
 import {
-  filterAndSortItems,
+  getDefaultSortDirection,
   normalizeColorBy,
   normalizeItemFilter,
   normalizeSortBy,
+  normalizeSortDirection,
   normalizeStatusFilter,
   prepareItemForList,
 } from './AllItemsList/allItemsList.utils';
 import useAllItemsBatchProcessing from './AllItemsList/useAllItemsBatchProcessing.jsx';
 import useAllItemsDeclutterDeck from './AllItemsList/useAllItemsDeclutterDeck.js';
 import useAllItemsItemSelection from './AllItemsList/useAllItemsItemSelection.jsx';
+import usePaginatedAllItems from './AllItemsList/usePaginatedAllItems';
 import { getBoxTheme, getItemTheme } from '../util/inventoryColorTheme';
 import AllItemsInsightsModal from './AllItemsList/AllItemsInsightsModal';
 import {
@@ -97,11 +99,14 @@ export default function AllItemsList() {
   const location = useLocation();
   const navigationType = useNavigationType();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [items, setItems] = useState([]);
   const [searchQuery, setSearchQuery] = useState(() =>
     readSearchQueryParam(searchParams),
   );
   const [sortBy, setSortBy] = useState(() => normalizeSortBy(searchParams.get('sort')));
+  const [sortDirection, setSortDirection] = useState(() => {
+    const initialSort = normalizeSortBy(searchParams.get('sort'));
+    return normalizeSortDirection(searchParams.get('direction'), initialSort);
+  });
   const [filter, setFilter] = useState(() =>
     normalizeItemFilter(searchParams.get('filter')),
   );
@@ -112,39 +117,29 @@ export default function AllItemsList() {
   const [batchModeEnabled, setBatchModeEnabled] = useState(false);
   const [itemSelectionModeEnabled, setItemSelectionModeEnabled] = useState(false);
   const [lightboxImage, setLightboxImage] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [insightsOpen, setInsightsOpen] = useState(false);
   const [mobileDetailItem, setMobileDetailItem] = useState(null);
   const pendingScrollRestoreRef = useRef();
-
-  const loadItems = useCallback(async ({ signal, silent = false } = {}) => {
-    if (!silent) {
-      setLoading(true);
-    }
-    setError('');
-
-    try {
-      const apiRoot = String(API_BASE || '').replace(/\/+$/, '');
-      const requestUrl = `${apiRoot}/api/items?status=all&view=list`;
-      const res = await fetch(requestUrl, { signal });
-      if (!res.ok) {
-        throw new Error(`Failed to fetch items (${res.status})`);
-      }
-      const data = await res.json();
-      setItems(Array.isArray(data) ? data : []);
-    } catch (fetchError) {
-      if (fetchError?.name === 'AbortError') return;
-      setError(fetchError?.message || 'Failed to load items');
-      if (!silent) {
-        setItems([]);
-      }
-    } finally {
-      if (!signal?.aborted && !silent) {
-        setLoading(false);
-      }
-    }
-  }, []);
+  const loadMoreSentinelRef = useRef(null);
+  const isMobileLayout = useIsMobile(900);
+  const {
+    items,
+    counts,
+    facets,
+    total: filteredTotal,
+    hasMore,
+    loading,
+    loadingMore,
+    error,
+    loadMore,
+    refresh: refreshItems,
+  } = usePaginatedAllItems({
+    searchQuery,
+    sortBy,
+    sortDirection,
+    filter,
+    statusFilter,
+  });
 
   if (pendingScrollRestoreRef.current === undefined) {
     pendingScrollRestoreRef.current = readPersistedScrollY({
@@ -154,20 +149,20 @@ export default function AllItemsList() {
   }
 
   useEffect(() => {
-    const controller = new AbortController();
-    void loadItems({ signal: controller.signal });
-
-    return () => controller.abort();
-  }, [loadItems]);
-
-  useEffect(() => {
     const queryStatus = normalizeStatusFilter(searchParams.get('status'));
     const queryFilter = normalizeItemFilter(searchParams.get('filter'));
     const querySortBy = normalizeSortBy(searchParams.get('sort'));
+    const querySortDirection = normalizeSortDirection(
+      searchParams.get('direction'),
+      querySortBy,
+    );
     const querySearch = readSearchQueryParam(searchParams);
     setSearchQuery((current) => (current === querySearch ? current : querySearch));
     setFilter((current) => (current === queryFilter ? current : queryFilter));
     setSortBy((current) => (current === querySortBy ? current : querySortBy));
+    setSortDirection((current) =>
+      current === querySortDirection ? current : querySortDirection
+    );
     setStatusFilter((current) => (current === queryStatus ? current : queryStatus));
   }, [searchParams]);
 
@@ -198,9 +193,30 @@ export default function AllItemsList() {
       next.set('sort', sortBy);
     }
 
+    if (sortDirection === getDefaultSortDirection(sortBy)) {
+      next.delete('direction');
+    } else {
+      next.set('direction', sortDirection);
+    }
+
     if (next.toString() === searchParams.toString()) return;
     setSearchParams(next, { replace: true });
-  }, [filter, searchParams, searchQuery, setSearchParams, sortBy, statusFilter]);
+  }, [filter, searchParams, searchQuery, setSearchParams, sortBy, sortDirection, statusFilter]);
+
+  useEffect(() => {
+    const sentinel = loadMoreSentinelRef.current;
+    if (!sentinel || !hasMore || typeof IntersectionObserver !== 'function') {
+      return undefined;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) void loadMore();
+      },
+      { rootMargin: '600px 0px' },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadMore]);
 
   useEffect(() => {
     const persist = () => {
@@ -225,22 +241,12 @@ export default function AllItemsList() {
 
   const batchFocused = statusFilter === 'batch';
 
-  const baseVisibleItems = useMemo(
-    () =>
-      filterAndSortItems(preparedItems, {
-        statusFilter: batchFocused ? 'all' : statusFilter,
-        filter,
-        sortBy,
-        searchQuery,
-        batchFocused,
-      }),
-    [batchFocused, preparedItems, searchQuery, statusFilter, filter, sortBy],
-  );
+  const baseVisibleItems = preparedItems;
 
   const batchProcessing = useAllItemsBatchProcessing({
     enabled: batchModeEnabled,
     visibleItems: baseVisibleItems,
-    onRefreshItems: () => loadItems({ silent: true }),
+    onRefreshItems: refreshItems,
   });
   const { showConsole, hideConsole } = batchProcessing;
   const previousProcessingModeRef = useRef(false);
@@ -262,7 +268,7 @@ export default function AllItemsList() {
   const itemSelection = useAllItemsItemSelection({
     enabled: itemSelectionModeEnabled,
     visibleItems,
-    onRefreshItems: () => loadItems({ silent: true }),
+    onRefreshItems: refreshItems,
     onExit: () => setItemSelectionModeEnabled(false),
   });
   const declutterSelection = useAllItemsDeclutterDeck({
@@ -300,8 +306,18 @@ export default function AllItemsList() {
 
     if (normalizedStatus === 'batch') {
       setSortBy('batch');
+      setSortDirection(getDefaultSortDirection('batch'));
       setFilter('all');
+    } else if (normalizedStatus === 'gone') {
+      setSortBy('dispositionAt');
+      setSortDirection('desc');
     }
+  }, []);
+
+  const handleSortChange = useCallback((nextSort) => {
+    const normalizedSort = normalizeSortBy(nextSort);
+    setSortBy(normalizedSort);
+    setSortDirection(getDefaultSortDirection(normalizedSort));
   }, []);
 
   const handleToggleBatchMode = useCallback(() => {
@@ -327,6 +343,7 @@ export default function AllItemsList() {
     if (!normalizedBatchId) return;
     setStatusFilter('batch');
     setSortBy('batch');
+    setSortDirection(getDefaultSortDirection('batch'));
     setFilter('all');
     batchProcessing.focusBatch(normalizedBatchId);
   }, [batchProcessing]);
@@ -467,30 +484,6 @@ export default function AllItemsList() {
     };
   }, [loading, visibleItems.length]);
 
-  const counts = useMemo(() => {
-    let active = 0;
-    let gone = 0;
-    let orphaned = 0;
-
-    for (const item of preparedItems) {
-      const meta = item?._allItems;
-      if (!meta) continue;
-      if (meta.isGone) {
-        gone += 1;
-      } else {
-        active += 1;
-      }
-      if (meta.isOrphaned) orphaned += 1;
-    }
-
-    return {
-      total: preparedItems.length,
-      active,
-      gone,
-      orphaned,
-    };
-  }, [preparedItems]);
-
   useEffect(() => {
     const handleInsightsOpen = () => setInsightsOpen(true);
     window.addEventListener(ALL_ITEMS_INSIGHTS_OPEN_EVENT, handleInsightsOpen);
@@ -500,10 +493,10 @@ export default function AllItemsList() {
   useEffect(() => {
     window.dispatchEvent(
       new CustomEvent(ALL_ITEMS_INSIGHTS_STATE_EVENT, {
-        detail: { ...counts, visible: visibleItems.length },
+        detail: { ...counts, visible: visibleItems.length, loading },
       }),
     );
-  }, [counts, visibleItems.length]);
+  }, [counts, loading, visibleItems.length]);
 
   useEffect(() => {
     const handleDetailOpen = (event) => {
@@ -517,38 +510,27 @@ export default function AllItemsList() {
 
   const categoryOptions = useMemo(
     () =>
-      ITEM_CATEGORIES.map((category) => ({
+      (facets.categories.length ? facets.categories : ITEM_CATEGORIES).map((category) => ({
         value: `category:${category}`,
         label: `Category: ${formatItemCategory(category)}`,
       })),
-    [],
+    [facets.categories],
   );
 
   const batchOptions = useMemo(() => {
-    const seen = new Set();
-    return preparedItems
-      .map((item) => item?._allItems)
-      .filter((meta) => meta?.hasSourceBatch && meta?.sourceBatchId)
+    return (Array.isArray(facets.batches) ? facets.batches : [])
+      .filter((batch) => batch?.id)
       .sort((left, right) =>
-        String(left?.sourceBatchSortKey || '').localeCompare(String(right?.sourceBatchSortKey || ''), undefined, {
+        String(left?.batchId || left?.label || '').localeCompare(String(right?.batchId || right?.label || ''), undefined, {
           sensitivity: 'base',
+          numeric: true,
         })
       )
-      .flatMap((meta) => {
-        const batchId = String(meta?.sourceBatchId || '').trim();
-        if (!batchId || seen.has(batchId)) return [];
-        seen.add(batchId);
-        const label = String(meta?.sourceBatchLabel || batchId).trim();
-        const archiveSuffix =
-          String(meta?.sourceBatchArchiveStatus || '').trim().toLowerCase() === 'archived'
-            ? ' (Archived)'
-            : '';
-        return [{
-          value: `batch:${batchId}`,
-          label: `Batch: ${label}${archiveSuffix}`,
-        }];
-      });
-  }, [preparedItems]);
+      .map((batch) => ({
+        value: `batch:${batch.id}`,
+        label: `Batch: ${batch.label || batch.batchName || batch.batchId}${batch.isArchived ? ' (Archived)' : ''}`,
+      }));
+  }, [facets.batches]);
 
   return (
     <S.PageShell>
@@ -556,11 +538,13 @@ export default function AllItemsList() {
         statusFilter={statusFilter}
         filter={filter}
         sortBy={sortBy}
+        sortDirection={sortDirection}
         searchQuery={searchQuery}
         colorBy={colorBy}
         onStatusChange={handleStatusChange}
         onFilterChange={setFilter}
-        onSortChange={setSortBy}
+        onSortChange={handleSortChange}
+        onSortDirectionChange={setSortDirection}
         onColorByChange={(next) => setColorBy(normalizeColorBy(next))}
         onSearchChange={setSearchQuery}
         categoryOptions={categoryOptions}
@@ -598,6 +582,7 @@ export default function AllItemsList() {
           onMoveSelected={itemSelection.moveSelectedItems}
           onExit={itemSelection.exitSelectionMode}
           declutterControls={declutterSelection}
+          hasMore={hasMore}
         />
       ) : null}
 
@@ -606,38 +591,7 @@ export default function AllItemsList() {
           <S.EmptyState>Loading inventory…</S.EmptyState>
         ) : visibleItems.length ? (
           <>
-            <S.DesktopWrap>
-              <AllItemsDesktopTable
-                items={visibleItems}
-                batchFocused={batchFocused}
-                batchToneMap={batchToneMap}
-                colorBy={colorBy}
-                rowAccentByItemId={rowAccentByItemId}
-                batchModeEnabled={batchModeEnabled && batchProcessing.isSelectionStepActive}
-                simpleSelectionModeEnabled={itemSelectionModeEnabled}
-                batchActionMode={batchProcessing.batchActionMode}
-                itemProcessingById={batchProcessing.itemProcessingById}
-                selectedItemIds={
-                  itemSelectionModeEnabled
-                    ? itemSelection.selectedItemIds
-                    : batchProcessing.selectedItemIds
-                }
-                selectedBatchId={batchProcessing.selectedBatchId}
-                onToggleItemSelection={
-                  itemSelectionModeEnabled
-                    ? itemSelection.toggleItemSelection
-                    : batchProcessing.toggleItemSelection
-                }
-                onSelectBatch={
-                  itemSelectionModeEnabled
-                    ? itemSelection.selectSourceBatch
-                    : batchProcessing.selectBatch
-                }
-                onFocusBatch={handleFocusBatch}
-                onOpenImagePreview={handleOpenImagePreview}
-              />
-            </S.DesktopWrap>
-            <S.MobileWrap>
+            {isMobileLayout ? (
               <AllItemsMobileCards
                 items={visibleItems}
                 batchFocused={batchFocused}
@@ -674,7 +628,51 @@ export default function AllItemsList() {
                 detailItemId={mobileDetailItem?._id || ''}
                 onCloseItemDetails={() => setMobileDetailItem(null)}
               />
-            </S.MobileWrap>
+            ) : (
+              <AllItemsDesktopTable
+                items={visibleItems}
+                batchFocused={batchFocused}
+                batchToneMap={batchToneMap}
+                colorBy={colorBy}
+                rowAccentByItemId={rowAccentByItemId}
+                batchModeEnabled={batchModeEnabled && batchProcessing.isSelectionStepActive}
+                simpleSelectionModeEnabled={itemSelectionModeEnabled}
+                batchActionMode={batchProcessing.batchActionMode}
+                itemProcessingById={batchProcessing.itemProcessingById}
+                selectedItemIds={
+                  itemSelectionModeEnabled
+                    ? itemSelection.selectedItemIds
+                    : batchProcessing.selectedItemIds
+                }
+                selectedBatchId={batchProcessing.selectedBatchId}
+                onToggleItemSelection={
+                  itemSelectionModeEnabled
+                    ? itemSelection.toggleItemSelection
+                    : batchProcessing.toggleItemSelection
+                }
+                onSelectBatch={
+                  itemSelectionModeEnabled
+                    ? itemSelection.selectSourceBatch
+                    : batchProcessing.selectBatch
+                }
+                onFocusBatch={handleFocusBatch}
+                onOpenImagePreview={handleOpenImagePreview}
+              />
+            )}
+            <S.ProgressiveLoadRegion ref={loadMoreSentinelRef}>
+              <S.ProgressiveLoadText>
+                {loadingMore
+                  ? 'Loading more items…'
+                  : hasMore
+                    ? `${visibleItems.length} of ${filteredTotal} matching items loaded`
+                    : `${filteredTotal} matching items loaded`}
+              </S.ProgressiveLoadText>
+              {hasMore ? (
+                <S.ToolbarButton type="button" disabled={loadingMore} onClick={() => void loadMore()}>
+                  {loadingMore ? 'Loading…' : 'Load More'}
+                </S.ToolbarButton>
+              ) : null}
+            </S.ProgressiveLoadRegion>
           </>
         ) : (
           <S.EmptyState>No items match the current view.</S.EmptyState>

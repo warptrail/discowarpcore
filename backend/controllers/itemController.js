@@ -28,6 +28,7 @@ const {
   safeDeleteMediaFile,
   safeDeleteMediaFiles,
 } = require('../utils/mediaCleanup');
+const { getRequestId, writeBackendLog } = require('../utils/backendLogger');
 
 async function cleanupUploadedImportImages(files = []) {
   await Promise.allSettled(
@@ -61,6 +62,9 @@ async function getAllItemsApi(req, res) {
       String(req.query.q ?? req.query.search ?? '').trim() ||
       String(req.query.category ?? '').trim() ||
       String(req.query.tag ?? '').trim() ||
+      String(req.query.scope ?? '').trim() ||
+      String(req.query.sourceBatchId ?? '').trim() ||
+      String(req.query.direction ?? '').trim() ||
       String(req.query.sort ?? '').trim();
 
     if (hasPaginationRequest || hasFilterRequest) {
@@ -76,10 +80,24 @@ async function getAllItemsApi(req, res) {
         query: req.query.q ?? req.query.search ?? '',
         category: req.query.category ?? '',
         tag: req.query.tag ?? '',
-        sort: req.query.sort ?? 'alphabetical',
+        scope: req.query.scope ?? 'all',
+        sourceBatchId: req.query.sourceBatchId ?? '',
+        sort: req.query.sort ?? 'alpha',
+        direction: req.query.direction ?? 'asc',
+        listView,
       });
 
-      return res.json(payload);
+      const serializationStartNs = process.hrtime.bigint();
+      const response = res.json(payload);
+      const serializationMs = Number(process.hrtime.bigint() - serializationStartNs) / 1e6;
+      writeBackendLog('info', 'item.list.performance', {
+        requestId: getRequestId(req),
+        itemCount: payload.items.length,
+        filteredTotal: payload.total,
+        ...payload._timing,
+        serializationMs: Number(serializationMs.toFixed(2)),
+      });
+      return response;
     }
 
     const items = await getAllItems({ statusScope, listView });

@@ -2,6 +2,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import * as S from '../styles/BoxMetaPanel.styles';
 import { BOX_CONTEXT_STATE_EVENT } from '../constants/inventoryFinderEvents';
+import BoxPresentationHero from './BoxMetaPanel/BoxPresentationHero';
+import { getBoxPreviewImageUrl } from '../util/itemImage';
 
 /**
  * BoxMetaPanel
@@ -133,14 +135,12 @@ export default function BoxMetaPanel({
     const timer = window.setInterval(() => setMetaIndex((index) => (index + 1) % metadata.length), 3200);
     return () => window.clearInterval(timer);
   }, [metadata.length]);
-  const boxImageUrl =
-    box?.image?.display?.url ||
-    box?.image?.thumb?.url ||
-    box?.image?.original?.url ||
-    box?.image?.url ||
-    box?.imagePath ||
-    '';
+  const boxImageUrl = getBoxPreviewImageUrl(box);
   const boxImageSrc = withCacheBuster(boxImageUrl, imageRefreshToken);
+  const boxLightboxUrl = withCacheBuster(
+    box?.image?.original?.url || boxImageUrl,
+    imageRefreshToken,
+  );
 
   // Breadcrumb: ancestors (parentPath) + current
   // Build crumbs (root → … → parent → current)
@@ -196,51 +196,18 @@ export default function BoxMetaPanel({
           </S.IdentityActions>
         </S.IdentityHeader>
 
-        <S.SummaryGrid $hasImage={!!boxImageUrl}>
-          <S.SummaryInfo>
-            <S.CurrentBox
-              aria-current="page"
-              aria-label={`Current box ${currentCrumb?.label ?? title}`}
-              title={`${title}${shortId ? ` (${shortId})` : ''}`}
-            >
-              <S.CurrentBoxId>{pad3(currentCrumb?.id)}</S.CurrentBoxId>
-              <S.CurrentBoxMain>
-                <S.CurrentBoxTitle>{currentCrumb?.label ?? title}</S.CurrentBoxTitle>
-                <S.CurrentBoxInfoRow>
-                  {group ? (
-                    <S.CurrentBoxLocationChip $variant="group">
-                      <S.CurrentBoxLocationLabel $variant="group">
-                        Group
-                      </S.CurrentBoxLocationLabel>
-                      <S.CurrentBoxLocationValue>{group}</S.CurrentBoxLocationValue>
-                    </S.CurrentBoxLocationChip>
-                  ) : null}
-                  <S.CurrentBoxLocationChip $variant="location" $empty={!location}>
-                    <S.CurrentBoxLocationLabel $variant="location" $empty={!location}>
-                      Location
-                    </S.CurrentBoxLocationLabel>
-                    <S.CurrentBoxLocationValue>{location || 'Unassigned'}</S.CurrentBoxLocationValue>
-                  </S.CurrentBoxLocationChip>
-                </S.CurrentBoxInfoRow>
-              </S.CurrentBoxMain>
-            </S.CurrentBox>
-
-          </S.SummaryInfo>
-
-          {(description || notes || previewTags.length) ? (
-            <S.MetaPreview>
-              {description ? <S.MetaPreviewBlock><S.MetaPreviewLabel>Physical description</S.MetaPreviewLabel><S.MetaPreviewText>{description}</S.MetaPreviewText></S.MetaPreviewBlock> : null}
-              {notes ? <S.MetaPreviewBlock><S.MetaPreviewLabel>Notes</S.MetaPreviewLabel><S.MetaPreviewText>{notes}</S.MetaPreviewText></S.MetaPreviewBlock> : null}
-              {previewTags.length ? <S.MetaPreviewBlock><S.MetaPreviewLabel>Tags</S.MetaPreviewLabel><S.MetaPreviewText>{previewTags.join(' · ')}</S.MetaPreviewText></S.MetaPreviewBlock> : null}
-            </S.MetaPreview>
-          ) : null}
-
-        {boxImageSrc ? (
-          <S.BoxImageWrap>
-            <S.BoxImage src={boxImageSrc} alt={`${title} image`} />
-          </S.BoxImageWrap>
-        ) : null}
-        </S.SummaryGrid>
+        <BoxPresentationHero
+          box={box}
+          boxId={pad3(currentCrumb?.id)}
+          title={currentCrumb?.label ?? title}
+          group={group}
+          location={location}
+          description={description}
+          tags={previewTags}
+          notes={notes}
+          imageUrl={boxImageSrc}
+          lightboxUrl={boxLightboxUrl}
+        />
       </S.IdentityZone>
 
       {children.length > 0 ? <S.ChildrenZone>

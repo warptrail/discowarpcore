@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getItemHomeHref } from '../../api/itemDetails';
 import * as S from './AllItemsList.styles';
@@ -11,6 +11,33 @@ function getItemHref(itemId) {
   } catch {
     return '';
   }
+}
+
+function DesktopThumbnail({ src, fallbackSrc }) {
+  const [currentSrc, setCurrentSrc] = useState(src);
+
+  useEffect(() => {
+    setCurrentSrc(src);
+  }, [src]);
+
+  if (!currentSrc) {
+    return <S.ThumbPlaceholder aria-hidden="true">—</S.ThumbPlaceholder>;
+  }
+
+  return (
+    <S.ItemThumbImage
+      src={currentSrc}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      fetchPriority="low"
+      onError={() => {
+        setCurrentSrc((failedSrc) => (
+          fallbackSrc && failedSrc !== fallbackSrc ? fallbackSrc : ''
+        ));
+      }}
+    />
+  );
 }
 
 function groupItemsByBatch(items, batchToneMap) {
@@ -182,6 +209,7 @@ function DesktopItemRow({
   const hasBatch = Boolean(meta?.hasSourceBatch);
   const thumbnailUrl = meta?.thumbnailUrl || '';
   const lightboxImageUrl = meta?.lightboxImageUrl || '';
+  const originalImageUrl = meta?.originalImageUrl || '';
   const accentActive = Boolean(accentColor);
   const processingEligibility = getBatchActionEligibility(meta, batchActionMode);
   const selectable = simpleSelectionModeEnabled
@@ -237,7 +265,7 @@ function DesktopItemRow({
                   event.preventDefault();
                   event.stopPropagation();
                   onOpenImagePreview?.({
-                    src: lightboxImageUrl || thumbnailUrl,
+                    src: originalImageUrl || lightboxImageUrl || thumbnailUrl,
                     name: itemName,
                   });
                 }}
@@ -245,7 +273,7 @@ function DesktopItemRow({
                 title={`Preview image for ${itemName}`}
               >
                 <S.ItemThumbFrame $accentColor={accentColor} $accentActive={accentActive}>
-                  <S.ItemThumbImage src={thumbnailUrl} alt="" loading="lazy" />
+                  <DesktopThumbnail src={thumbnailUrl} fallbackSrc={originalImageUrl} />
                 </S.ItemThumbFrame>
               </S.ItemThumbButton>
             ) : (

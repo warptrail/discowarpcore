@@ -8,9 +8,12 @@ import {
 } from '../../styles/tokens';
 
 export const NestPanel = styled.div`
-  background: #171717;
-  border-radius: 10px;
-  border: 1px solid #2a2a2a;
+  background:
+    linear-gradient(105deg, rgba(var(--box-primary-rgb, 127, 215, 255), 0.1), transparent 42%),
+    #0b1118;
+  border-radius: 8px;
+  border: 1px solid rgba(var(--box-primary-rgb, 127, 215, 255), 0.42);
+  box-shadow: inset 0 1px 0 rgba(var(--box-neon-rgb, 127, 215, 255), 0.2);
   margin-top: 0;
   display: none;
 
@@ -33,7 +36,7 @@ export const NestPanel = styled.div`
 `;
 
 export const SectionInner = styled.div`
-  padding: 12px;
+  padding: 12px 14px 16px;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 8px;
@@ -45,7 +48,9 @@ export const SectionHeader = styled.div`
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(var(--box-primary-rgb, 127, 215, 255), 0.24);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     align-items: flex-start;
@@ -57,7 +62,7 @@ export const SectionHeader = styled.div`
 export const Title = styled.h4`
   margin: 0;
   font-size: 15px;
-  color: #eaeaea;
+  color: #e8f2f6;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_SM};
@@ -67,7 +72,7 @@ export const Title = styled.h4`
 
 export const Note = styled.div`
   font-size: 12px;
-  color: #bdbdbd;
+  color: rgba(211, 232, 241, 0.68);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
@@ -75,10 +80,11 @@ export const Note = styled.div`
 `;
 
 export const ContextCard = styled.div`
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 12px 14px;
+  background: rgba(7, 14, 22, 0.58);
+  border: 1px solid rgba(var(--box-primary-rgb, 127, 215, 255), 0.28);
+  border-left: 3px solid var(--box-neon, #7fd7ff);
+  border-radius: 6px;
+  padding: 11px 12px;
   margin-bottom: 12px;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -91,7 +97,7 @@ export const ContextCard = styled.div`
 export const ContextTitle = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
   font-weight: 800;
   font-size: 15px;
@@ -105,13 +111,15 @@ export const ContextTitle = styled.div`
 export const Pill = styled.span`
   display: inline-flex;
   align-items: center;
-  padding: 3px 10px;
-  border-radius: 999px;
+  padding: 3px 7px;
+  border-radius: 3px;
   font-weight: 800;
   font-size: 12px;
-  background: rgba(78, 199, 123, 0.16);
-  border: 1px solid rgba(78, 199, 123, 0.35);
-  color: rgba(220, 255, 235, 0.95);
+  background: rgba(var(--box-primary-rgb, 127, 215, 255), 0.12);
+  border: 1px solid rgba(var(--box-neon-rgb, 127, 215, 255), 0.42);
+  color: var(--box-neon, #c9f4ff);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.04em;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
@@ -148,7 +156,9 @@ export const SubLabel = styled.div`
   margin-top: 10px;
   font-size: 12px;
   font-weight: 800;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--box-neon, #c9f4ff);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
@@ -179,8 +189,8 @@ export const ActionRow = styled.div`
 
 export const SmallBtn = styled.button`
   appearance: none;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(var(--box-primary-rgb, 127, 215, 255), 0.34);
+  background: rgba(var(--box-primary-rgb, 127, 215, 255), 0.07);
   color: rgba(255, 255, 255, 0.92);
   padding: 8px 10px;
   border-radius: 10px;
@@ -190,8 +200,8 @@ export const SmallBtn = styled.button`
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
 
   &:hover {
-    border-color: rgba(255, 255, 255, 0.28);
-    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--box-neon, #c9f4ff);
+    background: rgba(var(--box-primary-rgb, 127, 215, 255), 0.14);
   }
 
   &:disabled {
@@ -207,8 +217,8 @@ export const SmallBtn = styled.button`
 `;
 
 export const WarnBtn = styled(SmallBtn)`
-  border-color: rgba(255, 212, 0, 0.35);
-  background: rgba(255, 212, 0, 0.08);
+  border-color: rgba(232, 177, 92, 0.42);
+  background: rgba(232, 177, 92, 0.08);
 
   &:hover {
     border-color: rgba(255, 212, 0, 0.55);
@@ -232,11 +242,17 @@ export const BoxBtn = styled.button`
   width: 100%;
   text-align: left;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: 5px;
   border: 1px solid
     ${({ $disabled, $selected }) =>
-      $selected ? '#4ec77b' : $disabled ? '#2a2a2a' : '#2a2a2a'};
-  background: ${({ $disabled }) => ($disabled ? '#141414' : '#1a1a1a')};
+      $selected
+        ? 'var(--box-neon, #7fd7ff)'
+        : $disabled
+          ? 'rgba(255, 255, 255, 0.12)'
+          : 'rgba(var(--box-primary-rgb, 127, 215, 255), 0.34)'};
+  background:
+    linear-gradient(100deg, rgba(var(--box-primary-rgb, 127, 215, 255), ${({ $selected }) => ($selected ? '0.2' : '0.08')}), transparent 70%),
+    rgba(8, 15, 23, 0.72);
   color: #eaeaea;
   cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
   opacity: ${({ $disabled }) => ($disabled ? 0.65 : 1)};
@@ -246,7 +262,7 @@ export const BoxBtn = styled.button`
     transform 0.08s ease;
 
   &:hover {
-    border-color: ${({ $disabled }) => ($disabled ? '#2a2a2a' : '#4ec77b')};
+    border-color: ${({ $disabled }) => ($disabled ? 'rgba(255, 255, 255, 0.12)' : 'var(--box-neon, #7fd7ff)')};
   }
   &:active {
     transform: translateY(1px);
@@ -259,7 +275,9 @@ export const BoxBtn = styled.button`
 
 export const Meta = styled.div`
   font-size: 12px;
-  color: #bdbdbd;
+  color: var(--box-neon, #b7d3df);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.03em;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};

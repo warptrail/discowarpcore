@@ -8,24 +8,19 @@ import * as S from './Retrieval.styles';
 const Surface = styled.div`
   width: 100%;
   display: grid;
-  gap: 0.42rem;
+  grid-template-columns: minmax(9.4rem, auto) minmax(0, 1fr);
+  align-items: end;
+  gap: 0.36rem;
 
-  @media (min-width: 900px) {
-    grid-template-columns: minmax(150px, auto) minmax(0, 1fr);
-    align-items: center;
+  > :nth-child(n + 3) {
+    grid-column: 1 / -1;
+  }
 
-    > :nth-child(1) {
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+
+    > * {
       grid-column: 1;
-      grid-row: 1;
-    }
-
-    > :nth-child(2) {
-      grid-column: 2;
-      grid-row: 1;
-    }
-
-    > :nth-child(n + 3) {
-      grid-column: 1 / -1;
     }
   }
 `;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getItemHomeHref } from '../../api/itemDetails';
 import * as S from './AllItemsList.styles';
@@ -12,6 +12,33 @@ function getItemHref(itemId) {
   } catch {
     return '';
   }
+}
+
+function MobileThumbnail({ src, fallbackSrc }) {
+  const [currentSrc, setCurrentSrc] = useState(src);
+
+  useEffect(() => {
+    setCurrentSrc(src);
+  }, [src]);
+
+  if (!currentSrc) {
+    return <S.MobileThumbPlaceholder aria-hidden="true">∅</S.MobileThumbPlaceholder>;
+  }
+
+  return (
+    <S.MobileThumbImage
+      src={currentSrc}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      fetchPriority="low"
+      onError={() => {
+        setCurrentSrc((failedSrc) => (
+          fallbackSrc && failedSrc !== fallbackSrc ? fallbackSrc : ''
+        ));
+      }}
+    />
+  );
 }
 
 function groupItemsByBatch(items, batchToneMap) {
@@ -116,6 +143,7 @@ function MobileItemCard({
   const hasBatch = Boolean(meta?.hasSourceBatch);
   const thumbnailUrl = String(meta?.thumbnailUrl || '').trim();
   const lightboxImageUrl = String(meta?.lightboxImageUrl || '').trim();
+  const originalImageUrl = String(meta?.originalImageUrl || '').trim();
   const accentActive = Boolean(accentColor);
   const imageEligibility = getBatchActionEligibility(meta, batchActionMode);
   const eligibility = simpleSelectionModeEnabled
@@ -168,7 +196,7 @@ function MobileItemCard({
           <S.MobileCondensedRow>
             <S.MobileThumbFrame $large $accentColor={accentColor} $accentActive={accentActive}>
               {thumbnailUrl ? (
-                <S.MobileThumbImage src={thumbnailUrl} alt="" loading="lazy" />
+                <MobileThumbnail src={thumbnailUrl} fallbackSrc={originalImageUrl} />
               ) : (
                 <S.MobileThumbPlaceholder aria-hidden="true">∅</S.MobileThumbPlaceholder>
               )}
@@ -232,7 +260,7 @@ function MobileItemCard({
                 event.preventDefault();
                 event.stopPropagation();
                 onOpenImagePreview?.({
-                  src: lightboxImageUrl || thumbnailUrl,
+                  src: originalImageUrl || lightboxImageUrl || thumbnailUrl,
                   name,
                   presentation: compactBatchMode ? 'phone' : 'default',
                 });
@@ -245,7 +273,7 @@ function MobileItemCard({
                 $accentColor={accentColor}
                 $accentActive={accentActive}
               >
-                <S.MobileThumbImage src={thumbnailUrl} alt="" loading="lazy" />
+                <MobileThumbnail src={thumbnailUrl} fallbackSrc={originalImageUrl} />
               </S.MobileThumbFrame>
             </S.MobileThumbButton>
           ) : (

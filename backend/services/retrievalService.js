@@ -543,12 +543,22 @@ function buildRetrievalItems(itemDocs, boxDocs) {
   });
 }
 
+function matchesTagFilters(itemTagKeys, tagFilters, tagOperator = 'or') {
+  const itemTags = Array.isArray(itemTagKeys) ? itemTagKeys : [];
+  const selectedTags = Array.isArray(tagFilters) ? tagFilters : [];
+  if (!selectedTags.length) return true;
+  return tagOperator === 'and'
+    ? selectedTags.every((tagKey) => itemTags.includes(tagKey))
+    : selectedTags.some((tagKey) => itemTags.includes(tagKey));
+}
+
 function filterRetrievalItems(
   items,
   {
     query,
     categoryFilters,
     tagFilters,
+    tagOperator = 'or',
     locationFilters,
     ownerFilters,
     keepPriorityFilters,
@@ -582,7 +592,7 @@ function filterRetrievalItems(
 
     if (tagFilters.length) {
       const tagKeys = Array.isArray(item.tagKeys) ? item.tagKeys : [];
-      const hasMatchingTag = tagKeys.some((tagKey) => tagFilters.includes(tagKey));
+      const hasMatchingTag = matchesTagFilters(tagKeys, tagFilters, tagOperator);
       if (!hasMatchingTag) return false;
     }
 
@@ -836,6 +846,9 @@ async function getRetrievalItemsPage(params = {}) {
   const query = toTrimmed(params.q);
   const categoryFilters = normalizeFilterValues(params.category);
   const tagFilters = normalizeFilterValues(params.tag);
+  const tagOperator = String(params.tagOperator || '').trim().toLowerCase() === 'and'
+    ? 'and'
+    : 'or';
   const locationFilters = normalizeFilterValues(params.location);
   const ownerFilters = normalizeFilterValues(params.owner);
   const keepPriorityFilters = normalizeFilterValues(params.keepPriority);
@@ -858,6 +871,7 @@ async function getRetrievalItemsPage(params = {}) {
     query,
     categoryFilters,
     tagFilters,
+    tagOperator,
     locationFilters,
     ownerFilters,
     keepPriorityFilters,
@@ -924,4 +938,5 @@ async function getRetrievalBoxesPage(params = {}) {
 module.exports = {
   getRetrievalItemsPage,
   getRetrievalBoxesPage,
+  matchesTagFilters,
 };

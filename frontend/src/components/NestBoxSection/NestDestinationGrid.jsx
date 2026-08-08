@@ -1,5 +1,6 @@
 import React from 'react';
 import * as S from './NestBoxSection.styles';
+import { getBoxTheme, getBoxThemeCssVars } from '../../util/inventoryColorTheme';
 
 export default function NestDestinationGrid({
   loading,
@@ -18,6 +19,7 @@ export default function NestDestinationGrid({
         {visibleBoxes.map((b) => (
           <S.BoxBtn
             key={b._id}
+            style={getBoxThemeCssVars(getBoxTheme(b.box_id))}
             $selected={selectedId === b._id}
             $disabled={busy}
             disabled={busy}

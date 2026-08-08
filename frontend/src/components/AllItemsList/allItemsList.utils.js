@@ -11,6 +11,10 @@ import {
   normalizeKeepPriority,
 } from '../../util/keepPriority';
 import { getItemOwnershipContext } from '../../util/itemOwnership';
+import {
+  getItemOriginalImageUrl,
+  getOnDemandImageDerivativeUrl,
+} from '../../util/itemImage';
 
 const DISPOSITION_LABELS = {
   consumed: 'Consumed',
@@ -58,6 +62,23 @@ export const SORT_OPTIONS = [
   { value: 'category', label: 'Category' },
   { value: 'dispositionAt', label: 'Disposition Date' },
 ];
+
+const DESCENDING_DEFAULT_SORTS = new Set([
+  'date',
+  'lastMaintained',
+  'purchasePrice',
+  'dispositionAt',
+]);
+
+export function getDefaultSortDirection(sortBy) {
+  return DESCENDING_DEFAULT_SORTS.has(sortBy) ? 'desc' : 'asc';
+}
+
+export function normalizeSortDirection(value, sortBy = 'alpha') {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'asc' || normalized === 'desc') return normalized;
+  return getDefaultSortDirection(sortBy);
+}
 
 export const COLOR_BY_OPTIONS = [
   { value: 'none', label: 'None' },
@@ -286,10 +307,9 @@ export function getItemThumbnailUrl(item) {
     thumbUrl,
   });
 
-  return withImageRevision(
-    String(thumbUrl || displayUrl || processedUrl || originalUrl || '').trim(),
-    revision,
-  );
+  const sourceUrl = displayUrl || processedUrl || originalUrl;
+  const resolvedUrl = thumbUrl || getOnDemandImageDerivativeUrl(sourceUrl, 'thumb');
+  return withImageRevision(resolvedUrl, revision);
 }
 
 export function getItemLightboxUrl(item) {
@@ -310,14 +330,16 @@ export function getItemLightboxUrl(item) {
   });
 
   if (activeVariant === 'processed') {
+    const sourceUrl = processedUrl || originalUrl || thumbUrl;
     return withImageRevision(
-      String(displayUrl || processedUrl || originalUrl || thumbUrl || '').trim(),
+      displayUrl || getOnDemandImageDerivativeUrl(sourceUrl, 'display'),
       revision,
     );
   }
 
+  const sourceUrl = originalUrl || processedUrl || thumbUrl;
   return withImageRevision(
-    String(displayUrl || originalUrl || processedUrl || thumbUrl || '').trim(),
+    displayUrl || getOnDemandImageDerivativeUrl(sourceUrl, 'display'),
     revision,
   );
 }
@@ -566,6 +588,7 @@ export function prepareItemForList(item) {
       quantityLabel,
       thumbnailUrl: getItemThumbnailUrl(item),
       lightboxImageUrl: getItemLightboxUrl(item),
+      originalImageUrl: getItemOriginalImageUrl(item),
       hasProcessableImage: processingMeta.hasProcessableImage,
       hasProcessedOutput: processingMeta.hasProcessedOutput,
       isAlreadyProcessed: processingMeta.isAlreadyProcessed,
@@ -599,7 +622,7 @@ function compareItemsBySort(a, b, sortBy) {
 
   if (sortBy === 'date') {
     if (aMeta.createdAtMs !== bMeta.createdAtMs) {
-      return bMeta.createdAtMs - aMeta.createdAtMs;
+      return aMeta.createdAtMs - bMeta.createdAtMs;
     }
     return compareByName(a, b);
   }
@@ -619,14 +642,14 @@ function compareItemsBySort(a, b, sortBy) {
 
   if (sortBy === 'lastMaintained') {
     if (aMeta.lastMaintainedAtMs !== bMeta.lastMaintainedAtMs) {
-      return bMeta.lastMaintainedAtMs - aMeta.lastMaintainedAtMs;
+      return aMeta.lastMaintainedAtMs - bMeta.lastMaintainedAtMs;
     }
     return compareByName(a, b);
   }
 
   if (sortBy === 'purchasePrice') {
     if (aMeta.purchasePriceCents !== bMeta.purchasePriceCents) {
-      return bMeta.purchasePriceCents - aMeta.purchasePriceCents;
+      return aMeta.purchasePriceCents - bMeta.purchasePriceCents;
     }
     return compareByName(a, b);
   }
@@ -639,7 +662,7 @@ function compareItemsBySort(a, b, sortBy) {
 
   if (sortBy === 'dispositionAt') {
     if (aMeta.dispositionAtMs !== bMeta.dispositionAtMs) {
-      return bMeta.dispositionAtMs - aMeta.dispositionAtMs;
+      return aMeta.dispositionAtMs - bMeta.dispositionAtMs;
     }
     return compareByName(a, b);
   }
@@ -653,6 +676,7 @@ export function filterAndSortItems(
     statusFilter,
     filter,
     sortBy,
+    sortDirection = getDefaultSortDirection(sortBy),
     searchQuery,
     batchFocused = false,
   }
@@ -692,19 +716,20 @@ export function filterAndSortItems(
   });
 
   filtered.sort((a, b) => {
+    const directionFactor = sortDirection === 'desc' ? -1 : 1;
     if (batchFocused) {
       const byBatch = compareText(
         a?._allItems?.sourceBatchSortKey || a?._allItems?.sourceBatchId || 'zzzz-no-batch',
         b?._allItems?.sourceBatchSortKey || b?._allItems?.sourceBatchId || 'zzzz-no-batch',
       );
-      if (byBatch !== 0) return byBatch;
+      if (byBatch !== 0) return byBatch * directionFactor;
       if (sortBy !== 'batch') {
         const withinBatch = compareItemsBySort(a, b, sortBy);
-        if (withinBatch !== 0) return withinBatch;
+        if (withinBatch !== 0) return withinBatch * directionFactor;
       }
     }
 
-    return compareItemsBySort(a, b, sortBy);
+    return compareItemsBySort(a, b, sortBy) * directionFactor;
   });
 
   return filtered;

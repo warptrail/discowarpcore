@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { getItemHomeHref } from '../../api/itemDetails';
 import { MOBILE_BREAKPOINT, MOBILE_FONT_SM, MOBILE_FONT_XS } from '../../styles/tokens';
 import { formatItemCategory } from '../../util/itemCategories';
-import { pickImageUrl } from './intakeImageHelpers';
+import { getItemThumbnailUrl } from '../../util/itemImage';
 
 const Panel = styled.section`
   min-width: 0;
@@ -172,7 +172,7 @@ export default function IntakeCurrentBoxItemsPanel({
           !loading &&
           !error &&
           safeItems.map((item) => {
-            const imageUrl = pickImageUrl(item);
+            const imageUrl = getItemThumbnailUrl(item);
             const name = item?.name || 'Unnamed item';
             const quantity = item?.quantity ?? 1;
             const category = formatItemCategory(item?.category);

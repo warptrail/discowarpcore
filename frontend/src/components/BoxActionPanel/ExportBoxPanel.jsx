@@ -61,7 +61,7 @@ export default function ExportBoxPanel({ boxShortId, boxMongoId, onClose, showCl
       </ExportPanelHeader>
 
       <ExportPanelBody>
-        Download backend-generated JSON, CSV, HTML, PDF, QR, or printable label exports for this box.
+        Download backend-generated JSON, CSV, HTML, PDF, QR, or a 58 × 30 mm laser sticker label for this box. Its QR code opens this box at the current dev, LAN, or production address.
       </ExportPanelBody>
 
       <ExportPanelActions>
@@ -110,7 +110,9 @@ export default function ExportBoxPanel({ boxShortId, boxMongoId, onClose, showCl
           onClick={() => handleDownload('label')}
           disabled={isDownloading || !boxMongoId}
         >
-          {downloadingFormat === 'label' ? 'Downloading Label...' : 'Download Label'}
+          {downloadingFormat === 'label'
+            ? 'Downloading 58 × 30 mm Label...'
+            : 'Download 58 × 30 mm QR Label'}
         </ExportDownloadButton>
       </ExportPanelActions>
 

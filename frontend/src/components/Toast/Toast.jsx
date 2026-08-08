@@ -8,7 +8,7 @@ import {
   MOBILE_NARROW_BREAKPOINT,
 } from '../../styles/tokens';
 import RetrievalConsoleControls from '../Retrieval/RetrievalConsoleControls';
-import houseCommandIcon from '../../assets/house-command-icon.png';
+import HomeCommandIcon from '../HomeCommandIcon';
 import {
   getBoxTheme,
   getBoxThemeCssVars,
@@ -71,18 +71,6 @@ const idlePromptBlink = keyframes`
   56%,
   68% {
     opacity: 0.42;
-  }
-`;
-
-const retrievalGhostFlow = keyframes`
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
   }
 `;
 
@@ -455,71 +443,9 @@ const ItemPageRailActions = styled.div`
 
 const RetrievalControlsShell = styled.div`
   position: relative;
-  max-height: ${({ $scrollCompact }) => ($scrollCompact ? '28px' : '1200px')};
-  overflow: hidden;
-  transition: max-height 180ms cubic-bezier(0.22, 1, 0.36, 1);
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    max-height: ${({ $scrollCompact }) =>
-      $scrollCompact ? MOBILE_CONTROL_MIN_HEIGHT : '1200px'};
-  }
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 36px;
-    height: 28px;
-    box-sizing: border-box;
-    border: 1px solid rgba(91, 215, 244, 0.36);
-    border-radius: 8px;
-    background:
-      linear-gradient(
-        105deg,
-        rgba(7, 20, 31, 0.96) 0%,
-        rgba(34, 211, 238, 0.24) 24%,
-        rgba(76, 198, 193, 0.4) 48%,
-        rgba(167, 139, 250, 0.24) 70%,
-        rgba(7, 20, 31, 0.96) 100%
-      );
-    background-size: 220% 100%;
-    box-shadow:
-      inset 0 0 14px rgba(76, 198, 193, 0.12),
-      0 0 12px rgba(34, 211, 238, 0.1);
-    opacity: ${({ $scrollCompact }) => ($scrollCompact ? 1 : 0)};
-    pointer-events: none;
-    transition: opacity 130ms ease;
-    animation: ${retrievalGhostFlow} 1.4s ease-in-out infinite;
-
-    @media (max-width: ${MOBILE_BREAKPOINT}) {
-      right: calc(${MOBILE_CONTROL_MIN_HEIGHT} + 8px);
-      height: ${MOBILE_CONTROL_MIN_HEIGHT};
-    }
-  }
-
+  overflow: visible;
   > div:first-child {
     padding-right: 2.5rem;
-    opacity: ${({ $scrollCompact }) => ($scrollCompact ? 0 : 1)};
-    filter: blur(${({ $scrollCompact }) => ($scrollCompact ? '8px' : '0')});
-    visibility: ${({ $scrollCompact }) => ($scrollCompact ? 'hidden' : 'visible')};
-    pointer-events: ${({ $scrollCompact }) => ($scrollCompact ? 'none' : 'auto')};
-    transition:
-      opacity 150ms ease,
-      filter 150ms ease,
-      visibility 0s ${({ $scrollCompact }) => ($scrollCompact ? '150ms' : '0s')};
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-
-    &::before {
-      animation: none;
-    }
-
-    > div:first-child {
-      transition: none;
-    }
   }
 `;
 
@@ -844,13 +770,6 @@ const RetrievalBoxHome = styled.span`
   width: 1.75rem;
   height: 1.75rem;
   flex: 0 0 auto;
-`;
-
-const RetrievalBoxHomeIcon = styled.img`
-  display: block;
-  width: 1.5rem;
-  height: 1.5rem;
-  object-fit: contain;
 `;
 
 const RetrievalBoxSeparator = styled.span`
@@ -1294,7 +1213,6 @@ export default function Toast({
   idleAction = null,
   idleAddon = null,
   activeRetrievalItem = null,
-  retrievalScrollCompact = false,
   compact = false,
   compactProgress,
   presentation = 'default',
@@ -1457,7 +1375,7 @@ export default function Toast({
             </Idle>
           ) : null
         ) : hasRetrievalControls ? (
-          <RetrievalControlsShell $scrollCompact={retrievalScrollCompact}>
+          <RetrievalControlsShell>
             <RetrievalConsoleControls
             mode={retrievalItemsMode}
             scope={retrievalScope}
@@ -1526,11 +1444,11 @@ export default function Toast({
                   title={retrievalBoxNameText}
                   aria-label={`Open ${retrievalBoxNameText}`}
                 >
-                  <RetrievalBoxHomeIcon src={houseCommandIcon} alt="" aria-hidden="true" />
+                  <HomeCommandIcon size="1.5rem" alt="" aria-hidden="true" />
                 </RetrievalBoxHomeLink>
               ) : (
                 <RetrievalBoxHome title={retrievalBoxNameText}>
-                  <RetrievalBoxHomeIcon src={houseCommandIcon} alt="" aria-hidden="true" />
+                  <HomeCommandIcon size="1.5rem" alt="" aria-hidden="true" />
                 </RetrievalBoxHome>
               )}
             </RetrievalBoxRow>

@@ -50,7 +50,13 @@ export default function AllItemsItemCell({
 
       {thumbnailUrl ? (
         <S.ItemThumbFrame aria-hidden="true">
-          <S.ItemThumbImage src={thumbnailUrl} alt="" loading="lazy" />
+          <S.ItemThumbImage
+            src={thumbnailUrl}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            fetchPriority="low"
+          />
         </S.ItemThumbFrame>
       ) : null}
 

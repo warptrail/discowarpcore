@@ -144,7 +144,7 @@ export const WikiFactValue = styled.span`
 
 export const WikiHeroCommandRail = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: 0.6rem;
   min-height: 34px;
@@ -508,6 +508,86 @@ export const EditableValueButton = styled.button`
 export const EditableValueCopy = styled.span`
   min-width: 0;
   overflow-wrap: anywhere;
+`;
+
+export const NotePreviewRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.45rem;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  margin: -0.24rem 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin: -0.06rem 0;
+  }
+`;
+
+export const NotePreviewButton = styled.button`
+  display: grid;
+  align-items: start;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: 44px;
+  overflow: hidden;
+  padding: 0.32rem 0.42rem;
+  border: 1px solid transparent;
+  border-radius: 2px 5px 3px 2px;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    outline: none;
+    border-color: rgba(var(--domain-rgb), 0.58);
+    background: rgba(var(--domain-rgb), 0.08);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.24rem 0.3rem;
+  }
+`;
+
+export const NotePreview = styled.span`
+  display: -webkit-box;
+  min-width: 0;
+  max-width: 100%;
+  max-height: 2.7em;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+`;
+
+export const NoteEditButton = styled.button`
+  align-self: start;
+  box-sizing: border-box;
+  min-height: 0;
+  height: fit-content;
+  white-space: nowrap;
+  margin-top: 0.08rem;
+  padding: 0.16rem 0.2rem;
+  border: 0;
+  border-left: 1px solid var(--domain-color, var(--item-accent, #c9a7ff));
+  color: var(--domain-color, var(--item-accent, #c9a7ff));
+  background: rgba(var(--domain-rgb), 0.08);
+  font: 820 0.44rem/1 ${mono};
+  letter-spacing: 0.08em;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    outline: 1px solid rgba(var(--domain-rgb), 0.72);
+    background: rgba(var(--domain-rgb), 0.16);
+  }
 `;
 
 export const TagValueEditorRow = styled.div`

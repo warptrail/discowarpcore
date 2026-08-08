@@ -1,16 +1,10 @@
 import { uploadBoxImage, removeBoxImage } from '../../api/boxes';
 import { removeItemImage, uploadItemImage } from '../../api/itemMedia';
 import { cropImageToSquare } from '../../util/cropImageToSquare';
+import { getEntityPreviewImageUrl } from '../../util/itemImage';
 
 export function pickImageUrl(entity) {
-  return (
-    entity?.image?.display?.url ||
-    entity?.image?.thumb?.url ||
-    entity?.image?.original?.url ||
-    entity?.image?.url ||
-    entity?.imagePath ||
-    ''
-  );
+  return getEntityPreviewImageUrl(entity);
 }
 
 export async function uploadCroppedBoxImage(boxMongoId, file) {

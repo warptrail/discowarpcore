@@ -1,10 +1,10 @@
-import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { getItemOwnershipContext } from '../util/itemOwnership';
 import {
   getBoxTheme,
   getBoxThemeCssVars,
 } from '../util/inventoryColorTheme';
+import ItemPageBreadcrumb from './ItemPageBreadcrumb';
 
 const Details = styled.div`
   display: flex;
@@ -13,16 +13,6 @@ const Details = styled.div`
   gap: 0.24rem 0.44rem;
   min-width: 0;
   color: rgba(230, 244, 255, 0.86);
-`;
-
-const BoxLine = styled.div`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  min-width: 0;
-  font-size: 0.7rem;
-  line-height: 1.2;
 `;
 
 const ContextId = styled.span`
@@ -42,33 +32,13 @@ const ContextId = styled.span`
   text-transform: uppercase;
 `;
 
-const BoxName = styled.span`
-  min-width: 0;
-  overflow-wrap: anywhere;
-  color: rgba(230, 244, 255, 0.92);
-  font-weight: 650;
-`;
-
-const BoxNameLink = styled(Link)`
-  min-width: 0;
-  overflow-wrap: anywhere;
-  color: var(--box-muted, #a9ebe6);
-  font-weight: 650;
-  text-decoration: none;
-
-  &:hover {
-    color: var(--box-neon, #d3fffb);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-`;
-
 const LocationLine = styled.div`
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
   gap: 0.26rem;
   min-width: 0;
+  ${({ $stacked }) => $stacked && 'flex-basis: 100%;'}
   color: rgba(230, 244, 255, 0.72);
   font-size: 0.64rem;
   line-height: 1.2;
@@ -79,15 +49,6 @@ const LocationLabel = styled.span`
   font-size: 0.58rem;
   font-weight: 760;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
-`;
-
-const Mode = styled.span`
-  color: var(--item-accent, #7fd7ff);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.56rem;
-  font-weight: 760;
-  letter-spacing: 0.08em;
   text-transform: uppercase;
 `;
 
@@ -109,15 +70,10 @@ const CompactSeparator = styled.span`
 
 export default function ItemPageConsoleDetails({
   item,
-  viewMode = 'all',
-  modeLabel = '',
   compact = false,
 }) {
   const ownership = getItemOwnershipContext(item);
   const boxId = ownership.boxId || '';
-  const boxLabel =
-    ownership.boxLabel || (boxId ? `Box ${boxId}` : 'No box assigned');
-  const boxHref = boxId ? `/boxes/${encodeURIComponent(boxId)}` : '';
   const location = String(ownership.effectiveLocation || '').trim() || 'No location set';
   const themeStyle = getBoxThemeCssVars(getBoxTheme(boxId));
 
@@ -139,15 +95,11 @@ export default function ItemPageConsoleDetails({
 
   return (
     <Details aria-label="Item context" style={themeStyle}>
-      <BoxLine>
-        {boxId ? <ContextId>BOX {boxId}</ContextId> : null}
-        {boxHref ? <BoxNameLink to={boxHref}>{boxLabel}</BoxNameLink> : <BoxName>{boxLabel}</BoxName>}
-      </BoxLine>
-      <LocationLine>
+      <ItemPageBreadcrumb item={item} itemId={item?._id} compact />
+      <LocationLine $stacked>
         <LocationLabel>Location</LocationLabel>
         <span>{location}</span>
       </LocationLine>
-      <Mode>{modeLabel || (viewMode === 'hierarchy' ? 'Hierarchy' : 'All data')}</Mode>
     </Details>
   );
 }

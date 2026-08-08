@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import { API_BASE } from '../../api/API_BASE';
 import { MOBILE_BREAKPOINT } from '../../styles/tokens';
 import { getBoxTheme, getBoxThemeCssVars } from '../../util/inventoryColorTheme';
+import { getItemThumbnailUrl } from '../../util/itemImage';
 
 const routeReadyPulse = keyframes`
   0%,
@@ -125,7 +126,11 @@ const ActionButton = styled.button`
   cursor: pointer;
   transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
 
-  ${({ $ready }) => ($ready ? `animation: ${routeReadyPulse} 2.8s ease-in-out infinite;` : '')}
+  ${({ $ready }) =>
+    $ready &&
+    css`
+      animation: ${routeReadyPulse} 2.8s ease-in-out infinite;
+    `}
 
   &:hover:not(:disabled) {
     border-color: rgba(var(--route-neon-rgb), 0.98);
@@ -159,23 +164,25 @@ const StateText = styled.div`
 `;
 
 function getItemImageUrl(item) {
-  return (
-    item?.image?.thumb?.url ||
-    item?.image?.display?.url ||
-    item?.image?.original?.url ||
-    item?.image?.url ||
-    item?.imagePath ||
-    ''
-  );
+  return getItemThumbnailUrl(item);
 }
 
 function getCurrentBoxLabel(item) {
-  const label = String(item?.box?.label || '').trim();
-  const boxId = String(item?.box?.box_id || '').trim();
+  const breadcrumb = Array.isArray(item?.breadcrumb) ? item.breadcrumb : [];
+  const leaf = breadcrumb[breadcrumb.length - 1] || null;
+  const label = String(item?.box?.label || leaf?.label || '').trim();
+  const boxId = String(item?.box?.box_id || leaf?.box_id || '').trim();
   if (label && boxId) return `${label} · #${boxId}`;
   if (label) return label;
   if (boxId) return `#${boxId}`;
   return 'Orphaned';
+}
+
+function getSourceBox(item) {
+  if (item?.box && typeof item.box === 'object') return item.box;
+  const breadcrumb = Array.isArray(item?.breadcrumb) ? item.breadcrumb : [];
+  const leaf = breadcrumb[breadcrumb.length - 1];
+  return leaf && typeof leaf === 'object' ? leaf : null;
 }
 
 export default function IntakeRapidActions({
@@ -196,20 +203,29 @@ export default function IntakeRapidActions({
       String(selectedItem?.box?._id || selectedItem?.boxId || '') === currentBoxId,
     [currentBoxId, selectedItem?.box?._id, selectedItem?.boxId],
   );
-  const canMove = Boolean(selectedItemId && currentBoxId && !busy && !itemInCurrentBox);
+  const sourceBox = getSourceBox(selectedItem);
+  const sourceBoxId = String(sourceBox?._id || selectedItem?.boxId || '').trim();
+  const itemAlreadyAdrift = !sourceBoxId;
+  const canMove = Boolean(
+    selectedItemId &&
+    !busy &&
+    (currentBoxId ? !itemInCurrentBox : !itemAlreadyAdrift),
+  );
   const imageUrl = getItemImageUrl(selectedItem);
   const destinationId = String(currentBox?.box_id || '').trim();
   const destinationTheme = getBoxTheme(destinationId);
-  const destinationLabel = destinationId ? `#${destinationId}` : 'No destination';
+  const destinationLabel = destinationId ? `#${destinationId}` : 'Items Adrift';
   const buttonLabel = busy
     ? 'Moving…'
     : !selectedItemId
       ? 'Choose item'
-      : !currentBoxId
-        ? 'Choose box'
+      : !currentBoxId && itemAlreadyAdrift
+        ? 'Already adrift'
         : itemInCurrentBox
           ? 'Already there'
-          : `Move to ${destinationLabel}`;
+          : currentBoxId
+            ? `Move to ${destinationLabel}`
+            : 'Cast adrift';
   const contextName = selectedItemId
     ? selectedItem?.name || 'Unnamed item'
     : 'Choose an activity item';
@@ -217,7 +233,9 @@ export default function IntakeRapidActions({
     ? `${getCurrentBoxLabel(selectedItem)} → ${destinationLabel}`
     : currentBoxId
       ? `Destination ${destinationLabel}`
-      : 'Select a box, then an activity item';
+      : currentBoxId
+        ? `Destination ${destinationLabel}`
+        : 'No box selected // route to Items Adrift';
 
   const handleMoveToCurrent = async () => {
     if (!canMove) return;
@@ -226,13 +244,17 @@ export default function IntakeRapidActions({
     setError('');
 
     try {
-      const response = await fetch(`${API_BASE}/api/boxed-items/moveItem`, {
+      const endpoint = currentBoxId
+        ? `${API_BASE}/api/boxed-items/moveItem`
+        : `${API_BASE}/api/boxed-items/${encodeURIComponent(sourceBoxId)}/removeItem`;
+      const response = await fetch(endpoint, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          itemId: selectedItemId,
-          destBoxId: currentBoxId,
-        }),
+        body: JSON.stringify(
+          currentBoxId
+            ? { itemId: selectedItemId, destBoxId: currentBoxId }
+            : { itemId: selectedItemId },
+        ),
       });
 
       const body = await response.json().catch(() => ({}));
@@ -240,27 +262,31 @@ export default function IntakeRapidActions({
         throw new Error(body?.error || body?.message || `Move failed (${response.status})`);
       }
 
-      const movedMessage = `Moved ${selectedItem?.name || 'item'} to box #${currentBox?.box_id || '---'}.`;
+      const movedMessage = currentBoxId
+        ? `Moved ${selectedItem?.name || 'item'} to box #${currentBox?.box_id || '---'}.`
+        : `Cast ${selectedItem?.name || 'item'} adrift.`;
       setStatus(movedMessage);
       onItemMoved?.({
         itemId: selectedItemId,
         destBoxId: currentBoxId,
-        sourceBoxId: String(selectedItem?.box?._id || selectedItem?.boxId || ''),
-        sourceBox: selectedItem?.box
+        sourceBoxId,
+        sourceBox: sourceBox
           ? {
-              _id: selectedItem.box._id,
-              box_id: selectedItem.box.box_id,
-              label: selectedItem.box.label,
+              _id: sourceBox._id,
+              box_id: sourceBox.box_id,
+              label: sourceBox.label,
             }
           : null,
         item: {
           ...selectedItem,
           boxId: currentBoxId,
-          box: {
-            _id: currentBoxId,
-            box_id: currentBox?.box_id,
-            label: currentBox?.label,
-          },
+          box: currentBoxId
+            ? {
+                _id: currentBoxId,
+                box_id: currentBox?.box_id,
+                label: currentBox?.label,
+              }
+            : null,
         },
         message: movedMessage,
       });

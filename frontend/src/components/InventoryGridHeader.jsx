@@ -46,6 +46,14 @@ const SORT_DIRECTION_LABELS = {
   desc: 'Descending',
 };
 
+function LcarsActionButton({ label, ...props }) {
+  return (
+    <S.QuickCreateLaunchButton {...props}>
+      {label}
+    </S.QuickCreateLaunchButton>
+  );
+}
+
 export default function InventoryGridHeader({
   totalBoxes = 0,
   totalItems = 0,
@@ -454,26 +462,29 @@ export default function InventoryGridHeader({
             aria-label="Inventory actions"
             $mobileOpen={mobileActionsOpen}
           >
-            <S.QuickCreateLaunchButton
+            <LcarsActionButton
               type="button"
+              $tone="amber"
+              $symbol={quickPanel === 'box' ? '×' : '+'}
               $active={quickPanel === 'box'}
               aria-label={quickPanel === 'box' ? 'Close new box form' : 'Create a new box'}
               aria-expanded={quickPanel === 'box'}
               aria-controls="inventory-grid-filters"
               title={quickPanel === 'box' ? 'Close new box form' : 'New box'}
               onClick={() => runRailAction(toggleQuickBoxPanel)}
-            >
-              <span aria-hidden="true">{quickPanel === 'box' ? '×' : '＋'}</span>
-              <span>{quickPanel === 'box' ? 'Close' : 'New box'}</span>
-            </S.QuickCreateLaunchButton>
+              label={quickPanel === 'box' ? 'Close' : 'New box'}
+            />
             <S.TitleOrphanActions>
-              <S.QuickActionButton
+              <LcarsActionButton
                 type="button"
+                $tone="teal"
+                $symbol="+"
                 $active={quickPanel === 'orphan'}
+                aria-label={quickPanel === 'orphan' ? 'Close new item form' : 'Create a new item'}
+                aria-expanded={quickPanel === 'orphan'}
                 onClick={() => runRailAction(() => toggleQuickPanel('orphan'))}
-              >
-                New Item
-              </S.QuickActionButton>
+                label={quickPanel === 'orphan' ? 'Close' : 'New item'}
+              />
             </S.TitleOrphanActions>
           </S.TitleActions>
         </S.UtilityRow>

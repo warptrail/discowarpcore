@@ -53,10 +53,14 @@ export default function RetrievalExplorer({
   tagScope,
   sortOptions,
   selectedSort,
+  presentation = 'cards',
+  tagOperator = 'or',
   onToggleFilter,
   onRemoveChip,
   onClearAll,
   onSortChange,
+  onPresentationChange,
+  onTagOperatorChange,
 }) {
   const [activeTray, setActiveTray] = useState('');
   const [optionQuery, setOptionQuery] = useState('');
@@ -105,16 +109,27 @@ export default function RetrievalExplorer({
     <S.ExplorerShell>
       <S.ResultsHeaderTop>
         <S.ResultsCount>{countLabel}</S.ResultsCount>
-        <S.ExplorerOrderTrigger
-          type="button"
-          aria-expanded={activeTray === 'order'}
-          aria-controls="retrieval-explorer-tray"
-          onClick={() => changeTray('order')}
-          $active={activeTray === 'order'}
-        >
-          <span>ORDER</span>
-          <strong>{selectedBaseSort.slice(0, 3).toUpperCase()} {descending ? '↓' : '↑'}</strong>
-        </S.ExplorerOrderTrigger>
+        <S.ResultsHeaderActions>
+          <S.ExplorerViewTrigger
+            type="button"
+            aria-pressed={presentation === 'ascii'}
+            $active={presentation === 'ascii'}
+            onClick={() => onPresentationChange?.(presentation === 'ascii' ? 'cards' : 'ascii')}
+          >
+            <span>VIEW</span>
+            <strong>{presentation === 'ascii' ? 'ASCII' : 'CARDS'}</strong>
+          </S.ExplorerViewTrigger>
+          <S.ExplorerOrderTrigger
+            type="button"
+            aria-expanded={activeTray === 'order'}
+            aria-controls="retrieval-explorer-tray"
+            onClick={() => changeTray('order')}
+            $active={activeTray === 'order'}
+          >
+            <span>ORDER</span>
+            <strong>{selectedBaseSort.slice(0, 3).toUpperCase()} {descending ? '↓' : '↑'}</strong>
+          </S.ExplorerOrderTrigger>
+        </S.ResultsHeaderActions>
       </S.ResultsHeaderTop>
 
       <S.ExplorerFacetRail aria-label="Filter retrieval results">
@@ -148,6 +163,17 @@ export default function RetrievalExplorer({
             <S.ExplorerTrayTitle>
               {activeTray === 'order' ? `Order by ${getOrderLabel(sortOptions, selectedSort)}` : activeFacet?.label}
             </S.ExplorerTrayTitle>
+            {activeTray === 'tags' ? (
+              <S.TagOperatorToggle
+                type="button"
+                aria-label={`Tag matching: ${tagOperator === 'and' ? 'all selected tags' : 'any selected tag'}`}
+                onClick={() => onTagOperatorChange?.(tagOperator === 'and' ? 'or' : 'and')}
+                $and={tagOperator === 'and'}
+              >
+                <span>Match</span>
+                <strong>{tagOperator.toUpperCase()}</strong>
+              </S.TagOperatorToggle>
+            ) : null}
             <S.ExplorerTrayClose type="button" onClick={() => changeTray(activeTray)} aria-label="Close retrieval controls">×</S.ExplorerTrayClose>
           </S.ExplorerTrayHeader>
 

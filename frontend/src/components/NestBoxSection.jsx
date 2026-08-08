@@ -4,6 +4,7 @@ import useNestBoxSectionData from './NestBoxSection/useNestBoxSectionData';
 import NestContextCard from './NestBoxSection/NestContextCard';
 import NestDestinationGrid from './NestBoxSection/NestDestinationGrid';
 import * as S from './NestBoxSection/NestBoxSection.styles';
+import { getBoxTheme, getBoxThemeCssVars } from '../util/inventoryColorTheme';
 
 export default function NestBoxSection({
   open,
@@ -42,8 +43,12 @@ export default function NestBoxSection({
     onDidReleaseChildren,
   });
 
+  const sourceTheme = getBoxTheme(sourceBoxShortId || localBoxTree?.box_id, {
+    kind: 'system',
+  });
+
   return (
-    <S.NestPanel $open={open}>
+    <S.NestPanel $open={open} style={getBoxThemeCssVars(sourceTheme)}>
       {open && (
         <S.SectionInner>
           <S.SectionHeader>

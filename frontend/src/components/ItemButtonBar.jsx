@@ -1,4 +1,4 @@
-import React, { useId, useState } from 'react';
+import React, { useState } from 'react';
 import MoveItemToOtherBox from './MoveItemToOtherBox';
 import * as S from '../styles/ItemPage.styles';
 import { getItemOwnershipContext } from '../util/itemOwnership';
@@ -39,7 +39,6 @@ export default function ItemButtonBar({
   onMoveItem,
   onRemoveFromBox,
   timestampActions = [],
-  fieldFocusLabel = '',
   viewMode = 'all',
   onViewModeChange,
   mediaEditorOpen = false,
@@ -49,8 +48,6 @@ export default function ItemButtonBar({
   onDeclutter,
 }) {
   const [showPicker, setShowPicker] = useState(false);
-  const [controlsOpen, setControlsOpen] = useState(false);
-  const controlsPanelId = useId();
   const ownership = getItemOwnershipContext(item);
   const box = ownership.box ?? null;
   const boxMongoId = ownership.boxMongoId || (box?._id ? String(box._id) : '');
@@ -141,29 +138,7 @@ export default function ItemButtonBar({
 
   return (
     <S.ItemButtonBar aria-label="Item controls">
-      <S.ItemControlsToggle
-        type="button"
-        aria-expanded={controlsOpen}
-        aria-controls={controlsPanelId}
-        onClick={() => setControlsOpen((current) => !current)}
-      >
-        <S.ItemControlsToggleCopy>
-          <S.ItemControlsKicker>Item controls</S.ItemControlsKicker>
-          <S.ItemControlsSummary>
-            {fieldFocusLabel
-              ? `Field focus // ${fieldFocusLabel}`
-              : mediaEditorOpen
-                  ? 'Image management active'
-                  : viewMode === 'hierarchy'
-                ? 'Hierarchy view'
-                : 'All data view'}
-          </S.ItemControlsSummary>
-        </S.ItemControlsToggleCopy>
-        <S.ItemControlsChevron $open={controlsOpen} aria-hidden="true">⌄</S.ItemControlsChevron>
-      </S.ItemControlsToggle>
-
-      {controlsOpen ? (
-        <S.ItemControlsPanel id={controlsPanelId}>
+      <S.ItemControlsPanel>
           {hasDeclutterAction ? (
             <S.DeclutterControlGroup>
               <S.DeclutterControlButton
@@ -279,8 +254,7 @@ export default function ItemButtonBar({
 
           {error ? <S.ContainerError role="alert">{error}</S.ContainerError> : null}
 
-        </S.ItemControlsPanel>
-      ) : null}
+      </S.ItemControlsPanel>
     </S.ItemButtonBar>
   );
 }

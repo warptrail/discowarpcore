@@ -1,6 +1,13 @@
 // src/views/BoxList.jsx
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { styledComponents as S } from '../styles/BoxList.styles';
 import InventoryGridHeader from './InventoryGridHeader';
 import { normalizeItemCategory } from '../util/itemCategories';
@@ -21,6 +28,8 @@ import OperationsArchivedItemsLane from './OperationsArchivedItems/OperationsArc
 import { API_BASE } from '../api/API_BASE';
 import { normalizeKeepPriority } from '../util/keepPriority';
 import { OPERATIONS_QUICK_PEEK_CLOSE_EVENT } from '../constants/inventoryFinderEvents';
+import { getBoxThumbnailUrl } from '../util/itemImage';
+import { OPERATIONS_SCROLL_RESTORE_STATE } from '../util/operationsReturnPosition';
 
 const ORPHANED_CONTAINER_ROUTE = '/all-items?filter=orphaned';
 
@@ -42,6 +51,7 @@ export default function BoxList({
   onInventoryQueryChange,
   onOperationsDataRefreshRequest,
 }) {
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [quickCreatedBoxes, setQuickCreatedBoxes] = useState([]);
   const [quickOrphanedDelta, setQuickOrphanedDelta] = useState(0);
@@ -234,6 +244,56 @@ export default function BoxList({
   const [quickPeekSurface, setQuickPeekSurface] = useState('items');
   const lastAutoActivatedLocatorRef = useRef('');
   const autoOpenedPeekIdRef = useRef('');
+  const appliedScrollRestoreRef = useRef('');
+
+  useLayoutEffect(() => {
+    const restoreRequest = location.state?.[OPERATIONS_SCROLL_RESTORE_STATE];
+    const targetY = Number(restoreRequest?.scrollY);
+    if (!Number.isFinite(targetY) || targetY < 0) return undefined;
+    const restoreKey = `${Number(restoreRequest?.savedAt) || 0}:${targetY}`;
+    if (appliedScrollRestoreRef.current === restoreKey) return undefined;
+
+    const previousScrollRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
+    let frameId = 0;
+    let attempts = 0;
+    let settledFrames = 0;
+    let cancelled = false;
+
+    const finish = () => {
+      appliedScrollRestoreRef.current = restoreKey;
+      window.history.scrollRestoration = previousScrollRestoration;
+    };
+
+    const restore = () => {
+      if (cancelled) return;
+      attempts += 1;
+      const maxScrollY = Math.max(
+        0,
+        document.documentElement.scrollHeight - window.innerHeight,
+      );
+      window.scrollTo({ top: Math.min(targetY, maxScrollY), left: 0, behavior: 'auto' });
+
+      const pageCanReachTarget = maxScrollY >= targetY - 2;
+      const reachedTarget = Math.abs(window.scrollY - targetY) <= 2;
+      settledFrames = pageCanReachTarget && reachedTarget ? settledFrames + 1 : 0;
+
+      // Hold the coordinate through the header's 280ms layout transition and
+      // Quick Peek mount so scroll anchoring cannot shift the final viewport.
+      if (settledFrames >= 24 || attempts >= 300) {
+        finish();
+        return;
+      }
+      frameId = window.requestAnimationFrame(restore);
+    };
+
+    frameId = window.requestAnimationFrame(restore);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frameId);
+      window.history.scrollRestoration = previousScrollRestoration;
+    };
+  }, [location.state]);
 
   useEffect(() => {
     if (groupFilter === 'all') return;
@@ -788,6 +848,7 @@ function Branch({
       : undefined,
   });
   const boxThemeStyle = getBoxThemeCssVars(boxTheme);
+  const noImagePlaceholderStyle = getBoxImagePlaceholderStyle(node);
 
   const itemQtyTotal = getNodeItemCount(node);
   const matchingItems = getMatchingItemNames(node, searchQuery, searchScope);
@@ -894,7 +955,11 @@ function Branch({
               </S.BoxImageTrigger>
             ) : (
               <S.BoxImageFrame $density={density}>
-                <S.BoxImagePlaceholder>No image</S.BoxImagePlaceholder>
+                <S.BoxImagePlaceholder
+                  role="img"
+                  aria-label="No box image available"
+                  style={noImagePlaceholderStyle}
+                />
               </S.BoxImageFrame>
             )}
 
@@ -1348,15 +1413,27 @@ function normalize(value) {
   return String(value || '').trim().toLowerCase();
 }
 
+function getBoxImagePlaceholderStyle(box) {
+  const source = `${box?.box_id || ''}:${box?.label || box?.name || ''}`;
+  let hash = 2166136261;
+
+  for (let index = 0; index < source.length; index += 1) {
+    hash ^= source.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  const seed = hash >>> 0;
+  return {
+    '--placeholder-primary-x': `${20 + (seed % 55)}%`,
+    '--placeholder-primary-y': `${18 + ((seed >>> 6) % 56)}%`,
+    '--placeholder-secondary-x': `${18 + ((seed >>> 12) % 60)}%`,
+    '--placeholder-secondary-y': `${16 + ((seed >>> 18) % 62)}%`,
+    '--placeholder-wash-angle': `${42 + ((seed >>> 24) % 112)}deg`,
+  };
+}
+
 function getBoxImageUrl(box) {
-  return (
-    box?.image?.thumb?.url ||
-    box?.image?.display?.url ||
-    box?.image?.original?.url ||
-    box?.image?.url ||
-    box?.imagePath ||
-    ''
-  );
+  return getBoxThumbnailUrl(box);
 }
 
 function hasItemWithCategory(items, categoryFilter) {

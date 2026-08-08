@@ -8,6 +8,7 @@ import {
   MOBILE_FONT_XS,
 } from '../../styles/tokens';
 import IntakeBoxSelectorPanel from './IntakeBoxSelectorPanel';
+import { getItemThumbnailUrl } from '../../util/itemImage';
 
 const Panel = styled.section`
   border: 1px solid rgba(177, 134, 75, 0.45);
@@ -248,14 +249,7 @@ async function readMoveError(response, fallbackMessage) {
 }
 
 function getItemImageUrl(item) {
-  return (
-    item?.image?.thumb?.url ||
-    item?.image?.display?.url ||
-    item?.image?.original?.url ||
-    item?.image?.url ||
-    item?.imagePath ||
-    ''
-  );
+  return getItemThumbnailUrl(item);
 }
 
 function getCurrentBoxLabel(item) {

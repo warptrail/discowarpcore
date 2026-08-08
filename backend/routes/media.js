@@ -1,5 +1,6 @@
 const express = require('express');
 const {
+  getImageDerivativeApi,
   postMediaProcessTestApi,
   postMediaBatchTestApi,
   postMediaJobEnqueueApi,
@@ -19,6 +20,7 @@ const MEDIA_TEST_ROUTES_ENABLED =
   process.env.NODE_ENV !== 'production';
 
 router.post('/jobs/process', postMediaJobEnqueueApi);
+router.get('/image-derivative', getImageDerivativeApi);
 router.get('/jobs', getMediaJobsApi);
 router.get('/jobs/:jobId/events', getMediaJobEventsApi);
 router.get('/jobs/:jobId', getMediaJobStatusApi);

@@ -27,6 +27,7 @@ export default function AllItemsSelectionPanel({
   onMoveSelected,
   onExit,
   declutterControls = null,
+  hasMore = false,
 }) {
   const safeBatchOptions = Array.isArray(sourceBatchOptions) ? sourceBatchOptions : [];
   const selectedBatch = safeBatchOptions.find(
@@ -41,7 +42,7 @@ export default function AllItemsSelectionPanel({
       <S.BatchSelectionSummary>
         <S.BatchSelectionTitle>Select Items</S.BatchSelectionTitle>
         <S.BatchSelectionText>
-          {selectedCount} selected from {selectableCount} active visible items.
+          {selectedCount} selected from {selectableCount} active loaded items.
           No-longer-have items are excluded from selection.
         </S.BatchSelectionText>
       </S.BatchSelectionSummary>
@@ -54,7 +55,7 @@ export default function AllItemsSelectionPanel({
             disabled={!selectableCount || moving}
             onClick={() => onSelectAllVisible?.()}
           >
-            Select All Visible
+            {hasMore ? 'Select All Loaded' : 'Select All Visible'}
           </S.ToolbarButton>
           <S.ToolbarButton
             type="button"

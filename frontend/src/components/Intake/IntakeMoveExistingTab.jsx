@@ -12,6 +12,7 @@ import {
   formatItemCategory,
   normalizeItemCategory,
 } from '../../util/itemCategories';
+import { getItemThumbnailUrl } from '../../util/itemImage';
 
 const PAGE_SIZE = 20;
 
@@ -260,14 +261,7 @@ const StateText = styled.div`
 `;
 
 function getItemImageUrl(item) {
-  return (
-    item?.image?.thumb?.url ||
-    item?.image?.display?.url ||
-    item?.image?.original?.url ||
-    item?.image?.url ||
-    item?.imagePath ||
-    ''
-  );
+  return getItemThumbnailUrl(item);
 }
 
 function getCurrentBoxText(item) {

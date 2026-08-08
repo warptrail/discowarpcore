@@ -722,12 +722,43 @@ const BoxImage = styled.img`
 const BoxImagePlaceholder = styled.div`
   width: 100%;
   height: 100%;
-  display: grid;
-  place-items: center;
-  color: ${toneAlpha(LCARS.textDim, 'dd')};
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(
+      118% 94% at var(--placeholder-primary-x, 48%) var(--placeholder-primary-y, 34%),
+      ${boxToneAlpha(0.3)} 0%,
+      ${boxToneAlpha(0.13)} 34%,
+      transparent 70%
+    ),
+    radial-gradient(
+      104% 88% at var(--placeholder-secondary-x, 67%) var(--placeholder-secondary-y, 72%),
+      ${boxSecondaryAlpha(0.21)} 0%,
+      transparent 68%
+    ),
+    linear-gradient(
+      var(--placeholder-wash-angle, 104deg),
+      rgba(8, 13, 19, 0.24),
+      rgba(8, 13, 19, 0.82) 78%
+    ),
+    #0d1318;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.48;
+    background:
+      linear-gradient(135deg, transparent 36%, ${boxToneAlpha(0.09)} 50%, transparent 64%),
+      repeating-linear-gradient(
+        0deg,
+        transparent 0 5px,
+        rgba(255, 255, 255, 0.018) 6px 7px
+      );
+  }
 `;
 
 const BoxMetaStack = styled.div`
@@ -1306,7 +1337,7 @@ const OrphanedRailBack = styled(RailBack)`
   );
   background-size: 100% 240%;
   box-shadow: 0 0 14px rgba(111, 185, 255, 0.24);
-  animation: ${orphanRailShift} 7s linear infinite;
+  animation: ${orphanRailShift} 7s linear infinite alternate;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -1350,7 +1381,7 @@ const OrphanedAttentionLink = styled(Link)`
     0 8px 24px rgba(0, 0, 0, 0.3),
     0 0 18px rgba(107, 164, 255, 0.1);
   text-decoration: none;
-  animation: ${orphanSpectrumShift} 8s linear infinite;
+  animation: ${orphanSpectrumShift} 8s linear infinite alternate;
 
   &:hover {
     border-color: transparent;

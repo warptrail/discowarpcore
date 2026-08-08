@@ -1,0 +1,40 @@
+[
+  {
+    "id": "61e34d72-fe3b-4fd2-aa9b-76e6287d9061",
+    "at": "2026-08-07T18:58:58.180Z",
+    "type": "unexpected-exit",
+    "serviceId": "backend",
+    "message": "Exited unexpectedly (SIGTERM).",
+    "code": null,
+    "signal": "SIGTERM",
+    "runId": "backend-1786081832400-6269ace2"
+  },
+  {
+    "id": "af221a1f-97b2-4c88-b924-c8014e30ed9d",
+    "at": "2026-08-07T19:02:14.240Z",
+    "type": "health-transition",
+    "serviceId": "backend",
+    "message": "unknown -> healthy: HTTP 200 from /api/health."
+  },
+  {
+    "id": "4ded6326-4ac6-48b1-be06-bfe888a75df2",
+    "at": "2026-08-07T21:36:45.496Z",
+    "type": "health-transition",
+    "serviceId": "backend",
+    "message": "unknown -> healthy: HTTP 200 from /api/health."
+  },
+  {
+    "id": "4edbf833-115f-4bcc-ae47-9fb4b3b305b7",
+    "at": "2026-08-07T21:38:53.574Z",
+    "type": "health-transition",
+    "serviceId": "backend",
+    "message": "unknown -> healthy: HTTP 200 from /api/health."
+  },
+  {
+    "id": "d2d8e2c5-33a5-456f-bd73-e4121ba92bb1",
+    "at": "2026-08-07T21:42:55.662Z",
+    "type": "health-transition",
+    "serviceId": "backend",
+    "message": "unknown -> healthy: HTTP 200 from /api/health."
+  }
+]

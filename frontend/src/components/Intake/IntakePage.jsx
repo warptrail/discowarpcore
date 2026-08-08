@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { API_BASE } from '../../api/API_BASE';
 import { MOBILE_BREAKPOINT } from '../../styles/tokens';
 import { getBoxTheme, getBoxThemeCssVars } from '../../util/inventoryColorTheme';
@@ -11,7 +11,7 @@ import IntakeRapidActions from './IntakeRapidActions';
 import IntakeRecentActivity from './IntakeRecentActivity';
 import IntakeQuickItemMaker from './IntakeQuickItemMaker';
 import IntakeWorkspaceTabs from './IntakeWorkspaceTabs';
-import BoxCreate from '../BoxCreate';
+import OperationsQuickBoxCreate from '../OperationsQuickBoxCreate/OperationsQuickBoxCreate';
 
 const CURRENT_BOX_STORAGE_KEY = 'intake.currentBoxId';
 const BATCH_FILTER_STORAGE_KEY = 'intake.selectedBatchIds';
@@ -84,6 +84,73 @@ const StateText = styled.div`
   line-height: 1.4;
 `;
 
+const routeSigilOrbit = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
+const RouteNoneSelectButton = styled.button`
+  min-width: 172px;
+  min-height: 42px;
+  border: 1px solid rgba(76, 198, 193, 0.64);
+  border-radius: 5px;
+  padding: 0.35rem 0.58rem;
+  background: rgba(7, 18, 26, 0.94);
+  color: #d9fffa;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.58rem;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  svg {
+    width: 24px;
+    height: 24px;
+    color: #7fd7ff;
+    filter: drop-shadow(0 0 4px rgba(127, 215, 255, 0.65));
+  }
+
+  .route-sigil-orbit {
+    transform-origin: 12px 12px;
+    animation: ${routeSigilOrbit} 8s linear infinite;
+  }
+
+  &:hover,
+  &:focus-visible {
+    border-color: rgba(167, 139, 250, 0.9);
+    background: rgba(20, 28, 42, 0.98);
+    box-shadow: 0 0 14px rgba(127, 215, 255, 0.2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #a78bfa;
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .route-sigil-orbit { animation: none; }
+  }
+`;
+
+function RouteSigilGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <g className="route-sigil-orbit" fill="none" stroke="currentColor" strokeWidth="1.15">
+        <polygon points="12,2.5 20.2,7.2 20.2,16.8 12,21.5 3.8,16.8 3.8,7.2" />
+        <circle cx="12" cy="2.5" r="1" fill="currentColor" stroke="none" />
+        <circle cx="20.2" cy="16.8" r="1" fill="currentColor" stroke="none" />
+        <circle cx="3.8" cy="16.8" r="1" fill="currentColor" stroke="none" />
+      </g>
+      <path d="M12 5.6 17.5 15H6.5Z" fill="none" stroke="rgba(76, 198, 193, 0.95)" strokeWidth="1.1" />
+      <circle cx="12" cy="12" r="2.15" fill="none" stroke="rgba(76, 198, 193, 0.95)" strokeWidth="1.1" />
+    </svg>
+  );
+}
+
 function readStoredCurrentBoxId() {
   if (typeof window === 'undefined') return '';
 
@@ -91,30 +158,6 @@ function readStoredCurrentBoxId() {
     return String(window.localStorage.getItem(CURRENT_BOX_STORAGE_KEY) || '').trim();
   } catch {
     return '';
-  }
-}
-
-function readStoredBatchIds() {
-  if (typeof window === 'undefined') return [];
-
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(BATCH_FILTER_STORAGE_KEY) || '[]');
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map((value) => String(value || '').trim()).filter(Boolean);
-  } catch {
-    return [];
-  }
-}
-
-function readStoredBoolean(key, fallback = false) {
-  if (typeof window === 'undefined') return fallback;
-
-  try {
-    const value = window.localStorage.getItem(key);
-    if (value == null) return fallback;
-    return value === 'true';
-  } catch {
-    return fallback;
   }
 }
 
@@ -339,10 +382,8 @@ export default function IntakePage({ boxes = [] }) {
   const [routeConsoleSuppressed, setRouteConsoleSuppressed] = useState(false);
   const [boxImageOverrides, setBoxImageOverrides] = useState({});
   const [createdBoxes, setCreatedBoxes] = useState([]);
-  const [selectedBatchIds, setSelectedBatchIds] = useState(() => readStoredBatchIds());
-  const [onlyOrphanedItems, setOnlyOrphanedItems] = useState(() =>
-    readStoredBoolean(ORPHAN_FILTER_STORAGE_KEY, false),
-  );
+  const [selectedBatchIds, setSelectedBatchIds] = useState([]);
+  const [onlyOrphanedItems, setOnlyOrphanedItems] = useState(false);
 
   const [items, setItems] = useState([]);
   const [intakeActivity, setIntakeActivity] = useState([]);
@@ -682,7 +723,7 @@ export default function IntakePage({ boxes = [] }) {
     setSelectedBatchIds(nextIds);
   }, [batchFilterOptions, selectedBatchIds]);
 
-  const filteredRecentActivityItems = useMemo(() => {
+  const filteredOrganizeItems = useMemo(() => {
     const selectedBatches = new Set(selectedBatchIds);
 
     return [...mergedIntakeItems]
@@ -691,8 +732,7 @@ export default function IntakePage({ boxes = [] }) {
         if (selectedBatches.size === 0) return true;
         return selectedBatches.has(getActivityBatchId(item));
       })
-      .sort((a, b) => getItemCreatedTimestamp(b) - getItemCreatedTimestamp(a))
-      .slice(0, 10);
+      .sort((a, b) => getItemCreatedTimestamp(b) - getItemCreatedTimestamp(a));
   }, [mergedIntakeItems, onlyOrphanedItems, selectedBatchIds]);
 
   const handleToggleBatchFilter = useCallback((batchId) => {
@@ -971,6 +1011,12 @@ export default function IntakePage({ boxes = [] }) {
     handleItemMutation(payload);
   }, [handleItemMutation]);
 
+  const openCurrentBoxSelection = useCallback(() => {
+    setMoveSeedItemId('');
+    setActiveWorkspaceView('box');
+    setSelectorOpen(true);
+  }, []);
+
   useEffect(() => {
     if (activeWorkspaceView !== 'organize' || routeConsoleSuppressed) {
       hideToast?.(ORGANIZE_CONSOLE_TOAST_ID);
@@ -979,13 +1025,12 @@ export default function IntakePage({ boxes = [] }) {
 
     const hasDestination = Boolean(String(currentBox?._id || '').trim());
     const hasSelectedItem = Boolean(String(selectedRoutingItem?._id || '').trim());
-    const canRoute = hasDestination && hasSelectedItem;
+    const canRoute = hasSelectedItem;
     const destinationTheme = getBoxTheme(currentBox?.box_id);
-    const routeHint = hasDestination
-      ? 'Choose an activity item below.'
-      : hasSelectedItem
-        ? 'Choose a current box first.'
-        : 'Choose a box and activity item.';
+    const routeHint = hasDestination ? 'Choose an inventory item below.' : null;
+    const routeTitle = hasDestination
+      ? `Route = #${String(currentBox?.box_id || 'selected').trim()}`
+      : 'Route = none';
 
     showToast?.({
       id: ORGANIZE_CONSOLE_TOAST_ID,
@@ -994,7 +1039,7 @@ export default function IntakePage({ boxes = [] }) {
       dismissible: false,
       presentation: 'item-field',
       themeStyle: getBoxThemeCssVars(destinationTheme),
-      title: 'Route',
+      title: routeTitle,
       message: canRoute ? null : routeHint,
       content: canRoute ? (
         <IntakeRapidActions
@@ -1006,6 +1051,11 @@ export default function IntakePage({ boxes = [] }) {
             setRouteConsoleSuppressed(true);
           }}
         />
+      ) : !hasDestination ? (
+        <RouteNoneSelectButton type="button" onClick={openCurrentBoxSelection}>
+          <span>Current box</span>
+          <RouteSigilGlyph />
+        </RouteNoneSelectButton>
       ) : null,
     });
 
@@ -1015,6 +1065,7 @@ export default function IntakePage({ boxes = [] }) {
     currentBox,
     handleItemMutation,
     hideToast,
+    openCurrentBoxSelection,
     routeConsoleSuppressed,
     selectedRoutingItem,
     showToast,
@@ -1106,10 +1157,8 @@ export default function IntakePage({ boxes = [] }) {
               onCurrentBoxPhotoUpdated={handleBoxPhotoMutation}
             />
             {activeAction === 'create-box' ? (
-              <BoxCreate
-                embedded
-                autoNavigate={false}
-                title="Create box"
+              <OperationsQuickBoxCreate
+                eyebrow="Intake · current box"
                 onCreated={handleBoxCreated}
                 onCancel={() => setActiveAction('')}
               />
@@ -1139,7 +1188,7 @@ export default function IntakePage({ boxes = [] }) {
         {activeWorkspaceView === 'organize' ? (
           <WorkspacePanel id="intake-workspace-panel-organize" aria-label="Organize Intake">
             <IntakeRecentActivity
-              items={filteredRecentActivityItems}
+              items={filteredOrganizeItems}
               boxLookup={boxesById}
               loading={loadingItems}
               error={itemsError}

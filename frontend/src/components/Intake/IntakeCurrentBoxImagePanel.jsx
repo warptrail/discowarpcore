@@ -7,20 +7,14 @@ import {
   getImageProcessingToastSignature,
   isImageProcessingInFlight,
 } from '../Processing/imageProcessingToastUtils';
+import { getBoxPreviewImageUrl } from '../../util/itemImage';
 
 function toTrimmed(value) {
   return value == null ? '' : String(value).trim();
 }
 
 function pickBoxImageUrl(box) {
-  return (
-    box?.imagePath ||
-    box?.image?.display?.url ||
-    box?.image?.thumb?.url ||
-    box?.image?.original?.url ||
-    box?.image?.url ||
-    ''
-  );
+  return getBoxPreviewImageUrl(box);
 }
 
 export default function IntakeCurrentBoxImagePanel({

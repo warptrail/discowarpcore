@@ -49,7 +49,7 @@ export default function BoxDetailTabContent({
           searchQuery={searchQuery}
           sortMode={sortMode}
           viewMode={viewMode}
-          scopeLabel={Array.isArray(tree?.childBoxes) && tree.childBoxes.length > 0 ? 'Tree' : 'List'}
+          scopeLabel={viewMode === 'condensed' ? 'Compact inventory' : 'Box tree'}
           onManageBox={onManageBox}
         />
       </S.TreeTabScope>

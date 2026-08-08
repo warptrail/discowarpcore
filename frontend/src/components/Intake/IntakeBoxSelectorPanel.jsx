@@ -6,6 +6,7 @@ import {
   MOBILE_FONT_XS,
 } from '../../styles/tokens';
 import { getBoxTheme, getBoxThemeCssVars } from '../../util/inventoryColorTheme';
+import { getBoxThumbnailUrl } from '../../util/itemImage';
 
 const Panel = styled.section`
   border-top: 1px solid rgba(105, 179, 174, 0.34);
@@ -361,14 +362,7 @@ function getBoxSearchText(box) {
 }
 
 function getBoxImageUrl(box) {
-  return (
-    box?.image?.thumb?.url ||
-    box?.image?.display?.url ||
-    box?.image?.original?.url ||
-    box?.image?.url ||
-    box?.imagePath ||
-    ''
-  );
+  return getBoxThumbnailUrl(box);
 }
 
 function getUniqueValues(list, mapValue) {

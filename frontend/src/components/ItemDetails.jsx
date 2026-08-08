@@ -11,6 +11,7 @@ import {
 import { getItemOwnershipContext } from '../util/itemOwnership';
 import OperationsItemOverview from './OperationsItemOverview';
 import RetrievalImageLightbox from './Retrieval/RetrievalImageLightbox';
+import { getItemPreviewImageUrl } from '../util/itemImage';
 
 function fmtDate(value) {
   return value ? dayjs(value).format('YYYY-MM-DD') : '—';
@@ -284,12 +285,7 @@ export default function ItemDetails({
 
   const resolvedImageUrlRaw =
     imageUrlOverride ||
-    resolvedItemData?.image?.display?.url ||
-    resolvedItemData?.image?.thumb?.url ||
-    resolvedItemData?.image?.original?.url ||
-    resolvedItemData?.image?.url ||
-    imagePath ||
-    '';
+    getItemPreviewImageUrl(resolvedItemData);
   const resolvedImageUrl = withCacheBuster(resolvedImageUrlRaw, imageRefreshToken);
   const isOperationsOverview = variant === 'operationsOverview';
   const canOpenLightbox = enableImageLightbox && Boolean(resolvedImageUrl);

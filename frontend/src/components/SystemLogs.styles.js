@@ -1,488 +1,305 @@
 import styled, { css } from 'styled-components';
 import { Link } from 'react-router-dom';
-import {
-  MOBILE_BREAKPOINT,
-  MOBILE_CONTROL_MIN_HEIGHT,
-  MOBILE_FONT_SM,
-  MOBILE_FONT_XS,
-  MOBILE_PANEL_RADIUS,
-} from '../styles/tokens';
+import { MOBILE_BREAKPOINT, MOBILE_CONTROL_MIN_HEIGHT } from '../styles/tokens';
 
-const LOGS = {
-  panel: '#111820',
-  panelAlt: '#17222f',
-  row: '#121b24',
-  rowHover: '#1a2633',
-  border: 'rgba(115, 206, 255, 0.22)',
-  borderStrong: 'rgba(115, 206, 255, 0.44)',
-  text: '#e8f0f7',
-  textMuted: 'rgba(232, 240, 247, 0.64)',
-  cyan: '#74d4ff',
-  mint: '#78f5c8',
-  amber: '#f3bc76',
-  rose: '#f2a5a5',
+const C = {
+  bg: '#080d11',
+  panel: '#0b1218',
+  line: 'rgba(128, 218, 218, 0.2)',
+  lineStrong: 'rgba(128, 218, 218, 0.42)',
+  text: '#d7e4e5',
+  dim: 'rgba(215, 228, 229, 0.56)',
+  teal: '#7de0d5',
+  lilac: '#c4b4ef',
+  amber: '#e4bd7b',
+  red: '#ee9b9b',
 };
 
-const panelChrome = css`
-  border: 1px solid ${LOGS.border};
-  border-radius: 14px;
-  background:
-    radial-gradient(circle at 88% 11%, rgba(120, 245, 200, 0.1), transparent 46%),
-    linear-gradient(180deg, ${LOGS.panelAlt} 0%, ${LOGS.panel} 100%);
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.24),
-    0 14px 30px rgba(0, 0, 0, 0.32);
+const mono = css`
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+`;
+
+const focus = css`
+  &:focus-visible {
+    outline: 1px solid ${C.lilac};
+    outline-offset: 3px;
+  }
 `;
 
 export const PageShell = styled.section`
+  ${mono};
   display: grid;
-  gap: 0.72rem;
-  color: ${LOGS.text};
+  gap: 0.55rem;
+  min-width: 0;
+  color: ${C.text};
 `;
 
 export const IntroPanel = styled.section`
-  ${panelChrome};
-  display: grid;
-  gap: 0.56rem;
-  padding: 0.8rem;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: 0.58rem;
-    border-radius: ${MOBILE_PANEL_RADIUS};
-  }
+  border: 1px solid ${C.lineStrong};
+  border-radius: 4px 4px 0 0;
+  background: ${C.bg};
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.025);
+  padding: 0.62rem 0.72rem;
 `;
 
 export const HeadingRow = styled.div`
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.55rem;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    flex-direction: column;
-    align-items: stretch;
-  }
-`;
-
-export const HeadingGroup = styled.div`
-  display: grid;
-  gap: 0.2rem;
-`;
-
-export const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-export const TitlePip = styled.span`
-  width: 9px;
-  height: 24px;
-  border-radius: 8px;
-  background: ${LOGS.mint};
-  box-shadow: 0 0 0 2px rgba(120, 245, 200, 0.22) inset;
-`;
-
-export const Title = styled.h2`
-  margin: 0;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-  font-size: clamp(1rem, 2.1vw, 1.12rem);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-weight: 800;
-  color: rgba(232, 240, 247, 0.96);
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: 0.9rem;
-  }
-`;
-
-export const Subtitle = styled.p`
-  margin: 0;
-  font-size: 0.78rem;
-  color: ${LOGS.textMuted};
-  line-height: 1.35;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${MOBILE_FONT_XS};
-  }
-`;
-
-export const CountPill = styled.span`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  border: 1px solid rgba(116, 212, 255, 0.34);
-  background: rgba(116, 212, 255, 0.14);
-  color: ${LOGS.cyan};
-  padding: 0.3rem 0.62rem;
-  min-width: 3rem;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-  font-size: 0.79rem;
-  font-variant-numeric: tabular-nums;
-`;
-
-export const HeaderActions = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.46rem;
-  flex-wrap: wrap;
-`;
-
-export const ExportButton = styled.button`
-  min-height: 34px;
-  border-radius: 9px;
-  border: 1px solid rgba(116, 212, 255, 0.46);
-  background: rgba(116, 212, 255, 0.14);
-  color: #c9efff;
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  padding: 0 0.72rem;
-  cursor: pointer;
-  transition: background 120ms ease;
-
-  &:hover:not(:disabled) {
-    background: rgba(116, 212, 255, 0.2);
-  }
-
-  &:disabled {
-    opacity: 0.58;
-    cursor: not-allowed;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-    font-size: ${MOBILE_FONT_SM};
-  }
-`;
-
-export const ExportError = styled.div`
-  margin-top: 0.28rem;
-  color: ${LOGS.rose};
-  font-size: 0.74rem;
-  letter-spacing: 0.01em;
-`;
-
-export const StatePanel = styled.section`
-  ${panelChrome};
-  padding: 0.72rem;
-  font-size: 0.86rem;
-  color: ${({ $tone }) =>
-    $tone === 'error' ? LOGS.rose : $tone === 'muted' ? LOGS.textMuted : LOGS.text};
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.8rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: 0.58rem;
-    border-radius: ${MOBILE_PANEL_RADIUS};
-    font-size: ${MOBILE_FONT_SM};
+    align-items: stretch;
+    flex-direction: column;
   }
 `;
 
-export const RetryButton = styled.button`
-  border: 1px solid rgba(242, 165, 165, 0.52);
-  border-radius: 9px;
-  background: rgba(242, 165, 165, 0.12);
-  color: #ffd7d7;
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  min-height: 34px;
-  padding: 0 0.7rem;
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    background: rgba(242, 165, 165, 0.18);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-
-export const FeedPanel = styled.section`
-  ${panelChrome};
-  padding: 0;
-  overflow: hidden;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    border-radius: ${MOBILE_PANEL_RADIUS};
-  }
-`;
-
-export const FeedList = styled.div`
+export const HeadingGroup = styled.div`
   display: grid;
+  gap: 0.12rem;
+  min-width: 0;
 `;
 
-export const EntryRow = styled.article`
-  padding: 0.68rem 0.74rem;
-  border-bottom: 1px solid rgba(115, 206, 255, 0.16);
-  background: ${LOGS.row};
-  transition: background 120ms ease;
-
-  &:hover {
-    background: ${LOGS.rowHover};
-  }
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: 0.56rem 0.54rem;
-  }
-`;
-
-export const EntryPrimary = styled.div`
-  margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.32;
-  color: ${LOGS.text};
-`;
-
-export const EntryPrimaryStructured = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.44rem;
-  flex-wrap: wrap;
-`;
-
-export const EntryPrefix = styled.span`
-  color: ${LOGS.text};
-  font-weight: 700;
-  letter-spacing: 0.01em;
-`;
-
-const summaryBase = css`
-  color: ${LOGS.text};
-  text-decoration: none;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-`;
-
-export const EntrySummaryLink = styled(Link)`
-  ${summaryBase};
-  border-bottom: 1px dotted rgba(120, 245, 200, 0.38);
-
-  &:hover {
-    color: #f2fbff;
-    border-bottom-color: rgba(120, 245, 200, 0.72);
-  }
-`;
-
-export const EntrySummaryText = styled.span`
-  ${summaryBase};
-`;
-
-export const EntryMeta = styled.div`
-  margin-top: 0.32rem;
+export const TitleRow = styled.div`
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.74rem;
-  color: ${LOGS.textMuted};
+  align-items: baseline;
+  gap: 0.55rem;
 `;
 
-export const Timestamp = styled.span`
-  font-variant-numeric: tabular-nums;
-  color: rgba(232, 240, 247, 0.72);
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+export const TitlePip = styled.span`
+  color: ${C.teal};
+  font-size: 0.78rem;
 `;
 
-export const BoxChipGroup = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.34rem;
-  flex-wrap: wrap;
-`;
-
-const boxChipBase = css`
-  display: inline-flex;
-  align-items: center;
-  border-radius: 8px;
-  line-height: 1.2;
-`;
-
-export const BoxIdChip = styled.span`
-  ${boxChipBase};
-  border: 1px solid rgba(var(--box-primary-rgb, 116, 212, 255), 0.6);
-  background: linear-gradient(
-    180deg,
-    rgba(var(--box-primary-rgb, 116, 212, 255), 0.2) 0%,
-    rgba(var(--box-primary-rgb, 116, 212, 255), 0.1) 100%
-  );
-  color: var(--box-neon, #8ce2ff);
-  padding: 0.14rem 0.52rem;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-  font-size: 0.86rem;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-`;
-
-export const BoxLabelChip = styled.span`
-  ${boxChipBase};
-  border: 1px solid rgba(var(--box-muted-rgb, 120, 245, 200), 0.38);
-  background: rgba(var(--box-muted-rgb, 120, 245, 200), 0.11);
-  color: #d5f6ea;
-  padding: 0.14rem 0.45rem;
-  font-family: inherit;
-  font-size: 0.74rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-`;
-
-export const BoxChipLink = styled(Link)`
-  ${BoxChipGroup};
-  text-decoration: none;
-
-  &:hover ${BoxIdChip},
-  &:hover ${BoxLabelChip} {
-    filter: brightness(1.09);
-  }
-`;
-
-const nameChipBase = css`
-  display: inline-flex;
-  align-items: center;
-  border-radius: 8px;
-  padding: 0.12rem 0.5rem;
-  border: 1px solid
-    ${({ $tone }) =>
-      $tone === 'boxName' ? 'rgba(116, 212, 255, 0.54)' : 'rgba(120, 245, 200, 0.54)'};
-  background: ${({ $tone }) =>
-    $tone === 'boxName' ? 'rgba(116, 212, 255, 0.16)' : 'rgba(120, 245, 200, 0.16)'};
-  color: ${({ $tone }) => ($tone === 'boxName' ? LOGS.cyan : LOGS.mint)};
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-  font-size: 0.82rem;
-  letter-spacing: 0.01em;
-  line-height: 1.25;
+export const Title = styled.h2`
+  margin: 0;
+  color: ${C.text};
+  font-size: clamp(0.95rem, 2vw, 1.08rem);
   font-weight: 700;
-`;
-
-export const NameChip = styled.span`
-  ${nameChipBase};
-`;
-
-export const NameChipLink = styled(Link)`
-  ${nameChipBase};
-  text-decoration: none;
-
-  &:hover {
-    filter: brightness(1.08);
-  }
-`;
-
-export const Badge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  border: 1px solid
-    ${({ $tone }) =>
-      $tone === 'entity'
-        ? 'rgba(120, 245, 200, 0.36)'
-        : $tone === 'event'
-          ? 'rgba(116, 212, 255, 0.34)'
-          : $tone === 'import'
-            ? 'rgba(120, 245, 200, 0.42)'
-            : $tone === 'file'
-              ? 'rgba(243, 188, 118, 0.42)'
-              : 'rgba(243, 188, 118, 0.35)'};
-  background: ${({ $tone }) =>
-    $tone === 'entity'
-      ? 'rgba(120, 245, 200, 0.12)'
-      : $tone === 'event'
-        ? 'rgba(116, 212, 255, 0.12)'
-        : $tone === 'import'
-          ? 'rgba(120, 245, 200, 0.16)'
-          : $tone === 'file'
-            ? 'rgba(243, 188, 118, 0.18)'
-        : 'rgba(243, 188, 118, 0.14)'};
-  color: ${({ $tone }) =>
-    $tone === 'entity'
-      ? LOGS.mint
-      : $tone === 'event'
-        ? LOGS.cyan
-        : $tone === 'import'
-          ? LOGS.mint
-          : LOGS.amber};
-  padding: 0.08rem 0.44rem;
-  font-size: 0.66rem;
   letter-spacing: 0.055em;
   text-transform: uppercase;
-  font-weight: 760;
 `;
 
-export const BulkDetails = styled.div`
-  margin-top: 0.3rem;
-  color: rgba(232, 240, 247, 0.66);
-  font-size: 0.73rem;
-  letter-spacing: 0.02em;
+export const Subtitle = styled.p`
+  margin: 0 0 0 2rem;
+  color: ${C.dim};
+  font-size: 0.68rem;
+  line-height: 1.35;
 `;
 
-export const FeedFooter = styled.div`
-  border-top: 1px solid rgba(115, 206, 255, 0.16);
-  padding: 0.62rem 0.74rem;
+export const HeaderActions = styled.div`
   display: flex;
   align-items: center;
-  justify-content: center;
-  min-height: 54px;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: 0.52rem 0.54rem;
-  }
+  justify-content: flex-end;
+  gap: 0.65rem;
+  flex-wrap: wrap;
 `;
 
-export const LoadMoreButton = styled.button`
-  min-height: 38px;
-  border-radius: 10px;
-  border: 1px solid rgba(120, 245, 200, 0.5);
-  background: rgba(120, 245, 200, 0.14);
-  color: #d7fff1;
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 0 0.9rem;
+export const CountReadout = styled.span`
+  color: ${C.teal};
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+`;
+
+const terminalButton = css`
+  ${mono};
+  ${focus};
+  min-height: 34px;
+  border: 0;
+  border-left: 1px solid ${C.lineStrong};
+  border-radius: 0;
+  background: transparent;
+  color: ${C.dim};
+  padding: 0 0.65rem;
   cursor: pointer;
-  transition: background 120ms ease;
+  font-size: 0.67rem;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
 
-  &:hover:not(:disabled) {
-    background: rgba(120, 245, 200, 0.2);
-  }
-
-  &:disabled {
-    opacity: 0.58;
-    cursor: not-allowed;
-  }
+  &:hover:not(:disabled) { color: ${C.teal}; }
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-    font-size: ${MOBILE_FONT_SM};
   }
 `;
 
+export const ExportButton = styled.button`${terminalButton}`;
+
+export const ExportError = styled.div`
+  margin-top: 0.35rem;
+  color: ${C.red};
+  font-size: 0.7rem;
+`;
+
+export const StreamNav = styled.nav`
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  overflow-x: auto;
+  border-bottom: 1px solid ${C.line};
+  padding: 0.2rem 0.1rem 0.42rem;
+`;
+
+export const StreamButton = styled.button`
+  ${mono};
+  ${focus};
+  min-height: 36px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: ${({ $active }) => ($active ? C.teal : C.dim)};
+  padding: 0 0.2rem;
+  cursor: pointer;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-align: left;
+`;
+
+export const StatePanel = styled.section`
+  border: 1px solid ${C.line};
+  border-radius: 0;
+  background: ${C.panel};
+  padding: 0.72rem;
+  color: ${({ $tone }) => ($tone === 'error' ? C.red : $tone === 'muted' ? C.dim : C.text)};
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+`;
+
+export const RetryButton = styled.button`${terminalButton}`;
+
+export const FeedPanel = styled.section`
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid ${C.lineStrong};
+  border-radius: 0;
+  background: ${C.bg};
+`;
+
+export const TerminalHeader = styled.div`
+  display: grid;
+  grid-template-columns: 12.5rem 10rem minmax(0, 1fr);
+  gap: 0.7rem;
+  border-bottom: 1px solid ${C.lineStrong};
+  background: #0c151c;
+  padding: 0.34rem 0.62rem;
+  color: ${C.dim};
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+
+  @media (max-width: 760px) { display: none; }
+`;
+
+export const FeedList = styled.div`display: grid;`;
+
+export const EntryRow = styled.article`
+  display: grid;
+  grid-template-columns: 12.5rem 10rem minmax(0, 1fr);
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.42rem 0.62rem;
+  border-bottom: 1px solid ${C.line};
+  background: ${C.bg};
+  font-size: 0.7rem;
+  line-height: 1.32;
+
+  &:hover { background: #0c151b; }
+  &:last-child { border-bottom: 0; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    transition: background 180ms ease;
+  }
+
+  @media (max-width: 760px) {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.18rem 0.6rem;
+    padding: 0.52rem 0.55rem;
+  }
+`;
+
+export const Timestamp = styled.time`
+  color: ${C.dim};
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+`;
+
+export const EventCode = styled.span`
+  color: ${C.lilac};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  @media (max-width: 760px) { text-align: right; }
+`;
+
+export const EntryPrimary = styled.div`
+  min-width: 0;
+  color: ${C.text};
+
+  @media (max-width: 760px) { grid-column: 1 / -1; }
+`;
+
+export const TreeGlyph = styled.span`
+  margin-right: 0.42rem;
+  color: ${C.teal};
+`;
+
+const summary = css`
+  color: ${C.text};
+  font-weight: 650;
+  overflow-wrap: anywhere;
+`;
+
+export const EntrySummaryLink = styled(Link)`
+  ${summary};
+  ${focus};
+  text-decoration: none;
+  border-bottom: 1px dotted ${C.lineStrong};
+  &:hover { color: ${C.teal}; }
+`;
+
+export const EntrySummaryText = styled.span`${summary};`;
+
+export const SecondaryText = styled.div`
+  margin: 0.14rem 0 0 1.6rem;
+  color: ${C.dim};
+  font-size: 0.66rem;
+  overflow-wrap: anywhere;
+`;
+
+export const DispositionMeta = styled.div`
+  display: flex;
+  gap: 0.3rem 0.9rem;
+  flex-wrap: wrap;
+  margin: 0.18rem 0 0 1.6rem;
+  color: ${C.amber};
+  font-size: 0.65rem;
+
+  span { overflow-wrap: anywhere; }
+`;
+
+export const FeedFooter = styled.div`
+  min-height: 48px;
+  border-top: 1px solid ${C.lineStrong};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+`;
+
+export const LoadMoreButton = styled.button`
+  ${terminalButton};
+  border-left: 0;
+  color: ${C.teal};
+`;
+
 export const EndState = styled.div`
-  font-size: 0.76rem;
-  color: ${LOGS.textMuted};
+  color: ${C.dim};
+  font-size: 0.66rem;
+  letter-spacing: 0.055em;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
 `;
