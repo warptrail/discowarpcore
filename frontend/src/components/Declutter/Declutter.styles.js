@@ -559,6 +559,20 @@ export const QueueItem = styled.article`
     }
   `}
 
+  ${({ $cardView }) => $cardView && css`
+    grid-template-columns: 54px minmax(0, 1fr) minmax(142px, 0.78fr);
+    gap: 0.48rem;
+    min-height: 88px;
+    padding: 0.46rem;
+    align-items: center;
+
+    > div:nth-child(2) {
+      display: grid;
+      align-content: center;
+      min-width: 0;
+    }
+  `}
+
   @media (max-width: 820px) {
     grid-template-columns: ${({ $compact }) => (
       $compact ? '32px minmax(0, 1fr) minmax(126px, auto)' : '64px minmax(0, 1fr)'
@@ -568,7 +582,7 @@ export const QueueItem = styled.article`
 `;
 
 export const ThumbFrame = styled.div`
-  width: ${({ $compact }) => ($compact ? '30px' : '64px')};
+  width: ${({ $compact, $cardView }) => ($compact ? '30px' : $cardView ? '54px' : '64px')};
   aspect-ratio: 1;
   border-radius: 8px;
   overflow: hidden;
@@ -578,6 +592,11 @@ export const ThumbFrame = styled.div`
   align-items: center;
   justify-content: center;
   color: ${LCARS.textMuted};
+
+  ${({ $cardView }) => $cardView && css`
+    height: 54px;
+    align-self: center;
+  `}
 `;
 
 export const ThumbImage = styled.img`
@@ -628,12 +647,23 @@ export const CandidateMetaGrid = styled.div`
     grid-template-columns: 1fr;
     gap: 0.28rem;
   }
+
+  ${({ $cardView }) => $cardView && css`
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.72fr) minmax(0, 0.78fr);
+    gap: 0.2rem 0.38rem;
+    margin-top: 0.28rem;
+
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr 1fr;
+    }
+  `}
 `;
 
 export const CandidateMetaGroup = styled.div`
   display: grid;
   gap: 0.14rem;
   min-width: 0;
+
 `;
 
 export const CandidateMetaLabel = styled.span`
@@ -652,6 +682,12 @@ export const CandidateMetaValue = styled.span`
   font-size: 0.72rem;
   line-height: 1.25;
   overflow-wrap: anywhere;
+
+  ${({ $cardView }) => $cardView && css`
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `}
 `;
 
 export const CandidateBoxLink = styled(Link)`
@@ -664,6 +700,18 @@ export const CandidateBoxLink = styled(Link)`
   font-size: 0.72rem;
   line-height: 1.2;
   text-decoration: none;
+
+  ${({ $cardView }) => $cardView && css`
+    width: 100%;
+    gap: 0.18rem;
+    overflow: hidden;
+    white-space: nowrap;
+
+    > span:last-child {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  `}
 
   &:hover,
   &:focus-visible {
@@ -1250,6 +1298,11 @@ export const VoteComparison = styled.div`
     gap: 0.2rem;
   `}
 
+  ${({ $cardView }) => $cardView && css`
+    align-content: center;
+    gap: 0.24rem;
+  `}
+
   @media (max-width: 820px) {
     grid-column: 1 / -1;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1293,6 +1346,14 @@ export const FinalFate = styled.div`
     && strong {
       font-size: 0.52rem;
       line-height: 1;
+    }
+  `}
+
+  ${({ $cardView }) => $cardView && css`
+    padding: 0.28rem 0.34rem;
+
+    > span {
+      font-size: 0.92rem;
     }
   `}
 
@@ -1359,6 +1420,25 @@ export const PlayerVote = styled.div`
       line-height: 1;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+  `}
+
+  ${({ $cardView }) => $cardView && css`
+    min-height: 34px;
+    gap: 0.3rem;
+    padding: 0.24rem 0.34rem;
+    border-radius: 5px;
+
+    > span {
+      font-size: 0.9rem;
+    }
+
+    strong {
+      font-size: 0.54rem;
+    }
+
+    small {
+      font-size: 0.62rem;
     }
   `}
 
@@ -1845,27 +1925,92 @@ export const SmallText = styled.div`
 `;
 
 export const ProgressDashboard = styled.section`
+  ${panelBase};
   display: grid;
-  gap: 0.62rem;
+  gap: 0;
+  overflow: hidden;
+  border-color: rgba(var(--declutter-accent-rgb), 0.26);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(28, 104, 112, 0.08), transparent 36%),
+    rgba(9, 14, 21, 0.9);
+`;
+
+export const ProgressHeader = styled.header`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 46px;
+  padding: 0.52rem 0.72rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+  > div {
+    display: flex;
+    align-items: baseline;
+    gap: 0.42rem;
+    min-width: 0;
+  }
+
+  span {
+    color: var(--declutter-accent, ${LCARS.root});
+    font: 820 0.66rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  small {
+    color: ${LCARS.textMuted};
+    font-size: 0.68rem;
+    white-space: nowrap;
+  }
+`;
+
+export const ProgressLedgerLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.26rem;
+  min-height: 32px;
+  color: rgba(184, 229, 235, 0.74);
+  font: 760 0.6rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.055em;
+  text-decoration: none;
+  text-transform: uppercase;
+
+  span {
+    color: var(--declutter-accent, ${LCARS.root});
+    font-size: 0.82rem;
+  }
+
+  &:hover,
+  &:focus-visible {
+    color: #f2feff;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  &:focus-visible {
+    outline: 1px solid rgba(var(--declutter-accent-rgb), 0.64);
+    outline-offset: 3px;
+  }
 `;
 
 export const ProgressStatGrid = styled.div`
-  ${panelBase};
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  overflow: hidden;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  padding: 0.12rem 0.28rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 `;
 
 export const ProgressStat = styled.div`
   display: grid;
   gap: 0.18rem;
-  padding: 0.62rem;
-  border-right: 1px solid ${({ $tone }) => `${decisionTone($tone)}66`};
-  border-bottom: 2px solid ${({ $tone }) => decisionTone($tone)};
+  padding: 0.46rem 0.54rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
 
   span {
     color: ${({ $tone }) => decisionTone($tone)};
@@ -1884,9 +2029,9 @@ export const ProgressStat = styled.div`
 export const ProgressStatLink = styled(Link)`
   display: grid;
   gap: 0.18rem;
-  padding: 0.62rem;
-  border-right: 1px solid ${({ $tone }) => `${decisionTone($tone)}66`};
-  border-bottom: 2px solid ${({ $tone }) => decisionTone($tone)};
+  min-height: 52px;
+  padding: 0.46rem 0.54rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
   color: inherit;
   text-decoration: none;
 
@@ -1905,21 +2050,22 @@ export const ProgressStatLink = styled(Link)`
 
   &:hover,
   &:focus-visible {
-    background: rgba(255, 255, 255, 0.06);
+    background: ${({ $tone }) => `${decisionTone($tone)}0c`};
   }
+
+  &:focus-visible { outline: 1px solid ${({ $tone }) => `${decisionTone($tone)}99`}; outline-offset: -2px; }
 `;
 
 export const DashboardPanel = styled.section`
-  ${panelBase};
-  padding: 0.7rem;
-  border-color: rgba(var(--declutter-accent-rgb), 0.28);
+  padding: 0.66rem 0.72rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.075);
 `;
 
 export const PanelHeading = styled.div`
   display: flex;
   justify-content: space-between;
   gap: 0.5rem;
-  margin-bottom: 0.58rem;
+  margin-bottom: 0.38rem;
   color: var(--declutter-accent, ${LCARS.root});
   font-size: 0.7rem;
   letter-spacing: 0.08em;
@@ -1935,7 +2081,7 @@ export const PanelHeading = styled.div`
 
 export const DecisionSummary = styled.div`
   display: grid;
-  gap: 0.44rem;
+  gap: 0.2rem;
 `;
 
 export const SummaryRow = styled.div`
@@ -1962,6 +2108,9 @@ export const SummaryLink = styled(Link)`
   grid-template-columns: 92px minmax(60px, 1fr) 34px 34px;
   align-items: center;
   gap: 0.42rem;
+  min-height: 26px;
+  padding: 0.1rem 0.2rem;
+  border-radius: 4px;
   color: ${LCARS.text};
   font-size: 0.72rem;
   text-decoration: none;
@@ -1978,7 +2127,40 @@ export const SummaryLink = styled(Link)`
 
   &:hover,
   &:focus-visible {
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.045);
+  }
+
+  &:focus-visible { outline: 1px solid rgba(var(--declutter-accent-rgb), 0.62); }
+`;
+
+export const ProgressLedger = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+  }
+`;
+
+export const ProgressLedgerColumn = styled.section`
+  min-width: 0;
+  padding-right: ${({ $tone }) => ($tone === 'keep' ? '0.75rem' : '0')};
+  border-right: ${({ $tone }) => ($tone === 'keep' ? '1px solid rgba(255, 255, 255, 0.08)' : '0')};
+
+  > h3 {
+    margin: 0 0 0.2rem;
+    color: ${({ $tone }) => ($tone === 'toss' ? '#f08a7b' : '#64bc97')};
+    font: 820 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0 0 0.45rem;
+    border-right: 0;
+    border-bottom: ${({ $tone }) => ($tone === 'keep' ? '1px solid rgba(255, 255, 255, 0.08)' : '0')};
   }
 `;
 

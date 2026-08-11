@@ -4,62 +4,13 @@ import styled, { css, keyframes } from 'styled-components';
 import { Link } from 'react-router-dom';
 import {
   MOBILE_BREAKPOINT,
-  MOBILE_CONTROL_MIN_HEIGHT,
   MOBILE_NARROW_BREAKPOINT,
 } from '../../styles/tokens';
-import RetrievalConsoleControls from '../Retrieval/RetrievalConsoleControls';
 import HomeCommandIcon from '../HomeCommandIcon';
 import {
   getBoxTheme,
   getBoxThemeCssVars,
 } from '../../util/inventoryColorTheme';
-
-const commandAmbientDrift = keyframes`
-  0% {
-    background-position:
-      9% 50%,
-      92% 50%,
-      42% 50%;
-    opacity: 0.52;
-  }
-  34% {
-    background-position:
-      21% 50%,
-      78% 50%,
-      48% 50%;
-    opacity: 0.76;
-  }
-  62% {
-    background-position:
-      37% 50%,
-      64% 50%,
-      58% 50%;
-    opacity: 0.92;
-  }
-  100% {
-    background-position:
-      9% 50%,
-      92% 50%,
-      42% 50%;
-    opacity: 0.52;
-  }
-`;
-
-const commandSweep = keyframes`
-  0%,
-  68% {
-    opacity: 0;
-    transform: translateX(-118%);
-  }
-  74% {
-    opacity: 0.18;
-  }
-  82%,
-  100% {
-    opacity: 0;
-    transform: translateX(118%);
-  }
-`;
 
 const idlePromptBlink = keyframes`
   0%,
@@ -77,116 +28,62 @@ const idlePromptBlink = keyframes`
 const Wrap = styled.div`
   --toast-compact-progress: 0;
   --toast-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --toast-duration: 280ms;
+  --toast-duration: 220ms;
 
   position: relative;
-  isolation: isolate;
   display: flex;
-  gap: calc(0.75rem - (0.3rem * var(--toast-compact-progress)));
+  gap: calc(0.35rem - (0.12rem * var(--toast-compact-progress)));
   align-items: ${({ $hasContent }) => ($hasContent ? 'flex-start' : 'center')};
   width: 100%;
-  margin-block: calc(10px - (6px * var(--toast-compact-progress)));
+  margin-block: calc(8px - (4px * var(--toast-compact-progress)));
   margin-inline: 0;
   min-height: ${({ $idle }) =>
     $idle
-      ? 'calc(52px - (24px * var(--toast-compact-progress)))'
-      : 'calc(48px - (10px * var(--toast-compact-progress)))'};
-  background: ${({ $variant, $idle }) =>
-    $idle
-      ? '#0f141a'
-      : $variant === 'command'
-        ? `
-          radial-gradient(80% 170% at 12% 0%, rgba(34, 211, 238, 0.16), transparent 68%),
-          radial-gradient(74% 170% at 86% 12%, rgba(167, 139, 250, 0.16), transparent 70%),
-          linear-gradient(180deg, rgba(18, 31, 45, 0.98), rgba(8, 13, 23, 0.98))
-        `
-        : $variant === 'success'
-          ? 'rgba(12, 29, 31, 0.98)'
-          : $variant === 'warning'
-            ? 'rgba(24, 21, 39, 0.98)'
-            : $variant === 'danger'
-              ? 'rgba(34, 19, 28, 0.98)'
-              : 'rgba(13, 26, 36, 0.98)'};
+      ? 'calc(48px - (16px * var(--toast-compact-progress)))'
+      : 'calc(46px - (6px * var(--toast-compact-progress)))'};
+  background: ${({ $idle }) =>
+    $idle ? 'rgba(12, 17, 23, 0.96)' : 'rgba(8, 13, 19, 0.98)'};
   border: 1px solid
     ${({ $variant, $idle }) =>
       $idle
-        ? 'rgba(255,255,255,0.12)'
-        : $variant === 'command'
-          ? 'rgba(91, 215, 244, 0.42)'
-          : $variant === 'success'
-            ? 'rgba(76, 198, 193, 0.5)'
-            : $variant === 'warning'
-              ? 'rgba(177, 159, 239, 0.54)'
-              : $variant === 'danger'
-                ? 'rgba(238, 132, 150, 0.58)'
-                : 'rgba(127, 215, 255, 0.48)'};
-  color: ${({ $idle }) => ($idle ? 'rgba(234,234,234,0.82)' : 'rgba(238, 245, 249, 0.92)')};
+        ? 'rgba(205, 224, 232, 0.16)'
+        : $variant === 'danger'
+          ? 'rgba(238, 132, 150, 0.34)'
+          : $variant === 'warning'
+            ? 'rgba(177, 159, 239, 0.3)'
+            : $variant === 'success'
+              ? 'rgba(101, 220, 213, 0.28)'
+              : 'rgba(127, 215, 255, 0.25)'};
+  color: ${({ $idle }) => ($idle ? 'rgba(225, 234, 239, 0.72)' : 'rgba(238, 245, 249, 0.9)')};
   padding-block: ${({ $idle }) =>
     $idle
-      ? 'calc(0.62rem - (0.39rem * var(--toast-compact-progress)))'
-      : 'calc(0.58rem - (0.22rem * var(--toast-compact-progress)))'};
-  padding-left: calc(0.78rem - (0.18rem * var(--toast-compact-progress)));
+      ? 'calc(0.48rem - (0.25rem * var(--toast-compact-progress)))'
+      : 'calc(0.48rem - (0.14rem * var(--toast-compact-progress)))'};
+  padding-left: calc(0.7rem - (0.12rem * var(--toast-compact-progress)));
   padding-right: ${({ $hasClose }) =>
     $hasClose
-      ? 'calc(3rem - (0.55rem * var(--toast-compact-progress)))'
-      : 'calc(0.78rem - (0.2rem * var(--toast-compact-progress)))'};
-  border-radius: calc(7px - (1px * var(--toast-compact-progress)));
+      ? 'calc(2.65rem - (0.25rem * var(--toast-compact-progress)))'
+      : 'calc(0.7rem - (0.12rem * var(--toast-compact-progress)))'};
+  border-radius: 8px;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.045),
-    0 calc(6px - (3px * var(--toast-compact-progress))) calc(16px - (6px * var(--toast-compact-progress))) rgba(0, 0, 0, calc(0.28 - (0.03 * var(--toast-compact-progress))));
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 5px 16px rgba(0, 0, 0, 0.2);
   ${({ $themedIdle }) =>
     $themedIdle &&
     css`
-      background:
-        linear-gradient(
-          var(--box-wash-angle, 110deg),
-          rgba(var(--box-primary-rgb), 0.16),
-          rgba(var(--box-secondary-rgb), 0.075) 48%,
-          rgba(15, 20, 26, 0.97) 88%
-        );
       border-color: rgba(var(--box-primary-rgb), 0.46);
       color: rgba(242, 245, 248, 0.9);
       box-shadow:
-        inset 3px 0 0 rgba(var(--box-primary-rgb), 0.72),
         inset 0 1px 0 rgba(var(--box-secondary-rgb), 0.12),
-        0 calc(8px - (4px * var(--toast-compact-progress)))
-          calc(20px - (8px * var(--toast-compact-progress)))
-          rgba(0, 0, 0, 0.24),
-        0 0 13px rgba(var(--box-primary-rgb), 0.08);
-    `}
-  ${({ $retrievalControls }) =>
-    $retrievalControls &&
-    css`
-      min-height: 0;
-      margin-block: 6px;
-      padding: 0.48rem 0.62rem 0.48rem 0.78rem;
-      border-color: rgba(127, 215, 255, 0.36);
-      border-radius: 2px 9px 2px 2px;
-      background:
-        linear-gradient(90deg, rgba(76, 198, 193, 0.1), transparent 28%),
-        linear-gradient(180deg, rgba(14, 23, 32, 0.98), rgba(7, 12, 18, 0.98));
-      box-shadow:
-        inset 5px 0 0 rgba(76, 198, 193, 0.76),
-        inset 0 1px 0 rgba(167, 182, 255, 0.1),
-        0 8px 20px rgba(0, 0, 0, 0.24);
+        0 5px 16px rgba(0, 0, 0, 0.2);
     `}
   ${({ $retrievalActive }) =>
     $retrievalActive &&
     css`
       border-color: rgba(var(--box-primary-rgb), 0.58);
-      border-left: 5px solid var(--box-primary);
-      border-radius: 2px 9px 2px 2px;
-      background:
-        linear-gradient(
-          var(--box-wash-angle, 96deg),
-          rgba(var(--box-primary-rgb), 0.17),
-          rgba(var(--box-secondary-rgb), 0.06) 46%,
-          rgba(8, 14, 20, 0.98) 82%
-        );
       box-shadow:
         inset 0 1px 0 rgba(var(--box-secondary-rgb), 0.14),
-        0 8px 20px rgba(0, 0, 0, 0.26),
-        0 0 14px rgba(var(--box-primary-rgb), 0.09);
+        0 5px 16px rgba(0, 0, 0, 0.2);
     `}
   overflow: ${({ $allowOverflow }) => ($allowOverflow ? 'visible' : 'hidden')};
   transition:
@@ -194,94 +91,16 @@ const Wrap = styled.div`
     margin var(--toast-duration) var(--toast-ease),
     min-height var(--toast-duration) var(--toast-ease),
     padding var(--toast-duration) var(--toast-ease),
-    border-radius var(--toast-duration) var(--toast-ease),
     box-shadow var(--toast-duration) var(--toast-ease);
-
-  ${({ $variant, $idle }) =>
-    !$idle && $variant === 'command'
-      ? css`
-          color: rgba(237, 247, 255, 0.98);
-          box-shadow:
-            0 0 0 1px rgba(0, 255, 200, 0.08),
-            0 calc(10px - (4px * var(--toast-compact-progress))) calc(28px - (8px * var(--toast-compact-progress))) rgba(0, 0, 0, 0.34),
-            inset 0 0 30px rgba(34, 211, 238, 0.06);
-
-          &::before,
-          &::after {
-            content: '';
-            position: absolute;
-            pointer-events: none;
-            z-index: 0;
-          }
-
-          &::before {
-            inset: 0;
-            background:
-              radial-gradient(
-                88% 150% at 16% 50%,
-                rgba(34, 211, 238, 0.22) 0%,
-                rgba(34, 211, 238, 0) 72%
-              ),
-              radial-gradient(
-                82% 150% at 84% 52%,
-                rgba(167, 139, 250, 0.2) 0%,
-                rgba(167, 139, 250, 0) 74%
-              ),
-              linear-gradient(
-                94deg,
-                rgba(0, 255, 200, 0.03) 0%,
-                rgba(94, 226, 255, 0.16) 47%,
-                rgba(153, 124, 246, 0.14) 63%,
-                rgba(0, 255, 200, 0.03) 100%
-              );
-            background-size:
-              148% 100%,
-              142% 100%,
-              174% 100%;
-            mix-blend-mode: screen;
-            animation: ${commandAmbientDrift} 7.8s linear infinite;
-          }
-
-          &::after {
-            top: calc(0.44rem - (0.18rem * var(--toast-compact-progress)));
-            left: calc(0.78rem - (0.24rem * var(--toast-compact-progress)));
-            right: calc(0.78rem - (0.24rem * var(--toast-compact-progress)));
-            height: 1px;
-            background:
-              linear-gradient(
-                90deg,
-                rgba(0, 255, 200, 0),
-                rgba(0, 255, 200, 0.44) 34%,
-                rgba(167, 139, 250, 0.42) 68%,
-                rgba(0, 255, 200, 0)
-              ),
-              linear-gradient(
-                104deg,
-                rgba(0, 0, 0, 0) 38%,
-                rgba(88, 226, 255, 0.52) 50%,
-                rgba(162, 134, 255, 0.42) 55%,
-                rgba(0, 0, 0, 0) 66%
-              );
-            background-size:
-              100% 100%,
-              180% 100%;
-            box-shadow:
-              0 0 12px rgba(34, 211, 238, 0.22),
-              0 0 18px rgba(167, 139, 250, 0.14);
-            animation: ${commandSweep} 9.8s linear infinite;
-          }
-        `
-      : ''}
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.5rem;
     margin: 6px 0;
     min-height: 44px;
-    padding: 0.5rem 0.6rem;
-    padding-right: ${({ $hasClose }) => ($hasClose ? '2.7rem' : '0.6rem')};
-    border-radius: ${({ $retrievalControls }) =>
-      $retrievalControls ? '2px 7px 2px 2px' : '8px'};
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.24);
+    padding: 0.44rem 0.58rem;
+    padding-right: ${({ $hasClose }) => ($hasClose ? '2.65rem' : '0.58rem')};
+    border-radius: 8px;
+    box-shadow: 0 4px 13px rgba(0, 0, 0, 0.2);
   }
 
   ${({ $itemPageRail }) =>
@@ -291,24 +110,11 @@ const Wrap = styled.div`
       margin-block: 3px;
       padding: 0.38rem 0.5rem;
       border-color: rgba(var(--item-accent-rgb, 127, 215, 255), 0.46);
-      border-radius: 4px;
-      background:
-        linear-gradient(
-          90deg,
-          rgba(var(--box-primary-rgb, 76, 198, 193), 0.1),
-          rgba(var(--item-accent-rgb, 127, 215, 255), 0.055) 48%,
-          transparent 82%
-        ),
-        #090f16;
+      border-radius: 6px;
+      background: #090f16;
       box-shadow:
-        inset 3px 0 0 rgba(var(--box-primary-rgb, 76, 198, 193), 0.74),
         inset 0 1px 0 rgba(255, 255, 255, 0.055),
         0 5px 15px rgba(0, 0, 0, 0.22);
-
-      &::before,
-      &::after {
-        display: none;
-      }
 
       @media (max-width: ${MOBILE_BREAKPOINT}) {
         min-height: 0;
@@ -329,25 +135,11 @@ const Wrap = styled.div`
         : $variant === 'warning'
           ? 'rgba(196, 177, 255, 0.48)'
           : 'rgba(var(--box-primary-rgb, 101, 220, 213), 0.5)'};
-      border-radius: 8px;
-      background:
-        linear-gradient(
-          104deg,
-          rgba(var(--box-primary-rgb, 68, 207, 201), 0.13),
-          transparent 38%,
-          rgba(var(--box-secondary-rgb, 162, 137, 236), 0.09) 78%,
-          transparent
-        ),
-        rgba(6, 10, 15, 0.985);
+      border-radius: 6px;
+      background: rgba(6, 10, 15, 0.985);
       box-shadow:
-        inset 3px 0 0 rgba(var(--box-primary-rgb, 76, 198, 193), 0.72),
         inset 0 1px 0 rgba(255, 255, 255, 0.055),
         0 4px 14px rgba(0, 0, 0, 0.28);
-
-      &::before,
-      &::after {
-        display: none;
-      }
 
       @media (max-width: ${MOBILE_BREAKPOINT}) {
         margin-block: 2px;
@@ -441,26 +233,12 @@ const ItemPageRailActions = styled.div`
   }
 `;
 
-const RetrievalControlsShell = styled.div`
-  position: relative;
-  overflow: visible;
-  > div:first-child {
-    padding-right: 2.5rem;
-  }
-`;
-
-const RetrievalFinderDock = styled.div`
-  position: absolute;
-  top: 0;
-  right: 0;
-  z-index: 2;
-`;
 const Title = styled.div`
   font-weight: 600;
   font-size: ${({ $size }) =>
     $size === 'hero'
-      ? 'calc(1.32rem - (0.18rem * var(--toast-compact-progress)))'
-      : 'calc(1rem - (0.18rem * var(--toast-compact-progress)))'};
+      ? 'calc(1.22rem - (0.14rem * var(--toast-compact-progress)))'
+      : 'calc(0.92rem - (0.1rem * var(--toast-compact-progress)))'};
   transition: font-size var(--toast-duration) var(--toast-ease);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -525,14 +303,14 @@ const TitleDetailsWrap = styled.div`
 `;
 const Msg = styled.div`
   opacity: 0.9;
-  font-size: calc(1rem - (0.22rem * var(--toast-compact-progress)));
-  line-height: calc(1.35 - (0.15 * var(--toast-compact-progress)));
+  font-size: calc(0.88rem - (0.1rem * var(--toast-compact-progress)));
+  line-height: 1.32;
   transition:
     font-size var(--toast-duration) var(--toast-ease),
     line-height var(--toast-duration) var(--toast-ease);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: 0.82rem;
+    font-size: 0.8rem;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -543,6 +321,7 @@ const ContentWrap = styled.div`
   width: 100%;
 `;
 const Idle = styled.div`
+  position: relative;
   display: flex;
   align-items: center;
   gap: calc(0.6rem - (0.2rem * var(--toast-compact-progress)));
@@ -569,6 +348,22 @@ const Idle = styled.div`
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
+`;
+
+const IdleAddon = styled.div`
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  min-width: 0;
+  margin-left: auto;
+
+  ${({ $centered }) => $centered && css`
+    position: absolute;
+    left: 50%;
+    flex: none;
+    margin-left: 0;
+    transform: translateX(-50%);
+  `}
 `;
 
 const IdlePromptButton = styled.button`
@@ -805,46 +600,21 @@ const Controls = styled.div`
   position: relative;
   z-index: 1;
   display: flex;
-  align-items: flex-start;
-  gap: 0.45rem;
-  flex-wrap: wrap;
-
-  ${({ $variant }) =>
-    $variant === 'command'
-      ? css`
-          align-self: center;
-          align-items: stretch;
-          gap: 0.24rem;
-          flex-wrap: nowrap;
-          padding: 0.22rem;
-          border: 1px solid rgba(91, 215, 244, 0.24);
-          border-radius: 11px;
-          background:
-            linear-gradient(180deg, rgba(19, 32, 48, 0.88), rgba(8, 13, 23, 0.86)),
-            rgba(10, 19, 30, 0.86);
-          box-shadow:
-            inset 0 0 0 1px rgba(255, 255, 255, 0.035),
-            0 0 16px rgba(34, 211, 238, 0.08);
-        `
-      : ''}
+  align-self: center;
+  align-items: center;
+  gap: 0.1rem;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
-    width: 100%;
-    justify-content: flex-start;
-
-    ${({ $variant }) =>
-      $variant === 'command'
-        ? css`
-            flex-wrap: wrap;
-          `
-        : ''}
+    align-self: flex-start;
   }
 
   ${({ $fieldCommand }) =>
     $fieldCommand &&
     css`
       align-self: center;
-      align-items: stretch;
+      align-items: center;
       gap: 0.32rem;
       flex-wrap: nowrap;
       padding: 0;
@@ -862,291 +632,138 @@ const Controls = styled.div`
 `;
 const Btn = styled.button`
   appearance: none;
-  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  min-width: 40px;
   cursor: pointer;
   white-space: nowrap;
+  border: 0;
+  border-radius: 5px;
+  padding: 0.32rem 0.48rem;
+  color: rgba(215, 230, 238, 0.78);
+  background: transparent;
+  box-shadow: none;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  font-size: 0.68rem;
+  font-weight: 760;
+  letter-spacing: 0.065em;
+  line-height: 1;
+  text-transform: uppercase;
   transition:
-    border-color 140ms ease,
     background 140ms ease,
-    box-shadow 140ms ease,
     color 140ms ease,
-    transform 120ms ease,
     opacity 120ms ease;
 
-  ${({ $toastVariant, $kind }) =>
-    $toastVariant === 'command'
+  ${({ $kind }) =>
+    $kind === 'primary'
       ? css`
-          min-width: calc(4.8rem - (0.5rem * var(--toast-compact-progress)));
-          border: 1px solid rgba(91, 215, 244, 0.34);
-          border-radius: 8px;
-          padding: calc(0.38rem - (0.06rem * var(--toast-compact-progress))) calc(0.76rem - (0.12rem * var(--toast-compact-progress)));
-          color: rgba(230, 244, 255, 0.92);
-          background:
-            linear-gradient(180deg, rgba(28, 49, 70, 0.86), rgba(10, 17, 28, 0.92)),
-            rgba(20, 34, 46, 0.9);
-          box-shadow:
-            inset 0 0 0 1px rgba(255, 255, 255, 0.035),
-            0 0 0 1px rgba(0, 255, 200, 0.045);
-          font-family:
-            ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-            'Courier New', monospace;
-          font-size: calc(0.78rem - (0.04rem * var(--toast-compact-progress)));
-          font-weight: 760;
-          letter-spacing: 0.045em;
-          text-transform: uppercase;
-
-          ${$kind === 'primary'
-            ? css`
-                color: #f4fdff;
-                border-color: rgba(126, 223, 255, 0.7);
-                background:
-                  linear-gradient(
-                    180deg,
-                    rgba(72, 224, 255, 0.42),
-                    rgba(74, 89, 212, 0.26) 48%,
-                    rgba(17, 29, 55, 0.96)
-                  ),
-                  rgba(13, 29, 44, 0.96);
-                box-shadow:
-                  0 0 0 1px rgba(0, 255, 200, 0.1),
-                  0 0 18px rgba(34, 211, 238, 0.2),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.18);
-              `
-            : ''}
-
-          ${$kind === 'danger'
-            ? css`
-                color: #ffe7e3;
-                border-color: rgba(240, 138, 123, 0.62);
-                background:
-                  linear-gradient(180deg, rgba(119, 50, 58, 0.72), rgba(58, 22, 31, 0.94)),
-                  rgba(58, 22, 31, 0.94);
-              `
-            : ''}
-
-          ${$kind === 'mode'
-            ? css`
-                border-color: rgba(167, 139, 250, 0.46);
-                background:
-                  linear-gradient(180deg, rgba(58, 74, 109, 0.82), rgba(17, 24, 42, 0.95)),
-                  rgba(17, 24, 42, 0.95);
-              `
-            : ''}
+          color: rgba(174, 244, 237, 0.94);
         `
-      : css`
-          min-width: 4.6rem;
-          background: rgba(17, 27, 36, 0.72);
-          color: rgba(226, 239, 245, 0.9);
-          border: 1px solid rgba(127, 215, 255, 0.34);
-          border-radius: 5px;
-          padding: 0.34rem 0.64rem;
-          font-family:
-            ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-            'Courier New', monospace;
-          font-size: 0.68rem;
-          font-weight: 760;
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
-
-          ${$kind === 'primary'
-            ? css`
-                background: rgba(45, 154, 151, 0.16);
-                color: rgba(224, 255, 251, 0.96);
-                border-color: rgba(101, 220, 213, 0.54);
-              `
-            : ''}
-
-          ${$kind === 'danger'
-            ? css`
-                background: rgba(128, 54, 72, 0.14);
-                color: rgba(255, 224, 230, 0.92);
-                border-color: rgba(238, 132, 150, 0.5);
-              `
-            : ''}
-        `}
+      : $kind === 'danger'
+        ? css`
+            color: rgba(255, 190, 202, 0.92);
+          `
+        : $kind === 'mode'
+          ? css`
+              color: rgba(213, 201, 255, 0.9);
+            `
+          : ''}
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    border-radius: 7px;
-    padding: 0.28rem 0.5rem;
     min-height: ${({ $fieldCommand }) => ($fieldCommand ? '44px' : '40px')};
-    font-size: 0.78rem;
+    min-width: ${({ $fieldCommand }) => ($fieldCommand ? '44px' : '40px')};
+    font-size: 0.7rem;
   }
 
-  &:hover {
-    opacity: 0.92;
-
-    ${({ $toastVariant }) =>
-      $toastVariant === 'command'
-        ? css`
-            border-color: rgba(126, 223, 255, 0.72);
-            background:
-              linear-gradient(180deg, rgba(40, 70, 98, 0.92), rgba(14, 24, 40, 0.96)),
-              rgba(20, 34, 46, 0.92);
-            box-shadow:
-              0 0 0 1px rgba(0, 255, 200, 0.08),
-              0 0 18px rgba(34, 211, 238, 0.18);
-            transform: translateY(-1px);
-          `
-        : ''}
-  }
-
-  &:active:enabled {
-    transform: translateY(0);
+  &:hover:enabled {
+    color: rgba(238, 249, 252, 0.98);
+    background: rgba(127, 215, 255, 0.1);
   }
 
   &:focus-visible {
     outline: 2px solid rgba(119, 213, 255, 0.72);
-    outline-offset: 2px;
+    outline-offset: -2px;
   }
 
   &:disabled {
     cursor: not-allowed;
-    opacity: ${({ $toastVariant }) => ($toastVariant === 'command' ? 0.44 : 0.48)};
-    transform: none;
-
-    ${({ $toastVariant }) =>
-      $toastVariant === 'command'
-        ? css`
-            border-color: rgba(129, 157, 181, 0.22);
-            color: rgba(224, 235, 245, 0.62);
-            background:
-              linear-gradient(180deg, rgba(35, 45, 58, 0.7), rgba(13, 18, 27, 0.82)),
-              rgba(13, 18, 27, 0.82);
-            box-shadow: none;
-          `
-        : ''}
+    opacity: 0.44;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    transition:
-      border-color 140ms ease,
-      background 140ms ease,
-      box-shadow 140ms ease,
-      color 140ms ease,
-      opacity 120ms ease;
+    transition: none;
   }
 
   ${({ $fieldCommand, $kind }) =>
     $fieldCommand &&
     css`
-      min-width: 6.8rem;
+      min-width: 44px;
       min-height: 44px;
       padding: 0.38rem 0.72rem;
-      border: 1px solid
-        ${$kind === 'danger'
-          ? 'rgba(238, 132, 150, 0.46)'
-          : $kind === 'primary'
-            ? 'rgba(101, 220, 213, 0.5)'
-            : 'rgba(177, 159, 239, 0.34)'};
-      border-radius: 6px;
-      background: ${$kind === 'danger'
-        ? 'rgba(128, 54, 72, 0.1)'
-        : $kind === 'primary'
-          ? 'rgba(45, 154, 151, 0.13)'
-          : 'rgba(103, 86, 158, 0.08)'};
       color: ${$kind === 'danger'
         ? 'rgba(255, 224, 230, 0.92)'
         : $kind === 'primary'
           ? 'rgba(224, 255, 251, 0.96)'
           : 'rgba(225, 220, 246, 0.88)'};
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
-      font-family:
-        ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-        'Courier New', monospace;
-      font-size: 0.68rem;
-      font-weight: 760;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      transform: none;
 
       &:hover:enabled {
-        border-color: ${$kind === 'danger'
-          ? 'rgba(247, 154, 171, 0.72)'
-          : $kind === 'primary'
-            ? 'rgba(115, 241, 233, 0.76)'
-            : 'rgba(196, 177, 255, 0.64)'};
         background: ${$kind === 'danger'
           ? 'rgba(128, 54, 72, 0.18)'
           : $kind === 'primary'
             ? 'rgba(45, 154, 151, 0.2)'
             : 'rgba(103, 86, 158, 0.14)'};
-        box-shadow: 0 0 14px
-          ${$kind === 'danger'
-            ? 'rgba(238, 132, 150, 0.1)'
-            : $kind === 'primary'
-              ? 'rgba(73, 211, 202, 0.14)'
-              : 'rgba(169, 139, 250, 0.1)'};
-        opacity: 1;
-        transform: none;
-      }
-
-      &:disabled {
-        border-color: rgba(150, 166, 181, 0.18);
-        background: rgba(17, 23, 30, 0.76);
-        color: rgba(205, 216, 225, 0.42);
-        box-shadow: none;
       }
     `}
 `;
 
-const CloseBtn = styled(Btn)`
+const CloseBtn = styled.button`
+  appearance: none;
   z-index: 2;
   position: absolute;
-  top: calc(0.5rem - (0.14rem * var(--toast-compact-progress)));
-  right: calc(0.55rem - (0.13rem * var(--toast-compact-progress)));
-  min-height: calc(30px - (4px * var(--toast-compact-progress)));
-  min-width: calc(30px - (4px * var(--toast-compact-progress)));
+  top: 50%;
+  right: calc(0.28rem - (0.04rem * var(--toast-compact-progress)));
+  width: 40px;
+  height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  border-radius: 8px;
-  font-size: 0.92rem;
+  border: 0;
+  border-radius: 5px;
+  color: rgba(212, 226, 234, 0.62);
+  background: transparent;
+  font: inherit;
+  font-size: 1rem;
   line-height: 1;
+  cursor: pointer;
+  transform: translateY(-50%);
   transition:
-    top var(--toast-duration) var(--toast-ease),
-    right var(--toast-duration) var(--toast-ease),
-    min-height var(--toast-duration) var(--toast-ease),
-    min-width var(--toast-duration) var(--toast-ease),
+    background 140ms ease,
+    color 140ms ease,
     opacity 120ms ease;
 
+  &:hover {
+    color: rgba(246, 252, 255, 0.96);
+    background: rgba(127, 215, 255, 0.08);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(119, 213, 255, 0.72);
+    outline-offset: -2px;
+  }
+
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    top: 0.38rem;
-    right: 0.42rem;
-    min-height: ${({ $fieldCommand, $retrievalActive }) => (
-      $fieldCommand ? '44px' : $retrievalActive ? '24px' : '40px'
-    )};
-    min-width: ${({ $fieldCommand, $retrievalActive }) => (
-      $fieldCommand ? '44px' : $retrievalActive ? '24px' : '40px'
-    )};
-    border-radius: 7px;
-    font-size: ${({ $retrievalActive }) => ($retrievalActive ? '0.56rem' : '0.92rem')};
+    right: 0.22rem;
+    width: ${({ $fieldCommand }) => ($fieldCommand ? '44px' : '40px')};
+    height: ${({ $fieldCommand }) => ($fieldCommand ? '44px' : '40px')};
   }
 
   ${({ $retrievalActive }) => $retrievalActive && css`
-    top: 0.34rem;
-    right: 0.36rem;
-    min-width: 24px;
-    min-height: 24px;
-    border: 0;
-    background: transparent;
-    box-shadow: none;
-    border-radius: 4px;
     color: rgba(226, 236, 247, 0.72);
-    font-size: 0.62rem;
-
-      &:hover,
-      &:active {
-      border: 0;
-      background: transparent;
-      box-shadow: none;
-        color: rgba(255, 255, 255, 0.96);
-      }
-
-    &:focus-visible {
-      outline: 2px solid rgba(var(--box-primary-rgb, 119, 213, 255), 0.7);
-      outline-offset: -1px;
-    }
   `}
 
   @media (prefers-reduced-motion: reduce) {
@@ -1156,11 +773,8 @@ const CloseBtn = styled(Btn)`
   ${({ $fieldCommand }) =>
     $fieldCommand &&
     css`
-      top: 0.38rem;
-      right: 0.4rem;
-      min-width: 44px;
-      min-height: 44px;
-      border-radius: 6px;
+      width: 44px;
+      height: 44px;
     `}
 `;
 
@@ -1212,6 +826,7 @@ export default function Toast({
   idleText = 'Standing by…',
   idleAction = null,
   idleAddon = null,
+  idleAddonCentered = false,
   activeRetrievalItem = null,
   compact = false,
   compactProgress,
@@ -1229,50 +844,9 @@ export default function Toast({
   const hasActiveRetrieval =
     !open && activeRetrievalItem && typeof activeRetrievalItem === 'object';
   const retrievalMode = String(activeRetrievalItem?.mode || '').trim();
-  const hasRetrievalControls = hasActiveRetrieval && retrievalMode === 'controls';
   const hasRetrievalActive = hasActiveRetrieval && retrievalMode === 'active';
   const isIdle = !open && !hasActiveRetrieval;
   const hasContent = !isIdle && !!content;
-  const retrievalItemsMode = String(activeRetrievalItem?.retrievalMode || 'items').trim();
-  const retrievalScope =
-    activeRetrievalItem?.scope && typeof activeRetrievalItem.scope === 'object'
-      ? activeRetrievalItem.scope
-      : null;
-  const retrievalSearchValue = String(activeRetrievalItem?.searchValue || '');
-  const retrievalSearchLabel = activeRetrievalItem?.searchLabel;
-  const retrievalSearchPlaceholder = activeRetrievalItem?.searchPlaceholder;
-  const retrievalSearchHint = activeRetrievalItem?.searchHint;
-  const retrievalShowRefine = Boolean(activeRetrievalItem?.showRefine);
-  const retrievalSortOptions = Array.isArray(activeRetrievalItem?.sortOptions)
-    ? activeRetrievalItem.sortOptions
-    : [];
-  const retrievalSelectedSort = String(activeRetrievalItem?.selectedSort || '').trim();
-  const retrievalCategoryOptions = Array.isArray(activeRetrievalItem?.categoryOptions)
-    ? activeRetrievalItem.categoryOptions
-    : [];
-  const retrievalTagOptions = Array.isArray(activeRetrievalItem?.tagOptions)
-    ? activeRetrievalItem.tagOptions
-    : [];
-  const retrievalLocationOptions = Array.isArray(activeRetrievalItem?.locationOptions)
-    ? activeRetrievalItem.locationOptions
-    : [];
-  const retrievalOwnerOptions = Array.isArray(activeRetrievalItem?.ownerOptions)
-    ? activeRetrievalItem.ownerOptions
-    : [];
-  const retrievalKeepPriorityOptions = Array.isArray(activeRetrievalItem?.keepPriorityOptions)
-    ? activeRetrievalItem.keepPriorityOptions
-    : [];
-  const retrievalChips = Array.isArray(activeRetrievalItem?.chips)
-    ? activeRetrievalItem.chips
-    : [];
-  const retrievalBoxGroupOptions = Array.isArray(activeRetrievalItem?.boxGroupOptions)
-    ? activeRetrievalItem.boxGroupOptions
-    : [];
-  const retrievalSelectedBoxGroup = String(activeRetrievalItem?.selectedBoxGroup || '');
-  const retrievalBoxLocationOptions = Array.isArray(activeRetrievalItem?.boxLocationOptions)
-    ? activeRetrievalItem.boxLocationOptions
-    : [];
-  const retrievalSelectedBoxLocation = String(activeRetrievalItem?.selectedBoxLocation || '');
   const retrievalName = String(activeRetrievalItem?.name || '').trim();
   const retrievalBoxId = String(activeRetrievalItem?.boxNumber || '').trim();
   const retrievalBoxName = String(activeRetrievalItem?.boxName || '').trim();
@@ -1292,7 +866,6 @@ export default function Toast({
       $variant={variant}
       $idle={isIdle}
       $themedIdle={isIdle && themedIdle}
-      $retrievalControls={hasRetrievalControls}
       $retrievalActive={hasRetrievalActive}
       $itemPageRail={isItemPageRail}
       $fieldCommandRail={isFieldCommandRail}
@@ -1371,58 +944,19 @@ export default function Toast({
               ) : (
                 isValidElement(idleText) ? idleText : <span>{idleText}</span>
               )}
-              {idleAddon}
+              {idleAddon ? (
+                <IdleAddon $centered={idleAddonCentered}>{idleAddon}</IdleAddon>
+              ) : null}
             </Idle>
           ) : null
-        ) : hasRetrievalControls ? (
-          <RetrievalControlsShell>
-            <RetrievalConsoleControls
-            mode={retrievalItemsMode}
-            scope={retrievalScope}
-            onModeChange={activeRetrievalItem?.onModeChange}
-            searchValue={retrievalSearchValue}
-            onSearchChange={activeRetrievalItem?.onSearchChange}
-            searchLabel={retrievalSearchLabel}
-            searchPlaceholder={retrievalSearchPlaceholder}
-            searchHint={retrievalSearchHint}
-            showRefine={retrievalShowRefine}
-            onToggleRefine={activeRetrievalItem?.onToggleRefine}
-            chips={retrievalChips}
-            sortOptions={retrievalSortOptions}
-            selectedSort={retrievalSelectedSort}
-            categoryOptions={retrievalCategoryOptions}
-            tagOptions={retrievalTagOptions}
-            locationOptions={retrievalLocationOptions}
-            ownerOptions={retrievalOwnerOptions}
-            keepPriorityOptions={retrievalKeepPriorityOptions}
-            onSortChange={activeRetrievalItem?.onSortChange}
-            onCategoryChange={activeRetrievalItem?.onCategoryChange}
-            onTagChange={activeRetrievalItem?.onTagChange}
-            onLocationChange={activeRetrievalItem?.onLocationChange}
-            onOwnerChange={activeRetrievalItem?.onOwnerChange}
-            onKeepPriorityChange={activeRetrievalItem?.onKeepPriorityChange}
-            onRemoveChip={activeRetrievalItem?.onRemoveChip}
-            onClearAllChips={activeRetrievalItem?.onClearAllChips}
-            boxGroupOptions={retrievalBoxGroupOptions}
-            selectedBoxGroup={retrievalSelectedBoxGroup}
-            boxLocationOptions={retrievalBoxLocationOptions}
-            selectedBoxLocation={retrievalSelectedBoxLocation}
-            onBoxGroupChange={activeRetrievalItem?.onBoxGroupChange}
-            onBoxLocationChange={activeRetrievalItem?.onBoxLocationChange}
-            onClearBoxGroup={activeRetrievalItem?.onClearBoxGroup}
-            onClearBoxLocation={activeRetrievalItem?.onClearBoxLocation}
-            onToggleResults={activeRetrievalItem?.onToggleResults}
-              resultsVisible={activeRetrievalItem?.resultsVisible}
-            />
-            {idleAddon ? (
-              <RetrievalFinderDock>{idleAddon}</RetrievalFinderDock>
-            ) : null}
-          </RetrievalControlsShell>
         ) : hasRetrievalActive ? (
           <RetrievalStateWrap>
             <RetrievalConsoleKicker>Active Item</RetrievalConsoleKicker>
             {retrievalItemHref ? (
-              <RetrievalNameLink to={retrievalItemHref}>
+              <RetrievalNameLink
+                to={retrievalItemHref}
+                state={activeRetrievalItem?.itemState}
+              >
                 {retrievalName || 'Expanded item'}
               </RetrievalNameLink>
             ) : (

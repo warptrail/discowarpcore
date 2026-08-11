@@ -19,6 +19,7 @@ export default function RetrievalResultRow({
   onSectionChange,
   onPreviewImage,
   onLifecycleAction,
+  itemNavigationState,
   compact = false,
 }) {
   if (!item) return null;
@@ -193,6 +194,7 @@ export default function RetrievalResultRow({
           onSectionChange={onSectionChange}
           onLifecycleAction={onLifecycleAction}
           onPreviewImage={onPreviewImage}
+          itemNavigationState={itemNavigationState}
         />
       ) : null}
     </S.ResultCard>

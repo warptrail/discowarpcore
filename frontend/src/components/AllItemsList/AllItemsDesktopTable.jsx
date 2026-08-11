@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getItemHomeHref } from '../../api/itemDetails';
 import * as S from './AllItemsList.styles';
 import { getBatchActionEligibility, getVisibleTags } from './allItemsList.utils';
+import AllItemsBatchIndex from './AllItemsBatchIndex';
 
 function getItemHref(itemId) {
   if (!itemId) return '';
@@ -38,34 +39,6 @@ function DesktopThumbnail({ src, fallbackSrc }) {
       }}
     />
   );
-}
-
-function groupItemsByBatch(items, batchToneMap) {
-  const groups = [];
-  const lookup = new Map();
-
-  for (const item of Array.isArray(items) ? items : []) {
-    const meta = item?._allItems || {};
-    const batchId = String(meta?.sourceBatchId || '').trim();
-    const groupKey = batchId || '__no_batch__';
-
-    if (!lookup.has(groupKey)) {
-      const group = {
-        key: groupKey,
-        batchId,
-        label: String(meta?.sourceBatchLabel || batchId || 'No Batch').trim() || 'No Batch',
-        archiveStatus: String(meta?.sourceBatchArchiveStatus || '').trim().toLowerCase(),
-        tone: batchId ? batchToneMap.get(batchId) || '' : '',
-        items: [],
-      };
-      lookup.set(groupKey, group);
-      groups.push(group);
-    }
-
-    lookup.get(groupKey).items.push(item);
-  }
-
-  return groups;
 }
 
 function renderBoxValue(meta, { accentColor = '', accentActive = false } = {}) {
@@ -459,82 +432,12 @@ export default function AllItemsDesktopTable({
     );
   }
 
-  const groups = groupItemsByBatch(safeItems, batchToneMap);
-
   return (
-    <S.BatchSectionsDesktop>
-      {groups.map((group) => {
-        return (
-          <S.BatchTableSection
-            key={group.key}
-            $tone={group.tone || 'root'}
-            $selected={false}
-          >
-            <S.BatchGroupHeader>
-              <S.BatchGroupTitleRow>
-                <S.BatchGroupTitle>{group.label}</S.BatchGroupTitle>
-                {group.archiveStatus === 'archived' ? (
-                  <S.SourceBatchBadge $archived>Archived</S.SourceBatchBadge>
-                ) : null}
-                <S.BatchGroupCount>{group.items.length} items</S.BatchGroupCount>
-                {simpleSelectionModeEnabled && group.batchId ? (
-                  <S.BatchSelectButton
-                    type="button"
-                    onClick={() => onSelectBatch?.(group.batchId)}
-                  >
-                    Select Batch
-                  </S.BatchSelectButton>
-                ) : null}
-              </S.BatchGroupTitleRow>
-
-              <S.BatchGroupMeta>
-                <S.BatchGroupMetaLine>
-                  {group.batchId ? `Batch ID: ${group.batchId}` : 'No source batch'}
-                </S.BatchGroupMetaLine>
-              </S.BatchGroupMeta>
-            </S.BatchGroupHeader>
-
-            <S.TableScroll>
-              <S.Table>
-                <thead>
-                  <tr>
-                    <S.RowHeaderTH colSpan={5}>
-                      <S.OperatorRowGrid>
-                        <S.OperatorHeaderCell>thumb</S.OperatorHeaderCell>
-                        <S.OperatorHeaderCell>item</S.OperatorHeaderCell>
-                        <S.OperatorHeaderCell>qty</S.OperatorHeaderCell>
-                        <S.OperatorHeaderCell>category / tags</S.OperatorHeaderCell>
-                        <S.OperatorHeaderCell>status / lifecycle</S.OperatorHeaderCell>
-                        <S.OperatorHeaderCell>box / location</S.OperatorHeaderCell>
-                      </S.OperatorRowGrid>
-                    </S.RowHeaderTH>
-                  </tr>
-                </thead>
-                <tbody>
-                  {group.items.map((item, index) => (
-                    <DesktopItemRow
-                      key={item?._id || `${item?.name || 'item'}-${item?._allItems?.createdAtMs || index}`}
-                      item={item}
-                      selectionModeEnabled={selectionModeEnabled}
-                      simpleSelectionModeEnabled={simpleSelectionModeEnabled}
-                      batchActionMode={batchActionMode}
-                      batchFocused
-                      batchTone={group.tone}
-                      colorBy={colorBy}
-                      accentColor={rowAccentByItemId.get(String(item?._id || '').trim()) || ''}
-                      itemProcessingById={itemProcessingById}
-                      isSelected={selectedIds.has(String(item?._id || '').trim())}
-                      onToggleItemSelection={onToggleItemSelection}
-                      onFocusBatch={onFocusBatch}
-                      onOpenImagePreview={onOpenImagePreview}
-                    />
-                  ))}
-                </tbody>
-              </S.Table>
-            </S.TableScroll>
-          </S.BatchTableSection>
-        );
-      })}
-    </S.BatchSectionsDesktop>
+    <AllItemsBatchIndex
+      items={safeItems}
+      batchToneMap={batchToneMap}
+      simpleSelectionModeEnabled={simpleSelectionModeEnabled}
+      onSelectBatch={onSelectBatch}
+    />
   );
 }

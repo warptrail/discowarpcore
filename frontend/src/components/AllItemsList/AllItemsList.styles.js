@@ -696,6 +696,254 @@ export const BatchSectionsDesktop = styled.div`
   padding: 0.88rem;
 `;
 
+export const BatchIndex = styled.div`
+  display: grid;
+  gap: 1px;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.035);
+
+  @media (max-width: ${TABLE_STACK_BREAKPOINT}) {
+    padding: 0.3rem;
+  }
+`;
+
+export const BatchIndexGroup = styled.section`
+  --batch-accent: ${({ $tone = 'root' }) => batchToneAccent($tone)};
+  overflow: hidden;
+  border-left: 3px solid var(--batch-accent);
+  background:
+    ${({ $expanded }) => ($expanded ? 'rgba(16, 22, 27, 0.98)' : 'rgba(12, 17, 21, 0.96)')};
+`;
+
+export const BatchIndexHeader = styled.div`
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+`;
+
+export const BatchIndexToggle = styled.button`
+  appearance: none;
+  min-width: 0;
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 1.1rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.48rem;
+  min-height: 54px;
+  padding: 0.42rem 0.64rem 0.42rem 0.48rem;
+  border: 0;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--batch-accent) 11%, transparent), transparent 42%);
+  color: ${LCARS.text};
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background:
+      linear-gradient(90deg, color-mix(in srgb, var(--batch-accent) 18%, transparent), transparent 58%);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--batch-accent);
+    outline-offset: -2px;
+  }
+
+  @media (max-width: ${TABLE_STACK_BREAKPOINT}) {
+    grid-template-columns: 0.9rem minmax(0, 1fr) auto;
+    min-height: 50px;
+    gap: 0.36rem;
+    padding: 0.36rem 0.46rem 0.36rem 0.32rem;
+  }
+`;
+
+export const BatchIndexChevron = styled.span`
+  color: var(--batch-accent);
+  font: 900 0.9rem/1 "SFMono-Regular", Consolas, monospace;
+`;
+
+export const BatchIndexIdentity = styled.span`
+  min-width: 0;
+  display: grid;
+  gap: 0.12rem;
+`;
+
+export const BatchIndexName = styled.span`
+  overflow: hidden;
+  color: ${LCARS.text};
+  font-size: 0.88rem;
+  font-weight: 820;
+  line-height: 1.16;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  @media (max-width: ${TABLE_STACK_BREAKPOINT}) {
+    font-size: 0.8rem;
+  }
+`;
+
+export const BatchIndexDestination = styled.span`
+  overflow: hidden;
+  color: #8de3a9;
+  font: 720 0.67rem/1.2 "SFMono-Regular", Consolas, monospace;
+  letter-spacing: 0.025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+export const BatchIndexFacts = styled.span`
+  display: grid;
+  justify-items: end;
+  gap: 0.12rem;
+  white-space: nowrap;
+`;
+
+export const BatchIndexDate = styled.span`
+  color: ${LCARS.textDim};
+  font: 730 0.7rem/1.2 "SFMono-Regular", Consolas, monospace;
+
+  @media (max-width: ${TABLE_STACK_BREAKPOINT}) {
+    font-size: 0.61rem;
+  }
+`;
+
+export const BatchIndexCount = styled.span`
+  color: var(--batch-accent);
+  font: 820 0.67rem/1.2 "SFMono-Regular", Consolas, monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+
+  @media (max-width: ${TABLE_STACK_BREAKPOINT}) {
+    font-size: 0.61rem;
+  }
+`;
+
+export const BatchIndexSelect = styled.button`
+  flex: 0 0 auto;
+  min-width: 88px;
+  border: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(127, 215, 255, 0.07);
+  color: ${LCARS.root};
+  font: 800 0.62rem/1.1 "SFMono-Regular", Consolas, monospace;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: rgba(127, 215, 255, 0.15);
+  }
+
+  @media (max-width: ${TABLE_STACK_BREAKPOINT}) {
+    min-width: 66px;
+    padding: 0 0.32rem;
+    font-size: 0.56rem;
+  }
+`;
+
+export const BatchIndexItems = styled.ul`
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 1.58rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(5, 10, 14, 0.52);
+
+  @media (max-width: ${TABLE_STACK_BREAKPOINT}) {
+    padding-left: 1.12rem;
+  }
+`;
+
+export const BatchIndexItem = styled.li`
+  min-width: 0;
+  min-height: 38px;
+  display: grid;
+  grid-template-columns:
+    ${({ $showDestination }) => ($showDestination
+      ? '0.7rem minmax(0, 1fr) minmax(7rem, 0.55fr) auto'
+      : '0.7rem minmax(0, 1fr) auto')};
+  align-items: center;
+  gap: 0.44rem;
+  padding: 0.28rem 0.68rem 0.28rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.065);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  @media (max-width: ${TABLE_STACK_BREAKPOINT}) {
+    grid-template-columns: 0.55rem minmax(0, 1fr) auto;
+    min-height: 36px;
+    gap: 0.32rem;
+    padding-right: 0.48rem;
+  }
+`;
+
+export const BatchIndexItemMarker = styled.span`
+  color: var(--batch-accent);
+  font: 900 1rem/1 "SFMono-Regular", Consolas, monospace;
+`;
+
+export const BatchIndexItemLink = styled(Link)`
+  min-width: 0;
+  overflow: hidden;
+  color: ${LCARS.text};
+  font-size: 0.78rem;
+  font-weight: 760;
+  line-height: 1.2;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:hover,
+  &:focus-visible {
+    color: ${LCARS.root};
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+`;
+
+export const BatchIndexItemName = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  color: ${LCARS.text};
+  font-size: 0.78rem;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+export const BatchIndexItemBox = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  color: #8de3a9;
+  font: 680 0.65rem/1.2 "SFMono-Regular", Consolas, monospace;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  @media (max-width: ${TABLE_STACK_BREAKPOINT}) {
+    grid-column: 2;
+    grid-row: 2;
+    text-align: left;
+  }
+`;
+
+export const BatchIndexItemQuantity = styled.span`
+  color: ${LCARS.textDim};
+  font: 760 0.67rem/1 "SFMono-Regular", Consolas, monospace;
+
+  @media (max-width: ${TABLE_STACK_BREAKPOINT}) {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+`;
+
+export const BatchIndexEmpty = styled.div`
+  padding: 1rem;
+  color: ${LCARS.textMuted};
+  font: 700 0.75rem/1.4 "SFMono-Regular", Consolas, monospace;
+`;
+
 export const BatchTableSection = styled.section`
   ${panelBase};
   overflow: hidden;
@@ -1484,9 +1732,14 @@ export const ErrorState = styled.div`
 export const MobileList = styled.ul`
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 0 ${({ $detailOpen }) => ($detailOpen ? 'calc(min(350px, 52dvh) + 0.75rem)' : '0')};
   display: grid;
   gap: 0.48rem;
+  transition: padding-bottom 180ms cubic-bezier(0.2, 0.78, 0.24, 1);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 export const BatchSectionsMobile = styled.div`

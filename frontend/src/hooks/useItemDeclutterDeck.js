@@ -14,6 +14,7 @@ export default function useItemDeclutterDeck({
 }) {
   const itemId = item?._id ? String(item._id) : '';
   const itemName = item?.name || 'item';
+  const isGone = String(item?.item_status || '').trim().toLowerCase() === 'gone';
   const [declutterPending, setDeclutterPending] = useState(false);
   const successTimerRef = useRef(0);
   const [inDeclutterDeck, setInDeclutterDeck] = useState(
@@ -21,11 +22,14 @@ export default function useItemDeclutterDeck({
   );
 
   useEffect(() => {
-    setInDeclutterDeck(item?.declutterReadiness === 'in_deck');
-  }, [itemId, item?.declutterReadiness]);
+    setInDeclutterDeck(!isGone && item?.declutterReadiness === 'in_deck');
+  }, [isGone, itemId, item?.declutterReadiness]);
 
   const runDeclutterChange = useCallback(async (nextInDeck) => {
     if (!itemId) return null;
+    if (nextInDeck && isGone) {
+      throw new Error('This item is gone away forever and cannot be added to the Declutter Deck.');
+    }
 
     if (!nextInDeck) {
       await removeDeclutterCandidateByItem(itemId);
@@ -38,7 +42,7 @@ export default function useItemDeclutterDeck({
     setInDeclutterDeck(true);
     onStateChange?.(true);
     return result || null;
-  }, [itemId, onStateChange]);
+  }, [isGone, itemId, onStateChange]);
 
   const showDeclutterSuccess = useCallback((nextInDeck, result) => {
     const undoTarget = !nextInDeck;
@@ -115,7 +119,7 @@ export default function useItemDeclutterDeck({
   ]);
 
   const toggleDeclutterDeck = useCallback(async () => {
-    if (!itemId || declutterPending) return;
+    if (!itemId || declutterPending || isGone) return;
     const nextInDeck = !inDeclutterDeck;
 
     try {
@@ -132,7 +136,7 @@ export default function useItemDeclutterDeck({
     } finally {
       setDeclutterPending(false);
     }
-  }, [declutterPending, inDeclutterDeck, itemId, runDeclutterChange, showDeclutterSuccess, showToast]);
+  }, [declutterPending, inDeclutterDeck, isGone, itemId, runDeclutterChange, showDeclutterSuccess, showToast]);
 
   return {
     declutterPending,

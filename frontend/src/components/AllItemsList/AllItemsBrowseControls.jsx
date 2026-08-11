@@ -149,6 +149,42 @@ const ColorRail = styled.div`
   gap: 0.28rem;
 `;
 
+const ColorControls = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 36px;
+  gap: 0.35rem;
+  align-items: stretch;
+`;
+
+const RandomizeButton = styled.button`
+  display: grid;
+  width: 36px;
+  min-width: 36px;
+  min-height: 32px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid
+    ${({ $active }) => ($active ? 'rgba(232, 177, 92, 0.9)' : 'rgba(127, 215, 255, 0.38)')};
+  border-radius: 5px;
+  background:
+    ${({ $active }) =>
+      $active
+        ? 'linear-gradient(180deg, rgba(232, 177, 92, 0.3), rgba(35, 25, 10, 0.92))'
+        : 'rgba(9, 16, 22, 0.9)'};
+  box-shadow: ${({ $active }) => ($active ? '0 0 12px rgba(232, 177, 92, 0.24)' : 'none')};
+  color: #e6edf3;
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    border-color: rgba(232, 177, 92, 0.92);
+    background: rgba(232, 177, 92, 0.16);
+    outline: none;
+  }
+`;
+
 const ColorButton = styled(QuickButton)`
   border-color:
     ${({ $active, $tone }) =>
@@ -185,6 +221,7 @@ export default function AllItemsBrowseControls({
   onSortChange,
   onSortDirectionChange,
   onColorByChange,
+  onRandomize,
   onSearchChange,
   categoryOptions = [],
   batchOptions = [],
@@ -298,20 +335,32 @@ export default function AllItemsBrowseControls({
 
           <ColorField>
             <Label>Color signal</Label>
-            <ColorRail role="group" aria-label="Color items by">
-              {COLOR_BY_OPTIONS.map((option) => (
-                <ColorButton
-                  key={option.value}
-                  type="button"
-                  $tone={COLOR_TONES[option.value]}
-                  $active={colorBy === option.value}
-                  aria-pressed={colorBy === option.value}
-                  onClick={() => onColorByChange?.(option.value)}
-                >
-                  {option.label}
-                </ColorButton>
-              ))}
-            </ColorRail>
+            <ColorControls>
+              <ColorRail role="group" aria-label="Color items by">
+                {COLOR_BY_OPTIONS.map((option) => (
+                  <ColorButton
+                    key={option.value}
+                    type="button"
+                    $tone={COLOR_TONES[option.value]}
+                    $active={colorBy === option.value}
+                    aria-pressed={colorBy === option.value}
+                    onClick={() => onColorByChange?.(option.value)}
+                  >
+                    {option.label}
+                  </ColorButton>
+                ))}
+              </ColorRail>
+              <RandomizeButton
+                type="button"
+                $active={sortBy === 'random'}
+                aria-label="Randomize item order"
+                aria-pressed={sortBy === 'random'}
+                title="Randomize item order"
+                onClick={() => onRandomize?.()}
+              >
+                <span aria-hidden="true">🎲</span>
+              </RandomizeButton>
+            </ColorControls>
           </ColorField>
         </RefinePanel>
       ) : null}

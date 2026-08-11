@@ -10,6 +10,7 @@ const {
   matchesHistoryFilter,
   matchesHistoryRoute,
   normalizeVote,
+  assertItemIsReviewable,
   toClientCandidate,
 } = require('../backend/services/declutterDeckService');
 const {
@@ -83,6 +84,14 @@ test('visible choices normalize to canonical decisions and exit preferences', ()
     decision: 'unsure',
     exitPreference: null,
   });
+});
+
+test('gone inventory cannot be nominated into the Declutter Deck', () => {
+  assert.throws(
+    () => assertItemIsReviewable({ item_status: 'gone' }),
+    { status: 409, message: /gone away forever.*cannot be added to the Declutter Deck/i },
+  );
+  assert.doesNotThrow(() => assertItemIsReviewable({ item_status: 'active' }));
 });
 
 test('physical departure completion enforces the agreed route disposition', () => {

@@ -10,6 +10,7 @@ export default function RetrievalResultsList({
   onSectionChange,
   onPreviewImage,
   onLifecycleAction,
+  getItemNavigationState,
   loading = false,
   presentation = 'cards',
 }) {
@@ -34,6 +35,11 @@ export default function RetrievalResultsList({
           onSectionChange={onSectionChange}
           onPreviewImage={onPreviewImage}
           onLifecycleAction={onLifecycleAction}
+          itemNavigationState={
+            typeof getItemNavigationState === 'function'
+              ? getItemNavigationState(item.id)
+              : undefined
+          }
           compact={presentation === 'ascii'}
         />
       ))}

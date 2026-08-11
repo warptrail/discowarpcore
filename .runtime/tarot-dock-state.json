@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "agentSessionId": "agent-1786329253471-c1fb6948",
-  "updatedAt": "2026-08-11T04:25:08.359Z",
+  "updatedAt": "2026-08-11T23:24:25.573Z",
   "projectName": "Disco Warp Core",
   "profile": "DEV",
   "sigil": "╳▓▓⟡◇╳⌁⋮",
@@ -45,14 +45,14 @@
       "healthState": "healthy",
       "ownershipState": "tarot",
       "stateReason": "Live listener evidence reconciled.",
-      "lastTransitionAt": "2026-08-11T04:25:08.350Z",
-      "lastProbeAt": "2026-08-11T04:25:06.361Z",
-      "nextProbeAt": 1786422321362,
+      "lastTransitionAt": "2026-08-11T23:24:25.564Z",
+      "lastProbeAt": "2026-08-11T23:24:11.599Z",
+      "nextProbeAt": 1786490666600,
       "probe": {
         "ok": true,
         "type": "http",
         "status": 200,
-        "checkedAt": "2026-08-11T04:25:06.361Z",
+        "checkedAt": "2026-08-11T23:24:11.599Z",
         "message": "HTTP 200 from /."
       },
       "verified": true,
@@ -63,196 +63,196 @@
       "exitSignal": null,
       "logs": [
         {
-          "message": "3:14:45 PM [vite] (client) hmr update /src/components/QuantityInput.jsx",
-          "raw": "3:14:45 PM [vite] (client) hmr update /src/components/QuantityInput.jsx",
+          "message": "2:20:53 PM [vite] (client) hmr update /src/components/AllItemsList/AllItemsMobileDetailDeck.jsx",
+          "raw": "2:20:53 PM [vite] (client) hmr update /src/components/AllItemsList/AllItemsMobileDetailDeck.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786400085462,
-          "sequence": 16447
+          "capturedAt": 1786483253005,
+          "sequence": 26413
         },
         {
-          "message": "3:14:45 PM [vite] (client) hmr update /src/components/ItemDossier/ItemDossierCarouselSlides.jsx",
-          "raw": "3:14:45 PM [vite] (client) hmr update /src/components/ItemDossier/ItemDossierCarouselSlides.jsx",
+          "message": "2:20:53 PM [vite] (client) hmr update /src/components/ItemPage.jsx",
+          "raw": "2:20:53 PM [vite] (client) hmr update /src/components/ItemPage.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786400085462,
-          "sequence": 16448
+          "capturedAt": 1786483253007,
+          "sequence": 26414
         },
         {
-          "message": "3:17:48 PM [vite] (client) hmr update /src/components/ItemRow.jsx",
-          "raw": "3:17:48 PM [vite] (client) hmr update /src/components/ItemRow.jsx",
+          "message": "2:24:32 PM [vite] (client) hmr update /src/components/AllItemsList/AllItemsMobileDetailDeck.jsx",
+          "raw": "2:24:32 PM [vite] (client) hmr update /src/components/AllItemsList/AllItemsMobileDetailDeck.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786400268969,
-          "sequence": 16460
+          "capturedAt": 1786483472780,
+          "sequence": 26446
         },
         {
-          "message": "3:21:43 PM [vite] (client) hmr update /src/components/ItemRow.jsx",
-          "raw": "3:21:43 PM [vite] (client) hmr update /src/components/ItemRow.jsx",
+          "message": "2:24:32 PM [vite] (client) hmr update /src/components/AllItemsList.jsx",
+          "raw": "2:24:32 PM [vite] (client) hmr update /src/components/AllItemsList.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786400503777,
-          "sequence": 16710
+          "capturedAt": 1786483472782,
+          "sequence": 26447
         },
         {
-          "message": "3:21:43 PM [vite] (client) hmr update /src/components/ItemRow.jsx",
-          "raw": "3:21:43 PM [vite] (client) hmr update /src/components/ItemRow.jsx",
+          "message": "2:25:09 PM [vite] (client) hmr update /src/components/AllItemsList/AllItemsMobileDetailDeck.jsx, /src/components/AllItemsList.jsx",
+          "raw": "2:25:09 PM [vite] (client) hmr update /src/components/AllItemsList/AllItemsMobileDetailDeck.jsx, /src/components/AllItemsList.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786400503779,
-          "sequence": 16711
+          "capturedAt": 1786483509668,
+          "sequence": 26453
         },
         {
-          "message": "4:40:43 PM [vite] (client) hmr update /src/components/ItemRow.jsx",
-          "raw": "4:40:43 PM [vite] (client) hmr update /src/components/ItemRow.jsx",
+          "message": "2:25:09 PM [vite] (client) hmr update /src/components/AllItemsList.jsx",
+          "raw": "2:25:09 PM [vite] (client) hmr update /src/components/AllItemsList.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786405243455,
-          "sequence": 17515
+          "capturedAt": 1786483509670,
+          "sequence": 26454
         },
         {
-          "message": "4:40:43 PM [vite] (client) hmr update /src/components/ItemRow.jsx",
-          "raw": "4:40:43 PM [vite] (client) hmr update /src/components/ItemRow.jsx",
+          "message": "2:35:20 PM [vite] (client) hmr update /src/components/AllItemsList.jsx, /src/components/AllItemsList/AllItemsDesktopTable.jsx, /src/components/AllItemsList/AllItemsMobileCards.jsx, /src/components/AllItemsList/AllItemsBrowseControls.jsx, /src/components/AllItemsList/AllItemsArchiveBrowseControls.jsx",
+          "raw": "2:35:20 PM [vite] (client) hmr update /src/components/AllItemsList.jsx, /src/components/AllItemsList/AllItemsDesktopTable.jsx, /src/components/AllItemsList/AllItemsMobileCards.jsx, /src/components/AllItemsList/AllItemsBrowseControls.jsx, /src/components/AllItemsList/AllItemsArchiveBrowseControls.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786405243456,
-          "sequence": 17516
+          "capturedAt": 1786484120585,
+          "sequence": 26563
         },
         {
-          "message": "4:41:08 PM [vite] (client) hmr update /src/components/ItemRow.jsx",
-          "raw": "4:41:08 PM [vite] (client) hmr update /src/components/ItemRow.jsx",
+          "message": "2:35:20 PM [vite] (client) hmr update /src/components/AllItemsList.jsx",
+          "raw": "2:35:20 PM [vite] (client) hmr update /src/components/AllItemsList.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786405268668,
-          "sequence": 17518
+          "capturedAt": 1786484120587,
+          "sequence": 26564
         },
         {
-          "message": "4:41:46 PM [vite] (client) hmr update /src/components/ItemRow.jsx",
-          "raw": "4:41:46 PM [vite] (client) hmr update /src/components/ItemRow.jsx",
+          "message": "2:35:20 PM [vite] (client) hmr update /src/components/AllItemsList/AllItemsBrowseControls.jsx",
+          "raw": "2:35:20 PM [vite] (client) hmr update /src/components/AllItemsList/AllItemsBrowseControls.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786405306846,
-          "sequence": 17525
+          "capturedAt": 1786484120685,
+          "sequence": 26565
         },
         {
-          "message": "4:42:01 PM [vite] (client) hmr update /src/components/ItemRow.jsx",
-          "raw": "4:42:01 PM [vite] (client) hmr update /src/components/ItemRow.jsx",
+          "message": "2:35:20 PM [vite] (client) hmr update /src/components/AllItemsList/AllItemsToolbar.jsx",
+          "raw": "2:35:20 PM [vite] (client) hmr update /src/components/AllItemsList/AllItemsToolbar.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786405321735,
-          "sequence": 17820
+          "capturedAt": 1786484120786,
+          "sequence": 26568
         },
         {
-          "message": "6:51:34 PM [vite] (client) hmr update /src/components/ItemDossier/ItemDossierCarouselSlides.jsx",
-          "raw": "6:51:34 PM [vite] (client) hmr update /src/components/ItemDossier/ItemDossierCarouselSlides.jsx",
+          "message": "2:35:20 PM [vite] (client) hmr update /src/components/AllItemsList.jsx",
+          "raw": "2:35:20 PM [vite] (client) hmr update /src/components/AllItemsList.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786413094084,
-          "sequence": 18637
+          "capturedAt": 1786484120788,
+          "sequence": 26569
         },
         {
-          "message": "6:51:34 PM [vite] (client) hmr update /src/components/OperationsItemOverview.jsx, /src/components/ItemDossier/ItemDossierCarousel.jsx, /src/components/ItemDossier/ItemDossierCarouselSlides.jsx, /src/components/ItemDossier/ItemDecisionActions.jsx",
-          "raw": "6:51:34 PM [vite] (client) hmr update /src/components/OperationsItemOverview.jsx, /src/components/ItemDossier/ItemDossierCarousel.jsx, /src/components/ItemDossier/ItemDossierCarouselSlides.jsx, /src/components/ItemDossier/ItemDecisionActions.jsx",
+          "message": "2:41:52 PM [vite] (client) hmr update /src/components/ItemPageBreadcrumb.jsx",
+          "raw": "2:41:52 PM [vite] (client) hmr update /src/components/ItemPageBreadcrumb.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786413094086,
-          "sequence": 18638
+          "capturedAt": 1786484512377,
+          "sequence": 26630
         },
         {
-          "message": "6:51:34 PM [vite] (client) hmr update /src/components/ItemNoteSheet.jsx",
-          "raw": "6:51:34 PM [vite] (client) hmr update /src/components/ItemNoteSheet.jsx",
+          "message": "2:41:52 PM [vite] (client) hmr update /src/components/ItemPage.jsx",
+          "raw": "2:41:52 PM [vite] (client) hmr update /src/components/ItemPage.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786413094086,
-          "sequence": 18639
+          "capturedAt": 1786484512379,
+          "sequence": 26631
         },
         {
-          "message": "6:54:34 PM [vite] (client) hmr update /src/components/ItemDossier/ItemDossierCarouselSlides.jsx",
-          "raw": "6:54:34 PM [vite] (client) hmr update /src/components/ItemDossier/ItemDossierCarouselSlides.jsx",
+          "message": "2:41:52 PM [vite] (client) hmr update /src/components/Toast/Toast.jsx",
+          "raw": "2:41:52 PM [vite] (client) hmr update /src/components/Toast/Toast.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786413274733,
-          "sequence": 18651
+          "capturedAt": 1786484512379,
+          "sequence": 26632
         },
         {
-          "message": "6:54:34 PM [vite] (client) hmr update /src/components/OperationsItemOverview.jsx, /src/components/ItemDossier/ItemDossierCarousel.jsx, /src/components/ItemDossier/ItemDossierCarouselSlides.jsx, /src/components/ItemDossier/ItemDecisionActions.jsx",
-          "raw": "6:54:34 PM [vite] (client) hmr update /src/components/OperationsItemOverview.jsx, /src/components/ItemDossier/ItemDossierCarousel.jsx, /src/components/ItemDossier/ItemDossierCarouselSlides.jsx, /src/components/ItemDossier/ItemDecisionActions.jsx",
+          "message": "2:41:52 PM [vite] (client) hmr update /src/components/Retrieval/RetrievalExpandedPanel.jsx",
+          "raw": "2:41:52 PM [vite] (client) hmr update /src/components/Retrieval/RetrievalExpandedPanel.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786413274735,
-          "sequence": 18652
+          "capturedAt": 1786484512379,
+          "sequence": 26633
         },
         {
-          "message": "6:56:02 PM [vite] (client) hmr update /src/components/ItemDossier/ItemDossierCarouselSlides.jsx",
-          "raw": "6:56:02 PM [vite] (client) hmr update /src/components/ItemDossier/ItemDossierCarouselSlides.jsx",
+          "message": "2:41:52 PM [vite] (client) hmr update /src/components/Retrieval/RetrievalResultRow.jsx",
+          "raw": "2:41:52 PM [vite] (client) hmr update /src/components/Retrieval/RetrievalResultRow.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786413362568,
-          "sequence": 18659
+          "capturedAt": 1786484512379,
+          "sequence": 26634
         },
         {
-          "message": "6:56:02 PM [vite] (client) hmr update /src/components/OperationsItemOverview.jsx, /src/components/ItemDossier/ItemDossierCarousel.jsx, /src/components/ItemDossier/ItemDossierCarouselSlides.jsx, /src/components/ItemDossier/ItemDecisionActions.jsx",
-          "raw": "6:56:02 PM [vite] (client) hmr update /src/components/OperationsItemOverview.jsx, /src/components/ItemDossier/ItemDossierCarousel.jsx, /src/components/ItemDossier/ItemDossierCarouselSlides.jsx, /src/components/ItemDossier/ItemDecisionActions.jsx",
+          "message": "2:41:52 PM [vite] (client) hmr update /src/components/Retrieval/RetrievalResultsList.jsx",
+          "raw": "2:41:52 PM [vite] (client) hmr update /src/components/Retrieval/RetrievalResultsList.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786413362570,
-          "sequence": 18660
+          "capturedAt": 1786484512484,
+          "sequence": 26635
         },
         {
-          "message": "8:55:16 PM [vite] (client) hmr update /src/components/OperationsArchivedItems/OperationsArchivedItemsLane.jsx, /src/components/OperationsTerminal/TerminalItemTable.jsx, /src/components/OperationsQuickPeek/OperationsBoxQuickPeek.jsx, /src/components/OperationsQuickPeek/QuickPeekItemCarousel.jsx, /src/components/OperationsQuickPeek/QuickPeekItemList.jsx, /src/components/Intake/IntakeQuickItemMaker.jsx, /src/components/BoxList.jsx, /src/components/ItemPageImageHero.jsx, /src/components/ItemPageConsoleView.jsx, /src/components/ImageFields/ItemImageField.jsx, /src/components/ImageFields/BoxImageField.jsx, /src/components/ImageFields/ImageAssetField.jsx, /src/components/BoxMetaPanel.jsx, /src/components/ItemRow.jsx, /src/components/ItemDetails.jsx, /src/components/MiniOrphanedItemRow.jsx",
-          "raw": "8:55:16 PM [vite] (client) hmr update /src/components/OperationsArchivedItems/OperationsArchivedItemsLane.jsx, /src/components/OperationsTerminal/TerminalItemTable.jsx, /src/components/OperationsQuickPeek/OperationsBoxQuickPeek.jsx, /src/components/OperationsQuickPeek/QuickPeekItemCarousel.jsx, /src/components/OperationsQuickPeek/QuickPeekItemList.jsx, /src/components/Intake/IntakeQuickItemMaker.jsx, /src/components/BoxList.jsx, /src/components/ItemPageImageHero.jsx, /src/components/ItemPageConsoleView.jsx, /src/components/ImageFields/ItemImageField.jsx, /src/components/ImageFields/BoxImageField.jsx, /src/components/ImageFields/ImageAssetField.jsx, /src/components/BoxMetaPanel.jsx, /src/components/ItemRow.jsx, /src/components/ItemDetails.jsx, /src/components/MiniOrphanedItemRow.jsx",
+          "message": "2:41:52 PM [vite] (client) hmr update /src/components/Retrieval/RetrievalPage.jsx",
+          "raw": "2:41:52 PM [vite] (client) hmr update /src/components/Retrieval/RetrievalPage.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786420516596,
-          "sequence": 19177
+          "capturedAt": 1786484512577,
+          "sequence": 26636
         },
         {
-          "message": "8:55:16 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/QuickPeekItemCarousel.jsx",
-          "raw": "8:55:16 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/QuickPeekItemCarousel.jsx",
+          "message": "2:45:50 PM [vite] (client) hmr update /src/components/AllItemsList/AllItemsMobileCards.jsx",
+          "raw": "2:45:50 PM [vite] (client) hmr update /src/components/AllItemsList/AllItemsMobileCards.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786420516600,
-          "sequence": 19178
+          "capturedAt": 1786484750565,
+          "sequence": 26725
         },
         {
-          "message": "8:55:16 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/QuickPeekItemList.jsx",
-          "raw": "8:55:16 PM [vite] (client) hmr update /src/components/OperationsQuickPeek/QuickPeekItemList.jsx",
+          "message": "2:45:50 PM [vite] (client) hmr update /src/components/AllItemsList.jsx, /src/components/AllItemsList/AllItemsDesktopTable.jsx, /src/components/AllItemsList/AllItemsMobileCards.jsx, /src/components/AllItemsList/AllItemsSelectionPanel.jsx, /src/components/AllItemsList/AllItemsToolbar.jsx, /src/components/AllItemsList/AllItemsDeclutterDeckControls.jsx, /src/components/AllItemsList/AllItemsBatchIndex.jsx",
+          "raw": "2:45:50 PM [vite] (client) hmr update /src/components/AllItemsList.jsx, /src/components/AllItemsList/AllItemsDesktopTable.jsx, /src/components/AllItemsList/AllItemsMobileCards.jsx, /src/components/AllItemsList/AllItemsSelectionPanel.jsx, /src/components/AllItemsList/AllItemsToolbar.jsx, /src/components/AllItemsList/AllItemsDeclutterDeckControls.jsx, /src/components/AllItemsList/AllItemsBatchIndex.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786420516600,
-          "sequence": 19179
+          "capturedAt": 1786484750567,
+          "sequence": 26726
         },
         {
-          "message": "8:55:34 PM [vite] (client) hmr update /src/components/OperationsArchivedItems/OperationsArchivedItemsLane.jsx, /src/components/OperationsTerminal/TerminalItemTable.jsx, /src/components/OperationsQuickPeek/OperationsBoxQuickPeek.jsx, /src/components/OperationsQuickPeek/QuickPeekItemCarousel.jsx, /src/components/OperationsQuickPeek/QuickPeekItemList.jsx, /src/components/Intake/IntakeQuickItemMaker.jsx, /src/components/BoxList.jsx, /src/components/ItemPageImageHero.jsx, /src/components/ItemPageConsoleView.jsx, /src/components/ImageFields/ItemImageField.jsx, /src/components/ImageFields/BoxImageField.jsx, /src/components/ImageFields/ImageAssetField.jsx, /src/components/BoxMetaPanel.jsx, /src/components/ItemRow.jsx, /src/components/ItemDetails.jsx, /src/components/MiniOrphanedItemRow.jsx",
-          "raw": "8:55:34 PM [vite] (client) hmr update /src/components/OperationsArchivedItems/OperationsArchivedItemsLane.jsx, /src/components/OperationsTerminal/TerminalItemTable.jsx, /src/components/OperationsQuickPeek/OperationsBoxQuickPeek.jsx, /src/components/OperationsQuickPeek/QuickPeekItemCarousel.jsx, /src/components/OperationsQuickPeek/QuickPeekItemList.jsx, /src/components/Intake/IntakeQuickItemMaker.jsx, /src/components/BoxList.jsx, /src/components/ItemPageImageHero.jsx, /src/components/ItemPageConsoleView.jsx, /src/components/ImageFields/ItemImageField.jsx, /src/components/ImageFields/BoxImageField.jsx, /src/components/ImageFields/ImageAssetField.jsx, /src/components/BoxMetaPanel.jsx, /src/components/ItemRow.jsx, /src/components/ItemDetails.jsx, /src/components/MiniOrphanedItemRow.jsx",
+          "message": "4:17:53 PM [vite] (client) hmr update /src/components/ItemRow.jsx",
+          "raw": "4:17:53 PM [vite] (client) hmr update /src/components/ItemRow.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786420534163,
-          "sequence": 19215
+          "capturedAt": 1786490273334,
+          "sequence": 27200
         },
         {
-          "message": "8:58:42 PM [vite] (client) hmr update /src/components/OperationsArchivedItems/OperationsArchivedItemsLane.jsx, /src/components/OperationsTerminal/TerminalItemTable.jsx, /src/components/OperationsQuickPeek/OperationsBoxQuickPeek.jsx, /src/components/OperationsQuickPeek/QuickPeekItemCarousel.jsx, /src/components/OperationsQuickPeek/QuickPeekItemList.jsx, /src/components/Intake/IntakeQuickItemMaker.jsx, /src/components/BoxList.jsx, /src/components/ItemPageImageHero.jsx, /src/components/ItemPageConsoleView.jsx, /src/components/ImageFields/ItemImageField.jsx, /src/components/ImageFields/BoxImageField.jsx, /src/components/ImageFields/ImageAssetField.jsx, /src/components/BoxMetaPanel.jsx, /src/components/ItemRow.jsx, /src/components/ItemDetails.jsx, /src/components/MiniOrphanedItemRow.jsx",
-          "raw": "8:58:42 PM [vite] (client) hmr update /src/components/OperationsArchivedItems/OperationsArchivedItemsLane.jsx, /src/components/OperationsTerminal/TerminalItemTable.jsx, /src/components/OperationsQuickPeek/OperationsBoxQuickPeek.jsx, /src/components/OperationsQuickPeek/QuickPeekItemCarousel.jsx, /src/components/OperationsQuickPeek/QuickPeekItemList.jsx, /src/components/Intake/IntakeQuickItemMaker.jsx, /src/components/BoxList.jsx, /src/components/ItemPageImageHero.jsx, /src/components/ItemPageConsoleView.jsx, /src/components/ImageFields/ItemImageField.jsx, /src/components/ImageFields/BoxImageField.jsx, /src/components/ImageFields/ImageAssetField.jsx, /src/components/BoxMetaPanel.jsx, /src/components/ItemRow.jsx, /src/components/ItemDetails.jsx, /src/components/MiniOrphanedItemRow.jsx",
+          "message": "4:17:53 PM [vite] (client) hmr update /src/components/ItemPage.jsx",
+          "raw": "4:17:53 PM [vite] (client) hmr update /src/components/ItemPage.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786420722624,
-          "sequence": 19262
+          "capturedAt": 1786490273337,
+          "sequence": 27201
         },
         {
-          "message": "9:18:46 PM [vite] (client) hmr update /src/components/BulkImport/BulkImportPage.jsx",
-          "raw": "9:18:46 PM [vite] (client) hmr update /src/components/BulkImport/BulkImportPage.jsx",
+          "message": "4:17:53 PM [vite] (client) hmr update /src/components/ItemPageBreadcrumb.jsx",
+          "raw": "4:17:53 PM [vite] (client) hmr update /src/components/ItemPageBreadcrumb.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786421926778,
-          "sequence": 19397
+          "capturedAt": 1786490273337,
+          "sequence": 27202
         },
         {
-          "message": "9:18:46 PM [vite] (client) hmr update /src/components/BulkImport/IntakeBatchDetailsPanel.jsx",
-          "raw": "9:18:46 PM [vite] (client) hmr update /src/components/BulkImport/IntakeBatchDetailsPanel.jsx",
+          "message": "4:18:24 PM [vite] (client) hmr update /src/components/AllItemsList/AllItemsMobileCards.jsx",
+          "raw": "4:18:24 PM [vite] (client) hmr update /src/components/AllItemsList/AllItemsMobileCards.jsx",
           "stream": "out",
           "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786421926780,
-          "sequence": 19398
+          "capturedAt": 1786490304981,
+          "sequence": 27385
         }
       ],
       "observedPids": [
@@ -299,232 +299,232 @@
         "logs"
       ],
       "error": "",
-      "runId": "backend-1786329255737-1b4d801f",
+      "runId": "backend-1786484487803-0370771a",
       "processState": "running",
       "healthState": "healthy",
       "ownershipState": "tarot",
       "stateReason": "Live listener evidence reconciled.",
-      "lastTransitionAt": "2026-08-11T04:25:08.354Z",
-      "lastProbeAt": "2026-08-11T04:25:06.364Z",
-      "nextProbeAt": 1786422321365,
+      "lastTransitionAt": "2026-08-11T23:24:25.568Z",
+      "lastProbeAt": "2026-08-11T23:24:11.603Z",
+      "nextProbeAt": 1786490666604,
       "probe": {
         "ok": true,
         "type": "http",
         "status": 200,
-        "checkedAt": "2026-08-11T04:25:06.364Z",
+        "checkedAt": "2026-08-11T23:24:11.603Z",
         "message": "HTTP 200 from /api/health."
       },
       "verified": true,
       "intentionalStop": false,
       "restartAttempts": 0,
-      "startupDeadlineAt": "2026-08-10T02:35:15.740Z",
+      "startupDeadlineAt": "2026-08-11T21:42:27.808Z",
       "exitCode": null,
       "exitSignal": null,
       "logs": [
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:20:50.258Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"dbb776a6-3c89-4d83-b81a-d520be828813\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.15,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:20:50.258Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"dbb776a6-3c89-4d83-b81a-d520be828813\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.15,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T23:22:39.083Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"d3dbd596-3b28-42eb-85fd-ec837d95ff33\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a312467\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":7.2}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T23:22:39.083Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"d3dbd596-3b28-42eb-85fd-ec837d95ff33\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a312467\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":7.2}",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422050258,
-          "sequence": 19447
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490559083,
+          "sequence": 27629
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:20:50.281Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"5504dc06-ea96-4dd9-ab8a-edda500c91e7\",\"method\":\"GET\",\"path\":\"/api/intake-batches/2026-07-09_0414_trashbags\",\"queryKeys\":[\"itemsLimit\",\"itemsOffset\",\"itemsSort\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":91.31}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:20:50.281Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"5504dc06-ea96-4dd9-ab8a-edda500c91e7\",\"method\":\"GET\",\"path\":\"/api/intake-batches/2026-07-09_0414_trashbags\",\"queryKeys\":[\"itemsLimit\",\"itemsOffset\",\"itemsSort\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":91.31}",
+          "message": "[perf][item-detail] model.findItemById itemId=6a35b8801356bc312a312471 itemLookupMs=1.22 containingBoxLookupMs=1.47 ancestorChainLookupMs=0.00 allBoxesLoadMs=0.00 boxMapBuildMs=0.00 breadcrumbBuildMs=0.01 totalMs=2.86",
+          "raw": "[perf][item-detail] model.findItemById itemId=6a35b8801356bc312a312471 itemLookupMs=1.22 containingBoxLookupMs=1.47 ancestorChainLookupMs=0.00 allBoxesLoadMs=0.00 boxMapBuildMs=0.00 breadcrumbBuildMs=0.01 totalMs=2.86",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422050281,
-          "sequence": 19448
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490565772,
+          "sequence": 27630
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.252Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"ba190262-233a-49e7-af56-9efcf3f72409\",\"method\":\"GET\",\"path\":\"/api/intake-batches/2026-07-09_0414_trashbags\",\"queryKeys\":[\"itemsLimit\",\"itemsOffset\",\"itemsSort\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":122.26}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.252Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"ba190262-233a-49e7-af56-9efcf3f72409\",\"method\":\"GET\",\"path\":\"/api/intake-batches/2026-07-09_0414_trashbags\",\"queryKeys\":[\"itemsLimit\",\"itemsOffset\",\"itemsSort\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":122.26}",
+          "message": "[perf][item-detail] service.getItemById itemId=6a35b8801356bc312a312471 totalMs=4.56",
+          "raw": "[perf][item-detail] service.getItemById itemId=6a35b8801356bc312a312471 totalMs=4.56",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422053252,
-          "sequence": 19449
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490565774,
+          "sequence": 27631
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.253Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"8df7556c-410b-4c6f-802f-71ec005225d4\",\"method\":\"GET\",\"path\":\"/api/intake-batches\",\"queryKeys\":[\"includeArchived\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":123.84}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.253Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"8df7556c-410b-4c6f-802f-71ec005225d4\",\"method\":\"GET\",\"path\":\"/api/intake-batches\",\"queryKeys\":[\"includeArchived\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":123.84}",
+          "message": "[perf][item-detail] controller.getItemByIdApi itemId=6a35b8801356bc312a312471 totalRequestMs=4.96",
+          "raw": "[perf][item-detail] controller.getItemByIdApi itemId=6a35b8801356bc312a312471 totalRequestMs=4.96",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422053253,
-          "sequence": 19450
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490565774,
+          "sequence": 27632
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.367Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"fcc49bd1-db24-4000-93df-308fdf70a02b\",\"method\":\"GET\",\"path\":\"/api/intake-batches/2026-07-09_0414_trashbags\",\"queryKeys\":[\"itemsLimit\",\"itemsOffset\",\"itemsSort\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":113.32}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.367Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"fcc49bd1-db24-4000-93df-308fdf70a02b\",\"method\":\"GET\",\"path\":\"/api/intake-batches/2026-07-09_0414_trashbags\",\"queryKeys\":[\"itemsLimit\",\"itemsOffset\",\"itemsSort\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":113.32}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T23:22:45.774Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"609e316d-23ed-4846-81d1-cd8d055f2e99\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a312471\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":5.09}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T23:22:45.774Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"609e316d-23ed-4846-81d1-cd8d055f2e99\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a312471\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":5.09}",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422053367,
-          "sequence": 19451
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490565776,
+          "sequence": 27633
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.375Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"16e300d3-87c6-4537-b6b6-649a03044778\",\"method\":\"GET\",\"path\":\"/api/intake-batches\",\"queryKeys\":[\"includeArchived\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":121.53}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.375Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"16e300d3-87c6-4537-b6b6-649a03044778\",\"method\":\"GET\",\"path\":\"/api/intake-batches\",\"queryKeys\":[\"includeArchived\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":121.53}",
+          "message": "[perf][item-detail] model.findItemById itemId=6a35b8801356bc312a31246a itemLookupMs=1.23 containingBoxLookupMs=1.76 ancestorChainLookupMs=0.00 allBoxesLoadMs=0.00 boxMapBuildMs=0.00 breadcrumbBuildMs=0.01 totalMs=3.18",
+          "raw": "[perf][item-detail] model.findItemById itemId=6a35b8801356bc312a31246a itemLookupMs=1.23 containingBoxLookupMs=1.76 ancestorChainLookupMs=0.00 allBoxesLoadMs=0.00 boxMapBuildMs=0.00 breadcrumbBuildMs=0.01 totalMs=3.18",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422053375,
-          "sequence": 19452
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490569822,
+          "sequence": 27634
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.453Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"782f144a-4c99-4318-b406-7e9cf0ba05d1\",\"method\":\"GET\",\"path\":\"/api/intake-batches/2026-07-09_0414_trashbags\",\"queryKeys\":[\"itemsLimit\",\"itemsOffset\",\"itemsSort\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":83.99}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.453Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"782f144a-4c99-4318-b406-7e9cf0ba05d1\",\"method\":\"GET\",\"path\":\"/api/intake-batches/2026-07-09_0414_trashbags\",\"queryKeys\":[\"itemsLimit\",\"itemsOffset\",\"itemsSort\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":83.99}",
+          "message": "[perf][item-detail] service.getItemById itemId=6a35b8801356bc312a31246a totalMs=4.55",
+          "raw": "[perf][item-detail] service.getItemById itemId=6a35b8801356bc312a31246a totalMs=4.55",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422053453,
-          "sequence": 19453
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490569824,
+          "sequence": 27635
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.530Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"b8097f02-039f-4807-8b28-a23170e3f47a\",\"method\":\"GET\",\"path\":\"/api/intake-batches/2026-07-09_0414_trashbags\",\"queryKeys\":[\"itemsLimit\",\"itemsOffset\",\"itemsSort\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":75.79}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.530Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"b8097f02-039f-4807-8b28-a23170e3f47a\",\"method\":\"GET\",\"path\":\"/api/intake-batches/2026-07-09_0414_trashbags\",\"queryKeys\":[\"itemsLimit\",\"itemsOffset\",\"itemsSort\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":75.79}",
+          "message": "[perf][item-detail] controller.getItemByIdApi itemId=6a35b8801356bc312a31246a totalRequestMs=4.80",
+          "raw": "[perf][item-detail] controller.getItemByIdApi itemId=6a35b8801356bc312a31246a totalRequestMs=4.80",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422053530,
-          "sequence": 19454
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490569824,
+          "sequence": 27636
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:21:06.292Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"bbe6a137-5e04-486e-a280-d919e103c6be\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.48,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:21:06.292Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"bbe6a137-5e04-486e-a280-d919e103c6be\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.48,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T23:22:49.824Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"1eb90e7b-b0bf-4599-a08f-14889144ee75\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a31246a\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":4.9}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T23:22:49.824Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"1eb90e7b-b0bf-4599-a08f-14889144ee75\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a31246a\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":4.9}",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422066292,
-          "sequence": 19455
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490569824,
+          "sequence": 27637
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:21:22.311Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"58dd56ef-0319-4b27-90aa-9fa5da8269b7\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.24,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:21:22.311Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"58dd56ef-0319-4b27-90aa-9fa5da8269b7\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.24,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T23:22:51.571Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"de3f03a0-9ca4-492d-88c9-459f2ed82666\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.13,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T23:22:51.571Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"de3f03a0-9ca4-492d-88c9-459f2ed82666\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.13,\"responseBytes\":11}",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422082311,
-          "sequence": 19456
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490571571,
+          "sequence": 27638
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:21:38.301Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"aa173f46-72bf-41a0-8e06-5234bef8e169\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.51,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:21:38.301Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"aa173f46-72bf-41a0-8e06-5234bef8e169\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.51,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T23:23:07.578Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"3e0acc4d-def2-4b51-897a-da97d4859062\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.15,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T23:23:07.578Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"3e0acc4d-def2-4b51-897a-da97d4859062\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.15,\"responseBytes\":11}",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422098302,
-          "sequence": 19457
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490587591,
+          "sequence": 27639
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:21:54.312Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"98f82775-4ee0-444b-bec2-88aff4192bda\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.16,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:21:54.312Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"98f82775-4ee0-444b-bec2-88aff4192bda\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.16,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T23:23:18.736Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"01b0fd59-d921-43bb-bfa9-d31fceec222b\",\"method\":\"GET\",\"path\":\"/api/locations\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":6.86}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T23:23:18.736Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"01b0fd59-d921-43bb-bfa9-d31fceec222b\",\"method\":\"GET\",\"path\":\"/api/locations\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":6.86}",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422114313,
-          "sequence": 19458
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490598736,
+          "sequence": 27640
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:22:10.310Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"21a43787-135f-488c-ad39-f57d2581b270\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:22:10.310Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"21a43787-135f-488c-ad39-f57d2581b270\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T23:23:18.739Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"3945e53f-b2b9-4d69-9b96-472b6037fe90\",\"method\":\"GET\",\"path\":\"/api/items/orphaned\",\"queryKeys\":[\"limit\",\"sort\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":8.84}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T23:23:18.739Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"3945e53f-b2b9-4d69-9b96-472b6037fe90\",\"method\":\"GET\",\"path\":\"/api/items/orphaned\",\"queryKeys\":[\"limit\",\"sort\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":8.84}",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422130310,
-          "sequence": 19459
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490598740,
+          "sequence": 27641
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:22:26.330Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"4ab1125d-15b4-4cd5-931c-be3542685419\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:22:26.330Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"4ab1125d-15b4-4cd5-931c-be3542685419\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T23:23:18.786Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"331facaa-b46f-4d8e-8d51-5a7c113dbc24\",\"method\":\"GET\",\"path\":\"/api/boxes/tree\",\"queryKeys\":[\"limit\",\"page\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":54.27}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T23:23:18.786Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"331facaa-b46f-4d8e-8d51-5a7c113dbc24\",\"method\":\"GET\",\"path\":\"/api/boxes/tree\",\"queryKeys\":[\"limit\",\"page\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":54.27}",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422146339,
-          "sequence": 19460
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490598786,
+          "sequence": 27642
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:22:42.333Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"078e3449-4fa3-47e7-9ae5-9b14094edbeb\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.16,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:22:42.333Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"078e3449-4fa3-47e7-9ae5-9b14094edbeb\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.16,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T23:23:23.590Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"ddc61c70-7f3b-4590-b9d6-da0fe706fccf\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.21,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T23:23:23.590Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"ddc61c70-7f3b-4590-b9d6-da0fe706fccf\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.21,\"responseBytes\":11}",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422162333,
-          "sequence": 19461
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490603590,
+          "sequence": 27643
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:22:58.339Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"2dfbfba0-4576-46f6-a5aa-c929536d31c9\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:22:58.339Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"2dfbfba0-4576-46f6-a5aa-c929536d31c9\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T23:23:31.258Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"cefb1a21-2131-4a69-a639-ff8f4e0975b5\",\"method\":\"GET\",\"path\":\"/api/media/image-derivative\",\"queryKeys\":[\"source\",\"variant\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":179.34,\"responseBytes\":98178}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T23:23:31.258Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"cefb1a21-2131-4a69-a639-ff8f4e0975b5\",\"method\":\"GET\",\"path\":\"/api/media/image-derivative\",\"queryKeys\":[\"source\",\"variant\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":179.34,\"responseBytes\":98178}",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422178339,
-          "sequence": 19462
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490611258,
+          "sequence": 27644
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:23:14.346Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"dbfbf201-997d-4e88-9dc1-1be3c7a182fd\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:23:14.346Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"dbfbf201-997d-4e88-9dc1-1be3c7a182fd\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T23:23:32.495Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"35df1aa5-5365-44ea-aed2-f34a19817fe1\",\"method\":\"GET\",\"path\":\"/api/media/image-derivative\",\"queryKeys\":[\"source\",\"variant\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":218.32,\"responseBytes\":85752}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T23:23:32.495Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"35df1aa5-5365-44ea-aed2-f34a19817fe1\",\"method\":\"GET\",\"path\":\"/api/media/image-derivative\",\"queryKeys\":[\"source\",\"variant\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":218.32,\"responseBytes\":85752}",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422194346,
-          "sequence": 19463
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490612495,
+          "sequence": 27645
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:23:30.356Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"6e09b0c8-843f-4d15-9f11-793754726110\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:23:30.356Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"6e09b0c8-843f-4d15-9f11-793754726110\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T23:23:33.273Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"e7a54c5d-3100-4c34-8357-3a53f8da176d\",\"method\":\"GET\",\"path\":\"/api/media/image-derivative\",\"queryKeys\":[\"source\",\"variant\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":215.86,\"responseBytes\":83906}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T23:23:33.273Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"e7a54c5d-3100-4c34-8357-3a53f8da176d\",\"method\":\"GET\",\"path\":\"/api/media/image-derivative\",\"queryKeys\":[\"source\",\"variant\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":215.86,\"responseBytes\":83906}",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422210356,
-          "sequence": 19464
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490613273,
+          "sequence": 27646
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:23:46.359Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"e2204d56-5e65-4c8d-b268-8b0dfa0aac7a\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.18,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:23:46.359Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"e2204d56-5e65-4c8d-b268-8b0dfa0aac7a\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.18,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T23:23:34.937Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"1b144635-bc2d-4b49-964c-9477885a577c\",\"method\":\"GET\",\"path\":\"/api/media/image-derivative\",\"queryKeys\":[\"source\",\"variant\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":200.66,\"responseBytes\":85438}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T23:23:34.937Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"1b144635-bc2d-4b49-964c-9477885a577c\",\"method\":\"GET\",\"path\":\"/api/media/image-derivative\",\"queryKeys\":[\"source\",\"variant\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":200.66,\"responseBytes\":85438}",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422226359,
-          "sequence": 19465
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490614937,
+          "sequence": 27647
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:24:02.367Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"9842adbc-87bf-4504-824f-dad2b6ddd295\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.13,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:24:02.367Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"9842adbc-87bf-4504-824f-dad2b6ddd295\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.13,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T23:23:35.642Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"583630fe-3983-4f14-ab47-30862af8abee\",\"method\":\"GET\",\"path\":\"/api/media/image-derivative\",\"queryKeys\":[\"source\",\"variant\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":174.02,\"responseBytes\":81724}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T23:23:35.642Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"583630fe-3983-4f14-ab47-30862af8abee\",\"method\":\"GET\",\"path\":\"/api/media/image-derivative\",\"queryKeys\":[\"source\",\"variant\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":174.02,\"responseBytes\":81724}",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422242367,
-          "sequence": 19466
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490615642,
+          "sequence": 27648
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:24:18.406Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"95d24070-427f-4777-872b-bf129d0493a5\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.21,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:24:18.406Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"95d24070-427f-4777-872b-bf129d0493a5\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.21,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T23:23:36.492Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"1b208afe-ccfb-4b1f-85ee-caa28ee80c43\",\"method\":\"GET\",\"path\":\"/api/media/image-derivative\",\"queryKeys\":[\"source\",\"variant\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":185.47,\"responseBytes\":103888}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T23:23:36.492Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"1b208afe-ccfb-4b1f-85ee-caa28ee80c43\",\"method\":\"GET\",\"path\":\"/api/media/image-derivative\",\"queryKeys\":[\"source\",\"variant\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":185.47,\"responseBytes\":103888}",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422258406,
-          "sequence": 19467
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490616492,
+          "sequence": 27649
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:24:34.398Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"351b7dbb-d6fe-462b-a1d7-edc35d35ae92\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.17,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:24:34.398Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"351b7dbb-d6fe-462b-a1d7-edc35d35ae92\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.17,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T23:23:39.589Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"b154172e-731a-4469-bf59-216f25b03bf5\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.14,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T23:23:39.589Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"b154172e-731a-4469-bf59-216f25b03bf5\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.14,\"responseBytes\":11}",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422274411,
-          "sequence": 19468
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490619589,
+          "sequence": 27650
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:24:50.404Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"6f8ea593-9637-4900-b3b2-7b9d7c33e361\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.16,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:24:50.404Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"6f8ea593-9637-4900-b3b2-7b9d7c33e361\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.16,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T23:23:55.601Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"65f93597-bb5e-4bb6-a041-99e1ffd9ad4c\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.2,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T23:23:55.601Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"65f93597-bb5e-4bb6-a041-99e1ffd9ad4c\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.2,\"responseBytes\":11}",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422290404,
-          "sequence": 19469
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490635601,
+          "sequence": 27651
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:25:06.365Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"b2cdc258-0dc3-4cdb-96a5-858ed0fac805\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.14,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:25:06.365Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"b2cdc258-0dc3-4cdb-96a5-858ed0fac805\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.14,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T23:24:11.604Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"1fc231a9-5e3e-433b-9aee-eabe5a44ef5a\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.14,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T23:24:11.604Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"1fc231a9-5e3e-433b-9aee-eabe5a44ef5a\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.14,\"responseBytes\":11}",
           "stream": "out",
-          "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786422306366,
-          "sequence": 19470
+          "runId": "backend-1786484487803-0370771a",
+          "capturedAt": 1786490651617,
+          "sequence": 27652
         }
       ],
       "observedPids": [
-        13449
+        54052
       ],
       "observedProcessStartedAt": [
-        "Sun Aug  9 19:34:15 2026"
+        "Tue Aug 11 14:41:27 2026"
       ],
       "state": "live",
       "commandFingerprint": "1e204826d14b84d220b991f7b67b370f89f165dd0f2219971be478e49893e6c3",
-      "startedAt": 1786329255737,
-      "pid": 13449,
-      "processStartedAt": "Sun Aug  9 19:34:15 2026",
+      "startedAt": 1786484487803,
+      "pid": 54052,
+      "processStartedAt": "Tue Aug 11 14:41:27 2026",
       "scrySlot": 2,
       "owned": true,
       "envKeys": [
@@ -551,7 +551,7 @@
       "healthState": "healthy",
       "ownershipState": "system",
       "stateReason": "Observed a system-managed listener.",
-      "lastTransitionAt": "2026-08-11T04:25:08.359Z",
+      "lastTransitionAt": "2026-08-11T23:24:25.573Z",
       "lastProbeAt": null,
       "nextProbeAt": 0,
       "probe": null,

@@ -144,19 +144,26 @@ export default function ItemButtonBar({
               <S.DeclutterControlButton
                 type="button"
                 $active={inDeclutterDeck}
+                $gone={isGone}
                 aria-pressed={inDeclutterDeck}
-                aria-label={inDeclutterDeck ? 'Remove from Declutter Deck' : 'Add to Declutter Deck'}
-                disabled={declutterPending || !item?._id}
+                aria-label={isGone
+                  ? 'Gone away forever. This item cannot be added to the Declutter Deck.'
+                  : inDeclutterDeck ? 'Remove from Declutter Deck' : 'Add to Declutter Deck'}
+                disabled={isGone || declutterPending || !item?._id}
                 onClick={onDeclutter}
               >
-                <S.DeclutterControlContext>Joint decision</S.DeclutterControlContext>
+                <S.DeclutterControlContext $gone={isGone}>
+                  {isGone ? 'Inventory departure complete' : 'Joint decision'}
+                </S.DeclutterControlContext>
                 <S.DeclutterControlTitle>
-                  {declutterPending
+                  {isGone
+                    ? 'Gone away forever'
+                    : declutterPending
                     ? inDeclutterDeck ? 'Removing from deck' : 'Adding to deck'
                     : inDeclutterDeck ? 'In Declutter Deck' : 'Add to Declutter Deck'}
                 </S.DeclutterControlTitle>
-                <S.DeclutterControlState aria-hidden="true">
-                  {declutterPending ? '···' : inDeclutterDeck ? 'Set' : 'Add'}
+                <S.DeclutterControlState $gone={isGone} aria-hidden="true">
+                  {isGone ? 'Gone' : declutterPending ? '···' : inDeclutterDeck ? 'Set' : 'Add'}
                 </S.DeclutterControlState>
               </S.DeclutterControlButton>
             </S.DeclutterControlGroup>

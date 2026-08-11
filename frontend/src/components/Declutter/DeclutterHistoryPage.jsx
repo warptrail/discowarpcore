@@ -230,8 +230,8 @@ export default function DeclutterHistoryPage() {
       {!loading && !error ? (
         filter === 'all' ? (
           <S.HistoryLedger>
-            <S.HistoryLedgerColumn $tone="keep"><h3>Keep · {keptCandidates.length}</h3><DeclutterCandidateLane compact={view === 'compact'} title="Confirmed keeps" candidates={keptCandidates} emptyText="No confirmed keeps yet." /></S.HistoryLedgerColumn>
-            <S.HistoryLedgerColumn $tone="toss"><h3>Toss · {tossedCandidates.length}</h3><DeclutterCandidateLane compact={view === 'compact'} title="Confirmed tosses" candidates={tossedCandidates} emptyText="No confirmed tosses yet." /></S.HistoryLedgerColumn>
+            <S.HistoryLedgerColumn $tone="keep"><h3>Keep · {keptCandidates.length}</h3><DeclutterCandidateLane cardView={view === 'cards'} compact={view === 'compact'} title="Confirmed keeps" candidates={keptCandidates} emptyText="No confirmed keeps yet." /></S.HistoryLedgerColumn>
+            <S.HistoryLedgerColumn $tone="toss"><h3>Toss · {tossedCandidates.length}</h3><DeclutterCandidateLane cardView={view === 'cards'} compact={view === 'compact'} title="Confirmed tosses" candidates={tossedCandidates} emptyText="No confirmed tosses yet." /></S.HistoryLedgerColumn>
           </S.HistoryLedger>
         ) : (
           <DeclutterCandidateLane
@@ -239,6 +239,7 @@ export default function DeclutterHistoryPage() {
             candidates={history.candidates}
             emptyText="No declutter history matches this filter."
             busyCandidateId={busyCandidateId}
+            cardView={view === 'cards'}
             compact={view === 'compact'}
             renderActions={filter === 'release_approved' && view === 'cards' ? (candidate) => (
               <DeclutterHistoryActionControls

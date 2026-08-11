@@ -29,6 +29,8 @@ const RETRIEVAL_ITEM_SORT_OPTIONS = [
   { key: 'box_desc', label: 'Box ID (High → Low)' },
   { key: 'category', label: 'Category (A → Z)' },
   { key: 'category_desc', label: 'Category (Z → A)' },
+  { key: 'tag', label: 'Tag (A → Z)' },
+  { key: 'tag_desc', label: 'Tag (Z → A)' },
   { key: 'owner', label: 'Primary Owner (A → Z)' },
   { key: 'owner_desc', label: 'Primary Owner (Z → A)' },
   { key: 'keepPriority', label: 'Keep Priority (Low → Essential)' },
@@ -36,6 +38,19 @@ const RETRIEVAL_ITEM_SORT_OPTIONS = [
 ];
 const RETRIEVAL_ITEM_SORT_KEYS = new Set(
   RETRIEVAL_ITEM_SORT_OPTIONS.map((option) => option.key),
+);
+const RETRIEVAL_BOX_SORT_OPTIONS = [
+  { key: 'location', label: 'Location (A → Z)' },
+  { key: 'location_desc', label: 'Location (Z → A)' },
+  { key: 'box', label: 'Box ID (Low → High)' },
+  { key: 'box_desc', label: 'Box ID (High → Low)' },
+  { key: 'name', label: 'Box Name (A → Z)' },
+  { key: 'name_desc', label: 'Box Name (Z → A)' },
+  { key: 'tag', label: 'Item Tag (A → Z)' },
+  { key: 'tag_desc', label: 'Item Tag (Z → A)' },
+];
+const RETRIEVAL_BOX_SORT_KEYS = new Set(
+  RETRIEVAL_BOX_SORT_OPTIONS.map((option) => option.key),
 );
 const KEEP_PRIORITY_RANKS = {
   low: 0,
@@ -130,6 +145,12 @@ function normalizeSort(rawSort) {
   const value = toTrimmed(rawSort);
   if (!value) return 'location';
   return RETRIEVAL_ITEM_SORT_KEYS.has(value) ? value : 'location';
+}
+
+function normalizeBoxSort(rawSort) {
+  const value = toTrimmed(rawSort);
+  if (!value) return 'location';
+  return RETRIEVAL_BOX_SORT_KEYS.has(value) ? value : 'location';
 }
 
 function uniqueTrimmedValues(values) {
@@ -635,6 +656,15 @@ function sortRetrievalItems(items, sortKey = 'location') {
       return compareByLocation(left, right);
     }
 
+    if (baseKey === 'tag') {
+      const leftTag = firstNonEmpty(left?.tags?.[0]);
+      const rightTag = firstNonEmpty(right?.tags?.[0]);
+      if (Boolean(leftTag) !== Boolean(rightTag)) return leftTag ? -1 : 1;
+      const byTag = compareLabel(leftTag, rightTag);
+      if (byTag !== 0) return withDirection(byTag);
+      return compareByLocation(left, right);
+    }
+
     if (baseKey === 'owner') {
       const byOwner = compareLabel(left?.primaryOwnerName, right?.primaryOwnerName);
       if (byOwner !== 0) return withDirection(byOwner);
@@ -681,8 +711,14 @@ function toClientItem(item) {
   };
 }
 
-function buildRetrievalBoxes(boxDocs = []) {
+function buildRetrievalBoxes(boxDocs = [], itemDocs = []) {
   const safeBoxes = Array.isArray(boxDocs) ? boxDocs : [];
+  const itemTagsById = new Map(
+    (Array.isArray(itemDocs) ? itemDocs : []).map((item) => [
+      firstNonEmpty(item?._id),
+      uniqueTrimmedValues(item?.tags),
+    ]),
+  );
   const maps = buildBoxMaps(safeBoxes);
   const childCountByParentId = new Map();
 
@@ -738,6 +774,13 @@ function buildRetrievalBoxes(boxDocs = []) {
         : [];
       const boxPath = pathLabels.join(' > ');
       const directItemCount = Array.isArray(box?.items) ? box.items.length : 0;
+      const tags = uniqueTrimmedValues(box?.tags).sort(compareLabel);
+      const itemTags = uniqueTrimmedValues(
+        (Array.isArray(box?.items) ? box.items : []).flatMap((itemId) => (
+          itemTagsById.get(firstNonEmpty(itemId)) || []
+        )),
+      ).sort(compareLabel);
+      const tagKeys = itemTags.map((tag) => normalizeFacetKey(tag));
       const childBoxCount = childCountByParentId.get(mongoId) || 0;
       const searchText = buildSearchText([
         boxId,
@@ -747,6 +790,8 @@ function buildRetrievalBoxes(boxDocs = []) {
         groupLabel,
         locationLabel,
         boxPath,
+        itemTags.join(' '),
+        tags.join(' '),
       ]);
 
       return {
@@ -760,6 +805,9 @@ function buildRetrievalBoxes(boxDocs = []) {
         locationLabel,
         locationKey,
         boxPath,
+        tags,
+        itemTags,
+        tagKeys,
         directItemCount,
         childBoxCount,
         searchText,
@@ -780,6 +828,7 @@ function buildRetrievalBoxes(boxDocs = []) {
 function collectBoxFilterOptions(boxes) {
   const groupLabelByKey = new Map();
   const locationLabelByKey = new Map();
+  const tagLabelByKey = new Map();
 
   for (const box of boxes) {
     if (box.groupKey && box.groupLabel) {
@@ -788,22 +837,42 @@ function collectBoxFilterOptions(boxes) {
       }
     }
 
-    if (!box.locationKey) continue;
-    if (!locationLabelByKey.has(box.locationKey)) {
+    if (box.locationKey && !locationLabelByKey.has(box.locationKey)) {
       locationLabelByKey.set(box.locationKey, firstNonEmpty(box.locationLabel, UNKNOWN_LOCATION_LABEL));
+    }
+
+    for (const tag of Array.isArray(box.itemTags) ? box.itemTags : []) {
+      const tagKey = normalizeFacetKey(tag);
+      if (tagKey && !tagLabelByKey.has(tagKey)) tagLabelByKey.set(tagKey, tag);
     }
   }
 
   return {
     groups: mapToSortedOptions(groupLabelByKey),
     locations: mapToSortedOptions(locationLabelByKey),
+    tags: mapToSortedOptions(tagLabelByKey),
   };
 }
 
-function filterRetrievalBoxes(items, { query, locationFilters, groupFilters }) {
+function normalizeBoxIdPrefix(value) {
+  return String(value || '').replace(/\D/g, '').slice(0, 3);
+}
+
+function filterRetrievalBoxes(
+  items,
+  {
+    query,
+    boxIdPrefix = '',
+    locationFilters = [],
+    groupFilters = [],
+    tagFilters = [],
+    tagOperator = 'or',
+  }
+) {
   const normalizedQuery = normalizeText(query);
   const rawQuery = toTrimmed(query);
   const numericPrefix = /^\d+$/.test(rawQuery) ? rawQuery : '';
+  const normalizedBoxIdPrefix = normalizeBoxIdPrefix(boxIdPrefix);
 
   return items.filter((item) => {
     if (groupFilters.length && !groupFilters.includes(item.groupKey)) {
@@ -811,6 +880,19 @@ function filterRetrievalBoxes(items, { query, locationFilters, groupFilters }) {
     }
 
     if (locationFilters.length && !locationFilters.includes(item.locationKey)) {
+      return false;
+    }
+
+    if (
+      !matchesTagFilters(item.tagKeys, tagFilters, tagOperator)
+    ) {
+      return false;
+    }
+
+    if (
+      normalizedBoxIdPrefix &&
+      !String(item.boxId || '').startsWith(normalizedBoxIdPrefix)
+    ) {
       return false;
     }
 
@@ -827,6 +909,32 @@ function filterRetrievalBoxes(items, { query, locationFilters, groupFilters }) {
   });
 }
 
+function sortRetrievalBoxes(items, sortKey = 'location') {
+  const key = normalizeBoxSort(sortKey);
+  const descending = key.endsWith('_desc');
+  const baseKey = descending ? key.slice(0, -5) : key;
+  const direction = descending ? -1 : 1;
+  const safeItems = Array.isArray(items) ? [...items] : [];
+
+  return safeItems.sort((left, right) => {
+    let result = 0;
+    if (baseKey === 'box') result = compareBoxNumber(left?.boxId, right?.boxId);
+    else if (baseKey === 'name') result = compareLabel(left?.boxLabel, right?.boxLabel);
+    else if (baseKey === 'tag') {
+      const leftTag = firstNonEmpty(left?.itemTags?.[0]);
+      const rightTag = firstNonEmpty(right?.itemTags?.[0]);
+      if (Boolean(leftTag) !== Boolean(rightTag)) return leftTag ? -1 : 1;
+      result = compareLabel(leftTag, rightTag);
+    }
+    else result = compareLabel(left?.locationLabel, right?.locationLabel);
+
+    if (result !== 0) return result * direction;
+    const byBox = compareBoxNumber(left?.boxId, right?.boxId);
+    if (byBox !== 0) return byBox;
+    return compareLabel(left?.boxLabel, right?.boxLabel);
+  });
+}
+
 function toClientBox(item) {
   return {
     id: item.id,
@@ -837,6 +945,7 @@ function toClientBox(item) {
     groupLabel: item.groupLabel,
     locationLabel: item.locationLabel,
     boxPath: item.boxPath,
+    tags: item.tags,
     directItemCount: item.directItemCount,
     childBoxCount: item.childBoxCount,
   };
@@ -895,29 +1004,39 @@ async function getRetrievalItemsPage(params = {}) {
 
 async function getRetrievalBoxesPage(params = {}) {
   const query = toTrimmed(params.q);
+  const boxIdPrefix = normalizeBoxIdPrefix(params.boxPrefix);
   const groupFilters = normalizeFilterValues(params.group);
   const locationFilters = normalizeFilterValues(params.location);
+  const tagFilters = normalizeFilterValues(params.tag);
+  const tagOperator = String(params.tagOperator || '').trim().toLowerCase() === 'and'
+    ? 'and'
+    : 'or';
+  const sort = normalizeBoxSort(params.sort);
   const limit = parseLimit(params.limit);
   const offset = parseOffset(params.offset);
 
   const [boxDocs, itemDocs] = await Promise.all([
     Box.find()
-      .select('_id box_id label name group description notes location parentBox items')
+      .select('_id box_id label name group description notes tags location parentBox items')
       .lean(),
     Item.find(ACTIVE_ITEM_FILTER)
-      .select('_id quantity notes maintenanceNotes valueCents')
+      .select('_id quantity notes maintenanceNotes valueCents tags')
       .lean(),
   ]);
 
-  const retrievalBoxes = buildRetrievalBoxes(boxDocs);
+  const retrievalBoxes = buildRetrievalBoxes(boxDocs, itemDocs);
   const filteredBoxes = filterRetrievalBoxes(retrievalBoxes, {
     query,
+    boxIdPrefix,
     groupFilters,
     locationFilters,
+    tagFilters,
+    tagOperator,
   });
 
-  const total = filteredBoxes.length;
-  const pagedBoxes = filteredBoxes.slice(offset, offset + limit).map(toClientBox);
+  const sortedBoxes = sortRetrievalBoxes(filteredBoxes, sort);
+  const total = sortedBoxes.length;
+  const pagedBoxes = sortedBoxes.slice(offset, offset + limit).map(toClientBox);
   const analytics = calculateBoxCollectionStats({
     boxes: boxDocs,
     items: itemDocs,
@@ -930,6 +1049,8 @@ async function getRetrievalBoxesPage(params = {}) {
     total,
     limit,
     offset,
+    sort,
+    sortOptions: RETRIEVAL_BOX_SORT_OPTIONS,
     hasMore: offset + pagedBoxes.length < total,
     filters: collectBoxFilterOptions(retrievalBoxes),
   };
@@ -938,5 +1059,9 @@ async function getRetrievalBoxesPage(params = {}) {
 module.exports = {
   getRetrievalItemsPage,
   getRetrievalBoxesPage,
+  buildRetrievalBoxes,
+  filterRetrievalBoxes,
   matchesTagFilters,
+  sortRetrievalBoxes,
+  sortRetrievalItems,
 };

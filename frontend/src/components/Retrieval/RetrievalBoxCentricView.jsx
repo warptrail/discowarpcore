@@ -12,7 +12,20 @@ import { getBoxTheme } from '../../util/inventoryColorTheme';
 import {
   normalizeRetrievalBoxesPage,
   normalizeRetrievalFilterOptions,
+  normalizeRetrievalSortOptions,
 } from './retrievalModel';
+import RetrievalSearchForm from './RetrievalSearchForm';
+
+const DEFAULT_BOX_SORT_OPTIONS = [
+  { key: 'location', label: 'Location (A → Z)' },
+  { key: 'location_desc', label: 'Location (Z → A)' },
+  { key: 'box', label: 'Box ID (Low → High)' },
+  { key: 'box_desc', label: 'Box ID (High → Low)' },
+  { key: 'name', label: 'Box Name (A → Z)' },
+  { key: 'name_desc', label: 'Box Name (Z → A)' },
+  { key: 'tag', label: 'Item Tag (A → Z)' },
+  { key: 'tag_desc', label: 'Item Tag (Z → A)' },
+];
 
 const EMPTY_FILTER_OPTIONS = {
   categories: [],
@@ -33,6 +46,15 @@ function compareLabel(a, b) {
   return String(a || '').localeCompare(String(b || ''), undefined, {
     sensitivity: 'base',
   });
+}
+
+function normalizeTagSelection(value) {
+  const values = Array.isArray(value) ? value : value ? [value] : [];
+  return [...new Set(values.map((entry) => String(entry || '').trim().toLowerCase()).filter(Boolean))];
+}
+
+function normalizeTagOperator(value) {
+  return String(value || '').trim().toLowerCase() === 'and' ? 'and' : 'or';
 }
 
 function useDebouncedValue(value, delayMs) {
@@ -76,147 +98,87 @@ function useMediaQuery(query) {
   return matches;
 }
 
-function buildBoxPath(details) {
-  const ancestors = Array.isArray(details?.ancestors) ? details.ancestors : [];
-  const segments = ancestors
-    .map((ancestor) => String(ancestor?.label || '').trim())
-    .filter(Boolean);
-  return segments.join(' > ');
-}
-
 function formatCount(count, singular, plural) {
   const safeCount = Number.isFinite(Number(count)) ? Number(count) : 0;
   return `${safeCount} ${safeCount === 1 ? singular : plural}`;
 }
 
 function BoxInspectContent({
-  selectedLocationLabel,
-  selectedGroupLabel,
-  selectedPath,
-  selectedDescription,
-  selectedNotes,
+  selectedBoxId,
   boxDetailsLoading,
   boxDetailsError,
   directItems,
-  childBoxes,
   selectedBoxHref,
+  onItemNavigate,
+  retrievalReturnTo,
 }) {
-  const description = String(selectedDescription || '').trim();
-  const notes = String(selectedNotes || '').trim();
-
   return (
     <>
       <S.BoxInspectHeader>
-        <S.BoxInspectSubtitle>Location: {selectedLocationLabel}</S.BoxInspectSubtitle>
-        {selectedGroupLabel ? (
-          <S.BoxInspectSubtitle>Group: {selectedGroupLabel}</S.BoxInspectSubtitle>
+        <S.BoxInspectSectionTitle>
+          Direct items · {boxDetailsLoading ? '…' : directItems.length}
+        </S.BoxInspectSectionTitle>
+        {selectedBoxHref ? (
+          <S.BoxInspectHeaderLink to={selectedBoxHref}>
+            Box page <span aria-hidden="true">↗</span>
+          </S.BoxInspectHeaderLink>
         ) : null}
-        {selectedPath ? <S.BoxInspectPath>{selectedPath}</S.BoxInspectPath> : null}
       </S.BoxInspectHeader>
 
-      {description ? (
-        <S.BoxInspectNotes>
-          <S.BoxInspectNotesLabel>Physical Description</S.BoxInspectNotesLabel>
-          <S.BoxInspectNotesText>{description}</S.BoxInspectNotesText>
-        </S.BoxInspectNotes>
-      ) : null}
+      {boxDetailsLoading ? (
+        <S.ExpandedMuted>Loading box contents…</S.ExpandedMuted>
+      ) : boxDetailsError ? (
+        <S.ExpandedMuted>{boxDetailsError}</S.ExpandedMuted>
+      ) : directItems.length ? (
+        <S.BoxInspectList>
+          {directItems.map((item) => {
+            const itemId = String(item?._id || item?.id || '').trim();
+            if (!itemId) return null;
 
-      {notes ? (
-        <S.BoxInspectNotes>
-          <S.BoxInspectNotesLabel>Notes</S.BoxInspectNotesLabel>
-          <S.BoxInspectNotesText>{notes}</S.BoxInspectNotesText>
-        </S.BoxInspectNotes>
-      ) : null}
+            const quantity = Number(item?.quantity);
+            const thumbnailUrl = getItemMicroThumbnailUrl(item);
+            const quantityLabel = Number.isFinite(quantity) ? `×${quantity}` : '';
 
-      <S.BoxInspectSection>
-        <S.BoxInspectSectionTitle>
-          Direct Items ({boxDetailsLoading ? '…' : directItems.length})
-        </S.BoxInspectSectionTitle>
-
-        {boxDetailsLoading ? (
-          <S.ExpandedMuted>Loading box contents…</S.ExpandedMuted>
-        ) : boxDetailsError ? (
-          <S.ExpandedMuted>{boxDetailsError}</S.ExpandedMuted>
-        ) : directItems.length ? (
-          <S.BoxInspectList>
-            {directItems.map((item) => {
-              const itemId = String(item?._id || item?.id || '').trim();
-              if (!itemId) return null;
-
-              const quantity = Number(item?.quantity);
-              const thumbnailUrl = getItemMicroThumbnailUrl(item);
-              const quantityLabel = Number.isFinite(quantity)
-                ? `Qty ${quantity}`
-                : '';
-
-              return (
-                <S.BoxInspectRow key={`box-item-${itemId}`}>
-                  <S.BoxInspectItemThumb $empty={!thumbnailUrl} aria-hidden="true">
-                    {thumbnailUrl ? (
-                      <img
-                        src={thumbnailUrl}
-                        alt=""
-                        loading="lazy"
-                        onError={(event) => {
-                          event.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    ) : <span>·</span>}
-                  </S.BoxInspectItemThumb>
-                  <S.BoxInspectItemContent>
-                    <S.BoxInspectRowLink to={`/items/${itemId}`}>
-                      {String(item?.name || 'Unnamed item').trim()}
-                    </S.BoxInspectRowLink>
-                    {quantityLabel ? (
-                      <S.BoxInspectRowMeta>{quantityLabel}</S.BoxInspectRowMeta>
-                    ) : null}
-                  </S.BoxInspectItemContent>
-                </S.BoxInspectRow>
-              );
-            })}
-          </S.BoxInspectList>
-        ) : (
-          <S.ExpandedMuted>No direct items in this box.</S.ExpandedMuted>
-        )}
-      </S.BoxInspectSection>
-
-      <S.BoxInspectSection>
-        <S.BoxInspectSectionTitle>
-          Child Boxes ({boxDetailsLoading ? '…' : childBoxes.length})
-        </S.BoxInspectSectionTitle>
-
-        {boxDetailsLoading ? (
-          <S.ExpandedMuted>Loading child boxes…</S.ExpandedMuted>
-        ) : boxDetailsError ? null : childBoxes.length ? (
-          <S.BoxInspectList>
-            {childBoxes.map((child) => {
-              const childBoxId = normalizeBoxId(child?.box_id);
-              if (!childBoxId) return null;
-
-              return (
-                <S.BoxInspectRow key={`child-box-${childBoxId}`}>
-                  <S.BoxInspectRowLink to={`/boxes/${childBoxId}`}>
-                    #{childBoxId} · {String(child?.label || 'Untitled Box').trim()}
-                  </S.BoxInspectRowLink>
-                  <S.BoxInspectRowMeta>
-                    {formatCount(
-                      Array.isArray(child?.items) ? child.items.length : 0,
-                      'direct item',
-                      'direct items',
-                    )}
-                  </S.BoxInspectRowMeta>
-                </S.BoxInspectRow>
-              );
-            })}
-          </S.BoxInspectList>
-        ) : (
-          <S.ExpandedMuted>No direct child boxes.</S.ExpandedMuted>
-        )}
-      </S.BoxInspectSection>
-
-      {selectedBoxHref ? (
-        <S.ExpandedBoxLink to={selectedBoxHref}>Open box page</S.ExpandedBoxLink>
-      ) : null}
+            return (
+              <S.BoxInspectRow key={`box-item-${itemId}`}>
+                <S.BoxInspectItemThumb $empty={!thumbnailUrl} aria-hidden="true">
+                  {thumbnailUrl ? (
+                    <img
+                      src={thumbnailUrl}
+                      alt=""
+                      loading="lazy"
+                      onError={(event) => {
+                        event.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : <span>·</span>}
+                </S.BoxInspectItemThumb>
+                <S.BoxInspectRowLink
+                  to={`/items/${itemId}`}
+                  state={{
+                    retrievalReturn: {
+                      kind: 'boxes-item',
+                      boxId: selectedBoxId,
+                      returnTo: retrievalReturnTo,
+                    },
+                  }}
+                  onClick={() => onItemNavigate?.({
+                    boxId: selectedBoxId,
+                    itemId,
+                  })}
+                >
+                  {String(item?.name || 'Unnamed item').trim()}
+                </S.BoxInspectRowLink>
+                {quantityLabel ? (
+                  <S.BoxInspectRowMeta>{quantityLabel}</S.BoxInspectRowMeta>
+                ) : null}
+              </S.BoxInspectRow>
+            );
+          })}
+        </S.BoxInspectList>
+      ) : (
+        <S.ExpandedMuted>No direct items in this box.</S.ExpandedMuted>
+      )}
     </>
   );
 }
@@ -227,8 +189,12 @@ export default function RetrievalBoxCentricView({
   persistedState,
   onStateSnapshotChange,
   onAnalyticsChange,
+  onRestoreReadyChange,
+  onItemNavigate,
+  retrievalReturnTo = '/retrieval',
   setActiveRetrievalItem,
   finderMinimized = false,
+  onFinderDetachedChange,
 }) {
   const initialPersistedState = persistedState && typeof persistedState === 'object'
     ? persistedState
@@ -236,7 +202,14 @@ export default function RetrievalBoxCentricView({
   const isMobile = useMediaQuery(`(max-width: ${MOBILE_BREAKPOINT})`);
   const [boxes, setBoxes] = useState([]);
   const [total, setTotal] = useState(0);
-  const [limit, setLimit] = useState(DEFAULT_RETRIEVAL_LIMIT);
+  const initialPageLimitRef = useRef(Math.min(
+    250,
+    Math.max(
+      DEFAULT_RETRIEVAL_LIMIT,
+      Number(initialPersistedState?.loadedCount) || DEFAULT_RETRIEVAL_LIMIT,
+    ),
+  ));
+  const [limit, setLimit] = useState(initialPageLimitRef.current);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -245,11 +218,24 @@ export default function RetrievalBoxCentricView({
   const [searchValue, setSearchValue] = useState(() =>
     String(initialPersistedState?.searchValue || ''),
   );
+  const [boxIdPrefix, setBoxIdPrefix] = useState(() =>
+    normalizeBoxId(initialPersistedState?.boxIdPrefix).slice(0, 3),
+  );
   const [selectedGroup, setSelectedGroup] = useState(() =>
     String(initialPersistedState?.selectedGroup || ''),
   );
   const [selectedLocation, setSelectedLocation] = useState(() =>
     String(initialPersistedState?.selectedLocation || ''),
+  );
+  const [selectedTags, setSelectedTags] = useState(() =>
+    normalizeTagSelection(initialPersistedState?.selectedTags || initialPersistedState?.selectedTag),
+  );
+  const [tagOperator, setTagOperator] = useState(() =>
+    normalizeTagOperator(initialPersistedState?.tagOperator),
+  );
+  const [sortOptions, setSortOptions] = useState(DEFAULT_BOX_SORT_OPTIONS);
+  const [selectedSort, setSelectedSort] = useState(() =>
+    String(initialPersistedState?.selectedSort || 'location'),
   );
   const [filterOptions, setFilterOptions] = useState(EMPTY_FILTER_OPTIONS);
   const [selectedBoxId, setSelectedBoxId] = useState(() =>
@@ -260,36 +246,57 @@ export default function RetrievalBoxCentricView({
   const [boxDetailsError, setBoxDetailsError] = useState('');
 
   const debouncedSearchValue = useDebouncedValue(searchValue, 220);
+  const debouncedBoxIdPrefix = useDebouncedValue(boxIdPrefix, 120);
   const loadMoreControllerRef = useRef(null);
   const queryKeyRef = useRef('');
 
   const queryState = useMemo(
     () => ({
       q: debouncedSearchValue,
+      boxIdPrefix: debouncedBoxIdPrefix,
       groups: selectedGroup ? [selectedGroup] : [],
       locations: selectedLocation ? [selectedLocation] : [],
+      tags: selectedTags,
+      tagOperator,
+      sort: selectedSort,
     }),
-    [debouncedSearchValue, selectedGroup, selectedLocation],
+    [
+      debouncedBoxIdPrefix,
+      debouncedSearchValue,
+      selectedGroup,
+      selectedLocation,
+      selectedSort,
+      selectedTags,
+      tagOperator,
+    ],
   );
 
   const queryKey = useMemo(() => JSON.stringify(queryState), [queryState]);
 
-  const handleClearGroup = useCallback(() => {
-    setSelectedGroup('');
-  }, []);
-
-  const handleClearLocation = useCallback(() => {
-    setSelectedLocation('');
-  }, []);
-
   useEffect(() => {
     onStateSnapshotChange?.({
       searchValue,
+      boxIdPrefix,
       selectedGroup,
       selectedLocation,
+      selectedTags,
+      tagOperator,
+      selectedSort,
       selectedBoxId,
+      loadedCount: Math.max(boxes.length, initialPageLimitRef.current),
     });
-  }, [onStateSnapshotChange, searchValue, selectedGroup, selectedLocation, selectedBoxId]);
+  }, [
+    boxes.length,
+    boxIdPrefix,
+    onStateSnapshotChange,
+    searchValue,
+    selectedBoxId,
+    selectedGroup,
+    selectedLocation,
+    selectedSort,
+    selectedTags,
+    tagOperator,
+  ]);
 
   useEffect(() => {
     if (typeof setActiveRetrievalItem !== 'function') return undefined;
@@ -298,38 +305,11 @@ export default function RetrievalBoxCentricView({
       return undefined;
     }
 
-    setActiveRetrievalItem({
-      mode: 'controls',
-      retrievalMode: mode,
-      onModeChange,
-      searchValue: String(searchValue || ''),
-      onSearchChange: setSearchValue,
-      searchLabel: 'Find Boxes',
-      searchPlaceholder: 'Search by box ID prefix, label, group, or location',
-      searchHint:
-        'Use ID prefix (e.g. 1, 10, 107) for fast lookup, or search label/group/location text.',
-      boxGroupOptions: filterOptions.groups,
-      selectedBoxGroup: selectedGroup,
-      boxLocationOptions: filterOptions.locations,
-      selectedBoxLocation: selectedLocation,
-      onBoxGroupChange: setSelectedGroup,
-      onBoxLocationChange: setSelectedLocation,
-      onClearBoxGroup: handleClearGroup,
-      onClearBoxLocation: handleClearLocation,
-    });
+    setActiveRetrievalItem(null);
 
     return undefined;
   }, [
-    filterOptions.groups,
-    filterOptions.locations,
     finderMinimized,
-    handleClearGroup,
-    handleClearLocation,
-    mode,
-    onModeChange,
-    searchValue,
-    selectedGroup,
-    selectedLocation,
     setActiveRetrievalItem,
   ]);
 
@@ -371,6 +351,27 @@ export default function RetrievalBoxCentricView({
   }, [filterOptions.locations, selectedLocation]);
 
   useEffect(() => {
+    if (!selectedTags.length || !filterOptions.tags.length) return;
+    const validKeys = new Set(filterOptions.tags.map((option) => String(option?.key || '')));
+    setSelectedTags((current) => {
+      const next = current.filter((key) => validKeys.has(key));
+      return next.length === current.length ? current : next;
+    });
+  }, [filterOptions.tags, selectedTags.length]);
+
+  const addSelectedTag = useCallback((rawKey) => {
+    const key = String(rawKey || '').trim().toLowerCase();
+    if (!key) return;
+    setSelectedTags((current) => (current.includes(key) ? current : [...current, key]));
+  }, []);
+
+  const removeSelectedTag = useCallback((rawKey) => {
+    const key = String(rawKey || '').trim().toLowerCase();
+    if (!key) return;
+    setSelectedTags((current) => current.filter((entry) => entry !== key));
+  }, []);
+
+  useEffect(() => {
     const controller = new AbortController();
     const currentQueryKey = queryKey;
 
@@ -396,7 +397,7 @@ export default function RetrievalBoxCentricView({
         const payload = await fetchRetrievalBoxesPage(
           {
             ...queryState,
-            limit: DEFAULT_RETRIEVAL_LIMIT,
+            limit: initialPageLimitRef.current,
             offset: 0,
           },
           { signal: controller.signal },
@@ -406,10 +407,13 @@ export default function RetrievalBoxCentricView({
 
         setBoxes(normalizeRetrievalBoxesPage(payload?.boxes));
         setTotal(Number(payload?.total) || 0);
-        setLimit(Number(payload?.limit) || DEFAULT_RETRIEVAL_LIMIT);
+        setLimit(Number(payload?.limit) || initialPageLimitRef.current);
         setOffset(Number(payload?.offset) || 0);
         setHasMore(Boolean(payload?.hasMore));
         setFilterOptions(normalizeRetrievalFilterOptions(payload?.filters));
+        const nextSortOptions = normalizeRetrievalSortOptions(payload?.sortOptions);
+        if (nextSortOptions.length) setSortOptions(nextSortOptions);
+        setSelectedSort(String(payload?.sort || 'location'));
         onAnalyticsChange?.(payload?.analytics || null);
       } catch (loadError) {
         if (loadError?.name === 'AbortError') return;
@@ -434,6 +438,8 @@ export default function RetrievalBoxCentricView({
   }, [onAnalyticsChange, queryKey, queryState]);
 
   useEffect(() => {
+    if (loading) return;
+
     const validIds = new Set(
       boxes
         .map((box) => normalizeBoxId(box?.boxId))
@@ -460,7 +466,7 @@ export default function RetrievalBoxCentricView({
 
       return normalizeBoxId(boxes[0]?.boxId);
     });
-  }, [boxes, isMobile]);
+  }, [boxes, isMobile, loading]);
 
   const handleSelectBox = useCallback(
     (rawBoxId) => {
@@ -533,6 +539,11 @@ export default function RetrievalBoxCentricView({
   }, [selectedBoxId]);
 
   const groupedBoxes = useMemo(() => {
+    if (!String(selectedSort || '').startsWith('location')) {
+      const sortLabel = sortOptions.find((option) => option.key === selectedSort)?.label;
+      return [{ location: sortLabel || 'Sorted boxes', boxes }];
+    }
+
     const byLocation = new Map();
 
     for (const box of boxes) {
@@ -551,7 +562,7 @@ export default function RetrievalBoxCentricView({
         }),
       }))
       .sort((a, b) => compareLabel(a.location, b.location));
-  }, [boxes]);
+  }, [boxes, selectedSort, sortOptions]);
 
   const handleLoadMore = useCallback(async () => {
     if (loading || loadingMore || !hasMore) return;
@@ -615,26 +626,49 @@ export default function RetrievalBoxCentricView({
   }, [hasMore, limit, loading, loadingMore, offset, queryState]);
 
   const selectedTree = selectedBoxDetails?.tree || null;
-  const selectedGroupLabel = String(
-    selectedTree?.group || selectedBoxSummary?.groupLabel || '',
-  ).trim();
-  const selectedLocationLabel = String(
-    selectedTree?.location || selectedBoxSummary?.locationLabel || 'Unknown Location',
-  ).trim();
-  const selectedPath = buildBoxPath(selectedBoxDetails);
-  const selectedNotes = String(
-    selectedTree?.notes || selectedBoxSummary?.notes || '',
-  ).trim();
-  const selectedDescription = String(
-    selectedTree?.description || selectedBoxSummary?.description || '',
-  ).trim();
   const directItems = Array.isArray(selectedTree?.items) ? selectedTree.items : [];
-  const childBoxes = Array.isArray(selectedTree?.childBoxes) ? selectedTree.childBoxes : [];
   const selectedBoxHref = selectedBoxSummary?.boxHref || (selectedBoxId ? `/boxes/${selectedBoxId}` : '');
   const hasSelection = Boolean(selectedBoxId);
+  const restoreReady = !loading && (
+    !hasSelection || (
+      Boolean(selectedBoxSummary) &&
+      !boxDetailsLoading &&
+      (Boolean(selectedBoxDetails) || Boolean(boxDetailsError))
+    )
+  );
+
+  useEffect(() => {
+    onRestoreReadyChange?.(restoreReady);
+  }, [onRestoreReadyChange, restoreReady]);
 
   return (
     <S.PageShell>
+      <RetrievalSearchForm
+        mode={mode}
+        onModeChange={onModeChange}
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+        searchLabel="Find Boxes"
+        searchPlaceholder="Search box name, group, location, or item tag"
+        boxIdPrefix={boxIdPrefix}
+        onBoxIdPrefixChange={setBoxIdPrefix}
+        filterOptions={filterOptions}
+        selectedBoxGroup={selectedGroup}
+        selectedBoxLocation={selectedLocation}
+        selectedBoxTags={selectedTags}
+        onBoxGroupChange={setSelectedGroup}
+        onBoxLocationChange={setSelectedLocation}
+        onBoxTagAdd={addSelectedTag}
+        onBoxTagRemove={removeSelectedTag}
+        tagOperator={tagOperator}
+        onTagOperatorChange={setTagOperator}
+        sortOptions={sortOptions}
+        selectedSort={selectedSort}
+        onSortChange={setSelectedSort}
+        finderMinimized={finderMinimized}
+        onFinderDetachedChange={onFinderDetachedChange}
+      />
+
       {error ? <S.ErrorState role="alert">{error}</S.ErrorState> : null}
 
       <S.ResultsPanel>
@@ -679,13 +713,27 @@ export default function RetrievalBoxCentricView({
                                 {box.boxLabel}
                               </S.BoxRowLabel>
                             </S.BoxRowMain>
+                            <S.BoxRowContext>
+                              <S.BoxRowLocation $boxNeonRgb={rowTones.neonRgb}>
+                                <span>Location</span>
+                                <strong>{box.locationLabel || 'Unknown'}</strong>
+                              </S.BoxRowLocation>
                             {box.groupLabel ? (
-                              <S.BoxRowSubline
+                              <S.BoxRowGroup
                                 title={box.groupLabel}
                                 $boxMutedRgb={rowTones.mutedRgb}
                               >
                                 Group: {box.groupLabel}
-                              </S.BoxRowSubline>
+                              </S.BoxRowGroup>
+                            ) : null}
+                            </S.BoxRowContext>
+                            {box.tags.length ? (
+                              <S.BoxRowTags
+                                title={box.tags.map((tag) => `#${tag}`).join(' ')}
+                                $boxNeonRgb={rowTones.neonRgb}
+                              >
+                                {box.tags.map((tag) => `#${tag}`).join(' ')}
+                              </S.BoxRowTags>
                             ) : null}
                             <S.BoxRowMeta>
                               <S.BoxMetaPill $boxMutedRgb={rowTones.mutedRgb}>
@@ -700,16 +748,13 @@ export default function RetrievalBoxCentricView({
                           {isMobile && isActive ? (
                             <S.MobileInlineInspectPanel id={inlinePanelId}>
                               <BoxInspectContent
-                                selectedLocationLabel={selectedLocationLabel}
-                                selectedGroupLabel={selectedGroupLabel}
-                                selectedPath={selectedPath}
-                                selectedDescription={selectedDescription}
-                                selectedNotes={selectedNotes}
+                                selectedBoxId={selectedBoxId}
                                 boxDetailsLoading={boxDetailsLoading}
                                 boxDetailsError={boxDetailsError}
                                 directItems={directItems}
-                                childBoxes={childBoxes}
                                 selectedBoxHref={selectedBoxHref}
+                                onItemNavigate={onItemNavigate}
+                                retrievalReturnTo={retrievalReturnTo}
                               />
                             </S.MobileInlineInspectPanel>
                           ) : null}
@@ -727,16 +772,13 @@ export default function RetrievalBoxCentricView({
                   <S.ExpandedMuted>Select a box to inspect its contents.</S.ExpandedMuted>
                 ) : (
                   <BoxInspectContent
-                    selectedLocationLabel={selectedLocationLabel}
-                    selectedGroupLabel={selectedGroupLabel}
-                    selectedPath={selectedPath}
-                    selectedDescription={selectedDescription}
-                    selectedNotes={selectedNotes}
+                    selectedBoxId={selectedBoxId}
                     boxDetailsLoading={boxDetailsLoading}
                     boxDetailsError={boxDetailsError}
                     directItems={directItems}
-                    childBoxes={childBoxes}
                     selectedBoxHref={selectedBoxHref}
+                    onItemNavigate={onItemNavigate}
+                    retrievalReturnTo={retrievalReturnTo}
                   />
                 )}
               </S.BoxInspectPanel>

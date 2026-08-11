@@ -37,7 +37,6 @@ const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
 export const STATUS_FILTER_OPTIONS = [
   { value: 'active', label: 'Active Inventory' },
   { value: 'gone', label: 'No Longer Have' },
-  { value: 'all', label: 'Full History' },
   { value: 'batch', label: 'Batch Focused' },
 ];
 
@@ -52,6 +51,7 @@ export const BASE_FILTER_OPTIONS = [
 
 export const SORT_OPTIONS = [
   { value: 'alpha', label: 'Alphabetical' },
+  { value: 'random', label: 'Random discovery' },
   { value: 'batch', label: 'Source Batch' },
   { value: 'box', label: 'Box ID' },
   { value: 'date', label: 'Date Added' },
@@ -63,7 +63,15 @@ export const SORT_OPTIONS = [
   { value: 'dispositionAt', label: 'Disposition Date' },
 ];
 
+export const ARCHIVE_SORT_OPTIONS = [
+  { key: 'dispositionAt', label: 'Departure Date' },
+  { key: 'alpha', label: 'Alphabetical' },
+  { key: 'category', label: 'Category' },
+  { key: 'date', label: 'Date Added' },
+];
+
 const DESCENDING_DEFAULT_SORTS = new Set([
+  'batch',
   'date',
   'lastMaintained',
   'purchasePrice',
@@ -232,7 +240,7 @@ function getDispositionTone(value) {
 
 export function normalizeStatusFilter(value) {
   const next = String(value || '').trim().toLowerCase();
-  if (next === 'active' || next === 'gone' || next === 'all' || next === 'batch') return next;
+  if (next === 'active' || next === 'gone' || next === 'batch') return next;
   return 'active';
 }
 

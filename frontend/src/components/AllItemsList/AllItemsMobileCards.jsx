@@ -4,6 +4,7 @@ import { getItemHomeHref } from '../../api/itemDetails';
 import * as S from './AllItemsList.styles';
 import { getBatchActionEligibility, getVisibleTags } from './allItemsList.utils';
 import AllItemsMobileDetailDeck from './AllItemsMobileDetailDeck';
+import AllItemsBatchIndex from './AllItemsBatchIndex';
 
 function getItemHref(itemId) {
   if (!itemId) return '';
@@ -39,34 +40,6 @@ function MobileThumbnail({ src, fallbackSrc }) {
       }}
     />
   );
-}
-
-function groupItemsByBatch(items, batchToneMap) {
-  const groups = [];
-  const lookup = new Map();
-
-  for (const item of Array.isArray(items) ? items : []) {
-    const meta = item?._allItems || {};
-    const batchId = String(meta?.sourceBatchId || '').trim();
-    const groupKey = batchId || '__no_batch__';
-
-    if (!lookup.has(groupKey)) {
-      const group = {
-        key: groupKey,
-        batchId,
-        label: String(meta?.sourceBatchLabel || batchId || 'No Batch').trim() || 'No Batch',
-        archiveStatus: String(meta?.sourceBatchArchiveStatus || '').trim().toLowerCase(),
-        tone: batchId ? batchToneMap.get(batchId) || '' : '',
-        items: [],
-      };
-      lookup.set(groupKey, group);
-      groups.push(group);
-    }
-
-    lookup.get(groupKey).items.push(item);
-  }
-
-  return groups;
 }
 
 function resolveCardProcessingState({
@@ -174,8 +147,12 @@ function MobileItemCard({
     : '—';
 
   if (!compactBatchMode && !batchFocused) {
+    const departureLabel = meta?.isGone && meta?.dispositionAtLabel && meta.dispositionAtLabel !== '—'
+      ? `Departed ${meta.dispositionAtLabel}`
+      : '';
     const summaryParts = [
       meta?.categoryLabel,
+      departureLabel,
       meta?.isBoxed ? [meta?.boxId, meta?.boxLabel].filter(Boolean).join(' · ') : '',
       meta?.locationLabel,
     ].filter(Boolean);
@@ -468,7 +445,7 @@ export default function AllItemsMobileCards({
 
   if (!batchFocused) {
     return (
-      <S.MobileList>
+      <S.MobileList $detailOpen={Boolean(detailItemId)}>
           {safeItems.map((item, index) => (
           <MobileItemCard
             key={item?._id || `${item?.name || 'item'}-${item?._allItems?.createdAtMs || index}`}
@@ -494,63 +471,12 @@ export default function AllItemsMobileCards({
     );
   }
 
-  const groups = groupItemsByBatch(safeItems, batchToneMap);
-
   return (
-    <S.BatchSectionsMobile>
-      {groups.map((group) => {
-        return (
-          <S.MobileBatchSection
-            key={group.key}
-            $tone={group.tone || 'root'}
-            $selected={false}
-          >
-            <S.MobileBatchSectionHeader>
-              <S.BatchGroupTitleRow>
-                <S.BatchGroupTitle>{group.label}</S.BatchGroupTitle>
-                {group.archiveStatus === 'archived' ? (
-                  <S.SourceBatchBadge $archived>Archived</S.SourceBatchBadge>
-                ) : null}
-                <S.BatchGroupCount>{group.items.length} items</S.BatchGroupCount>
-                {simpleSelectionModeEnabled && group.batchId ? (
-                  <S.BatchSelectButton
-                    type="button"
-                    onClick={() => onSelectBatch?.(group.batchId)}
-                  >
-                    Select Batch
-                  </S.BatchSelectButton>
-                ) : null}
-              </S.BatchGroupTitleRow>
-              <S.BatchGroupMeta>
-                <S.BatchGroupMetaLine>
-                  {group.batchId ? `Batch ID: ${group.batchId}` : 'No source batch'}
-                </S.BatchGroupMetaLine>
-              </S.BatchGroupMeta>
-            </S.MobileBatchSectionHeader>
-
-            <S.MobileList>
-              {group.items.map((item, index) => (
-                <MobileItemCard
-                  key={item?._id || `${item?.name || 'item'}-${item?._allItems?.createdAtMs || index}`}
-                  item={item}
-                  batchModeEnabled={selectionModeEnabled}
-                  simpleSelectionModeEnabled={simpleSelectionModeEnabled}
-                  batchActionMode={batchActionMode}
-                  batchFocused
-                  batchTone={group.tone}
-                  colorBy={colorBy}
-                  accentColor={rowAccentByItemId.get(String(item?._id || '').trim()) || ''}
-                  itemProcessingById={itemProcessingById}
-                  isSelected={selectedIds.has(String(item?._id || '').trim())}
-                  onToggleItemSelection={onToggleItemSelection}
-                  onFocusBatch={onFocusBatch}
-                  onOpenImagePreview={onOpenImagePreview}
-                />
-              ))}
-            </S.MobileList>
-          </S.MobileBatchSection>
-        );
-      })}
-    </S.BatchSectionsMobile>
+    <AllItemsBatchIndex
+      items={safeItems}
+      batchToneMap={batchToneMap}
+      simpleSelectionModeEnabled={simpleSelectionModeEnabled}
+      onSelectBatch={onSelectBatch}
+    />
   );
 }

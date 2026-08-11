@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { editItem } from '../../api/editItem';
 import useItemTimestampActions from '../../hooks/useItemTimestampActions';
 import { ToastContext } from '../Toast';
@@ -22,6 +22,7 @@ export default function QuickPeekItemActionPanel({
   const itemId = String(item?._id || item?.id || '');
   const name = String(item?.name || item?.label || 'Untitled item').trim();
   const isConsumable = Boolean(item?.isConsumable);
+  const actionPanelRef = useRef(null);
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
   const [consumablePending, setConsumablePending] = useState(false);
   const { showToast, hideToast } = useContext(ToastContext) || {};
@@ -38,9 +39,17 @@ export default function QuickPeekItemActionPanel({
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') setActionMenuOpen(false);
     };
+    const handleOutsidePointerDown = (event) => {
+      if (actionPanelRef.current?.contains(event.target)) return;
+      setActionMenuOpen(false);
+    };
 
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('pointerdown', handleOutsidePointerDown, true);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('pointerdown', handleOutsidePointerDown, true);
+    };
   }, [actionMenuOpen]);
 
   const toggleConsumable = async () => {
@@ -71,7 +80,11 @@ export default function QuickPeekItemActionPanel({
 
   return (
     <>
-      <S.ItemHeaderActionPanel $body={body} aria-label={`Actions for ${name}`}>
+      <S.ItemHeaderActionPanel
+        ref={actionPanelRef}
+        $body={body}
+        aria-label={`Actions for ${name}`}
+      >
         <S.ItemActionsToggle
           type="button"
           $active={actionMenuOpen}

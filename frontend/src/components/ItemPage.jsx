@@ -65,12 +65,30 @@ const getItemConsoleThemeStyle = (item) => {
   const ownership = getItemOwnershipContext(item);
   const itemId = String(item?._id || item?.id || '');
 
-  return {
+  const themeStyle = {
     ...getBoxThemeCssVars(getBoxTheme(ownership.boxId)),
     ...getItemThemeCssVars(getItemTheme(ownership.boxId, itemId, {
       selected: true,
       varied: true,
     })),
+  };
+  if (String(item?.item_status || '').trim().toLowerCase() !== 'gone') {
+    return themeStyle;
+  }
+  return {
+    ...themeStyle,
+    '--box-primary': '#D9444E',
+    '--box-secondary': '#FF9B9B',
+    '--box-neon': '#FF7078',
+    '--box-muted': '#8A2E36',
+    '--box-primary-rgb': '217, 68, 78',
+    '--box-secondary-rgb': '255, 155, 155',
+    '--box-neon-rgb': '255, 112, 120',
+    '--box-muted-rgb': '138, 46, 54',
+    '--item-accent': '#FF747C',
+    '--item-accent-rgb': '255, 116, 124',
+    '--item-secondary': '#FFB0B0',
+    '--item-secondary-rgb': '255, 176, 176',
   };
 };
 
@@ -87,6 +105,27 @@ export default function ItemPage() {
   const activeFieldKey = obsoleteLocatorRequested ? '' : requestedEditKey;
   const viewMode = searchParams.get('view') === 'hierarchy' ? 'hierarchy' : 'all';
   const navigate = useNavigate();
+  const retrievalReturn = location.state?.retrievalReturn;
+  const hasRetrievalItemReturn = retrievalReturn?.kind === 'retrieval-item';
+  const hasRetrievalBoxReturn = retrievalReturn?.kind === 'boxes-item';
+  const retrievalReturnBoxId = String(retrievalReturn?.boxId || '').trim();
+  const boxReturn = location.state?.boxReturn;
+  const hasBoxDetailReturn = boxReturn?.kind === 'box-detail-item';
+  const boxReturnId = String(boxReturn?.boxId || '').trim();
+  const allItemsReturn = location.state?.allItemsReturn;
+  const hasAllItemsReturn = allItemsReturn?.kind === 'all-items-inline-detail';
+
+  const handleRetrievalReturn = useCallback(() => {
+    navigate(-1);
+  }, [navigate]);
+
+  const handleAllItemsReturn = useCallback(() => {
+    navigate(-1);
+  }, [navigate]);
+
+  const handleBoxReturn = useCallback(() => {
+    navigate(-1);
+  }, [navigate]);
 
   const toastCtx = useContext(ToastContext);
   const activeToastId = toastCtx?.toast?.id ?? '';
@@ -768,6 +807,43 @@ export default function ItemPage() {
       titleSize: 'hero',
       presentation: 'item-page',
       themeStyle: getItemConsoleThemeStyle(item),
+      content: hasBoxDetailReturn ? (
+        <S.RetrievalReturnButton
+          type="button"
+          onClick={handleBoxReturn}
+          aria-label={`Return to box${boxReturnId ? ` ${boxReturnId}` : ''}`}
+        >
+          <span aria-hidden="true">←</span>
+          <span>Box{boxReturnId ? ` · #${boxReturnId}` : ''} · previous view</span>
+        </S.RetrievalReturnButton>
+      ) : hasRetrievalItemReturn ? (
+        <S.RetrievalReturnButton
+          type="button"
+          onClick={handleRetrievalReturn}
+          aria-label="Return to Retrieval previous view"
+        >
+          <span aria-hidden="true">←</span>
+          <span>Retrieval · previous view</span>
+        </S.RetrievalReturnButton>
+      ) : hasRetrievalBoxReturn ? (
+        <S.RetrievalReturnButton
+          type="button"
+          onClick={handleRetrievalReturn}
+          aria-label={`Return to Retrieval${retrievalReturnBoxId ? ` box ${retrievalReturnBoxId}` : ''}`}
+        >
+          <span aria-hidden="true">←</span>
+          <span>Retrieval{retrievalReturnBoxId ? ` · #${retrievalReturnBoxId}` : ''}</span>
+        </S.RetrievalReturnButton>
+      ) : hasAllItemsReturn ? (
+        <S.RetrievalReturnButton
+          type="button"
+          onClick={handleAllItemsReturn}
+          aria-label="Return to the previous All Items view"
+        >
+          <span aria-hidden="true">←</span>
+          <span>All Items · previous view</span>
+        </S.RetrievalReturnButton>
+      ) : null,
       sticky: true,
     });
 
@@ -776,12 +852,21 @@ export default function ItemPage() {
     };
   }, [
     activeToastId,
+    boxReturnId,
     error,
     fieldEditor.isActive,
+    handleBoxReturn,
     hideToast,
+    handleAllItemsReturn,
+    handleRetrievalReturn,
+    hasAllItemsReturn,
+    hasBoxDetailReturn,
+    hasRetrievalItemReturn,
+    hasRetrievalBoxReturn,
     item,
     loading,
     notFound,
+    retrievalReturnBoxId,
     showToast,
     viewMode,
   ]);

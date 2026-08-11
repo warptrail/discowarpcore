@@ -35,6 +35,11 @@ test('invalid batch ids safely produce an empty batch match', () => {
   assert.deepEqual(filter.sourceBatchId, { $in: [] });
 });
 
+test('batched scope excludes legacy items without a source batch', () => {
+  const filter = buildItemListFilter({ scope: 'batched' });
+  assert.deepEqual(filter.sourceBatchId, { $type: 'objectId' });
+});
+
 test('paged sorts use stable id tie breakers and retain legacy aliases', () => {
   assert.deepEqual(buildPagedSort('alpha', 'asc'), {
     mode: 'find',
@@ -60,6 +65,42 @@ test('memory sorts are deterministic across page boundaries', () => {
   ];
   items.sort((left, right) => compareMemorySortedItems(left, right, plan, context));
   assert.deepEqual(items.map((item) => item._id), ['1', '2', '3']);
+});
+
+test('random item sort is deterministic for a seed and changes when rerolled', () => {
+  const context = { boxByItemId: new Map(), batchById: new Map() };
+  const source = Array.from({ length: 12 }, (_, index) => ({
+    _id: String(index + 1),
+    name: `Item ${index + 1}`,
+  }));
+  const orderFor = (seed) => {
+    const plan = buildPagedSort('random', 'asc', seed);
+    return [...source]
+      .sort((left, right) => compareMemorySortedItems(left, right, plan, context))
+      .map((item) => item._id);
+  };
+
+  assert.deepEqual(orderFor('first-roll'), orderFor('first-roll'));
+  assert.notDeepEqual(orderFor('first-roll'), orderFor('second-roll'));
+});
+
+test('batch sort prioritizes recent imports', () => {
+  const plan = buildPagedSort('batch', 'desc');
+  const batchById = new Map([
+    ['old', { importSnapshot: { importedAt: '2026-06-01T10:00:00.000Z' } }],
+    ['new', { importSnapshot: { importedAt: '2026-07-01T10:00:00.000Z' } }],
+  ]);
+  const items = [
+    { _id: '1', name: 'Older', sourceBatchId: 'old' },
+    { _id: '2', name: 'Newer', sourceBatchId: 'new' },
+  ];
+  items.sort((left, right) => compareMemorySortedItems(
+    left,
+    right,
+    plan,
+    { boxByItemId: new Map(), batchById },
+  ));
+  assert.deepEqual(items.map((item) => item._id), ['2', '1']);
 });
 
 test('list summaries omit heavyweight history arrays', () => {

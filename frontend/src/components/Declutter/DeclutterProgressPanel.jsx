@@ -49,6 +49,13 @@ export default function DeclutterProgressPanel({ metrics = {}, counts = {}, reso
   ));
   return (
     <S.ProgressDashboard>
+      <S.ProgressHeader>
+        <div>
+          <span>Deck progress</span>
+          <small>{total} tracked · {resolved} resolved</small>
+        </div>
+        <S.ProgressLedgerLink to={HISTORY_PATH}>Open ledger <span aria-hidden="true">→</span></S.ProgressLedgerLink>
+      </S.ProgressHeader>
       <S.ProgressStatGrid>
         <S.ProgressStatLink to={HISTORY_PATH} $tone="pending"><span>Total</span><strong>{total}</strong></S.ProgressStatLink>
         <S.ProgressStatLink to={`${HISTORY_PATH}?filter=resolved`} $tone="keep"><span>Resolved</span><strong>{resolved}</strong></S.ProgressStatLink>
@@ -90,18 +97,18 @@ export default function DeclutterProgressPanel({ metrics = {}, counts = {}, reso
       <S.DashboardPanel>
         <S.PanelHeading>
           <span>Historical ledger</span>
-          <S.SummaryLink to="/declutter/history">Open full ledger ➤</S.SummaryLink>
+          <small>Recent outcomes</small>
         </S.PanelHeading>
-        <S.HistoryLedger>
-          <S.HistoryLedgerColumn $tone="keep">
+        <S.ProgressLedger>
+          <S.ProgressLedgerColumn $tone="keep">
             <h3>Keep · {keptCandidates.length}</h3>
             <LedgerList candidates={keptCandidates} emptyText="No confirmed keeps yet." />
-          </S.HistoryLedgerColumn>
-          <S.HistoryLedgerColumn $tone="toss">
+          </S.ProgressLedgerColumn>
+          <S.ProgressLedgerColumn $tone="toss">
             <h3>Toss · {tossedCandidates.length}</h3>
             <LedgerList candidates={tossedCandidates} toss emptyText="No confirmed tosses yet." />
-          </S.HistoryLedgerColumn>
-        </S.HistoryLedger>
+          </S.ProgressLedgerColumn>
+        </S.ProgressLedger>
       </S.DashboardPanel>
 
       <S.DashboardPanel>

@@ -20,6 +20,7 @@ export default function FilterCombobox({
   disabled = false,
   clearInputOnSelect = false,
   clearSelectedOnInput = true,
+  readOnlySelect = false,
   variant = 'facet',
 }) {
   const [open, setOpen] = useState(false);
@@ -141,6 +142,22 @@ export default function FilterCombobox({
     setOpen(true);
   };
 
+  const handleReadOnlyFocus = () => {
+    if (blurTimeoutRef.current) {
+      window.clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = null;
+    }
+  };
+
+  const openReadOnlySelect = () => {
+    const selectedIndex = safeOptions.findIndex(
+      (option) => String(option?.key || '') === String(selectedKey || ''),
+    );
+    setIsUserFiltering(false);
+    setActiveIndex(selectedIndex);
+    setOpen(true);
+  };
+
   const handleBlur = () => {
     blurTimeoutRef.current = window.setTimeout(() => {
       setOpen(false);
@@ -153,6 +170,14 @@ export default function FilterCombobox({
   };
 
   const handleKeyDown = (event) => {
+    if (readOnlySelect && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault();
+      if (!open) {
+        openReadOnlySelect();
+        return;
+      }
+    }
+
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       if (!open) {
@@ -269,39 +294,63 @@ export default function FilterCombobox({
 
   return (
     <S.FilterComboboxShell ref={shellRef} $variant={variant}>
-      <S.FilterComboboxInput
-        $variant={variant}
-        id={id}
-        name={name}
-        type="text"
-        role="combobox"
-        aria-label={ariaLabel}
-        aria-expanded={open}
-        aria-controls={listId}
-        aria-autocomplete="list"
-        aria-activedescendant={activeOptionId}
-        value={inputValue}
-        placeholder={placeholder}
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="none"
-        spellCheck={false}
-        disabled={disabled}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        onClick={() => setOpen(true)}
-        onChange={(event) => {
-          const nextValue = event.target.value;
-          setInputValue(nextValue);
-          setIsUserFiltering(true);
-          setOpen(true);
-          setActiveIndex(-1);
-          if (selectedKey && clearSelectedOnInput) {
-            onSelectedKeyChange?.('');
-          }
-        }}
-        onKeyDown={handleKeyDown}
-      />
+      {readOnlySelect ? (
+        <S.FilterComboboxInput
+          as="button"
+          $variant={variant}
+          $readOnlySelect
+          id={id}
+          name={name}
+          type="button"
+          role="combobox"
+          aria-label={ariaLabel}
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-haspopup="listbox"
+          aria-activedescendant={activeOptionId}
+          disabled={disabled}
+          onFocus={handleReadOnlyFocus}
+          onBlur={handleBlur}
+          onClick={() => (open ? setOpen(false) : openReadOnlySelect())}
+          onKeyDown={handleKeyDown}
+        >
+          {selectedOption?.label || placeholder}
+        </S.FilterComboboxInput>
+      ) : (
+        <S.FilterComboboxInput
+          $variant={variant}
+          id={id}
+          name={name}
+          type="text"
+          role="combobox"
+          aria-label={ariaLabel}
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          aria-activedescendant={activeOptionId}
+          value={inputValue}
+          placeholder={placeholder}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          disabled={disabled}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onClick={() => setOpen(true)}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            setInputValue(nextValue);
+            setIsUserFiltering(true);
+            setOpen(true);
+            setActiveIndex(-1);
+            if (selectedKey && clearSelectedOnInput) {
+              onSelectedKeyChange?.('');
+            }
+          }}
+          onKeyDown={handleKeyDown}
+        />
+      )}
       <S.FilterComboboxCaret $variant={variant} aria-hidden="true">⌄</S.FilterComboboxCaret>
 
       {dropdown && typeof document !== 'undefined'

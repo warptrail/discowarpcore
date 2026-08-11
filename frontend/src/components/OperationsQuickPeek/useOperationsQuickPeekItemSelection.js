@@ -5,10 +5,12 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import { getItemHomeHref } from '../../api/itemDetails';
+import {
+  QUICK_PEEK_ITEM_HISTORY_STATE,
+} from './OperationsQuickPeek.history';
 
 export const QUICK_PEEK_ITEM_PARAM = 'item';
-export const QUICK_PEEK_ITEM_HISTORY_STATE =
-  'operationsQuickPeekItemEntry';
+export { QUICK_PEEK_ITEM_HISTORY_STATE };
 
 function getItemId(item) {
   return String(item?._id || item?.id || '').trim();

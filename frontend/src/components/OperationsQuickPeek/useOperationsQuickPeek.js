@@ -13,12 +13,15 @@ import {
 } from 'react-router-dom';
 import { QUICK_PEEK_EXIT_DURATION_MS } from './OperationsQuickPeek.motion';
 import {
-  QUICK_PEEK_ITEM_HISTORY_STATE,
   QUICK_PEEK_ITEM_PARAM,
 } from './useOperationsQuickPeekItemSelection';
+import {
+  getQuickPeekDismissHistorySteps,
+  PEEK_HISTORY_STATE,
+  QUICK_PEEK_ITEM_HISTORY_STATE,
+} from './OperationsQuickPeek.history';
 
 const PEEK_PARAM = 'peek';
-const PEEK_HISTORY_STATE = 'operationsQuickPeekEntry';
 const MOBILE_PEEK_TOP_RATIO = 0.46;
 const PEEK_LABEL_GAP_PX = 8;
 const PEEK_ANCHOR_SETTLE_MS = 760;
@@ -111,6 +114,33 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
     writePeekParam('', { replace: true, state: nextState });
   }, [location.state, navigate, writePeekParam]);
 
+  const commitDismiss = useCallback(() => {
+    setExpanded(false);
+    setClosing(false);
+    setTransitionDirection(0);
+
+    const historySteps = getQuickPeekDismissHistorySteps(location.state);
+
+    if (historySteps) {
+      closeViewportRef.current = {
+        left: window.scrollX,
+        top: window.scrollY,
+        scrollRestoration: window.history.scrollRestoration,
+      };
+      window.history.scrollRestoration = 'manual';
+      // Opening a box and then an item creates two intentional history
+      // entries. A downward dismissal bypasses both, so it cannot reopen the
+      // box list after the item view disappears.
+      navigate(-historySteps);
+      return;
+    }
+
+    const nextState = { ...(location.state || {}) };
+    delete nextState[PEEK_HISTORY_STATE];
+    delete nextState[QUICK_PEEK_ITEM_HISTORY_STATE];
+    writePeekParam('', { replace: true, state: nextState });
+  }, [location.state, navigate, writePeekParam]);
+
   useLayoutEffect(() => {
     const viewport = closeViewportRef.current;
     if (selectedBoxId || !viewport || typeof window === 'undefined') return;
@@ -155,6 +185,28 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
       QUICK_PEEK_EXIT_DURATION_MS,
     );
   }, [closing, commitClose, selectedBox]);
+
+  const dismiss = useCallback(() => {
+    if (!selectedBox || closing) return;
+
+    const shouldAnimate =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(max-width: 767px)').matches &&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (!shouldAnimate) {
+      commitDismiss();
+      return;
+    }
+
+    setClosing(true);
+    setTransitionDirection(0);
+    window.clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = window.setTimeout(
+      commitDismiss,
+      QUICK_PEEK_EXIT_DURATION_MS,
+    );
+  }, [closing, commitDismiss, selectedBox]);
 
   const openBox = useCallback(
     (box, triggerElement = null, { forceOpen = false } = {}) => {
@@ -390,6 +442,7 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
       selectedIndex >= 0 && selectedIndex < previewBoxes.length - 1,
     openBox,
     close,
+    dismiss,
     openFullBox,
     selectPrevious: () => selectOffset(-1),
     selectNext: () => selectOffset(1),

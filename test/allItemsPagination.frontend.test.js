@@ -39,3 +39,48 @@ test('All Items appended pages deduplicate records by item ID', async () => {
   assert.deepEqual(merged.map((item) => item._id), ['one', 'two', 'three']);
   assert.equal(merged[0].name, 'new');
 });
+
+test('Random discovery requests carry a stable seed across pages', async () => {
+  const { buildRequestParams } = await import(
+    '../frontend/src/components/AllItemsList/usePaginatedAllItems.js'
+  );
+  const params = buildRequestParams({
+    searchQuery: '',
+    sortBy: 'random',
+    sortDirection: 'asc',
+    randomSeed: '8675309',
+    filter: 'all',
+    statusFilter: 'active',
+    offset: 60,
+    limit: 60,
+  });
+
+  assert.equal(params.get('sort'), 'random');
+  assert.equal(params.get('seed'), '8675309');
+  assert.equal(params.get('offset'), '60');
+});
+
+test('Batch Focused requests only source-batched items in recent-batch order', async () => {
+  const { buildRequestParams } = await import(
+    '../frontend/src/components/AllItemsList/usePaginatedAllItems.js'
+  );
+  const params = buildRequestParams({
+    searchQuery: '',
+    sortBy: 'alpha',
+    sortDirection: 'desc',
+    filter: 'all',
+    statusFilter: 'batch',
+    offset: 0,
+    limit: 60,
+  });
+
+  assert.deepEqual(Object.fromEntries(params), {
+    view: 'list',
+    limit: '60',
+    offset: '0',
+    status: 'all',
+    sort: 'batch',
+    direction: 'desc',
+    scope: 'batched',
+  });
+});

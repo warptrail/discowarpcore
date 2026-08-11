@@ -35,6 +35,8 @@ import {
   OPERATIONS_QUICK_PEEK_SEARCH_TOGGLE_EVENT,
   OPERATIONS_QUICK_PEEK_CLOSE_EVENT,
   RETRIEVAL_FINDER_STATE_EVENT,
+  RETRIEVAL_FINDER_OPEN_EVENT,
+  RETRIEVAL_FINDER_CLOSE_EVENT,
   ALL_ITEMS_FILTERS_STATE_EVENT,
   ALL_ITEMS_FILTERS_TOGGLE_EVENT,
   ALL_ITEMS_INSIGHTS_STATE_EVENT,
@@ -65,6 +67,7 @@ import {
 // back across the trigger.
 const HEADER_COMPACT_ENTER_Y = 180;
 const HEADER_COMPACT_LEAVE_Y = 24;
+const RETRIEVAL_WORKSPACE_MAX_WIDTH = 979;
 const getHeaderScrollProgress = (scrollY, previousProgress) => {
   if (previousProgress >= 0.5) {
     return scrollY <= HEADER_COMPACT_LEAVE_Y ? 0 : 1;
@@ -104,6 +107,12 @@ const HeaderShell = styled.header`
     border-color var(--header-duration) var(--header-ease),
     border-radius var(--header-duration) var(--header-ease),
     box-shadow var(--header-duration) var(--header-ease);
+
+  ${({ $retrievalWorkspace }) => $retrievalWorkspace && css`
+    position: relative;
+    border-radius: 3px 8px 3px 3px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  `}
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     border-radius: 10px;
@@ -170,6 +179,10 @@ const Inner = styled.div`
         padding: 0.14rem 0.46rem 0.2rem;
       }
     `}
+
+  ${({ $retrievalWorkspace }) => $retrievalWorkspace && css`
+    padding: 0.22rem 0.58rem 0.18rem;
+  `}
 `;
 
 const TopRow = styled.div`
@@ -180,6 +193,12 @@ const TopRow = styled.div`
   gap: calc(0.9rem - (0.28rem * var(--header-progress)));
   justify-content: space-between;
   transition: gap var(--header-duration) var(--header-ease);
+
+  ${({ $retrievalWorkspace }) => $retrievalWorkspace && css`
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.58rem;
+  `}
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: calc(0.45rem - (0.08rem * var(--header-progress)));
@@ -368,6 +387,62 @@ const Brand = styled(Link)`
   align-items: baseline;
   gap: 0.75rem;
   min-width: 0;
+`;
+
+const RetrievalMiniNav = styled.nav`
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.18rem;
+  min-width: 0;
+  overflow: hidden;
+`;
+
+const retrievalMiniControl = css`
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 25px;
+  padding: 2px;
+  border: 1px solid rgba(127, 215, 255, 0.22);
+  border-radius: 2px 5px 2px 2px;
+  background: rgba(10, 22, 31, 0.72);
+  color: rgba(230, 242, 249, 0.86);
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+
+  ${({ $active }) => $active && css`
+    border-color: rgba(103, 239, 200, 0.62);
+    background: rgba(76, 198, 193, 0.17);
+    box-shadow: inset 0 -2px 0 rgba(103, 239, 200, 0.56);
+  `}
+
+  &:hover,
+  &:focus-visible {
+    border-color: rgba(127, 215, 255, 0.7);
+    background: rgba(35, 74, 91, 0.58);
+    box-shadow: 0 0 10px rgba(76, 198, 193, 0.16);
+    outline: none;
+  }
+
+  img {
+    display: block;
+    width: 19px;
+    height: 19px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 4px rgba(60, 217, 255, 0.28));
+  }
+`;
+
+const RetrievalMiniNavLink = styled(Link)`
+  ${retrievalMiniControl}
+`;
+
+const RetrievalMiniNavAction = styled.button`
+  ${retrievalMiniControl}
+  appearance: none;
 `;
 
 const Title = styled.div`
@@ -825,6 +900,10 @@ const NavRow = styled.nav`
 `;
 
 const MobileNavPanel = styled.div`
+  ${({ $retrievalWorkspace }) => $retrievalWorkspace && css`
+    display: none;
+  `}
+
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     position: relative;
     z-index: 1;
@@ -1006,6 +1085,10 @@ const ToastRow = styled.div`
         padding-block: 0.15rem;
       }
     `}
+
+  ${({ $retrievalWorkspace }) => $retrievalWorkspace && css`
+    padding: 0 0.48rem 0.34rem;
+  `}
 `;
 
 const OperationsConsoleFinderMount = styled.div`
@@ -1015,6 +1098,46 @@ const OperationsConsoleFinderMount = styled.div`
 
   &:empty {
     display: none;
+  }
+`;
+
+const RetrievalConsoleFinderMount = styled.div`
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+
+  &:empty {
+    min-height: 88px;
+  }
+`;
+
+const RetrievalWorkspaceConsole = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.25rem;
+  min-width: 0;
+  border: 1px solid rgba(76, 198, 193, 0.34);
+  border-radius: 3px 7px 3px 3px;
+  background:
+    linear-gradient(90deg, rgba(76, 198, 193, 0.08), transparent 36%),
+    rgba(6, 11, 17, 0.96);
+  box-shadow:
+    inset 3px 0 0 rgba(76, 198, 193, 0.58),
+    0 3px 12px rgba(0, 0, 0, 0.24);
+  padding: 0.12rem 0.18rem;
+  animation: retrieval-console-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  @keyframes retrieval-console-enter {
+    from {
+      opacity: 0;
+      transform: translateY(-8px) scaleY(0.94);
+      transform-origin: top;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 `;
 
@@ -1294,11 +1417,26 @@ const RescueConsoleTrigger = styled.button`
     background 140ms ease,
     box-shadow 140ms ease;
 
+  ${({ $retrievalConsoleDismiss }) => $retrievalConsoleDismiss && css`
+    width: 44px;
+    height: 44px;
+    align-self: start;
+    margin: 0.2rem 0.12rem 0 0;
+  `}
+
   ${({ $pulse }) =>
     $pulse &&
     css`
       animation: ${geometryCommitPulse} 620ms ease-out both;
     `}
+
+  ${({ $retrievalDocked }) => $retrievalDocked && css`
+    animation: ${geometryCommitPulse} 1.8s ease-in-out infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+  `}
 
   svg {
     width: 20px;
@@ -1543,6 +1681,7 @@ export default function Header() {
   const [idleSignalColor, setIdleSignalColor] = useState(0);
   const [retrievalFinderState, setRetrievalFinderState] = useState({
     minimized: true,
+    detached: false,
     retrievalMode: 'items',
     boxAnalytics: null,
   });
@@ -1590,6 +1729,8 @@ export default function Header() {
           )
         : undefined;
   const isMobile = useIsMobile(MOBILE_MAX_WIDTH);
+  const isRetrievalNarrow = useIsMobile(RETRIEVAL_WORKSPACE_MAX_WIDTH);
+  const isRetrievalWorkspace = isRetrievalPage && !isRetrievalNarrow;
   const mobileControlsId = 'mobile-header-controls';
   const { runRandomItem } = useRandomItemFlow();
   const idleSignalPalette = IDLE_SIGNAL_COLORS[idleSignalColor];
@@ -1614,6 +1755,14 @@ export default function Header() {
   }, []);
 
   const openOperationsFinder = () => {
+    if (isRetrievalPage) {
+      window.dispatchEvent(new CustomEvent(
+        isOperationsFinderOpen
+          ? RETRIEVAL_FINDER_CLOSE_EVENT
+          : RETRIEVAL_FINDER_OPEN_EVENT,
+      ));
+      return;
+    }
     if (isAllItemsPage) {
       window.dispatchEvent(new CustomEvent(ALL_ITEMS_FILTERS_TOGGLE_EVENT));
       return;
@@ -1903,25 +2052,33 @@ export default function Header() {
     }
   };
 
-  const effectiveHeaderProgress = isBoxDetailPage
+  const effectiveHeaderProgress = isBoxDetailPage || isRetrievalWorkspace
     ? 1
     : scrollProgress;
   const headerStyle = {
     '--header-progress': effectiveHeaderProgress.toFixed(3),
   };
   const isHeaderCondensed = effectiveHeaderProgress >= 0.98;
+  const showRetrievalConsole = isRetrievalWorkspace || (
+    isRetrievalPage && isRetrievalNarrow && !retrievalFinderState.minimized
+  );
 
   return (
     <HeaderShell
+      data-app-header="true"
       style={headerStyle}
       $retrievalPage={isRetrievalPage}
-      $allowFinderOverflow={isOperationsPage && isOperationsFinderOpen}
+      $retrievalWorkspace={isRetrievalWorkspace}
+      $allowFinderOverflow={
+        (isOperationsPage && isOperationsFinderOpen) || showRetrievalConsole
+      }
     >
       <Inner
         $boxPage={isBoxDetailPage}
         $retrievalPage={isRetrievalPage}
+        $retrievalWorkspace={isRetrievalWorkspace}
       >
-        <TopRow>
+        <TopRow $retrievalWorkspace={isRetrievalWorkspace}>
           <Brand
             to="/operations"
             onClick={(event) => {
@@ -1933,6 +2090,76 @@ export default function Header() {
               <Big>DISCO WARP CORE</Big>
             </Title>
           </Brand>
+
+          {isRetrievalWorkspace ? (
+            <RetrievalMiniNav aria-label="Compact primary navigation">
+              <RetrievalMiniNavLink
+                to="/operations"
+                aria-label="Operations"
+                title="Operations"
+                onClick={handleNavSelection}
+              >
+                <img src={operationsNavIcon} alt="" />
+              </RetrievalMiniNavLink>
+              <RetrievalMiniNavLink
+                to="/retrieval"
+                aria-label="Retrieval"
+                title="Retrieval"
+                $active={isRetrievalPage}
+                onClick={handleNavSelection}
+              >
+                <img src={logsNavIcon} alt="" />
+              </RetrievalMiniNavLink>
+              <RetrievalMiniNavLink
+                to="/intake"
+                aria-label="Intake"
+                title="Intake"
+                onClick={handleNavSelection}
+              >
+                <img src={declutterNavIcon} alt="" />
+              </RetrievalMiniNavLink>
+              <RetrievalMiniNavLink
+                to="/import"
+                aria-label="Import"
+                title="Import"
+                onClick={handleNavSelection}
+              >
+                <img src={allItemsNavIcon} alt="" />
+              </RetrievalMiniNavLink>
+              <RetrievalMiniNavLink
+                to="/all-items"
+                aria-label="All Items"
+                title="All Items"
+                onClick={handleNavSelection}
+              >
+                <img src={importNavIcon} alt="" />
+              </RetrievalMiniNavLink>
+              <RetrievalMiniNavLink
+                to="/declutter"
+                aria-label="Declutter"
+                title="Declutter"
+                onClick={handleNavSelection}
+              >
+                <img src={intakeNavIcon} alt="" />
+              </RetrievalMiniNavLink>
+              <RetrievalMiniNavLink
+                to="/logs"
+                aria-label="Logs"
+                title="Logs"
+                onClick={handleNavSelection}
+              >
+                <img src={retrievalNavIcon} alt="" />
+              </RetrievalMiniNavLink>
+              <RetrievalMiniNavAction
+                type="button"
+                aria-label="Random"
+                title="Random"
+                onClick={handleRandomSelection}
+              >
+                <img src={randomNavIcon} alt="" />
+              </RetrievalMiniNavAction>
+            </RetrievalMiniNav>
+          ) : null}
 
           <TopRowControls>
             <LcarsPips aria-hidden="true">
@@ -1963,6 +2190,7 @@ export default function Header() {
         <MobileNavPanel
           id={mobileControlsId}
           $open={!isMobile || isMobileMenuOpen}
+          $retrievalWorkspace={isRetrievalWorkspace}
           aria-hidden={isMobile ? !isMobileMenuOpen : undefined}
           inert={isMobile && !isMobileMenuOpen ? true : undefined}
         >
@@ -2068,11 +2296,29 @@ export default function Header() {
       {(!isImportPage || toast) ? <ToastRow
         $boxPage={isBoxDetailPage}
         $retrievalPage={isRetrievalPage}
+        $retrievalWorkspace={isRetrievalWorkspace}
         $itemPageRail={
           toast?.presentation === 'item-page' || toast?.presentation === 'item-field'
         }
         style={toast?.themeStyle || boxConsoleStyle}
       >
+        {showRetrievalConsole ? (
+          <RetrievalWorkspaceConsole>
+            <RetrievalConsoleFinderMount id="retrieval-console-finder-mount" />
+            {isRetrievalPage && isRetrievalNarrow ? (
+              <RescueConsoleTrigger
+                type="button"
+                onClick={openOperationsFinder}
+                aria-label="Dismiss retrieval search"
+                title="Dismiss retrieval search"
+                $active
+                $retrievalConsoleDismiss
+              >
+                <FinderGeometryGlyph />
+              </RescueConsoleTrigger>
+            ) : null}
+          </RetrievalWorkspaceConsole>
+        ) : (
         <Toast
           open={!!toast}
           title={toast?.title}
@@ -2164,6 +2410,8 @@ export default function Header() {
                         analytics={retrievalFinderState.boxAnalytics}
                       />
                     )
+                : isRetrievalPage
+                  ? <IdleAsciiSignal palette={idleSignalPalette} />
                 : isLogsPage
                   ? <IdleAsciiSignal palette={idleSignalPalette} />
                   : 'What are you looking for?'
@@ -2246,7 +2494,14 @@ export default function Header() {
                       boxFinderState.sortMode !== 'treeOrder'
                     : isOperationsFinderOpen || isQuickPeekSearchOpen
                 }
-                $pulse={searchPulse}
+                $pulse={searchPulse || (
+                  isRetrievalPage && retrievalFinderState.detached
+                )}
+                $retrievalDocked={
+                  isRetrievalPage &&
+                  retrievalFinderState.detached &&
+                  retrievalFinderState.minimized
+                }
                 $boxThemed={
                   (isBoxDetailPage && !!boxContext) ||
                   (isIntakePage && !!intakeContext?.shortId)
@@ -2258,10 +2513,12 @@ export default function Header() {
               </RescueConsoleTrigger>
             </>
           }
+          idleAddonCentered={isDeclutterPage}
           activeRetrievalItem={activeRetrievalItem}
           compact={isHeaderCondensed}
           compactProgress={isBoxDetailPage ? 1.35 : effectiveHeaderProgress}
         />
+        )}
       </ToastRow> : null}
     </HeaderShell>
   );

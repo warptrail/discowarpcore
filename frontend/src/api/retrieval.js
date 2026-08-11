@@ -57,8 +57,12 @@ export async function fetchRetrievalItemsPage(
 export async function fetchRetrievalBoxesPage(
   {
     q = '',
+    boxIdPrefix = '',
     groups = [],
+    tags = [],
+    tagOperator = 'or',
     locations = [],
+    sort = '',
     limit = DEFAULT_RETRIEVAL_LIMIT,
     offset = 0,
   },
@@ -67,9 +71,14 @@ export async function fetchRetrievalBoxesPage(
   const params = new URLSearchParams();
   const query = String(q || '').trim();
   if (query) params.set('q', query);
+  const normalizedBoxIdPrefix = String(boxIdPrefix || '').replace(/\D/g, '').slice(0, 3);
+  if (normalizedBoxIdPrefix) params.set('boxPrefix', normalizedBoxIdPrefix);
 
   appendCsvParam(params, 'group', groups);
+  appendCsvParam(params, 'tag', tags);
+  if (tags.length > 1 && tagOperator === 'and') params.set('tagOperator', 'and');
   appendCsvParam(params, 'location', locations);
+  if (String(sort || '').trim()) params.set('sort', String(sort).trim());
   params.set('limit', String(limit));
   params.set('offset', String(offset));
 

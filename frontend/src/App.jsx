@@ -30,6 +30,17 @@ const AppContainer = styled.div`
   font-family: Arial, Helvetica, sans-serif;
   min-width: 0;
 
+  @media (min-width: 980px) {
+    ${({ $retrievalPage }) => $retrievalPage && `
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 0.38rem;
+      height: 100dvh;
+      overflow: hidden;
+      padding-block: 0.38rem 0.5rem;
+    `}
+  }
+
   @media (min-width: calc(${MOBILE_BREAKPOINT} + 1px)) and (max-width: 899px) {
     padding: ${({ $retrievalPage }) => ($retrievalPage ? '0.75rem' : '2rem')};
   }

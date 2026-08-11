@@ -312,7 +312,9 @@ export const QuickPeekSearchClose = styled.button`
 
 export const CapNavigation = styled.div`
   position: relative;
-  z-index: 1;
+  /* Keep the action popover in the DeckCap stacking context so its own
+     z-index can clear the overlapping return/collapse handle. */
+  z-index: auto;
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) 40px;
   align-items: center;
@@ -1436,7 +1438,37 @@ export const ItemCarouselActionButton = styled.button`
 export const ItemActionsToggle = styled(ItemCarouselActionButton)`
   && {
     width: 42px;
+    transition:
+      border-color 150ms ease,
+      color 150ms ease,
+      background 150ms ease,
+      box-shadow 150ms ease,
+      filter 150ms ease;
   }
+
+  ${({ $active }) => $active && css`
+    && {
+      border-color: rgba(var(--box-secondary-rgb, 167, 182, 255), 0.98);
+      color: #f5fbff;
+      background:
+        linear-gradient(
+          135deg,
+          rgba(var(--box-accent-rgb, 68, 205, 214), 0.64),
+          rgba(var(--box-secondary-rgb, 167, 182, 255), 0.5)
+        ),
+        rgba(7, 16, 24, 0.96);
+      box-shadow:
+        0 0 0 1px rgba(var(--box-accent-rgb, 68, 205, 214), 0.45),
+        0 0 12px rgba(var(--box-accent-rgb, 68, 205, 214), 0.66),
+        inset 0 0 10px rgba(255, 255, 255, 0.16);
+      filter: brightness(1.22) saturate(1.18);
+    }
+
+    circle {
+      fill: currentColor;
+      stroke-width: 0;
+    }
+  `}
 
   @media (max-width: 460px) {
     && {
@@ -1488,7 +1520,7 @@ export const ItemHeaderOpenFullButton = styled.button`
 
 export const ItemActionPopover = styled.div`
   position: absolute;
-  z-index: 12;
+  z-index: 20;
   top: calc(100% + 0.42rem);
   left: 50%;
   display: grid;

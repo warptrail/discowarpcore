@@ -34,6 +34,38 @@ export const Page = styled.section`
   }
 `;
 
+export const RetrievalReturnButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.42rem;
+  min-height: 42px;
+  width: 100%;
+  border: 1px solid rgba(var(--box-neon-rgb, 76, 198, 193), 0.62);
+  border-radius: 4px;
+  background: rgba(var(--box-primary-rgb, 76, 198, 193), 0.12);
+  color: rgba(225, 250, 248, 0.92);
+  font: 760 0.68rem/1 ${mono};
+  letter-spacing: 0.065em;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: rgba(var(--box-primary-rgb, 76, 198, 193), 0.2);
+    box-shadow: 0 0 14px rgba(var(--box-neon-rgb, 76, 198, 193), 0.18);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 38px;
+    font-size: 0.61rem;
+  }
+`;
+
 export const PageMainGrid = styled.div`
   display: grid;
   gap: 0.8rem;
@@ -667,16 +699,20 @@ export const DeclutterControlButton = styled.button`
   width: 100%;
   min-height: 32px;
   padding: 0.18rem 0.34rem;
-  border: 1px solid ${({ $active }) =>
-    $active
+  border: 1px solid ${({ $active, $gone }) =>
+    $gone
+      ? 'rgba(255, 94, 94, 0.9)'
+      : $active
       ? 'rgba(var(--item-secondary-rgb, 167, 182, 255), 0.7)'
       : 'rgba(var(--item-accent-rgb, 127, 215, 255), 0.68)'};
   border-radius: 2px;
-  background: ${({ $active }) =>
-    $active
+  background: ${({ $active, $gone }) =>
+    $gone
+      ? 'linear-gradient(90deg, rgba(135, 18, 24, 0.68), rgba(62, 8, 14, 0.94))'
+      : $active
       ? 'rgba(var(--item-secondary-rgb, 167, 182, 255), 0.13)'
       : 'rgba(var(--item-accent-rgb, 127, 215, 255), 0.09)'};
-  color: #eef8ff;
+  color: ${({ $gone }) => ($gone ? '#ffe7e7' : '#eef8ff')};
   text-align: left;
   cursor: pointer;
   transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
@@ -701,8 +737,8 @@ export const DeclutterControlButton = styled.button`
   }
 
   &:disabled {
-    opacity: 0.58;
-    cursor: wait;
+    opacity: ${({ $gone }) => ($gone ? 1 : 0.58)};
+    cursor: ${({ $gone }) => ($gone ? 'not-allowed' : 'wait')};
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -711,7 +747,7 @@ export const DeclutterControlButton = styled.button`
 `;
 
 export const DeclutterControlContext = styled.span`
-  color: rgba(210, 228, 237, 0.5);
+  color: ${({ $gone }) => ($gone ? 'rgba(255, 204, 204, 0.72)' : 'rgba(210, 228, 237, 0.5)')};
   font: 760 0.52rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     'Liberation Mono', 'Courier New', monospace;
   letter-spacing: 0.08em;
@@ -728,7 +764,7 @@ export const DeclutterControlTitle = styled.strong`
 `;
 
 export const DeclutterControlState = styled.span`
-  color: var(--item-accent, #7fd7ff);
+  color: ${({ $gone }) => ($gone ? '#ff9c9c' : 'var(--item-accent, #7fd7ff)')};
   font: 850 0.54rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     'Liberation Mono', 'Courier New', monospace;
   letter-spacing: 0.09em;

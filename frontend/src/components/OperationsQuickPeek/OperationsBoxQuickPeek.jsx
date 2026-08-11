@@ -60,6 +60,7 @@ export default function OperationsBoxQuickPeek({
   onSetExpanded,
   onShowItems,
   onClose,
+  onDismiss,
   onOpenFullBox,
 }) {
   const gestureRef = useRef(null);
@@ -357,7 +358,7 @@ export default function OperationsBoxQuickPeek({
         suppressDetentClickRef.current = false;
       }, 0);
       if (deltaY < 0) onSetExpanded?.(true);
-      else onClose?.();
+      else onDismiss?.();
     }
   };
 

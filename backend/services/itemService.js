@@ -92,6 +92,13 @@ function toSourceBatchSummary(batch) {
     archiveStatus,
     isArchived: archiveStatus === 'archived',
     importedAt: batch?.importSnapshot?.importedAt || null,
+    itemCount: Math.max(
+      Array.isArray(batch?.importSnapshot?.importedItemIds)
+        ? batch.importSnapshot.importedItemIds.length
+        : 0,
+      Number(batch?.importSnapshot?.createdItemCount || 0) +
+        Number(batch?.importSnapshot?.updatedItemCount || 0),
+    ),
     archivedAt: batch?.archiveState?.archivedAt || null,
     createdAt: batch?.identity?.createdAt || batch?.createdAt || null,
     updatedAt: batch?.identity?.updatedAt || batch?.updatedAt || null,
@@ -371,6 +378,7 @@ function toItemListSummary(item = {}) {
           label: sourceBatch.label,
           archiveStatus: sourceBatch.archiveStatus,
           importedAt: sourceBatch.importedAt,
+          itemCount: sourceBatch.itemCount,
           createdAt: sourceBatch.createdAt,
           updatedAt: sourceBatch.updatedAt,
         }
@@ -431,6 +439,8 @@ function buildItemListFilter({
     filter.isConsumable = { $ne: true };
   } else if (normalizedScope === 'decommissioned') {
     filter.keepPriority = 'decommissioned';
+  } else if (normalizedScope === 'batched') {
+    filter.sourceBatchId = { $type: 'objectId' };
   }
 
   const normalizedCategory = String(category || '').trim();
@@ -478,7 +488,7 @@ function buildItemListFilter({
   return filter;
 }
 
-function buildPagedSort(sort = 'alpha', direction = 'asc') {
+function buildPagedSort(sort = 'alpha', direction = 'asc', randomSeed = '') {
   const value = String(sort || 'alpha').trim();
   const sortDirection = String(direction || '').trim().toLowerCase() === 'desc' ? -1 : 1;
   const legacyMatch = value.match(/^(created|updated|acquired|lastUsed|orphaned):(asc|desc)$/);
@@ -494,6 +504,15 @@ function buildPagedSort(sort = 'alpha', direction = 'asc') {
     return {
       mode: 'find',
       sort: { [fieldByLegacySort[legacyMatch[1]]]: legacyDirection, _id: legacyDirection },
+    };
+  }
+
+  if (value === 'random') {
+    return {
+      mode: 'memory',
+      key: 'random',
+      direction: sortDirection,
+      seed: String(randomSeed || 'disco-warp-core').slice(0, 64),
     };
   }
 
@@ -544,9 +563,21 @@ function compareText(left, right) {
   });
 }
 
+function seededItemRank(itemId, seed) {
+  const source = `${String(seed || '')}:${String(itemId || '')}`;
+  let hash = 2166136261;
+  for (let index = 0; index < source.length; index += 1) {
+    hash ^= source.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
 function compareMemorySortedItems(left, right, plan, { boxByItemId, batchById }) {
   let result = 0;
-  if (plan.key === 'box') {
+  if (plan.key === 'random') {
+    result = seededItemRank(left?._id, plan.seed) - seededItemRank(right?._id, plan.seed);
+  } else if (plan.key === 'box') {
     result = compareText(
       boxByItemId.get(String(left?._id))?.box_id,
       boxByItemId.get(String(right?._id))?.box_id,
@@ -554,10 +585,23 @@ function compareMemorySortedItems(left, right, plan, { boxByItemId, batchById })
   } else if (plan.key === 'batch') {
     const leftBatch = batchById.get(String(left?.sourceBatchId || ''));
     const rightBatch = batchById.get(String(right?.sourceBatchId || ''));
-    result = compareText(
-      `${leftBatch?.identity?.batchId || ''} ${leftBatch?.identity?.batchName || ''}`,
-      `${rightBatch?.identity?.batchId || ''} ${rightBatch?.identity?.batchName || ''}`,
+    if (Boolean(leftBatch) !== Boolean(rightBatch)) {
+      return leftBatch ? -1 : 1;
+    }
+    const leftDate = Date.parse(
+      leftBatch?.importSnapshot?.importedAt || leftBatch?.identity?.createdAt || '',
     );
+    const rightDate = Date.parse(
+      rightBatch?.importSnapshot?.importedAt || rightBatch?.identity?.createdAt || '',
+    );
+    if (Number.isFinite(leftDate) && Number.isFinite(rightDate) && leftDate !== rightDate) {
+      result = leftDate - rightDate;
+    } else {
+      result = compareText(
+        `${leftBatch?.identity?.batchId || ''} ${leftBatch?.identity?.batchName || ''}`,
+        `${rightBatch?.identity?.batchId || ''} ${rightBatch?.identity?.batchName || ''}`,
+      );
+    }
   } else if (plan.key === 'keepPriority') {
     const priorityRank = { essential: 0, high: 1, medium: 2, low: 3, decommissioned: 4 };
     result = (priorityRank[left?.keepPriority] ?? 5) - (priorityRank[right?.keepPriority] ?? 5);
@@ -659,6 +703,7 @@ async function getItemsPage({
   sourceBatchId = '',
   sort = 'alpha',
   direction = 'asc',
+  randomSeed = '',
   listView = false,
 } = {}) {
   const totalStartNs = process.hrtime.bigint();
@@ -700,7 +745,7 @@ async function getItemsPage({
     searchBatchIds,
   });
   const contextMs = Number(process.hrtime.bigint() - contextStartNs) / 1e6;
-  const sortPlan = buildPagedSort(sort, direction);
+  const sortPlan = buildPagedSort(sort, direction, randomSeed);
 
   const queryStartNs = process.hrtime.bigint();
   const totalPromise = Item.countDocuments(filter);
@@ -1307,8 +1352,10 @@ async function markItemGone(id, payload = {}) {
         disposition,
         disposition_at: dispositionAt || new Date(),
         disposition_notes: dispositionNotes,
+        location: null,
         orphanedAt: null,
         last_active_box: previousBox?._id || payload.lastActiveBoxId || null,
+        declutterReadiness: 'not_considered',
       },
     },
     { new: true, runValidators: true }

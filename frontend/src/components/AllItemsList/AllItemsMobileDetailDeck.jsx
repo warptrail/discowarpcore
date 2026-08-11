@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { getItemHomeHref } from '../../api/itemDetails';
+import { rememberAllItemsReturn } from './allItemsReturnState';
 
 const Printout = styled.div`
   position: absolute;
@@ -114,28 +116,53 @@ const DataList = styled.dl`
 
 const Footer = styled.footer`
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.55rem;
+  grid-template-columns: minmax(48px, 0.42fr) minmax(120px, 1fr) minmax(48px, 0.42fr);
+  gap: 0.42rem;
   padding: 0.58rem 0.7rem 0.68rem;
   border-top: 1px solid rgba(127, 215, 255, 0.12);
   background: #0a1117;
 `;
 
 const NavButton = styled.button`
-  min-height: 38px;
+  min-height: 42px;
   border: 1px solid rgba(127, 215, 255, 0.3);
   border-radius: 3px;
-  background: ${({ $primary }) =>
-    $primary
-      ? '#12303c'
-      : '#0d161d'};
+  background: #0d161d;
   color: #e6edf3;
-  font: 800 0.72rem/1 "SFMono-Regular", Consolas, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 900 2rem/0.8 "SFMono-Regular", Consolas, monospace;
+  cursor: pointer;
 
-  &:disabled {
-    opacity: 0.3;
+  &:hover,
+  &:focus-visible {
+    border-color: rgba(103, 212, 202, 0.72);
+    background: rgba(18, 48, 60, 0.94);
+    color: #aef9ef;
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+`;
+
+const OpenItemButton = styled.button`
+  min-height: 42px;
+  border: 1px solid rgba(103, 212, 202, 0.58);
+  border-radius: 3px;
+  background: #12303c;
+  color: #e6edf3;
+  font: 820 0.68rem/1 "SFMono-Regular", Consolas, monospace;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: #174353;
+    box-shadow: 0 0 14px rgba(103, 212, 202, 0.18);
+  }
+
+  &:active {
+    transform: translateY(1px);
   }
 `;
 
@@ -145,6 +172,8 @@ function valueOrDash(value) {
 }
 
 export default function AllItemsMobileDetailDeck({ item, onClose }) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [sectionIndex, setSectionIndex] = useState(0);
   useEffect(() => {
     setSectionIndex(0);
@@ -192,6 +221,25 @@ export default function AllItemsMobileDetailDeck({ item, onClose }) {
 
   if (!item) return null;
   const section = sections[sectionIndex];
+  const itemHref = getItemHomeHref(item._id);
+  const returnTo = `${location.pathname}${location.search}${location.hash}`;
+
+  const openItemPage = () => {
+    const returnSnapshot = {
+      returnTo,
+      scrollY: window.scrollY,
+      itemId: String(item._id || ''),
+    };
+    rememberAllItemsReturn(returnSnapshot);
+    navigate(itemHref, {
+      state: {
+        allItemsReturn: {
+          kind: 'all-items-inline-detail',
+          ...returnSnapshot,
+        },
+      },
+    });
+  };
 
   return (
     <Printout>
@@ -222,30 +270,31 @@ export default function AllItemsMobileDetailDeck({ item, onClose }) {
         <Footer>
           <NavButton
             type="button"
-            disabled={sectionIndex === 0}
-            onClick={() => setSectionIndex((current) => Math.max(0, current - 1))}
+            aria-label="Previous item detail section"
+            title="Previous section"
+            onClick={() => setSectionIndex((current) => (
+              current - 1 + sections.length
+            ) % sections.length)}
           >
-            ← Back
+            ‹
           </NavButton>
-          {sectionIndex < sections.length - 1 ? (
-            <NavButton
-              type="button"
-              $primary
-              onClick={() => setSectionIndex((current) => Math.min(sections.length - 1, current + 1))}
-            >
-              Next →
-            </NavButton>
-          ) : (
-            <NavButton
-              type="button"
-              $primary
-              onClick={() => {
-                window.location.assign(getItemHomeHref(item._id));
-              }}
-            >
-              Open Item
-            </NavButton>
-          )}
+          <OpenItemButton
+            type="button"
+            onClick={openItemPage}
+            aria-label={`Open ${item.name || 'item'} item page`}
+          >
+            Open item ↗
+          </OpenItemButton>
+          <NavButton
+            type="button"
+            aria-label="Next item detail section"
+            title="Next section"
+            onClick={() => setSectionIndex((current) => (
+              current + 1
+            ) % sections.length)}
+          >
+            ›
+          </NavButton>
         </Footer>
       </Deck>
     </Printout>

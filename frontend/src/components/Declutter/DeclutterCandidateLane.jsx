@@ -21,10 +21,24 @@ const FINAL_FATE = {
   stolen: { choice: '', label: 'Stolen', icon: '⚠', tone: 'toss' },
 };
 
-function PlayerVote({ icon, name, vote, winner = false, winnerLabel = 'Route', compact = false }) {
+function PlayerVote({
+  icon,
+  name,
+  vote,
+  winner = false,
+  winnerLabel = 'Route',
+  compact = false,
+  cardView = false,
+}) {
   const meta = getVotePresentationMeta(vote);
   return (
-    <S.PlayerVote $tone={meta.tone} $winner={winner} $compact={compact} title={`${name}: ${meta.label}`}>
+    <S.PlayerVote
+      $tone={meta.tone}
+      $winner={winner}
+      $compact={compact}
+      $cardView={cardView}
+      title={`${name}: ${meta.label}`}
+    >
       <span aria-hidden="true">{icon}</span>
       <div><strong>{name}</strong><small>{meta.label}</small></div>
       {winner ? <S.RouteWinnerFlag>{winnerLabel}</S.RouteWinnerFlag> : null}
@@ -49,8 +63,14 @@ function formatDepartureTimestamp(value) {
 
 function voteWinsRoute(vote, stagingRoute) {
   const winningChoice = stagingRoute === 'discard' ? 'toss' : stagingRoute;
-  return ['toss', 'donate', 'sell', 'gift'].includes(winningChoice)
+  return ['keep', 'toss', 'donate', 'sell', 'gift'].includes(winningChoice)
     && getVotePresentationChoice(vote) === winningChoice;
+}
+
+function getWinningChoice(candidate, finalFate) {
+  if (finalFate?.choice) return finalFate.choice;
+  if (candidate?.resolution === 'kept') return 'keep';
+  return candidate?.stagingRoute === 'discard' ? 'toss' : candidate?.stagingRoute;
 }
 
 export default function DeclutterCandidateLane({
@@ -62,6 +82,7 @@ export default function DeclutterCandidateLane({
   onAction,
   renderActions,
   compact = false,
+  cardView = false,
 }) {
   return (
     <S.QueueGrid>
@@ -79,16 +100,15 @@ export default function DeclutterCandidateLane({
         const departureTimestamp = formatDepartureTimestamp(
           candidate?.actionCompletedAt || item?.disposition_at || item?.dispositionAt
         );
-        const winningChoice = finalFate?.choice
-          || (candidate?.stagingRoute === 'discard' ? 'toss' : candidate?.stagingRoute);
+        const winningChoice = getWinningChoice(candidate, finalFate);
         const box = item?.box && typeof item.box === 'object' ? item.box : null;
         const boxShortId = String(box?.box_id || '').trim();
         const boxLabel = String(box?.label || '').trim();
         const locationLabel = getItemLocationLabel(item);
         const customActions = renderActions?.(candidate) || null;
         return (
-          <S.QueueItem key={candidateId} $compact={compact}>
-            <S.ThumbFrame $compact={compact}>
+          <S.QueueItem key={candidateId} $compact={compact} $cardView={cardView}>
+            <S.ThumbFrame $compact={compact} $cardView={cardView}>
               {imageUrl ? <S.ThumbImage src={imageUrl} alt="" loading="lazy" /> : 'No Image'}
             </S.ThumbFrame>
             <div>
@@ -97,34 +117,35 @@ export default function DeclutterCandidateLane({
                   {getItemName(item)}
                 </S.ItemNameLink>
               ) : <S.ItemName>{getItemName(item)}</S.ItemName>}
-              <S.CandidateMetaGrid $compact={compact}>
-                <S.CandidateMetaGroup>
+              <S.CandidateMetaGrid $compact={compact} $cardView={cardView}>
+                <S.CandidateMetaGroup $cardView={cardView}>
                   <S.CandidateMetaLabel>Box</S.CandidateMetaLabel>
                   {itemIsGone ? (
-                    <S.CandidateMetaValue $tone="gone">No longer have</S.CandidateMetaValue>
+                    <S.CandidateMetaValue $cardView={cardView} $tone="gone">No longer have</S.CandidateMetaValue>
                   ) : box && boxShortId ? (
-                    <S.CandidateBoxLink to={`/boxes/${encodeURIComponent(boxShortId)}`}>
+                    <S.CandidateBoxLink $cardView={cardView} to={`/boxes/${encodeURIComponent(boxShortId)}`}>
                       <S.CandidateBoxId>#{boxShortId}</S.CandidateBoxId>
                       <span>{boxLabel || 'Box'}</span>
                     </S.CandidateBoxLink>
                   ) : (
-                    <S.CandidateMetaValue>No box assigned</S.CandidateMetaValue>
+                    <S.CandidateMetaValue $cardView={cardView}>No box assigned</S.CandidateMetaValue>
                   )}
                 </S.CandidateMetaGroup>
-                <S.CandidateMetaGroup>
+                <S.CandidateMetaGroup $cardView={cardView}>
                   <S.CandidateMetaLabel>Location</S.CandidateMetaLabel>
-                  <S.CandidateMetaValue $tone="location">
+                  <S.CandidateMetaValue $cardView={cardView} $tone="location">
                     {itemIsGone ? 'Outside inventory' : locationLabel || 'Not set'}
                   </S.CandidateMetaValue>
                 </S.CandidateMetaGroup>
-                <S.CandidateMetaGroup>
+                <S.CandidateMetaGroup $cardView={cardView}>
                   <S.CandidateMetaLabel>Category</S.CandidateMetaLabel>
-                  <S.CandidateMetaValue>{getItemCategoryLabel(item) || 'Uncategorized'}</S.CandidateMetaValue>
+                  <S.CandidateMetaValue $cardView={cardView}>{getItemCategoryLabel(item) || 'Uncategorized'}</S.CandidateMetaValue>
                 </S.CandidateMetaGroup>
                 {itemIsGone ? (
-                  <S.CandidateMetaGroup>
+                  <S.CandidateMetaGroup $cardView={cardView}>
                     <S.CandidateMetaLabel>Left house</S.CandidateMetaLabel>
                     <S.CandidateMetaValue
+                      $cardView={cardView}
                       $tone="gone"
                       title={candidate?.actionCompletedAt || item?.disposition_at || item?.dispositionAt || undefined}
                     >
@@ -133,11 +154,11 @@ export default function DeclutterCandidateLane({
                   </S.CandidateMetaGroup>
                 ) : null}
               </S.CandidateMetaGrid>
-              {!compact && candidate.notes ? <S.SmallText>{candidate.notes}</S.SmallText> : null}
+              {!compact && !cardView && candidate.notes ? <S.SmallText>{candidate.notes}</S.SmallText> : null}
             </div>
-            <S.VoteComparison $compact={compact}>
+            <S.VoteComparison $compact={compact} $cardView={cardView}>
               {finalFate ? (
-                <S.FinalFate $tone={finalFate.tone} $compact={compact}>
+                <S.FinalFate $tone={finalFate.tone} $compact={compact} $cardView={cardView}>
                   <span aria-hidden="true">{finalFate.icon}</span>
                   <div><small>Actual fate</small><strong>{finalFate.label}</strong></div>
                 </S.FinalFate>
@@ -149,6 +170,7 @@ export default function DeclutterCandidateLane({
                 winner={voteWinsRoute(candidate?.votes?.discofish, winningChoice)}
                 winnerLabel={finalFate ? 'Fate' : 'Route'}
                 compact={compact}
+                cardView={cardView}
               />
               <PlayerVote
                 icon="🦊"
@@ -157,6 +179,7 @@ export default function DeclutterCandidateLane({
                 winner={voteWinsRoute(candidate?.votes?.laserfox, winningChoice)}
                 winnerLabel={finalFate ? 'Fate' : 'Route'}
                 compact={compact}
+                cardView={cardView}
               />
             </S.VoteComparison>
             {customActions ? <S.CandidateWorkflow>{customActions}</S.CandidateWorkflow> : null}

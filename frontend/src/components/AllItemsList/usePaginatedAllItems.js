@@ -34,6 +34,7 @@ export function buildRequestParams({
   searchQuery,
   sortBy,
   sortDirection,
+  randomSeed,
   filter,
   statusFilter,
   offset,
@@ -47,6 +48,8 @@ export function buildRequestParams({
     sort: statusFilter === 'batch' ? 'batch' : sortBy,
     direction: sortDirection,
   });
+  if (statusFilter === 'batch') params.set('scope', 'batched');
+  if (sortBy === 'random' && randomSeed) params.set('seed', String(randomSeed));
   const query = String(searchQuery || '').trim();
   if (query) params.set('q', query);
 
@@ -75,6 +78,7 @@ export default function usePaginatedAllItems({
   searchQuery,
   sortBy,
   sortDirection,
+  randomSeed,
   filter,
   statusFilter,
 }) {
@@ -95,9 +99,10 @@ export default function usePaginatedAllItems({
     searchQuery: debouncedSearchQuery,
     sortBy,
     sortDirection,
+    randomSeed,
     filter,
     statusFilter,
-  }), [debouncedSearchQuery, filter, sortBy, sortDirection, statusFilter]);
+  }), [debouncedSearchQuery, filter, randomSeed, sortBy, sortDirection, statusFilter]);
 
   const requestPage = useCallback(async ({ offset, limit, signal }) => {
     const apiRoot = String(API_BASE || '').replace(/\/+$/, '');

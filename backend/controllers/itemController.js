@@ -84,6 +84,7 @@ async function getAllItemsApi(req, res) {
         sourceBatchId: req.query.sourceBatchId ?? '',
         sort: req.query.sort ?? 'alpha',
         direction: req.query.direction ?? 'asc',
+        randomSeed: req.query.seed ?? '',
         listView,
       });
 

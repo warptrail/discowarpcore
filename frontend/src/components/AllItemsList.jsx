@@ -14,6 +14,7 @@ import RetrievalImageLightbox from './Retrieval/RetrievalImageLightbox';
 import * as S from './AllItemsList/AllItemsList.styles';
 import {
   getDefaultSortDirection,
+  ARCHIVE_SORT_OPTIONS,
   normalizeColorBy,
   normalizeItemFilter,
   normalizeSortBy,
@@ -28,6 +29,10 @@ import usePaginatedAllItems from './AllItemsList/usePaginatedAllItems';
 import { getBoxTheme, getItemTheme } from '../util/inventoryColorTheme';
 import AllItemsInsightsModal from './AllItemsList/AllItemsInsightsModal';
 import {
+  clearAllItemsReturn,
+  consumeAllItemsReturn,
+} from './AllItemsList/allItemsReturnState';
+import {
   ALL_ITEMS_INSIGHTS_OPEN_EVENT,
   ALL_ITEMS_INSIGHTS_STATE_EVENT,
   ALL_ITEMS_DETAIL_OPEN_EVENT,
@@ -35,6 +40,7 @@ import {
 
 const ALL_ITEMS_SCROLL_STORAGE_PREFIX = 'all-items:scroll:';
 const SCROLL_RESTORE_MAX_FRAMES = 240;
+const ARCHIVE_SORT_VALUES = new Set(ARCHIVE_SORT_OPTIONS.map((option) => option.key));
 const SECONDARY_ACCENTS = [
   '#67D9D3',
   '#E8B15C',
@@ -45,6 +51,13 @@ const SECONDARY_ACCENTS = [
   '#E056FD',
   '#4D96FF',
 ];
+
+function createRandomSeed() {
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    return String(crypto.getRandomValues(new Uint32Array(1))[0]);
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 function getSecondaryAccent(value) {
   const source = String(value || '').trim().toLowerCase();
@@ -107,6 +120,9 @@ export default function AllItemsList() {
     const initialSort = normalizeSortBy(searchParams.get('sort'));
     return normalizeSortDirection(searchParams.get('direction'), initialSort);
   });
+  const [randomSeed, setRandomSeed] = useState(() =>
+    String(searchParams.get('seed') || '').trim(),
+  );
   const [filter, setFilter] = useState(() =>
     normalizeItemFilter(searchParams.get('filter')),
   );
@@ -119,6 +135,7 @@ export default function AllItemsList() {
   const [lightboxImage, setLightboxImage] = useState(null);
   const [insightsOpen, setInsightsOpen] = useState(false);
   const [mobileDetailItem, setMobileDetailItem] = useState(null);
+  const pendingAllItemsReturnRef = useRef();
   const pendingScrollRestoreRef = useRef();
   const loadMoreSentinelRef = useRef(null);
   const isMobileLayout = useIsMobile(900);
@@ -137,16 +154,32 @@ export default function AllItemsList() {
     searchQuery,
     sortBy,
     sortDirection,
+    randomSeed,
     filter,
     statusFilter,
   });
 
-  if (pendingScrollRestoreRef.current === undefined) {
-    pendingScrollRestoreRef.current = readPersistedScrollY({
-      key: location.key,
-      navigationType,
-    });
+  if (pendingAllItemsReturnRef.current === undefined) {
+    pendingAllItemsReturnRef.current = consumeAllItemsReturn(
+      `${location.pathname}${location.search}${location.hash}`,
+    );
   }
+
+  if (pendingScrollRestoreRef.current === undefined) {
+    pendingScrollRestoreRef.current = Number.isFinite(
+      pendingAllItemsReturnRef.current?.scrollY,
+    )
+      ? pendingAllItemsReturnRef.current.scrollY
+      : readPersistedScrollY({
+        key: location.key,
+        navigationType,
+      });
+  }
+
+  useEffect(() => {
+    if (!pendingAllItemsReturnRef.current) return;
+    clearAllItemsReturn();
+  }, []);
 
   useEffect(() => {
     const queryStatus = normalizeStatusFilter(searchParams.get('status'));
@@ -157,12 +190,14 @@ export default function AllItemsList() {
       querySortBy,
     );
     const querySearch = readSearchQueryParam(searchParams);
+    const queryRandomSeed = String(searchParams.get('seed') || '').trim();
     setSearchQuery((current) => (current === querySearch ? current : querySearch));
     setFilter((current) => (current === queryFilter ? current : queryFilter));
     setSortBy((current) => (current === querySortBy ? current : querySortBy));
     setSortDirection((current) =>
       current === querySortDirection ? current : querySortDirection
     );
+    setRandomSeed((current) => (current === queryRandomSeed ? current : queryRandomSeed));
     setStatusFilter((current) => (current === queryStatus ? current : queryStatus));
   }, [searchParams]);
 
@@ -199,9 +234,15 @@ export default function AllItemsList() {
       next.set('direction', sortDirection);
     }
 
+    if (sortBy === 'random' && randomSeed) {
+      next.set('seed', randomSeed);
+    } else {
+      next.delete('seed');
+    }
+
     if (next.toString() === searchParams.toString()) return;
     setSearchParams(next, { replace: true });
-  }, [filter, searchParams, searchQuery, setSearchParams, sortBy, sortDirection, statusFilter]);
+  }, [filter, randomSeed, searchParams, searchQuery, setSearchParams, sortBy, sortDirection, statusFilter]);
 
   useEffect(() => {
     const sentinel = loadMoreSentinelRef.current;
@@ -238,6 +279,21 @@ export default function AllItemsList() {
     () => items.map((item) => prepareItemForList(item)),
     [items],
   );
+
+  useEffect(() => {
+    if (!isMobileLayout) return;
+    const returnItemId = String(pendingAllItemsReturnRef.current?.itemId || '').trim();
+    if (!returnItemId) return;
+    const restoredItem = preparedItems.find(
+      (item) => String(item?._id || '').trim() === returnItemId,
+    );
+    if (!restoredItem) return;
+    setMobileDetailItem(restoredItem);
+    pendingAllItemsReturnRef.current = {
+      ...pendingAllItemsReturnRef.current,
+      itemId: '',
+    };
+  }, [isMobileLayout, preparedItems]);
 
   const batchFocused = statusFilter === 'batch';
 
@@ -311,8 +367,13 @@ export default function AllItemsList() {
     } else if (normalizedStatus === 'gone') {
       setSortBy('dispositionAt');
       setSortDirection('desc');
+      setFilter('all');
+    } else if (normalizedStatus === 'active' && statusFilter === 'gone') {
+      setSortBy('alpha');
+      setSortDirection(getDefaultSortDirection('alpha'));
+      setFilter('all');
     }
-  }, []);
+  }, [statusFilter]);
 
   const handleSortChange = useCallback((nextSort) => {
     const normalizedSort = normalizeSortBy(nextSort);
@@ -320,23 +381,49 @@ export default function AllItemsList() {
     setSortDirection(getDefaultSortDirection(normalizedSort));
   }, []);
 
+  const handleRandomize = useCallback(() => {
+    setSortBy('random');
+    setSortDirection(getDefaultSortDirection('random'));
+    setRandomSeed(createRandomSeed());
+    setMobileDetailItem(null);
+  }, []);
+
   const handleToggleBatchMode = useCallback(() => {
+    if (statusFilter === 'gone') return;
     if (batchModeEnabled) {
       handleExitBatchMode();
       return;
     }
     itemSelection.exitSelectionMode();
     setBatchModeEnabled(true);
-  }, [batchModeEnabled, handleExitBatchMode, itemSelection]);
+  }, [batchModeEnabled, handleExitBatchMode, itemSelection, statusFilter]);
 
   const handleToggleItemSelectionMode = useCallback(() => {
+    if (statusFilter === 'gone') return;
     if (itemSelectionModeEnabled) {
       itemSelection.exitSelectionMode();
       return;
     }
     handleExitBatchMode();
     setItemSelectionModeEnabled(true);
-  }, [handleExitBatchMode, itemSelection, itemSelectionModeEnabled]);
+  }, [handleExitBatchMode, itemSelection, itemSelectionModeEnabled, statusFilter]);
+
+  useEffect(() => {
+    if (statusFilter !== 'gone') return;
+    if (itemSelectionModeEnabled) itemSelection.exitSelectionMode();
+    if (batchModeEnabled) handleExitBatchMode();
+    if (!ARCHIVE_SORT_VALUES.has(sortBy)) {
+      setSortBy('dispositionAt');
+      setSortDirection('desc');
+    }
+  }, [
+    batchModeEnabled,
+    handleExitBatchMode,
+    itemSelection,
+    itemSelectionModeEnabled,
+    sortBy,
+    statusFilter,
+  ]);
 
   const handleFocusBatch = useCallback((batchId) => {
     const normalizedBatchId = String(batchId || '').trim();
@@ -546,6 +633,7 @@ export default function AllItemsList() {
         onSortChange={handleSortChange}
         onSortDirectionChange={setSortDirection}
         onColorByChange={(next) => setColorBy(normalizeColorBy(next))}
+        onRandomize={handleRandomize}
         onSearchChange={setSearchQuery}
         categoryOptions={categoryOptions}
         batchOptions={batchOptions}

@@ -68,13 +68,24 @@ const CompactSeparator = styled.span`
   font-size: 0.62rem;
 `;
 
+const GoneAwayForever = styled.span`
+  color: #ffc0c0;
+  font: 800 0.61rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+`;
+
 export default function ItemPageConsoleDetails({
   item,
   compact = false,
 }) {
   const ownership = getItemOwnershipContext(item);
   const boxId = ownership.boxId || '';
-  const location = String(ownership.effectiveLocation || '').trim() || 'No location set';
+  const isGone = String(item?.item_status || '').trim().toLowerCase() === 'gone';
+  const location = isGone
+    ? 'Gone away forever'
+    : String(ownership.effectiveLocation || '').trim() || 'No location set';
   const themeStyle = getBoxThemeCssVars(getBoxTheme(boxId));
 
   const itemName = String(item?.name || 'Item').trim() || 'Item';
@@ -84,10 +95,10 @@ export default function ItemPageConsoleDetails({
       <Details aria-label="Field editing context" style={themeStyle}>
         <CompactItemName title={itemName}>{itemName}</CompactItemName>
         <CompactSeparator aria-hidden="true">·</CompactSeparator>
-        {boxId ? <ContextId>BOX {boxId}</ContextId> : <ContextId>UNBOXED</ContextId>}
+        {isGone ? <GoneAwayForever>Gone away forever</GoneAwayForever> : boxId ? <ContextId>BOX {boxId}</ContextId> : <ContextId>UNBOXED</ContextId>}
         <CompactSeparator aria-hidden="true">·</CompactSeparator>
         <LocationLine>
-          <span>{location}</span>
+          {isGone ? <GoneAwayForever>{location}</GoneAwayForever> : <span>{location}</span>}
         </LocationLine>
       </Details>
     );
@@ -98,7 +109,7 @@ export default function ItemPageConsoleDetails({
       <ItemPageBreadcrumb item={item} itemId={item?._id} compact />
       <LocationLine $stacked>
         <LocationLabel>Location</LocationLabel>
-        <span>{location}</span>
+        {isGone ? <GoneAwayForever>{location}</GoneAwayForever> : <span>{location}</span>}
       </LocationLine>
     </Details>
   );

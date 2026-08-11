@@ -83,6 +83,12 @@ export const PageShell = styled.section`
   display: grid;
   gap: 0.5rem;
   color: ${RETRIEVAL.text};
+
+  @media (min-width: 980px) {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
 `;
 
 export const ControlsPanel = styled.section`
@@ -458,6 +464,62 @@ export const SearchInput = styled.input`
   }
 `;
 
+export const BoxPrefixWrap = styled.label`
+  position: relative;
+  display: block;
+  min-width: 0;
+`;
+
+export const BoxPrefixInput = styled.input`
+  ${controlField};
+  min-height: 40px;
+  padding-right: 2.85rem;
+  border-left: 4px solid ${({ $active }) => (
+    $active ? 'rgba(167, 182, 255, 0.94)' : 'rgba(167, 182, 255, 0.62)'
+  )};
+  border-radius: 2px 7px 2px 2px;
+  background:
+    linear-gradient(90deg, rgba(167, 182, 255, 0.09), transparent 76%),
+    ${RETRIEVAL.bg};
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  font-size: 0.92rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+
+  &::-webkit-search-cancel-button {
+    display: none;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 44px;
+    font-size: 0.94rem;
+    border-radius: 2px 6px 2px 2px;
+  }
+`;
+
+export const BoxPrefixScope = styled.span`
+  position: absolute;
+  top: 50%;
+  right: 0.48rem;
+  max-width: 2.5rem;
+  overflow: hidden;
+  color: rgba(167, 182, 255, 0.76);
+  font: 800 0.52rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    monospace;
+  letter-spacing: 0.06em;
+  pointer-events: none;
+  text-overflow: ellipsis;
+  transform: translateY(-50%);
+  white-space: nowrap;
+
+  ${BoxPrefixWrap}:focus-within & {
+    color: #dce3ff;
+  }
+`;
+
 export const SearchHint = styled.p`
   margin: 0;
   color: rgba(232, 238, 244, 0.48);
@@ -690,7 +752,9 @@ export const FilterComboboxInput = styled.input`
   ${controlField};
   min-height: 34px;
   padding-right: 2rem;
+  text-align: left;
   font-size: 0.84rem;
+  cursor: ${({ $readOnlySelect }) => ($readOnlySelect ? 'pointer' : 'text')};
   border-color: ${({ $variant }) =>
     $variant === 'sort' ? 'rgba(111, 196, 255, 0.52)' : RETRIEVAL.borderStrong};
   background: ${({ $variant }) =>
@@ -978,6 +1042,12 @@ export const ClearFiltersButton = styled.button`
 export const ResultsPanel = styled.section`
   ${panelChrome};
   overflow: hidden;
+
+  @media (min-width: 980px) {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    min-height: 0;
+  }
 `;
 
 export const ResultsHeader = styled.div`
@@ -1245,61 +1315,50 @@ export const ResultsCount = styled.span`
 
 export const InlineSortRail = styled.div`
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 3px;
+  gap: 0.3rem;
   min-width: 0;
 `;
 
-export const InlineSortButtonWrap = styled.span`
-  position: relative;
-  display: inline-flex;
-`;
-
-export const InlineSortButton = styled.button`
-  width: 42px;
-  height: 42px;
-  padding: 0;
-  border: 1px solid ${({ $active }) =>
-    $active ? 'rgba(119, 213, 255, 0.7)' : 'rgba(127, 215, 255, 0.2)'};
-  border-radius: 2px;
-  background: ${({ $active }) =>
-    $active ? 'rgba(119, 213, 255, 0.16)' : 'rgba(7, 13, 19, 0.72)'};
-  color: ${({ $active }) => ($active ? '#dff5ff' : 'rgba(209, 228, 239, 0.58)')};
-  font: 800 0.53rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  letter-spacing: 0.035em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
-
-  &:hover {
-    border-color: rgba(119, 213, 255, 0.62);
-    background: rgba(119, 213, 255, 0.1);
-    color: #e8f8ff;
-  }
-
-  &:focus-visible {
-    outline: 1px solid rgba(119, 213, 255, 0.82);
-    outline-offset: 2px;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
+export const InlineSortSelect = styled.div`
+  min-width: 0;
+  flex: 1 1 auto;
 `;
 
 export const InlineSortDirectionButton = styled.button`
-  width: 52px;
-  height: 42px;
+  display: inline-grid;
+  grid-template-columns: repeat(2, auto);
+  place-content: center;
+  gap: 0.14rem;
+  flex: 0 0 48px;
+  width: 48px;
+  min-height: 38px;
   padding: 0;
   border: 1px solid rgba(167, 182, 255, 0.48);
   border-radius: 2px;
   background: rgba(167, 182, 255, 0.1);
   color: #dfe4ff;
-  font: 900 1rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+  font: 900 0.92rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     'Liberation Mono', 'Courier New', monospace;
   cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+
+  span {
+    opacity: 0.32;
+    transform: translateY(0);
+    transition: opacity 120ms ease, transform 120ms ease;
+  }
+
+  span:first-child {
+    opacity: ${({ $descending }) => ($descending ? 0.32 : 1)};
+    transform: ${({ $descending }) => ($descending ? 'translateY(0)' : 'translateY(-1px)')};
+  }
+
+  span:last-child {
+    opacity: ${({ $descending }) => ($descending ? 1 : 0.32)};
+    transform: ${({ $descending }) => ($descending ? 'translateY(1px)' : 'translateY(0)')};
+  }
 
   &:hover:not(:disabled) {
     border-color: rgba(167, 182, 255, 0.78);
@@ -1315,34 +1374,31 @@ export const InlineSortDirectionButton = styled.button`
     cursor: not-allowed;
     opacity: 0.42;
   }
-`;
 
-export const InlineSortTooltip = styled.span`
-  position: absolute;
-  z-index: 12;
-  top: calc(100% + 6px);
-  left: 50%;
-  width: max-content;
-  max-width: min(220px, calc(100vw - 2rem));
-  padding: 0.32rem 0.42rem;
-  border: 1px solid rgba(119, 213, 255, 0.48);
-  border-radius: 2px;
-  background: rgba(7, 13, 20, 0.98);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.32);
-  color: #dff5ff;
-  font: 700 0.62rem/1.25 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  letter-spacing: 0.035em;
-  pointer-events: none;
-  transform: translateX(-50%);
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    span {
+      transition: none;
+    }
+  }
 `;
 
 export const ResultsList = styled.div`
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-auto-flow: row;
+  grid-auto-rows: max-content;
+  align-content: start;
   gap: ${({ $compact }) => ($compact ? '0' : '3px')};
   padding: ${({ $compact }) => ($compact ? '3px' : '3px')};
+
+  @media (min-width: 980px) {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
 
   @media (min-width: ${RETRIEVAL_WIDE_BREAKPOINT}) {
     grid-template-columns: ${({ $compact }) =>
@@ -1417,7 +1473,10 @@ export const BoxCentricLayout = styled.div`
 
   @media (min-width: 980px) {
     grid-template-columns: minmax(0, 1.2fr) minmax(320px, 1fr);
-    align-items: start;
+    align-items: stretch;
+    height: auto;
+    min-height: 0;
+    overflow: hidden;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -1433,8 +1492,16 @@ export const BoxMapPanel = styled.section`
     linear-gradient(180deg, rgba(15, 22, 30, 0.86), rgba(11, 18, 26, 0.84)),
     rgba(10, 16, 24, 0.8);
   display: grid;
+  align-content: start;
   gap: 0.42rem;
   padding: 0.5rem;
+
+  @media (min-width: 980px) {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
 `;
 
 export const BoxGroup = styled.section`
@@ -1444,10 +1511,12 @@ export const BoxGroup = styled.section`
 
 export const BoxGroupLabel = styled.p`
   margin: 0;
-  color: ${RETRIEVAL.textMuted};
-  font-size: 0.67rem;
-  font-weight: 760;
-  letter-spacing: 0.08em;
+  color: #73f5a5;
+  font-size: 0.76rem;
+  font-weight: 820;
+  letter-spacing: 0.09em;
+  line-height: 1.15;
+  text-shadow: 0 0 8px rgba(76, 239, 154, 0.3);
   text-transform: uppercase;
 `;
 
@@ -1458,7 +1527,7 @@ export const BoxList = styled.div`
 
 export const BoxListItem = styled.div`
   display: grid;
-  gap: 0.22rem;
+  gap: 0;
 `;
 
 export const BoxListRow = styled.button`
@@ -1509,14 +1578,12 @@ export const BoxListRow = styled.button`
 `;
 
 export const MobileInlineInspectPanel = styled.section`
-  border-radius: 2px 6px 2px 2px;
-  border: 1px solid rgba(127, 215, 255, 0.24);
-  background:
-    radial-gradient(circle at 94% 8%, rgba(76, 198, 193, 0.1), transparent 42%),
-    linear-gradient(180deg, rgba(16, 24, 35, 0.9), rgba(11, 18, 27, 0.92));
+  border: 0;
+  border-bottom: 1px solid rgba(127, 215, 255, 0.2);
+  background: rgba(8, 14, 21, 0.7);
   display: grid;
-  gap: 0.28rem;
-  padding: 0.4rem 0.44rem;
+  gap: 0.18rem;
+  padding: 0.34rem 0.42rem 0.46rem;
 
   @media (min-width: 980px) {
     display: none;
@@ -1553,29 +1620,62 @@ export const BoxRowLabel = styled.span`
   text-overflow: ellipsis;
 `;
 
-export const BoxRowSubline = styled.span`
+export const BoxRowContext = styled.span`
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.65rem;
+  min-width: 0;
+`;
+
+export const BoxRowLocation = styled.span`
   display: inline-flex;
   align-items: center;
-  width: fit-content;
-  max-width: 100%;
-  border-radius: 2px 5px 2px 2px;
-  border: 1px solid ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '207, 224, 238'}, 0.32)`};
-  background:
-    linear-gradient(
-      135deg,
-      ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '207, 224, 238'}, 0.18)`},
-      ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '207, 224, 238'}, 0.1)`}
-    ),
-    rgba(11, 17, 24, 0.48);
-  color: ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '207, 224, 238'}, 0.92)`};
-  font-size: 0.64rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  line-height: 1;
-  padding: 0.14rem 0.36rem;
+  gap: 0.3rem;
+  min-width: 0;
+  color: ${({ $boxNeonRgb }) => `rgba(${$boxNeonRgb || '119, 213, 255'}, 0.98)`};
+  line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+
+  span {
+    font: 760 0.53rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      'Liberation Mono', 'Courier New', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.74;
+  }
+
+  strong {
+    overflow: hidden;
+    font-size: 0.68rem;
+    font-weight: 780;
+    text-overflow: ellipsis;
+  }
+`;
+
+export const BoxRowGroup = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  color: ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '207, 224, 238'}, 0.7)`};
+  font-size: 0.6rem;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+export const BoxRowTags = styled.span`
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  color: ${({ $boxNeonRgb }) => `rgba(${$boxNeonRgb || '119, 213, 255'}, 0.76)`};
+  font: 700 0.62rem/1.25 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  letter-spacing: 0.025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 export const BoxRowMeta = styled.div`
@@ -1598,19 +1698,43 @@ export const BoxMetaPill = styled.span`
 `;
 
 export const BoxInspectPanel = styled.section`
-  border-radius: 2px 7px 2px 2px;
-  border: 1px solid rgba(127, 215, 255, 0.22);
-  background:
-    radial-gradient(circle at 94% 8%, rgba(76, 198, 193, 0.12), transparent 42%),
-    linear-gradient(180deg, rgba(18, 26, 37, 0.9), rgba(12, 19, 28, 0.92));
+  border-left: 1px solid rgba(127, 215, 255, 0.2);
+  background: rgba(8, 14, 21, 0.48);
   display: grid;
-  gap: 0.3rem;
-  padding: 0.48rem 0.56rem;
+  align-content: start;
+  gap: 0.18rem;
+  padding: 0.42rem 0.5rem;
+
+  @media (min-width: 980px) {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
 `;
 
 export const BoxInspectHeader = styled.div`
-  display: grid;
-  gap: 0.12rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+`;
+
+export const BoxInspectHeaderLink = styled(Link)`
+  flex: 0 0 auto;
+  color: rgba(181, 214, 226, 0.72);
+  font: 690 0.58rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  text-transform: uppercase;
+
+  &:hover,
+  &:focus-visible {
+    color: #dff6ff;
+  }
 `;
 
 export const BoxInspectTitle = styled.h3`
@@ -1691,30 +1815,30 @@ export const BoxInspectSectionTitle = styled.p`
 
 export const BoxInspectList = styled.div`
   display: grid;
-  gap: 0.2rem;
+  gap: 0;
 `;
 
 export const BoxInspectRow = styled.div`
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
+  grid-template-columns: 32px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.3rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 2px 5px 2px 2px;
-  background: rgba(255, 255, 255, 0.04);
-  padding: 0.2rem 0.28rem;
+  gap: 0.42rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 0.22rem 0;
+
+  &:last-child {
+    border-bottom: 0;
+  }
 `;
 
 export const BoxInspectItemThumb = styled.span`
   display: grid;
   place-items: center;
-  width: 28px;
+  width: 32px;
   aspect-ratio: 1;
   overflow: hidden;
-  border: 1px solid ${({ $empty }) => ($empty
-    ? 'rgba(214, 226, 241, 0.16)'
-    : 'rgba(127, 215, 255, 0.34)')};
-  border-radius: 2px 4px 2px 2px;
+  border: 0;
+  border-radius: 2px;
   background: ${({ $empty }) => ($empty
     ? 'rgba(255, 255, 255, 0.025)'
     : 'rgba(5, 12, 19, 0.88)')};
@@ -1727,12 +1851,6 @@ export const BoxInspectItemThumb = styled.span`
     object-fit: cover;
     display: block;
   }
-`;
-
-export const BoxInspectItemContent = styled.span`
-  display: grid;
-  gap: 0.08rem;
-  min-width: 0;
 `;
 
 export const BoxInspectRowLink = styled(Link)`
@@ -1754,7 +1872,8 @@ export const BoxInspectRowLink = styled(Link)`
 
 export const BoxInspectRowMeta = styled.span`
   color: ${RETRIEVAL.textMuted};
-  font-size: 0.66rem;
+  font: 700 0.61rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
 `;
 
 export const ResultsFooter = styled.div`

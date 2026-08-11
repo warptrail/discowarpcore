@@ -432,6 +432,7 @@ function CommandsContent({
   maintenanceActionType,
   maintenanceActionLabel,
   editHref,
+  itemNavigationState,
   onRunAction,
 }) {
   return (
@@ -485,7 +486,11 @@ function CommandsContent({
           </S.ExpandedActionLabel>
         </S.ExpandedActionButton>
         {editHref ? (
-          <S.ExpandedActionLink to={editHref} aria-label="Edit">
+          <S.ExpandedActionLink
+            to={editHref}
+            state={itemNavigationState}
+            aria-label="Edit"
+          >
             <S.ExpandedActionCode>04 // File</S.ExpandedActionCode>
             <S.ExpandedActionLabel>Edit</S.ExpandedActionLabel>
           </S.ExpandedActionLink>
@@ -504,6 +509,7 @@ export default function RetrievalExpandedPanel({
   onSectionChange,
   onLifecycleAction,
   onPreviewImage,
+  itemNavigationState,
 }) {
   const resolvedItem = item && typeof item === 'object' ? item : null;
   const fullItem =
@@ -1021,6 +1027,7 @@ export default function RetrievalExpandedPanel({
             maintenanceActionType={maintenanceActionType}
             maintenanceActionLabel={maintenanceActionLabel}
             editHref={editHref}
+            itemNavigationState={itemNavigationState}
             onRunAction={runAction}
           />
         </S.ExpandedDeckSection>

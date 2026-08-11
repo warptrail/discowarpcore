@@ -6,6 +6,7 @@ import React, {
   useContext,
   useMemo,
 } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import * as S from '../styles/ItemRow.styles';
 import { getItemThumbnailUrl } from '../util/itemImage';
 import ItemDetails from './ItemDetails';
@@ -51,6 +52,7 @@ export default function ItemRow({
   showBoxContext = false,
 }) {
   const rowRef = useRef(null);
+  const location = useLocation();
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
   const hideToast = toastCtx?.hideToast;
@@ -70,6 +72,23 @@ export default function ItemRow({
       item?.parentBox ||
       ''
   ).trim();
+  const itemPageHref = _id ? `/items/${encodeURIComponent(_id)}` : '';
+  const boxReturnState = useMemo(() => ({
+    boxReturn: {
+      kind: 'box-detail-item',
+      returnTo: `${location.pathname}${location.search}${location.hash}`,
+      boxId: String(ownership?.boxId || '').trim(),
+      boxLabel: String(ownership?.boxLabel || '').trim(),
+      itemId: String(_id || '').trim(),
+    },
+  }), [
+    _id,
+    location.hash,
+    location.pathname,
+    location.search,
+    ownership?.boxId,
+    ownership?.boxLabel,
+  ]);
   const collapsedDescription = String(description || '').trim();
   const hasCollapsedDescription = collapsedDescription.length > 0;
   const [localImage, setLocalImage] = useState(item?.image || null);
@@ -729,11 +748,11 @@ export default function ItemRow({
 
         {presentationOpen && _id ? (
           <S.ItemHomeLink
-            href={`/items/${encodeURIComponent(_id)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`Open ${name || 'item'} item page in a new tab`}
-            title="Open item page in a new tab"
+            as={Link}
+            to={itemPageHref}
+            state={boxReturnState}
+            aria-label={`Open ${name || 'item'} item page`}
+            title="Open item page"
           >
             ↗
           </S.ItemHomeLink>

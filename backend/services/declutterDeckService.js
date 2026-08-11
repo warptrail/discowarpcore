@@ -60,7 +60,11 @@ function assertObjectId(value, label) {
 }
 
 function assertItemIsReviewable(item) {
-  if (String(item?.item_status || 'active').toLowerCase() !== 'active') {
+  const itemStatus = String(item?.item_status || 'active').trim().toLowerCase();
+  if (itemStatus === 'gone') {
+    throw createHttpError(409, 'This item is gone away forever and cannot be added to the Declutter Deck.');
+  }
+  if (itemStatus !== 'active') {
     throw createHttpError(409, 'This inventory item is no longer active and cannot be in the Declutter Deck.');
   }
 }
@@ -351,13 +355,17 @@ async function getDeclutterDeck({ player } = {}) {
     item_status: 'active',
   });
   const eligibleCandidateFilter = { itemId: { $in: activeItemIds } };
+  // The working lanes only contain active inventory, but Progress is an
+  // historical scorecard. Completed departures retain their candidates and
+  // must remain in its totals after markItemGone() changes the item status.
+  const progressCandidateFilter = { itemId: { $in: candidateItemIds } };
   const [activeRows, discussionRows, actionRows, resolvedRows, metricRows, physicallyCompleted] = await Promise.all([
     DeclutterCandidate.find({ ...eligibleCandidateFilter, deckState: 'active' }).sort({ updatedAt: 1, _id: 1 }).lean(),
     DeclutterCandidate.find({ ...eligibleCandidateFilter, deckState: 'discussion' }).sort({ updatedAt: -1, _id: -1 }).limit(100).lean(),
     DeclutterCandidate.find({ ...eligibleCandidateFilter, deckState: 'action' }).sort({ confirmedAt: -1, _id: -1 }).lean(),
     DeclutterCandidate.find({ deckState: 'resolved' }).sort({ resolvedAt: -1, _id: -1 }).limit(40).lean(),
     DeclutterCandidate.aggregate([
-      { $match: eligibleCandidateFilter },
+      { $match: progressCandidateFilter },
       {
         $group: {
           _id: null,

@@ -238,6 +238,7 @@ export default function BoxList({
   });
   const {
     close: closeQuickPeek,
+    dismiss: dismissQuickPeek,
     openBox: openQuickPeek,
     selectedBoxId: quickPeekSelectedBoxId,
   } = quickPeek;
@@ -425,6 +426,11 @@ export default function BoxList({
     setQuickPeekSurface('items');
     closeQuickPeek();
   }, [closeQuickPeek]);
+
+  const handleDismissQuickPeek = useCallback(() => {
+    setQuickPeekSurface('items');
+    dismissQuickPeek();
+  }, [dismissQuickPeek]);
 
   useEffect(() => {
     window.addEventListener(OPERATIONS_QUICK_PEEK_CLOSE_EVENT, handleCloseQuickPeek);
@@ -658,6 +664,7 @@ export default function BoxList({
           setQuickPeekSurface('items');
         }}
         onClose={handleCloseQuickPeek}
+        onDismiss={handleDismissQuickPeek}
         onOpenFullBox={quickPeek.openFullBox}
       />
     </S.Container>
