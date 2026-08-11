@@ -15,15 +15,13 @@ export const Wrapper = styled.div`
   align-items: center;
   gap: 0;
   width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'fit-content')};
-  padding: 0.18rem;
-  border-radius: 14px;
+  padding: ${({ $compact }) => ($compact ? '0.08rem' : '0.18rem')};
+  border-radius: ${({ $compact }) => ($compact ? '5px' : '14px')};
   border: 1px solid ${LCARS.line};
   background:
     radial-gradient(circle at 50% 0%, rgba(76, 198, 193, 0.16), transparent 54%),
     linear-gradient(135deg, ${LCARS.shell}, ${LCARS.shellSoft});
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 8px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: ${({ $compact }) => ($compact ? 'none' : 'inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 8px 16px rgba(0, 0, 0, 0.25)')};
   isolation: isolate;
   overflow: hidden;
 
@@ -57,16 +55,16 @@ export const ValueKicker = styled.span`
 export const Button = styled.button`
   position: relative;
   z-index: 1;
-  min-width: 2.45rem;
-  height: 2.45rem;
+  min-width: ${({ $compact }) => ($compact ? '1.8rem' : '2.45rem')};
+  height: ${({ $compact }) => ($compact ? '1.8rem' : '2.45rem')};
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(76, 198, 193, 0.55);
-  border-radius: 9px;
+  border-radius: ${({ $compact }) => ($compact ? '3px' : '9px')};
   background: linear-gradient(180deg, rgba(76, 198, 193, 0.3), rgba(76, 198, 193, 0.13));
   color: ${LCARS.text};
-  font-size: 1.35rem;
+  font-size: ${({ $compact }) => ($compact ? '0.95rem' : '1.35rem')};
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -87,25 +85,27 @@ export const Button = styled.button`
   }
 
   @media (max-width: 560px) {
+    ${({ $compact }) => !$compact && `
     min-width: 2.75rem;
     height: 2.75rem;
+    `}
   }
 `;
 
 export const Input = styled.input`
   position: relative;
   z-index: 1;
-  width: 3.6rem;
-  height: 2.45rem;
+  width: ${({ $compact }) => ($compact ? '2.5rem' : '3.6rem')};
+  height: ${({ $compact }) => ($compact ? '1.8rem' : '2.45rem')};
   text-align: center;
-  font-size: 1.14rem;
+  font-size: ${({ $compact }) => ($compact ? '0.78rem' : '1.14rem')};
   font-weight: 700;
   color: ${LCARS.text};
-  border-radius: 8px;
+  border-radius: ${({ $compact }) => ($compact ? '3px' : '8px')};
   border: 1px solid rgba(167, 182, 255, 0.56);
   background: #0b1018;
   outline: none;
-  padding: 0.42rem 0.2rem 0;
+  padding: ${({ $compact }) => ($compact ? '0.05rem' : '0.42rem 0.2rem 0')};
 
   &:focus {
     border-color: ${LCARS.lilac};
@@ -121,7 +121,9 @@ export const Input = styled.input`
   -moz-appearance: textfield;
 
   @media (max-width: 560px) {
+    ${({ $compact }) => !$compact && `
     width: 3.6rem;
     height: 2.75rem;
+    `}
   }
 `;

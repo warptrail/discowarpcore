@@ -79,6 +79,10 @@ export default function QuickPeekItemCarousel({
   canSelectNext,
   onPrevious,
   onNext,
+  inDeclutterDeck = false,
+  declutterPending = false,
+  onToggleDeclutterDeck,
+  onOpenNotes,
 }) {
   const itemId = String(item?._id || item?.id || '');
   const lightboxImageUrl = getItemOriginalImageUrl(item);
@@ -86,6 +90,7 @@ export default function QuickPeekItemCarousel({
   const name = String(item?.name || item?.label || 'Untitled item').trim();
   const category = String(item?.category || '').trim();
   const description = String(item?.description || '').trim();
+  const itemNotes = String(item?.notes || '').trim();
   const tags = getTags(item);
   const hasDetails = Boolean(description || category || tags.length > 0);
 
@@ -149,14 +154,37 @@ export default function QuickPeekItemCarousel({
             <S.ItemCarouselDetails>
               {description ? (
                 <S.ItemCarouselDetail>
-                  <S.MetaLabel>Description</S.MetaLabel>
-                  <p>{description}</p>
+                  <S.ItemCarouselAnnotationLine>
+                    <S.MetaLabel>Description</S.MetaLabel>
+                    {itemNotes ? (
+                      <S.ItemCarouselNoteButton
+                        type="button"
+                        aria-label={`Open notes for ${name}`}
+                        title="Open item notes"
+                        onClick={onOpenNotes}
+                      >N</S.ItemCarouselNoteButton>
+                    ) : null}
+                  </S.ItemCarouselAnnotationLine>
+                  <S.ItemCarouselDescription title={description}>
+                    {description}
+                  </S.ItemCarouselDescription>
                 </S.ItemCarouselDetail>
               ) : null}
               {category ? (
                 <S.ItemCarouselDetail>
-                  <S.MetaLabel>Category</S.MetaLabel>
-                  <p>{category}</p>
+                  <S.ItemCarouselCategoryLine>
+                    <S.MetaLabel>Category</S.MetaLabel>
+                    <S.ItemCarouselCategoryValue>{category}</S.ItemCarouselCategoryValue>
+                    <S.ItemCarouselDeckButton
+                      type="button"
+                      $active={inDeclutterDeck}
+                      aria-label={inDeclutterDeck ? `Remove ${name} from Declutter Deck` : `Add ${name} to Declutter Deck`}
+                      aria-pressed={inDeclutterDeck}
+                      title={inDeclutterDeck ? 'Remove from Declutter Deck' : 'Add from Declutter Deck'}
+                      disabled={declutterPending || !itemId || item?.item_status === 'gone'}
+                      onClick={onToggleDeclutterDeck}
+                    >Deck</S.ItemCarouselDeckButton>
+                  </S.ItemCarouselCategoryLine>
                 </S.ItemCarouselDetail>
               ) : null}
               {tags.length > 0 ? (
@@ -168,6 +196,7 @@ export default function QuickPeekItemCarousel({
           ) : (
             <S.ItemCarouselEmpty>No additional details recorded.</S.ItemCarouselEmpty>
           )}
+
         </S.ItemCarouselBody>
       </S.ItemCarouselCard>
 

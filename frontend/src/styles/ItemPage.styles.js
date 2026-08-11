@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import styled, { keyframes } from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_FONT_SM,
@@ -542,6 +542,20 @@ export const ContainerActions = styled.div`
   gap: 0.24rem;
   flex-wrap: wrap;
   min-width: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    ${({ $paired }) =>
+      $paired &&
+      css`
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+
+        > button {
+          width: 100%;
+          min-width: 0;
+        }
+      `}
+  }
 `;
 
 export const ItemButtonBar = styled.section`
@@ -1071,14 +1085,12 @@ export const TimestampLabelCompact = styled.span`
 
 export const ContainerPickerWrap = styled.div`
   grid-column: 1 / -1;
-  border: 1px solid ${LCARS.line};
-  border-radius: 8px;
-  padding: 0.3rem 0.42rem 0.42rem;
-  background: rgba(255, 255, 255, 0.02);
+  border-top: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.16);
+  padding: 0.18rem 0.24rem 0.24rem;
+  background: rgba(4, 9, 14, 0.54);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    border-radius: 7px;
-    padding: 0.22rem 0.28rem 0.28rem;
+    padding: 0.16rem 0.2rem 0.2rem;
   }
 `;
 

@@ -189,6 +189,14 @@ export const Panel = styled.section`
       &::after {
         display: none;
       }
+
+      @media (max-width: ${MOBILE_BREAKPOINT}) {
+        gap: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
     `}
 `;
 

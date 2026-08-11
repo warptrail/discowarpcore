@@ -1,8 +1,7 @@
 import React from 'react';
 
 import BoxTree from '../BoxTree';
-import ItemsFlatList from '../ItemsFlatList';
-import BoxDetailActionSection from './BoxDetailActionSection';
+import AllItemsWorkspace from './AllItemsWorkspace';
 import * as S from './BoxDetailTabContent.styles';
 
 export default function BoxDetailTabContent({
@@ -49,7 +48,7 @@ export default function BoxDetailTabContent({
           searchQuery={searchQuery}
           sortMode={sortMode}
           viewMode={viewMode}
-          scopeLabel={viewMode === 'condensed' ? 'Compact inventory' : 'Box tree'}
+          scopeLabel={viewMode === 'condensed' ? 'Box tree' : 'Compact hierarchy'}
           onManageBox={onManageBox}
         />
       </S.TreeTabScope>
@@ -59,32 +58,23 @@ export default function BoxDetailTabContent({
   if (activeTab === 'flat') {
     return (
       <S.FlatTabScope>
-        <BoxDetailActionSection
-          title="Items"
-          count={flatItems.length}
+        <AllItemsWorkspace
           box={tree}
-          onItemsChanged={refreshBox}
+          items={flatItems}
+          searchQuery={searchQuery}
+          openItemId={openItemId}
+          onOpenItem={handleOpen}
           onManageBox={onManageBox}
-        >
-          {flatItems.length === 0 && searchQuery ? (
-            <S.FlatEmpty>Nothing in this box matches yet. Try one simpler word.</S.FlatEmpty>
-          ) : null}
-
-          <ItemsFlatList
-            items={flatItems}
-            openItemId={openItemId}
-            onOpenItem={handleOpen}
-            accent={accent}
-            pulsing={pulsing}
-            collapseDurMs={collapseDurMs}
-            effectsById={effectsById}
-            onFlash={handleFlash}
-            showHeader={false}
-            triggerFlash={triggerFlash}
-            onItemSaved={handleItemSaved}
-            refreshBox={refreshBox}
-          />
-        </BoxDetailActionSection>
+          accent={accent}
+          pulsing={pulsing}
+          collapseDurMs={collapseDurMs}
+          effectsById={effectsById}
+          onFlash={handleFlash}
+          triggerFlash={triggerFlash}
+          onItemSaved={handleItemSaved}
+          onItemsChanged={refreshBox}
+          refreshBox={refreshBox}
+        />
       </S.FlatTabScope>
     );
   }

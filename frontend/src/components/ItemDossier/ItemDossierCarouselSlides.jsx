@@ -1,7 +1,19 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import ItemDecisionActions from './ItemDecisionActions';
+import ItemNoteSheet from '../ItemNoteSheet';
 import * as S from './ItemDossier.styles';
+import CustomSelect from '../CustomSelect';
+import QuantityInput from '../QuantityInput';
+import {
+  normalizeLinksForForm,
+  sanitizeLinksForSave,
+} from '../../util/itemLinks';
+import {
+  formatCentsToUsdInput,
+  parseUsdInputToCents,
+} from '../../util/usdMoney';
 
 function DisplayValue({ children, fallback = 'Not set' }) {
   if (React.isValidElement(children)) return children;
@@ -9,30 +21,226 @@ function DisplayValue({ children, fallback = 'Not set' }) {
   return text && text !== '—' ? children : <S.EmptyDetail>{fallback}</S.EmptyDetail>;
 }
 
-function DetailField({ label, value, wide = false }) {
+function EditableField({
+  label,
+  value,
+  fallback,
+  onSave,
+  children,
+  note = false,
+}) {
+  const initialValue = String(value || '');
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(initialValue);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!editing) setDraft(initialValue);
+  }, [editing, initialValue]);
+
+  const cancel = () => {
+    setDraft(initialValue);
+    setError('');
+    setEditing(false);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    setError('');
+    try {
+      await onSave?.(draft);
+      setEditing(false);
+    } catch (saveError) {
+      setError(saveError?.message || 'Could not save this field.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-    <S.CarouselDetailField $wide={wide}>
-      <S.CarouselDetailLabel>{label}</S.CarouselDetailLabel>
-      <S.CarouselDetailValue><DisplayValue>{value}</DisplayValue></S.CarouselDetailValue>
+    <>
+      <S.InlineFieldHeader>
+        <S.CarouselDetailLabel>{label}</S.CarouselDetailLabel>
+        <S.InlineEditButton
+          type="button"
+          aria-label={`Edit ${label.toLowerCase()}`}
+          onClick={() => setEditing(true)}
+          hidden={editing}
+        >
+          Edit
+        </S.InlineEditButton>
+      </S.InlineFieldHeader>
+      {editing ? (
+        <S.InlineEditor>
+          <S.InlineTextarea
+            value={draft}
+            autoFocus
+            rows={note ? 7 : 4}
+            aria-label={`Edit ${label.toLowerCase()}`}
+            onChange={(event) => setDraft(event.target.value)}
+          />
+          {error ? <S.InlineEditError role="alert">{error}</S.InlineEditError> : null}
+          <S.InlineEditorActions>
+            <S.InlineSaveButton type="button" onClick={save} disabled={saving}>
+              {saving ? 'Saving' : 'Save'}
+            </S.InlineSaveButton>
+            <S.InlineCancelButton type="button" onClick={cancel} disabled={saving}>
+              Cancel
+            </S.InlineCancelButton>
+          </S.InlineEditorActions>
+        </S.InlineEditor>
+      ) : children || <S.CarouselDetailValue><DisplayValue fallback={fallback}>{value}</DisplayValue></S.CarouselDetailValue>}
+    </>
+  );
+}
+
+function EditableReferencesField({ links, onSave }) {
+  const normalizedLinks = normalizeLinksForForm(links);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(normalizedLinks);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!editing) setDraft(normalizeLinksForForm(links));
+  }, [editing, links]);
+
+  const updateLink = (index, field, value) => {
+    setDraft((current) => current.map((link, rowIndex) => (
+      rowIndex === index ? { ...link, [field]: value } : link
+    )));
+  };
+
+  const cancel = () => {
+    setDraft(normalizeLinksForForm(links));
+    setError('');
+    setEditing(false);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    setError('');
+    try {
+      await onSave?.(sanitizeLinksForSave(draft));
+      setEditing(false);
+    } catch (saveError) {
+      setError(saveError?.message || 'Could not save references.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <S.CarouselDetailField $wide>
+      <S.InlineFieldHeader>
+        <S.CarouselDetailLabel>References</S.CarouselDetailLabel>
+        <S.InlineEditButton
+          type="button"
+          aria-label="Edit references"
+          onClick={() => setEditing(true)}
+          hidden={editing}
+        >
+          Edit
+        </S.InlineEditButton>
+      </S.InlineFieldHeader>
+      {editing ? (
+        <S.InlineEditor>
+          <S.ReferenceRows>
+            {draft.map((link, index) => (
+              <S.ReferenceRow key={`reference-${index}`}>
+                <S.ReferenceInput
+                  type="text"
+                  value={link.label}
+                  maxLength={80}
+                  placeholder="Label"
+                  aria-label={`Reference ${index + 1} label`}
+                  onChange={(event) => updateLink(index, 'label', event.target.value)}
+                />
+                <S.ReferenceInput
+                  type="url"
+                  value={link.url}
+                  placeholder="https://example.com"
+                  inputMode="url"
+                  aria-label={`Reference ${index + 1} URL`}
+                  onChange={(event) => updateLink(index, 'url', event.target.value)}
+                />
+                <S.RemoveReferenceButton
+                  type="button"
+                  aria-label={`Remove reference ${index + 1}`}
+                  onClick={() => setDraft((current) => current.filter((_, rowIndex) => rowIndex !== index))}
+                >
+                  Remove
+                </S.RemoveReferenceButton>
+              </S.ReferenceRow>
+            ))}
+          </S.ReferenceRows>
+          <S.AddReferenceButton
+            type="button"
+            onClick={() => setDraft((current) => [...current, { label: '', url: '' }])}
+          >
+            + Add reference
+          </S.AddReferenceButton>
+          {error ? <S.InlineEditError role="alert">{error}</S.InlineEditError> : null}
+          <S.InlineEditorActions>
+            <S.InlineSaveButton type="button" onClick={save} disabled={saving}>
+              {saving ? 'Saving' : 'Save'}
+            </S.InlineSaveButton>
+            <S.InlineCancelButton type="button" onClick={cancel} disabled={saving}>
+              Cancel
+            </S.InlineCancelButton>
+          </S.InlineEditorActions>
+        </S.InlineEditor>
+      ) : (
+        <S.CarouselDetailValue><ExternalLinks links={normalizedLinks} /></S.CarouselDetailValue>
+      )}
     </S.CarouselDetailField>
   );
 }
 
-function BreadcrumbTrail({ breadcrumb = [] }) {
-  if (!Array.isArray(breadcrumb) || !breadcrumb.length) return null;
+function ItemPageReference({ itemId }) {
+  const [copied, setCopied] = useState(false);
+  const href = itemId ? `/items/${encodeURIComponent(itemId)}` : '';
+
+  const copyLink = async () => {
+    if (!href || !navigator.clipboard?.writeText) return;
+    await navigator.clipboard.writeText(new URL(href, window.location.origin).href);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+
+  if (!itemId) return null;
 
   return (
-    <S.Breadcrumbs aria-label="Box breadcrumb">
-      {breadcrumb.map((node, index) => (
-        <React.Fragment key={node?._id || `${node?.box_id || 'box'}-${index}`}>
-          <S.BreadcrumbNode>
-            <strong>{node?.box_id || '—'}</strong>
-            {node?.label || 'Box'}
-          </S.BreadcrumbNode>
-          {index < breadcrumb.length - 1 ? <span aria-hidden="true">›</span> : null}
-        </React.Fragment>
-      ))}
-    </S.Breadcrumbs>
+    <S.ItemPageReference>
+      <S.ItemPageReferenceId>
+        <S.CarouselDetailLabel>Mongo ID</S.CarouselDetailLabel>
+        <code>{itemId}</code>
+      </S.ItemPageReferenceId>
+      <S.ItemPageReferenceActions>
+        <S.ItemPageLink href={href}>Open item ↗</S.ItemPageLink>
+        <S.CopyItemLinkButton type="button" onClick={copyLink}>
+          {copied ? 'Copied' : 'Copy link'}
+        </S.CopyItemLinkButton>
+      </S.ItemPageReferenceActions>
+    </S.ItemPageReference>
+  );
+}
+
+function DetailField({ label, value, wide = false, editableValue, fallback, onSave, children }) {
+  return (
+    <S.CarouselDetailField $wide={wide}>
+      {onSave ? (
+        <EditableField label={label} value={editableValue} fallback={fallback} onSave={onSave}>
+          {children}
+        </EditableField>
+      ) : (
+        <>
+          <S.CarouselDetailLabel>{label}</S.CarouselDetailLabel>
+          <S.CarouselDetailValue><DisplayValue>{value}</DisplayValue></S.CarouselDetailValue>
+        </>
+      )}
+    </S.CarouselDetailField>
   );
 }
 
@@ -73,14 +281,8 @@ export function OverviewSlide({
   onDeclutter,
   onMove,
   onEdit,
-  isConsumable,
-  consumablePending,
-  onConsumableToggle,
-  activityActions = [],
-  activityTimestamps = {},
 }) {
   const tagList = Array.isArray(tags) ? tags.filter(Boolean) : [];
-  const boxText = [boxId ? `#${boxId}` : '', boxLabel].filter(Boolean).join(' ');
 
   return (
     <S.CarouselOverview>
@@ -107,7 +309,6 @@ export function OverviewSlide({
 
         <S.OverviewOverlay>
           <S.OverviewIdentity>
-            <S.OverviewKicker>At a glance</S.OverviewKicker>
             <S.OverviewTitle>{itemName || 'Untitled item'}</S.OverviewTitle>
             <S.OverviewFactRail>
               <S.OverviewFact>
@@ -116,7 +317,11 @@ export function OverviewSlide({
               </S.OverviewFact>
               <S.OverviewFact>
                 <span>Box</span>
-                <strong>{boxText || 'Not assigned'}</strong>
+                <strong>
+                  {boxId ? <S.OverviewBoxId>#{boxId}</S.OverviewBoxId> : null}
+                  {boxLabel ? <S.OverviewBoxLabel>{boxLabel}</S.OverviewBoxLabel> : null}
+                  {!boxId && !boxLabel ? 'Not assigned' : null}
+                </strong>
               </S.OverviewFact>
               {categoryLabel && categoryLabel !== '—' ? (
                 <S.OverviewCategory>{categoryLabel}</S.OverviewCategory>
@@ -125,55 +330,27 @@ export function OverviewSlide({
             {description ? <S.OverviewDescription>{description}</S.OverviewDescription> : null}
             {tagList.length ? (
               <S.OverviewTags aria-label="Item tags">
-                {tagList.map((tag) => <span key={tag}>#{tag}</span>)}
+                {tagList.map((tag) => (
+                  <S.OverviewTagLink
+                    key={tag}
+                    as={Link}
+                    to={`/tags/${encodeURIComponent(tag)}`}
+                  >
+                    #{tag}
+                  </S.OverviewTagLink>
+                ))}
               </S.OverviewTags>
             ) : null}
           </S.OverviewIdentity>
 
           <S.OverviewCommandDeck>
-            <S.OverviewCommandHeader>
-              <S.OverviewCommandLabel>All actions</S.OverviewCommandLabel>
-              <S.OverviewConsumable>
-                <span>Consumable</span>
-                <S.ConsumableSwitch
-                  type="button"
-                  role="switch"
-                  aria-checked={Boolean(isConsumable)}
-                  aria-label="Track as consumable inventory"
-                  $active={Boolean(isConsumable)}
-                  disabled={consumablePending}
-                  onClick={onConsumableToggle}
-                >
-                  <S.ConsumableSwitchThumb $active={Boolean(isConsumable)} />
-                  <S.ConsumableSwitchLabel>
-                    {consumablePending ? 'Saving' : isConsumable ? 'On' : 'Off'}
-                  </S.ConsumableSwitchLabel>
-                </S.ConsumableSwitch>
-              </S.OverviewConsumable>
-            </S.OverviewCommandHeader>
-
-          <ItemDecisionActions
-            inDeclutterDeck={inDeclutterDeck}
-            declutterPending={declutterPending}
-            onDeclutter={onDeclutter}
-            onMove={onMove}
-            onEdit={onEdit}
-          />
-
-            <S.OverviewActivityGrid aria-label="Log item activity">
-              {activityActions.map((action) => (
-                <S.OverviewActivityButton
-                  key={action.id}
-                  type="button"
-                  $tone={action.tone}
-                  disabled={action.disabled}
-                  onClick={action.onClick}
-                >
-                  <strong>{action.label}</strong>
-                  <span>{activityTimestamps?.[action.id] || 'Not logged'}</span>
-                </S.OverviewActivityButton>
-              ))}
-            </S.OverviewActivityGrid>
+            <ItemDecisionActions
+              inDeclutterDeck={inDeclutterDeck}
+              declutterPending={declutterPending}
+              onDeclutter={onDeclutter}
+              onMove={onMove}
+              onEdit={onEdit}
+            />
           </S.OverviewCommandDeck>
         </S.OverviewOverlay>
       </S.OverviewPhotoMax>
@@ -181,7 +358,19 @@ export function OverviewSlide({
   );
 }
 
-export function NotesSlide({ description, notes, externalLinks = [], onEdit }) {
+export function NotesSlide({
+  itemName,
+  description,
+  notes,
+  externalLinks = [],
+  onSaveNotes,
+  onSaveDescription,
+  onSaveReferences,
+}) {
+  const [noteSheetOpen, setNoteSheetOpen] = useState(false);
+  const noteText = String(notes || '').trim();
+  const noteIsLong = noteText.length > 360 || noteText.split(/\r?\n/).length > 8;
+
   return (
     <S.CarouselSection>
       <S.CarouselSectionIntro>
@@ -193,67 +382,230 @@ export function NotesSlide({ description, notes, externalLinks = [], onEdit }) {
       </S.CarouselSectionIntro>
 
       <S.CarouselNoteCard>
-        <S.CarouselDetailLabel>Item notes</S.CarouselDetailLabel>
-        <S.CarouselNoteText>
-          <DisplayValue fallback="No notes yet">{notes}</DisplayValue>
-        </S.CarouselNoteText>
+        <EditableField label="Item notes" value={notes} fallback="No notes yet" onSave={onSaveNotes} note>
+          {noteIsLong ? (
+            <S.CarouselNoteOpen
+              type="button"
+              onClick={() => setNoteSheetOpen(true)}
+              aria-label="Open full item note"
+            >
+              <S.CarouselNoteText>
+                <DisplayValue fallback="No notes yet">{notes}</DisplayValue>
+              </S.CarouselNoteText>
+            </S.CarouselNoteOpen>
+          ) : (
+            <S.CarouselNoteText>
+              <DisplayValue fallback="No notes yet">{notes}</DisplayValue>
+            </S.CarouselNoteText>
+          )}
+        </EditableField>
       </S.CarouselNoteCard>
 
       <S.CarouselDetailGrid>
-        <DetailField label="Description" value={description} wide />
-        <DetailField label="References" value={<ExternalLinks links={externalLinks} />} wide />
+        <DetailField
+          label="Description"
+          editableValue={description}
+          fallback="No description yet"
+          onSave={onSaveDescription}
+          wide
+        >
+          <S.CarouselDetailValue><DisplayValue fallback="No description yet">{description}</DisplayValue></S.CarouselDetailValue>
+        </DetailField>
+        <EditableReferencesField links={externalLinks} onSave={onSaveReferences} />
       </S.CarouselDetailGrid>
 
-      <S.CarouselSlideAction type="button" onClick={onEdit}>
-        Edit notes and description
-      </S.CarouselSlideAction>
+      {noteSheetOpen ? (
+        <ItemNoteSheet
+          itemName={itemName}
+          note={noteText}
+          onClose={() => setNoteSheetOpen(false)}
+        />
+      ) : null}
     </S.CarouselSection>
   );
 }
 
 export function DetailsSlide({
-  boxId,
-  boxLabel,
-  location,
+  itemId,
   boxGroup,
-  breadcrumbTrail = [],
+  keepPriority,
   keepPriorityLabel,
   primaryOwnerName,
   condition,
   acquisitionType,
+  dateAcquired,
   dateAcquiredLabel,
   sourceBatchLabel,
-  topBoxLabel,
+  isIntendedGift,
+  maintenanceIntervalDays,
+  onSaveField,
 }) {
-  const boxValue = [boxId ? `#${boxId}` : '', boxLabel].filter(Boolean).join(' ');
+  const [editingKey, setEditingKey] = useState('');
+  const [draft, setDraft] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const facts = [
+    ['Box group', boxGroup],
+    ['Keep priority', keepPriorityLabel, 'keepPriority', keepPriority || ''],
+    ['Owner', primaryOwnerName, 'primaryOwnerName', primaryOwnerName || ''],
+    ['Condition', condition, 'condition', condition || 'unknown'],
+    ['Acquired as', acquisitionType, 'acquisitionType', acquisitionType || 'unknown'],
+    ['Date acquired', dateAcquiredLabel, 'dateAcquired', dateAcquired || ''],
+    ['Source batch', sourceBatchLabel],
+    ['Intended gift', isIntendedGift ? 'Yes' : 'No', 'isIntendedGift', Boolean(isIntendedGift)],
+    [
+      'Maintenance interval',
+      Number.isFinite(maintenanceIntervalDays) && maintenanceIntervalDays > 0
+        ? `${maintenanceIntervalDays} days`
+        : 'Not set',
+    ],
+  ];
+
+  const startEdit = (fieldKey, value) => {
+    if (saving) return;
+    setEditingKey(fieldKey);
+    setDraft(value);
+    setError('');
+  };
+
+  const cancelEdit = () => {
+    if (saving) return;
+    setEditingKey('');
+    setError('');
+  };
+
+  const saveEdit = async () => {
+    if (!editingKey || saving) return;
+    setSaving(true);
+    setError('');
+    try {
+      await onSaveField?.({ [editingKey]: draft });
+      setEditingKey('');
+    } catch (saveError) {
+      setError(saveError?.message || 'Could not save this detail.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const renderEditor = (fieldKey) => {
+    if (fieldKey === 'keepPriority') {
+      return (
+        <CustomSelect
+          value={draft}
+          ariaLabel="Keep priority"
+          variant="prism"
+          onChange={setDraft}
+          options={[
+            { value: '', label: 'Not set' },
+            { value: 'low', label: 'Low' },
+            { value: 'medium', label: 'Medium' },
+            { value: 'high', label: 'High' },
+            { value: 'essential', label: 'Essential' },
+            { value: 'decommissioned', label: 'Decommissioned' },
+          ]}
+        />
+      );
+    }
+
+    if (fieldKey === 'condition') {
+      return (
+        <CustomSelect
+          value={draft}
+          ariaLabel="Condition"
+          variant="prism"
+          onChange={setDraft}
+          options={[
+            { value: 'unknown', label: 'Unknown' },
+            { value: 'new', label: 'New' },
+            { value: 'good', label: 'Good' },
+            { value: 'fair', label: 'Fair' },
+            { value: 'poor', label: 'Poor' },
+            { value: 'needs_repair', label: 'Needs repair' },
+          ]}
+        />
+      );
+    }
+
+    if (fieldKey === 'acquisitionType') {
+      return (
+        <CustomSelect
+          value={draft}
+          ariaLabel="Acquisition type"
+          variant="prism"
+          onChange={setDraft}
+          options={[
+            { value: 'unknown', label: 'Unknown' },
+            { value: 'purchase', label: 'Purchase' },
+            { value: 'gift', label: 'Gift' },
+            { value: 'found', label: 'Found' },
+            { value: 'made', label: 'Made' },
+            { value: 'inherited', label: 'Inherited' },
+          ]}
+        />
+      );
+    }
+
+    if (fieldKey === 'isIntendedGift') {
+      return (
+        <CustomSelect
+          value={String(draft)}
+          ariaLabel="Intended gift"
+          variant="prism"
+          onChange={(value) => setDraft(value === 'true')}
+          options={[
+            { value: 'false', label: 'No' },
+            { value: 'true', label: 'Yes' },
+          ]}
+        />
+      );
+    }
+
+    return (
+      <S.QuickFactInput
+        type={fieldKey === 'dateAcquired' ? 'date' : 'text'}
+        value={draft}
+        aria-label={`Edit ${fieldKey}`}
+        onChange={(event) => setDraft(event.target.value)}
+      />
+    );
+  };
 
   return (
-    <S.CarouselSection>
-      <S.CarouselSectionIntro>
-        <S.CarouselSectionKicker>Placement & retention</S.CarouselSectionKicker>
-        <S.CarouselSectionTitle>Other info</S.CarouselSectionTitle>
-        <S.CarouselSectionCopy>
-          Where it belongs, who it belongs to, and the context behind keeping it.
-        </S.CarouselSectionCopy>
-      </S.CarouselSectionIntro>
+    <S.CarouselSection $compact>
+      <ItemPageReference itemId={itemId} />
+      <S.QuickFacts aria-label="Additional item details">
+        {facts.map(([label, value, fieldKey, rawValue]) => (
+          <S.QuickFact key={label}>
+            <S.QuickFactHeader>
+              <S.CarouselDetailLabel>{label}</S.CarouselDetailLabel>
+              {fieldKey ? (
+                <S.QuickFactEditButton
+                  type="button"
+                  aria-label={`Edit ${label.toLowerCase()}`}
+                  onClick={() => startEdit(fieldKey, rawValue)}
+                  hidden={editingKey === fieldKey}
+                >
+                  ✎
+                </S.QuickFactEditButton>
+              ) : null}
+            </S.QuickFactHeader>
+            {editingKey === fieldKey ? (
+              <S.QuickFactEditor>
+                {renderEditor(fieldKey)}
+                <S.QuickFactEditorActions>
+                  <S.QuickFactSaveButton type="button" onClick={saveEdit} disabled={saving}>Save</S.QuickFactSaveButton>
+                  <S.QuickFactCancelButton type="button" onClick={cancelEdit} disabled={saving}>Cancel</S.QuickFactCancelButton>
+                </S.QuickFactEditorActions>
+                {error ? <S.QuickFactError role="alert">{error}</S.QuickFactError> : null}
+              </S.QuickFactEditor>
+            ) : (
+              <S.QuickFactValue><DisplayValue>{value}</DisplayValue></S.QuickFactValue>
+            )}
+          </S.QuickFact>
+        ))}
+      </S.QuickFacts>
 
-      <S.CarouselDetailGrid>
-        <DetailField label="Box" value={boxValue} />
-        <DetailField label="Location" value={location} />
-        <DetailField label="Box group" value={boxGroup} />
-        <DetailField label="Top box" value={topBoxLabel} />
-        <DetailField label="Keep priority" value={keepPriorityLabel} />
-        <DetailField label="Primary owner" value={primaryOwnerName} />
-        <DetailField label="Condition" value={condition} />
-        <DetailField label="Acquisition type" value={acquisitionType} />
-        <DetailField label="Date acquired" value={dateAcquiredLabel} />
-        <DetailField label="Source batch" value={sourceBatchLabel} />
-        <DetailField
-          label="Breadcrumb"
-          value={<BreadcrumbTrail breadcrumb={breadcrumbTrail} />}
-          wide
-        />
-      </S.CarouselDetailGrid>
     </S.CarouselSection>
   );
 }
@@ -261,60 +613,110 @@ export function DetailsSlide({
 export function CostsSlide({
   quantity,
   statusLabel,
-  valueLabel,
-  purchasePriceLabel,
-  isConsumable,
-  consumablePending,
-  onConsumableToggle,
+  valueCents,
+  purchasePriceCents,
+  onSaveField,
 }) {
+  const [editingKey, setEditingKey] = useState('');
+  const [draft, setDraft] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const facts = [
+    ['Estimated value', valueCents == null ? 'Not set' : `$${formatCentsToUsdInput(valueCents)}`, 'valueCents', formatCentsToUsdInput(valueCents)],
+    ['Purchase price', purchasePriceCents == null ? 'Not set' : `$${formatCentsToUsdInput(purchasePriceCents)}`, 'purchasePriceCents', formatCentsToUsdInput(purchasePriceCents)],
+    ['Quantity', quantity, 'quantity', String(quantity ?? 1)],
+    ['Inventory status', statusLabel],
+  ];
+
+  const startEdit = (fieldKey, value) => {
+    if (saving) return;
+    setEditingKey(fieldKey);
+    setDraft(value);
+    setError('');
+  };
+
+  const cancelEdit = () => {
+    if (saving) return;
+    setEditingKey('');
+    setError('');
+  };
+
+  const saveEdit = async () => {
+    if (!editingKey || saving) return;
+    setSaving(true);
+    setError('');
+    try {
+      let value = draft;
+      if (editingKey === 'quantity') {
+        value = Number(draft);
+        if (!Number.isInteger(value) || value < 1 || value > 99) {
+          throw new Error('Quantity must be a whole number from 1 to 99.');
+        }
+      } else {
+        value = parseUsdInputToCents(draft, {
+          fieldLabel: editingKey === 'valueCents' ? 'Value' : 'Purchase price',
+        });
+        if (editingKey === 'valueCents') value = value ?? 0;
+      }
+      await onSaveField?.({ [editingKey]: value });
+      setEditingKey('');
+    } catch (saveError) {
+      setError(saveError?.message || 'Could not save this cost.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-    <S.CarouselSection>
-      <S.CarouselSectionIntro>
-        <S.CarouselSectionKicker>Inventory & value</S.CarouselSectionKicker>
-        <S.CarouselSectionTitle>Costs</S.CarouselSectionTitle>
-        <S.CarouselSectionCopy>
-          Quantity, money, and whether this item is expected to be used up.
-        </S.CarouselSectionCopy>
-      </S.CarouselSectionIntro>
-
-      <S.CostHeroGrid>
-        <S.CostHeroCard>
-          <S.CarouselDetailLabel>Estimated value</S.CarouselDetailLabel>
-          <S.CostHeroValue><DisplayValue>{valueLabel}</DisplayValue></S.CostHeroValue>
-        </S.CostHeroCard>
-        <S.CostHeroCard>
-          <S.CarouselDetailLabel>Purchase price</S.CarouselDetailLabel>
-          <S.CostHeroValue><DisplayValue>{purchasePriceLabel}</DisplayValue></S.CostHeroValue>
-        </S.CostHeroCard>
-      </S.CostHeroGrid>
-
-      <S.CarouselDetailGrid>
-        <DetailField label="Quantity" value={quantity} />
-        <DetailField label="Inventory status" value={statusLabel} />
-      </S.CarouselDetailGrid>
-
-      <S.ConsumableControl>
-        <S.ConsumableCopy>
-          <S.ConsumableTitle>Consumable inventory</S.ConsumableTitle>
-          <S.ConsumableHint>
-            Use consumable tracking for supplies that eventually run out instead of needing maintenance.
-          </S.ConsumableHint>
-        </S.ConsumableCopy>
-        <S.ConsumableSwitch
-          type="button"
-          role="switch"
-          aria-checked={Boolean(isConsumable)}
-          aria-label="Track as consumable inventory"
-          $active={Boolean(isConsumable)}
-          disabled={consumablePending}
-          onClick={onConsumableToggle}
-        >
-          <S.ConsumableSwitchThumb $active={Boolean(isConsumable)} />
-          <S.ConsumableSwitchLabel>
-            {consumablePending ? 'Saving' : isConsumable ? 'On' : 'Off'}
-          </S.ConsumableSwitchLabel>
-        </S.ConsumableSwitch>
-      </S.ConsumableControl>
+    <S.CarouselSection $compact>
+      <S.QuickFacts aria-label="Inventory and value">
+        {facts.map(([label, value, fieldKey, rawValue]) => (
+          <S.QuickFact key={label}>
+            <S.QuickFactHeader>
+              <S.CarouselDetailLabel>{label}</S.CarouselDetailLabel>
+              {fieldKey ? (
+                <S.QuickFactEditButton
+                  type="button"
+                  aria-label={`Edit ${label.toLowerCase()}`}
+                  onClick={() => startEdit(fieldKey, rawValue)}
+                  hidden={editingKey === fieldKey}
+                >
+                  ✎
+                </S.QuickFactEditButton>
+              ) : null}
+            </S.QuickFactHeader>
+            {editingKey === fieldKey ? (
+              <S.QuickFactEditor>
+                {fieldKey === 'quantity' ? (
+                  <QuantityInput
+                    compact
+                    value={Number(draft) || 1}
+                    min={1}
+                    max={99}
+                    ariaLabel="Quantity"
+                    onChange={(value) => setDraft(String(value))}
+                  />
+                ) : (
+                  <S.QuickFactInput
+                    type="text"
+                    inputMode="decimal"
+                    value={draft}
+                    aria-label={`Edit ${label.toLowerCase()}`}
+                    onChange={(event) => setDraft(event.target.value)}
+                  />
+                )}
+                <S.QuickFactEditorActions>
+                  <S.QuickFactSaveButton type="button" onClick={saveEdit} disabled={saving}>Save</S.QuickFactSaveButton>
+                  <S.QuickFactCancelButton type="button" onClick={cancelEdit} disabled={saving}>Cancel</S.QuickFactCancelButton>
+                </S.QuickFactEditorActions>
+                {error ? <S.QuickFactError role="alert">{error}</S.QuickFactError> : null}
+              </S.QuickFactEditor>
+            ) : (
+              <S.QuickFactValue><DisplayValue>{value}</DisplayValue></S.QuickFactValue>
+            )}
+          </S.QuickFact>
+        ))}
+      </S.QuickFacts>
     </S.CarouselSection>
   );
 }
@@ -323,6 +725,9 @@ export function ActivitySlide({
   activityActions = [],
   activityTimestamps = {},
   maintenanceNotes,
+  isConsumable,
+  consumablePending,
+  onConsumableToggle,
 }) {
   return (
     <S.CarouselSection>
@@ -351,6 +756,24 @@ export function ActivitySlide({
           </S.CarouselActivityButton>
         ))}
       </S.CarouselActivityGrid>
+
+      <S.ActivityModeButton
+        type="button"
+        role="switch"
+        aria-checked={Boolean(isConsumable)}
+        aria-label="Track as consumable inventory"
+        $active={Boolean(isConsumable)}
+        disabled={consumablePending}
+        onClick={onConsumableToggle}
+      >
+        <S.ActivityModeCopy>
+          <strong>Consumable inventory</strong>
+          <span>Use consumption instead of maintenance tracking</span>
+        </S.ActivityModeCopy>
+        <S.ActivityModeState $active={Boolean(isConsumable)}>
+          {consumablePending ? 'Saving' : isConsumable ? 'On' : 'Off'}
+        </S.ActivityModeState>
+      </S.ActivityModeButton>
 
       <S.CarouselDetailGrid>
         <DetailField label="Maintenance notes" value={maintenanceNotes} wide />

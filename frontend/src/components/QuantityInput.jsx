@@ -12,6 +12,7 @@ export default function QuantityInput({
   disabled = false,
   ariaLabel = 'Quantity',
   fullWidth = false,
+  compact = false,
 }) {
   const generatedId = useId();
   const inputId = id || `quantity-input-${generatedId}`;
@@ -35,9 +36,10 @@ export default function QuantityInput({
   };
 
   return (
-    <S.Wrapper $fullWidth={fullWidth} $disabled={disabled}>
+    <S.Wrapper $fullWidth={fullWidth} $disabled={disabled} $compact={compact}>
       <S.Button
         type="button"
+        $compact={compact}
         onClick={handleDecrement}
         aria-label={`Decrease ${ariaLabel.toLowerCase()}`}
         disabled={disabled || safeValue <= min}
@@ -45,8 +47,9 @@ export default function QuantityInput({
         −
       </S.Button>
       <S.ValueShell $fullWidth={fullWidth}>
-        <S.ValueKicker aria-hidden="true">QTY</S.ValueKicker>
+        {!compact ? <S.ValueKicker aria-hidden="true">QTY</S.ValueKicker> : null}
         <S.Input
+          $compact={compact}
           id={inputId}
           name={name}
           type="number"
@@ -66,6 +69,7 @@ export default function QuantityInput({
       </S.ValueShell>
       <S.Button
         type="button"
+        $compact={compact}
         onClick={handleIncrement}
         aria-label={`Increase ${ariaLabel.toLowerCase()}`}
         disabled={disabled || safeValue >= max}

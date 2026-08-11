@@ -689,6 +689,7 @@ good network hygiene.
 - **Operator layer:** Tarot project control plane and NeonAzoth deployment TUI
 - **Photo intake:** JavaScript TUI, ObjectGlow preprocessing, JSON artifacts,
   validation, and backend API import/export
+- **AI integration:** read-only on-demand inventory MCP over the existing API
 - **Style:** plain JavaScript, styled-components, and a generous amount of
   household-inventory enthusiasm
 
@@ -700,6 +701,7 @@ backend/                               Express API, persistence, and media handl
 scripts/tarot-dock.mjs                 local Tarot operator interface
 scripts/intake_tui.js                  photo intake and Codex handoff TUI
 scripts/neonazoth/control_station.js   protected production deployment TUI
+mcp/                                  read-only Codex inventory MCP sidecar
 docs/                                  workflow and operator references
 test/                                  contract and behavior tests
 ```
@@ -709,6 +711,7 @@ Useful references:
 - [Fresh Boot & Production Operator Note](DISCO_WARP_CORE_RAYCAST_NOTE.md)
 - [Vision Intake TUI reference](docs/VISION_INTAKE_TUI.md)
 - [Production photo intake](docs/tui-production-intake.md)
+- [Inventory MCP over SSH](docs/inventory-mcp.md)
 - [Batch workflow explainer](docs/batch-import-workflow.html)
 - [Deployment brief](DEPLOYMENT_BRIEF.md)
 - [Backup, reset, and restore runbook](BACKUP_RESET_RESTORE_RUNBOOK.md)

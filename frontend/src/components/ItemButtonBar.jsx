@@ -164,7 +164,7 @@ export default function ItemButtonBar({
 
           <S.ControlGroup $wide>
             <S.ControlGroupLabel>Inventory</S.ControlGroupLabel>
-            <S.ContainerActions>
+            <S.ContainerActions $paired={ownership.isBoxed && !isGone}>
               {isGone ? (
                 <S.ContainerMuted>
                   Reclaim this item before assigning it to a container.

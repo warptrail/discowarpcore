@@ -4,7 +4,6 @@ import BoxIdPrefixInput from './BoxIdPrefixInput';
 import { fetchItemMoveLogs } from '../api/logs';
 import {
   MOBILE_BREAKPOINT,
-  MOBILE_FONT_SM,
   MOBILE_FONT_XS,
   MOBILE_NARROW_BREAKPOINT,
 } from '../styles/tokens';
@@ -19,37 +18,33 @@ const MAX_PREFIX_LENGTH = 6;
 const RECENT_DEST_LIMIT = 5;
 
 const Container = styled.div`
-  padding: 0.35rem 0 0;
+  padding: 0.2rem 0 0;
   min-width: 0;
 `;
 
 const FilterPanel = styled.div`
   display: grid;
-  gap: 0.24rem;
-  margin: 0 0 0.5rem;
+  gap: 0.18rem;
+  margin: 0 0 0.38rem;
 `;
 
 const FilterLabel = styled.label`
-  font-size: 0.68rem;
+  font-size: 0.58rem;
   font-weight: 780;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #95d8ff;
+  color: rgba(151, 216, 255, 0.82);
 `;
 
 const FilterInput = styled.input`
   width: 100%;
   border: 1px solid rgba(93, 165, 212, 0.62);
-  border-radius: 9px;
-  background: linear-gradient(
-    180deg,
-    rgba(5, 13, 21, 0.98),
-    rgba(8, 16, 26, 0.98)
-  );
+  border-radius: 6px;
+  background: rgba(5, 12, 19, 0.94);
   color: #e6f2ff;
-  min-height: 36px;
-  padding: 0.46rem 0.62rem;
-  font-size: 0.86rem;
+  min-height: 40px;
+  padding: 0.38rem 0.54rem;
+  font-size: 0.78rem;
   outline: none;
   box-shadow: inset 0 0 0 1px rgba(125, 185, 220, 0.08);
   transition:
@@ -62,18 +57,18 @@ const FilterInput = styled.input`
     box-shadow:
       0 0 0 2px rgba(122, 208, 255, 0.22),
       0 0 14px rgba(122, 208, 255, 0.24);
-    background: rgba(16, 28, 42, 0.96);
+    background: rgba(12, 24, 36, 0.98);
   }
 `;
 
 const SectionHeading = styled.h4`
-  margin: 0.58rem 0 0.32rem;
+  margin: 0.42rem 0 0.2rem;
   padding-left: 0.08rem;
-  font-size: 0.66rem;
+  font-size: 0.58rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
-  color: #9ec8f7;
+  color: rgba(167, 182, 255, 0.82);
 `;
 
 const BoxList = styled.ul`
@@ -81,19 +76,19 @@ const BoxList = styled.ul`
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 0.36rem;
+  gap: 0.22rem;
 `;
 
 const BoxItem = styled.li`
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.52rem;
+  gap: 0.42rem;
   align-items: center;
-  min-height: 40px;
-  padding: 0.38rem 0.62rem;
-  border: 1px solid #2f3a32;
-  border-radius: 8px;
-  background: linear-gradient(90deg, #23252a 0%, #1d1f23 62%);
+  min-height: 42px;
+  padding: 0.28rem 0.44rem;
+  border: 1px solid rgba(127, 215, 255, 0.2);
+  border-radius: 5px;
+  background: rgba(17, 24, 34, 0.84);
   cursor: pointer;
   transition:
     background 0.15s ease,
@@ -101,33 +96,25 @@ const BoxItem = styled.li`
     box-shadow 0.15s ease;
 
   &:hover {
-    background: linear-gradient(90deg, #274233 0%, #1f2d26 62%);
-    border-color: #4ec77b;
-    box-shadow: 0 0 0 1px rgba(78, 199, 123, 0.2);
+    background: rgba(25, 39, 53, 0.94);
+    border-color: rgba(127, 215, 255, 0.62);
+    box-shadow: 0 0 0 1px rgba(127, 215, 255, 0.12);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: 1fr;
-    gap: 0.36rem;
-    min-height: 0;
-    padding: 0.34rem 0.46rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.3rem;
+    min-height: 40px;
+    padding: 0.24rem 0.34rem;
   }
 `;
 
 const OrphanItem = styled(BoxItem)`
   border-color: rgba(225, 160, 100, 0.66);
-  background: linear-gradient(
-    90deg,
-    rgba(62, 50, 33, 0.92) 0%,
-    rgba(42, 35, 24, 0.94) 62%
-  );
+  background: rgba(51, 38, 29, 0.72);
 
   &:hover {
-    background: linear-gradient(
-      90deg,
-      rgba(82, 61, 34, 0.94) 0%,
-      rgba(58, 43, 24, 0.96) 62%
-    );
+    background: rgba(72, 50, 31, 0.86);
     border-color: rgba(235, 185, 120, 0.84);
     box-shadow: 0 0 0 1px rgba(235, 185, 120, 0.24);
   }
@@ -144,16 +131,16 @@ const BoxIdentityLane = styled.span`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding-left: ${({ $depth = 0 }) =>
       `${Math.min(Math.max($depth, 0), 6) * 0.32}rem`};
-    gap: 0.32rem;
+    gap: 0.28rem;
   }
 `;
 
 const BoxIdChip = styled.span`
   display: inline-flex;
   align-items: center;
-  min-height: 22px;
-  padding: 0 0.5rem;
-  border-radius: 8px;
+  min-height: 23px;
+  padding: 0 0.42rem;
+  border-radius: 5px;
   border: 1px solid rgba(116, 212, 255, 0.6);
   background: linear-gradient(
     180deg,
@@ -164,7 +151,7 @@ const BoxIdChip = styled.span`
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
     'Courier New', monospace;
-  font-size: 0.84rem;
+  font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.03em;
   white-space: nowrap;
@@ -191,7 +178,7 @@ const BoxName = styled.span`
   text-overflow: ellipsis;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${MOBILE_FONT_SM};
+    font-size: ${MOBILE_FONT_XS};
   }
 `;
 
@@ -203,17 +190,17 @@ const MetaLane = styled.span`
   justify-content: flex-end;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    width: 100%;
-    justify-content: flex-start;
-    gap: 0.24rem;
+    width: auto;
+    justify-content: flex-end;
+    gap: 0.18rem;
   }
 `;
 
 const MetaPill = styled.span`
   display: inline-flex;
   align-items: center;
-  min-height: 22px;
-  padding: 0 0.44rem;
+  min-height: 20px;
+  padding: 0 0.34rem;
   border-radius: 999px;
   border: 1px solid #394646;
   background: #1a2122;
@@ -223,9 +210,9 @@ const MetaPill = styled.span`
   white-space: nowrap;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 20px;
+    min-height: 19px;
     font-size: ${MOBILE_FONT_XS};
-    padding: 0 0.3rem;
+    padding: 0 0.26rem;
   }
 `;
 

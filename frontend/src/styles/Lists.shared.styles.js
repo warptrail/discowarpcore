@@ -101,8 +101,8 @@ export const Container = styled.div`
   overflow-x: clip;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    gap: 0.55rem;
-    padding: ${MOBILE_PAGE_GAP};
+    gap: 0.36rem;
+    padding: 0;
   }
 `;
 

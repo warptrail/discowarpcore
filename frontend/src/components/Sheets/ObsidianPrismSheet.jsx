@@ -18,6 +18,8 @@ export default function ObsidianPrismSheet({
   context,
   onBack,
   onClose,
+  backLabel = 'Back',
+  closeLabel = 'Close',
   children,
 }) {
   const sheetRef = useRef(null);
@@ -107,7 +109,7 @@ export default function ObsidianPrismSheet({
         <S.Header>
           <S.BackButton
             type="button"
-            aria-label="Back to item overview"
+            aria-label={backLabel}
             onClick={() => dismiss(onBack || onClose)}
           >
             ‹
@@ -119,7 +121,7 @@ export default function ObsidianPrismSheet({
           </S.Heading>
           <S.CloseButton
             type="button"
-            aria-label="Close item editor"
+            aria-label={closeLabel}
             onClick={() => dismiss(onClose)}
           >
             ×

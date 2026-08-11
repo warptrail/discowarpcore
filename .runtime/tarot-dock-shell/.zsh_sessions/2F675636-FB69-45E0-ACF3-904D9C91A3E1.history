@@ -144,3 +144,20 @@ npm run neonazoth:tui
 git status
 banish
 exit
+awaken
+banish
+awaken
+git status
+git add .
+git commit -m "just minor css stuff from here i hope"
+git push -u origin main
+git status
+npm run neonazoth:tui
+banish
+awaken
+git status
+git add .
+git commit -m "UI updates and hopefully runs better"
+git status
+git push -u origin main
+npm run neonazoth:tui

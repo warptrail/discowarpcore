@@ -14,7 +14,7 @@ export default function ItemDecisionActions({
       : 'Adding…'
     : inDeclutterDeck
       ? 'Remove from deck'
-      : 'Declutter this item';
+      : 'Declutter';
 
   return (
     <S.DecisionGroup aria-label="Item decisions">
@@ -25,16 +25,11 @@ export default function ItemDecisionActions({
         aria-pressed={inDeclutterDeck}
         onClick={onDeclutter}
       >
-        <S.DeclutterCopy>
+        <S.DeclutterCopy aria-label={inDeclutterDeck ? 'In declutter deck' : 'Add to declutter deck'}>
           <S.DeclutterTitle>{declutterTitle}</S.DeclutterTitle>
-          <S.DeclutterHint>
-            {inDeclutterDeck
-              ? 'This item is waiting in your shared deck'
-              : 'Add it to your shared deck'}
-          </S.DeclutterHint>
         </S.DeclutterCopy>
         <S.DeclutterGlyph aria-hidden="true">
-          {inDeclutterDeck ? 'SET' : 'ADD'}
+          {inDeclutterDeck ? 'IN' : '+'}
         </S.DeclutterGlyph>
       </S.DeclutterButton>
 
@@ -49,4 +44,3 @@ export default function ItemDecisionActions({
     </S.DecisionGroup>
   );
 }
-

@@ -9,6 +9,9 @@ export default function BoxDetailActionSection({
   box,
   onItemsChanged,
   onManageBox,
+  headerAction,
+  scopeNote,
+  hideInlineActions = false,
   children,
 }) {
   return (
@@ -20,6 +23,8 @@ export default function BoxDetailActionSection({
             {count} {count === 1 ? 'item' : 'items'}
           </S.SectionCount>
         ) : null}
+        {scopeNote ? <S.SectionNote>{scopeNote}</S.SectionNote> : null}
+        {headerAction}
         {typeof onManageBox === 'function' ? (
           <S.SectionManageButton type="button" onClick={onManageBox} aria-label="Manage box">
             <S.ManageDot $i={0} />
@@ -30,7 +35,7 @@ export default function BoxDetailActionSection({
         ) : null}
         <S.SectionRule aria-hidden="true" />
       </S.SectionHeading>
-      <BoxInlineItemActions box={box} onItemsChanged={onItemsChanged} />
+      {!hideInlineActions ? <BoxInlineItemActions box={box} onItemsChanged={onItemsChanged} /> : null}
       {children}
     </S.DetailActionSection>
   );

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   getBoxTheme,
@@ -8,9 +8,12 @@ import QuickPeekBoxHeader from './QuickPeekBoxHeader';
 import QuickPeekBoxPhotoView from './QuickPeekBoxPhotoView';
 import QuickPeekItemCarousel from './QuickPeekItemCarousel';
 import QuickPeekItemActionPanel from './QuickPeekItemActionPanel';
+import QuickPeekItemNoteModal from './QuickPeekItemNoteModal';
 import QuickPeekItemList from './QuickPeekItemList';
 import QuickPeekNoteModal from './QuickPeekNoteModal';
 import useOperationsQuickPeekItemSelection from './useOperationsQuickPeekItemSelection';
+import useItemDeclutterDeck from '../../hooks/useItemDeclutterDeck';
+import { ToastContext } from '../Toast';
 import {
   OPERATIONS_QUICK_PEEK_SEARCH_STATE_EVENT,
   OPERATIONS_QUICK_PEEK_SEARCH_TOGGLE_EVENT,
@@ -69,8 +72,10 @@ export default function OperationsBoxQuickPeek({
   const [quickSearchOpen, setQuickSearchOpen] = useState(false);
   const [itemQuery, setItemQuery] = useState('');
   const [noteReaderOpen, setNoteReaderOpen] = useState(false);
+  const [itemNoteReaderOpen, setItemNoteReaderOpen] = useState(false);
   const [declutterDeckOverrides, setDeclutterDeckOverrides] = useState({});
   const [itemOverrides, setItemOverrides] = useState({});
+  const { showToast, hideToast } = useContext(ToastContext) || {};
   const boxId = box?.box_id;
   const boxThemeStyle = getBoxThemeCssVars(getBoxTheme(boxId));
   const title = String(box?.label || box?.name || 'Untitled box').trim();
@@ -91,6 +96,9 @@ export default function OperationsBoxQuickPeek({
   const selectedQuickPeekItemId = String(
     selectedQuickPeekItem?._id || selectedQuickPeekItem?.id || '',
   );
+  useEffect(() => {
+    setItemNoteReaderOpen(false);
+  }, [selectedQuickPeekItemId]);
   const selectedQuickPeekItemWithDeckState = useMemo(() => {
     if (!selectedQuickPeekItem) {
       return selectedQuickPeekItem;
@@ -105,6 +113,23 @@ export default function OperationsBoxQuickPeek({
       } : {}),
     };
   }, [declutterDeckOverrides, itemOverrides, selectedQuickPeekItem, selectedQuickPeekItemId]);
+  const handleDeclutterStateChange = useCallback((inDeck) => {
+    if (!selectedQuickPeekItemId) return;
+    setDeclutterDeckOverrides((current) => ({
+      ...current,
+      [selectedQuickPeekItemId]: inDeck,
+    }));
+  }, [selectedQuickPeekItemId]);
+  const {
+    declutterPending,
+    inDeclutterDeck,
+    toggleDeclutterDeck,
+  } = useItemDeclutterDeck({
+    item: selectedQuickPeekItemWithDeckState,
+    showToast,
+    hideToast,
+    onStateChange: handleDeclutterStateChange,
+  });
   const backToItemList = itemSelection.backToItems;
   const itemQueryTerms = useMemo(
     () => [
@@ -369,23 +394,19 @@ export default function OperationsBoxQuickPeek({
         box={box}
         imageUrl={imageUrl}
         description={description}
-        hasNotes={Boolean(notes)}
-        noteReaderOpen={noteReaderOpen}
-        noteButtonRef={notePreviewButtonRef}
-        onOpenNotes={() => setNoteReaderOpen(true)}
+        notePanel={noteReaderOpen ? (
+          <QuickPeekNoteModal
+            box={box}
+            notes={notes}
+            onClose={closeNoteReader}
+          />
+        ) : null}
         itemActionPanel={selectedQuickPeekItem ? (
           <QuickPeekItemActionPanel
             item={selectedQuickPeekItemWithDeckState}
             position={itemSelection.selectedIndex + 1}
             total={itemSelection.totalItems}
             onBack={backToItemList}
-            onDeclutterStateChange={(inDeck) => {
-              if (!selectedQuickPeekItemId) return;
-              setDeclutterDeckOverrides((current) => ({
-                ...current,
-                [selectedQuickPeekItemId]: inDeck,
-              }));
-            }}
             onItemUpdated={(updatedItem) => {
               const updatedItemId = String(updatedItem?._id || updatedItem?.id || selectedQuickPeekItemId);
               if (!updatedItemId) return;
@@ -394,6 +415,18 @@ export default function OperationsBoxQuickPeek({
                 [updatedItemId]: updatedItem,
               }));
             }}
+            declutterPending={declutterPending}
+            inDeclutterDeck={inDeclutterDeck}
+            onToggleDeclutterDeck={toggleDeclutterDeck}
+            onOpenFullItem={itemSelection.openFullItem}
+            notePanel={itemNoteReaderOpen ? (
+              <QuickPeekItemNoteModal
+                item={selectedQuickPeekItemWithDeckState}
+                notes={String(selectedQuickPeekItemWithDeckState?.notes || '').trim()}
+                onClose={() => setItemNoteReaderOpen(false)}
+              />
+            ) : null}
+            includeDeck={false}
           />
         ) : null}
         position={position}
@@ -444,6 +477,10 @@ export default function OperationsBoxQuickPeek({
             canSelectNext={itemSelection.canSelectNext}
             onPrevious={itemSelection.selectPrevious}
             onNext={itemSelection.selectNext}
+            inDeclutterDeck={inDeclutterDeck}
+            declutterPending={declutterPending}
+            onToggleDeclutterDeck={toggleDeclutterDeck}
+            onOpenNotes={() => setItemNoteReaderOpen(true)}
           />
         ) : (
           <>
@@ -494,32 +531,33 @@ export default function OperationsBoxQuickPeek({
         )}
       </S.DeckContent>
 
-      <S.OpenFullBoxButton
-        type="button"
-        $expanded={expanded}
-        onClick={
-          itemSelection.selectedItem
-            ? itemSelection.openFullItem
-            : onOpenFullBox
-        }
-      >
-        {itemSelection.selectedItem ? 'Open full item' : 'Open full box'}
-        <S.OpenFullBoxIcon
-          aria-hidden="true"
-          viewBox="0 0 20 20"
-          focusable="false"
-        >
-          <path d="M6 14 14 6" />
-          <path d="M8 6h6v6" />
-        </S.OpenFullBoxIcon>
-      </S.OpenFullBoxButton>
-      {noteReaderOpen ? (
-        <QuickPeekNoteModal
-          box={box}
-          notes={notes}
-          onClose={closeNoteReader}
-          themeStyle={boxThemeStyle}
-        />
+      {!itemSelection.selectedItem ? (
+        <S.BoxFooterActions $expanded={expanded} $withNotes={Boolean(notes)}>
+          <S.OpenFullBoxButton type="button" onClick={onOpenFullBox}>
+            Open full box
+            <S.OpenFullBoxIcon
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              focusable="false"
+            >
+              <path d="M6 14 14 6" />
+              <path d="M8 6h6v6" />
+            </S.OpenFullBoxIcon>
+          </S.OpenFullBoxButton>
+          {notes ? (
+            <S.BoxNotesFooterButton
+              ref={notePreviewButtonRef}
+              type="button"
+              aria-haspopup="dialog"
+              aria-expanded={noteReaderOpen}
+              aria-label="Open box notes"
+              title="Box notes"
+              onClick={() => setNoteReaderOpen(true)}
+            >
+              N
+            </S.BoxNotesFooterButton>
+          ) : null}
+        </S.BoxFooterActions>
       ) : null}
     </S.Deck>,
     document.body,

@@ -632,26 +632,21 @@ const MobileMenuToggle = styled.button`
     min-width: ${MOBILE_CONTROL_MIN_HEIGHT};
     min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     padding: 0;
-    border-radius: 8px;
-    border: 1px solid rgba(0, 255, 200, 0.26);
-    background: ${({ $open }) =>
-      $open ? 'rgba(0, 255, 200, 0.18)' : 'rgba(20, 34, 46, 0.92)'};
+    border-radius: 0;
+    border: 0;
+    background: transparent;
     color: rgba(240, 245, 250, 0.96);
-    box-shadow:
-      0 0 0 1px rgba(0, 255, 200, 0.1),
-      0 0 0 2px rgba(0, 255, 200, 0.05);
+    box-shadow: none;
     appearance: none;
     cursor: pointer;
     transition:
-      background 180ms ease,
-      box-shadow 180ms ease,
+      color 180ms ease,
       transform 120ms ease;
 
     &:hover {
-      background: rgba(0, 255, 200, 0.2);
-      box-shadow:
-        0 0 0 1px rgba(0, 255, 200, 0.18),
-        0 0 14px rgba(0, 255, 200, 0.2);
+      background: transparent;
+      box-shadow: none;
+      color: rgba(161, 246, 255, 1);
     }
 
     &:active {
@@ -873,8 +868,6 @@ const navControlStyles = css`
 
   color: rgba(240, 240, 240, 0.95);
   background:
-    radial-gradient(circle at 16% 18%, rgba(108, 162, 255, 0.24) 0 1px, transparent 1.6px),
-    radial-gradient(circle at 76% 70%, rgba(161, 246, 255, 0.38) 0 1px, transparent 1.7px),
     linear-gradient(135deg, rgba(20, 31, 66, 0.96), rgba(10, 35, 54, 0.94) 52%, rgba(37, 17, 66, 0.94));
   border: 1px solid rgba(97, 221, 255, 0.3);
   box-shadow:
@@ -889,8 +882,6 @@ const navControlStyles = css`
 
   &:hover {
     background:
-      radial-gradient(circle at 16% 18%, rgba(184, 222, 255, 0.42) 0 1px, transparent 1.6px),
-      radial-gradient(circle at 76% 70%, rgba(161, 246, 255, 0.52) 0 1px, transparent 1.7px),
       linear-gradient(135deg, rgba(34, 57, 112, 0.98), rgba(11, 58, 76, 0.96) 52%, rgba(66, 28, 102, 0.96));
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.14),

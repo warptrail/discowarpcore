@@ -161,6 +161,7 @@ export const Deck = styled.aside`
 export const DeckCap = styled.header`
   position: relative;
   isolation: isolate;
+  z-index: 8;
   overflow: visible;
   padding: ${({ $expanded }) =>
     $expanded ? '0.55rem 0.18rem 0.42rem' : '0 0.18rem'};
@@ -322,12 +323,12 @@ export const CapNavigation = styled.div`
 export const CollapseEdgeButton = styled.button`
   position: absolute;
   z-index: 6;
-  bottom: -22px;
+  top: calc(100% - 1px);
   left: 50%;
   display: grid;
   place-items: center;
   width: 6.5rem;
-  height: 44px;
+  height: 30px;
   padding: 0;
   border: 0;
   color: ${({ $itemFocused }) => (
@@ -552,23 +553,24 @@ export const PositionReadout = styled.span`
 export const DeckContent = styled.div`
   min-height: 0;
   overflow-x: hidden;
-  overflow-y: ${({ $itemFocused, $photoFocused }) =>
-    $itemFocused || $photoFocused ? 'hidden' : 'auto'};
+  overflow-y: ${({ $expanded, $itemFocused, $photoFocused }) =>
+    $itemFocused && !$expanded
+      ? 'auto'
+      : $itemFocused || $photoFocused
+        ? 'hidden'
+        : 'auto'};
   overscroll-behavior: contain;
   padding: ${({ $itemFocused, $photoFocused, $expanded }) =>
     $photoFocused
       ? `0.45rem 0.6rem ${$expanded ? '4.65rem' : '4.25rem'}`
       : $itemFocused
-      ? `0.45rem 0.72rem ${$expanded ? '4.65rem' : '4.25rem'}`
+      ? '0.45rem 0.72rem 0.25rem'
       : `0.55rem 0.78rem ${$expanded ? '5.2rem' : 'calc(5.2rem + var(--quick-peek-collapsed-shift))'}`};
-  ${({ $itemFocused, $photoFocused, $expanded }) =>
+  ${({ $itemFocused, $photoFocused }) =>
     ($itemFocused || $photoFocused) &&
     css`
-      block-size: calc(
-        ${$expanded
-          ? 'var(--quick-peek-expanded-height)'
-          : 'var(--quick-peek-collapsed-height)'} - 3.15rem
-      );
+      height: auto;
+      block-size: auto;
     `}
   animation: ${({ $direction }) =>
     $direction > 0
@@ -579,7 +581,22 @@ export const DeckContent = styled.div`
 
   @media (min-width: 768px) {
     block-size: auto;
-    height: 100%;
+    height: auto;
+  }
+
+  @media (max-width: 767px) {
+    ${({ $expanded, $itemFocused }) =>
+      $itemFocused && !$expanded &&
+      css`
+        max-height: calc(
+          var(--quick-peek-expanded-height) -
+          var(--quick-peek-collapsed-shift) -
+          3.15rem
+        );
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(${COLORS.accentRgb}, 0.4) transparent;
+      `}
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1126,6 +1143,11 @@ export const ItemCarouselCard = styled.div`
     grid-template-columns: minmax(250px, 0.9fr) minmax(0, 1.1fr);
     grid-template-rows: minmax(0, 1fr);
   }
+
+  @media (max-width: 767px) {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
 `;
 
 export const ItemCarouselMedia = styled.div`
@@ -1309,15 +1331,31 @@ export const ItemCarouselActionRail = styled.div`
 `;
 
 export const ItemHeaderActionPanel = styled.div`
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(6, 46px);
+  grid-template-columns: repeat(3, max-content);
   gap: 0.22rem;
   align-items: center;
   justify-content: center;
   min-width: 0;
 
+  ${({ $positionOnly }) => $positionOnly && css`
+    grid-template-columns: 46px;
+  `}
+
+  ${({ $body }) => $body && css`
+    display: contents;
+    position: static;
+
+    button {
+      width: 100%;
+      min-width: 0;
+      font-size: 0.48rem;
+    }
+  `}
+
   @media (max-width: 460px) {
-    grid-template-columns: repeat(6, 42px);
+    grid-template-columns: ${({ $positionOnly }) => ($positionOnly ? '42px' : 'repeat(3, max-content)')};
 
     button {
       width: 42px;
@@ -1395,6 +1433,142 @@ export const ItemCarouselActionButton = styled.button`
   }
 `;
 
+export const ItemActionsToggle = styled(ItemCarouselActionButton)`
+  && {
+    width: 42px;
+  }
+
+  @media (max-width: 460px) {
+    && {
+      width: 42px;
+    }
+  }
+`;
+
+export const ActionMenuIcon = styled.svg`
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.35;
+  stroke-linecap: round;
+`;
+
+export const ItemHeaderOpenFullButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  width: 42px;
+  height: 30px;
+  padding: 0 0.28rem;
+  border: 1px solid rgba(${COLORS.secondaryRgb}, 0.58);
+  border-radius: 5px;
+  color: ${COLORS.text};
+  background:
+    linear-gradient(90deg, rgba(${COLORS.accentRgb}, 0.16), rgba(${COLORS.secondaryRgb}, 0.12)),
+    rgba(9, 14, 20, 0.78);
+  font: 900 0.48rem/1 inherit;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  &:hover,
+  &:focus-visible {
+    border-color: ${COLORS.accent};
+    outline: none;
+    box-shadow: 0 0 12px rgba(${COLORS.accentRgb}, 0.2);
+  }
+`;
+
+export const ItemActionPopover = styled.div`
+  position: absolute;
+  z-index: 12;
+  top: calc(100% + 0.42rem);
+  left: 50%;
+  display: grid;
+  grid-template-columns: repeat(4, 46px);
+  gap: 0.24rem;
+  padding: 0.38rem;
+  border: 1px solid rgba(${COLORS.accentRgb}, 0.48);
+  border-radius: 7px;
+  background:
+    linear-gradient(135deg, rgba(${COLORS.accentRgb}, 0.14), transparent 62%),
+    rgba(6, 11, 17, 0.98);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.54),
+    0 0 18px rgba(${COLORS.accentRgb}, 0.18);
+  transform: translateX(-50%);
+
+  &::before {
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    width: 9px;
+    height: 9px;
+    border-top: 1px solid rgba(${COLORS.accentRgb}, 0.48);
+    border-left: 1px solid rgba(${COLORS.accentRgb}, 0.48);
+    background: rgba(8, 14, 20, 0.98);
+    content: '';
+    transform: translateX(-50%) rotate(45deg);
+  }
+
+  @media (max-width: 460px) {
+    grid-template-columns: repeat(4, 42px);
+  }
+`;
+
+export const ItemNoteSheet = styled.section`
+  position: absolute;
+  z-index: 14;
+  top: calc(100% + 0.42rem);
+  left: 50%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.35rem;
+  width: min(360px, calc(100vw - 1rem));
+  max-height: min(58dvh, 430px);
+  padding: 0.42rem;
+  overflow-y: auto;
+  border: 1px solid rgba(${COLORS.accentRgb}, 0.5);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(${COLORS.accentRgb}, 0.12), transparent 62%),
+    rgba(5, 10, 16, 0.98);
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.6),
+    0 0 22px rgba(${COLORS.accentRgb}, 0.2);
+  transform: translateX(-50%);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(${COLORS.accentRgb}, 0.44) transparent;
+
+  ${NoteFocusToolbar} {
+    min-height: 32px;
+  }
+
+  ${NoteItemsReturn} {
+    min-height: 30px;
+    padding: 0 0.52rem;
+    border-radius: 5px 8px 5px 5px;
+    font-size: 0.52rem;
+  }
+
+  ${NotePaper} {
+    width: 100%;
+    min-height: 190px;
+    padding: 0.78rem 0.72rem 0.68rem 1.08rem;
+  }
+
+  @media (max-width: 460px) {
+    width: calc(100vw - 0.8rem);
+  }
+`;
+
 export const ItemDeckIcon = styled.svg`
   width: 17px;
   height: 17px;
@@ -1445,6 +1619,21 @@ export const ItemCarouselBody = styled.div`
     padding: 1.05rem 1.1rem;
     border-top: 0;
     background: rgba(7, 12, 18, 0.78);
+  }
+
+  @media (max-width: 767px) {
+    position: static;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    pointer-events: auto;
+    padding: 0.62rem 0.72rem 0.28rem;
+    background:
+      linear-gradient(90deg, rgba(${COLORS.accentRgb}, 0.055), transparent 46%),
+      rgba(7, 12, 18, 0.96);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(${COLORS.accentRgb}, 0.4) transparent;
+    scroll-padding-bottom: 2.25rem;
   }
 `;
 
@@ -1563,6 +1752,94 @@ export const ItemCarouselDetail = styled.div`
   }
 `;
 
+export const ItemCarouselAnnotationLine = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  min-width: 0;
+`;
+
+export const ItemCarouselDescription = styled.p`
+  cursor: help;
+
+  @media (max-width: 767px) {
+    -webkit-line-clamp: 2;
+  }
+`;
+
+export const ItemCarouselNoteButton = styled.button`
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(220, 143, 255, 0.72);
+  border-radius: 4px;
+  color: #e8b5ff;
+  background: rgba(76, 37, 104, 0.76);
+  font: 900 0.62rem ui-monospace, monospace;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    border-color: #f0caff;
+    color: ${COLORS.text};
+    outline: none;
+    box-shadow: 0 0 12px rgba(220, 143, 255, 0.24);
+  }
+`;
+
+export const ItemCarouselCategoryLine = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+`;
+
+export const ItemCarouselCategoryValue = styled.p`
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: rgba(230, 237, 243, 0.8);
+  font-size: 0.7rem;
+  line-height: 1.32;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+export const ItemCarouselDeckButton = styled.button`
+  flex: 0 0 auto;
+  margin-left: auto;
+  min-height: 24px;
+  padding: 0.1rem 0.42rem;
+  border: 1px solid ${({ $active }) => (
+    $active ? 'rgba(240, 138, 123, 0.88)' : `rgba(${COLORS.accentRgb}, 0.44)`
+  )};
+  border-radius: 4px;
+  color: ${({ $active }) => ($active ? '#ff9d91' : `rgba(${COLORS.accentRgb}, 0.92)`)};
+  background: ${({ $active }) => (
+    $active ? 'rgba(118, 39, 35, 0.76)' : 'rgba(5, 10, 15, 0.72)'
+  )};
+  font: 900 0.56rem ui-monospace, monospace;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    border-color: rgba(${COLORS.accentRgb}, 0.84);
+    color: ${COLORS.text};
+    outline: none;
+  }
+
+  &:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+  }
+`;
+
 export const ItemCarouselTags = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -1635,11 +1912,32 @@ export const NestedBoxList = styled.ul`
   }
 `;
 
-export const OpenFullBoxButton = styled.button`
+export const BoxFooterActions = styled.div`
   position: absolute;
   right: 0.72rem;
   bottom: max(0.52rem, env(safe-area-inset-bottom));
   left: 0.6rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) ${({ $withNotes }) => ($withNotes ? '36px' : '1fr')};
+  gap: 0.28rem;
+  transform: translateY(
+    ${({ $expanded }) =>
+      $expanded ? '0' : 'calc(-1 * var(--quick-peek-collapsed-shift))'}
+  );
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  @media (min-width: 768px) {
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+export const OpenFullBoxButton = styled.button`
+  position: relative;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1663,12 +1961,7 @@ export const OpenFullBoxButton = styled.button`
   text-transform: uppercase;
   cursor: pointer;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.42);
-  transform: translateY(
-    ${({ $expanded }) =>
-      $expanded ? '0' : 'calc(-1 * var(--quick-peek-collapsed-shift))'}
-  );
   transition:
-    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
     border-color 160ms ease,
     box-shadow 160ms ease;
 
@@ -1681,12 +1974,29 @@ export const OpenFullBoxButton = styled.button`
       0 0 16px rgba(${COLORS.accentRgb}, 0.2);
   }
 
-  @media (min-width: 768px) {
-    transform: none;
-  }
+`;
 
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
+export const BoxNotesFooterButton = styled.button`
+  display: grid;
+  place-items: center;
+  width: 36px;
+  min-height: 36px;
+  padding: 0;
+  border: 1px solid rgba(${COLORS.accentRgb}, 0.62);
+  border-radius: 7px;
+  color: ${COLORS.text};
+  background: rgba(9, 14, 20, 0.72);
+  font: 900 0.64rem/1 ui-monospace, monospace;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.34);
+
+  &:hover,
+  &:focus-visible {
+    border-color: ${COLORS.accent};
+    outline: none;
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.42),
+      0 0 16px rgba(${COLORS.accentRgb}, 0.2);
   }
 `;
 

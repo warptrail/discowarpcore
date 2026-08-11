@@ -36,5 +36,15 @@
     "type": "health-transition",
     "serviceId": "backend",
     "message": "unknown -> healthy: HTTP 200 from /api/health."
+  },
+  {
+    "id": "ef91f10e-c3f8-42b6-bf46-54030da324c8",
+    "at": "2026-08-10T01:45:09.233Z",
+    "type": "unexpected-exit",
+    "serviceId": "frontend",
+    "message": "Exited unexpectedly (143).",
+    "code": 143,
+    "signal": null,
+    "runId": "frontend-1786139348837-a9951cb6"
   }
 ]

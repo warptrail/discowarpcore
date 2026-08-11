@@ -16,6 +16,10 @@ export default function ItemsFlatList({
   refreshBox,
   onItemSaved,
   triggerFlash,
+  selectionMode = false,
+  selectedItemIds,
+  onSelectionChange,
+  showBoxContext = false,
 }) {
   const list = Array.isArray(items) ? items : [];
   return (
@@ -40,7 +44,10 @@ export default function ItemsFlatList({
               item={it}
               isOpen={isOpen}
               onOpen={() => onOpenItem?.(id)}
-              showFlatBoxContext
+              selectionMode={selectionMode}
+              selected={selectedItemIds?.has?.(id)}
+              onSelectionChange={onSelectionChange}
+              showBoxContext={showBoxContext}
               accent={accent}
               pulsing={isPulsing}
               onTogglePulse={() => onTogglePulse?.(it._id)}

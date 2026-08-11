@@ -29,7 +29,7 @@ export const SheetBackdrop = styled.div`
 export const Sheet = styled.section`
   width: min(100%, 40rem);
   max-height: min(88dvh, 46rem);
-  overflow: auto;
+  overflow: hidden;
   border: 1px solid rgba(127, 215, 255, 0.42);
   border-radius: 8px 4px 8px 4px;
   background:
@@ -88,6 +88,8 @@ export const SheetClose = styled.button`
 
 export const NotePaper = styled.div`
   min-height: 12rem;
+  max-height: calc(min(88dvh, 46rem) - 5rem);
+  overflow-y: auto;
   padding: 1.2rem 1rem 1.4rem;
   color: #d8e6f1;
   white-space: pre-wrap;
@@ -97,4 +99,8 @@ export const NotePaper = styled.div`
     linear-gradient(90deg, transparent 0 1rem, rgba(255, 125, 189, 0.13) 1rem 1.08rem, transparent 1.08rem),
     repeating-linear-gradient(180deg, transparent 0 1.7rem, rgba(127, 215, 255, 0.11) 1.7rem 1.76rem);
   padding-left: 2rem;
+
+  @media (max-width: 560px) {
+    max-height: calc(min(82dvh, 42rem) - 5rem);
+  }
 `;

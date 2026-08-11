@@ -12,6 +12,7 @@ import { getItemOwnershipContext } from '../util/itemOwnership';
 import OperationsItemOverview from './OperationsItemOverview';
 import RetrievalImageLightbox from './Retrieval/RetrievalImageLightbox';
 import { getItemPreviewImageUrl } from '../util/itemImage';
+import { editItem } from '../api/editItem';
 
 function fmtDate(value) {
   return value ? dayjs(value).format('YYYY-MM-DD') : '—';
@@ -168,6 +169,7 @@ export default function ItemDetails({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [localEdits, setLocalEdits] = useState(null);
   const hasProvidedData =
     !!providedItemData && typeof providedItemData === 'object';
   const providedHasContainmentSnapshot =
@@ -215,9 +217,22 @@ export default function ItemDetails({
     return () => cancel();
   }, [hasProvidedData, itemId, shouldFetch]);
 
+  useEffect(() => {
+    setLocalEdits(null);
+  }, [itemId]);
+
   const resolvedItemData = hasProvidedData
-    ? { ...(itemData || {}), ...providedItemData }
-    : itemData;
+    ? { ...(itemData || {}), ...providedItemData, ...(localEdits || {}) }
+    : { ...(itemData || {}), ...(localEdits || {}) };
+
+  const handleDossierAttributeSave = async (changes) => {
+    const updated = await editItem(itemId, changes);
+    const nextItem = { ...changes, ...(updated || {}) };
+    setLocalEdits((current) => ({ ...(current || {}), ...nextItem }));
+    setItemData((current) => ({ ...(current || {}), ...nextItem }));
+    operationsActions?.onDossierSaved?.(updated || nextItem);
+    return updated || nextItem;
+  };
 
   useEffect(() => {
     if (!lightboxOpen) return undefined;
@@ -275,6 +290,7 @@ export default function ItemDetails({
     lastMaintainedAt,
     maintenanceIntervalDays,
     maintenanceNotes,
+    isIntendedGift,
     sourceBatchId,
     sourceBatch,
     box: apiBox,
@@ -355,6 +371,7 @@ export default function ItemDetails({
 
       {isOperationsOverview ? (
         <OperationsItemOverview
+          itemId={resolvedItemData?._id || itemId}
           itemName={resolvedItemData?.name}
           thumbnailUrl={resolvedImageUrl}
           canOpenImageLightbox={canOpenLightbox}
@@ -367,22 +384,32 @@ export default function ItemDetails({
           boxGroup={placementBoxGroup}
           breadcrumbTrail={breadcrumbTrail}
           keepPriorityLabel={keepPriorityLabel}
+          keepPriority={keepPriority}
           keepPriorityTone={keepPriorityToneValue}
           primaryOwnerName={primaryOwnerName}
           condition={condition}
           isConsumable={isConsumable}
           valueLabel={valueLabel}
+          valueCents={valueCents}
           purchasePriceLabel={purchasePriceLabel}
+          purchasePriceCents={purchasePriceCents}
           quantity={quantity}
           statusLabel={statusLabel}
           acquisitionType={acquisitionType}
           dateAcquiredLabel={fmtDate(dateAcquired)}
+          dateAcquired={dateAcquired}
           sourceBatchLabel={sourceBatchSummary}
           topBoxLabel={topBoxSummary}
+          isIntendedGift={isIntendedGift}
+          maintenanceIntervalDays={maintenanceIntervalDays}
           maintenanceNotes={maintenanceNotes}
           description={description}
           notes={notes}
           externalLinks={externalLinks}
+          onSaveNotes={(notesValue) => handleDossierAttributeSave({ notes: notesValue })}
+          onSaveDescription={(descriptionValue) => handleDossierAttributeSave({ description: descriptionValue })}
+          onSaveReferences={(linksValue) => handleDossierAttributeSave({ links: linksValue })}
+          onSaveField={handleDossierAttributeSave}
           inDeclutterDeck={Boolean(operationsActions?.inDeclutterDeck)}
           declutterPending={Boolean(operationsActions?.declutterPending)}
           onDeclutter={operationsActions?.onDeclutter}

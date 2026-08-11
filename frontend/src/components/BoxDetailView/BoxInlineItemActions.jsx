@@ -66,6 +66,7 @@ export default function BoxInlineItemActions({
 
   return (
     <S.InlineActionsArea $compact={compact}>
+      <S.InlineActionsLabel>Item actions</S.InlineActionsLabel>
       <S.InlineActionsRow $compact={compact}>
         <S.InlineActionButton $compact={compact}
           type="button"
@@ -80,7 +81,6 @@ export default function BoxInlineItemActions({
 
         <S.InlineActionButton $compact={compact}
           type="button"
-          $tone="assign"
           $active={activePanel === 'assign'}
           onClick={() => handleToggle('assign')}
           disabled={!selectedBox?._id}

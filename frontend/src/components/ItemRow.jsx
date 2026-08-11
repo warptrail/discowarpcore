@@ -12,7 +12,6 @@ import ItemDetails from './ItemDetails';
 import EditItemDetailsForm from './EditItemDetailsForm';
 import MoveItemToOtherBox from './MoveItemToOtherBox';
 import { moveBoxedItem, orphanBoxedItem } from '../api/boxedItems';
-import useIsMobile from '../hooks/useIsMobile';
 import { API_BASE } from '../api/API_BASE';
 import { editItem } from '../api/editItem';
 import { ToastContext } from './Toast';
@@ -46,20 +45,23 @@ export default function ItemRow({
   flashColor = 'blue',
   triggerFlash,
   refreshBox,
+  selectionMode = false,
+  selected = false,
+  onSelectionChange,
+  showBoxContext = false,
 }) {
-  const isMobile = useIsMobile(768);
+  const rowRef = useRef(null);
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
   const hideToast = toastCtx?.hideToast;
   const {
     _id,
     name,
-    tags = [],
     description,
   } = item;
   const hasQuantity =
     item?.quantity !== null && item?.quantity !== undefined && item?.quantity !== '';
-  const quantityLabel = hasQuantity ? `Qty ${item.quantity}` : '';
+  const quantityLabel = hasQuantity ? `×${item.quantity}` : '';
   const ownership = getItemOwnershipContext(item);
   const sourceBoxMongoId = String(
     ownership?.boxMongoId ||
@@ -68,28 +70,8 @@ export default function ItemRow({
       item?.parentBox ||
       ''
   ).trim();
-  const collapsedTagLimit = isMobile ? 3 : 4;
-  const normalizedTags = Array.isArray(tags)
-    ? tags
-        .map((tag) => String(tag || '').trim())
-        .filter(Boolean)
-    : [];
-  const visibleCollapsedTags = normalizedTags.slice(0, collapsedTagLimit);
-  const hiddenCollapsedTagCount = Math.max(
-    0,
-    normalizedTags.length - visibleCollapsedTags.length
-  );
   const collapsedDescription = String(description || '').trim();
   const hasCollapsedDescription = collapsedDescription.length > 0;
-  const hasCollapsedTags = visibleCollapsedTags.length > 0;
-  const showCollapsedTags = !isMobile && hasCollapsedTags;
-  const showCollapsedDescription = !isMobile && hasCollapsedDescription;
-  const showCollapsedFallback =
-    !isMobile && !showCollapsedTags && !showCollapsedDescription;
-  const showMobileCollapsedDescription = isMobile && hasCollapsedDescription;
-  const hasCollapsedQuickContent = isMobile
-    ? showMobileCollapsedDescription
-    : showCollapsedTags || showCollapsedDescription || showCollapsedFallback;
   const [localImage, setLocalImage] = useState(item?.image || null);
   const [localImagePath, setLocalImagePath] = useState(item?.imagePath || '');
   const [expandedMode, setExpandedMode] = useState('overview');
@@ -131,10 +113,12 @@ export default function ItemRow({
   const itemColorTheme = useMemo(
     () =>
       getItemTheme(ownership.boxId, _id, {
-        selected: rowIsOpen,
-        varied: true,
+        // Sibling variation stays inside the owning box's palette; item identity
+        // must not introduce a competing hue into a box workspace.
+        selected: true,
+        varied: false,
       }),
-    [_id, ownership.boxId, rowIsOpen],
+    [_id, ownership.boxId],
   );
   const itemThemeStyle = useMemo(
     () => getItemThemeCssVars(itemColorTheme),
@@ -288,10 +272,27 @@ export default function ItemRow({
   }, [rowIsOpen]);
 
   useEffect(() => {
+    if (!rowIsOpen || selectionMode) return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      const row = rowRef.current;
+      if (!row) return;
+      const header = document.querySelector('#root header');
+      const headerHeight = header?.getBoundingClientRect().height || 0;
+      const top = Math.max(0, window.scrollY + row.getBoundingClientRect().top - headerHeight - 8);
+      window.scrollTo({ top, behavior: 'smooth' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [rowIsOpen, selectionMode]);
+
+  useEffect(() => {
     setExpandedMode('overview');
   }, [_id]);
 
   const handleRowClick = () => {
+    if (selectionMode) {
+      onSelectionChange?.(String(_id || ''), !selected);
+      return;
+    }
     if (!_id) return;
     if (!rowIsOpen) {
       setExpandedMode('overview');
@@ -653,11 +654,14 @@ export default function ItemRow({
     [_id, isInDeclutterDeck, runDeclutterChange, showDeclutterSuccess, showToast]
   );
 
+  const presentationOpen = selectionMode ? false : rowIsOpen;
+
   return (
     <S.Wrapper
+      ref={rowRef}
       style={itemThemeStyle}
       $accent={accent}
-      $open={rowIsOpen}
+      $open={presentationOpen}
       $pulsing={pulsing}
       $flashing={flashing}
       $flashColor={flashColor}
@@ -667,35 +671,43 @@ export default function ItemRow({
         <S.Row
           type="button"
           onClick={handleRowClick}
-          $open={rowIsOpen}
-          aria-expanded={rowIsOpen}
+          $open={presentationOpen}
+          aria-expanded={selectionMode ? undefined : presentationOpen}
           aria-controls={`item-dossier-${_id}`}
           aria-label={
-            rowIsOpen
+            selectionMode
+              ? `${selected ? 'Deselect' : 'Select'} ${name || 'item'}`
+              : presentationOpen
               ? `Roll up ${name || 'item'} item dossier`
               : `Open ${name || 'item'} item dossier`
           }
+          aria-pressed={selectionMode ? selected : undefined}
         >
-          <S.RowHeader $open={rowIsOpen} $hasItemLink={rowIsOpen}>
-            <S.RowMain $showThumb={!rowIsOpen}>
-              {!rowIsOpen && (
+          <S.RowHeader $open={presentationOpen} $hasItemLink={presentationOpen}>
+            {selectionMode ? <S.RowSelectionState aria-hidden="true" $selected={selected}>{selected ? '✓' : ''}</S.RowSelectionState> : null}
+            <S.RowMain $showThumb={!presentationOpen}>
+              {!presentationOpen && (
                 <S.RowThumb>
                   {collapsedThumbUrl ? (
                     <S.RowThumbImage src={collapsedThumbUrl} alt={`${name || 'Item'} thumbnail`} />
                   ) : (
                     <S.RowThumbPlaceholder aria-hidden="true" />
                   )}
+                  {quantityLabel ? <S.ThumbnailQuantity>{quantityLabel}</S.ThumbnailQuantity> : null}
                 </S.RowThumb>
               )}
 
-              <S.TitleGroup $mobileCollapsed={!rowIsOpen}>
-                <S.Title $mobileCollapsed={!rowIsOpen} $expanded={rowIsOpen}>
+              <S.TitleGroup $mobileCollapsed={!presentationOpen}>
+                <S.Title $mobileCollapsed={!presentationOpen} $expanded={presentationOpen}>
                   {name}
                 </S.Title>
-                {quantityLabel ? (
-                  <S.QuantitySubtext>{quantityLabel}</S.QuantitySubtext>
+                {showBoxContext && !presentationOpen ? (
+                  <S.RowBoxContext>#{ownership?.boxId || '???'} {ownership?.boxLabel || 'Box'}</S.RowBoxContext>
                 ) : null}
-                {rowIsOpen && isInDeclutterDeck ? (
+                {!presentationOpen && hasCollapsedDescription ? (
+                  <S.RowInlineDescription>{collapsedDescription}</S.RowInlineDescription>
+                ) : null}
+                {presentationOpen && isInDeclutterDeck ? (
                   <S.RowDeckState>In Declutter Deck</S.RowDeckState>
                 ) : null}
                 {isMarkedForDestruction ? (
@@ -706,61 +718,16 @@ export default function ItemRow({
               </S.TitleGroup>
             </S.RowMain>
 
-            {rowIsOpen ? (
-              <S.RowCapCommand aria-hidden="true">
-                <span>Roll up</span>
-                <S.RowCapSignal>
-                  <i />
-                  <i />
-                  <i />
-                </S.RowCapSignal>
-              </S.RowCapCommand>
-            ) : (
+            {!presentationOpen ? (
               <S.RowChevron aria-hidden="true" $open={false}>
                 ▾
               </S.RowChevron>
-            )}
+            ) : null}
           </S.RowHeader>
 
-          {!rowIsOpen && hasCollapsedQuickContent ? (
-            <S.QuickView $collapsed={false}>
-              {isMobile ? (
-                <S.QuickMetaRow>
-                  <S.QuickSummaryDescription>
-                    {collapsedDescription}
-                  </S.QuickSummaryDescription>
-                </S.QuickMetaRow>
-              ) : (
-                <S.QuickDesktopStack>
-                  {showCollapsedTags ? (
-                    <S.QuickTagLane>
-                      {visibleCollapsedTags.map((tag) => (
-                        <S.QuickTag key={tag}>{tag}</S.QuickTag>
-                      ))}
-                      {hiddenCollapsedTagCount > 0 ? (
-                        <S.QuickTagOverflow>
-                          +{hiddenCollapsedTagCount}
-                        </S.QuickTagOverflow>
-                      ) : null}
-                    </S.QuickTagLane>
-                  ) : null}
-
-                  {showCollapsedDescription ? (
-                    <S.QuickSummaryDescription>
-                      {collapsedDescription}
-                    </S.QuickSummaryDescription>
-                  ) : null}
-
-                  {showCollapsedFallback ? (
-                    <S.QuickSummaryFallback>No details</S.QuickSummaryFallback>
-                  ) : null}
-                </S.QuickDesktopStack>
-              )}
-            </S.QuickView>
-          ) : null}
         </S.Row>
 
-        {rowIsOpen && _id ? (
+        {presentationOpen && _id ? (
           <S.ItemHomeLink
             href={`/items/${encodeURIComponent(_id)}`}
             target="_blank"
@@ -775,7 +742,7 @@ export default function ItemRow({
 
       <S.Collapse
         id={`item-dossier-${_id}`}
-        $open={rowIsOpen}
+        $open={presentationOpen}
         $collapseDurMs={collapseDurMs}
       >
         <div>
@@ -815,6 +782,7 @@ export default function ItemRow({
                   consumablePending,
                   onConsumableToggle: handleConsumableToggle,
                   activityActions: timestampActions,
+                  onDossierSaved: handleInlineEditSaved,
                 }}
                 imageUrlOverride={processedPreviewUrl}
                 imageRefreshToken={imageRefreshToken}
@@ -824,7 +792,7 @@ export default function ItemRow({
         </div>
       </S.Collapse>
 
-      {rowIsOpen && expandedMode === 'edit' ? (
+      {presentationOpen && expandedMode === 'edit' ? (
         <ObsidianPrismSheet
           eyebrow="Edit item"
           title={name || '(Unnamed Item)'}

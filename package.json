@@ -63,9 +63,13 @@
     "tarot:storm": "python3 scripts/tarot-terminal-storm.py",
     "tarot:install": "node scripts/tarot-install.mjs . --reconfigure",
     "tarot:doctor": "node scripts/tarot-dock.mjs doctor",
-    "tarot:report": "node scripts/tarot-dock.mjs report"
+    "tarot:report": "node scripts/tarot-dock.mjs report",
+    "mcp:inventory": "node mcp/inventoryServer.mjs",
+    "mcp:inventory:ssh": "scripts/inventory-mcp-ssh.sh",
+    "test:mcp": "node --test test/mcp/*.test.mjs"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dayjs": "^1.11.18",
@@ -75,7 +79,8 @@
     "multer": "^1.4.5-lts.1",
     "puppeteer": "^24.31.0",
     "qrcode": "^1.5.4",
-    "sharp": "^0.33.5"
+    "sharp": "^0.33.5",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

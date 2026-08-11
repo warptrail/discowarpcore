@@ -52,6 +52,33 @@ export const SectionCount = styled.span`
   white-space: nowrap;
 `;
 
+export const SectionNote = styled.span`
+  color: rgba(174, 197, 208, 0.48);
+  font: 700 0.58rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+`;
+
+export const SectionActionButton = styled.button`
+  flex: 0 0 auto; min-height: 28px; border: 1px solid rgba(var(--box-primary-rgb, 76, 198, 193), 0.58); border-radius: 7px;
+  background: rgba(25, 73, 76, 0.24); color: rgba(207, 249, 247, 0.92); padding: 0.3rem 0.52rem;
+  font: 800 0.61rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.07em; text-transform: uppercase; cursor: pointer;
+`;
+
+export const SelectionToolbar = styled.div`
+  position: sticky; top: 0.5rem; z-index: 4; display: flex; flex-wrap: wrap; align-items: center; gap: 0.42rem;
+  padding: 0.46rem; border: 1px solid rgba(184, 91, 234, 0.48); border-radius: 10px; background: rgba(13, 14, 29, 0.96);
+`;
+export const SelectionCount = styled.span`
+  margin-right: auto; color: rgba(239, 215, 255, 0.9); font: 800 0.68rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.06em;
+`;
+export const SelectionButton = styled.button`
+  min-height: 29px; border: 1px solid rgba(154, 129, 243, 0.58); border-radius: 7px; background: ${({ $primary }) => ($primary ? 'rgba(109, 78, 187, 0.32)' : 'rgba(20, 28, 49, 0.78)')};
+  color: rgba(229, 230, 255, 0.9); padding: 0.28rem 0.46rem; font: 700 0.59rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer;
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+`;
+
 export const SectionRule = styled.div`
   height: 1px;
   flex: 1;
@@ -117,13 +144,23 @@ export const FlatEmpty = styled.div`
 export const InlineActionsArea = styled.section`
   margin-top: ${({ $compact }) => ($compact ? '-0.12rem' : '0.66rem')};
   display: grid;
-  gap: 0.52rem;
+  gap: 0.24rem;
+  padding: ${({ $compact }) => ($compact ? '0' : '0.28rem 0')};
+  border-top: 1px solid rgba(var(--box-primary-rgb, 76, 198, 193), 0.16);
+  border-bottom: 1px solid rgba(var(--box-secondary-rgb, 167, 139, 250), 0.12);
+`;
+
+export const InlineActionsLabel = styled.div`
+  color: rgba(163, 183, 194, 0.64);
+  font: 700 0.58rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
 `;
 
 export const InlineActionsRow = styled.div`
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
+  gap: 0;
 
   ${({ $compact }) => $compact && `
     display: flex;
@@ -132,63 +169,63 @@ export const InlineActionsRow = styled.div`
   `}
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 `;
 
 export const InlineActionButton = styled.button`
-  min-height: ${({ $compact }) => ($compact ? '27px' : '42px')};
-  border-radius: ${({ $compact }) => ($compact ? '4px' : '5px')};
-  border: 1px solid
-    ${({ $active, $tone }) => {
-      if ($active) return 'rgba(0, 255, 224, 0.92)';
-      if ($tone === 'assign') return 'rgba(190, 117, 255, 0.72)';
-      return 'rgba(0, 223, 255, 0.72)';
-    }};
-  background: ${({ $active, $tone }) => {
-    if ($active) {
-      return 'linear-gradient(180deg, rgba(0, 92, 96, 0.9) 0%, rgba(4, 35, 47, 0.98) 100%)';
-    }
-    if ($tone === 'assign') {
-      return 'linear-gradient(180deg, rgba(48, 29, 74, 0.92) 0%, rgba(15, 24, 43, 0.98) 100%)';
-    }
-    return 'linear-gradient(180deg, rgba(13, 48, 64, 0.94) 0%, rgba(8, 25, 39, 0.98) 100%)';
-  }};
-  color: ${({ $active, $tone }) => {
-    if ($active) return '#cffffb';
-    if ($tone === 'assign') return '#f0d7ff';
-    return '#c8f7ff';
-  }};
-  font-size: ${({ $compact }) => ($compact ? '0.57rem' : '0.78rem')};
+  position: relative;
+  min-height: ${({ $compact }) => ($compact ? '27px' : '36px')};
+  min-width: 0;
+  padding: ${({ $compact }) => ($compact ? '0 0.52rem' : '0.35rem 0.62rem 0.48rem')};
+  border: 0;
+  border-right: 1px solid rgba(127, 215, 255, 0.1);
+  border-radius: 0;
+  background: ${({ $active }) => ($active ? 'rgba(45, 154, 151, 0.08)' : 'transparent')};
+  color: ${({ $active }) => ($active ? 'rgba(229, 255, 251, 0.96)' : 'rgba(185, 205, 216, 0.65)')};
+  font-size: ${({ $compact }) => ($compact ? '0.57rem' : '0.65rem')};
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  padding: ${({ $compact }) => ($compact ? '0 0.52rem' : '0 0.78rem')};
   cursor: pointer;
-  text-align: center;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035), 0 0 8px
-    ${({ $active, $tone }) => {
-      if ($active) return 'rgba(0, 255, 224, 0.34)';
-      if ($tone === 'assign') return 'rgba(190, 117, 255, 0.18)';
-      return 'rgba(0, 223, 255, 0.18)';
-    }};
+  line-height: 1.12;
+  text-align: left;
+  transition: color 180ms ease, background 180ms ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: 0.56rem;
+    bottom: 0;
+    left: 0.56rem;
+    height: 2px;
+    background: ${({ $active }) => ($active ? 'rgba(76, 198, 193, 0.88)' : 'transparent')};
+    box-shadow: ${({ $active }) => ($active ? '0 0 8px rgba(76, 198, 193, 0.3)' : 'none')};
+    transition: background 180ms ease, box-shadow 180ms ease;
+  }
 
   &:hover:not(:disabled) {
-    border-color: ${({ $tone }) => ($tone === 'assign' ? '#d59aff' : '#57f3ff')};
-    filter: brightness(1.14);
-    box-shadow: 0 0 0 1px rgba(0, 223, 255, 0.22), 0 0 12px
-      ${({ $tone }) => ($tone === 'assign' ? 'rgba(190, 117, 255, 0.42)' : 'rgba(0, 223, 255, 0.42)')};
+    color: rgba(239, 247, 255, 0.94);
+    background: rgba(103, 86, 158, 0.09);
+  }
+
+  &:focus-visible {
+    z-index: 1;
+    outline: 2px solid rgba(127, 215, 255, 0.76);
+    outline-offset: -2px;
   }
 
   &:disabled {
     cursor: not-allowed;
-    opacity: 0.62;
+    opacity: 0.55;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: ${({ $compact }) => ($compact ? '26px' : '40px')};
-    border-radius: 4px;
-    font-size: ${({ $compact }) => ($compact ? '0.52rem' : '0.72rem')};
+    min-height: ${({ $compact }) => ($compact ? '26px' : '38px')};
+    padding-inline: ${({ $compact }) => ($compact ? '0.52rem' : '0.42rem')};
+    font-size: ${({ $compact }) => ($compact ? '0.52rem' : '0.58rem')};
+    letter-spacing: 0.05em;
+    text-align: center;
   }
 `;
 

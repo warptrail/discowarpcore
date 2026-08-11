@@ -6,15 +6,12 @@ const mono =
 
 export const Dossier = styled.div`
   min-width: 0;
-  padding: 12px;
+  padding: 0;
   color: #e7ecf3;
   background:
     radial-gradient(circle at 12% 0%, rgba(76, 198, 193, 0.055), transparent 34%),
     linear-gradient(180deg, rgba(15, 21, 30, 0.98), rgba(9, 14, 21, 0.99));
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: 8px;
-  }
 `;
 
 const carouselToneColor = ($tone) => {
@@ -27,30 +24,18 @@ const carouselToneColor = ($tone) => {
 
 export const Carousel = styled.section`
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto;
   width: 100%;
-  height: clamp(520px, calc(100svh - 124px), 820px);
+  height: auto;
   min-width: 0;
   overflow: hidden;
-  border: 1px solid rgba(var(--item-accent-rgb, 76, 198, 193), 0.34);
-  border-radius: 10px;
+  border: 0;
+  border-radius: 0;
   background: #080d14;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.045),
-    0 18px 46px rgba(0, 0, 0, 0.3);
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
 
-  @supports (height: 100dvh) {
-    height: clamp(520px, calc(100dvh - 124px), 820px);
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    height: clamp(500px, calc(100svh - 124px), 760px);
-    border-radius: 8px;
-
-    @supports (height: 100dvh) {
-      height: clamp(500px, calc(100dvh - 124px), 760px);
-    }
-  }
+  @media (max-width: ${MOBILE_BREAKPOINT}) { width: 100%; }
 `;
 
 export const CarouselHeader = styled.header`
@@ -60,16 +45,16 @@ export const CarouselHeader = styled.header`
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  min-height: 58px;
-  padding: 10px 14px;
+  min-height: 46px;
+  padding: 7px 10px;
   border-bottom: 1px solid rgba(231, 236, 243, 0.09);
   background:
     linear-gradient(90deg, rgba(var(--item-accent-rgb, 76, 198, 193), 0.12), transparent 46%),
     rgba(8, 13, 20, 0.96);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 52px;
-    padding: 8px 10px;
+    min-height: 42px;
+    padding: 6px 9px;
   }
 `;
 
@@ -118,14 +103,13 @@ export const CarouselHeaderControls = styled.div`
 
 export const CarouselViewport = styled.div`
   min-width: 0;
-  min-height: 0;
-  overflow: hidden;
+  overflow: visible;
 `;
 
 export const CarouselTrack = styled.div`
   display: flex;
   width: 500%;
-  height: 100%;
+  height: auto;
   transform: translate3d(calc(${({ $activeIndex }) => $activeIndex} * -20%), 0, 0);
   transition: transform 460ms cubic-bezier(0.22, 1, 0.36, 1);
 
@@ -137,7 +121,7 @@ export const CarouselTrack = styled.div`
 export const CarouselSlide = styled.article`
   position: relative;
   width: 20%;
-  height: 100%;
+  height: auto;
   min-width: 0;
   overflow: hidden;
   visibility: ${({ $active }) => ($active ? 'visible' : 'hidden')};
@@ -154,27 +138,12 @@ export const CarouselSlide = styled.article`
       rgba(8, 13, 20, 0.98) 42%
     );
 
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 4px;
-    background: linear-gradient(
-      180deg,
-      rgba(${({ $tone }) => carouselToneColor($tone)}, 0.92),
-      rgba(${({ $tone }) => carouselToneColor($tone)}, 0.06)
-    );
-    pointer-events: none;
-  }
 `;
 
 export const CarouselSlideScroll = styled.div`
-  height: 100%;
+  height: auto;
   min-width: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-color: rgba(var(--item-accent-rgb, 76, 198, 193), 0.28) transparent;
+  overflow: visible;
 `;
 
 export const CarouselNavigation = styled.nav`
@@ -183,16 +152,15 @@ export const CarouselNavigation = styled.nav`
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-items: stretch;
-  gap: 8px;
-  min-height: 62px;
-  padding: 8px;
+  gap: 0;
+  min-height: 34px;
+  padding: 4px 8px;
   border-top: 1px solid rgba(231, 236, 243, 0.1);
   background: rgba(6, 10, 16, 0.96);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 58px;
-    gap: 5px;
-    padding: 6px;
+    min-height: 32px;
+    padding: 3px 7px;
   }
 `;
 
@@ -243,17 +211,13 @@ export const CarouselTab = styled.button`
   display: grid;
   place-items: center;
   align-content: center;
-  gap: 5px;
+  gap: 3px;
   min-width: 0;
-  min-height: 44px;
-  padding: 4px 2px;
-  border: 1px solid
-    rgba(${({ $tone }) => carouselToneColor($tone)}, ${({ $active }) => ($active ? 0.6 : 0.12)});
-  border-radius: 6px;
-  background: rgba(
-    ${({ $tone }) => carouselToneColor($tone)},
-    ${({ $active }) => ($active ? 0.12 : 0.018)}
-  );
+  min-height: 25px;
+  padding: 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: ${({ $active }) => ($active ? '#ffffff' : 'rgba(231, 236, 243, 0.46)')};
   font-family: ${mono};
   font-size: 0.52rem;
@@ -265,7 +229,7 @@ export const CarouselTab = styled.button`
   &:hover,
   &:focus-visible {
     outline: none;
-    border-color: rgba(${({ $tone }) => carouselToneColor($tone)}, 0.62);
+    background: rgba(${({ $tone }) => carouselToneColor($tone)}, 0.08);
     color: #ffffff;
   }
 
@@ -297,12 +261,13 @@ export const OverviewPhotoMax = styled.section`
   display: grid;
   align-items: end;
   width: 100%;
-  height: 100%;
-  min-height: 0;
+  min-height: 560px;
   overflow: hidden;
   background:
     radial-gradient(circle at 50% 24%, rgba(var(--item-accent-rgb, 76, 198, 193), 0.16), transparent 54%),
     #050a11;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) { min-height: 540px; }
 `;
 
 export const OverviewPhotoStage = styled.div`
@@ -412,14 +377,11 @@ export const OverviewOverlay = styled.div`
 export const OverviewIdentity = styled.div`
   display: grid;
   align-content: end;
-  gap: 7px;
+  gap: 5px;
   min-width: 0;
-  padding: 12px;
-  border: 1px solid rgba(var(--item-accent-rgb, 76, 198, 193), 0.22);
-  border-radius: 9px;
-  background: rgba(4, 9, 15, 0.7);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
+  padding: 8px 9px;
+  border-left: 2px solid rgba(var(--item-accent-rgb, 76, 198, 193), 0.58);
+  background: rgba(4, 9, 15, 0.62);
 `;
 
 export const OverviewKicker = styled.span`
@@ -475,12 +437,26 @@ export const OverviewFact = styled.span`
   }
 `;
 
+export const OverviewBoxId = styled.b`
+  display: inline-block;
+  margin-right: 0.34rem;
+  color: rgba(var(--item-accent-rgb, 76, 198, 193), 0.96);
+  font-family: ${mono};
+  font-size: 0.83em;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+`;
+
+export const OverviewBoxLabel = styled.span`
+  color: rgba(245, 248, 252, 0.9);
+`;
+
 export const OverviewCategory = styled.span`
   align-self: center;
-  padding: 6px 9px;
-  border: 1px solid rgba(var(--item-secondary-rgb, 167, 182, 255), 0.34);
-  border-radius: 999px;
-  background: rgba(var(--item-secondary-rgb, 167, 182, 255), 0.09);
+  padding: 0 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: rgba(226, 231, 255, 0.78);
   font-family: ${mono};
   font-size: 0.5rem;
@@ -505,27 +481,38 @@ export const OverviewTags = styled.div`
   overflow: hidden;
   color: rgba(var(--item-accent-rgb, 76, 198, 193), 0.74);
   font-family: ${mono};
-  font-size: 0.49rem;
+  font-size: 0.62rem;
   line-height: 1.3;
+`;
+
+export const OverviewTagLink = styled.a`
+  color: inherit;
+  text-decoration: none;
+  transition: color 160ms ease, text-shadow 160ms ease;
+
+  &:hover,
+  &:focus-visible {
+    color: rgba(231, 255, 252, 0.98);
+    outline: none;
+    text-shadow: 0 0 10px rgba(var(--item-accent-rgb, 76, 198, 193), 0.5);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
 `;
 
 export const OverviewCommandDeck = styled.div`
   display: grid;
   align-content: end;
-  gap: 8px;
+  gap: 4px;
   min-width: 0;
-  padding: 10px;
-  border: 1px solid rgba(231, 236, 243, 0.12);
-  border-radius: 9px;
-  background: rgba(4, 8, 14, 0.78);
-  backdrop-filter: blur(13px);
-  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.28);
+  padding: 7px 0 0;
+  border-top: 1px solid rgba(231, 236, 243, 0.12);
 `;
 
 export const OverviewCommandHeader = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 10px;
   min-width: 0;
 `;
@@ -542,17 +529,13 @@ export const OverviewCommandLabel = styled.span`
 export const OverviewConsumable = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 0;
   color: rgba(231, 236, 243, 0.54);
   font-family: ${mono};
   font-size: 0.5rem;
   text-transform: uppercase;
 
-  > button[role='switch'] {
-    min-width: 82px;
-    min-height: 34px;
-    padding: 4px 8px;
-  }
+  > button[role='switch'] { min-width: 34px; min-height: 20px; padding: 2px; }
 `;
 
 export const OverviewActivityGrid = styled.div`
@@ -612,14 +595,202 @@ export const OverviewActivityButton = styled.button`
 export const CarouselSection = styled.div`
   display: grid;
   align-content: start;
-  gap: 18px;
+  gap: ${({ $compact }) => ($compact ? '10px' : '18px')};
   min-height: 100%;
-  padding: clamp(18px, 4vw, 34px);
+  padding: ${({ $compact }) => ($compact ? '12px clamp(14px, 3vw, 24px)' : 'clamp(18px, 4vw, 34px)')};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    gap: 14px;
-    padding: 18px 14px 24px;
+    gap: ${({ $compact }) => ($compact ? '8px' : '14px')};
+    padding: ${({ $compact }) => ($compact ? '10px 12px 14px' : '18px 14px 24px')};
   }
+`;
+
+export const QuickFacts = styled.dl`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  border-top: 1px solid rgba(231, 236, 243, 0.1);
+  border-left: 1px solid rgba(231, 236, 243, 0.1);
+
+  @media (max-width: 360px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const ItemPageReference = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid rgba(231, 236, 243, 0.1);
+  background: rgba(255, 255, 255, 0.018);
+`;
+
+export const ItemPageReferenceId = styled.div`
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+
+  code {
+    overflow: hidden;
+    color: rgba(185, 221, 255, 0.88);
+    font-family: ${mono};
+    font-size: 0.62rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
+
+export const ItemPageReferenceActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const itemPageReferenceAction = css`
+  padding: 0;
+  border: 0;
+  color: rgba(133, 218, 211, 0.88);
+  background: transparent;
+  font-family: ${mono};
+  font-size: 0.58rem;
+  font-weight: 720;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  &:hover,
+  &:focus-visible {
+    color: #c6fbf5;
+    outline: none;
+    text-decoration: underline;
+  }
+`;
+
+export const ItemPageLink = styled.a`
+  ${itemPageReferenceAction};
+  text-decoration: none;
+`;
+
+export const CopyItemLinkButton = styled.button`
+  ${itemPageReferenceAction};
+  cursor: pointer;
+`;
+
+export const QuickFact = styled.div`
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  min-height: 46px;
+  padding: 8px 9px;
+  border-right: 1px solid rgba(231, 236, 243, 0.1);
+  border-bottom: 1px solid rgba(231, 236, 243, 0.1);
+  background: rgba(255, 255, 255, 0.018);
+`;
+
+export const QuickFactHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+`;
+
+export const QuickFactEditButton = styled.button`
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  color: rgba(133, 218, 211, 0.74);
+  background: transparent;
+  font-size: 0.76rem;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: #c6fbf5;
+    outline: none;
+    text-shadow: 0 0 8px rgba(133, 218, 211, 0.38);
+  }
+`;
+
+export const QuickFactValue = styled.dd`
+  min-width: 0;
+  margin: 0;
+  color: rgba(241, 245, 250, 0.82);
+  font-size: 0.72rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+`;
+
+export const QuickFactEditor = styled.div`
+  display: grid;
+  gap: 5px;
+`;
+
+const quickFactControl = css`
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  padding: 4px 6px;
+  border: 1px solid rgba(133, 218, 211, 0.44);
+  border-radius: 3px;
+  color: rgba(247, 250, 253, 0.92);
+  background: rgba(5, 11, 18, 0.82);
+  font: inherit;
+  font-size: 0.7rem;
+
+  &:focus-visible {
+    outline: 2px solid rgba(133, 218, 211, 0.72);
+    outline-offset: 1px;
+  }
+`;
+
+export const QuickFactInput = styled.input`
+  ${quickFactControl};
+`;
+
+export const QuickFactEditorActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+`;
+
+const quickFactAction = css`
+  min-height: 22px;
+  padding: 3px 5px;
+  border-radius: 3px;
+  font-family: ${mono};
+  font-size: 0.5rem;
+  font-weight: 740;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+`;
+
+export const QuickFactSaveButton = styled.button`
+  ${quickFactAction};
+  border: 1px solid rgba(133, 218, 211, 0.48);
+  color: rgba(206, 250, 244, 0.92);
+  background: rgba(28, 94, 90, 0.28);
+`;
+
+export const QuickFactCancelButton = styled.button`
+  ${quickFactAction};
+  border: 1px solid rgba(231, 236, 243, 0.15);
+  color: rgba(231, 236, 243, 0.62);
+  background: transparent;
+`;
+
+export const QuickFactError = styled.span`
+  color: rgba(255, 170, 160, 0.94);
+  font-size: 0.6rem;
+  line-height: 1.25;
 `;
 
 export const CarouselSectionIntro = styled.header`
@@ -688,6 +859,177 @@ export const CarouselDetailLabel = styled.span`
   text-transform: uppercase;
 `;
 
+export const InlineFieldHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+`;
+
+export const InlineEditButton = styled.button`
+  padding: 0;
+  border: 0;
+  color: rgba(133, 218, 211, 0.86);
+  background: transparent;
+  font-family: ${mono};
+  font-size: 0.59rem;
+  font-weight: 720;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: #c6fbf5;
+    outline: none;
+    text-decoration: underline;
+  }
+`;
+
+export const InlineEditor = styled.div`
+  display: grid;
+  gap: 8px;
+`;
+
+export const InlineTextarea = styled.textarea`
+  width: 100%;
+  resize: vertical;
+  min-height: 78px;
+  padding: 9px 10px;
+  border: 1px solid rgba(133, 218, 211, 0.38);
+  border-radius: 5px;
+  color: rgba(247, 250, 253, 0.92);
+  background: rgba(5, 11, 18, 0.78);
+  font: inherit;
+  font-size: 0.8rem;
+  line-height: 1.45;
+
+  &:focus-visible {
+    outline: 2px solid rgba(133, 218, 211, 0.78);
+    outline-offset: 1px;
+  }
+`;
+
+export const InlineEditorActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+`;
+
+export const ReferenceRows = styled.div`
+  display: grid;
+  gap: 7px;
+`;
+
+export const ReferenceRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr) auto;
+  gap: 6px;
+
+  @media (max-width: 500px) {
+    grid-template-columns: 1fr auto;
+
+    input:nth-child(2) {
+      grid-column: 1 / -1;
+    }
+  }
+`;
+
+export const ReferenceInput = styled.input`
+  min-width: 0;
+  min-height: 31px;
+  padding: 6px 8px;
+  border: 1px solid rgba(133, 218, 211, 0.32);
+  border-radius: 4px;
+  color: rgba(247, 250, 253, 0.92);
+  background: rgba(5, 11, 18, 0.78);
+  font: inherit;
+  font-size: 0.76rem;
+
+  &:focus-visible {
+    outline: 2px solid rgba(133, 218, 211, 0.78);
+    outline-offset: 1px;
+  }
+`;
+
+export const RemoveReferenceButton = styled.button`
+  padding: 4px 2px;
+  border: 0;
+  color: rgba(255, 170, 160, 0.78);
+  background: transparent;
+  font-family: ${mono};
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: rgba(255, 193, 185, 0.98);
+    outline: none;
+    text-decoration: underline;
+  }
+`;
+
+export const AddReferenceButton = styled.button`
+  justify-self: start;
+  padding: 2px 0;
+  border: 0;
+  color: rgba(133, 218, 211, 0.9);
+  background: transparent;
+  font-family: ${mono};
+  font-size: 0.62rem;
+  font-weight: 720;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: #c6fbf5;
+    outline: none;
+    text-decoration: underline;
+  }
+`;
+
+const inlineEditorButton = css`
+  min-height: 28px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-family: ${mono};
+  font-size: 0.62rem;
+  font-weight: 720;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.6;
+  }
+`;
+
+export const InlineSaveButton = styled.button`
+  ${inlineEditorButton};
+  border: 1px solid rgba(133, 218, 211, 0.54);
+  color: rgba(214, 255, 250, 0.94);
+  background: rgba(28, 94, 90, 0.28);
+`;
+
+export const InlineCancelButton = styled.button`
+  ${inlineEditorButton};
+  border: 1px solid rgba(231, 236, 243, 0.16);
+  color: rgba(231, 236, 243, 0.7);
+  background: rgba(255, 255, 255, 0.025);
+`;
+
+export const InlineEditError = styled.p`
+  margin: 0;
+  color: rgba(255, 170, 160, 0.94);
+  font-size: 0.72rem;
+`;
+
 export const CarouselDetailValue = styled.div`
   min-width: 0;
   color: rgba(241, 245, 250, 0.86);
@@ -715,24 +1057,19 @@ export const CarouselNoteText = styled.div`
   overflow-wrap: anywhere;
 `;
 
-export const CarouselSlideAction = styled.button`
-  justify-self: start;
-  min-height: 42px;
-  padding: 8px 14px;
-  border: 1px solid rgba(197, 167, 255, 0.34);
-  border-radius: 7px;
-  background: rgba(197, 167, 255, 0.07);
-  color: rgba(239, 232, 255, 0.82);
-  font-size: 0.7rem;
-  font-weight: 740;
-  letter-spacing: 0.035em;
-  cursor: pointer;
+export const CarouselNoteOpen = styled.button`
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  cursor: zoom-in;
 
-  &:hover,
   &:focus-visible {
-    outline: none;
-    border-color: rgba(197, 167, 255, 0.72);
-    color: #ffffff;
+    outline: 2px solid rgba(197, 167, 255, 0.82);
+    outline-offset: 4px;
   }
 `;
 
@@ -769,86 +1106,69 @@ export const CostHeroValue = styled.strong`
   overflow-wrap: anywhere;
 `;
 
-export const ConsumableControl = styled.section`
+export const ActivityModeButton = styled.button`
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 18px;
-  padding: 16px;
-  border: 1px solid rgba(239, 186, 91, 0.24);
-  border-radius: 10px;
-  background: rgba(239, 186, 91, 0.055);
-
-  @media (max-width: 430px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-export const ConsumableCopy = styled.div`
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-`;
-
-export const ConsumableTitle = styled.strong`
-  color: rgba(255, 243, 216, 0.92);
-  font-size: 0.88rem;
-  font-weight: 780;
-`;
-
-export const ConsumableHint = styled.span`
-  max-width: 58ch;
-  color: rgba(231, 236, 243, 0.54);
-  font-size: 0.68rem;
-  line-height: 1.4;
-`;
-
-export const ConsumableSwitch = styled.button`
-  position: relative;
-  display: grid;
-  grid-template-columns: 26px auto;
-  align-items: center;
-  gap: 8px;
-  min-width: 94px;
-  min-height: 44px;
-  padding: 7px 11px;
-  border: 1px solid
-    ${({ $active }) => ($active ? 'rgba(126, 224, 173, 0.72)' : 'rgba(231, 236, 243, 0.2)')};
-  border-radius: 999px;
-  background: ${({ $active }) =>
-    $active ? 'rgba(45, 127, 83, 0.24)' : 'rgba(255, 255, 255, 0.035)'};
-  color: ${({ $active }) => ($active ? '#c9f8dc' : 'rgba(231, 236, 243, 0.62)')};
+  gap: 16px;
+  width: 100%;
+  min-height: 48px;
+  padding: 9px 11px;
+  border: 1px solid ${({ $active }) => (
+    $active ? 'rgba(126, 224, 173, 0.52)' : 'rgba(231, 236, 243, 0.16)'
+  )};
+  border-radius: 6px;
+  color: rgba(235, 241, 247, 0.88);
+  background: ${({ $active }) => (
+    $active ? 'rgba(36, 85, 66, 0.2)' : 'rgba(255, 255, 255, 0.018)'
+  )};
+  text-align: left;
   cursor: pointer;
 
   &:hover:not(:disabled),
   &:focus-visible {
     outline: none;
-    border-color: rgba(126, 224, 173, 0.82);
-    color: #ffffff;
+    border-color: ${({ $active }) => (
+      $active ? 'rgba(126, 224, 173, 0.82)' : 'rgba(133, 218, 211, 0.68)'
+    )};
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(133, 218, 211, 0.74);
+    outline-offset: 2px;
   }
 
   &:disabled {
-    opacity: 0.54;
     cursor: wait;
+    opacity: 0.58;
   }
 `;
 
-export const ConsumableSwitchThumb = styled.span`
-  display: block;
-  width: 26px;
-  height: 16px;
-  border-radius: 999px;
-  background: ${({ $active }) => ($active ? '#7ee0ad' : 'rgba(231, 236, 243, 0.25)')};
-  box-shadow: inset
-    ${({ $active }) => ($active ? '10px' : '-10px')}
-    0 0 -5px rgba(7, 13, 19, 0.88);
+export const ActivityModeCopy = styled.span`
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+
+  strong {
+    color: rgba(245, 248, 251, 0.92);
+    font-size: 0.78rem;
+    font-weight: 760;
+  }
+
+  span {
+    color: rgba(231, 236, 243, 0.48);
+    font-size: 0.62rem;
+    line-height: 1.25;
+  }
 `;
 
-export const ConsumableSwitchLabel = styled.span`
+export const ActivityModeState = styled.span`
+  color: ${({ $active }) => ($active ? 'rgba(182, 249, 209, 0.96)' : 'rgba(231, 236, 243, 0.58)')};
   font-family: ${mono};
-  font-size: 0.6rem;
-  font-weight: 740;
-  letter-spacing: 0.06em;
+  font-size: 0.61rem;
+  font-weight: 760;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 `;
 
@@ -1094,7 +1414,7 @@ export const Category = styled.span`
 
 export const DecisionGroup = styled.section`
   display: grid;
-  gap: 8px;
+  gap: 5px;
   min-width: 0;
 `;
 
@@ -1103,10 +1423,10 @@ export const DeclutterButton = styled.button`
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   width: 100%;
-  min-height: 52px;
-  padding: 8px 10px 8px 12px;
+  min-height: 32px;
+  padding: 5px 8px;
   border: 1px solid
     ${({ $active }) =>
       $active ? 'rgba(211, 218, 255, 0.84)' : 'rgba(167, 182, 255, 0.5)'};
@@ -1147,12 +1467,12 @@ export const DeclutterButton = styled.button`
 
 export const DeclutterCopy = styled.span`
   display: grid;
-  gap: 3px;
+  gap: 0;
   min-width: 0;
 `;
 
 export const DeclutterTitle = styled.strong`
-  font-size: 0.86rem;
+  font-size: 0.7rem;
   font-weight: 790;
   line-height: 1.05;
 `;
@@ -1176,8 +1496,8 @@ export const SecondaryActions = styled.div`
 `;
 
 export const SecondaryButton = styled.button`
-  min-height: 40px;
-  padding: 7px 10px;
+  min-height: 34px;
+  padding: 5px 9px;
   border: 1px solid
     ${({ $tone }) =>
       $tone === 'move'
@@ -1188,7 +1508,7 @@ export const SecondaryButton = styled.button`
     $tone === 'move' ? 'rgba(98, 69, 29, 0.18)' : 'rgba(255, 255, 255, 0.025)'};
   color: ${({ $tone }) =>
     $tone === 'move' ? 'rgba(248, 213, 157, 0.86)' : 'rgba(231, 236, 243, 0.78)'};
-  font-size: 0.72rem;
+  font-size: 0.66rem;
   font-weight: 720;
   letter-spacing: 0.04em;
   cursor: pointer;

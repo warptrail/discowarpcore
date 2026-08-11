@@ -5,10 +5,7 @@ export default function QuickPeekBoxHeader({
   box,
   imageUrl,
   description,
-  hasNotes = false,
-  noteReaderOpen = false,
-  noteButtonRef,
-  onOpenNotes,
+  notePanel,
   itemActionPanel,
   position,
   total,
@@ -193,22 +190,9 @@ export default function QuickPeekBoxHeader({
           </S.BoxIdentity>
           {itemFocused && itemActionPanel ? (
             itemActionPanel
-          ) : description || hasNotes ? (
+          ) : description ? (
             <S.CapDescriptionRow>
-              {description ? (
-                <S.CapDescription title={description}>{description}</S.CapDescription>
-              ) : null}
-              {hasNotes ? (
-                <S.CapNoteButton
-                  ref={noteButtonRef}
-                  type="button"
-                  aria-haspopup="dialog"
-                  aria-expanded={noteReaderOpen}
-                  aria-label="Open box notes"
-                  title="Box notes"
-                  onClick={onOpenNotes}
-                >N</S.CapNoteButton>
-              ) : null}
+              <S.CapDescription title={description}>{description}</S.CapDescription>
             </S.CapDescriptionRow>
           ) : null}
         </S.CapIdentityStack>
@@ -222,6 +206,8 @@ export default function QuickPeekBoxHeader({
           ›
         </S.CapIconButton>
       </S.CapNavigation>
+
+      {notePanel}
 
       <S.CollapseEdgeButton
         type="button"

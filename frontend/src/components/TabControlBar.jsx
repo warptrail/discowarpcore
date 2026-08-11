@@ -139,7 +139,7 @@ export default function TabControlBar({
           disabled={busy}
           aria-pressed={mode === 'flat'}
         >
-          Direct items
+          All items
         </Btn>
         <Btn
           type="button"
@@ -157,19 +157,19 @@ export default function TabControlBar({
           <Legend>Row detail</Legend>
           <Btn
             type="button"
-            $active={viewMode === 'full'}
-            onClick={() => onViewModeChange?.('full')}
+            $active={viewMode === 'condensed'}
+            onClick={() => onViewModeChange?.('condensed')}
             disabled={busy}
-            aria-pressed={viewMode === 'full'}
+            aria-pressed={viewMode === 'condensed'}
           >
             Detailed
           </Btn>
           <Btn
             type="button"
-            $active={viewMode === 'condensed'}
-            onClick={() => onViewModeChange?.('condensed')}
+            $active={viewMode === 'full'}
+            onClick={() => onViewModeChange?.('full')}
             disabled={busy}
-            aria-pressed={viewMode === 'condensed'}
+            aria-pressed={viewMode === 'full'}
           >
             Compact
           </Btn>
