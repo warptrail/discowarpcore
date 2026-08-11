@@ -4,10 +4,13 @@ const test = require('node:test');
 const {
   REMOTE_COMPLETION_MARKER,
   RSYNC_EXCLUDES,
+  buildRemoteRestartScript,
   findProtectedDryRunEntries,
   rsyncArgs,
   runCommand,
 } = require('../scripts/neonazoth/control_station');
+
+const packageJson = require('../package.json');
 
 test('NeonAzoth rsync excludes local runtime state and production data', () => {
   const requiredExcludes = [
@@ -73,4 +76,14 @@ test('completion sentinel safely releases a child that keeps the channel open', 
   assert.equal(result.code, 0);
   assert.equal(result.completionSeen, true);
   assert.equal(result.forcedCloseAfterCompletion, true);
+});
+
+test('production restart command uses the guarded remote helper', () => {
+  const script = buildRemoteRestartScript();
+  assert.match(script, /cd ~\/discowarpcore/);
+  assert.match(script, /node scripts\/neonazoth\/restart_backend_remote\.js/);
+  assert.equal(
+    packageJson.scripts['restart:neonazoth'],
+    'node scripts/neonazoth/control_station.js --restart',
+  );
 });

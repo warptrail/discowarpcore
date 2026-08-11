@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs/promises');
+const os = require('os');
 const mongoose = require('mongoose');
 
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
@@ -11,12 +12,66 @@ const {
   getExternalIntakeRoot,
 } = require('../../scripts/intakeWorkspace');
 
-const DATABASE_NAME = 'discowarpcore';
-const STANDARD_CONFIRM_FLAG = '--yes-reset-db-and-intake';
-const HARD_CONFIRM_FLAG = '--yes-delete-everything';
+const DEFAULT_DEVELOPMENT_DATABASE_NAME = 'discowarpcore_dev';
+const STANDARD_CONFIRM_FLAG = '--yes-reset-discowarpcore-dev-db-and-intake';
+const HARD_CONFIRM_FLAG = '--yes-delete-discowarpcore-dev-db-intake-and-media';
+const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1', '[::1]']);
+const SAFE_DEVELOPMENT_DATABASE = /(?:_dev|_test|test)$/i;
 
 function resolveMongoUri() {
-  return process.env.MONGO_URI || `mongodb://127.0.0.1:27017/${DATABASE_NAME}`;
+  return process.env.MONGO_URI ||
+    `mongodb://127.0.0.1:27017/${DEFAULT_DEVELOPMENT_DATABASE_NAME}`;
+}
+
+function inspectMongoTarget(mongoUri) {
+  let parsed;
+  try {
+    parsed = new URL(mongoUri);
+  } catch {
+    throw new Error('Refusing reset because MONGO_URI could not be parsed safely.');
+  }
+
+  const databaseName = decodeURIComponent(parsed.pathname.replace(/^\/+/, '').split('/')[0] || '');
+  return {
+    databaseName,
+    hostname: parsed.hostname,
+    safeDisplay: `${parsed.protocol}//${parsed.host}/${databaseName || '<missing-database>'}`,
+  };
+}
+
+function getProductionSignals({ env = process.env, hostname = os.hostname() } = {}) {
+  const signals = [];
+  const shortHostname = String(hostname || '').split('.', 1)[0].toLowerCase();
+  if (shortHostname === 'neonazoth') signals.push('hostname=neonazoth');
+  if (String(env.NODE_ENV || '').trim().toLowerCase() === 'production') {
+    signals.push('NODE_ENV=production');
+  }
+  if (String(env.DISCO_ENV || '').trim().toLowerCase() === 'production') {
+    signals.push('DISCO_ENV=production');
+  }
+  return signals;
+}
+
+function assertDevelopmentResetTarget(mongoUri, options = {}) {
+  const productionSignals = getProductionSignals(options);
+  if (productionSignals.length > 0) {
+    throw new Error(
+      `Production reset is disabled (${productionSignals.join(', ')}). Use a backup-first manual recovery procedure.`,
+    );
+  }
+
+  const target = inspectMongoTarget(mongoUri);
+  if (!LOOPBACK_HOSTS.has(target.hostname.toLowerCase())) {
+    throw new Error(
+      `Refusing reset of non-loopback MongoDB host "${target.hostname}".`,
+    );
+  }
+  if (!target.databaseName || !SAFE_DEVELOPMENT_DATABASE.test(target.databaseName)) {
+    throw new Error(
+      `Refusing reset of database "${target.databaseName || '<missing>'}"; development/test suffix required.`,
+    );
+  }
+  return target;
 }
 
 function assertSafeRepoPath(targetPath, expectedSegments) {
@@ -41,8 +96,8 @@ function assertSafeRepoPath(targetPath, expectedSegments) {
   }
 }
 
-async function dropDatabase(mongoUri) {
-  await mongoose.connect(mongoUri, { dbName: DATABASE_NAME });
+async function dropDatabase(mongoUri, databaseName) {
+  await mongoose.connect(mongoUri, { dbName: databaseName });
   await mongoose.connection.db.dropDatabase();
 }
 
@@ -122,7 +177,7 @@ async function disconnectMongooseQuietly() {
 }
 
 module.exports = {
-  DATABASE_NAME,
+  DEFAULT_DEVELOPMENT_DATABASE_NAME,
   STANDARD_CONFIRM_FLAG,
   HARD_CONFIRM_FLAG,
   INTAKE_ROOT,
@@ -130,6 +185,9 @@ module.exports = {
   getExternalIntakeRoot,
   MEDIA_ROOT,
   resolveMongoUri,
+  inspectMongoTarget,
+  getProductionSignals,
+  assertDevelopmentResetTarget,
   dropDatabase,
   wipeIntakeState,
   wipeMediaState,

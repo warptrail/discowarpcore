@@ -111,6 +111,7 @@ const RouteAction = styled.span`
 const Guide = styled.section`
   display: grid;
   gap: 0.55rem;
+  min-width: 0;
   padding: 0.82rem;
   border: 1px solid rgba(104, 150, 174, 0.3);
   border-radius: 10px;
@@ -123,6 +124,7 @@ const GuideHeader = styled.div`
   justify-content: space-between;
   gap: 0.8rem;
   flex-wrap: wrap;
+  min-width: 0;
 `;
 
 const GuideTitle = styled.h2`
@@ -139,17 +141,28 @@ const GuideHint = styled.span`
 `;
 
 const GuideDetails = styled.details`
+  min-width: 0;
+  max-width: 100%;
   border-top: 1px solid rgba(104, 150, 174, 0.2);
   padding-top: 0.55rem;
 
   summary {
     min-height: 40px;
+    min-width: 0;
+    max-width: 100%;
     display: flex;
     align-items: center;
     cursor: pointer;
     color: #cfe5f1;
     font-size: 0.82rem;
     font-weight: 700;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  > *:not(summary) {
+    min-width: 0;
+    max-width: 100%;
   }
 
   p,
@@ -157,15 +170,19 @@ const GuideDetails = styled.details`
     color: #9db7c8;
     font-size: 0.78rem;
     line-height: 1.52;
+    overflow-wrap: anywhere;
   }
 
   code,
   pre {
     color: #c9f1dd;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    overflow-wrap: anywhere;
   }
 
   pre {
+    box-sizing: border-box;
+    max-width: 100%;
     overflow-x: auto;
     margin: 0.5rem 0 0;
     padding: 0.68rem;
@@ -181,6 +198,11 @@ const GuideColumns = styled.div`
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
+  min-width: 0;
+
+  > * {
+    min-width: 0;
+  }
 
   @media (max-width: 680px) {
     grid-template-columns: 1fr;

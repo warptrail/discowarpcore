@@ -275,10 +275,9 @@ ssh neonazoth 'cd ~/discowarpcore && \
 ```
 
 Environment files are read when Node starts. After changing
-`OBJECT_GLOW_REPO`, restart the existing production backend through whatever
-process/session currently owns it. Do not start a second unmanaged `npm start`
-on the same port. The deployment TUI syncs, installs, builds, and health-checks;
-it does not restart an unknown remote process.
+`OBJECT_GLOW_REPO`, run `npm run restart:neonazoth` or use the full deployment
+action. Both use the same guarded restart and refuse an unknown process or port
+owner instead of starting a second unmanaged backend.
 
 If image processing fails, check the executable, Python environment, and smoke
 test in that order. A path existing on disk is not enough; the smoke test must
@@ -459,7 +458,7 @@ The normal sequence is:
 
 1. Choose `Status and health check` to see whether NeonAzoth is reachable.
 2. Choose `Protected source sync dry run` and read the proposed changes.
-3. Choose `Protected sync + install + build + health check`.
+3. Choose `Protected sync + install + build + guarded restart + health check`.
 4. Confirm only when the local checkout contains the code you mean to deploy.
 
 The full deployment option:
@@ -470,8 +469,9 @@ The full deployment option:
 4. installs root dependencies on the remote machine;
 5. installs frontend dependencies there too;
 6. runs the production frontend build;
-7. checks the remote backend health endpoint at `http://127.0.0.1:5002/api/health`;
-8. prints the current LAN URL.
+7. verifies and gracefully restarts the exact Disco Warp Core backend process;
+8. checks the remote backend health endpoint at `http://127.0.0.1:5002/api/health`;
+9. prints the current LAN URL.
 
 The sync protects production-only material such as `.env` files, media,
 database dumps, runtime state, logs, sockets, dependency folders, build
@@ -483,12 +483,15 @@ Useful non-interactive checks are:
 ```bash
 npm run neonazoth:tui -- --status
 npm run neonazoth:tui -- --url
+npm run restart:neonazoth
 ```
 
-If backend code or backend environment variables changed, the running backend
-may still need a restart after deployment. A successful health check can be an
-old process answering successfully. Use the process owner’s established
-restart method; do not start a second unmanaged `npm start` on the same port.
+The full deployment action always runs the guarded restart after a successful
+install/build. The standalone restart command uses the same guard: it verifies
+the NeonAzoth hostname, checkout path, exact backend command, and port ownership
+before sending `SIGTERM`. It refuses unknown listeners, multiple matching
+processes, and processes that do not stop gracefully; it never broad-kills or
+force-kills them.
 
 ### The source sync: `deploy:neonazoth`
 
@@ -559,13 +562,17 @@ read the script’s confirmation messages.
 | `merge:staged-db` | Preflights or applies a staged MongoDB merge; use its usage output and back up first. |
 | `backup:full` | Creates a timestamped MongoDB plus media backup under `dump/`. |
 | `restore:full` | Restores a named full backup archive; this changes database and media state. |
-| `reset` | Destructive reset of database and intake provenance while preserving media. |
-| `reset:hard` | Destructive reset of database, intake provenance, and media. |
+| `reset` | Disabled ambiguous alias; always refuses without changing data. |
+| `reset:hard` | Disabled ambiguous alias; always refuses without changing data. |
+| `reset:development` | Development-only database and intake reset with explicit confirmation and target guards. |
+| `reset:development:hard` | Development-only database, intake, and media reset with explicit confirmation and target guards. |
 
 Safer examples:
 
 ```bash
 npm run backup:full
+npm run reset:development -- --yes-reset-discowarpcore-dev-db-and-intake
+npm run reset:development:hard -- --yes-delete-discowarpcore-dev-db-intake-and-media
 npm run migrate:declutter-release-decisions
 npm run migrate:declutter-cooling-off
 npm run seed:boxes:range -- --start=700 --count=75 --dry-run
@@ -639,7 +646,8 @@ npm run intake:simple:init -- --help
 | `deploy:neonazoth:dry` | Previews the protected source sync to NeonAzoth. |
 | `deploy:neonazoth` | Performs the protected source sync only. It does not install, build, restart, or confirm the app is serving new code. |
 | `install:neonazoth` | Installs root and frontend npm dependencies on the remote machine. |
-| `neonazoth:tui` | Opens the protected remote Control Station for status, dry run, full sync/install/build/health, and LAN URL. |
+| `neonazoth:tui` | Opens the protected remote Control Station for status, dry run, full sync/install/build/restart/health, and LAN URL. |
+| `restart:neonazoth` | Guardedly restarts the exact production backend over SSH and verifies health. |
 | `tarot:update` | Verifies, previews, or updates this project’s local Tarot runtime from its declared Tarot source. |
 | `tarot:install` | Installs or reconfigures a Tarot instance from a manifest/configuration. |
 | `tarot:storm` | Emits a harmless five-second stream of colorful terminal lines for scrollback testing. |

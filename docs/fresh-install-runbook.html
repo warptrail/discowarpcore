@@ -325,7 +325,7 @@ npm run neonazoth:tui</code></pre>
 
       <ul class="checklist">
         <li><code>Status and health check</code> should show the remote health endpoint and LAN URL.</li>
-        <li><code>Protected sync + install + build + health check</code> deploys source code to Neon Azoth, preserving media and env files.</li>
+        <li><code>Protected sync + install + build + guarded restart + health check</code> deploys source code to Neon Azoth, preserves media and env files, and restarts only the verified Disco Warp Core backend.</li>
       </ul>
     </section>
 
@@ -340,7 +340,7 @@ npm run neonazoth:tui</code></pre>
         <div>
           <h3>Push local source to Neon Azoth</h3>
           <pre><code>npm run neonazoth:tui</code></pre>
-          <p class="small">Choose <code>Protected sync + install + build + health check</code>.</p>
+          <p class="small">Choose <code>Protected sync + install + build + guarded restart + health check</code>.</p>
         </div>
         <div>
           <h3>Run image smoke test</h3>

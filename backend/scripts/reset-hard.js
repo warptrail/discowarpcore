@@ -1,8 +1,8 @@
 const {
-  DATABASE_NAME,
   HARD_CONFIRM_FLAG,
   BATCHES_ROOT,
   resolveMongoUri,
+  assertDevelopmentResetTarget,
   dropDatabase,
   wipeIntakeState,
   wipeMediaState,
@@ -10,7 +10,7 @@ const {
 } = require('./resetShared');
 
 function usageMessage() {
-  return `Usage: npm run reset:hard -- ${HARD_CONFIRM_FLAG}`;
+  return `Usage: npm run reset:development:hard -- ${HARD_CONFIRM_FLAG}`;
 }
 
 async function main() {
@@ -22,6 +22,7 @@ async function main() {
   }
 
   const mongoUri = resolveMongoUri();
+  let mongoTarget;
   let dbDropped = false;
   let intakeWiped = false;
   let mediaWiped = false;
@@ -29,14 +30,15 @@ async function main() {
   let intakeRoots = null;
 
   try {
-    console.log(`[reset] db=${DATABASE_NAME}`);
-    console.log(`[reset] mongoUri=${mongoUri}`);
+    mongoTarget = assertDevelopmentResetTarget(mongoUri);
+    console.log(`[reset] db=${mongoTarget.databaseName}`);
+    console.log(`[reset] mongoTarget=${mongoTarget.safeDisplay}`);
     console.log(`[reset] batches=${BATCHES_ROOT}`);
     console.log('[reset] mode=hard (database + intake provenance + media)');
 
-    await dropDatabase(mongoUri);
+    await dropDatabase(mongoUri, mongoTarget.databaseName);
     dbDropped = true;
-    console.log(`✅ Dropped database: ${DATABASE_NAME}`);
+    console.log(`✅ Dropped database: ${mongoTarget.databaseName}`);
 
     intakeRoots = await wipeIntakeState();
     intakeWiped = true;

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "agentSessionId": "agent-1786329253471-c1fb6948",
-  "updatedAt": "2026-08-11T04:01:53.671Z",
+  "updatedAt": "2026-08-11T04:25:08.359Z",
   "projectName": "Disco Warp Core",
   "profile": "DEV",
   "sigil": "╳▓▓⟡◇╳⌁⋮",
@@ -44,15 +44,15 @@
       "processState": "running",
       "healthState": "healthy",
       "ownershipState": "tarot",
-      "stateReason": "HTTP 200 from /.",
-      "lastTransitionAt": "2026-08-11T04:01:53.667Z",
-      "lastProbeAt": "2026-08-11T04:01:53.665Z",
-      "nextProbeAt": 1786420928667,
+      "stateReason": "Live listener evidence reconciled.",
+      "lastTransitionAt": "2026-08-11T04:25:08.350Z",
+      "lastProbeAt": "2026-08-11T04:25:06.361Z",
+      "nextProbeAt": 1786422321362,
       "probe": {
         "ok": true,
         "type": "http",
         "status": 200,
-        "checkedAt": "2026-08-11T04:01:53.665Z",
+        "checkedAt": "2026-08-11T04:25:06.361Z",
         "message": "HTTP 200 from /."
       },
       "verified": true,
@@ -62,22 +62,6 @@
       "exitCode": null,
       "exitSignal": null,
       "logs": [
-        {
-          "message": "3:10:06 PM [vite] (client) hmr update /src/components/ItemDetails.jsx",
-          "raw": "3:10:06 PM [vite] (client) hmr update /src/components/ItemDetails.jsx",
-          "stream": "out",
-          "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786399806518,
-          "sequence": 16155
-        },
-        {
-          "message": "3:14:45 PM [vite] (client) hmr update /src/components/QuantityInput.jsx",
-          "raw": "3:14:45 PM [vite] (client) hmr update /src/components/QuantityInput.jsx",
-          "stream": "out",
-          "runId": "frontend-1786329257340-375e536d",
-          "capturedAt": 1786400085460,
-          "sequence": 16446
-        },
         {
           "message": "3:14:45 PM [vite] (client) hmr update /src/components/QuantityInput.jsx",
           "raw": "3:14:45 PM [vite] (client) hmr update /src/components/QuantityInput.jsx",
@@ -253,6 +237,22 @@
           "runId": "frontend-1786329257340-375e536d",
           "capturedAt": 1786420722624,
           "sequence": 19262
+        },
+        {
+          "message": "9:18:46 PM [vite] (client) hmr update /src/components/BulkImport/BulkImportPage.jsx",
+          "raw": "9:18:46 PM [vite] (client) hmr update /src/components/BulkImport/BulkImportPage.jsx",
+          "stream": "out",
+          "runId": "frontend-1786329257340-375e536d",
+          "capturedAt": 1786421926778,
+          "sequence": 19397
+        },
+        {
+          "message": "9:18:46 PM [vite] (client) hmr update /src/components/BulkImport/IntakeBatchDetailsPanel.jsx",
+          "raw": "9:18:46 PM [vite] (client) hmr update /src/components/BulkImport/IntakeBatchDetailsPanel.jsx",
+          "stream": "out",
+          "runId": "frontend-1786329257340-375e536d",
+          "capturedAt": 1786421926780,
+          "sequence": 19398
         }
       ],
       "observedPids": [
@@ -303,15 +303,15 @@
       "processState": "running",
       "healthState": "healthy",
       "ownershipState": "tarot",
-      "stateReason": "HTTP 200 from /api/health.",
-      "lastTransitionAt": "2026-08-11T04:01:53.670Z",
-      "lastProbeAt": "2026-08-11T04:01:53.669Z",
-      "nextProbeAt": 1786420928670,
+      "stateReason": "Live listener evidence reconciled.",
+      "lastTransitionAt": "2026-08-11T04:25:08.354Z",
+      "lastProbeAt": "2026-08-11T04:25:06.364Z",
+      "nextProbeAt": 1786422321365,
       "probe": {
         "ok": true,
         "type": "http",
         "status": 200,
-        "checkedAt": "2026-08-11T04:01:53.669Z",
+        "checkedAt": "2026-08-11T04:25:06.364Z",
         "message": "HTTP 200 from /api/health."
       },
       "verified": true,
@@ -322,196 +322,196 @@
       "exitSignal": null,
       "logs": [
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T03:58:42.753Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"37f9c244-2407-4a19-bc91-aa70fe71dd93\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a3123d6/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":2.25}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T03:58:42.753Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"37f9c244-2407-4a19-bc91-aa70fe71dd93\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a3123d6/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":2.25}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:20:50.258Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"dbb776a6-3c89-4d83-b81a-d520be828813\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.15,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:20:50.258Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"dbb776a6-3c89-4d83-b81a-d520be828813\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.15,\"responseBytes\":11}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420722754,
-          "sequence": 19285
+          "capturedAt": 1786422050258,
+          "sequence": 19447
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T03:58:46.029Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"51aeaaef-6257-4904-9bb7-ba6a23461a06\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a312517/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":4.49}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T03:58:46.029Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"51aeaaef-6257-4904-9bb7-ba6a23461a06\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a312517/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":4.49}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:20:50.281Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"5504dc06-ea96-4dd9-ab8a-edda500c91e7\",\"method\":\"GET\",\"path\":\"/api/intake-batches/2026-07-09_0414_trashbags\",\"queryKeys\":[\"itemsLimit\",\"itemsOffset\",\"itemsSort\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":91.31}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:20:50.281Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"5504dc06-ea96-4dd9-ab8a-edda500c91e7\",\"method\":\"GET\",\"path\":\"/api/intake-batches/2026-07-09_0414_trashbags\",\"queryKeys\":[\"itemsLimit\",\"itemsOffset\",\"itemsSort\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":91.31}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420726030,
-          "sequence": 19286
+          "capturedAt": 1786422050281,
+          "sequence": 19448
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T03:58:46.030Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"2a838847-54cb-4468-9977-dab541bca5e2\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a31251b/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":4.18}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T03:58:46.030Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"2a838847-54cb-4468-9977-dab541bca5e2\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a31251b/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":4.18}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.252Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"ba190262-233a-49e7-af56-9efcf3f72409\",\"method\":\"GET\",\"path\":\"/api/intake-batches/2026-07-09_0414_trashbags\",\"queryKeys\":[\"itemsLimit\",\"itemsOffset\",\"itemsSort\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":122.26}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.252Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"ba190262-233a-49e7-af56-9efcf3f72409\",\"method\":\"GET\",\"path\":\"/api/intake-batches/2026-07-09_0414_trashbags\",\"queryKeys\":[\"itemsLimit\",\"itemsOffset\",\"itemsSort\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":122.26}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420726032,
-          "sequence": 19287
+          "capturedAt": 1786422053252,
+          "sequence": 19449
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T03:58:46.030Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"b1a0e6ec-1ae8-4aa5-9d40-966261c869fb\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a31251c/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":4.15}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T03:58:46.030Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"b1a0e6ec-1ae8-4aa5-9d40-966261c869fb\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a31251c/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":4.15}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.253Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"8df7556c-410b-4c6f-802f-71ec005225d4\",\"method\":\"GET\",\"path\":\"/api/intake-batches\",\"queryKeys\":[\"includeArchived\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":123.84}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.253Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"8df7556c-410b-4c6f-802f-71ec005225d4\",\"method\":\"GET\",\"path\":\"/api/intake-batches\",\"queryKeys\":[\"includeArchived\"],\"status\":200,\"outcome\":\"completed\",\"durationMs\":123.84}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420726032,
-          "sequence": 19288
+          "capturedAt": 1786422053253,
+          "sequence": 19450
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T03:58:46.756Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"685acc62-f0af-47e9-b36b-191a813ae6a7\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a312518/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":3.01}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T03:58:46.756Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"685acc62-f0af-47e9-b36b-191a813ae6a7\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a312518/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":3.01}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.367Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"fcc49bd1-db24-4000-93df-308fdf70a02b\",\"method\":\"GET\",\"path\":\"/api/intake-batches/2026-07-09_0414_trashbags\",\"queryKeys\":[\"itemsLimit\",\"itemsOffset\",\"itemsSort\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":113.32}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.367Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"fcc49bd1-db24-4000-93df-308fdf70a02b\",\"method\":\"GET\",\"path\":\"/api/intake-batches/2026-07-09_0414_trashbags\",\"queryKeys\":[\"itemsLimit\",\"itemsOffset\",\"itemsSort\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":113.32}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420726756,
-          "sequence": 19289
+          "capturedAt": 1786422053367,
+          "sequence": 19451
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T03:58:46.760Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"2db7240c-4d17-4627-aff7-ec1bbec36e21\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a312519/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":2.68}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T03:58:46.760Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"2db7240c-4d17-4627-aff7-ec1bbec36e21\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a312519/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":2.68}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.375Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"16e300d3-87c6-4537-b6b6-649a03044778\",\"method\":\"GET\",\"path\":\"/api/intake-batches\",\"queryKeys\":[\"includeArchived\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":121.53}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.375Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"16e300d3-87c6-4537-b6b6-649a03044778\",\"method\":\"GET\",\"path\":\"/api/intake-batches\",\"queryKeys\":[\"includeArchived\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":121.53}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420726761,
-          "sequence": 19290
+          "capturedAt": 1786422053375,
+          "sequence": 19452
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T03:58:46.761Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"200baf46-7664-49b5-b375-ae5f92f62dca\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a31251a/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":2.5}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T03:58:46.761Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"200baf46-7664-49b5-b375-ae5f92f62dca\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a31251a/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":2.5}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.453Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"782f144a-4c99-4318-b406-7e9cf0ba05d1\",\"method\":\"GET\",\"path\":\"/api/intake-batches/2026-07-09_0414_trashbags\",\"queryKeys\":[\"itemsLimit\",\"itemsOffset\",\"itemsSort\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":83.99}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.453Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"782f144a-4c99-4318-b406-7e9cf0ba05d1\",\"method\":\"GET\",\"path\":\"/api/intake-batches/2026-07-09_0414_trashbags\",\"queryKeys\":[\"itemsLimit\",\"itemsOffset\",\"itemsSort\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":83.99}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420726763,
-          "sequence": 19291
+          "capturedAt": 1786422053453,
+          "sequence": 19453
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T03:58:47.827Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"4a30282e-5e47-445f-a7cf-1be99108f17a\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a31251d/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":6.31}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T03:58:47.827Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"4a30282e-5e47-445f-a7cf-1be99108f17a\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a31251d/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":6.31}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.530Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"b8097f02-039f-4807-8b28-a23170e3f47a\",\"method\":\"GET\",\"path\":\"/api/intake-batches/2026-07-09_0414_trashbags\",\"queryKeys\":[\"itemsLimit\",\"itemsOffset\",\"itemsSort\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":75.79}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:20:53.530Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"b8097f02-039f-4807-8b28-a23170e3f47a\",\"method\":\"GET\",\"path\":\"/api/intake-batches/2026-07-09_0414_trashbags\",\"queryKeys\":[\"itemsLimit\",\"itemsOffset\",\"itemsSort\"],\"status\":304,\"outcome\":\"completed\",\"durationMs\":75.79}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420727828,
-          "sequence": 19292
+          "capturedAt": 1786422053530,
+          "sequence": 19454
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T03:58:47.828Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"9a5f3565-69a4-48a4-8075-c349203fe1bb\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a312516/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":4.42}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T03:58:47.828Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"9a5f3565-69a4-48a4-8075-c349203fe1bb\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a312516/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":4.42}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:21:06.292Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"bbe6a137-5e04-486e-a280-d919e103c6be\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.48,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:21:06.292Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"bbe6a137-5e04-486e-a280-d919e103c6be\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.48,\"responseBytes\":11}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420727830,
-          "sequence": 19293
+          "capturedAt": 1786422066292,
+          "sequence": 19455
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T03:58:47.829Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"850deea7-3588-43f2-9c95-f3cd5528316b\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a31251e/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":5.49}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T03:58:47.829Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"850deea7-3588-43f2-9c95-f3cd5528316b\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a31251e/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":5.49}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:21:22.311Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"58dd56ef-0319-4b27-90aa-9fa5da8269b7\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.24,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:21:22.311Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"58dd56ef-0319-4b27-90aa-9fa5da8269b7\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.24,\"responseBytes\":11}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420727830,
-          "sequence": 19294
+          "capturedAt": 1786422082311,
+          "sequence": 19456
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T03:58:48.978Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"dca52459-19f0-4d9c-ab2b-b80fc1172ad6\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a31251f/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":2.69}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T03:58:48.978Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"dca52459-19f0-4d9c-ab2b-b80fc1172ad6\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a31251f/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":2.69}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:21:38.301Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"aa173f46-72bf-41a0-8e06-5234bef8e169\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.51,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:21:38.301Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"aa173f46-72bf-41a0-8e06-5234bef8e169\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.51,\"responseBytes\":11}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420728979,
-          "sequence": 19295
+          "capturedAt": 1786422098302,
+          "sequence": 19457
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T03:58:48.979Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"c4b3f302-6f25-47a1-b20d-8999e0d90c83\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a312520/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":2.46}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T03:58:48.979Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"c4b3f302-6f25-47a1-b20d-8999e0d90c83\",\"method\":\"GET\",\"path\":\"/api/items/6a35b8801356bc312a312520/media-status\",\"queryKeys\":[],\"status\":304,\"outcome\":\"completed\",\"durationMs\":2.46}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:21:54.312Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"98f82775-4ee0-444b-bec2-88aff4192bda\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.16,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:21:54.312Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"98f82775-4ee0-444b-bec2-88aff4192bda\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.16,\"responseBytes\":11}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420728992,
-          "sequence": 19296
+          "capturedAt": 1786422114313,
+          "sequence": 19458
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T03:58:57.652Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"df54fccc-c8e6-4814-a441-ea3573980c6b\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.18,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T03:58:57.652Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"df54fccc-c8e6-4814-a441-ea3573980c6b\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.18,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:22:10.310Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"21a43787-135f-488c-ad39-f57d2581b270\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:22:10.310Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"21a43787-135f-488c-ad39-f57d2581b270\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420737665,
-          "sequence": 19297
+          "capturedAt": 1786422130310,
+          "sequence": 19459
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T03:59:13.659Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"28218a7d-6d97-41d3-8ef3-c4399f87bfca\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.15,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T03:59:13.659Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"28218a7d-6d97-41d3-8ef3-c4399f87bfca\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.15,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:22:26.330Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"4ab1125d-15b4-4cd5-931c-be3542685419\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:22:26.330Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"4ab1125d-15b4-4cd5-931c-be3542685419\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420753660,
-          "sequence": 19298
+          "capturedAt": 1786422146339,
+          "sequence": 19460
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T03:59:29.637Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"b8493dee-5e2e-4839-93f6-db111f841800\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.14,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T03:59:29.637Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"b8493dee-5e2e-4839-93f6-db111f841800\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.14,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:22:42.333Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"078e3449-4fa3-47e7-9ae5-9b14094edbeb\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.16,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:22:42.333Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"078e3449-4fa3-47e7-9ae5-9b14094edbeb\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.16,\"responseBytes\":11}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420769637,
-          "sequence": 19299
+          "capturedAt": 1786422162333,
+          "sequence": 19461
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T03:59:45.637Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"a2a9166e-82ce-46c7-ab74-2d4778fb97dc\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.13,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T03:59:45.637Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"a2a9166e-82ce-46c7-ab74-2d4778fb97dc\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.13,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:22:58.339Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"2dfbfba0-4576-46f6-a5aa-c929536d31c9\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:22:58.339Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"2dfbfba0-4576-46f6-a5aa-c929536d31c9\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420785637,
-          "sequence": 19300
+          "capturedAt": 1786422178339,
+          "sequence": 19462
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:00:01.645Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"aba029ea-2edc-4412-bf34-dd2b53706d2e\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.16,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:00:01.645Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"aba029ea-2edc-4412-bf34-dd2b53706d2e\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.16,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:23:14.346Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"dbfbf201-997d-4e88-9dc1-1be3c7a182fd\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:23:14.346Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"dbfbf201-997d-4e88-9dc1-1be3c7a182fd\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420801645,
-          "sequence": 19301
+          "capturedAt": 1786422194346,
+          "sequence": 19463
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:00:17.655Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"1dc1857a-7ad5-4d1a-8afb-3a3555c16f11\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:00:17.655Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"1dc1857a-7ad5-4d1a-8afb-3a3555c16f11\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:23:30.356Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"6e09b0c8-843f-4d15-9f11-793754726110\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:23:30.356Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"6e09b0c8-843f-4d15-9f11-793754726110\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420817668,
-          "sequence": 19302
+          "capturedAt": 1786422210356,
+          "sequence": 19464
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:00:33.659Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"6e074923-35bd-4c90-a0ca-fffbc893da27\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.13,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:00:33.659Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"6e074923-35bd-4c90-a0ca-fffbc893da27\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.13,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:23:46.359Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"e2204d56-5e65-4c8d-b268-8b0dfa0aac7a\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.18,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:23:46.359Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"e2204d56-5e65-4c8d-b268-8b0dfa0aac7a\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.18,\"responseBytes\":11}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420833672,
-          "sequence": 19303
+          "capturedAt": 1786422226359,
+          "sequence": 19465
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:00:49.664Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"72ed4f23-944b-418e-9f22-6761e807906a\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.14,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:00:49.664Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"72ed4f23-944b-418e-9f22-6761e807906a\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.14,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:24:02.367Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"9842adbc-87bf-4504-824f-dad2b6ddd295\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.13,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:24:02.367Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"9842adbc-87bf-4504-824f-dad2b6ddd295\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.13,\"responseBytes\":11}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420849665,
-          "sequence": 19304
+          "capturedAt": 1786422242367,
+          "sequence": 19466
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:01:05.679Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"861592d6-cc25-484a-9228-eaa9902bd397\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.17,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:01:05.679Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"861592d6-cc25-484a-9228-eaa9902bd397\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.17,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:24:18.406Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"95d24070-427f-4777-872b-bf129d0493a5\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.21,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:24:18.406Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"95d24070-427f-4777-872b-bf129d0493a5\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.21,\"responseBytes\":11}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420865679,
-          "sequence": 19305
+          "capturedAt": 1786422258406,
+          "sequence": 19467
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:01:21.682Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"ec2f9e02-262f-4ea1-ab23-f67097096e0f\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.17,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:01:21.682Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"ec2f9e02-262f-4ea1-ab23-f67097096e0f\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.17,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:24:34.398Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"351b7dbb-d6fe-462b-a1d7-edc35d35ae92\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.17,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:24:34.398Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"351b7dbb-d6fe-462b-a1d7-edc35d35ae92\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.17,\"responseBytes\":11}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420881683,
-          "sequence": 19306
+          "capturedAt": 1786422274411,
+          "sequence": 19468
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:01:37.696Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"cdaad975-f8ca-455f-9d67-825c86e66d4b\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.15,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:01:37.696Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"cdaad975-f8ca-455f-9d67-825c86e66d4b\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.15,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:24:50.404Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"6f8ea593-9637-4900-b3b2-7b9d7c33e361\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.16,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:24:50.404Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"6f8ea593-9637-4900-b3b2-7b9d7c33e361\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.16,\"responseBytes\":11}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420897696,
-          "sequence": 19307
+          "capturedAt": 1786422290404,
+          "sequence": 19469
         },
         {
-          "message": "[backend] {\"timestamp\":\"2026-08-11T04:01:53.670Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"7f651df5-e421-4974-9d93-134527ac3b26\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
-          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:01:53.670Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"7f651df5-e421-4974-9d93-134527ac3b26\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.12,\"responseBytes\":11}",
+          "message": "[backend] {\"timestamp\":\"2026-08-11T04:25:06.365Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"b2cdc258-0dc3-4cdb-96a5-858ed0fac805\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.14,\"responseBytes\":11}",
+          "raw": "[backend] {\"timestamp\":\"2026-08-11T04:25:06.365Z\",\"level\":\"info\",\"event\":\"http.request.completed\",\"requestId\":\"b2cdc258-0dc3-4cdb-96a5-858ed0fac805\",\"method\":\"GET\",\"path\":\"/api/health\",\"queryKeys\":[],\"status\":200,\"outcome\":\"completed\",\"durationMs\":0.14,\"responseBytes\":11}",
           "stream": "out",
           "runId": "backend-1786329255737-1b4d801f",
-          "capturedAt": 1786420913671,
-          "sequence": 19308
+          "capturedAt": 1786422306366,
+          "sequence": 19470
         }
       ],
       "observedPids": [
@@ -551,7 +551,7 @@
       "healthState": "healthy",
       "ownershipState": "system",
       "stateReason": "Observed a system-managed listener.",
-      "lastTransitionAt": "2026-08-11T04:01:53.623Z",
+      "lastTransitionAt": "2026-08-11T04:25:08.359Z",
       "lastProbeAt": null,
       "nextProbeAt": 0,
       "probe": null,

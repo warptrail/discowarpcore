@@ -283,9 +283,13 @@ const BlockText = styled.p`
 
 const AccordionToggle = styled.button`
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.6rem;
   border-radius: 10px;
   border: 1px solid rgba(96, 152, 189, 0.28);
@@ -294,11 +298,20 @@ const AccordionToggle = styled.button`
   padding: 0.62rem 0.72rem;
   cursor: pointer;
   text-align: left;
+
+  ${BlockHeader} {
+    flex: 1 1 12rem;
+    min-width: 0;
+  }
 `;
 
 const AccordionMeta = styled.span`
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
   font-size: 0.72rem;
   color: #8faac1;
+  overflow-wrap: anywhere;
 `;
 
 const StatusLine = styled.div`
@@ -346,6 +359,7 @@ const ButtonRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 0.52rem;
+  min-width: 0;
 `;
 
 const DestinationPanel = styled.div`

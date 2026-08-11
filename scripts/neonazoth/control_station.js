@@ -275,6 +275,19 @@ async function installAndBuild() {
   await runRemoteChecked(script, 'Install and build');
 }
 
+function buildRemoteRestartScript() {
+  return `
+    set -euo pipefail
+    cd ${REMOTE_APP_DIR}
+    node scripts/neonazoth/restart_backend_remote.js
+  `;
+}
+
+async function restartBackend() {
+  console.log('Running guarded production backend restart...');
+  await runRemoteChecked(buildRemoteRestartScript(), 'Guarded backend restart');
+}
+
 async function syncInstallBuildCheck(rl) {
   console.log('');
   console.log('This sync uses --delete on neonazoth source files, but preserves:');
@@ -283,11 +296,12 @@ async function syncInstallBuildCheck(rl) {
   console.log('');
   console.log('A fresh protected dry run is required immediately before deployment.');
   await syncSource({ dryRun: true });
-  if (!(await askConfirm(rl, 'Run the real sync, install/build, and health check?', { defaultValue: false }))) {
+  if (!(await askConfirm(rl, 'Run the real sync, install/build, guarded restart, and health check?', { defaultValue: false }))) {
     return;
   }
   await syncSource({ dryRun: false });
   await installAndBuild();
+  await restartBackend();
   await showStatus();
 }
 
@@ -309,6 +323,12 @@ async function main() {
     await openUrlHint();
     return;
   }
+  if (arg === '--restart') {
+    printHeader();
+    await restartBackend();
+    await showStatus();
+    return;
+  }
   if (!process.stdin.isTTY) {
     throw new Error('Remote deploy TUI requires an interactive terminal. Use --status or --url for one-shot checks.');
   }
@@ -320,7 +340,8 @@ async function main() {
       const action = await askSelect(rl, 'Action', [
         { label: 'Status and health check', value: 'status' },
         { label: 'Protected source sync dry run', value: 'sync_dry' },
-        { label: 'Protected sync + install + build + health check', value: 'sync_install_build_check' },
+        { label: 'Protected sync + install + build + guarded restart + health check', value: 'sync_install_build_check' },
+        { label: 'Guarded production backend restart', value: 'restart' },
         { label: 'Show LAN URL', value: 'url' },
         { label: 'Quit', value: 'quit' },
       ]);
@@ -331,6 +352,7 @@ async function main() {
         if (action === 'status') await showStatus();
         if (action === 'sync_dry') await syncSource({ dryRun: true });
         if (action === 'sync_install_build_check') await syncInstallBuildCheck(rl);
+        if (action === 'restart') await restartBackend();
         if (action === 'url') await openUrlHint();
       } catch (error) {
         console.error('');
@@ -354,6 +376,7 @@ if (require.main === module) {
 module.exports = {
   REMOTE_COMPLETION_MARKER,
   RSYNC_EXCLUDES,
+  buildRemoteRestartScript,
   findProtectedDryRunEntries,
   rsyncArgs,
   runCommand,
