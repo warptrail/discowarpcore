@@ -22,6 +22,24 @@ function normalizeMediaUrl(value) {
   return `/media/${normalized.replace(/^\/+/, '')}`;
 }
 
+function uniqueMediaUrls(values) {
+  return [...new Set(values.map((value) => {
+    const raw = String(value || '').trim();
+    return raw.startsWith('/api/') ? raw : normalizeMediaUrl(raw);
+  }).filter(Boolean))];
+}
+
+function getEntityImageSources(entity) {
+  return {
+    tiny: entity?.image?.tiny?.url || entity?.image?.tiny?.storagePath,
+    thumb: entity?.image?.thumb?.url || entity?.image?.thumb?.storagePath,
+    display: entity?.image?.display?.url || entity?.image?.display?.storagePath,
+    processed: entity?.image?.processed?.url || entity?.image?.processed?.storagePath,
+    original: entity?.image?.original?.url || entity?.image?.original?.storagePath,
+    legacy: entity?.image?.url || entity?.imagePath,
+  };
+}
+
 export function getOnDemandImageDerivativeUrl(sourceUrl, variant) {
   const normalizedSourceUrl = normalizeMediaUrl(sourceUrl);
   const normalizedVariant = String(variant || '').trim().toLowerCase();
@@ -37,37 +55,41 @@ export function getOnDemandImageDerivativeUrl(sourceUrl, variant) {
 }
 
 export function getEntityThumbnailUrl(entity) {
-  const thumbUrl = normalizeMediaUrl(
-    entity?.image?.thumb?.url || entity?.image?.thumb?.storagePath,
-  );
-  if (thumbUrl) return thumbUrl;
-
-  const sourceUrl = normalizeMediaUrl(
-    entity?.image?.display?.url ||
-      entity?.image?.display?.storagePath ||
-      entity?.image?.original?.url ||
-      entity?.image?.original?.storagePath ||
-      entity?.image?.url ||
-      entity?.imagePath,
-  );
-  return getOnDemandImageDerivativeUrl(sourceUrl, 'thumb');
+  return getEntityThumbnailCandidates(entity)[0] || '';
 }
 
 export function getEntityPreviewImageUrl(entity) {
-  const displayUrl = normalizeMediaUrl(
-    entity?.image?.display?.url || entity?.image?.display?.storagePath,
-  );
-  if (displayUrl) return displayUrl;
+  return getEntityPreviewImageCandidates(entity)[0] || '';
+}
 
-  const sourceUrl = normalizeMediaUrl(
-    entity?.image?.original?.url ||
-      entity?.image?.original?.storagePath ||
-      entity?.image?.thumb?.url ||
-      entity?.image?.thumb?.storagePath ||
-      entity?.image?.url ||
-      entity?.imagePath,
-  );
-  return getOnDemandImageDerivativeUrl(sourceUrl, 'display');
+export function getEntityThumbnailCandidates(entity) {
+  const sources = getEntityImageSources(entity);
+  const derivativeSource =
+    sources.original || sources.processed || sources.display || sources.legacy;
+
+  return uniqueMediaUrls([
+    sources.thumb,
+    getOnDemandImageDerivativeUrl(derivativeSource, 'thumb'),
+    sources.display,
+    sources.processed,
+    sources.original,
+    sources.legacy,
+  ]);
+}
+
+export function getEntityPreviewImageCandidates(entity) {
+  const sources = getEntityImageSources(entity);
+  const derivativeSource =
+    sources.original || sources.processed || sources.display || sources.legacy;
+
+  return uniqueMediaUrls([
+    sources.display,
+    getOnDemandImageDerivativeUrl(derivativeSource, 'display'),
+    sources.thumb,
+    sources.processed,
+    sources.original,
+    sources.legacy,
+  ]);
 }
 
 export function getItemThumbnailUrl(item) {
@@ -76,6 +98,14 @@ export function getItemThumbnailUrl(item) {
 
 export function getItemPreviewImageUrl(item) {
   return getEntityPreviewImageUrl(item);
+}
+
+export function getItemThumbnailCandidates(item) {
+  return getEntityThumbnailCandidates(item);
+}
+
+export function getItemPreviewImageCandidates(item) {
+  return getEntityPreviewImageCandidates(item);
 }
 
 export function getBoxThumbnailUrl(box) {
@@ -103,4 +133,11 @@ export function getItemTinyThumbnailUrl(item) {
 
 export function getItemMicroThumbnailUrl(item) {
   return getItemTinyThumbnailUrl(item) || getItemThumbnailUrl(item);
+}
+
+export function getItemMicroThumbnailCandidates(item) {
+  return uniqueMediaUrls([
+    getItemTinyThumbnailUrl(item),
+    ...getItemThumbnailCandidates(item),
+  ]);
 }

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  getItemMicroThumbnailUrl,
-  getItemThumbnailUrl,
+  getItemMicroThumbnailCandidates,
 } from '../../util/itemImage';
 import * as S from './OperationsQuickPeek.styles';
 
@@ -11,13 +10,14 @@ function quantityLabel(item) {
 }
 
 function QuickPeekItemThumbnail({ item }) {
-  const microUrl = getItemMicroThumbnailUrl(item);
-  const fallbackUrl = getItemThumbnailUrl(item);
-  const [source, setSource] = useState(microUrl);
+  const candidates = getItemMicroThumbnailCandidates(item);
+  const candidateKey = candidates.join('\n');
+  const [candidateIndex, setCandidateIndex] = useState(0);
+  const source = candidates[candidateIndex] || '';
 
   useEffect(() => {
-    setSource(microUrl);
-  }, [microUrl]);
+    setCandidateIndex(0);
+  }, [candidateKey]);
 
   if (!source) {
     return <S.ItemThumbnailFallback aria-hidden="true" />;
@@ -31,13 +31,7 @@ function QuickPeekItemThumbnail({ item }) {
       height="30"
       loading="lazy"
       decoding="async"
-      onError={() => {
-        if (fallbackUrl && source !== fallbackUrl) {
-          setSource(fallbackUrl);
-        } else {
-          setSource('');
-        }
-      }}
+      onError={() => setCandidateIndex((current) => current + 1)}
     />
   );
 }

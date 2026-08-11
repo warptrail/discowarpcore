@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   getItemOriginalImageUrl,
-  getItemPreviewImageUrl,
-  getItemThumbnailUrl,
+  getItemPreviewImageCandidates,
 } from '../../util/itemImage';
 import RetrievalImageLightbox from '../Retrieval/RetrievalImageLightbox';
 import * as S from './OperationsQuickPeek.styles';
@@ -21,15 +20,16 @@ function getTags(item) {
 }
 
 function ItemPreviewImage({ item, name }) {
-  const imageUrl = getItemPreviewImageUrl(item);
-  const fallbackUrl = getItemThumbnailUrl(item);
-  const [source, setSource] = useState(imageUrl);
+  const candidates = getItemPreviewImageCandidates(item);
+  const candidateKey = candidates.join('\n');
+  const [candidateIndex, setCandidateIndex] = useState(0);
   const [framing, setFraming] = useState('square');
+  const source = candidates[candidateIndex] || '';
 
   useEffect(() => {
-    setSource(imageUrl);
+    setCandidateIndex(0);
     setFraming('square');
-  }, [imageUrl]);
+  }, [candidateKey]);
 
   if (!source) {
     return <S.ItemCarouselImageFallback aria-hidden="true">ITEM</S.ItemCarouselImageFallback>;
@@ -60,11 +60,7 @@ function ItemPreviewImage({ item, name }) {
             setFraming('square');
           }
         }}
-        onError={() => {
-          setSource((currentSource) =>
-            fallbackUrl && currentSource !== fallbackUrl ? fallbackUrl : '',
-          );
-        }}
+        onError={() => setCandidateIndex((current) => current + 1)}
       />
     </>
   );
