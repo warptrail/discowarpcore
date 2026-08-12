@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import * as S from './Retrieval.styles';
 import RetrievalExpandedPanel from './RetrievalExpandedPanel';
 import {
@@ -22,6 +23,12 @@ export default function RetrievalResultRow({
   itemNavigationState,
   compact = false,
 }) {
+  const [panelMounted, setPanelMounted] = useState(isExpanded);
+
+  useEffect(() => {
+    if (isExpanded) setPanelMounted(true);
+  }, [isExpanded]);
+
   if (!item) return null;
   const panelId = `retrieval-row-panel-${item.id}`;
 
@@ -75,7 +82,12 @@ export default function RetrievalResultRow({
   };
 
   return (
-    <S.ResultCard $expanded={isExpanded} $compact={compact} style={boxThemeStyle}>
+    <S.ResultCard
+      id={`retrieval-result-${item.id}`}
+      $expanded={isExpanded}
+      $compact={compact}
+      style={boxThemeStyle}
+    >
       {compact ? (
         <S.AsciiResultButton
           type="button"
@@ -184,19 +196,27 @@ export default function RetrievalResultRow({
       </S.SummaryButton>
       )}
 
-      {isExpanded ? (
-        <RetrievalExpandedPanel
-          item={item}
-          panelId={panelId}
-          detailResource={detailResource}
-          themeStyle={boxThemeStyle}
-          activeSectionKey={activeSectionKey}
-          onSectionChange={onSectionChange}
-          onLifecycleAction={onLifecycleAction}
-          onPreviewImage={onPreviewImage}
-          itemNavigationState={itemNavigationState}
-        />
-      ) : null}
+      <S.ExpandedPanelTransition
+        $open={isExpanded}
+        aria-hidden={!isExpanded}
+        inert={!isExpanded ? true : undefined}
+      >
+        <S.ExpandedPanelTransitionClip>
+          {panelMounted ? (
+            <RetrievalExpandedPanel
+              item={item}
+              panelId={panelId}
+              detailResource={detailResource}
+              themeStyle={boxThemeStyle}
+              activeSectionKey={activeSectionKey}
+              onSectionChange={onSectionChange}
+              onLifecycleAction={onLifecycleAction}
+              onPreviewImage={onPreviewImage}
+              itemNavigationState={itemNavigationState}
+            />
+          ) : null}
+        </S.ExpandedPanelTransitionClip>
+      </S.ExpandedPanelTransition>
     </S.ResultCard>
   );
 }

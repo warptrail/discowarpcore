@@ -574,10 +574,12 @@ const RetrievalBoxSeparator = styled.span`
 `;
 
 const RetrievalMeta = styled.span`
-  color: rgba(226, 236, 247, 0.72);
-  font-size: 0.88rem;
-  font-weight: 620;
+  color: var(--box-location, #7fd7ff);
+  font-size: clamp(0.98rem, 3.2vw, 1.12rem);
+  font-weight: 820;
   line-height: 1.25;
+  letter-spacing: 0.015em;
+  text-shadow: 0 0 10px rgba(var(--box-location-rgb, 127, 215, 255), 0.26);
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;

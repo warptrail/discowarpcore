@@ -39,9 +39,11 @@ const LocationLine = styled.div`
   gap: 0.26rem;
   min-width: 0;
   ${({ $stacked }) => $stacked && 'flex-basis: 100%;'}
-  color: rgba(230, 244, 255, 0.72);
-  font-size: 0.64rem;
+  color: var(--box-location, #7fd7ff);
+  font-size: 0.78rem;
+  font-weight: 800;
   line-height: 1.2;
+  text-shadow: 0 0 8px rgba(var(--box-location-rgb, 127, 215, 255), 0.24);
 `;
 
 const LocationLabel = styled.span`

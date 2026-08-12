@@ -734,7 +734,7 @@ export default function RetrievalBoxCentricView({
                               </S.BoxRowLabel>
                             </S.BoxRowMain>
                             <S.BoxRowContext>
-                              <S.BoxRowLocation $boxNeonRgb={rowTones.neonRgb}>
+                              <S.BoxRowLocation $boxLocationRgb={rowTones.locationRgb}>
                                 <span>Location</span>
                                 <strong>{box.locationLabel || 'Unknown'}</strong>
                               </S.BoxRowLocation>

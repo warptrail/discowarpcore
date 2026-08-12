@@ -1633,7 +1633,8 @@ export const BoxRowLocation = styled.span`
   align-items: center;
   gap: 0.3rem;
   min-width: 0;
-  color: ${({ $boxNeonRgb }) => `rgba(${$boxNeonRgb || '119, 213, 255'}, 0.98)`};
+  color: ${({ $boxLocationRgb }) =>
+    `rgba(${$boxLocationRgb || '119, 213, 255'}, 0.98)`};
   line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
@@ -1649,9 +1650,11 @@ export const BoxRowLocation = styled.span`
 
   strong {
     overflow: hidden;
-    font-size: 0.68rem;
-    font-weight: 780;
+    font-size: 0.76rem;
+    font-weight: 840;
     text-overflow: ellipsis;
+    text-shadow: ${({ $boxLocationRgb }) =>
+      `0 0 8px rgba(${$boxLocationRgb || '119, 213, 255'}, 0.24)`};
   }
 `;
 
@@ -2345,16 +2348,18 @@ export const CollapsedLocationValue = styled.span`
     ${({ $unknown }) =>
       $unknown
         ? 'rgba(176, 166, 148, 0.52)'
-        : 'rgba(var(--box-secondary-rgb, 103, 217, 211), 0.48)'};
+        : 'rgba(var(--box-location-rgb, 127, 215, 255), 0.72)'};
   padding: 0.04rem 0 0.04rem 0.38rem;
   max-width: 100%;
   color: ${({ $unknown }) =>
-    $unknown ? 'rgba(205, 198, 188, 0.76)' : 'rgba(218, 228, 238, 0.78)'};
+    $unknown ? 'rgba(205, 198, 188, 0.76)' : 'var(--box-location, #7fd7ff)'};
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.65rem;
+  font-size: clamp(0.74rem, 2.8vw, 0.84rem);
   line-height: 1.2;
   letter-spacing: 0.04em;
-  font-weight: 680;
+  font-weight: 820;
+  text-shadow: ${({ $unknown }) =>
+    $unknown ? 'none' : '0 0 8px rgba(var(--box-location-rgb, 127, 215, 255), 0.24)'};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2750,6 +2755,29 @@ export const ExpandedPanel = styled.section`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 0.46rem 0.5rem 0.52rem;
   }
+`;
+
+export const ExpandedPanelTransition = styled.div`
+  display: grid;
+  grid-template-rows: ${({ $open }) => ($open ? '1fr' : '0fr')};
+  opacity: ${({ $open }) => ($open ? 1 : 0)};
+  transform: translateY(${({ $open }) => ($open ? '0' : '-5px')});
+  visibility: ${({ $open }) => ($open ? 'visible' : 'hidden')};
+  transition:
+    grid-template-rows 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease,
+    transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s linear ${({ $open }) => ($open ? '0s' : '280ms')};
+
+  @media (prefers-reduced-motion: reduce) {
+    transform: none;
+    transition: none;
+  }
+`;
+
+export const ExpandedPanelTransitionClip = styled.div`
+  min-height: 0;
+  overflow: hidden;
 `;
 
 const expandedDeckArrival = keyframes`

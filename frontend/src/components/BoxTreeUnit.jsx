@@ -64,7 +64,7 @@ const Disclosure = styled.button`
 `;
 const HeaderCopy = styled.div`min-width: 0; display: grid; gap: 0.14rem;`;
 const BoxTitle = styled.div`overflow: hidden; color: rgba(228, 241, 244, 0.94); font: 800 0.72rem/1.1 ui-monospace, SFMono-Regular, Menlo, monospace; text-overflow: ellipsis; white-space: nowrap;`;
-const Location = styled.div`color: rgba(119, 212, 204, 0.72); font: 700 0.55rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase;`;
+const Location = styled.div`color: var(--box-location, #7fd7ff); font: 820 0.68rem/1.1 ui-monospace, SFMono-Regular, Menlo, monospace; text-shadow: 0 0 8px rgba(var(--box-location-rgb, 127, 215, 255), 0.24); text-transform: uppercase;`;
 const Counts = styled.span`margin-left: auto; color: rgba(190, 207, 222, 0.62); font: 700 0.54rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap;`;
 const BoxLink = styled.a`color: rgba(173, 209, 255, 0.84); font: 700 0.54rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; text-decoration: none; white-space: nowrap;`;
 const UnitBody = styled.div`display: grid; gap: 0.42rem; padding: 0.38rem 0 0.1rem; min-width: 0;`;

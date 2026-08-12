@@ -642,9 +642,9 @@ export const CurrentBoxLocationLabel = styled.span`
 `;
 
 export const CurrentBoxLocationValue = styled.span`
-  color: var(--box-muted, #d7e5ec);
-  font-size: 0.86rem;
-  font-weight: 760;
+  color: var(--box-location, #7fd7ff);
+  font-size: 0.96rem;
+  font-weight: 840;
   letter-spacing: 0.03em;
   line-height: 1.1;
   min-width: 0;
@@ -652,9 +652,10 @@ export const CurrentBoxLocationValue = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-shadow: 0 0 8px rgba(var(--box-location-rgb, 127, 215, 255), 0.24);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${MOBILE_FONT_SM};
+    font-size: 0.9rem;
     max-width: min(60vw, 240px);
   }
 `;

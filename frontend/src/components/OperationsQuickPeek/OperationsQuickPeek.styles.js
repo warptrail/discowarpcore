@@ -534,14 +534,16 @@ export const BoxContextLine = styled.span`
 export const BoxLocation = styled.span`
   min-width: 0;
   overflow: hidden;
-  color: rgba(${COLORS.accentRgb}, 0.82);
+  color: var(--box-location, rgba(${COLORS.accentRgb}, 0.92));
   font-family:
     'SFMono-Regular', ui-monospace, Menlo, Monaco, Consolas, monospace;
-  font-weight: 800;
+  font-size: 0.78rem;
+  font-weight: 860;
   letter-spacing: 0.055em;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
+  text-shadow: 0 0 8px rgba(var(--box-location-rgb, ${COLORS.accentRgb}), 0.24);
 `;
 
 export const PositionReadout = styled.span`

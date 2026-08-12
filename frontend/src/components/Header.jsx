@@ -1211,8 +1211,10 @@ const BoxConsoleLocation = styled.span`
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
-  color: rgba(224, 229, 235, 0.66);
-  font-weight: 650;
+  color: var(--box-location, #7fd7ff);
+  font-size: 0.9rem;
+  font-weight: 820;
+  text-shadow: 0 0 8px rgba(var(--box-location-rgb, 127, 215, 255), 0.24);
   text-overflow: ellipsis;
   white-space: nowrap;
 `;

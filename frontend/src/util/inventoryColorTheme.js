@@ -237,6 +237,11 @@ function getSiblingVariant(itemId, parentKey) {
 function buildTheme(preset, metadata) {
   const neon = getNeonVariant(preset.primary);
   const muted = getMutedVariant(preset.primary);
+  const primaryHsl = hexToHsl(preset.primary);
+  const location = ensureDarkSurfaceContrast({
+    ...primaryHsl,
+    h: primaryHsl.h + 180,
+  });
 
   return Object.freeze({
     ...metadata,
@@ -246,10 +251,12 @@ function buildTheme(preset, metadata) {
     secondary: preset.secondary,
     neon,
     muted,
+    location,
     primaryRgb: hexToRgbString(preset.primary),
     secondaryRgb: hexToRgbString(preset.secondary),
     neonRgb: hexToRgbString(neon),
     mutedRgb: hexToRgbString(muted),
+    locationRgb: hexToRgbString(location),
     // Compatibility aliases while older consumers migrate to the shared vocabulary.
     base: preset.primary,
     baseRgb: hexToRgbString(preset.primary),
@@ -372,10 +379,12 @@ export function getBoxThemeCssVars(theme) {
     '--box-secondary': safeTheme.secondary,
     '--box-neon': safeTheme.neon,
     '--box-muted': safeTheme.muted,
+    '--box-location': safeTheme.location,
     '--box-primary-rgb': safeTheme.primaryRgb,
     '--box-secondary-rgb': safeTheme.secondaryRgb,
     '--box-neon-rgb': safeTheme.neonRgb,
     '--box-muted-rgb': safeTheme.mutedRgb,
+    '--box-location-rgb': safeTheme.locationRgb,
     '--box-phase': String(phase),
     '--box-wash-angle': washAngles[phase],
     '--box-glow-alpha': glowAlphas[phase],

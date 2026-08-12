@@ -789,15 +789,15 @@ const LocationMeta = styled.span`
   gap: 0.34rem;
   min-width: 0;
   max-width: 100%;
-  color: ${toneAlpha(LCARS.cyan, 'f0')};
-  font-size: 0.78rem;
-  font-weight: 820;
+  color: var(--box-location, ${LCARS.cyan});
+  font-size: clamp(0.82rem, 2vw, 0.94rem);
+  font-weight: 860;
   line-height: 1.2;
 
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
     flex: 0 1 auto;
     max-width: 66%;
-    font-size: 0.66rem;
+    font-size: 0.78rem;
   }
 `;
 
@@ -815,6 +815,7 @@ const LocationMetaValue = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-shadow: 0 0 8px rgba(var(--box-location-rgb, 127, 215, 255), 0.24);
 `;
 
 const SecondaryMeta = styled.span`

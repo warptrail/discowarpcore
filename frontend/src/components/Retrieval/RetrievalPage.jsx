@@ -464,6 +464,7 @@ export default function RetrievalPage() {
       ? Number(initialSnapshot.scrollY)
       : null,
   );
+  const pendingExpandedScrollRef = useRef('');
   const latestSnapshotRef = useRef(null);
   const boxItemNavigationPendingRef = useRef(false);
 
@@ -835,8 +836,48 @@ export default function RetrievalPage() {
   const toggleExpanded = useCallback((itemId) => {
     const resolvedId = String(itemId || '').trim();
     if (!resolvedId) return;
-    if (activeExpandedId !== resolvedId) setActiveSectionKey('overview');
+    if (activeExpandedId !== resolvedId) {
+      pendingExpandedScrollRef.current = resolvedId;
+      setActiveSectionKey('overview');
+    } else {
+      pendingExpandedScrollRef.current = '';
+    }
     setActiveExpandedId((current) => (current === resolvedId ? '' : resolvedId));
+  }, [activeExpandedId]);
+
+  useEffect(() => {
+    const pendingId = pendingExpandedScrollRef.current;
+    if (!activeExpandedId || activeExpandedId !== pendingId) return undefined;
+
+    let settleTimerId = 0;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const alignExpandedRow = (behavior) => {
+      const row = document.getElementById(`retrieval-result-${pendingId}`);
+      if (!row) return;
+      const headerBottom =
+        document.querySelector('[data-app-header="true"]')?.getBoundingClientRect().bottom || 0;
+      const targetTop = Math.max(
+        0,
+        window.scrollY + row.getBoundingClientRect().top - headerBottom - 8,
+      );
+      window.scrollTo({ top: targetTop, left: 0, behavior });
+    };
+
+    const animationTimerId = window.setTimeout(() => {
+      alignExpandedRow(reduceMotion ? 'auto' : 'smooth');
+      settleTimerId = window.setTimeout(() => {
+        alignExpandedRow('auto');
+        if (pendingExpandedScrollRef.current === pendingId) {
+          pendingExpandedScrollRef.current = '';
+        }
+      }, reduceMotion ? 0 : 520);
+    }, reduceMotion ? 0 : 290);
+
+    return () => {
+      window.clearTimeout(animationTimerId);
+      window.clearTimeout(settleTimerId);
+    };
   }, [activeExpandedId]);
 
   const handleConsoleSearchChange = useCallback((nextValue) => {
