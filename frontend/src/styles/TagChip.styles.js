@@ -14,44 +14,56 @@ const pulseRed = keyframes`
 export const Chip = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.6rem;
-  border-radius: 14px;
-  font-size: 0.85rem;
+  gap: 0.22rem;
+  min-height: 30px;
+  max-width: 100%;
+  padding: 0.18rem 0.28rem 0.18rem 0.5rem;
+  border-radius: 3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.055em;
   line-height: 1;
-  border: 2px solid transparent;
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(104, 154, 186, 0.42);
+  background: linear-gradient(180deg, rgba(15, 30, 45, 0.82), rgba(8, 17, 27, 0.92));
   color: #eaeaea;
   user-select: none;
-  max-width: 100%;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+  transition: border-color 180ms ease, color 180ms ease, background 180ms ease;
 
   ${({ $status }) =>
     $status === 'unchanged' &&
     css`
-      border-color: #666;
+      border-color: rgba(76, 198, 193, 0.62);
+      color: #b9fff7;
     `}
 
   ${({ $status }) =>
     $status === 'new' &&
     css`
-      border-color: #00ff80;
+      border-color: rgba(81, 232, 161, 0.88);
+      color: #9dffd0;
       animation: ${pulseGreen} 1.6s ease-in-out infinite;
     `}
 
   ${({ $status }) =>
     $status === 'deleted' &&
     css`
-      border-color: #ff4040;
+      border-color: rgba(255, 111, 125, 0.9);
       animation: ${pulseRed} 1.6s ease-in-out infinite;
       opacity: 0.75;
     `}
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    gap: 0.28rem;
-    padding: 0.2rem 0.46rem;
-    border-radius: 10px;
-    border-width: 1px;
+    gap: 0.18rem;
+    min-height: 29px;
+    padding: 0.18rem 0.22rem 0.18rem 0.42rem;
+    border-radius: 3px;
     font-size: ${MOBILE_FONT_SM};
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transition: none;
   }
 `;
 
@@ -73,15 +85,26 @@ export const RemoveButton = styled.button`
   all: unset;
   cursor: pointer;
   font-weight: 800;
-  font-size: 1rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.82rem;
   line-height: 1;
-  padding: 0 0.2rem;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
+  color: rgba(207, 235, 243, 0.7);
+  text-align: center;
 
   &:hover {
     color: #ff6b6b;
   }
 
+  &:focus-visible {
+    outline: 1px solid #73ddff;
+    outline-offset: 1px;
+  }
+
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: 0 0.12rem;
+    min-width: 24px;
+    min-height: 24px;
   }
 `;

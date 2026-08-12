@@ -439,11 +439,11 @@ export default function ItemPage() {
     showToast?.({
       id: `item-field-saved:${savedItemId}:${fieldKey}:${Date.now()}`,
       variant: 'success',
-      title: 'FIELD UPDATED',
-      message: `${descriptor.label} saved for "${getItemName(updated)}".`,
+      title: 'UPDATED',
+      message: `${descriptor.label} updated for "${getItemName(updated)}".`,
       presentation: 'item-field',
       themeStyle: getItemConsoleThemeStyle(updated),
-      timeoutMs: 2800,
+      timeoutMs: 1600,
     });
     setPendingFieldSuccess(null);
   }, [fieldEditor.isActive, pendingFieldSuccess, showToast]);

@@ -8,6 +8,7 @@ import { normalizeLinksForForm, sanitizeLinksForSave } from '../../util/itemLink
 import { getItemOwnershipContext } from '../../util/itemOwnership';
 import { normalizeKeepPriority } from '../../util/keepPriority';
 import { normalizeTags } from '../../util/normalizeTags';
+import { normalizePrimaryOwner } from '../../util/itemOwners';
 import {
   formatCentsToUsdInput,
   parseUsdInputToCents,
@@ -196,9 +197,8 @@ const FIELD_DESCRIPTORS = [
     key: 'primary-owner',
     label: 'Primary owner',
     domain: 'RETENTION',
-    editor: 'text',
-    placeholder: 'Shared, Mom, Erelas…',
-    getDraft: (item) => toText(item?.primaryOwnerName),
+    editor: 'primary-owner',
+    getDraft: (item) => normalizePrimaryOwner(item?.primaryOwnerName),
     buildPayload: (draft) => ({
       primaryOwnerName: toNullableTrimmedString(draft),
     }),

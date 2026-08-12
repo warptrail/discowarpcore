@@ -1,4 +1,5 @@
 import { API_BASE } from './API_BASE';
+import { ITEM_OWNERS } from '../util/itemOwners';
 
 const DECLUTTER_SESSIONS_PATH = '/api/declutter-sessions';
 
@@ -11,10 +12,9 @@ export const DECLUTTER_DECISIONS = [
   'unsure',
 ];
 
-export const DECLUTTER_PLAYERS = [
-  { id: 'discofish', label: 'Discofish', icon: '🐟' },
-  { id: 'laserfox', label: 'Laserfox', icon: '🦊' },
-];
+export const DECLUTTER_PLAYERS = ITEM_OWNERS.map((owner) => ({
+  ...owner,
+}));
 
 function buildUrl(path, params = {}) {
   const apiRoot = String(API_BASE || '').replace(/\/+$/, '');

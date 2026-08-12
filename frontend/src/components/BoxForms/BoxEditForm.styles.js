@@ -657,15 +657,16 @@ export const Actions = styled.div`
 
 export const FormActionDock = styled.div`
   position: sticky;
-  bottom: 0;
-  z-index: 3;
+  bottom: -1px;
+  z-index: 6;
   display: flex;
   gap: ${({ $compact }) => ($compact ? '6px' : '8px')};
   justify-content: flex-end;
   align-items: center;
   flex-wrap: wrap;
   margin-top: ${({ $compact }) => ($compact ? '8px' : '10px')};
-  padding-top: ${({ $compact }) => ($compact ? '8px' : '10px')};
+  padding: ${({ $compact }) => ($compact ? '8px 0' : '12px 0 10px')};
+  border-top: 1px solid rgba(130, 168, 196, 0.18);
   background: linear-gradient(
     180deg,
     rgba(17, 22, 31, 0),
@@ -674,11 +675,12 @@ export const FormActionDock = styled.div`
   );
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    position: static;
+    position: sticky;
+    bottom: -1px;
     justify-content: stretch;
     margin-top: 6px;
-    padding-top: 6px;
-    background: none;
+    padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+    background: rgba(8, 12, 18, 0.98);
   }
 `;
 

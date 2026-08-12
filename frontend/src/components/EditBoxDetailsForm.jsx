@@ -215,15 +215,11 @@ export default function EditBoxDetailsForm({
         declutterIsDefault,
         isGiftBox,
       });
-      onSaved?.(updated || {
-        _id: boxMongoId,
-        box_id: shortId,
-        label,
-        group,
-        description,
-        notes,
-        tags,
-      });
+      const persistedShortId = String(updated?.box_id ?? updated?.shortId ?? '').trim();
+      if (persistedShortId !== String(shortId).trim()) {
+        throw new Error('The server did not persist the new box number. Please try again.');
+      }
+      onSaved?.(updated);
     } catch (e2) {
       setError(e2.message || 'Update failed');
     } finally {

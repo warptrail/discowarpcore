@@ -4,6 +4,7 @@ import { normalizeTags } from '../../util/normalizeTags';
 import { normalizeItemCategory } from '../../util/itemCategories';
 import { normalizeKeepPriority } from '../../util/keepPriority';
 import { getItemOwnershipContext } from '../../util/itemOwnership';
+import { normalizePrimaryOwner } from '../../util/itemOwners';
 import {
   buildEditableDateHistory,
   getIntervalDaysFromHistory,
@@ -14,6 +15,7 @@ import {
 import {
   formatCentsToUsdInput,
   parseUsdInputToCents,
+  sanitizeUsdInput,
 } from '../../util/usdMoney';
 import {
   normalizeLinksForForm,
@@ -36,7 +38,7 @@ const buildFormState = (item) => ({
     item?.lastMaintainedAt
   ),
   keepPriority: normalizeKeepPriority(item?.keepPriority),
-  primaryOwnerName: item?.primaryOwnerName || '',
+  primaryOwnerName: normalizePrimaryOwner(item?.primaryOwnerName),
   condition: item?.condition || 'unknown',
   category: normalizeItemCategory(item?.category),
   isConsumable: !!item?.isConsumable,
@@ -111,7 +113,11 @@ export default function useEditItemDetailsFormState({ item, triggerFlash, onSave
     const { name, type, value, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === 'checkbox'
+        ? checked
+        : ['valueUsd', 'purchasePriceUsd'].includes(name)
+          ? sanitizeUsdInput(value)
+          : value,
     }));
   };
 

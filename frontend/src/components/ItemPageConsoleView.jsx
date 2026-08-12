@@ -6,6 +6,7 @@ import { getItemFieldDescriptor } from './ItemFieldEditor/itemFieldRegistry';
 import { getItemOwnershipContext } from '../util/itemOwnership';
 import { formatItemCategory, normalizeItemCategory } from '../util/itemCategories';
 import { formatKeepPriorityLabel } from '../util/keepPriority';
+import { formatPrimaryOwner } from '../util/itemOwners';
 import { getImportBatchHref } from '../api/intakeBatches';
 import { getRetrievalTagHref } from './Retrieval/retrievalModel';
 import * as S from '../styles/ItemPageConsoleView.styles';
@@ -58,6 +59,9 @@ const TableRow = memo(function TableRow({
   );
   const fieldModeActive = locatorActive || Boolean(fieldEditor?.descriptor);
   const tagValue = fieldKey === 'tags' && !isActive;
+  const hasNotePreview = fieldKey === 'notes'
+    && String(value ?? '').trim()
+    && String(value).trim() !== '—';
 
   return (
     <Fragment>
@@ -82,7 +86,7 @@ const TableRow = memo(function TableRow({
                 EDIT
               </S.EditableTagButton>
             </S.TagValueEditorRow>
-          ) : fieldKey === 'notes' && String(value || '').trim() ? (
+          ) : hasNotePreview ? (
             <S.NotePreviewRow>
               <S.NotePreviewButton
                 type="button"
@@ -259,7 +263,7 @@ function AllDataView({
       tone: 'rose',
       rows: [
         { fieldKey: 'keep-priority', label: 'Keep priority', value: formatKeepPriorityLabel(item?.keepPriority) || '—' },
-        { fieldKey: 'primary-owner', label: 'Primary owner', value: text(item?.primaryOwnerName) },
+        { fieldKey: 'primary-owner', label: 'Primary owner', value: formatPrimaryOwner(item?.primaryOwnerName) || '—' },
         { fieldKey: 'condition', label: 'Condition', value: text(item?.condition) },
         { fieldKey: 'acquisition-type', label: 'Acquisition type', value: text(item?.acquisitionType) },
       ],

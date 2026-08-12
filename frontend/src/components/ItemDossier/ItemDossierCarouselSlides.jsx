@@ -13,6 +13,8 @@ import {
 import {
   formatCentsToUsdInput,
   parseUsdInputToCents,
+  sanitizeUsdInput,
+  USD_DECIMAL_PATTERN,
 } from '../../util/usdMoney';
 
 function DisplayValue({ children, fallback = 'Not set' }) {
@@ -700,9 +702,12 @@ export function CostsSlide({
                   <S.QuickFactInput
                     type="text"
                     inputMode="decimal"
+                    pattern={USD_DECIMAL_PATTERN.source}
                     value={draft}
                     aria-label={`Edit ${label.toLowerCase()}`}
-                    onChange={(event) => setDraft(event.target.value)}
+                    onChange={(event) => setDraft(
+                      sanitizeUsdInput(event.target.value),
+                    )}
                   />
                 )}
                 <S.QuickFactEditorActions>

@@ -27,6 +27,8 @@ export const BOX_CONTEXT_STATE_EVENT =
   'disco-warp-core:box-context-state';
 export const BOX_CONTEXT_TOGGLE_EVENT =
   'disco-warp-core:box-context-toggle';
+export const BOX_RECORD_UPDATED_EVENT =
+  'disco-warp-core:box-record-updated';
 
 // The retrieval rescue is the household-wide, item-first finder. Keep this
 // separate from the Operations inventory grid's local finder controls.

@@ -22,6 +22,7 @@ const Backdrop = styled.div`
 `;
 const Sheet = styled.aside`
   position: relative;
+  box-sizing: border-box;
   width: min(620px, calc(100vw - 18px));
   height: 100%;
   overflow-y: auto;
@@ -37,7 +38,7 @@ const Sheet = styled.aside`
 
   @media (min-width: 700px) {
     width: min(640px, calc(100vw - 48px));
-    height: min(86vh, 760px);
+    height: min(calc(100% - 48px), 760px);
     padding: 0 18px 18px;
     border: 1px solid rgba(127, 215, 255, 0.18);
     border-radius: 8px;

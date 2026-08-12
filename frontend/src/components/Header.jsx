@@ -1,4 +1,5 @@
 import { Fragment, useContext, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import styled, { css, keyframes } from 'styled-components';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Toast from './Toast/Toast';
@@ -1039,6 +1040,35 @@ const NavActionButton = styled.button`
   cursor: pointer;
 `;
 
+const NavTooltip = styled.div`
+  position: fixed;
+  z-index: 1000;
+  top: ${({ $top }) => `${$top}px`};
+  left: ${({ $left }) => `${$left}px`};
+  transform: translateX(-50%);
+  pointer-events: none;
+  padding: 0.34rem 0.62rem 0.32rem;
+  border: 1px solid rgba(103, 239, 200, 0.72);
+  border-left-width: 5px;
+  border-radius: 2px 7px 2px 2px;
+  background:
+    linear-gradient(90deg, rgba(76, 198, 193, 0.22), transparent 24%),
+    rgba(5, 13, 21, 0.98);
+  color: rgba(232, 255, 250, 0.98);
+  box-shadow:
+    0 0 0 1px rgba(127, 215, 255, 0.14),
+    0 6px 18px rgba(0, 0, 0, 0.55),
+    0 0 16px rgba(76, 198, 193, 0.16);
+  font: 900 0.68rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
+  }
+`;
+
 const Divider = styled.div`
   height: 1px;
   background: linear-gradient(
@@ -1598,11 +1628,22 @@ const IDLE_SIGNAL_FRAMES = [
   '╾━━ ◇ ━━━━╼',
 ];
 
+const SEARCH_CONTROL_FRAMES = [
+  'SEARCH CONTROLS >',
+  'SEARCH CONTROLS ─>',
+  'SEARCH CONTROLS ──>',
+  'SEARCH CONTROLS ───>',
+  'SEARCH CONTROLS ────>',
+  'SEARCH CONTROLS ─────>',
+];
+
 const IdleAsciiArt = styled.span`
   display: inline-grid;
-  grid-template-columns: auto auto;
+  grid-template-columns: ${({ $searchPrompt }) =>
+    $searchPrompt ? 'auto minmax(0, 1fr)' : 'auto auto'};
   align-items: center;
   gap: 0.65rem;
+  width: ${({ $searchPrompt }) => ($searchPrompt ? '100%' : 'auto')};
   min-width: 0;
   color: var(--idle-signal-primary);
   font-family: 'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace,
@@ -1617,6 +1658,18 @@ const IdleAsciiFrame = styled.span`
   white-space: pre;
 `;
 
+const SearchControlFrame = styled(IdleAsciiFrame)`
+  overflow: hidden;
+  color: var(--idle-signal-secondary);
+  font-size: clamp(0.62rem, 3vw, 0.76rem);
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-overflow: clip;
+  text-shadow:
+    0 0 8px color-mix(in srgb, var(--idle-signal-primary) 50%, transparent),
+    0 0 16px color-mix(in srgb, var(--idle-signal-secondary) 32%, transparent);
+`;
+
 const IdleAsciiStatus = styled.span`
   color: var(--idle-signal-secondary);
   font-size: 0.66rem;
@@ -1629,31 +1682,44 @@ const IdleAsciiStatus = styled.span`
   }
 `;
 
-function IdleAsciiSignal({ palette }) {
+function IdleAsciiSignal({ palette, searchPrompt = false }) {
   const [frame, setFrame] = useState(0);
+  const frames = searchPrompt ? SEARCH_CONTROL_FRAMES : IDLE_SIGNAL_FRAMES;
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     if (mediaQuery.matches) return undefined;
 
     const intervalId = window.setInterval(() => {
-      setFrame((current) => (current + 1) % IDLE_SIGNAL_FRAMES.length);
+      setFrame((current) => (current + 1) % frames.length);
     }, 260);
 
     return () => window.clearInterval(intervalId);
-  }, []);
+  }, [frames.length]);
 
   return (
     <IdleAsciiArt
       role="img"
-      aria-label="Idle warp core signal"
+      aria-label={searchPrompt ? 'Search controls available' : 'Idle warp core signal'}
+      $searchPrompt={searchPrompt}
       style={{
         '--idle-signal-primary': palette.primary,
         '--idle-signal-secondary': palette.secondary,
       }}
     >
-      <IdleAsciiFrame aria-hidden="true">{IDLE_SIGNAL_FRAMES[frame]}</IdleAsciiFrame>
-      <IdleAsciiStatus aria-hidden="true">CORE IDLE // SIGNAL NOMINAL</IdleAsciiStatus>
+      {searchPrompt ? (
+        <>
+          <IdleAsciiFrame aria-hidden="true">
+            {IDLE_SIGNAL_FRAMES[frame % IDLE_SIGNAL_FRAMES.length]}
+          </IdleAsciiFrame>
+          <SearchControlFrame aria-hidden="true">{frames[frame]}</SearchControlFrame>
+        </>
+      ) : (
+        <>
+          <IdleAsciiFrame aria-hidden="true">{frames[frame]}</IdleAsciiFrame>
+          <IdleAsciiStatus aria-hidden="true">CORE IDLE // SIGNAL NOMINAL</IdleAsciiStatus>
+        </>
+      )}
     </IdleAsciiArt>
   );
 }
@@ -1666,6 +1732,7 @@ export default function Header() {
   const scrollTransitionLockRef = useRef(false);
   const scrollTransitionTimerRef = useRef(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [navTooltip, setNavTooltip] = useState(null);
   const [committedSearch, setCommittedSearch] = useState('');
   const [isOperationsFinderOpen, setIsOperationsFinderOpen] = useState(false);
   const [operationsFiltersActive, setOperationsFiltersActive] = useState(false);
@@ -1703,6 +1770,35 @@ export default function Header() {
   const isImportPage = /^\/import\/?$/.test(location.pathname);
   const isDeclutterPage = /^\/declutter(?:\/|$)/.test(location.pathname);
   const isLogsPage = /^\/logs\/?$/.test(location.pathname);
+
+  const showNavTooltip = (event) => {
+    if (typeof window === 'undefined' || window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT})`).matches) {
+      return;
+    }
+
+    const control = event.target.closest?.('[data-nav-tooltip]');
+    if (!control) return;
+    const label = control.querySelector('[data-nav-label]');
+    const labelStyle = label ? window.getComputedStyle(label) : null;
+    const labelHidden = !label ||
+      Number.parseFloat(labelStyle?.opacity || '1') < 0.75 ||
+      label.getBoundingClientRect().width < 12 ||
+      label.scrollWidth > label.clientWidth + 1;
+
+    if (!labelHidden) {
+      setNavTooltip(null);
+      return;
+    }
+
+    const rect = control.getBoundingClientRect();
+    setNavTooltip({
+      label: control.dataset.navTooltip,
+      left: Math.max(72, Math.min(window.innerWidth - 72, rect.left + rect.width / 2)),
+      top: rect.bottom + 7,
+    });
+  };
+
+  const hideNavTooltip = () => setNavTooltip(null);
   const hasOperationsQuickPeek =
     isOperationsPage && new URLSearchParams(location.search).has('peek');
 
@@ -2092,11 +2188,17 @@ export default function Header() {
           </Brand>
 
           {isRetrievalWorkspace ? (
-            <RetrievalMiniNav aria-label="Compact primary navigation">
+            <RetrievalMiniNav
+              aria-label="Compact primary navigation"
+              onMouseOver={showNavTooltip}
+              onMouseLeave={hideNavTooltip}
+              onFocus={showNavTooltip}
+              onBlur={hideNavTooltip}
+            >
               <RetrievalMiniNavLink
                 to="/operations"
                 aria-label="Operations"
-                title="Operations"
+                data-nav-tooltip="Operations"
                 onClick={handleNavSelection}
               >
                 <img src={operationsNavIcon} alt="" />
@@ -2104,7 +2206,7 @@ export default function Header() {
               <RetrievalMiniNavLink
                 to="/retrieval"
                 aria-label="Retrieval"
-                title="Retrieval"
+                data-nav-tooltip="Retrieval"
                 $active={isRetrievalPage}
                 onClick={handleNavSelection}
               >
@@ -2113,7 +2215,7 @@ export default function Header() {
               <RetrievalMiniNavLink
                 to="/intake"
                 aria-label="Intake"
-                title="Intake"
+                data-nav-tooltip="Intake"
                 onClick={handleNavSelection}
               >
                 <img src={declutterNavIcon} alt="" />
@@ -2121,7 +2223,7 @@ export default function Header() {
               <RetrievalMiniNavLink
                 to="/import"
                 aria-label="Import"
-                title="Import"
+                data-nav-tooltip="Import"
                 onClick={handleNavSelection}
               >
                 <img src={allItemsNavIcon} alt="" />
@@ -2129,7 +2231,7 @@ export default function Header() {
               <RetrievalMiniNavLink
                 to="/all-items"
                 aria-label="All Items"
-                title="All Items"
+                data-nav-tooltip="All Items"
                 onClick={handleNavSelection}
               >
                 <img src={importNavIcon} alt="" />
@@ -2137,7 +2239,7 @@ export default function Header() {
               <RetrievalMiniNavLink
                 to="/declutter"
                 aria-label="Declutter"
-                title="Declutter"
+                data-nav-tooltip="Declutter"
                 onClick={handleNavSelection}
               >
                 <img src={intakeNavIcon} alt="" />
@@ -2145,7 +2247,7 @@ export default function Header() {
               <RetrievalMiniNavLink
                 to="/logs"
                 aria-label="Logs"
-                title="Logs"
+                data-nav-tooltip="Logs"
                 onClick={handleNavSelection}
               >
                 <img src={retrievalNavIcon} alt="" />
@@ -2153,7 +2255,7 @@ export default function Header() {
               <RetrievalMiniNavAction
                 type="button"
                 aria-label="Random"
-                title="Random"
+                data-nav-tooltip="Random"
                 onClick={handleRandomSelection}
               >
                 <img src={randomNavIcon} alt="" />
@@ -2198,94 +2300,98 @@ export default function Header() {
             $retrievalPage={isRetrievalPage}
             $condensed={isHeaderCondensed}
             $textOnly={isMobile && isMobileMenuOpen}
+            onMouseOver={showNavTooltip}
+            onMouseLeave={hideNavTooltip}
+            onFocus={showNavTooltip}
+            onBlur={hideNavTooltip}
           >
             <NavButton
               to="/operations"
               aria-label="Operations"
-              title="Operations"
+              data-nav-tooltip="Operations"
               onClick={handleNavSelection}
             >
               <NavIcon aria-hidden="true">
                 <NavIconImage src={operationsNavIcon} alt="" />
               </NavIcon>
-              <NavLabel>Operations</NavLabel>
+              <NavLabel data-nav-label>Operations</NavLabel>
             </NavButton>
             <NavButton
               to="/retrieval"
               aria-label="Retrieval"
-              title="Retrieval"
+              data-nav-tooltip="Retrieval"
               onClick={handleNavSelection}
             >
               <NavIcon aria-hidden="true">
                 <NavIconImage src={logsNavIcon} alt="" />
               </NavIcon>
-              <NavLabel>Retrieval</NavLabel>
+              <NavLabel data-nav-label>Retrieval</NavLabel>
             </NavButton>
             <NavButton
               to="/intake"
               aria-label="Intake"
-              title="Intake"
+              data-nav-tooltip="Intake"
               onClick={handleNavSelection}
             >
               <NavIcon aria-hidden="true">
                 <NavIconImage src={declutterNavIcon} alt="" />
               </NavIcon>
-              <NavLabel>Intake</NavLabel>
+              <NavLabel data-nav-label>Intake</NavLabel>
             </NavButton>
             <NavButton
               to="/import"
               aria-label="Import"
-              title="Import"
+              data-nav-tooltip="Import"
               onClick={handleNavSelection}
             >
               <NavIcon aria-hidden="true">
                 <NavIconImage src={allItemsNavIcon} alt="" />
               </NavIcon>
-              <NavLabel>Import</NavLabel>
+              <NavLabel data-nav-label>Import</NavLabel>
             </NavButton>
             <NavButton
               to="/all-items"
               aria-label="All Items"
-              title="All Items"
+              data-nav-tooltip="All Items"
               onClick={handleNavSelection}
             >
               <NavIcon aria-hidden="true">
                 <NavIconImage src={importNavIcon} alt="" />
               </NavIcon>
-              <NavLabel>All Items</NavLabel>
+              <NavLabel data-nav-label>All Items</NavLabel>
             </NavButton>
             <NavButton
               to="/declutter"
               aria-label="Declutter"
-              title="Declutter"
+              data-nav-tooltip="Declutter"
               onClick={handleNavSelection}
             >
               <NavIcon aria-hidden="true">
                 <NavIconImage src={intakeNavIcon} alt="" />
               </NavIcon>
-              <NavLabel>Declutter</NavLabel>
+              <NavLabel data-nav-label>Declutter</NavLabel>
             </NavButton>
             <NavButton
               to="/logs"
               aria-label="Logs"
-              title="Logs"
+              data-nav-tooltip="Logs"
               onClick={handleNavSelection}
             >
               <NavIcon aria-hidden="true">
                 <NavIconImage src={retrievalNavIcon} alt="" />
               </NavIcon>
-              <NavLabel>Logs</NavLabel>
+              <NavLabel data-nav-label>Logs</NavLabel>
             </NavButton>
             <NavActionButton
               type="button"
               aria-label="Random"
-              title="Random"
+              data-nav-tooltip="Random"
               onClick={handleRandomSelection}
             >
               <NavIcon aria-hidden="true">
                 <NavIconImage src={randomNavIcon} alt="" />
               </NavIcon>
-              <NavLabel>Random</NavLabel>
+              <NavLabel data-nav-label>Random</NavLabel>
             </NavActionButton>
           </NavRow>
         </MobileNavPanel>
@@ -2411,7 +2517,16 @@ export default function Header() {
                       />
                     )
                 : isRetrievalPage
-                  ? <IdleAsciiSignal palette={idleSignalPalette} />
+                  ? (
+                      <IdleAsciiSignal
+                        palette={idleSignalPalette}
+                        searchPrompt={
+                          isRetrievalNarrow &&
+                          retrievalFinderState.detached &&
+                          retrievalFinderState.minimized
+                        }
+                      />
+                    )
                 : isLogsPage
                   ? <IdleAsciiSignal palette={idleSignalPalette} />
                   : 'What are you looking for?'
@@ -2520,6 +2635,18 @@ export default function Header() {
         />
         )}
       </ToastRow> : null}
+      {navTooltip && typeof document !== 'undefined'
+        ? createPortal(
+            <NavTooltip
+              role="tooltip"
+              $left={navTooltip.left}
+              $top={navTooltip.top}
+            >
+              {navTooltip.label}
+            </NavTooltip>,
+            document.body,
+          )
+        : null}
     </HeaderShell>
   );
 }

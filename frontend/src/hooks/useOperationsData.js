@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { API_BASE } from '../api/API_BASE';
+import { BOX_RECORD_UPDATED_EVENT } from '../constants/inventoryFinderEvents';
 
 const OPERATIONS_PAGE_LIMIT = 50;
 
@@ -33,6 +34,12 @@ export default function useOperationsData({ includeSupportingData = true } = {})
   const [locations, setLocations] = useState([]);
   const [refreshTick, setRefreshTick] = useState(0);
   const requestRefresh = useCallback(() => setRefreshTick((current) => current + 1), []);
+
+  useEffect(() => {
+    const handleBoxUpdated = () => requestRefresh();
+    window.addEventListener(BOX_RECORD_UPDATED_EVENT, handleBoxUpdated);
+    return () => window.removeEventListener(BOX_RECORD_UPDATED_EVENT, handleBoxUpdated);
+  }, [requestRefresh]);
 
   useEffect(() => {
     const controller = new AbortController();

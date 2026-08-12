@@ -513,7 +513,7 @@ export const EditableValueCopy = styled.span`
 export const NotePreviewRow = styled.div`
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
+  align-items: center;
   gap: 0.45rem;
   width: 100%;
   min-width: 0;
@@ -568,12 +568,12 @@ export const NotePreview = styled.span`
 `;
 
 export const NoteEditButton = styled.button`
-  align-self: start;
+  align-self: center;
   box-sizing: border-box;
   min-height: 0;
   height: fit-content;
   white-space: nowrap;
-  margin-top: 0.08rem;
+  margin-top: 0;
   padding: 0.16rem 0.2rem;
   border: 0;
   border-left: 1px solid var(--domain-color, var(--item-accent, #c9a7ff));

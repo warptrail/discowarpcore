@@ -95,13 +95,14 @@ export default function useBoxActionPanelController({
   const handleFormSaved = useCallback(
     async (updated) => {
       const navigated = onBoxSaved?.(updated) === true;
-      if (navigated) return;
 
-      setActivePanel(null);
-      try {
-        await refreshBox?.();
-      } catch (error) {
-        console.error('[BoxActionPanel] refresh after save failed:', error);
+      if (!navigated) {
+        setActivePanel(null);
+        try {
+          await refreshBox?.();
+        } catch (error) {
+          console.error('[BoxActionPanel] refresh after save failed:', error);
+        }
       }
 
       const resolvedShortId = String(

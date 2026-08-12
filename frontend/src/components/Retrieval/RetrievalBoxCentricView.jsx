@@ -15,6 +15,7 @@ import {
   normalizeRetrievalSortOptions,
 } from './retrievalModel';
 import RetrievalSearchForm from './RetrievalSearchForm';
+import { BOX_RECORD_UPDATED_EVENT } from '../../constants/inventoryFinderEvents';
 
 const DEFAULT_BOX_SORT_OPTIONS = [
   { key: 'location', label: 'Location (A → Z)' },
@@ -244,6 +245,7 @@ export default function RetrievalBoxCentricView({
   const [selectedBoxDetails, setSelectedBoxDetails] = useState(null);
   const [boxDetailsLoading, setBoxDetailsLoading] = useState(false);
   const [boxDetailsError, setBoxDetailsError] = useState('');
+  const [boxRecordsRevision, setBoxRecordsRevision] = useState(0);
 
   const debouncedSearchValue = useDebouncedValue(searchValue, 220);
   const debouncedBoxIdPrefix = useDebouncedValue(boxIdPrefix, 120);
@@ -271,7 +273,25 @@ export default function RetrievalBoxCentricView({
     ],
   );
 
-  const queryKey = useMemo(() => JSON.stringify(queryState), [queryState]);
+  const queryKey = useMemo(
+    () => JSON.stringify({ queryState, boxRecordsRevision }),
+    [boxRecordsRevision, queryState],
+  );
+
+  useEffect(() => {
+    const handleBoxUpdated = (event) => {
+      const previousShortId = normalizeBoxId(event?.detail?.previousShortId);
+      const nextShortId = normalizeBoxId(event?.detail?.box?.box_id);
+      if (previousShortId && nextShortId) {
+        setSelectedBoxId((current) =>
+          normalizeBoxId(current) === previousShortId ? nextShortId : current
+        );
+      }
+      setBoxRecordsRevision((current) => current + 1);
+    };
+    window.addEventListener(BOX_RECORD_UPDATED_EVENT, handleBoxUpdated);
+    return () => window.removeEventListener(BOX_RECORD_UPDATED_EVENT, handleBoxUpdated);
+  }, []);
 
   useEffect(() => {
     onStateSnapshotChange?.({

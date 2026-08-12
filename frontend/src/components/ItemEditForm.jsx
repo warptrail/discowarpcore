@@ -5,6 +5,7 @@ import MoveItemBar from './MoveItemBar';
 import ItemEditFieldsForm from './ItemEditFieldsForm';
 import * as S from './ItemEditForm.styles';
 import { normalizeItemCategory } from '../util/itemCategories';
+import { normalizePrimaryOwner } from '../util/itemOwners';
 import { normalizeKeepPriority } from '../util/keepPriority';
 import { getItemOwnershipContext } from '../util/itemOwnership';
 import {
@@ -17,6 +18,7 @@ import {
 import {
   formatCentsToUsdInput,
   parseUsdInputToCents,
+  sanitizeUsdInput,
 } from '../util/usdMoney';
 
 const toNullableTrimmedString = (value) => {
@@ -76,7 +78,7 @@ const buildFormData = (item) => ({
   quantity: item?.quantity || 1,
   tags: item?.tags || [],
   keepPriority: normalizeKeepPriority(item?.keepPriority),
-  primaryOwnerName: item?.primaryOwnerName || '',
+  primaryOwnerName: normalizePrimaryOwner(item?.primaryOwnerName),
   condition: item?.condition || 'unknown',
   category: normalizeItemCategory(item?.category),
   dateAcquired: item?.dateAcquired ? String(item.dateAcquired).slice(0, 10) : '',
@@ -145,7 +147,11 @@ export default function ItemEditForm({
 
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === 'checkbox'
+        ? checked
+        : ['valueUsd', 'purchasePriceUsd'].includes(name)
+          ? sanitizeUsdInput(value)
+          : value,
     }));
 
     markDirty();

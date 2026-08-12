@@ -38,6 +38,13 @@ export const SelectButton = styled.button`
   cursor: pointer;
   transition: border-color 130ms ease, box-shadow 130ms ease, background 130ms ease;
 
+  ${({ $ownerStyle }) => $ownerStyle && `
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-weight: 700;
+    letter-spacing: 0.075em;
+    text-transform: uppercase;
+  `}
+
   &:hover,
   &[aria-expanded='true'],
   &:focus-visible {
@@ -101,11 +108,13 @@ export const SelectOption = styled.button`
   width: 100%;
   min-height: 38px;
   border: 1px solid
-    ${({ $active, $selected }) =>
-      $active || $selected ? 'rgba(76, 198, 193, 0.72)' : 'rgba(104, 154, 186, 0.32)'};
+    ${({ $active, $selected, $accent }) =>
+      $active || $selected
+        ? ($accent ? `${$accent}b8` : 'rgba(76, 198, 193, 0.72)')
+        : ($accent ? `${$accent}66` : 'rgba(104, 154, 186, 0.32)')};
   border-radius: ${({ $variant }) => ($variant === 'prism' ? '2px' : '8px')};
   padding: 0.42rem 0.52rem;
-  color: ${({ $selected }) => ($selected ? '#d9fffa' : palette.text)};
+  color: ${({ $selected, $accent }) => ($selected || $accent ? ($accent || '#d9fffa') : palette.text)};
   background: ${({ $active, $selected, $variant }) => {
     if ($variant === 'prism') {
       return $active || $selected ? 'rgba(32, 73, 76, 0.72)' : 'rgba(11, 21, 30, 0.96)';
@@ -120,7 +129,14 @@ export const SelectOption = styled.button`
   cursor: pointer;
   transition: border-color 120ms ease, background 120ms ease;
 
+  ${({ $ownerStyle }) => $ownerStyle && `
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-weight: 700;
+    letter-spacing: 0.075em;
+    text-transform: uppercase;
+  `}
+
   &:hover {
-    border-color: rgba(127, 215, 255, 0.78);
+    border-color: ${({ $accent }) => ($accent ? `${$accent}c7` : 'rgba(127, 215, 255, 0.78)')};
   }
 `;

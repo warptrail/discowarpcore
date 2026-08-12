@@ -1,5 +1,19 @@
 const USD_DECIMAL_PATTERN = /^\d+(\.\d{1,2})?$/;
 
+function sanitizeUsdInput(value) {
+  const raw = String(value ?? '');
+  if (!raw) return '';
+
+  const cleaned = raw.replace(/[^\d.]/g, '');
+  if (!cleaned) return '';
+
+  const [wholePart, ...fractionParts] = cleaned.split('.');
+  const whole = wholePart || '0';
+  if (!fractionParts.length) return whole;
+
+  return `${whole}.${fractionParts.join('').slice(0, 2)}`;
+}
+
 function formatCentsToUsdInput(cents) {
   if (cents == null || cents === '') return '';
   const numeric = Number(cents);
@@ -29,4 +43,9 @@ function parseUsdInputToCents(value, { fieldLabel = 'Amount', allowEmpty = true 
   return Math.round(numeric * 100);
 }
 
-export { USD_DECIMAL_PATTERN, formatCentsToUsdInput, parseUsdInputToCents };
+export {
+  USD_DECIMAL_PATTERN,
+  formatCentsToUsdInput,
+  parseUsdInputToCents,
+  sanitizeUsdInput,
+};

@@ -9,6 +9,8 @@ export default function CustomSelect({
   disabled = false,
   tone = '#7FD7FF',
   variant = 'default',
+  optionAccent = false,
+  ownerStyle = false,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -89,6 +91,7 @@ export default function CustomSelect({
         type="button"
         $tone={tone}
         $variant={variant}
+        $ownerStyle={ownerStyle}
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
@@ -111,7 +114,9 @@ export default function CustomSelect({
               aria-selected={index === selectedIndex}
               $active={index === highlightedIndex}
               $selected={index === selectedIndex}
+              $accent={optionAccent ? option.accent : ''}
               $variant={variant}
+              $ownerStyle={ownerStyle}
               onMouseEnter={() => setHighlightedIndex(index)}
               onClick={() => selectOption(option)}
             >

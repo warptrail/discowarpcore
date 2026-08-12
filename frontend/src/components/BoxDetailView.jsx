@@ -19,6 +19,7 @@ import {
 import BoxActionPanel from './BoxActionPanel';
 import {
   BOX_CONTEXT_STATE_EVENT,
+  BOX_RECORD_UPDATED_EVENT,
 } from '../constants/inventoryFinderEvents';
 
 const VALID_TABS = new Set(['tree', 'flat', 'edit']);
@@ -50,6 +51,7 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
     loading,
     error,
     handleItemSaved,
+    applyBoxUpdate,
     refreshBox,
   } =
     useBoxDetailData(shortId);
@@ -179,6 +181,26 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
 
+  const handleBoxSaved = useCallback((updatedBox) => {
+    const previousShortId = String(shortId || '').trim();
+    const updatedShortId = String(
+      updatedBox?.box_id ?? updatedBox?.shortId ?? '',
+    ).trim();
+    if (!updatedShortId) return false;
+
+    applyBoxUpdate(updatedBox);
+    window.dispatchEvent(new CustomEvent(BOX_RECORD_UPDATED_EVENT, {
+      detail: { box: updatedBox, previousShortId },
+    }));
+
+    if (updatedShortId === previousShortId) {
+      return false;
+    }
+
+    navigate(`/boxes/${encodeURIComponent(updatedShortId)}`, { replace: true });
+    return true;
+  }, [applyBoxUpdate, navigate, shortId]);
+
   const handleSearchCommit = useCallback(() => {
     search.minimize();
     window.requestAnimationFrame(() => {
@@ -288,6 +310,7 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
                 boxTree={tree}
                 boxMongoId={tree._id}
                 refreshBox={refreshBox}
+                onBoxSaved={handleBoxSaved}
                 activePanelState={activePanel}
                 onActivePanelStateChange={handlePanelChange}
                 onImageStateChanged={() => setBoxImageRefreshToken(Date.now())}

@@ -34,8 +34,13 @@ export const DetailActionSection = styled.section`
 export const SectionHeading = styled.header`
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.7rem;
   margin: 0.72rem 0 0.22rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.42rem 0.55rem;
+  }
 `;
 
 export const SectionTitle = styled.h2`
@@ -67,16 +72,71 @@ export const SectionActionButton = styled.button`
 `;
 
 export const SelectionToolbar = styled.div`
-  position: sticky; top: 0.5rem; z-index: 4; display: flex; flex-wrap: wrap; align-items: center; gap: 0.42rem;
-  padding: 0.46rem; border: 1px solid rgba(184, 91, 234, 0.48); border-radius: 10px; background: rgba(13, 14, 29, 0.96);
+  position: sticky;
+  top: 0.5rem;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0.46rem;
+  border: 1px solid rgba(184, 91, 234, 0.48);
+  border-radius: 10px;
+  background: rgba(13, 14, 29, 0.96);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    padding: 0.5rem;
+
+    > button:nth-of-type(1) {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    > button:nth-of-type(2) {
+      grid-column: 2;
+      grid-row: 2;
+    }
+
+    > button:nth-of-type(3) {
+      grid-column: 2;
+      grid-row: 1;
+      justify-self: end;
+      width: auto;
+    }
+  }
+`;
+export const SelectionSummary = styled.span`
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-column: 1;
+    grid-row: 1;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+`;
+export const SelectionEyebrow = styled.span`
+  color: rgba(218, 128, 255, 0.95);
+  font: 900 0.61rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 `;
 export const SelectionCount = styled.span`
-  margin-right: auto; color: rgba(239, 215, 255, 0.9); font: 800 0.68rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.06em;
+  color: rgba(239, 215, 255, 0.9); font: 800 0.68rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.06em;
 `;
 export const SelectionButton = styled.button`
-  min-height: 29px; border: 1px solid rgba(154, 129, 243, 0.58); border-radius: 7px; background: ${({ $primary }) => ($primary ? 'rgba(109, 78, 187, 0.32)' : 'rgba(20, 28, 49, 0.78)')};
+  min-height: 32px; border: 1px solid rgba(154, 129, 243, 0.58); border-radius: 7px; background: ${({ $primary }) => ($primary ? 'rgba(109, 78, 187, 0.32)' : 'rgba(20, 28, 49, 0.78)')};
   color: rgba(229, 230, 255, 0.9); padding: 0.28rem 0.46rem; font: 700 0.59rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer;
   &:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    min-height: 38px;
+  }
 `;
 
 export const SectionRule = styled.div`

@@ -247,7 +247,7 @@ export async function updateBoxDetails(boxMongoId, payload, opts = {}) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(data?.message || 'Failed to update box');
+    throw new Error(data?.error?.message || data?.error || data?.message || 'Failed to update box');
   }
   return data?.box || data?.data || data;
 }

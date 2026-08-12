@@ -1,11 +1,11 @@
 import { API_BASE } from './API_BASE';
+import { ITEM_OWNERS } from '../util/itemOwners';
 
 const DECK_PATH = '/api/declutter-deck';
 
-export const DECLUTTER_PLAYERS = [
-  { id: 'discofish', label: 'Discofish', icon: '🐟' },
-  { id: 'laserfox', label: 'Laserfox', icon: '🦊' },
-];
+export const DECLUTTER_PLAYERS = ITEM_OWNERS.map((owner) => ({
+  ...owner,
+}));
 
 function buildUrl(path, params = {}) {
   const apiRoot = String(API_BASE || '').replace(/\/+$/, '');

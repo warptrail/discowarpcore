@@ -702,7 +702,7 @@ export default function ItemRow({
           }
           aria-pressed={selectionMode ? selected : undefined}
         >
-          <S.RowHeader $open={presentationOpen} $hasItemLink={presentationOpen}>
+          <S.RowHeader $open={presentationOpen} $hasItemLink={presentationOpen} $selectionMode={selectionMode}>
             {selectionMode ? <S.RowSelectionState aria-hidden="true" $selected={selected}>{selected ? '✓' : ''}</S.RowSelectionState> : null}
             <S.RowMain $showThumb={!presentationOpen}>
               {!presentationOpen && (
@@ -737,7 +737,7 @@ export default function ItemRow({
               </S.TitleGroup>
             </S.RowMain>
 
-            {!presentationOpen ? (
+            {!presentationOpen && !selectionMode ? (
               <S.RowChevron aria-hidden="true" $open={false}>
                 ▾
               </S.RowChevron>

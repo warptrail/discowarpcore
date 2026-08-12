@@ -297,16 +297,21 @@ export const RowMain = styled.div`
 `;
 
 export const RowSelectionState = styled.span`
+  position: absolute;
+  z-index: 3;
+  top: 0.42rem;
+  left: 0.42rem;
   display: grid;
   place-items: center;
   width: 19px;
   height: 19px;
-  margin-top: 0.12rem;
+  margin: 0;
   border: 1px solid ${({ $selected }) => ($selected ? 'rgba(218, 128, 255, 0.95)' : 'rgba(180, 197, 218, 0.48)')};
   border-radius: 5px;
   background: ${({ $selected }) => ($selected ? 'rgba(170, 75, 219, 0.48)' : 'rgba(9, 16, 25, 0.72)')};
   color: #fff;
   font: 900 0.72rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.62);
 `;
 
 export const RowBoxContext = styled.span`

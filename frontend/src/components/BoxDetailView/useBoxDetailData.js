@@ -55,6 +55,23 @@ export default function useBoxDetailData(shortId) {
     [loadBoxData],
   );
 
+  const applyBoxUpdate = useCallback((updated) => {
+    if (!updated?._id) return;
+    const updatedId = String(updated._id);
+    const mergeNode = (node) => {
+      if (!node) return node;
+      const childBoxes = (node.childBoxes || []).map(mergeNode);
+      return String(node._id) === updatedId
+        ? { ...node, ...updated, childBoxes }
+        : { ...node, childBoxes };
+    };
+
+    setTree((current) => mergeNode(current));
+    setParentPath((current) => (current || []).map((ancestor) =>
+      String(ancestor?._id) === updatedId ? { ...ancestor, ...updated } : ancestor
+    ));
+  }, []);
+
   const handleItemSaved = (updated) => {
     if (!updated?._id) return;
     const updatedId = String(updated._id);
@@ -92,6 +109,7 @@ export default function useBoxDetailData(shortId) {
     loading,
     error,
     handleItemSaved,
+    applyBoxUpdate,
     refreshBox,
   };
 }

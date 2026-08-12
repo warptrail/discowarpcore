@@ -37,11 +37,14 @@ export default function AllItemsWorkspace({ box, items, searchQuery, openItemId,
       onItemsChanged={onItemsChanged}
       onManageBox={onManageBox}
       hideInlineActions={selectionMode}
-      headerAction={<S.SectionActionButton type="button" onClick={() => selectionMode ? cancel() : setSelectionMode(true)}>{selectionMode ? 'Cancel move' : 'Move items'}</S.SectionActionButton>}
+      headerAction={!selectionMode ? <S.SectionActionButton type="button" onClick={() => setSelectionMode(true)}>Move items</S.SectionActionButton> : null}
     >
       {selectionMode ? (
         <S.SelectionToolbar aria-label="Move selected items">
-          <S.SelectionCount>{selectedItems.length} selected</S.SelectionCount>
+          <S.SelectionSummary>
+            <S.SelectionEyebrow>Move items</S.SelectionEyebrow>
+            <S.SelectionCount>{selectedItems.length} selected</S.SelectionCount>
+          </S.SelectionSummary>
           <S.SelectionButton type="button" onClick={() => setSelectedIds(new Set(visibleIds))}>Select shown</S.SelectionButton>
           <S.SelectionButton type="button" $primary onClick={() => setDestinationOpen(true)} disabled={!selectedItems.length}>Choose destination</S.SelectionButton>
           <S.SelectionButton type="button" onClick={cancel}>Cancel</S.SelectionButton>

@@ -24,6 +24,7 @@ import {
 const PEEK_PARAM = 'peek';
 const MOBILE_PEEK_TOP_RATIO = 0.46;
 const PEEK_LABEL_GAP_PX = 8;
+const DESKTOP_PEEK_HEADER_GAP_PX = 10;
 const PEEK_ANCHOR_SETTLE_MS = 760;
 
 function normalizeBoxId(value) {
@@ -315,8 +316,8 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
     if (!selectedBoxReady || !selectedBoxId || typeof window === 'undefined') {
       return undefined;
     }
-    if (!window.matchMedia('(max-width: 767px)').matches) return undefined;
-    if (expanded) return undefined;
+    const mobileViewport = window.matchMedia('(max-width: 767px)').matches;
+    if (mobileViewport && expanded) return undefined;
 
     let frameId = 0;
     let settleTimerId = 0;
@@ -330,12 +331,12 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
       const anchorRect = anchor.getBoundingClientRect();
       const appHeaderBottom =
         document.querySelector('#root header')?.getBoundingClientRect().bottom || 0;
-      const peekTop = window.innerHeight * MOBILE_PEEK_TOP_RATIO;
-      const targetBottom = Math.max(
-        appHeaderBottom + anchorRect.height + PEEK_LABEL_GAP_PX,
-        peekTop - PEEK_LABEL_GAP_PX,
-      );
-      const scrollDelta = anchorRect.bottom - targetBottom;
+      const scrollDelta = mobileViewport
+        ? anchorRect.bottom - Math.max(
+            appHeaderBottom + anchorRect.height + PEEK_LABEL_GAP_PX,
+            window.innerHeight * MOBILE_PEEK_TOP_RATIO - PEEK_LABEL_GAP_PX,
+          )
+        : anchorRect.top - (appHeaderBottom + DESKTOP_PEEK_HEADER_GAP_PX);
 
       if (Math.abs(scrollDelta) < 2) return;
       const reduceMotion = window.matchMedia(

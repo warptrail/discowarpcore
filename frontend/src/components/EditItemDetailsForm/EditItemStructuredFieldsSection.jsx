@@ -9,6 +9,7 @@ import {
   KEEP_PRIORITY_REMOVAL_OPTIONS,
   KEEP_PRIORITY_SCALE_OPTIONS,
 } from '../../util/keepPriority';
+import { PRIMARY_OWNER_OPTIONS } from '../../util/itemOwners';
 import { USD_DECIMAL_PATTERN } from '../../util/usdMoney';
 
 function DateHistoryField({
@@ -116,13 +117,17 @@ export default function EditItemStructuredFieldsSection({
 
         <S.Field>
           <S.Label>Primary Owner</S.Label>
-          <S.Input
-            type="text"
+          <S.Select
             name="primaryOwnerName"
             value={formData.primaryOwnerName || ''}
             onChange={onMetadataChange}
-            placeholder="Shared, Mom, Erelas..."
-          />
+          >
+            {PRIMARY_OWNER_OPTIONS.map((option) => (
+              <option key={option.value || 'shared'} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </S.Select>
         </S.Field>
 
         <S.Field>

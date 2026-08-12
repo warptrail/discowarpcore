@@ -12,7 +12,9 @@ import {
   KEEP_PRIORITY_REMOVAL_OPTIONS,
   KEEP_PRIORITY_SCALE_OPTIONS,
 } from '../../util/keepPriority';
+import { PRIMARY_OWNER_OPTIONS } from '../../util/itemOwners';
 import { normalizeDateInputValue } from '../../util/itemHistory';
+import { sanitizeUsdInput, USD_DECIMAL_PATTERN } from '../../util/usdMoney';
 import * as FormS from '../../styles/EditItemDetailsForm.styles';
 import * as S from '../../styles/ItemFieldEditor.styles';
 
@@ -211,6 +213,19 @@ function FieldControl({ descriptor, draft, onChange }) {
     );
   }
 
+  if (descriptor.editor === 'primary-owner') {
+    return (
+      <CustomSelect
+        value={draft || ''}
+        ariaLabel={descriptor.label}
+        options={PRIMARY_OWNER_OPTIONS}
+        optionAccent
+        ownerStyle
+        onChange={onChange}
+      />
+    );
+  }
+
   if (descriptor.editor === 'quantity') {
     return (
       <QuantityInput
@@ -231,10 +246,11 @@ function FieldControl({ descriptor, draft, onChange }) {
         <FormS.Input
           type="text"
           inputMode="decimal"
+          pattern={USD_DECIMAL_PATTERN.source}
           value={draft || ''}
           placeholder={descriptor.placeholder}
           aria-label={`${descriptor.label} in US dollars`}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => onChange(sanitizeUsdInput(event.target.value))}
         />
       </S.MoneyShell>
     );

@@ -46,6 +46,9 @@ export default function BoxIdentityFields({
     $palette: shortIdTheme?.primary || '',
     $paletteRgb: shortIdTheme?.primaryRgb || '',
   };
+  const selectShortId = (event) => {
+    event.currentTarget.select();
+  };
 
   if (compact) {
     return (
@@ -59,6 +62,8 @@ export default function BoxIdentityFields({
             maxLength={3}
             placeholder="123"
             value={shortId}
+            onFocus={selectShortId}
+            onClick={selectShortId}
             onChange={(e) =>
               setShortId(e.target.value.replace(/\D+/g, '').slice(0, 3))
             }
@@ -149,6 +154,8 @@ export default function BoxIdentityFields({
               maxLength={3}
               placeholder="123"
               value={shortId}
+              onFocus={selectShortId}
+              onClick={selectShortId}
               onChange={(e) =>
                 setShortId(e.target.value.replace(/\D+/g, '').slice(0, 3))
               }
