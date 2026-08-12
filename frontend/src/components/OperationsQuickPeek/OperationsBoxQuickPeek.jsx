@@ -239,6 +239,18 @@ export default function OperationsBoxQuickPeek({
   }, [backToItemList, quickSearchOpen, selectedQuickPeekItem]);
 
   useEffect(() => {
+    if (
+      !quickSearchOpen ||
+      !expanded ||
+      typeof window === 'undefined' ||
+      !window.matchMedia('(max-width: 767px)').matches
+    ) {
+      return;
+    }
+    onSetExpanded?.(false);
+  }, [expanded, onSetExpanded, quickSearchOpen]);
+
+  useEffect(() => {
     if (!photoFocused) return;
     if (selectedQuickPeekItem) backToItemList();
     if (quickSearchOpen) onShowItems?.();
@@ -248,6 +260,44 @@ export default function OperationsBoxQuickPeek({
     if (!boxId) return;
     sheetRef.current?.focus({ preventScroll: true });
   }, [boxId]);
+
+  useEffect(() => {
+    if (
+      !boxId ||
+      !expanded ||
+      typeof document === 'undefined' ||
+      !window.matchMedia('(max-width: 767px)').matches
+    ) {
+      return undefined;
+    }
+
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const root = document.documentElement;
+    const previousBodyStyles = {
+      position: body.style.position,
+      top: body.style.top,
+      right: body.style.right,
+      left: body.style.left,
+      width: body.style.width,
+      overflow: body.style.overflow,
+    };
+    const previousRootOverscroll = root.style.overscrollBehavior;
+
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.right = '0';
+    body.style.left = '0';
+    body.style.width = '100%';
+    body.style.overflow = 'hidden';
+    root.style.overscrollBehavior = 'none';
+
+    return () => {
+      Object.assign(body.style, previousBodyStyles);
+      root.style.overscrollBehavior = previousRootOverscroll;
+      window.scrollTo(0, scrollY);
+    };
+  }, [boxId, expanded]);
 
   useEffect(() => {
     if (!box) return undefined;
@@ -317,6 +367,12 @@ export default function OperationsBoxQuickPeek({
   if (!box || typeof document === 'undefined') return null;
 
   const handlePointerDown = (event) => {
+    if (
+      quickSearchOpen &&
+      window.matchMedia('(max-width: 767px)').matches
+    ) {
+      return;
+    }
     const interactiveTarget = event.target.closest('button, a');
     const isDragHandle = interactiveTarget?.hasAttribute(
       'data-quick-peek-drag-handle',
@@ -357,7 +413,15 @@ export default function OperationsBoxQuickPeek({
       suppressDetentResetTimerRef.current = window.setTimeout(() => {
         suppressDetentClickRef.current = false;
       }, 0);
-      if (deltaY < 0) onSetExpanded?.(true);
+      if (deltaY < 0) {
+        if (
+          quickSearchOpen &&
+          window.matchMedia('(max-width: 767px)').matches
+        ) {
+          return;
+        }
+        onSetExpanded?.(true);
+      }
       else onDismiss?.();
     }
   };
@@ -370,6 +434,12 @@ export default function OperationsBoxQuickPeek({
     if (suppressDetentClickRef.current) {
       window.clearTimeout(suppressDetentResetTimerRef.current);
       suppressDetentClickRef.current = false;
+      return;
+    }
+    if (
+      quickSearchOpen &&
+      window.matchMedia('(max-width: 767px)').matches
+    ) {
       return;
     }
     onToggleExpanded?.();

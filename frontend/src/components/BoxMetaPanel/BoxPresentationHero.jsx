@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
 import RetrievalImageLightbox from '../Retrieval/RetrievalImageLightbox';
+import ItemNoteSheet from '../ItemNoteSheet';
 import * as S from '../../styles/BoxMetaPanel.styles';
 
 function getPlaceholderStyle(box) {
@@ -36,11 +37,13 @@ export default function BoxPresentationHero({
 }) {
   const [source, setSource] = useState(imageUrl);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [noteSheetOpen, setNoteSheetOpen] = useState(false);
   const placeholderStyle = useMemo(() => getPlaceholderStyle(box), [box]);
 
   useEffect(() => {
     setSource(imageUrl);
     setLightboxOpen(false);
+    setNoteSheetOpen(false);
   }, [boxId, imageUrl]);
 
   return (
@@ -116,7 +119,14 @@ export default function BoxPresentationHero({
             {notes ? (
               <S.MetaPreviewBlock>
                 <S.MetaPreviewLabel>Notes</S.MetaPreviewLabel>
-                <S.MetaPreviewText>{notes}</S.MetaPreviewText>
+                <S.MetaPreviewButton
+                  type="button"
+                  aria-label={`Pick up and read full note for ${title}`}
+                  onClick={() => setNoteSheetOpen(true)}
+                >
+                  <S.MetaPreviewText>{notes}</S.MetaPreviewText>
+                  <S.MetaPreviewHint aria-hidden="true">READ FULL NOTE ↗</S.MetaPreviewHint>
+                </S.MetaPreviewButton>
               </S.MetaPreviewBlock>
             ) : null}
           </S.HeroMetadata>
@@ -129,6 +139,15 @@ export default function BoxPresentationHero({
         itemName={title}
         onClose={() => setLightboxOpen(false)}
       />
+
+      {noteSheetOpen ? (
+        <ItemNoteSheet
+          itemName={`${boxId} / ${title}`}
+          note={notes}
+          eyebrow="BOX NOTES // FULL RECORD"
+          onClose={() => setNoteSheetOpen(false)}
+        />
+      ) : null}
     </>
   );
 }

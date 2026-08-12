@@ -91,6 +91,7 @@ export default function InventoryGridHeader({
   onViewModeChange,
   onQuickBoxCreated,
   onQuickOrphanCreated,
+  onPrimaryFinderInteraction,
 }) {
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
@@ -377,7 +378,13 @@ export default function InventoryGridHeader({
 
   const primaryFinderControls = (
     <S.UnifiedFinderWorkspace>
-    <S.PrimaryFinderRow>
+    <S.PrimaryFinderRow
+      onPointerDownCapture={(event) => {
+        if (event.target instanceof HTMLElement && event.target.closest('input')) {
+          onPrimaryFinderInteraction?.(event.target.closest('input'));
+        }
+      }}
+    >
       <S.PrimarySearchGroup>
         <S.SearchInput
           type="search"

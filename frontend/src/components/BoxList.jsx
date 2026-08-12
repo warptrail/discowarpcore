@@ -246,6 +246,7 @@ export default function BoxList({
   const lastAutoActivatedLocatorRef = useRef('');
   const autoOpenedPeekIdRef = useRef('');
   const appliedScrollRestoreRef = useRef('');
+  const pendingPrimaryFinderFocusRef = useRef(null);
 
   useLayoutEffect(() => {
     const restoreRequest = location.state?.[OPERATIONS_SCROLL_RESTORE_STATE];
@@ -432,6 +433,24 @@ export default function BoxList({
     dismissQuickPeek();
   }, [dismissQuickPeek]);
 
+  const handlePrimaryFinderInteraction = useCallback((input) => {
+    if (!quickPeek.selectedBox || !(input instanceof HTMLInputElement)) return;
+    pendingPrimaryFinderFocusRef.current = input;
+    handleCloseQuickPeek();
+  }, [handleCloseQuickPeek, quickPeek.selectedBox]);
+
+  useEffect(() => {
+    if (quickPeek.selectedBox || !pendingPrimaryFinderFocusRef.current) return undefined;
+
+    const input = pendingPrimaryFinderFocusRef.current;
+    pendingPrimaryFinderFocusRef.current = null;
+    const frameId = window.requestAnimationFrame(() => {
+      if (input.isConnected) input.focus({ preventScroll: true });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [quickPeek.selectedBox]);
+
   useEffect(() => {
     window.addEventListener(OPERATIONS_QUICK_PEEK_CLOSE_EVENT, handleCloseQuickPeek);
     return () => window.removeEventListener(
@@ -541,6 +560,7 @@ export default function BoxList({
         density={density}
         onQuickBoxCreated={handleQuickBoxCreated}
         onQuickOrphanCreated={handleQuickOrphanCreated}
+        onPrimaryFinderInteraction={handlePrimaryFinderInteraction}
         locations={locations}
       />
 
@@ -859,6 +879,7 @@ function Branch({
 
   const itemQtyTotal = getNodeItemCount(node);
   const matchingItems = getMatchingItemNames(node, searchQuery, searchScope);
+  const matchingNotes = getMatchingNoteLabels(node, searchQuery, searchScope);
   const visibleTags = density === 'roomy' ? tags : tags.slice(0, 3);
   const hiddenTagCount = Math.max(0, tags.length - visibleTags.length);
   const autoExpandChildren = hasMatchingDescendant(node, searchQuery, searchScope);
@@ -1036,6 +1057,12 @@ function Branch({
               {matchingItems.length > 0 ? (
                 <S.MatchSummary>
                   Matches: {matchingItems.join(', ')}
+                </S.MatchSummary>
+              ) : null}
+
+              {matchingNotes.length > 0 ? (
+                <S.MatchSummary>
+                  Matched in notes · {matchingNotes.join(', ')}
                 </S.MatchSummary>
               ) : null}
 
@@ -1366,6 +1393,30 @@ function getMatchingItemNames(node, query, searchScope = 'all') {
     .map((item) => String(item?.name || item?.label || '').trim())
     .filter(Boolean)
     .slice(0, 3);
+}
+
+function getMatchingNoteLabels(node, query, searchScope = 'all') {
+  if (!query) return [];
+  const normalizedQuery = normalize(query);
+  const labels = [];
+
+  if (
+    searchScope !== 'items' &&
+    normalize(node?.notes).includes(normalizedQuery)
+  ) {
+    labels.push('Box notes');
+  }
+
+  if (searchScope === 'boxes') return labels;
+
+  const matchingItemNames = (Array.isArray(node?.items) ? node.items : [])
+    .filter((item) => normalize(item?.notes).includes(normalizedQuery))
+    .map((item) => String(item?.name || item?.label || 'Untitled item').trim())
+    .filter(Boolean)
+    .slice(0, 2);
+
+  labels.push(...matchingItemNames.map((name) => `Item · ${name}`));
+  return labels;
 }
 
 function hasMatchingDescendant(node, searchQuery, searchScope) {

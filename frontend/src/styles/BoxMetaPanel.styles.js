@@ -238,6 +238,36 @@ export const MetaPreviewText = styled.div`
   -webkit-line-clamp: 3;
 `;
 
+export const MetaPreviewButton = styled.button`
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  cursor: zoom-in;
+
+  &:hover ${MetaPreviewText},
+  &:focus-visible ${MetaPreviewText} {
+    color: rgba(236, 250, 255, 0.98);
+  }
+
+  &:focus-visible {
+    outline: 1px solid rgba(var(--box-primary-rgb, 125, 168, 182), 0.72);
+    outline-offset: 4px;
+  }
+`;
+
+export const MetaPreviewHint = styled.span`
+  display: block;
+  margin-top: 0.34rem;
+  color: rgba(var(--box-primary-rgb, 125, 168, 182), 0.92);
+  font: 800 0.56rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.11em;
+`;
+
 export const IdentityHeader = styled.div`
   display: flex;
   align-items: center;
