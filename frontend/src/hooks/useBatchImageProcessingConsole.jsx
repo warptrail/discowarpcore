@@ -10,6 +10,7 @@ export default function useBatchImageProcessingConsole({
   contextId = '',
   contextLabel = '',
   processingModeEnabled = false,
+  compactPresentation = false,
   actionMode = 'process',
   onActionModeChange = null,
   actionModeOptions = null,
@@ -191,6 +192,7 @@ export default function useBatchImageProcessingConsole({
         renderTokens={renderTokens}
         pageLabel={pageLabel}
         processingModeEnabled={processingModeEnabled}
+        compactPresentation={compactPresentation}
         consoleStage={consoleStage}
         actionMode={actionMode}
         onActionModeChange={onActionModeChange}
@@ -241,6 +243,7 @@ export default function useBatchImageProcessingConsole({
       onSelectNoneLoaded,
       onSelectUnprocessedLoaded,
       pageLabel,
+      compactPresentation,
       processingModeEnabled,
       processingModeOffMessage,
       renderTokens,
@@ -457,12 +460,16 @@ export default function useBatchImageProcessingConsole({
     }
 
     const liveInFlightCount = trackedProgressSummary.queued + trackedProgressSummary.running;
-    const title = processingModeEnabled
-      ? 'Batch processing console'
-      : 'Batch processing live status';
+    const title = compactPresentation
+      ? processingModeEnabled ? 'Batch images' : 'Image processing'
+      : processingModeEnabled ? 'Batch processing console' : 'Batch processing live status';
     const message = processingModeEnabled
-      ? `${contextLabel}: ${selectedCount} selected${pageLabel ? ` on ${pageLabel}` : ''}.`
-      : `${contextLabel}: ${liveInFlightCount} item${liveInFlightCount === 1 ? '' : 's'} still in flight.`;
+      ? compactPresentation
+        ? `${selectedCount} selected`
+        : `${contextLabel}: ${selectedCount} selected${pageLabel ? ` on ${pageLabel}` : ''}.`
+      : compactPresentation
+        ? `${liveInFlightCount} processing`
+        : `${contextLabel}: ${liveInFlightCount} item${liveInFlightCount === 1 ? '' : 's'} still in flight.`;
     const consoleSignature = [
       contextId,
       processingModeEnabled ? 'mode:on' : 'mode:off',
@@ -497,6 +504,7 @@ export default function useBatchImageProcessingConsole({
             : 'success',
       sticky: true,
       loading: liveInFlightCount > 0 || Boolean(busyAction),
+      presentation: compactPresentation ? 'batch-console' : undefined,
       onClose: () => {
         closeProcessingMode({ dismissToast: true });
       },
@@ -506,6 +514,7 @@ export default function useBatchImageProcessingConsole({
     actionMode,
     busyAction,
     consoleStage,
+    compactPresentation,
     closeProcessingMode,
     contextId,
     contextLabel,

@@ -158,6 +158,7 @@ function AllDataView({
   onSave,
 }) {
   const [noteSheetOpen, setNoteSheetOpen] = useState(false);
+  const [hideEmpty, setHideEmpty] = useState(false);
   const ownership = getItemOwnershipContext(item);
   const box = ownership.box || item?.box || null;
   const tags = Array.isArray(item?.tags) ? item.tags.filter(Boolean) : [];
@@ -195,7 +196,7 @@ function AllDataView({
                 );
               })}
             </S.TagLinks>
-          ) : <S.Empty>—</S.Empty>,
+          ) : '—',
         },
       ],
     },
@@ -252,7 +253,6 @@ function AllDataView({
         { label: 'Assignment', value: String(item?.item_status || '').toLowerCase() === 'gone' ? 'No longer have' : ownership.isOrphaned ? 'Orphaned' : 'Assigned' },
         { label: 'Box', value: formatBox(box) },
         { fieldKey: 'location', label: 'Location', value: ownership.effectiveLocation || item?.location || '—' },
-        { label: 'Box group', value: ownership.effectiveBoxGroup || '—' },
         { label: 'Depth', value: item?.depth ?? '—' },
         { label: 'Top box', value: formatBox(item?.topBox) },
       ],
@@ -336,6 +336,13 @@ function AllDataView({
     },
   ];
 
+  const visibleDomains = domains.map((domain) => ({
+    ...domain,
+    rows: domain.rows.filter((row) => !hideEmpty
+      || locatorActive
+      || (row.fieldKey && row.fieldKey === fieldEditor?.descriptor?.key)
+      || (row.value != null && row.value !== '' && row.value !== '—')),
+  })).filter((domain) => domain.rows.length > 0);
   const note = String(item?.notes || '').trim();
 
   return (
@@ -347,9 +354,19 @@ function AllDataView({
           <span>Choose an illuminated value to open a focused editor.</span>
         </S.FieldLocatorStatus>
       ) : null}
+      <S.TableToolbar>
+        <span>Item fields</span>
+        <S.EmptyFieldsToggle
+          type="button"
+          aria-pressed={hideEmpty}
+          onClick={() => setHideEmpty((current) => !current)}
+        >
+          {hideEmpty ? 'Show empty fields' : 'Hide empty fields'}
+        </S.EmptyFieldsToggle>
+      </S.TableToolbar>
       <S.ConsoleTable>
         <thead><tr><th>Domain</th><th>Attribute</th><th>Value</th></tr></thead>
-        {domains.map((domain) => (
+        {visibleDomains.map((domain) => (
           <S.DomainGroup
             key={domain.key}
             $tone={domain.tone}
@@ -401,7 +418,6 @@ function HierarchyView({ item }) {
       <S.NodeLabel>CONTAINMENT</S.NodeLabel>
       {nodes.length ? nodes.map((node, index) => <S.HierarchyLine key={node?._id || `${node?.box_id}-${index}`} $kind="box"><S.NodeKind>{index === nodes.length - 1 ? 'DIRECT BOX' : 'PARENT BOX'}</S.NodeKind><S.NodeValue>{node?.box_id ? <S.BoxLink to={`/boxes/${encodeURIComponent(node.box_id)}`}><S.BoxShortId><S.BoxShortIdMarker>#</S.BoxShortIdMarker><S.BoxShortIdDigits>{node.box_id}</S.BoxShortIdDigits></S.BoxShortId><S.BoxLabel>{node.label || 'Box'}</S.BoxLabel></S.BoxLink> : text(node?.label)}</S.NodeValue></S.HierarchyLine>) : <S.HierarchyLine $kind="system"><S.NodeKind>DIRECT BOX</S.NodeKind><S.NodeValue>Unassigned</S.NodeValue></S.HierarchyLine>}
       <S.HierarchyLine $kind="box"><S.NodeKind>LOCATION</S.NodeKind><S.NodeValue>{ownership.effectiveLocation || '—'}</S.NodeValue></S.HierarchyLine>
-      <S.HierarchyLine $kind="box"><S.NodeKind>BOX GROUP</S.NodeKind><S.NodeValue>{ownership.effectiveBoxGroup || '—'}</S.NodeValue></S.HierarchyLine>
       <S.HierarchyLine $kind="box"><S.NodeKind>TOP BOX</S.NodeKind><S.NodeValue>{formatBox(item?.topBox)}</S.NodeValue></S.HierarchyLine>
     </S.HierarchyBranch>
     <S.HierarchyBranch>

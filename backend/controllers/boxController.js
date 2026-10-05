@@ -147,9 +147,8 @@ async function getBoxTreeByShortIdApi(req, res) {
 async function getAllBoxesApi(req, res) {
   try {
     const q = req.query?.q;
-    const group = req.query?.group;
     const sortBy = req.query?.sortBy;
-    const boxes = await getAllBoxes({ q, group, sortBy });
+    const boxes = await getAllBoxes({ q, sortBy });
     res.json(boxes);
   } catch (err) {
     console.error('❌ Error fetching all boxes:', err);
@@ -205,7 +204,6 @@ async function createBoxApi(req, res) {
   const {
     box_id,
     label,
-    group,
     description,
     notes,
     parentBox,
@@ -215,6 +213,8 @@ async function createBoxApi(req, res) {
     tags,
     declutterPurpose,
     declutterIsDefault,
+    compartments,
+    isComplexBox,
     isGiftBox,
   } = req.body;
 
@@ -230,7 +230,6 @@ async function createBoxApi(req, res) {
     const newBox = await createBox({
       box_id,
       label,
-      group,
       description,
       notes,
       parentBox,
@@ -240,6 +239,8 @@ async function createBoxApi(req, res) {
       tags,
       declutterPurpose,
       declutterIsDefault,
+      compartments,
+      isComplexBox,
       isGiftBox,
     });
     res.status(201).json(newBox);
@@ -484,9 +485,8 @@ async function getBoxTreeApi(req, res) {
     const page = req.query?.page;
     const limit = req.query?.limit;
     const q = req.query?.q;
-    const group = req.query?.group;
     const sortBy = req.query?.sortBy;
-    const tree = await getBoxTree({ page, limit, q, group, sortBy });
+    const tree = await getBoxTree({ page, limit, q, sortBy });
     return res.status(200).json(tree);
   } catch (err) {
     console.error('❌ Error in getBoxTreeController:', err);

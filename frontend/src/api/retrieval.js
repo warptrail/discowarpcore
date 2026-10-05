@@ -58,7 +58,6 @@ export async function fetchRetrievalBoxesPage(
   {
     q = '',
     boxIdPrefix = '',
-    groups = [],
     tags = [],
     tagOperator = 'or',
     locations = [],
@@ -74,7 +73,6 @@ export async function fetchRetrievalBoxesPage(
   const normalizedBoxIdPrefix = String(boxIdPrefix || '').replace(/\D/g, '').slice(0, 3);
   if (normalizedBoxIdPrefix) params.set('boxPrefix', normalizedBoxIdPrefix);
 
-  appendCsvParam(params, 'group', groups);
   appendCsvParam(params, 'tag', tags);
   if (tags.length > 1 && tagOperator === 'and') params.set('tagOperator', 'and');
   appendCsvParam(params, 'location', locations);

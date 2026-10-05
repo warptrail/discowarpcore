@@ -73,6 +73,7 @@ export default function ItemDepartureAlert({
 
   const handleSelectDestination = async ({
     destBoxId,
+    compartmentKey,
     destLabel,
     destShortId,
   }) => {
@@ -81,6 +82,7 @@ export default function ItemDepartureAlert({
     try {
       const ok = await onMoveItem({
         destBoxId,
+        compartmentKey,
         destLabel,
         destShortId,
         sourceBoxId: sourceBoxId || undefined,

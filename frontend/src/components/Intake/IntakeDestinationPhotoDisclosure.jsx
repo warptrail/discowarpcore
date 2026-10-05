@@ -1,9 +1,10 @@
+import { controlStyles } from '../../styles/primitives';
 import React from 'react';
 import styled from 'styled-components';
 import IntakeCurrentBoxImagePanel from './IntakeCurrentBoxImagePanel';
 
 const Disclosure = styled.section`
-  border-top: 1px solid rgba(var(--box-primary-rgb), 0.28);
+  border-top: 1px solid var(--dw-border);
 `;
 
 const Toggle = styled.button`
@@ -17,16 +18,18 @@ const Toggle = styled.button`
   color: rgba(var(--box-secondary-rgb), 0.8);
   cursor: pointer;
   font: inherit;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.01em;
   padding: 0.3rem 0;
   text-align: left;
-  text-transform: uppercase;
+  text-transform: none;
 
   span:last-child { color: var(--box-neon); font-size: 0.85rem; }
   &:hover { color: var(--box-neon); }
   &:focus-visible { outline: 2px solid var(--box-neon); outline-offset: -2px; }
+
+  ${controlStyles}
 `;
 
 const Content = styled.div`

@@ -8,9 +8,12 @@ import styled from 'styled-components';
 const TagEditorWrapper = styled.div`
   display: flex;
   flex-wrap: wrap;
-  background: #111;
-  border: 2px solid #333;
-  border-radius: 8px;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  background: var(--dw-surface);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
   padding: 0.5rem;
 `;
 

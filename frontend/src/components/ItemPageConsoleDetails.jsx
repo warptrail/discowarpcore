@@ -23,13 +23,12 @@ const ContextId = styled.span`
   border-radius: 0;
   background: transparent;
   color: var(--box-neon, #c5f4f1);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  font-size: 0.58rem;
+  font-family: var(--dw-font-data);
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.01em;
   line-height: 1;
-  text-transform: uppercase;
+  text-transform: none;
 `;
 
 const LocationLine = styled.div`
@@ -41,24 +40,24 @@ const LocationLine = styled.div`
   ${({ $stacked }) => $stacked && 'flex-basis: 100%;'}
   color: var(--box-location, #7fd7ff);
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.2;
   text-shadow: 0 0 8px rgba(var(--box-location-rgb, 127, 215, 255), 0.24);
 `;
 
 const LocationLabel = styled.span`
-  color: rgba(230, 244, 255, 0.5);
-  font-size: 0.58rem;
+  color: var(--dw-text-secondary);
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 const CompactItemName = styled.span`
   min-width: 0;
   overflow: hidden;
   color: rgba(238, 246, 252, 0.94);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 720;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -66,16 +65,15 @@ const CompactItemName = styled.span`
 `;
 
 const CompactSeparator = styled.span`
-  color: rgba(185, 204, 219, 0.42);
-  font-size: 0.62rem;
+  color: var(--dw-text-secondary);
+  font-size: 0.75rem;
 `;
 
 const GoneAwayForever = styled.span`
   color: #ffc0c0;
-  font: 800 0.61rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 700 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export default function ItemPageConsoleDetails({

@@ -201,7 +201,7 @@ async function showStatus() {
     set +e
     cd ${REMOTE_APP_DIR} || exit 1
     echo "== Health =="
-    curl -sS --max-time 3 http://127.0.0.1:${REMOTE_PORT}/api/health || true
+    curl -sS --max-time 3 http://127.0.0.1:${REMOTE_PORT}/api/health/ready || true
     echo
     echo
     echo "== LAN URL =="

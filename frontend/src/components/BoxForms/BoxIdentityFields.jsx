@@ -2,7 +2,6 @@ import React from 'react';
 import * as S from './BoxEditForm.styles';
 import BoxLocationField from './BoxLocationField';
 import BoxTagsField from './BoxTagsField';
-import BoxGroupField from './BoxGroupField';
 import { getBoxTheme } from '../../util/inventoryColorTheme';
 
 export default function BoxIdentityFields({
@@ -20,8 +19,6 @@ export default function BoxIdentityFields({
   shortIdAvail,
   label,
   setLabel,
-  group = '',
-  setGroup = () => {},
   locationId,
   setLocationId,
   locationOptions = [],
@@ -29,9 +26,7 @@ export default function BoxIdentityFields({
   onCreateLocation,
   locationCreateBusy = false,
   locationError = '',
-  groupOptions = [],
-  groupsLoading = false,
-  groupError = '',
+  autoSave = false,
   tags = [],
   setTags,
   TagInputComponent,
@@ -106,18 +101,7 @@ export default function BoxIdentityFields({
           />
         </S.Field>
 
-        <S.Field $compact>
-          <BoxGroupField
-            compact
-            groupValue={group}
-            setGroupValue={setGroup}
-            groupOptions={groupOptions}
-            groupsLoading={groupsLoading}
-            groupError={groupError}
-          />
-        </S.Field>
-
-        <S.Field $compact>
+        <S.Field $compact $full>
           <BoxLocationField
             compact
             locationId={locationId}
@@ -127,16 +111,19 @@ export default function BoxIdentityFields({
             onCreateLocation={onCreateLocation}
             createBusy={locationCreateBusy}
             errorMessage={locationError}
+            autoAssign={autoSave}
           />
         </S.Field>
 
         <BoxTagsField
           compact
           inline
+          full
           tags={tags}
           setTags={setTags}
           TagInputComponent={TagInputComponent}
         />
+
       </S.IdentityCompactGrid>
     );
   }
@@ -212,19 +199,10 @@ export default function BoxIdentityFields({
               onCreateLocation={onCreateLocation}
               createBusy={locationCreateBusy}
               errorMessage={locationError}
+              autoAssign={autoSave}
             />
           </S.Field>
 
-          <S.Field $compact={compact}>
-            <BoxGroupField
-              compact={compact}
-              groupValue={group}
-              setGroupValue={setGroup}
-              groupOptions={groupOptions}
-              groupsLoading={groupsLoading}
-              groupError={groupError}
-            />
-          </S.Field>
         </S.Row>
       ) : null}
     </>

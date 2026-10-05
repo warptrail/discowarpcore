@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
+    allowedHosts: ['quantum-zephyr.taild6c610.ts.net'],
     port: Number(env.VITE_PORT || 7611),
     strictPort: env.VITE_STRICT_PORT === 'true',
     proxy: {

@@ -12,8 +12,8 @@ import {
 const BarContainer = styled.div`
   margin-top: 1rem;
   padding: 0.75rem;
-  background-color: #1e1e1e;
-  border: 1px solid #333;
+  background-color: var(--dw-surface);
+  border: 1px solid rgba(230, 237, 243, 0.12);
   border-radius: 0.5rem;
   min-width: 0;
 
@@ -35,8 +35,8 @@ const ButtonRow = styled.div`
 `;
 
 const Button = styled.button`
-  background-color: #4caf50;
-  color: white;
+  background-color: var(--dw-teal);
+  color: var(--dw-background);
   border: none;
   padding: 0.5rem 0.75rem;
   border-radius: 0.25rem;
@@ -46,7 +46,7 @@ const Button = styled.button`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     flex: 1 1 140px;
-    min-height: 36px;
+    min-height: 44px;
     font-size: ${MOBILE_FONT_SM};
     padding: 0.4rem 0.5rem;
   }
@@ -55,7 +55,7 @@ const Button = styled.button`
 const FeedbackRow = styled.div`
   margin-top: 1rem;
   font-size: 0.95rem;
-  color: #b0ffc8;
+  color: var(--dw-teal);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     margin-top: 0.62rem;

@@ -1,15 +1,27 @@
+import BoxCompartmentSelect from '../BoxForms/BoxCompartmentSelect';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { API_BASE } from '../../api/API_BASE';
+import { enqueueItemImageProcessing } from '../../api/itemMedia';
+import { DEFAULT_RENDER_TOKENS } from '../../constants/renderTokens';
 import { DEFAULT_ITEM_CATEGORY } from '../../util/itemCategories';
 import { uploadCroppedItemImage } from './intakeImageHelpers';
 import NewItemPhotoControl from './NewItemPhotoControl';
 import NewItemPostSaveDetails from './NewItemPostSaveDetails';
 import NewItemQuantityControl from './NewItemQuantityControl';
+import IntakeOptionalDetails from './IntakeOptionalDetails';
 import * as GridStyles from '../../styles/InventoryGridHeader.styles';
 import {
   Composer,
+  CaptureRow,
+  DestinationCopy,
+  DestinationHint,
+  DestinationIcon,
+  WizardTitle,
+  WizardIntro,
+  WizardPrompt,
   DestinationKicker,
   DestinationLabel,
+  DestinationStatusRow,
   DestinationMeta,
   DestinationRail,
   Field,
@@ -19,16 +31,15 @@ import {
   ItemTitle,
   Label,
   PrimaryButton,
-  ProgressContent,
-  ProgressDisclosure,
-  ProgressToggle,
-  QuickDetails,
+  PhotoModule,
+  PhotoEyebrow,
+  PhotoToggle,
+  PhotoAction,
+  PhotoActionCopy,
+  PhotoMiniPreview,
+  PhotoExpanded,
   QuantityRow,
   QuietButton,
-  TagChip,
-  TagComposer,
-  TagDraftInput,
-  TagStageButton,
 } from './NewItemComposer.styles';
 
 function normalizeTags(values = []) {
@@ -93,6 +104,8 @@ export default function IntakeQuickItemMaker({
 }) {
   const normalizedMode = mode === 'inBox' ? 'inBox' : 'orphan';
   const isInBoxMode = normalizedMode === 'inBox';
+  const [chosenCompartment, setChosenCompartment] = useState('A');
+  const compartmentKey = targetBox?.isComplexBox ? (targetBox.compartmentKey || chosenCompartment) : undefined;
   const targetBoxId = String(targetBox?._id || targetBox?.id || '').trim();
   const targetBoxShortId = String(targetBox?.box_id || targetBox?.shortId || '').trim();
   const targetBoxLabel = String(targetBox?.label || targetBox?.name || '').trim();
@@ -103,6 +116,9 @@ export default function IntakeQuickItemMaker({
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [description, setDescription] = useState('');
+  const [notes, setNotes] = useState('');
+  const [category, setCategory] = useState(DEFAULT_ITEM_CATEGORY);
+  const [condition, setCondition] = useState('unknown');
   const [tags, setTags] = useState([]);
   const [tagDraft, setTagDraft] = useState('');
   const [photoFile, setPhotoFile] = useState(null);
@@ -114,7 +130,11 @@ export default function IntakeQuickItemMaker({
   const [photoError, setPhotoError] = useState('');
   const [photoRetrying, setPhotoRetrying] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [glowEnabled, setGlowEnabled] = useState(false);
+  const [renderTokens, setRenderTokens] = useState({ ...DEFAULT_RENDER_TOKENS });
+  const [glowStatus, setGlowStatus] = useState('');
+  const [glowError, setGlowError] = useState('');
+  const [glowQueuing, setGlowQueuing] = useState(false);
 
   useEffect(() => {
     onDraftNameChange?.(createdItem ? '' : name);
@@ -179,6 +199,20 @@ export default function IntakeQuickItemMaker({
     setPhotoOpen(true);
   };
 
+  const queueGlow = async (item) => {
+    if (!glowEnabled || !item?._id || glowQueuing) return;
+    setGlowError('');
+    setGlowQueuing(true);
+    try {
+      await enqueueItemImageProcessing(item._id, { renderTokens });
+      setGlowStatus('Glow processing queued.');
+    } catch (processingError) {
+      setGlowError(processingError?.message || 'Could not queue Glow processing.');
+    } finally {
+      setGlowQueuing(false);
+    }
+  };
+
   const stageTag = (value = tagDraft) => {
     const nextTag = String(value || '').trim();
     if (!nextTag) return;
@@ -204,16 +238,22 @@ export default function IntakeQuickItemMaker({
       : `${API_BASE}/api/items`;
     const requestBody = isInBoxMode
       ? {
+          compartmentKey,
           name: trimmedName,
           quantity: normalizedQuantity,
-          category: DEFAULT_ITEM_CATEGORY,
+          category,
+          condition,
+          notes: notes.trim(),
           description: normalizedDescription,
           tags: normalizedTags,
         }
       : {
+          compartmentKey,
           name: trimmedName,
           quantity: normalizedQuantity,
-          category: DEFAULT_ITEM_CATEGORY,
+          category,
+          condition,
+          notes: notes.trim(),
           description: normalizedDescription,
           tags: normalizedTags,
           orphanedAt,
@@ -248,6 +288,7 @@ export default function IntakeQuickItemMaker({
           const withPhoto = await applyUploadedPhoto(normalizedItem, photoFile);
           setCreatedItem(withPhoto);
           emitItem(withPhoto, `Added "${trimmedName}" ${placement} with photo${photoSource ? ` via ${photoSource}` : ''}.`);
+          await queueGlow(withPhoto);
         } catch (uploadError) {
           setPhotoError(uploadError?.message || 'Photo upload failed.');
         }
@@ -269,6 +310,7 @@ export default function IntakeQuickItemMaker({
       const withPhoto = await applyUploadedPhoto(createdItem, photoFile);
       setCreatedItem(withPhoto);
       emitItem(withPhoto, `Photo added to "${withPhoto.name || 'item'}".`);
+      await queueGlow(withPhoto);
     } catch (uploadError) {
       setPhotoError(uploadError?.message || 'Photo upload failed.');
     } finally {
@@ -293,6 +335,9 @@ export default function IntakeQuickItemMaker({
     setName('');
     setQuantity(1);
     setDescription('');
+    setNotes('');
+    setCategory(DEFAULT_ITEM_CATEGORY);
+    setCondition('unknown');
     setTags([]);
     setTagDraft('');
     setPhotoFile(null);
@@ -300,7 +345,11 @@ export default function IntakeQuickItemMaker({
     setPhotoError('');
     setError('');
     setPhotoOpen(false);
-    setDetailsOpen(false);
+    setGlowEnabled(false);
+    setRenderTokens({ ...DEFAULT_RENDER_TOKENS });
+    setGlowStatus('');
+    setGlowError('');
+    setGlowQueuing(false);
     window.setTimeout(() => nameRef.current?.focus(), 0);
   };
 
@@ -312,6 +361,10 @@ export default function IntakeQuickItemMaker({
           photoError={photoError}
           photoRetrying={photoRetrying}
           onRetryPhoto={handleRetryPhoto}
+          glowStatus={glowStatus}
+          glowError={glowError}
+          glowQueuing={glowQueuing}
+          onRetryGlow={() => queueGlow(createdItem)}
           onItemUpdated={handleItemUpdated}
           onAddAnother={handleAddAnother}
         />
@@ -372,51 +425,38 @@ export default function IntakeQuickItemMaker({
           {hint ? <InlineMessage>{hint}</InlineMessage> : null}
         </div>
       ) : null}
-      <DestinationRail>
-        <div>
-          <DestinationKicker>Going to</DestinationKicker>
-          <DestinationLabel>
-            {destinationLabel}
-            {targetBoxShortId ? <DestinationMeta> #{targetBoxShortId}</DestinationMeta> : null}
-          </DestinationLabel>
-        </div>
-        {onChangeTargetBox ? (
-          <QuietButton type="button" onClick={onChangeTargetBox} disabled={busy}>
-            Change
-          </QuietButton>
-        ) : null}
+      <WizardIntro $inBox={hasSelectedBox}>
+        <WizardTitle $inBox={hasSelectedBox}>A new item enters the inventory.</WizardTitle>
+        <WizardPrompt>Where should it go?</WizardPrompt>
+      </WizardIntro>
+      <DestinationRail $inBox={hasSelectedBox}>
+        <DestinationIcon $inBox={hasSelectedBox} aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+            <path d="M16 3 27 9v14l-11 6L5 23V9L16 3Z" />
+            <path d="m5 9 11 6 11-6M16 15v14" />
+          </svg>
+        </DestinationIcon>
+        <DestinationCopy>
+          <DestinationKicker>Destination</DestinationKicker>
+          <DestinationStatusRow>
+            <DestinationLabel>
+              {destinationLabel}
+              {targetBoxShortId ? <DestinationMeta> #{targetBoxShortId}{compartmentKey || ''}</DestinationMeta> : null}
+            </DestinationLabel>
+            {onChangeTargetBox ? (
+              <QuietButton $destination type="button" onClick={onChangeTargetBox} disabled={busy}>
+                Change
+              </QuietButton>
+            ) : null}
+          </DestinationStatusRow>
+          <DestinationHint>{hasSelectedBox ? 'Current box' : 'Temporary holding area'}</DestinationHint>
+        </DestinationCopy>
       </DestinationRail>
+      {isInBoxMode && !targetBox?.compartmentKey ? <BoxCompartmentSelect box={targetBox} value={chosenCompartment} onChange={setChosenCompartment} disabled={busy} /> : null}
 
       <Form onSubmit={handleSubmit}>
-        <ProgressDisclosure>
-          <ProgressToggle
-            type="button"
-            aria-expanded={photoOpen}
-            aria-controls="new-item-photo-controls"
-            onClick={() => setPhotoOpen((value) => !value)}
-          >
-            <span>{photoFile ? 'Photo ready' : 'Add photo'}</span>
-            <span aria-hidden="true">{photoOpen ? '−' : '+'}</span>
-          </ProgressToggle>
-          {photoOpen ? (
-            <ProgressContent id="new-item-photo-controls">
-              <NewItemPhotoControl
-                disabled={busy}
-                photoFile={photoFile}
-                previewUrl={photoPreviewUrl}
-                onFileSelected={handlePhotoPick}
-                onRemove={() => {
-                  setPhotoFile(null);
-                  setPhotoSource('');
-                  setPhotoError('');
-                }}
-              />
-            </ProgressContent>
-          ) : null}
-        </ProgressDisclosure>
-
         <Field>
-          <Label htmlFor="new-item-name">Whaychya got there?</Label>
+          <Label htmlFor="new-item-name">Item name</Label>
           <Input
             id="new-item-name"
             ref={nameRef}
@@ -425,90 +465,86 @@ export default function IntakeQuickItemMaker({
             autoCorrect="on"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="Extension cord, blue bowl…"
+            placeholder="Whatchya got there??"
             disabled={busy}
             required
           />
         </Field>
 
-        <QuantityRow>
-          <Label htmlFor="new-item-quantity">How many?</Label>
-          <NewItemQuantityControl
-            value={quantity}
-            onChange={setQuantity}
-            min={1}
-            max={9999}
-            disabled={busy}
-          />
-        </QuantityRow>
+        <CaptureRow>
+          <PhotoModule>
+            <PhotoEyebrow>Item photo</PhotoEyebrow>
+            <PhotoToggle
+              type="button"
+              aria-expanded={photoOpen}
+              aria-controls="new-item-photo-controls"
+              onClick={() => setPhotoOpen((value) => !value)}
+            >
+              {photoPreviewUrl ? (
+                <PhotoMiniPreview src={photoPreviewUrl} alt="" />
+              ) : (
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <path d="M4 7h4l1.5-2h5L16 7h4v12H4z" />
+                  <circle cx="12" cy="13" r="3.2" />
+                </svg>
+              )}
+              <PhotoActionCopy>
+                <PhotoAction>{photoFile ? 'Photo ready' : 'Add photo'}</PhotoAction>
+                <small>{photoFile ? 'Change or remove' : 'Tap to upload'}</small>
+              </PhotoActionCopy>
+              <span aria-hidden="true">{photoOpen ? '−' : '+'}</span>
+            </PhotoToggle>
+          </PhotoModule>
 
-        <ProgressDisclosure>
-          <ProgressToggle
-            type="button"
-            aria-expanded={detailsOpen}
-            aria-controls="new-item-optional-details"
-            onClick={() => setDetailsOpen((value) => !value)}
-          >
-            <span>Details <em>optional</em></span>
-            <span aria-hidden="true">{detailsOpen ? '−' : '+'}</span>
-          </ProgressToggle>
-          {detailsOpen ? (
-            <ProgressContent id="new-item-optional-details">
-              <QuickDetails>
-                <Field>
-                  <Label htmlFor="new-item-description">Description</Label>
-                  <Input
-                    id="new-item-description"
-                    value={description}
-                    onChange={(event) => setDescription(event.target.value)}
-                    placeholder="A little identifying detail"
-                    disabled={busy}
-                  />
-                </Field>
-                <Field>
-                  <Label htmlFor="new-item-tags">Tags</Label>
-                  <TagComposer>
-                    {tags.map((tag) => (
-                      <TagChip
-                        key={tag}
-                        type="button"
-                        onClick={() => setTags((current) => current.filter((entry) => entry !== tag))}
-                        disabled={busy}
-                        aria-label={`Remove ${tag}`}
-                      >
-                        {tag} ×
-                      </TagChip>
-                    ))}
-                    <TagDraftInput
-                      id="new-item-tags"
-                      value={tagDraft}
-                      onKeyDown={(event) => {
-                        if (event.key !== 'Enter') return;
-                        event.preventDefault();
-                        stageTag();
-                      }}
-                      onChange={(event) => {
-                        const nextValue = event.target.value;
-                        if (/\s{2}$/.test(nextValue)) {
-                          stageTag(nextValue);
-                          return;
-                        }
-                        setTagDraft(nextValue);
-                      }}
-                      placeholder="Add a tag"
-                      disabled={busy}
-                    />
-                    {tagDraft.trim() ? (
-                      <TagStageButton type="button" onClick={() => stageTag()} disabled={busy}>
-                        Stage
-                      </TagStageButton>
-                    ) : null}
-                  </TagComposer>
-                </Field>
-              </QuickDetails>
-            </ProgressContent>
+          <QuantityRow>
+            <Label htmlFor="new-item-quantity">Quantity</Label>
+            <NewItemQuantityControl
+              value={quantity}
+              onChange={setQuantity}
+              min={1}
+              max={9999}
+              disabled={busy}
+            />
+          </QuantityRow>
+          {photoOpen ? (
+            <PhotoExpanded id="new-item-photo-controls">
+              <NewItemPhotoControl
+                disabled={busy}
+                photoFile={photoFile}
+                previewUrl={photoPreviewUrl}
+                onFileSelected={handlePhotoPick}
+                  onRemove={() => {
+                    setPhotoFile(null);
+                    setPhotoSource('');
+                    setPhotoError('');
+                    setGlowEnabled(false);
+                    setGlowError('');
+                  }}
+                  glowEnabled={glowEnabled}
+                  onGlowEnabledChange={setGlowEnabled}
+                  renderTokens={renderTokens}
+                  onRenderTokenChange={(field, value) => setRenderTokens((current) => ({ ...current, [field]: value }))}
+              />
+            </PhotoExpanded>
           ) : null}
-        </ProgressDisclosure>
+        </CaptureRow>
+
+        <IntakeOptionalDetails
+          description={description}
+          onDescriptionChange={setDescription}
+          tags={tags}
+          onTagsChange={setTags}
+          tagDraft={tagDraft}
+          onTagDraftChange={setTagDraft}
+          onStageTag={stageTag}
+          notes={notes}
+          onNotesChange={setNotes}
+          category={category}
+          onCategoryChange={setCategory}
+          condition={condition}
+          onConditionChange={setCondition}
+          disabled={busy}
+        />
 
         {error ? <InlineMessage $error>{error}</InlineMessage> : null}
         <PrimaryButton type="submit" disabled={!canSubmit}>

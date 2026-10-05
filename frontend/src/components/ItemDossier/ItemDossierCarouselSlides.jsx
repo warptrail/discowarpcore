@@ -429,7 +429,6 @@ export function NotesSlide({
 
 export function DetailsSlide({
   itemId,
-  boxGroup,
   keepPriority,
   keepPriorityLabel,
   primaryOwnerName,
@@ -447,7 +446,6 @@ export function DetailsSlide({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const facts = [
-    ['Box group', boxGroup],
     ['Keep priority', keepPriorityLabel, 'keepPriority', keepPriority || ''],
     ['Owner', primaryOwnerName, 'primaryOwnerName', primaryOwnerName || ''],
     ['Condition', condition, 'condition', condition || 'unknown'],

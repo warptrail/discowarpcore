@@ -3,17 +3,19 @@ const mongoose = require('mongoose');
 const Box = require('../models/Box');
 const Location = require('../models/Location');
 const {
-  normalizeLocationName,
-  locationCompareKey,
+  normalizeLocationStructure,
 } = require('../utils/locationName');
 
 const escapeRegExp = (value) =>
   String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-async function findByNormalizedName(normalizedName) {
-  if (!normalizedName) return null;
+async function findByStructure(structure) {
+  const normalized = normalizeLocationStructure(structure);
+  if (!normalized.room) return null;
   return Location.findOne({
-    name: { $regex: new RegExp(`^${escapeRegExp(normalizedName)}$`, 'i') },
+    room: { $regex: new RegExp(`^${escapeRegExp(normalized.room)}$`, 'i') },
+    vicinity: { $regex: new RegExp(`^${escapeRegExp(normalized.vicinity)}$`, 'i') },
+    specifics: { $regex: new RegExp(`^${escapeRegExp(normalized.specifics)}$`, 'i') },
   });
 }
 
@@ -26,47 +28,53 @@ function makeHttpError(status, code, message, extra = {}) {
 }
 
 async function listLocations() {
-  return Location.find().sort({ name: 1 }).collation({ locale: 'en', strength: 2 });
+  return Location.find()
+    .sort({ room: 1, vicinity: 1, specifics: 1 })
+    .collation({ locale: 'en', strength: 2 });
 }
 
-async function createLocation({ name }) {
-  const normalized = normalizeLocationName(name);
-  if (!normalized) {
-    throw makeHttpError(400, 'INVALID_LOCATION_NAME', 'Location name is required');
+function normalizeLocationInput(input = {}) {
+  const source = input?.location ?? input;
+  const structure = normalizeLocationStructure(source);
+  if (!structure.room) {
+    throw makeHttpError(400, 'INVALID_LOCATION_ROOM', 'Room is required');
   }
+  if (structure.specifics && !structure.vicinity) {
+    throw makeHttpError(400, 'INVALID_LOCATION_HIERARCHY', 'Specifics requires a vicinity');
+  }
+  return structure;
+}
 
-  const existing = await findByNormalizedName(normalized);
+async function createLocation(input) {
+  const normalized = normalizeLocationInput(input);
+  const existing = await findByStructure(normalized);
   if (existing) {
     throw makeHttpError(409, 'LOCATION_EXISTS', 'Location already exists');
   }
 
-  return Location.create({ name: normalized });
+  return Location.create(normalized);
 }
 
-async function renameLocation(id, { name }) {
+async function renameLocation(id, input) {
   if (!mongoose.isValidObjectId(id)) {
     throw makeHttpError(400, 'INVALID_LOCATION_ID', 'Invalid location id');
   }
 
-  const normalized = normalizeLocationName(name);
-  if (!normalized) {
-    throw makeHttpError(400, 'INVALID_LOCATION_NAME', 'Location name is required');
-  }
+  const normalized = normalizeLocationInput(input);
 
   const existing = await Location.findById(id);
   if (!existing) {
     throw makeHttpError(404, 'LOCATION_NOT_FOUND', 'Location not found');
   }
 
-  const dupe = await findByNormalizedName(normalized);
+  const dupe = await findByStructure(normalized);
   if (dupe && String(dupe._id) !== String(id)) {
     throw makeHttpError(409, 'LOCATION_EXISTS', 'Location already exists');
   }
 
-  existing.name = normalized;
+  existing.set(normalized);
   await existing.save();
 
-  await Box.updateMany({ locationId: existing._id }, { $set: { location: existing.name } });
   return existing;
 }
 
@@ -107,118 +115,20 @@ async function resolveLocationById(locationId) {
   return location;
 }
 
-async function resolveOrCreateLocationFromLegacyString(location) {
-  const normalized = normalizeLocationName(location);
-  if (!normalized) return null;
-
-  const existing = await findByNormalizedName(normalized);
-  if (existing) return existing;
-
-  return Location.create({ name: normalized });
-}
-
-async function resolveBoxLocationFields({ locationId, location }) {
+async function resolveBoxLocationFields({ locationId }) {
   if (locationId !== undefined) {
     if (locationId === null || String(locationId).trim() === '') {
-      return { locationId: null, location: '' };
+      return { locationId: null };
     }
     const found = await resolveLocationById(locationId);
-    return { locationId: found._id, location: found.name };
-  }
-
-  if (location !== undefined) {
-    const found = await resolveOrCreateLocationFromLegacyString(location);
-    if (!found) return { locationId: null, location: '' };
-    return { locationId: found._id, location: found.name };
+    return { locationId: found._id };
   }
 
   return null;
 }
 
 async function backfillBoxLocations() {
-  const locations = await listLocations();
-  const locationByKey = new Map(
-    locations.map((loc) => [locationCompareKey(loc.name), loc]),
-  );
-  const locationById = new Map(
-    locations.map((loc) => [String(loc._id), loc]),
-  );
-
-  const boxes = await Box.find()
-    .select('_id location locationId')
-    .lean();
-
-  if (!boxes.length) {
-    return { scanned: 0, linked: 0, createdLocations: 0, syncedNames: 0 };
-  }
-
-  let createdLocations = 0;
-  const ops = [];
-
-  for (const box of boxes) {
-    const currentLocationId = box.locationId ? String(box.locationId) : '';
-    const legacyName = normalizeLocationName(box.location);
-
-    if (currentLocationId) {
-      const mapped = locationById.get(currentLocationId);
-      if (mapped && legacyName !== mapped.name) {
-        ops.push({
-          updateOne: {
-            filter: { _id: box._id },
-            update: { $set: { location: mapped.name } },
-          },
-        });
-      } else if (!mapped && legacyName) {
-        const key = locationCompareKey(legacyName);
-        let loc = locationByKey.get(key);
-        if (!loc) {
-          loc = await Location.create({ name: legacyName });
-          createdLocations += 1;
-          locationByKey.set(key, loc);
-          locationById.set(String(loc._id), loc);
-        }
-        ops.push({
-          updateOne: {
-            filter: { _id: box._id },
-            update: { $set: { locationId: loc._id, location: loc.name } },
-          },
-        });
-      }
-      continue;
-    }
-
-    if (!legacyName) continue;
-
-    const key = locationCompareKey(legacyName);
-    let loc = locationByKey.get(key);
-    if (!loc) {
-      loc = await Location.create({ name: legacyName });
-      createdLocations += 1;
-      locationByKey.set(key, loc);
-      locationById.set(String(loc._id), loc);
-    }
-
-    ops.push({
-      updateOne: {
-        filter: { _id: box._id },
-        update: { $set: { locationId: loc._id, location: loc.name } },
-      },
-    });
-  }
-
-  if (ops.length) {
-    await Box.bulkWrite(ops, { ordered: false });
-  }
-
-  const linked = ops.filter((op) => op.updateOne.update.$set.locationId).length;
-  const syncedNames = ops.length - linked;
-
-  return {
-    scanned: boxes.length,
-    linked,
-    syncedNames,
-    createdLocations,
-  };
+  return { skipped: true, reason: 'legacy location migration retired' };
 }
 
 module.exports = {
@@ -226,6 +136,7 @@ module.exports = {
   createLocation,
   renameLocation,
   deleteLocation,
+  normalizeLocationInput,
   resolveBoxLocationFields,
   backfillBoxLocations,
 };

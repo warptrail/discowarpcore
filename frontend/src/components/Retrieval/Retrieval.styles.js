@@ -1,5 +1,6 @@
 import styled, { css, keyframes } from 'styled-components';
 import { Link } from 'react-router-dom';
+import { controlStyles, inputStyles, panelStyles } from '../../styles/primitives';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_CONTROL_MIN_HEIGHT,
@@ -11,21 +12,21 @@ import {
 const RETRIEVAL_WIDE_BREAKPOINT = '900px';
 
 const RETRIEVAL = {
-  bg: '#0d1116',
-  panel: '#141a21',
-  panelAlt: '#1b2430',
-  row: '#121922',
-  rowHover: '#1a2330',
-  border: 'rgba(127, 215, 255, 0.18)',
-  borderStrong: 'rgba(127, 215, 255, 0.36)',
-  text: '#e8eef4',
-  textDim: 'rgba(232, 238, 244, 0.78)',
-  textMuted: 'rgba(232, 238, 244, 0.55)',
-  cyan: '#77d5ff',
-  teal: '#4cc6c1',
-  mint: '#67efc8',
-  amber: '#e8b15c',
-  decommissioned: '#e56f67',
+  bg: 'var(--dw-background)',
+  panel: 'var(--dw-surface)',
+  panelAlt: 'var(--dw-surface-raised)',
+  row: 'var(--dw-surface)',
+  rowHover: 'var(--dw-surface-raised)',
+  border: 'var(--dw-border-soft)',
+  borderStrong: 'var(--dw-border)',
+  text: 'var(--dw-text)',
+  textDim: 'var(--dw-text-secondary)',
+  textMuted: 'var(--dw-text-muted)',
+  cyan: 'var(--dw-cyan)',
+  teal: 'var(--dw-teal)',
+  mint: 'var(--dw-teal)',
+  amber: 'var(--dw-amber)',
+  decommissioned: 'var(--dw-coral)',
 };
 
 const keepPriorityToneColor = (tone) => {
@@ -41,42 +42,12 @@ const keepPriorityToneColor = (tone) => {
 };
 
 const panelChrome = css`
-  border: 1px solid ${RETRIEVAL.border};
-  border-radius: 3px 10px 3px 3px;
-  background:
-    linear-gradient(90deg, rgba(76, 198, 193, 0.07), transparent 24%),
-    linear-gradient(180deg, rgba(20, 26, 33, 0.98), rgba(10, 15, 21, 0.98));
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.24),
-    0 10px 24px rgba(0, 0, 0, 0.24);
+  ${panelStyles};
 `;
 
 const controlField = css`
+  ${inputStyles};
   width: 100%;
-  min-height: 38px;
-  border-radius: 3px;
-  border: 1px solid ${RETRIEVAL.borderStrong};
-  background: ${RETRIEVAL.bg};
-  color: ${RETRIEVAL.text};
-  padding: 0.5rem 0.65rem;
-  outline: none;
-  font-size: 0.88rem;
-  transition:
-    border-color 120ms ease,
-    box-shadow 120ms ease,
-    background 120ms ease;
-
-  &:focus {
-    border-color: rgba(119, 213, 255, 0.8);
-    box-shadow: 0 0 0 2px rgba(119, 213, 255, 0.24);
-    background: ${RETRIEVAL.panelAlt};
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-    font-size: ${MOBILE_FONT_SM};
-    border-radius: 3px;
-  }
 `;
 
 export const PageShell = styled.section`
@@ -89,6 +60,8 @@ export const PageShell = styled.section`
     min-height: 0;
     overflow: hidden;
   }
+  min-width: 0;
+  font-family: var(--dw-font-ui);
 `;
 
 export const ControlsPanel = styled.section`
@@ -105,22 +78,24 @@ export const ControlsPanel = styled.section`
     padding: 0.54rem;
     border-radius: ${MOBILE_PANEL_RADIUS};
     gap: 0.52rem;
-    backdrop-filter: blur(12px);
+    backdrop-filter: none;
   }
+  border-left: 4px solid var(--dw-amber);
+  @media (max-width: 640px) { position: static; }
 `;
 
 export const StickyConsoleBeacon = styled.div`
   display: grid;
   gap: 0;
   min-width: 0;
-  border-radius: 2px 7px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background: ${({ $active }) =>
     $active
-      ? 'linear-gradient(180deg, rgba(17, 24, 33, 0.98), rgba(11, 17, 24, 0.96))'
+      ? 'var(--dw-surface-raised)'
       : 'transparent'};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    border-radius: 2px 6px 2px 2px;
+    border-radius: var(--dw-radius-sm);
   }
 `;
 
@@ -137,50 +112,19 @@ export const ModeToggleGroup = styled.div`
   padding: 2px;
   border: 1px solid rgba(127, 215, 255, 0.28);
   border-left: 4px solid rgba(76, 198, 193, 0.74);
-  border-radius: 2px 6px 2px 2px;
-  background: rgba(4, 9, 15, 0.92);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   box-shadow:
-    inset 0 1px 2px rgba(0, 0, 0, 0.62),
-    0 1px 0 rgba(255, 255, 255, 0.04);
+    none;
+  border-color: var(--dw-border);
+  border-left-color: var(--dw-amber);
 `;
 
 export const ModeToggleButton = styled.button`
-  min-height: 34px;
-  padding: 0.2rem 0.78rem;
-  border-radius: 1px 4px 1px 1px;
-  border: 1px solid transparent;
-  background: ${({ $active }) =>
-    $active
-      ? 'linear-gradient(90deg, rgba(119, 213, 255, 0.3), rgba(55, 119, 148, 0.12))'
-      : 'transparent'};
-  box-shadow: ${({ $active }) =>
-    $active
-      ? 'inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 0 8px rgba(119, 213, 255, 0.12)'
-      : 'none'};
-  color: ${({ $active }) => ($active ? '#e8f7ff' : RETRIEVAL.textMuted)};
-  font-size: 0.64rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: background 120ms ease, box-shadow 120ms ease, color 120ms ease;
-
-  &:hover {
-    color: #e8f7ff;
-    background: ${({ $active }) =>
-      $active ? 'linear-gradient(180deg, rgba(119, 213, 255, 0.34), rgba(55, 119, 148, 0.24))' : 'rgba(255, 255, 255, 0.06)'};
-  }
-
-  &:focus-visible {
-    outline: 2px solid rgba(119, 213, 255, 0.76);
-    outline-offset: 1px;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 44px;
-    font-size: 0.7rem;
-    padding: 0.2rem 0.62rem;
-  }
+  ${controlStyles};
+  border-color: ${({ $active }) => $active ? 'var(--dw-amber)' : 'transparent'};
+  background: ${({ $active }) => $active ? 'var(--dw-surface-raised)' : 'var(--dw-surface)'};
+  color: ${({ $active }) => $active ? 'var(--dw-amber)' : 'var(--dw-text-secondary)'};
 `;
 
 export const HeadingRow = styled.div`
@@ -197,15 +141,14 @@ export const ActiveBeaconPanel = styled.div`
   align-items: start;
   padding: 0.14rem 0.18rem;
   border: 1px solid rgba(127, 215, 255, 0.16);
-  border-radius: 2px 7px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background:
-    radial-gradient(circle at 94% 10%, rgba(103, 239, 200, 0.12), transparent 40%),
-    linear-gradient(180deg, rgba(15, 23, 33, 0.95), rgba(10, 16, 23, 0.95));
+    var(--dw-surface);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.58rem;
     padding: 0.16rem 0.18rem;
-    border-radius: 2px 6px 2px 2px;
+    border-radius: var(--dw-radius-sm);
   }
 `;
 
@@ -217,10 +160,11 @@ export const ActiveBeaconMain = styled.div`
 
 export const ActiveBeaconKicker = styled.span`
   color: rgba(165, 218, 198, 0.76);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
+  font-family: var(--dw-font-data);
 `;
 
 export const ActiveBeaconTitleRow = styled.div`
@@ -240,7 +184,7 @@ export const ActiveBeaconName = styled.h3`
   font-size: clamp(1.02rem, 2.4vw, 1.18rem);
   font-weight: 800;
   line-height: 1.16;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
 `;
 
 export const ActiveBeaconLocator = styled.span`
@@ -251,26 +195,22 @@ export const ActiveBeaconLocator = styled.span`
   max-width: 100%;
   min-height: 2rem;
   padding: 0.28rem 0.62rem;
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $orphaned }) =>
       $orphaned ? 'rgba(229, 111, 103, 0.48)' : 'rgba(119, 213, 255, 0.42)'};
   background: ${({ $orphaned }) =>
     $orphaned
-      ? 'linear-gradient(180deg, rgba(87, 21, 21, 0.72), rgba(49, 14, 14, 0.8))'
-      : 'linear-gradient(180deg, rgba(16, 51, 71, 0.6), rgba(11, 29, 42, 0.84))'};
+      ? 'var(--dw-surface-raised)'
+      : 'var(--dw-surface-raised)'};
   color: ${({ $orphaned }) => ($orphaned ? '#ff9e97' : '#bcecff')};
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: var(--dw-font-ui);
   font-size: clamp(1rem, 2.8vw, 1.18rem);
   font-weight: 860;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   line-height: 1;
-  text-shadow: ${({ $orphaned }) =>
-    $orphaned
-      ? '0 0 8px rgba(229, 111, 103, 0.24)'
-      : '0 0 10px rgba(119, 213, 255, 0.22)'};
+  text-shadow: none;
+  font-family: var(--dw-font-data);
 `;
 
 export const ActiveBeaconMetaRow = styled.div`
@@ -283,24 +223,24 @@ export const ActiveBeaconMetaRow = styled.div`
 
 export const ActiveBeaconMetaLabel = styled.span`
   color: rgba(232, 238, 244, 0.54);
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 export const ActiveBeaconMetaValue = styled.span`
   color: rgba(215, 255, 242, 0.94);
   font-size: 0.8rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   line-height: 1.3;
 `;
 
 export const ActiveBeaconSubline = styled.p`
   margin: 0;
   color: rgba(232, 238, 244, 0.66);
-  font-size: 0.73rem;
+  font-size: 0.75rem;
   line-height: 1.32;
   overflow-wrap: anywhere;
 `;
@@ -319,15 +259,13 @@ export const ActiveBeaconCount = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid rgba(119, 213, 255, 0.35);
   background: rgba(119, 213, 255, 0.16);
   color: ${RETRIEVAL.cyan};
   padding: 0.22rem 0.52rem;
   min-width: 2.5rem;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: var(--dw-font-ui);
   font-size: 0.79rem;
   font-variant-numeric: tabular-nums;
 
@@ -338,16 +276,18 @@ export const ActiveBeaconCount = styled.span`
 `;
 
 export const ActiveBeaconDismiss = styled.button`
-  min-height: 32px;
-  border-radius: 2px 5px 2px 2px;
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
+  min-height: 40px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(255, 255, 255, 0.06);
   color: ${RETRIEVAL.textDim};
   padding: 0.18rem 0.56rem;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   cursor: pointer;
 
   &:hover {
@@ -374,33 +314,34 @@ export const TitleRow = styled.div`
 export const TitlePip = styled.span`
   width: 9px;
   height: 26px;
-  border-radius: 8px;
+  border-radius: var(--dw-radius);
   background: ${RETRIEVAL.mint};
-  box-shadow: 0 0 0 2px rgba(103, 239, 200, 0.2) inset;
+  box-shadow: none;
+  background: var(--dw-amber);
+  border-radius: var(--dw-radius-sm);
 `;
 
 export const Title = styled.h2`
   margin: 0;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: var(--dw-font-ui);
   font-size: clamp(1rem, 2.2vw, 1.14rem);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   font-weight: 800;
   color: rgba(232, 238, 244, 0.95);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 0.9rem;
-    letter-spacing: 0.06em;
+    letter-spacing: 0;
   }
+  font-size: clamp(1.1rem, 2.2vw, 1.35rem);
 `;
 
 export const Subtitle = styled.p`
   margin: 0;
   font-size: 0.77rem;
   color: ${RETRIEVAL.textMuted};
-  letter-spacing: 0.035em;
+  letter-spacing: 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
@@ -411,15 +352,13 @@ export const CountPill = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid rgba(119, 213, 255, 0.35);
   background: rgba(119, 213, 255, 0.16);
   color: ${RETRIEVAL.cyan};
   padding: 0.3rem 0.6rem;
   min-width: 2.8rem;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: var(--dw-font-ui);
   font-size: 0.79rem;
   font-variant-numeric: tabular-nums;
 
@@ -452,16 +391,17 @@ export const SearchInput = styled.input`
   min-height: 40px;
   font-size: 0.92rem;
   border-left: 4px solid rgba(76, 198, 193, 0.66);
-  border-radius: 2px 7px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background:
-    linear-gradient(90deg, rgba(76, 198, 193, 0.055), transparent 28%),
-    ${RETRIEVAL.bg};
+    var(--dw-surface-raised);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: 44px;
     font-size: 0.94rem;
-    border-radius: 2px 6px 2px 2px;
+    border-radius: var(--dw-radius-sm);
   }
+  border-left-color: var(--dw-amber);
+  background: var(--dw-background);
 `;
 
 export const BoxPrefixWrap = styled.label`
@@ -477,16 +417,13 @@ export const BoxPrefixInput = styled.input`
   border-left: 4px solid ${({ $active }) => (
     $active ? 'rgba(167, 182, 255, 0.94)' : 'rgba(167, 182, 255, 0.62)'
   )};
-  border-radius: 2px 7px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background:
-    linear-gradient(90deg, rgba(167, 182, 255, 0.09), transparent 76%),
-    ${RETRIEVAL.bg};
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+    var(--dw-surface-raised);
+  font-family: var(--dw-font-ui);
   font-size: 0.92rem;
   font-weight: 850;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   font-variant-numeric: tabular-nums;
 
   &::-webkit-search-cancel-button {
@@ -496,8 +433,9 @@ export const BoxPrefixInput = styled.input`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: 44px;
     font-size: 0.94rem;
-    border-radius: 2px 6px 2px 2px;
+    border-radius: var(--dw-radius-sm);
   }
+  font-family: var(--dw-font-data);
 `;
 
 export const BoxPrefixScope = styled.span`
@@ -507,9 +445,8 @@ export const BoxPrefixScope = styled.span`
   max-width: 2.5rem;
   overflow: hidden;
   color: rgba(167, 182, 255, 0.76);
-  font: 800 0.52rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    monospace;
-  letter-spacing: 0.06em;
+  font: 800 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
   pointer-events: none;
   text-overflow: ellipsis;
   transform: translateY(-50%);
@@ -523,7 +460,7 @@ export const BoxPrefixScope = styled.span`
 export const SearchHint = styled.p`
   margin: 0;
   color: rgba(232, 238, 244, 0.48);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 
   @media (max-width: ${RETRIEVAL_WIDE_BREAKPOINT}) {
     display: none;
@@ -537,6 +474,8 @@ export const DesktopSearchWrap = styled.div`
 `;
 
 export const MobileSearchTrigger = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   position: fixed;
   left: 50%;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 0.62rem);
@@ -544,19 +483,17 @@ export const MobileSearchTrigger = styled.button`
   z-index: 50;
   width: 52px;
   height: 52px;
-  border-radius: 2px 8px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid rgba(127, 215, 255, 0.58);
   background:
-    radial-gradient(circle at 30% 25%, rgba(127, 215, 255, 0.26), transparent 54%),
-    rgba(10, 16, 24, 0.92);
+    var(--dw-surface);
   color: #dff3ff;
   font-size: 1.06rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   box-shadow:
-    0 10px 24px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(127, 215, 255, 0.15);
+    none;
   cursor: pointer;
 
   @media (min-width: 761px) {
@@ -572,12 +509,11 @@ export const MobileSearchPanel = styled.div`
   z-index: 51;
   display: grid;
   gap: 0.42rem;
-  border-radius: 2px 8px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid rgba(127, 215, 255, 0.3);
   background:
-    linear-gradient(180deg, rgba(18, 27, 39, 0.96), rgba(11, 18, 27, 0.96)),
-    rgba(9, 16, 24, 0.95);
-  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.44);
+    var(--dw-surface);
+  box-shadow: none;
   padding: 0.54rem;
 
   @media (min-width: 761px) {
@@ -594,22 +530,24 @@ export const MobileSearchHeader = styled.div`
 
 export const MobileSearchTitle = styled.span`
   color: rgba(232, 238, 244, 0.76);
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 export const MobileSearchClose = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   border: 1px solid rgba(127, 215, 255, 0.34);
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background: rgba(127, 215, 255, 0.14);
   color: #d5ecff;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  min-height: 30px;
+  letter-spacing: 0;
+  text-transform: none;
+  min-height: 40px;
   padding: 0.16rem 0.5rem;
   cursor: pointer;
 `;
@@ -623,25 +561,27 @@ export const RefineHeaderRow = styled.div`
 `;
 
 export const RefineToggle = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  min-height: 32px;
+  min-height: 40px;
   border: 1px solid rgba(127, 215, 255, 0.2);
-  border-radius: 2px 5px 2px 2px;
-  background: rgba(9, 17, 25, 0.7);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   color: rgba(217, 239, 255, 0.7);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   padding: 0.14rem 0.52rem;
   cursor: pointer;
 
   &::after {
     content: '+';
     color: rgba(103, 212, 202, 0.78);
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     line-height: 1;
   }
 
@@ -670,11 +610,11 @@ export const RefineToggle = styled.button`
 export const RefineCount = styled.span`
   border-left: 3px solid rgba(76, 198, 193, 0.6);
   color: rgba(232, 238, 244, 0.64);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.68rem;
-  letter-spacing: 0.05em;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
+  letter-spacing: 0;
   padding-left: 0.42rem;
-  text-transform: uppercase;
+  text-transform: none;
 `;
 
 export const RefinePanel = styled.div`
@@ -683,8 +623,7 @@ export const RefinePanel = styled.div`
   border-left: 4px solid rgba(76, 198, 193, 0.54);
   border-top: 1px solid rgba(127, 215, 255, 0.12);
   background:
-    linear-gradient(90deg, rgba(76, 198, 193, 0.08), transparent 30%),
-    rgba(10, 16, 24, 0.3);
+    var(--dw-surface);
   padding: 0.48rem 0.5rem 0.48rem 0.62rem;
 `;
 
@@ -729,10 +668,10 @@ export const FilterControl = styled.div`
 `;
 
 export const FilterLabel = styled.span`
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   color: ${RETRIEVAL.textDim};
 `;
 
@@ -759,19 +698,16 @@ export const FilterComboboxInput = styled.input`
     $variant === 'sort' ? 'rgba(111, 196, 255, 0.52)' : RETRIEVAL.borderStrong};
   background: ${({ $variant }) =>
     $variant === 'sort'
-      ? 'linear-gradient(180deg, rgba(16, 44, 68, 0.78), rgba(12, 27, 43, 0.86))'
+      ? 'var(--dw-surface-raised)'
       : RETRIEVAL.bg};
 
   &:focus {
     border-color: ${({ $variant }) =>
       $variant === 'sort' ? 'rgba(143, 214, 255, 0.84)' : 'rgba(119, 213, 255, 0.8)'};
-    box-shadow: ${({ $variant }) =>
-      $variant === 'sort'
-        ? '0 0 0 2px rgba(111, 196, 255, 0.34)'
-        : '0 0 0 2px rgba(119, 213, 255, 0.24)'};
+    box-shadow: none;
     background: ${({ $variant }) =>
       $variant === 'sort'
-        ? 'linear-gradient(180deg, rgba(20, 55, 84, 0.84), rgba(13, 31, 49, 0.9))'
+        ? 'var(--dw-surface-raised)'
         : RETRIEVAL.panelAlt};
   }
 
@@ -800,22 +736,35 @@ export const FilterComboboxDropdown = styled.ul`
   padding: 0.32rem;
   border: 1px solid
     ${({ $variant }) =>
-      $variant === 'sort' ? 'rgba(111, 196, 255, 0.54)' : RETRIEVAL.borderStrong};
-  border-radius: 2px 6px 2px 2px;
-  background:
-    ${({ $variant }) =>
-      $variant === 'sort'
-        ? 'linear-gradient(180deg, rgba(15, 35, 53, 0.98), rgba(10, 24, 37, 0.99))'
-        : 'linear-gradient(180deg, rgba(17, 24, 34, 0.96), rgba(12, 18, 26, 0.98))'},
-    ${({ $variant }) => ($variant === 'sort' ? '#0d1622' : RETRIEVAL.bg)};
+      $variant === 'sort' ? 'rgba(127, 215, 255, 0.46)' : RETRIEVAL.borderStrong};
+  border-radius: 3px;
+  background-color: ${({ $variant }) =>
+    $variant === 'sort' ? '#111a24' : '#10171d'};
   box-shadow:
-    ${({ $variant }) =>
-      $variant === 'sort'
-        ? '0 14px 30px rgba(0, 0, 0, 0.48)'
-        : '0 12px 24px rgba(0, 0, 0, 0.42)'},
-    0 0 0 1px rgba(10, 16, 24, 0.38) inset;
+    none;
   max-height: 320px;
   overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: rgba(127, 215, 255, 0.32) #0b1117;
+  scrollbar-width: thin;
+
+  &::-webkit-scrollbar {
+    width: 9px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #0b1117;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border: 2px solid #0b1117;
+    border-radius: 2px;
+    background: rgba(127, 215, 255, 0.3);
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(127, 215, 255, 0.48);
+  }
 `;
 
 export const FilterComboboxOption = styled.li`
@@ -886,14 +835,16 @@ export const FilterComboboxEmptyState = styled.li`
 `;
 
 export const AddFilterButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   min-width: 68px;
   border: 1px solid rgba(103, 239, 200, 0.38);
-  border-radius: 5px;
+  border-radius: var(--dw-radius);
   background: rgba(103, 239, 200, 0.05);
   color: rgba(216, 255, 242, 0.76);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
   cursor: pointer;
   padding: 0 0.65rem;
   transition: background 120ms ease;
@@ -915,14 +866,16 @@ export const AddFilterButton = styled.button`
 `;
 
 export const SortDirectionToggle = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   min-width: 78px;
-  min-height: 36px;
+  min-height: 40px;
   padding: 0.38rem 0.52rem;
   border: 1px solid rgba(111, 196, 255, 0.52);
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   color: #dff4ff;
-  background: linear-gradient(180deg, rgba(16, 44, 68, 0.78), rgba(12, 27, 43, 0.86));
-  font-size: 0.72rem;
+  background: var(--dw-surface);
+  font-size: 0.75rem;
   font-weight: 760;
   white-space: nowrap;
   cursor: pointer;
@@ -931,7 +884,7 @@ export const SortDirectionToggle = styled.button`
   &:hover:not(:disabled),
   &:focus-visible:not(:disabled) {
     border-color: rgba(143, 214, 255, 0.84);
-    background: linear-gradient(180deg, rgba(20, 55, 84, 0.84), rgba(13, 31, 49, 0.9));
+    background: var(--dw-surface);
   }
 
   &:focus-visible {
@@ -980,11 +933,11 @@ export const ActiveChip = styled.span`
   gap: 0.3rem;
   min-height: 32px;
   border-left-width: 4px;
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid rgba(76, 198, 193, 0.42);
   background: rgba(76, 198, 193, 0.14);
   color: #d8f8f5;
-  font-size: 0.71rem;
+  font-size: 0.75rem;
   padding: 0.16rem 0.2rem 0.16rem 0.48rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -997,12 +950,14 @@ export const ActiveChipLabel = styled.span`
 `;
 
 export const ActiveChipRemove = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   display: inline-grid;
   place-items: center;
   min-width: 28px;
-  min-height: 28px;
+  min-height: 40px;
   border: 1px solid rgba(76, 198, 193, 0.24);
-  border-radius: 1px 4px 1px 1px;
+  border-radius: var(--dw-radius-sm);
   background: rgba(76, 198, 193, 0.08);
   color: inherit;
   cursor: pointer;
@@ -1014,7 +969,8 @@ export const ActiveChipRemove = styled.button`
   &:focus-visible {
     border-color: rgba(103, 239, 200, 0.62);
     background: rgba(103, 239, 200, 0.18);
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -1024,12 +980,14 @@ export const ActiveChipRemove = styled.button`
 `;
 
 export const ClearFiltersButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   border: 1px solid rgba(255, 255, 255, 0.22);
   background: rgba(255, 255, 255, 0.05);
   color: ${RETRIEVAL.textDim};
-  min-height: 32px;
-  border-radius: 2px 5px 2px 2px;
-  font-size: 0.71rem;
+  min-height: 40px;
+  border-radius: var(--dw-radius-sm);
+  font-size: 0.75rem;
   padding: 0.15rem 0.5rem;
   cursor: pointer;
 
@@ -1056,11 +1014,13 @@ export const ResultsHeader = styled.div`
   padding: 0.44rem 0.62rem;
   border-left: 5px solid rgba(76, 198, 193, 0.72);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(8, 14, 20, 0.45);
+  background: var(--dw-surface);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 0.5rem 0.54rem;
   }
+  border-left-color: var(--dw-amber);
+  background: var(--dw-surface);
 `;
 
 export const ExplorerShell = styled.div`
@@ -1069,17 +1029,19 @@ export const ExplorerShell = styled.div`
 `;
 
 export const ExplorerOrderTrigger = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   display: inline-flex;
   align-items: center;
   gap: 0.32rem;
-  min-height: 28px;
+  min-height: 40px;
   padding: 0.12rem 0.34rem;
   border: 1px solid ${({ $active }) => ($active ? 'rgba(167, 182, 255, 0.7)' : 'rgba(167, 182, 255, 0.32)')};
   border-radius: 2px;
-  background: ${({ $active }) => ($active ? 'rgba(167, 182, 255, 0.15)' : 'rgba(10, 15, 22, 0.66)')};
+  background: ${({ $active }) => ($active ? 'rgba(167, 182, 255, 0.15)' : 'var(--dw-surface)')};
   color: rgba(220, 226, 255, 0.76);
-  font: 800 0.56rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.07em;
+  font: 800 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
   cursor: pointer;
 
   strong { color: #e4e8ff; font: inherit; }
@@ -1090,19 +1052,27 @@ export const ExplorerFacetRail = styled.div`
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 2px;
+  @media (max-width: 420px) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    > * { flex: 0 1 auto; min-width: 0; }
+  }
 `;
 
 export const ExplorerFacetButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   position: relative;
   min-width: 0;
   height: 34px;
   padding: 0 0.16rem;
   border: 1px solid ${({ $active, $selected }) => ($active || $selected ? 'rgba(119, 213, 255, 0.72)' : 'rgba(127, 215, 255, 0.2)')};
   border-radius: 2px;
-  background: ${({ $active, $selected }) => ($active || $selected ? 'rgba(119, 213, 255, 0.14)' : 'rgba(7, 13, 19, 0.72)')};
+  background: ${({ $active, $selected }) => ($active || $selected ? 'rgba(119, 213, 255, 0.14)' : 'var(--dw-surface)')};
   color: ${({ $active, $selected }) => ($active || $selected ? '#e1f6ff' : 'rgba(209, 228, 239, 0.62)')};
-  font: 850 0.55rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.04em;
+  font: 850 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
   cursor: pointer;
 
   b {
@@ -1112,13 +1082,15 @@ export const ExplorerFacetButton = styled.button`
     min-width: 0.78rem;
     color: #071017;
     background: #82dcff;
-    border-radius: 999px;
-    font-size: 0.48rem;
+    border-radius: var(--dw-radius);
+    font-size: 0.75rem;
     line-height: 0.78rem;
   }
 
   &:hover { border-color: rgba(119, 213, 255, 0.64); color: #e8f8ff; }
   &:focus-visible { outline: 1px solid rgba(119, 213, 255, 0.9); outline-offset: 2px; }
+  min-height: var(--dw-control-height);
+  padding-inline: 0.65rem;
 `;
 
 export const ExplorerTray = styled.section`
@@ -1128,7 +1100,7 @@ export const ExplorerTray = styled.section`
   border: 1px solid rgba(119, 213, 255, 0.3);
   border-left: 3px solid rgba(76, 198, 193, 0.76);
   border-radius: 2px;
-  background: rgba(5, 11, 17, 0.78);
+  background: var(--dw-surface);
 `;
 
 export const ExplorerTrayHeader = styled.div`
@@ -1141,16 +1113,18 @@ export const ExplorerTrayHeader = styled.div`
 export const ExplorerTrayTitle = styled.span`
   margin-right: auto;
   color: rgba(216, 237, 247, 0.76);
-  font: 800 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 800 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 export const TagOperatorToggle = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   display: inline-flex;
   align-items: center;
   gap: 0.28rem;
-  min-height: 28px;
+  min-height: 40px;
   padding: 0.12rem 0.4rem;
   border: 1px solid ${({ $and }) =>
     $and ? 'rgba(167, 182, 255, 0.72)' : 'rgba(76, 198, 193, 0.58)'};
@@ -1158,14 +1132,14 @@ export const TagOperatorToggle = styled.button`
   background: ${({ $and }) =>
     $and ? 'rgba(167, 182, 255, 0.14)' : 'rgba(76, 198, 193, 0.1)'};
   color: rgba(218, 232, 238, 0.66);
-  font: 750 0.54rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font: 750 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
+  text-transform: none;
   cursor: pointer;
 
   strong {
     color: ${({ $and }) => ($and ? '#e5e8ff' : '#c8fff2')};
-    font-size: 0.64rem;
+    font-size: 0.75rem;
   }
 
   &:focus-visible {
@@ -1175,6 +1149,8 @@ export const TagOperatorToggle = styled.button`
 `;
 
 export const ExplorerTrayClose = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   width: 24px;
   height: 22px;
   padding: 0;
@@ -1191,9 +1167,9 @@ export const ExplorerOptionSearch = styled.input`
   padding: 0.16rem 0.4rem;
   border: 1px solid rgba(127, 215, 255, 0.3);
   border-radius: 2px;
-  background: rgba(4, 9, 15, 0.9);
+  background: var(--dw-surface);
   color: ${RETRIEVAL.text};
-  font: 0.72rem/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font: 0.75rem/1.2 var(--dw-font-ui);
 `;
 
 export const ExplorerOptionList = styled.div`
@@ -1207,14 +1183,16 @@ export const ExplorerOptionList = styled.div`
 `;
 
 export const ExplorerOptionButton = styled.button`
-  min-height: 28px;
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
+  min-height: 40px;
   max-width: 100%;
   padding: 0.12rem 0.4rem;
   border: 1px solid ${({ $selected }) => ($selected ? 'rgba(103, 239, 200, 0.72)' : 'rgba(127, 215, 255, 0.22)')};
   border-radius: 2px;
-  background: ${({ $selected }) => ($selected ? 'rgba(103, 239, 200, 0.14)' : 'rgba(12, 20, 29, 0.78)')};
+  background: ${({ $selected }) => ($selected ? 'rgba(103, 239, 200, 0.14)' : 'var(--dw-surface)')};
   color: ${({ $selected }) => ($selected ? '#d9fff3' : 'rgba(224, 235, 243, 0.74)')};
-  font: 700 0.65rem/1.15 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font: 700 0.75rem/1.15 var(--dw-font-ui);
   cursor: pointer;
   overflow-wrap: anywhere;
 `;
@@ -1222,7 +1200,7 @@ export const ExplorerOptionButton = styled.button`
 export const ExplorerEmptyState = styled.span`
   padding: 0.24rem 0;
   color: rgba(214, 226, 241, 0.54);
-  font: 0.66rem/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font: 0.75rem/1.2 var(--dw-font-ui);
 `;
 
 export const ExplorerSortGrid = styled.div`
@@ -1237,14 +1215,16 @@ export const ExplorerSortButtonWrap = styled.span`
 `;
 
 export const ExplorerSortButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   width: 100%;
-  min-height: 30px;
+  min-height: 40px;
   padding: 0.14rem 0.32rem;
   border: 1px solid ${({ $active }) => ($active ? 'rgba(167, 182, 255, 0.7)' : 'rgba(167, 182, 255, 0.26)')};
   border-radius: 2px;
-  background: ${({ $active }) => ($active ? 'rgba(167, 182, 255, 0.14)' : 'rgba(7, 13, 19, 0.72)')};
+  background: ${({ $active }) => ($active ? 'rgba(167, 182, 255, 0.14)' : 'var(--dw-surface)')};
   color: ${({ $active }) => ($active ? '#e9eaff' : 'rgba(220, 226, 255, 0.7)')};
-  font: 800 0.6rem/1.15 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font: 800 0.75rem/1.15 var(--dw-font-ui);
   cursor: pointer;
 `;
 
@@ -1258,9 +1238,9 @@ export const ExplorerTooltip = styled.span`
   padding: 0.26rem 0.34rem;
   border: 1px solid rgba(167, 182, 255, 0.52);
   border-radius: 2px;
-  background: rgba(7, 13, 20, 0.98);
+  background: var(--dw-surface);
   color: #e9eaff;
-  font: 700 0.58rem/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font: 700 0.75rem/1.2 var(--dw-font-ui);
   pointer-events: none;
   transform: translateX(-50%);
 `;
@@ -1279,23 +1259,25 @@ export const ResultsHeaderActions = styled.div`
 `;
 
 export const ExplorerViewTrigger = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   display: inline-flex;
   align-items: center;
   gap: 0.28rem;
-  min-height: 32px;
+  min-height: 40px;
   padding: 0.18rem 0.42rem;
   border: 1px solid rgba(76, 198, 193, 0.38);
   border-radius: 2px;
   background: ${({ $active }) =>
-    $active ? 'rgba(76, 198, 193, 0.14)' : 'rgba(7, 13, 19, 0.72)'};
+    $active ? 'rgba(76, 198, 193, 0.14)' : 'var(--dw-surface)'};
   color: rgba(220, 238, 240, 0.76);
-  font: 750 0.56rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.06em;
+  font: 750 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
   cursor: pointer;
 
   strong {
     color: #bff8ed;
-    font-size: 0.6rem;
+    font-size: 0.75rem;
   }
 
   &:focus-visible {
@@ -1305,12 +1287,10 @@ export const ExplorerViewTrigger = styled.button`
 `;
 
 export const ResultsCount = styled.span`
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: var(--dw-font-ui);
   font-size: 0.75rem;
   color: ${RETRIEVAL.textDim};
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
 `;
 
 export const InlineSortRail = styled.div`
@@ -1327,20 +1307,21 @@ export const InlineSortSelect = styled.div`
 `;
 
 export const InlineSortDirectionButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   display: inline-grid;
   grid-template-columns: repeat(2, auto);
   place-content: center;
   gap: 0.14rem;
   flex: 0 0 48px;
   width: 48px;
-  min-height: 38px;
+  min-height: 40px;
   padding: 0;
   border: 1px solid rgba(167, 182, 255, 0.48);
   border-radius: 2px;
   background: rgba(167, 182, 255, 0.1);
   color: #dfe4ff;
-  font: 900 0.92rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
+  font: 900 0.92rem/1 var(--dw-font-ui);
   cursor: pointer;
   transition: border-color 120ms ease, background 120ms ease;
 
@@ -1409,6 +1390,8 @@ export const ResultsList = styled.div`
 `;
 
 export const AsciiResultButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   display: grid;
   grid-template-columns: auto minmax(0, auto) minmax(0, 1fr) auto;
   align-items: center;
@@ -1420,7 +1403,7 @@ export const AsciiResultButton = styled.button`
   border-bottom: 1px solid rgba(127, 215, 255, 0.12);
   border-radius: 0;
   background: ${({ $expanded }) =>
-    $expanded ? 'rgba(76, 198, 193, 0.11)' : 'rgba(7, 13, 19, 0.52)'};
+    $expanded ? 'rgba(76, 198, 193, 0.11)' : 'var(--dw-surface)'};
   color: #dfeaf1;
   text-align: left;
   cursor: pointer;
@@ -1439,15 +1422,16 @@ export const AsciiResultButton = styled.button`
 
 export const AsciiBranch = styled.span`
   color: var(--box-neon, #7fd7ff);
-  font: 800 0.72rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font: 800 0.75rem/1 var(--dw-font-ui);
   white-space: pre;
+  font-family: var(--dw-font-data);
 `;
 
 export const AsciiItemName = styled.span`
   min-width: 0;
   overflow: hidden;
   color: #edf5f8;
-  font: 760 0.76rem/1.1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font: 760 0.76rem/1.1 var(--dw-font-ui);
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
@@ -1456,14 +1440,14 @@ export const AsciiPlacement = styled.span`
   min-width: 0;
   overflow: hidden;
   color: rgba(184, 204, 216, 0.52);
-  font: 650 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font: 650 0.75rem/1 var(--dw-font-ui);
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
 
 export const AsciiDisclosure = styled.span`
   color: rgba(167, 182, 255, 0.8);
-  font: 900 0.78rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font: 900 0.78rem/1 var(--dw-font-ui);
 `;
 
 export const BoxCentricLayout = styled.div`
@@ -1486,11 +1470,10 @@ export const BoxCentricLayout = styled.div`
 `;
 
 export const BoxMapPanel = styled.section`
-  border-radius: 2px 7px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid rgba(127, 215, 255, 0.18);
   background:
-    linear-gradient(180deg, rgba(15, 22, 30, 0.86), rgba(11, 18, 26, 0.84)),
-    rgba(10, 16, 24, 0.8);
+    var(--dw-surface);
   display: grid;
   align-content: start;
   gap: 0.42rem;
@@ -1504,20 +1487,20 @@ export const BoxMapPanel = styled.section`
   }
 `;
 
-export const BoxGroup = styled.section`
+export const LocationSection = styled.section`
   display: grid;
   gap: 0.24rem;
 `;
 
-export const BoxGroupLabel = styled.p`
+export const LocationSectionLabel = styled.p`
   margin: 0;
   color: #73f5a5;
   font-size: 0.76rem;
   font-weight: 820;
-  letter-spacing: 0.09em;
+  letter-spacing: 0;
   line-height: 1.15;
-  text-shadow: 0 0 8px rgba(76, 239, 154, 0.3);
-  text-transform: uppercase;
+  text-shadow: none;
+  text-transform: none;
 `;
 
 export const BoxList = styled.div`
@@ -1531,56 +1514,39 @@ export const BoxListItem = styled.div`
 `;
 
 export const BoxListRow = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   width: 100%;
   border: 1px solid
     ${({ $active, $boxColorRgb }) =>
       $active
         ? `rgba(${$boxColorRgb || '119, 213, 255'}, 0.56)`
         : `rgba(${$boxColorRgb || '160, 170, 190'}, 0.26)`};
-  border-radius: 2px 6px 2px 2px;
-  background: ${({ $active, $boxColorRgb }) =>
-    $active
-      ? `linear-gradient(
-          180deg,
-          rgba(${$boxColorRgb || '119, 213, 255'}, 0.2),
-          rgba(${$boxColorRgb || '119, 213, 255'}, 0.11)
-        )`
-      : `linear-gradient(
-          180deg,
-          rgba(${$boxColorRgb || '160, 170, 190'}, 0.1),
-          rgba(${$boxColorRgb || '160, 170, 190'}, 0.05)
-        )`};
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface-raised);
   color: ${RETRIEVAL.text};
   text-align: left;
   padding: 0.34rem 0.42rem;
   display: grid;
   gap: 0.18rem;
   cursor: pointer;
-  box-shadow: ${({ $boxColorRgb }) =>
-    `inset 0 1px 0 rgba(${$boxColorRgb || '160, 170, 190'}, 0.12)`};
+  box-shadow: none;
   transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
 
   &:hover {
     border-color: ${({ $boxColorRgb }) =>
       `rgba(${$boxColorRgb || '119, 213, 255'}, 0.44)`};
-    background: ${({ $boxColorRgb }) =>
-      `linear-gradient(
-        180deg,
-        rgba(${$boxColorRgb || '119, 213, 255'}, 0.16),
-        rgba(${$boxColorRgb || '119, 213, 255'}, 0.09)
-      )`};
-    box-shadow:
-      ${({ $boxColorRgb }) =>
-        `inset 0 1px 0 rgba(${$boxColorRgb || '119, 213, 255'}, 0.16)`},
-      ${({ $boxColorRgb }) =>
-        `0 0 0 1px rgba(${$boxColorRgb || '119, 213, 255'}, 0.16)`};
+    background: var(--dw-surface-raised);
+    box-shadow: none;
   }
+  background: ${({ $active }) => $active ? "var(--dw-surface-raised)" : "var(--dw-surface)"};
+  border-left: 3px solid ${({ $boxColorRgb }) => `rgb(${$boxColorRgb || '138, 129, 117'})`};
 `;
 
 export const MobileInlineInspectPanel = styled.section`
   border: 0;
   border-bottom: 1px solid rgba(127, 215, 255, 0.2);
-  background: rgba(8, 14, 21, 0.7);
+  background: var(--dw-surface);
   display: grid;
   gap: 0.18rem;
   padding: 0.34rem 0.42rem 0.46rem;
@@ -1598,15 +1564,14 @@ export const BoxRowMain = styled.div`
 `;
 
 export const BoxRowId = styled.span`
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: var(--dw-font-ui);
   color: ${({ $boxNeonRgb }) => `rgba(${$boxNeonRgb || '119, 213, 255'}, 0.98)`};
   font-size: 0.8rem;
   font-weight: 780;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
   white-space: nowrap;
-  text-shadow: ${({ $boxNeonRgb }) => `0 0 6px rgba(${$boxNeonRgb || '119, 213, 255'}, 0.28)`};
+  text-shadow: none;
+  font-family: var(--dw-font-data);
 `;
 
 export const BoxRowLabel = styled.span`
@@ -1641,10 +1606,9 @@ export const BoxRowLocation = styled.span`
   text-overflow: ellipsis;
 
   span {
-    font: 760 0.53rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-      'Liberation Mono', 'Courier New', monospace;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font: 760 0.75rem/1 var(--dw-font-ui);
+    letter-spacing: 0;
+    text-transform: none;
     opacity: 0.74;
   }
 
@@ -1653,20 +1617,10 @@ export const BoxRowLocation = styled.span`
     font-size: 0.76rem;
     font-weight: 840;
     text-overflow: ellipsis;
-    text-shadow: ${({ $boxLocationRgb }) =>
-      `0 0 8px rgba(${$boxLocationRgb || '119, 213, 255'}, 0.24)`};
+    text-shadow: none;
   }
 `;
 
-export const BoxRowGroup = styled.span`
-  min-width: 0;
-  overflow: hidden;
-  color: ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '207, 224, 238'}, 0.7)`};
-  font-size: 0.6rem;
-  line-height: 1.15;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
 
 export const BoxRowTags = styled.span`
   display: block;
@@ -1674,9 +1628,8 @@ export const BoxRowTags = styled.span`
   max-width: 100%;
   overflow: hidden;
   color: ${({ $boxNeonRgb }) => `rgba(${$boxNeonRgb || '119, 213, 255'}, 0.76)`};
-  font: 700 0.62rem/1.25 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  letter-spacing: 0.025em;
+  font: 700 0.75rem/1.25 var(--dw-font-ui);
+  letter-spacing: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
@@ -1685,14 +1638,14 @@ export const BoxRowMeta = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
-  font-size: 0.67rem;
+  font-size: 0.75rem;
   color: ${RETRIEVAL.textMuted};
 `;
 
 export const BoxMetaPill = styled.span`
   display: inline-flex;
   align-items: center;
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '127, 215, 255'}, 0.26)`};
   background: ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '127, 215, 255'}, 0.1)`};
   color: ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '190, 205, 218'}, 0.94)`};
@@ -1702,7 +1655,7 @@ export const BoxMetaPill = styled.span`
 
 export const BoxInspectPanel = styled.section`
   border-left: 1px solid rgba(127, 215, 255, 0.2);
-  background: rgba(8, 14, 21, 0.48);
+  background: var(--dw-surface);
   display: grid;
   align-content: start;
   gap: 0.18rem;
@@ -1728,11 +1681,10 @@ export const BoxInspectHeader = styled.div`
 export const BoxInspectHeaderLink = styled(Link)`
   flex: 0 0 auto;
   color: rgba(181, 214, 226, 0.72);
-  font: 690 0.58rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  letter-spacing: 0.06em;
+  font: 690 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
   text-decoration: none;
-  text-transform: uppercase;
+  text-transform: none;
 
   &:hover,
   &:focus-visible {
@@ -1761,13 +1713,13 @@ export const BoxInspectTitleLink = styled(Link)`
 
 export const BoxInspectSubtitle = styled.p`
   margin: 0;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: ${RETRIEVAL.textMuted};
 `;
 
 export const BoxInspectPath = styled.p`
   margin: 0;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: rgba(232, 238, 244, 0.64);
   line-height: 1.35;
   overflow-wrap: anywhere;
@@ -1777,24 +1729,24 @@ export const BoxInspectNotes = styled.section`
   display: grid;
   gap: 0.14rem;
   border: 1px solid rgba(119, 213, 255, 0.22);
-  border-radius: 2px 5px 2px 2px;
-  background: rgba(8, 20, 31, 0.5);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   padding: 0.32rem 0.4rem;
 `;
 
 export const BoxInspectNotesLabel = styled.p`
   margin: 0;
   color: ${RETRIEVAL.textDim};
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 740;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 export const BoxInspectNotesText = styled.p`
   margin: 0;
   color: #def0ff;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   line-height: 1.42;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -1810,10 +1762,10 @@ export const BoxInspectSection = styled.section`
 export const BoxInspectSectionTitle = styled.p`
   margin: 0;
   color: ${RETRIEVAL.textDim};
-  font-size: 0.69rem;
+  font-size: 0.75rem;
   font-weight: 740;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 export const BoxInspectList = styled.div`
@@ -1844,9 +1796,9 @@ export const BoxInspectItemThumb = styled.span`
   border-radius: 2px;
   background: ${({ $empty }) => ($empty
     ? 'rgba(255, 255, 255, 0.025)'
-    : 'rgba(5, 12, 19, 0.88)')};
+    : 'var(--dw-surface)')};
   color: rgba(214, 226, 241, 0.34);
-  font: 800 0.72rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font: 800 0.75rem/1 var(--dw-font-ui);
 
   img {
     width: 100%;
@@ -1875,8 +1827,7 @@ export const BoxInspectRowLink = styled(Link)`
 
 export const BoxInspectRowMeta = styled.span`
   color: ${RETRIEVAL.textMuted};
-  font: 700 0.61rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
+  font: 700 0.75rem/1 var(--dw-font-ui);
 `;
 
 export const ResultsFooter = styled.div`
@@ -1884,7 +1835,7 @@ export const ResultsFooter = styled.div`
   justify-content: center;
   padding: 0.6rem 0.7rem 0.74rem;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(8, 14, 20, 0.34);
+  background: var(--dw-surface);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 0.5rem 0.54rem 0.62rem;
@@ -1892,15 +1843,17 @@ export const ResultsFooter = styled.div`
 `;
 
 export const LoadMoreButton = styled.button`
-  min-height: 36px;
-  border-radius: 2px 5px 2px 2px;
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
+  min-height: 40px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid rgba(119, 213, 255, 0.42);
   background: rgba(119, 213, 255, 0.16);
   color: #dff3ff;
   padding: 0.28rem 0.78rem;
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0;
   cursor: pointer;
   transition: background 120ms ease;
 
@@ -1922,7 +1875,7 @@ export const LoadMoreButton = styled.button`
 export const ResultsEndState = styled.p`
   margin: 0;
   color: ${RETRIEVAL.textMuted};
-  font-size: 0.74rem;
+  font-size: 0.75rem;
 `;
 
 export const ResultCard = styled.article`
@@ -1930,26 +1883,17 @@ export const ResultCard = styled.article`
   isolation: isolate;
   min-width: 0;
   border: 1px solid rgba(var(--box-primary-rgb, 127, 215, 255), 0.24);
-  border-radius: 2px 8px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background:
-    linear-gradient(
-      var(--box-wash-angle, 96deg),
-      rgba(var(--box-primary-rgb, 127, 215, 255), 0.1),
-      transparent 36%
-    ),
-    linear-gradient(180deg, rgba(14, 21, 29, 0.98), rgba(8, 13, 19, 0.98)),
-    ${RETRIEVAL.row};
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    var(--dw-surface-raised);
+  box-shadow: none;
   overflow: hidden;
   transition: border-color 140ms ease, box-shadow 160ms ease;
   border-color: ${({ $expanded }) =>
     $expanded
       ? 'rgba(var(--box-neon-rgb, 127, 215, 255), 0.66)'
       : 'rgba(var(--box-primary-rgb, 127, 215, 255), 0.24)'};
-  box-shadow: ${({ $expanded }) =>
-    $expanded
-      ? '0 10px 24px rgba(0, 0, 0, 0.3), 0 0 16px rgba(var(--box-primary-rgb, 127, 215, 255), 0.14)'
-      : '0 4px 12px rgba(0, 0, 0, 0.2)'};
+  box-shadow: none;
 
   &::before {
     content: '';
@@ -1957,13 +1901,8 @@ export const ResultCard = styled.article`
     z-index: 2;
     inset: 0 auto 0 0;
     width: 6px;
-    background: linear-gradient(
-      180deg,
-      var(--box-neon, #7fd7ff),
-      var(--box-primary, #7fd7ff) 42%,
-      var(--box-secondary, #67d9d3)
-    );
-    box-shadow: 0 0 10px rgba(var(--box-primary-rgb, 127, 215, 255), 0.2);
+    background: var(--dw-surface);
+    box-shadow: none;
     pointer-events: none;
   }
 
@@ -1975,20 +1914,13 @@ export const ResultCard = styled.article`
     left: 6px;
     width: clamp(76px, 28%, 150px);
     height: 2px;
-    background: linear-gradient(
-      90deg,
-      var(--box-primary, #7fd7ff),
-      var(--box-secondary, #67d9d3),
-      transparent
-    );
+    background: var(--dw-surface);
     pointer-events: none;
   }
 
   &:has(> [role='button']:hover) {
     border-color: rgba(var(--box-neon-rgb, 127, 215, 255), 0.54);
-    box-shadow:
-      0 8px 18px rgba(0, 0, 0, 0.26),
-      0 0 12px rgba(var(--box-primary-rgb, 127, 215, 255), 0.12);
+    box-shadow: none;
   }
 
   &:has(> [role='button']:focus-visible) {
@@ -1998,14 +1930,13 @@ export const ResultCard = styled.article`
   @media (min-width: ${RETRIEVAL_WIDE_BREAKPOINT}) {
     grid-column: ${({ $expanded }) => ($expanded ? '1 / -1' : 'auto')};
   }
+  &::before { width: 3px; background: var(--box-primary, #8A8175); }
+  &::after { display: none; }
 `;
 
 export const SummaryButton = styled.div`
   width: 100%;
-  background: ${({ $expanded }) =>
-    $expanded
-      ? `linear-gradient(180deg, rgba(26, 37, 52, 0.84), rgba(19, 29, 43, 0.74))`
-      : 'linear-gradient(180deg, rgba(15, 24, 35, 0.42), rgba(12, 20, 30, 0.2))'};
+  background: var(--dw-surface-raised);
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -2018,10 +1949,7 @@ export const SummaryButton = styled.div`
     transform 90ms ease;
 
   &:hover {
-    background: ${({ $expanded }) =>
-      $expanded
-        ? `linear-gradient(180deg, rgba(30, 44, 61, 0.9), rgba(22, 34, 49, 0.8))`
-        : 'linear-gradient(180deg, rgba(25, 37, 52, 0.58), rgba(16, 27, 40, 0.34))'};
+    background: var(--dw-surface-raised);
   }
 
   &:focus-visible {
@@ -2030,11 +1958,7 @@ export const SummaryButton = styled.div`
   }
 
   &:active {
-    background: linear-gradient(
-      180deg,
-      rgba(42, 62, 82, 0.86),
-      rgba(22, 39, 55, 0.72)
-    );
+    background: var(--dw-surface);
     transform: translateY(1px);
   }
 
@@ -2076,29 +2000,24 @@ export const ExpandedRowMarker = styled.span`
   width: 100%;
   min-height: 100%;
   border-radius: 1px;
-  background: linear-gradient(
-    180deg,
-    var(--box-neon, #67efc8),
-    var(--box-secondary, #4cc6c1)
-  );
-  box-shadow: 0 0 8px rgba(var(--box-primary-rgb, 103, 239, 200), 0.22);
+  background: var(--dw-surface);
+  box-shadow: none;
 `;
 
 const thumbFrameBase = css`
   width: 52px;
   aspect-ratio: 1 / 1;
-  border-radius: 2px 6px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.16);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
-    rgba(8, 13, 19, 0.9);
+    var(--dw-surface);
   display: grid;
   place-items: center;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: 50px;
-    border-radius: 2px 5px 2px 2px;
+    border-radius: var(--dw-radius-sm);
   }
 `;
 
@@ -2107,6 +2026,8 @@ export const ThumbFrame = styled.div`
 `;
 
 export const ThumbPreviewButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   ${thumbFrameBase};
   border-color: rgba(127, 215, 255, 0.32);
   cursor: zoom-in;
@@ -2117,7 +2038,7 @@ export const ThumbPreviewButton = styled.button`
 
   &:hover {
     border-color: rgba(127, 215, 255, 0.52);
-    box-shadow: 0 0 0 1px rgba(127, 215, 255, 0.2);
+    box-shadow: none;
   }
 
   &:focus-visible {
@@ -2135,9 +2056,9 @@ export const ThumbImage = styled.img`
 
 export const ThumbPlaceholder = styled.span`
   color: rgba(232, 238, 244, 0.45);
-  font-size: 0.5rem;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  font-size: 0.75rem;
+  text-transform: none;
+  letter-spacing: 0;
 `;
 
 export const BadgeStack = styled.div`
@@ -2151,9 +2072,9 @@ export const CompactMetaLine = styled.div`
   flex-wrap: wrap;
   gap: 0.22rem 0.44rem;
   color: rgba(188, 211, 226, 0.6);
-  font: 700 0.57rem/1.12 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.045em;
-  text-transform: uppercase;
+  font: 700 0.75rem/1.12 var(--dw-font-ui);
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 export const CompactSecondaryMetaLine = styled.div`
@@ -2176,7 +2097,7 @@ export const ItemLine = styled.span`
   color: #ebf4ff;
   font-size: 0.94rem;
   font-weight: 780;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
@@ -2199,7 +2120,7 @@ export const ItemLineLink = styled(Link)`
   color: #ebf4ff;
   font-size: 1rem;
   font-weight: 780;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
@@ -2228,7 +2149,7 @@ export const LocatorPathLine = styled.p`
   color: rgba(214, 248, 255, 0.95);
   font-size: 0.82rem;
   line-height: 1.35;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
   overflow-wrap: anywhere;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -2245,9 +2166,9 @@ export const LocatorMetaLine = styled.div`
 
 export const LocatorMetaText = styled.span`
   color: rgba(214, 226, 241, 0.65);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   line-height: 1.2;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
 `;
 
 export const CollapsedPlacementTable = styled.div`
@@ -2270,11 +2191,11 @@ export const CollapsedPlacementLabel = styled.span`
   align-items: center;
   gap: 0.28rem;
   color: rgba(214, 226, 241, 0.52);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.61rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   line-height: 1.15;
 
   &::after {
@@ -2312,11 +2233,11 @@ export const CollapsedBoxTelemetry = styled.span`
     $orphaned
       ? 'rgba(205, 198, 188, 0.84)'
       : 'var(--box-muted, rgba(218, 231, 244, 0.9))'};
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.66rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   font-weight: 760;
   line-height: 1.2;
-  letter-spacing: 0.03em;
+  letter-spacing: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2325,10 +2246,11 @@ export const CollapsedBoxTelemetry = styled.span`
 export const CollapsedBoxId = styled.span`
   flex: 0 0 auto;
   color: var(--box-neon, #b9ecff);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 900;
-  letter-spacing: 0.08em;
-  text-shadow: 0 0 7px rgba(var(--box-primary-rgb, 127, 215, 255), 0.24);
+  letter-spacing: 0;
+  text-shadow: none;
+  font-family: var(--dw-font-data);
 `;
 
 export const CollapsedBoxName = styled.span`
@@ -2353,13 +2275,12 @@ export const CollapsedLocationValue = styled.span`
   max-width: 100%;
   color: ${({ $unknown }) =>
     $unknown ? 'rgba(205, 198, 188, 0.76)' : 'var(--box-location, #7fd7ff)'};
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--dw-font-ui);
   font-size: clamp(0.74rem, 2.8vw, 0.84rem);
   line-height: 1.2;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   font-weight: 820;
-  text-shadow: ${({ $unknown }) =>
-    $unknown ? 'none' : '0 0 8px rgba(var(--box-location-rgb, 127, 215, 255), 0.24)'};
+  text-shadow: none;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2371,7 +2292,7 @@ export const BoxAnchorLine = styled.div`
   width: fit-content;
   max-width: 100%;
   min-width: 0;
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid rgba(119, 213, 255, 0.34);
   background: rgba(119, 213, 255, 0.11);
   padding: 0.14rem 0.42rem;
@@ -2379,14 +2300,13 @@ export const BoxAnchorLine = styled.div`
 `;
 
 export const BoxAnchorId = styled.span`
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: var(--dw-font-ui);
   color: #b9ecff;
   font-weight: 860;
   font-size: 0.8rem;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   line-height: 1;
+  font-family: var(--dw-font-data);
 `;
 
 export const BoxAnchorDivider = styled.span`
@@ -2398,7 +2318,7 @@ export const BoxAnchorDivider = styled.span`
 
 export const BoxAnchorSnippet = styled.span`
   color: rgba(214, 231, 244, 0.86);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   line-height: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -2409,13 +2329,13 @@ export const UnresolvedHint = styled.span`
   display: inline-flex;
   align-items: center;
   width: fit-content;
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid rgba(232, 177, 92, 0.48);
   background: rgba(232, 177, 92, 0.16);
   color: #f4cf99;
-  font-size: 0.64rem;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  font-size: 0.75rem;
+  text-transform: none;
+  letter-spacing: 0;
   line-height: 1;
   padding: 0.17rem 0.46rem;
 `;
@@ -2427,9 +2347,9 @@ export const MetaBlock = styled.div`
 
 export const MetaLabel = styled.span`
   color: ${RETRIEVAL.textMuted};
-  font-size: 0.64rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  text-transform: none;
+  letter-spacing: 0;
   line-height: 1.1;
 `;
 
@@ -2437,11 +2357,11 @@ export const CategoryValue = styled.span`
   display: inline-flex;
   align-items: center;
   width: fit-content;
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid rgba(154, 173, 255, 0.34);
   background: rgba(121, 141, 232, 0.16);
   color: #dde4ff;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   padding: 0.14rem 0.44rem;
 `;
 
@@ -2449,14 +2369,14 @@ export const KeepPriorityChip = styled.span`
   display: inline-flex;
   align-items: center;
   width: fit-content;
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid ${({ $tone }) => `${keepPriorityToneColor($tone)}7a`};
   background: ${({ $tone }) => `${keepPriorityToneColor($tone)}2b`};
   color: ${({ $tone }) => keepPriorityToneColor($tone)};
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 780;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   line-height: 1;
   padding: 0.16rem 0.46rem;
 `;
@@ -2470,11 +2390,11 @@ export const TagRow = styled.div`
 export const ItemTagChip = styled.span`
   display: inline-flex;
   align-items: center;
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid rgba(127, 215, 255, 0.24);
   background: rgba(127, 215, 255, 0.11);
   color: #d1e8f8;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   line-height: 1;
   padding: 0.14rem 0.4rem;
 `;
@@ -2482,7 +2402,7 @@ export const ItemTagChip = styled.span`
 export const PathLine = styled.p`
   margin: 0;
   color: ${RETRIEVAL.textMuted};
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   line-height: 1.35;
   overflow-wrap: anywhere;
 `;
@@ -2493,25 +2413,24 @@ const itemPillBase = css`
   width: 100%;
   max-width: none;
   min-height: 44px;
-  border-radius: 2px 7px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid rgba(119, 213, 255, 0.44);
   background:
-    linear-gradient(96deg, rgba(119, 213, 255, 0.22) 0%, rgba(119, 213, 255, 0.1) 75%),
-    rgba(9, 18, 26, 0.84);
+    var(--dw-surface);
   color: #eff8ff;
   padding: 0.46rem 0.78rem;
   font-size: 1.08rem;
   font-weight: 780;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
   line-height: 1.2;
   word-break: break-word;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 0.98rem;
     min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     padding: 0.32rem 0.64rem;
-    border-radius: 2px 6px 2px 2px;
+    border-radius: var(--dw-radius-sm);
   }
 `;
 
@@ -2530,12 +2449,7 @@ export const ItemPillLink = styled(Link)`
   &:hover {
     border-color: rgba(119, 213, 255, 0.62);
     background:
-      linear-gradient(
-        96deg,
-        rgba(119, 213, 255, 0.28) 0%,
-        rgba(119, 213, 255, 0.14) 62%
-      ),
-      rgba(9, 18, 26, 0.9);
+      var(--dw-surface);
   }
 
   &:focus-visible {
@@ -2549,7 +2463,7 @@ const linkButton = css`
   align-items: center;
   justify-content: center;
   min-height: 34px;
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid rgba(119, 213, 255, 0.35);
   background: rgba(119, 213, 255, 0.14);
   color: #d4efff;
@@ -2557,7 +2471,7 @@ const linkButton = css`
   padding: 0.3rem 0.62rem;
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
@@ -2575,15 +2489,15 @@ export const LocationBadge = styled.span`
   align-items: center;
   width: fit-content;
   max-width: 100%;
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid rgba(103, 239, 200, 0.46);
   background: rgba(103, 239, 200, 0.17);
   color: #d7fff2;
   padding: ${({ $compact }) => ($compact ? '0.18rem 0.5rem' : '0.28rem 0.7rem')};
   font-size: ${({ $compact }) => ($compact ? '0.72rem' : '0.82rem')};
   font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   line-height: 1.2;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -2593,7 +2507,7 @@ export const LocationBadge = styled.span`
 
 export const LocationPath = styled.p`
   margin: 0;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: ${RETRIEVAL.textMuted};
 `;
 
@@ -2604,27 +2518,22 @@ export const CompactLocation = styled(ItemTagChip)`
   max-width: clamp(74px, 10vw, 124px);
   min-height: 24px;
   min-width: 0;
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border-color: ${({ $boxMutedRgb }) =>
     `rgba(${$boxMutedRgb || '152, 160, 176'}, 0.42)`};
   background:
-    linear-gradient(
-      135deg,
-      ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '152, 160, 176'}, 0.2)`},
-      ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '152, 160, 176'}, 0.12)`}
-    ),
-    rgba(10, 16, 24, 0.64);
+    var(--dw-surface-raised);
   color: ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '216, 222, 232'}, 1)`};
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 650;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: right;
   line-height: 1;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.22);
+  box-shadow: none;
   padding: 0.28rem 0.48rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -2641,29 +2550,15 @@ export const CompactContextChip = styled.span`
   align-items: center;
   max-width: 100%;
   min-width: 0;
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
-    ${({ $tone, $boxMutedRgb }) =>
-      $tone === 'group'
-        ? `rgba(${$boxMutedRgb || '167, 182, 255'}, 0.34)`
-        : `rgba(${$boxMutedRgb || '120, 226, 198'}, 0.34)`};
+    ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '120, 226, 198'}, 0.34)`};
   background:
-    linear-gradient(
-      135deg,
-      ${({ $tone, $boxMutedRgb }) =>
-        $tone === 'group'
-          ? `rgba(${$boxMutedRgb || '167, 182, 255'}, 0.2)`
-          : `rgba(${$boxMutedRgb || '120, 226, 198'}, 0.2)`},
-      ${({ $tone, $boxMutedRgb }) =>
-        $tone === 'group'
-          ? `rgba(${$boxMutedRgb || '167, 182, 255'}, 0.1)`
-          : `rgba(${$boxMutedRgb || '120, 226, 198'}, 0.1)`}
-    ),
-    rgba(10, 16, 24, 0.58);
+    var(--dw-surface-raised);
   color: ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '214, 226, 241'}, 0.92)`};
   font-size: ${MOBILE_FONT_XS};
   font-weight: 680;
-  letter-spacing: 0.03em;
+  letter-spacing: 0;
   line-height: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -2685,19 +2580,13 @@ export const BoxBadge = styled.span`
   min-width: 0;
   width: 100%;
   max-width: none;
-  border-radius: 2px 6px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $boxColorRgb }) => `rgba(${$boxColorRgb || '244, 196, 48'}, 0.4)`};
   background:
-    linear-gradient(
-      135deg,
-      ${({ $boxColorRgb }) => `rgba(${$boxColorRgb || '244, 196, 48'}, 0.18)`},
-      ${({ $boxColorRgb }) => `rgba(${$boxColorRgb || '244, 196, 48'}, 0.08)`}
-    ),
-    rgba(22, 17, 10, 0.7);
+    var(--dw-surface-raised);
   box-shadow:
-    ${({ $boxColorRgb }) => `0 0 0 1px rgba(${$boxColorRgb || '244, 196, 48'}, 0.15)`},
-    ${({ $boxColorRgb }) => `0 0 8px rgba(${$boxColorRgb || '244, 196, 48'}, 0.2)`};
+    none;
   padding: ${({ $compact }) => ($compact ? '0.2rem 0.42rem' : '0.24rem 0.5rem')};
   line-height: 1.2;
 
@@ -2711,27 +2600,27 @@ export const BoxIdCell = styled.span`
   justify-content: flex-start;
   align-items: center;
   width: 100%;
+  font-family: var(--dw-font-data);
 `;
 
 export const BoxId = styled.span`
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: var(--dw-font-ui);
   color: ${({ $boxNeonRgb }) => `rgba(${$boxNeonRgb || '255, 244, 218'}, 0.98)`};
   font-size: ${({ $compact }) => ($compact ? '0.92rem' : '0.82rem')};
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   text-align: left;
-  text-shadow: ${({ $boxNeonRgb }) => `0 0 6px rgba(${$boxNeonRgb || '255, 244, 218'}, 0.32)`};
+  text-shadow: none;
+  font-family: var(--dw-font-data);
 `;
 
 export const BoxName = styled.span`
   color: ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '246, 230, 201'}, 0.88)`};
   font-size: ${({ $compact }) => ($compact ? '0.7rem' : '0.74rem')};
   font-weight: 580;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   border-left: 1px solid
     ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '246, 230, 201'}, 0.34)`};
   padding-left: ${({ $compact }) => ($compact ? '0.32rem' : '0.36rem')};
@@ -2745,8 +2634,7 @@ export const ExpandedPanel = styled.section`
   margin: 0;
   border-top: 1px solid rgba(var(--box-primary-rgb, 127, 215, 255), 0.28);
   background:
-    linear-gradient(90deg, rgba(var(--box-primary-rgb, 127, 215, 255), 0.08), transparent 30%),
-    linear-gradient(180deg, rgba(11, 19, 28, 0.94), rgba(7, 12, 18, 0.92));
+    var(--dw-surface);
   padding: 0.5rem 0.56rem 0.56rem;
   display: grid;
   gap: 0.46rem;
@@ -2791,25 +2679,7 @@ const expandedDeckArrival = keyframes`
   }
 `;
 
-const expandedLogOrbit = keyframes`
-  from {
-    transform: rotate(0deg) scale(0.92);
-  }
-  to {
-    transform: rotate(360deg) scale(0.92);
-  }
-`;
 
-const expandedLogPulse = keyframes`
-  0%, 100% {
-    opacity: 0.42;
-    transform: scale(0.72);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1);
-  }
-`;
 
 export const ExpandedDeckNav = styled.div`
   display: grid;
@@ -2821,9 +2691,17 @@ export const ExpandedDeckNav = styled.div`
   @media (min-width: ${RETRIEVAL_WIDE_BREAKPOINT}) {
     display: none;
   }
+  @media (max-width: 420px) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    > * { flex: 0 1 auto; min-width: 0; }
+  }
 `;
 
 export const ExpandedDeckTab = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   min-width: 0;
   min-height: 44px;
   display: grid;
@@ -2835,20 +2713,17 @@ export const ExpandedDeckTab = styled.button`
       $active
         ? 'rgba(var(--box-neon-rgb, 185, 236, 255), 0.72)'
         : 'rgba(var(--box-primary-rgb, 119, 213, 255), 0.22)'};
-  border-radius: 2px 7px 2px 2px;
-  background: ${({ $active }) =>
-    $active
-      ? 'linear-gradient(90deg, rgba(var(--box-primary-rgb, 119, 213, 255), 0.28), rgba(var(--box-secondary-rgb, 103, 217, 211), 0.08))'
-      : 'rgba(7, 13, 20, 0.82)'};
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface-raised);
   color: ${({ $active }) =>
     $active ? 'var(--box-neon, #dff7ff)' : 'rgba(198, 214, 228, 0.66)'};
   padding: 0.34rem 0.46rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.64rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   font-weight: 820;
-  letter-spacing: 0.06em;
+  letter-spacing: 0;
   text-align: left;
-  text-transform: uppercase;
+  text-transform: none;
   cursor: pointer;
 
   @media (max-width: 520px) {
@@ -2856,20 +2731,20 @@ export const ExpandedDeckTab = styled.button`
     justify-items: center;
     gap: 0.12rem;
     padding: 0.28rem 0.08rem;
-    font-size: 0.51rem;
-    letter-spacing: 0.035em;
+    font-size: 0.75rem;
+    letter-spacing: 0;
     text-align: center;
   }
 
   > span {
     color: ${({ $active }) =>
       $active ? 'var(--box-secondary, #67d9d3)' : 'rgba(167, 182, 255, 0.48)'};
-    font-size: 0.58rem;
+    font-size: 0.75rem;
   }
 
   @media (max-width: 520px) {
     > span {
-      font-size: 0.53rem;
+      font-size: 0.75rem;
     }
   }
 
@@ -2882,6 +2757,8 @@ export const ExpandedDeckTab = styled.button`
     outline: 2px solid var(--box-neon, #b9ecff);
     outline-offset: 2px;
   }
+  min-height: var(--dw-control-height);
+  padding-inline: 0.65rem;
 `;
 
 export const ExpandedDeckViewport = styled.div`
@@ -2915,16 +2792,11 @@ export const ExpandedDeckSection = styled.section`
       $section === 'commands'
         ? 'var(--box-secondary, #67d9d3)'
         : 'var(--box-primary, #77d5ff)'};
-  border-radius: 2px 8px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background:
-    linear-gradient(
-      100deg,
-      rgba(var(--box-primary-rgb, 119, 213, 255), 0.08),
-      transparent 36%
-    ),
-    rgba(7, 13, 20, 0.9);
+    var(--dw-surface);
   padding: 0.5rem 0.54rem 0.56rem;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow: none;
 
   &[hidden] {
     display: none;
@@ -2977,16 +2849,18 @@ export const ExpandedDeckFooter = styled.div`
 `;
 
 export const ExpandedDeckArrow = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   min-height: 44px;
   border: 1px solid rgba(var(--box-primary-rgb, 119, 213, 255), 0.3);
-  border-radius: 2px 7px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background: rgba(var(--box-primary-rgb, 119, 213, 255), 0.1);
   color: var(--box-muted, #d7e5ef);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.65rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   cursor: pointer;
 
   &:last-child {
@@ -2998,7 +2872,8 @@ export const ExpandedDeckArrow = styled.button`
   &:focus-visible {
     border-color: var(--box-neon, #b9ecff);
     background: rgba(var(--box-primary-rgb, 119, 213, 255), 0.2);
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
   }
 
   &:disabled {
@@ -3009,19 +2884,18 @@ export const ExpandedDeckArrow = styled.button`
 
 export const ExpandedDeckPosition = styled.span`
   color: var(--box-neon, #b9ecff);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.66rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   font-weight: 850;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   white-space: nowrap;
 `;
 
 export const ExpandedItemPanel = styled.section`
-  border-radius: 2px 7px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid rgba(var(--box-primary-rgb, 119, 213, 255), 0.22);
   background:
-    linear-gradient(90deg, rgba(var(--box-primary-rgb, 119, 213, 255), 0.06), transparent 34%),
-    rgba(10, 18, 27, 0.76);
+    var(--dw-surface);
   padding: 0.42rem 0.46rem;
   display: grid;
   gap: 0.28rem;
@@ -3041,6 +2915,8 @@ export const ExpandedMediaColumn = styled.div`
 `;
 
 export const ExpandedMediaButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   width: min(100%, 280px);
   padding: 0;
   border: 0;
@@ -3050,7 +2926,7 @@ export const ExpandedMediaButton = styled.button`
   &:focus-visible {
     outline: 2px solid rgba(119, 213, 255, 0.65);
     outline-offset: 2px;
-    border-radius: 2px 7px 2px 2px;
+    border-radius: var(--dw-radius-sm);
   }
 
   @media (min-width: 560px) {
@@ -3062,19 +2938,15 @@ export const ExpandedMediaFrame = styled.div`
   position: relative;
   isolation: isolate;
   width: min(100%, 280px);
-  border-radius: 2px 7px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: ${({ $hasImage }) =>
     $hasImage
       ? '0'
       : '1px solid rgba(var(--box-primary-rgb, 119, 213, 255), 0.42)'};
   background:
-    linear-gradient(160deg, rgba(18, 30, 42, 0.9), rgba(10, 18, 27, 0.86)),
-    rgba(9, 16, 24, 0.82);
+    var(--dw-surface);
   overflow: hidden;
-  box-shadow: ${({ $hasImage }) =>
-    $hasImage
-      ? 'none'
-      : 'inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 0 0 1px rgba(119, 213, 255, 0.08)'};
+  box-shadow: none;
   aspect-ratio: 1 / 1;
 
   &::after {
@@ -3085,13 +2957,7 @@ export const ExpandedMediaFrame = styled.div`
     display: none;
     pointer-events: none;
     background:
-      linear-gradient(rgba(4, 9, 14, 0.18), rgba(4, 9, 14, 0.3)),
-      radial-gradient(
-        circle at 50% 43%,
-        transparent 18%,
-        rgba(4, 9, 14, 0.2) 56%,
-        rgba(4, 9, 14, 0.68) 100%
-      );
+      var(--dw-surface);
   }
 
   @media (min-width: 560px) {
@@ -3138,8 +3004,8 @@ export const ExpandedMediaPlaceholder = styled.span`
   place-items: center;
   color: rgba(180, 202, 222, 0.74);
   font-size: 0.76rem;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  text-transform: none;
+  letter-spacing: 0;
 `;
 
 export const ExpandedTextColumn = styled.div`
@@ -3152,10 +3018,10 @@ export const ExpandedTextColumn = styled.div`
 export const ExpandedEmptyTelemetry = styled.p`
   margin: 0;
   border-left: 3px solid rgba(var(--box-muted-rgb, 215, 229, 239), 0.3);
-  background: rgba(9, 16, 24, 0.52);
+  background: var(--dw-surface);
   color: rgba(var(--box-muted-rgb, 215, 229, 239), 0.66);
   padding: 0.28rem 0.38rem;
-  font-size: 0.71rem;
+  font-size: 0.75rem;
   font-style: italic;
   line-height: 1.35;
 `;
@@ -3182,11 +3048,11 @@ export const ExpandedLogSectionHeader = styled.div`
 
   > span {
     color: rgba(var(--box-muted-rgb, 215, 229, 239), 0.54);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.56rem;
+    font-family: var(--dw-font-ui);
+    font-size: 0.75rem;
     font-weight: 760;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
+    letter-spacing: 0;
+    text-transform: none;
   }
 `;
 
@@ -3202,23 +3068,23 @@ export const ExpandedLogProvenanceCell = styled.div`
   gap: 0.14rem;
   border: 1px solid rgba(var(--box-secondary-rgb, 103, 217, 211), 0.18);
   border-left: 3px solid rgba(var(--box-secondary-rgb, 103, 217, 211), 0.62);
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background: rgba(var(--box-secondary-rgb, 103, 217, 211), 0.06);
   padding: 0.3rem 0.38rem;
 
   > span {
     color: rgba(var(--box-muted-rgb, 215, 229, 239), 0.56);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.52rem;
+    font-family: var(--dw-font-ui);
+    font-size: 0.75rem;
     font-weight: 760;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   > strong {
     min-width: 0;
     color: var(--box-neon, #dff7ff);
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 760;
     line-height: 1.25;
     overflow-wrap: anywhere;
@@ -3228,7 +3094,7 @@ export const ExpandedLogProvenanceCell = styled.div`
 export const ExpandedLogProvenanceLink = styled(Link)`
   min-width: 0;
   color: var(--box-neon, #dff7ff);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 760;
   line-height: 1.25;
   text-decoration-color: rgba(var(--box-primary-rgb, 119, 213, 255), 0.52);
@@ -3239,7 +3105,8 @@ export const ExpandedLogProvenanceLink = styled(Link)`
   &:focus-visible {
     color: #fff;
     text-decoration-color: var(--box-neon, #dff7ff);
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
   }
 `;
 
@@ -3278,10 +3145,9 @@ export const ExpandedLogEvent = styled.article`
   gap: 0.4rem;
   border: 1px solid rgba(var(--event-rgb), 0.18);
   border-left: 4px solid rgba(var(--event-rgb), 0.72);
-  border-radius: 2px 6px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background:
-    linear-gradient(90deg, rgba(var(--event-rgb), 0.1), transparent 62%),
-    rgba(7, 14, 21, 0.72);
+    var(--dw-surface);
   padding: 0.34rem 0.4rem;
 
   &::before {
@@ -3293,14 +3159,14 @@ export const ExpandedLogEvent = styled.article`
     height: 7px;
     border: 1px solid rgba(var(--event-rgb), 0.9);
     background: rgb(var(--event-rgb));
-    box-shadow: 0 0 9px rgba(var(--event-rgb), 0.38);
+    box-shadow: none;
     transform: translateY(-50%) rotate(45deg);
   }
 
   > span {
     width: 5px;
     height: 22px;
-    background: linear-gradient(180deg, rgba(var(--event-rgb), 0.96), transparent);
+    background: var(--dw-surface);
   }
 
   > div {
@@ -3313,16 +3179,16 @@ export const ExpandedLogEvent = styled.article`
 
   strong {
     color: var(--box-neon, #dff7ff);
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     font-weight: 820;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   time {
     color: rgba(var(--box-muted-rgb, 215, 229, 239), 0.64);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.6rem;
+    font-family: var(--dw-font-ui);
+    font-size: 0.75rem;
     white-space: nowrap;
   }
 `;
@@ -3337,26 +3203,18 @@ export const ExpandedLogIdle = styled.div`
   overflow: hidden;
   border: 1px solid rgba(var(--box-primary-rgb, 119, 213, 255), 0.24);
   border-left: 5px solid rgba(var(--box-secondary-rgb, 103, 217, 211), 0.62);
-  border-radius: 2px 10px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background:
-    radial-gradient(circle at 50% 50%, rgba(8, 16, 24, 0.52), rgba(4, 9, 15, 0.94) 68%),
-    rgba(5, 11, 17, 0.92);
+    var(--dw-surface);
 
   &::before {
     content: '';
     position: absolute;
     z-index: -2;
     inset: -70%;
-    background: conic-gradient(
-      from 20deg,
-      rgba(var(--box-primary-rgb, 119, 213, 255), 0.04),
-      rgba(var(--box-primary-rgb, 119, 213, 255), 0.34),
-      rgba(var(--box-secondary-rgb, 103, 217, 211), 0.1),
-      rgba(var(--box-neon-rgb, 185, 236, 255), 0.3),
-      rgba(var(--box-primary-rgb, 119, 213, 255), 0.04)
-    );
+    background: var(--dw-surface-raised);
     filter: blur(22px) saturate(1.25);
-    animation: ${expandedLogOrbit} 24s linear infinite;
+    animation: none;
   }
 
   &::after {
@@ -3364,11 +3222,7 @@ export const ExpandedLogIdle = styled.div`
     position: absolute;
     z-index: -1;
     inset: 12%;
-    background: repeating-radial-gradient(
-      circle,
-      transparent 0 22px,
-      rgba(var(--box-secondary-rgb, 103, 217, 211), 0.055) 23px 24px
-    );
+    background: var(--dw-surface-raised);
     opacity: 0.7;
   }
 
@@ -3392,24 +3246,24 @@ export const ExpandedLogIdleContent = styled.div`
     color: var(--box-neon, #dff7ff);
     font-size: 0.8rem;
     font-weight: 860;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   > p {
     max-width: 30ch;
     margin: 0;
     color: rgba(var(--box-muted-rgb, 215, 229, 239), 0.72);
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     line-height: 1.42;
   }
 
   > span {
     color: rgba(var(--box-secondary-rgb, 103, 217, 211), 0.64);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.54rem;
+    font-family: var(--dw-font-ui);
+    font-size: 0.75rem;
     font-weight: 760;
-    letter-spacing: 0.1em;
+    letter-spacing: 0;
   }
 `;
 
@@ -3423,15 +3277,14 @@ export const ExpandedLogIdleSignal = styled.div`
   clip-path: polygon(0 0, 72% 0, 100% 28%, 100% 100%, 28% 100%, 0 72%);
   transform: rotate(45deg);
   box-shadow:
-    inset 0 0 14px rgba(var(--box-primary-rgb, 119, 213, 255), 0.14),
-    0 0 18px rgba(var(--box-secondary-rgb, 103, 217, 211), 0.12);
+    none;
 
   > span {
     width: 13px;
     height: 13px;
     border: 2px solid var(--box-neon, #dff7ff);
     background: rgba(var(--box-secondary-rgb, 103, 217, 211), 0.38);
-    animation: ${expandedLogPulse} 3.6s ease-in-out infinite;
+    animation: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -3461,11 +3314,11 @@ export const ExpandedExternalLink = styled.a`
   gap: 0.1rem;
   border: 1px solid rgba(var(--box-secondary-rgb, 103, 217, 211), 0.36);
   border-left: 4px solid var(--box-secondary, #67d9d3);
-  border-radius: 2px 7px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background: rgba(var(--box-secondary-rgb, 103, 217, 211), 0.08);
   color: var(--box-neon, #dff7ff);
   padding: 0.3rem 0.42rem;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 740;
   line-height: 1.25;
   text-decoration: none;
@@ -3473,16 +3326,17 @@ export const ExpandedExternalLink = styled.a`
 
   > span {
     color: var(--box-secondary, #67d9d3);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.54rem;
-    letter-spacing: 0.08em;
+    font-family: var(--dw-font-ui);
+    font-size: 0.75rem;
+    letter-spacing: 0;
   }
 
   &:hover,
   &:focus-visible {
     border-color: var(--box-neon, #dff7ff);
     background: rgba(var(--box-secondary-rgb, 103, 217, 211), 0.17);
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
   }
 `;
 
@@ -3491,20 +3345,19 @@ export const ExpandedBoxIdentity = styled.div`
   gap: 0.08rem;
   border: 1px solid rgba(var(--box-primary-rgb, 119, 213, 255), 0.28);
   border-left: 4px solid var(--box-primary, #77d5ff);
-  border-radius: 2px 6px 2px 2px;
-  background: rgba(11, 19, 28, 0.72);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface-raised);
   padding: 0.3rem 0.4rem;
 `;
 
 export const ExpandedBoxId = styled.span`
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: var(--dw-font-ui);
   font-size: 0.9rem;
   font-weight: 860;
   color: var(--box-neon, #b9ecff);
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
   line-height: 1.1;
+  font-family: var(--dw-font-data);
 `;
 
 export const ExpandedBoxName = styled.p`
@@ -3517,18 +3370,17 @@ export const ExpandedBoxName = styled.p`
 
 export const ExpandedBoxIdentityStatus = styled.span`
   color: #f4cf99;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 export const ExpandedBoxPanel = styled.section`
-  border-radius: 2px 7px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid rgba(var(--box-muted-rgb, 255, 255, 255), 0.24);
   background:
-    linear-gradient(180deg, rgba(8, 14, 20, 0.96), rgba(6, 11, 17, 0.95)),
-    rgba(7, 12, 18, 0.92);
+    var(--dw-surface);
   padding: 0.42rem 0.46rem 0.46rem;
   display: grid;
   gap: 0.38rem;
@@ -3547,6 +3399,8 @@ export const ExpandedActionRow = styled.div`
 `;
 
 export const ExpandedActionButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   --action-rgb: ${({ $tone }) =>
     $tone === 'checked'
       ? 'var(--box-secondary-rgb, 103, 217, 211)'
@@ -3571,10 +3425,9 @@ export const ExpandedActionButton = styled.button`
   gap: 0.18rem;
   border: 1px solid rgba(var(--action-rgb), 0.58);
   border-left: 6px solid var(--action-color);
-  border-radius: 2px 9px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background:
-    linear-gradient(90deg, rgba(var(--action-rgb), 0.22), transparent 82%),
-    rgba(8, 15, 23, 0.9);
+    var(--dw-surface);
   color: #eaf5ff;
   padding: 0.38rem 0.58rem;
   text-align: left;
@@ -3589,9 +3442,8 @@ export const ExpandedActionButton = styled.button`
   &:hover:not(:disabled) {
     border-color: rgba(var(--action-rgb), 0.88);
     background:
-      linear-gradient(90deg, rgba(var(--action-rgb), 0.34), transparent 88%),
-      rgba(10, 19, 29, 0.96);
-    box-shadow: 0 0 14px rgba(var(--action-rgb), 0.16);
+      var(--dw-surface);
+    box-shadow: none;
     transform: translateY(-1px);
   }
 
@@ -3618,14 +3470,9 @@ export const ExpandedActionLink = styled(Link)`
   gap: 0.18rem;
   border: 1px solid rgba(var(--box-secondary-rgb, 103, 217, 211), 0.48);
   border-left: 6px solid var(--box-secondary, #67d9d3);
-  border-radius: 2px 9px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background:
-    linear-gradient(
-      90deg,
-      rgba(var(--box-secondary-rgb, 103, 217, 211), 0.2),
-      transparent 82%
-    ),
-    rgba(8, 15, 23, 0.9);
+    var(--dw-surface);
   color: #eaf5ff;
   padding: 0.38rem 0.58rem;
   text-align: left;
@@ -3640,13 +3487,8 @@ export const ExpandedActionLink = styled(Link)`
   &:hover {
     border-color: rgba(var(--box-secondary-rgb, 103, 217, 211), 0.84);
     background:
-      linear-gradient(
-        90deg,
-        rgba(var(--box-secondary-rgb, 103, 217, 211), 0.32),
-        transparent 88%
-      ),
-      rgba(10, 19, 29, 0.96);
-    box-shadow: 0 0 14px rgba(var(--box-secondary-rgb, 103, 217, 211), 0.15);
+      var(--dw-surface);
+    box-shadow: none;
     transform: translateY(-1px);
   }
 
@@ -3662,22 +3504,22 @@ export const ExpandedActionLink = styled(Link)`
 
 export const ExpandedActionCode = styled.span`
   color: rgba(var(--box-muted-rgb, 215, 229, 239), 0.64);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.57rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.09em;
+  letter-spacing: 0;
   line-height: 1;
-  text-transform: uppercase;
+  text-transform: none;
 `;
 
 export const ExpandedActionLabel = styled.span`
   overflow: hidden;
   font-size: 0.76rem;
   font-weight: 860;
-  letter-spacing: 0.06em;
+  letter-spacing: 0;
   line-height: 1.1;
   text-overflow: ellipsis;
-  text-transform: uppercase;
+  text-transform: none;
   white-space: nowrap;
 `;
 
@@ -3696,10 +3538,9 @@ export const ExpandedMetaCard = styled.div`
   display: grid;
   gap: 0.18rem;
   border: 1px solid rgba(127, 215, 255, 0.16);
-  border-radius: 2px 6px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background:
-    linear-gradient(180deg, rgba(16, 24, 34, 0.82), rgba(11, 18, 26, 0.8)),
-    rgba(10, 16, 24, 0.72);
+    var(--dw-surface);
   padding: 0.32rem 0.38rem;
 
   @media (min-width: ${RETRIEVAL_WIDE_BREAKPOINT}) {
@@ -3711,18 +3552,18 @@ export const ExpandedMetaRow = styled.div`
   display: grid;
   gap: 0.1rem;
   border: 1px solid rgba(127, 215, 255, 0.14);
-  border-radius: 2px 5px 2px 2px;
-  background: rgba(10, 16, 24, 0.64);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   padding: 0.32rem 0.4rem;
 `;
 
 export const ExpandedMetaLabel = styled.p`
   margin: 0;
   color: rgba(169, 234, 212, 0.84);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 export const ExpandedMetaValue = styled.p`
@@ -3730,7 +3571,7 @@ export const ExpandedMetaValue = styled.p`
   color: ${({ $tone }) => ($tone ? keepPriorityToneColor($tone) : 'rgba(222, 242, 255, 0.94)')};
   font-size: 0.78rem;
   font-weight: 620;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
   line-height: 1.45;
   overflow-wrap: anywhere;
 `;
@@ -3748,11 +3589,11 @@ export const ExpandedTagLink = styled(Link)`
   align-items: center;
   gap: 0.18rem;
   border: 1px solid rgba(var(--box-primary-rgb, 119, 213, 255), 0.34);
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background: rgba(var(--box-primary-rgb, 119, 213, 255), 0.1);
   color: var(--box-neon, #dff7ff);
   padding: 0.22rem 0.48rem;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 740;
   line-height: 1;
   text-decoration: none;
@@ -3761,15 +3602,15 @@ export const ExpandedTagLink = styled(Link)`
   &::before {
     content: '#';
     color: var(--box-secondary, #67d9d3);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.62rem;
+    font-family: var(--dw-font-ui);
+    font-size: 0.75rem;
     font-weight: 900;
   }
 
   &:hover {
     border-color: rgba(var(--box-neon-rgb, 185, 236, 255), 0.76);
     background: rgba(var(--box-primary-rgb, 119, 213, 255), 0.2);
-    box-shadow: 0 0 10px rgba(var(--box-primary-rgb, 119, 213, 255), 0.12);
+    box-shadow: none;
   }
 
   &:focus-visible {
@@ -3800,10 +3641,10 @@ export const ExpandedDataPagerHeader = styled.div`
 
 export const ExpandedDataPagerPosition = styled.span`
   color: var(--box-neon, #dff7ff);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.59rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   font-weight: 850;
-  letter-spacing: 0.09em;
+  letter-spacing: 0;
   white-space: nowrap;
 `;
 
@@ -3815,29 +3656,37 @@ export const ExpandedDataPagerTabs = styled.div`
   @media (max-width: 520px) {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+  @media (max-width: 420px) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    > * { flex: 0 1 auto; min-width: 0; }
+  }
 `;
 
 export const ExpandedDataPagerTab = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   min-width: 0;
-  min-height: 36px;
+  min-height: 40px;
   padding: 0.28rem 0.16rem;
   overflow: hidden;
   border: 1px solid
     ${({ $active }) => ($active
       ? 'rgba(var(--box-neon-rgb, 185, 236, 255), 0.7)'
       : 'rgba(var(--box-primary-rgb, 119, 213, 255), 0.2)')};
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background: ${({ $active }) => ($active
     ? 'rgba(var(--box-primary-rgb, 119, 213, 255), 0.2)'
-    : 'rgba(7, 13, 20, 0.72)')};
+    : 'var(--dw-surface)')};
   color: ${({ $active }) => ($active
     ? 'var(--box-neon, #dff7ff)'
     : 'rgba(var(--box-muted-rgb, 215, 229, 239), 0.58)')};
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.52rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   font-weight: 820;
-  letter-spacing: 0.045em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   text-overflow: ellipsis;
   white-space: nowrap;
   cursor: pointer;
@@ -3846,8 +3695,11 @@ export const ExpandedDataPagerTab = styled.button`
   &:focus-visible {
     border-color: var(--box-neon, #b9ecff);
     background: rgba(var(--box-primary-rgb, 119, 213, 255), 0.16);
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
   }
+  min-height: var(--dw-control-height);
+  padding-inline: 0.65rem;
 `;
 
 export const ExpandedDataPagerBody = styled.div`
@@ -3858,20 +3710,23 @@ export const ExpandedDataPagerBody = styled.div`
 `;
 
 export const ExpandedDataPagerArrow = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   min-height: 44px;
   align-self: center;
   border: 1px solid rgba(var(--box-primary-rgb, 119, 213, 255), 0.28);
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background: rgba(var(--box-primary-rgb, 119, 213, 255), 0.09);
   color: var(--box-neon, #dff7ff);
-  font: 850 0.9rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font: 850 0.9rem/1 var(--dw-font-ui);
   cursor: pointer;
 
   &:hover,
   &:focus-visible {
     border-color: var(--box-neon, #b9ecff);
     background: rgba(var(--box-primary-rgb, 119, 213, 255), 0.2);
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
   }
 `;
 
@@ -3881,10 +3736,10 @@ export const ExpandedDetailSignal = styled.p`
   background: rgba(var(--box-secondary-rgb, 103, 217, 211), 0.08);
   color: rgba(var(--box-muted-rgb, 215, 229, 239), 0.76);
   padding: 0.3rem 0.42rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.61rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 export const ExpandedDetailError = styled.div`
@@ -3892,34 +3747,37 @@ export const ExpandedDetailError = styled.div`
   gap: 0.3rem;
   border: 1px solid rgba(240, 138, 123, 0.48);
   border-left: 4px solid #f08a7b;
-  border-radius: 2px 7px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background: rgba(240, 138, 123, 0.09);
   color: #ffd7d0;
   padding: 0.34rem 0.42rem;
-  font-size: 0.69rem;
+  font-size: 0.75rem;
   line-height: 1.35;
 `;
 
 export const ExpandedDetailRetry = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   justify-self: start;
   min-height: 44px;
   border: 1px solid rgba(240, 138, 123, 0.62);
-  border-radius: 2px 7px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background: rgba(240, 138, 123, 0.12);
   color: #ffe7e2;
   padding: 0.3rem 0.52rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.62rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   cursor: pointer;
 
   &:hover,
   &:focus-visible {
     border-color: #ffd7d0;
     background: rgba(240, 138, 123, 0.22);
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
   }
 `;
 
@@ -3944,7 +3802,7 @@ export const ExpandedDataTable = styled.table`
   td {
     border-top: 1px solid rgba(var(--box-primary-rgb, 119, 213, 255), 0.14);
     border-bottom: 1px solid rgba(var(--box-primary-rgb, 119, 213, 255), 0.14);
-    background: rgba(9, 16, 24, 0.68);
+    background: var(--dw-surface);
     padding: 0.32rem 0.4rem;
     text-align: left;
     vertical-align: top;
@@ -3955,17 +3813,17 @@ export const ExpandedDataTable = styled.table`
     width: 43%;
     border-left: 4px solid rgba(var(--box-primary-rgb, 119, 213, 255), 0.56);
     color: rgba(var(--box-secondary-rgb, 103, 217, 211), 0.86);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.58rem;
+    font-family: var(--dw-font-ui);
+    font-size: 0.75rem;
     font-weight: 780;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   td {
     border-right: 1px solid rgba(var(--box-primary-rgb, 119, 213, 255), 0.14);
     color: rgba(230, 244, 255, 0.92);
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 630;
     line-height: 1.35;
   }
@@ -4000,7 +3858,8 @@ export const ExpandedTelemetryLink = styled(Link)`
   &:focus-visible {
     color: #fff;
     text-decoration-color: var(--box-neon, #dff7ff);
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
   }
 `;
 
@@ -4026,22 +3885,22 @@ export const ExpandedLifecycleCell = styled.div`
   gap: 0.12rem;
   border: 1px solid rgba(var(--box-secondary-rgb, 103, 217, 211), 0.18);
   border-left: 3px solid rgba(var(--box-secondary-rgb, 103, 217, 211), 0.62);
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background: rgba(var(--box-secondary-rgb, 103, 217, 211), 0.06);
   padding: 0.3rem 0.36rem;
 
   > span {
     color: rgba(var(--box-muted-rgb, 215, 229, 239), 0.6);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.52rem;
+    font-family: var(--dw-font-ui);
+    font-size: 0.75rem;
     font-weight: 750;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   > strong {
     color: var(--box-neon, #dff7ff);
-    font-size: 0.69rem;
+    font-size: 0.75rem;
     font-weight: 760;
     line-height: 1.25;
     overflow-wrap: anywhere;
@@ -4051,10 +3910,10 @@ export const ExpandedLifecycleCell = styled.div`
 export const ExpandedContextValue = styled.p`
   margin: 0;
   color: rgba(215, 255, 242, 0.9);
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 650;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   line-height: 1.35;
   overflow-wrap: anywhere;
 `;
@@ -4062,10 +3921,10 @@ export const ExpandedContextValue = styled.p`
 export const ExpandedPanelTitle = styled.p`
   margin: 0;
   color: #c9f6e8;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 export const ExpandedDetailBlock = styled.div`
@@ -4080,10 +3939,10 @@ export const ExpandedDetailBlock = styled.div`
 export const ExpandedDetailLabel = styled.p`
   margin: 0;
   color: #a9ead4;
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   text-decoration: underline;
   text-decoration-color: rgba(169, 234, 212, 0.78);
   text-underline-offset: 2px;
@@ -4103,19 +3962,12 @@ export const ExpandedDescriptionBlock = styled(ExpandedDetailBlock)`
   overflow: hidden;
   border: 1px solid rgba(var(--box-primary-rgb, 119, 213, 255), 0.2);
   border-left: 4px solid var(--box-primary, #77d5ff);
-  border-radius: 2px 8px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background:
-    radial-gradient(
-      circle at 92% 8%,
-      rgba(var(--box-secondary-rgb, 103, 217, 211), 0.13),
-      transparent 38%
-    ),
-    linear-gradient(110deg, rgba(var(--box-primary-rgb, 119, 213, 255), 0.09), transparent 58%),
-    rgba(8, 15, 23, 0.78);
+    var(--dw-surface);
   padding: 0.46rem 0.54rem 0.5rem;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.035),
-    0 8px 22px rgba(0, 0, 0, 0.12);
+    none;
 
   &::after {
     content: '';
@@ -4124,7 +3976,7 @@ export const ExpandedDescriptionBlock = styled(ExpandedDetailBlock)`
     right: 0.5rem;
     width: 2.7rem;
     height: 2px;
-    background: linear-gradient(90deg, transparent, var(--box-secondary, #67d9d3));
+    background: var(--dw-surface);
     opacity: 0.72;
   }
 
@@ -4149,15 +4001,9 @@ export const ExpandedDescriptionText = styled(ExpandedDetailText)`
 export const ExpandedNotesBlock = styled(ExpandedDetailBlock)`
   border: 1px solid rgba(var(--box-primary-rgb, 119, 213, 255), 0.22);
   border-left: 4px solid rgba(var(--box-primary-rgb, 119, 213, 255), 0.64);
-  border-radius: 2px 6px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background:
-    linear-gradient(
-      100deg,
-      rgba(var(--box-primary-rgb, 119, 213, 255), 0.08),
-      transparent 46%
-    ),
-    linear-gradient(180deg, rgba(11, 18, 27, 0.86), rgba(9, 15, 23, 0.88)),
-    rgba(8, 13, 20, 0.82);
+    var(--dw-surface);
   padding: 0.4rem 0.46rem;
 `;
 
@@ -4183,15 +4029,17 @@ export const ExpandedNotesPageHeader = styled.div`
 
   > span {
     color: rgba(var(--box-muted-rgb, 215, 229, 239), 0.54);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.54rem;
+    font-family: var(--dw-font-ui);
+    font-size: 0.75rem;
     font-weight: 750;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    letter-spacing: 0;
+    text-transform: none;
   }
 `;
 
 export const ExpandedNotePreviewButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   position: relative;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
@@ -4203,22 +4051,11 @@ export const ExpandedNotePreviewButton = styled.button`
   color: rgba(235, 245, 252, 0.94);
   text-align: left;
   background:
-    repeating-linear-gradient(
-      180deg,
-      transparent 0 1.78rem,
-      rgba(var(--box-primary-rgb, 119, 213, 255), 0.07) 1.78rem calc(1.78rem + 1px)
-    ),
-    radial-gradient(
-      circle at 92% 8%,
-      rgba(var(--box-secondary-rgb, 103, 217, 211), 0.13),
-      transparent 38%
-    ),
-    linear-gradient(118deg, rgba(var(--box-primary-rgb, 119, 213, 255), 0.09), transparent 62%),
-    rgba(4, 10, 16, 0.72);
+    var(--dw-surface-raised);
   border: 1px solid rgba(var(--box-primary-rgb, 119, 213, 255), 0.26);
   border-left: 4px solid var(--box-primary, #77d5ff);
-  border-radius: 2px 9px 2px 2px;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.04);
+  border-radius: var(--dw-radius-sm);
+  box-shadow: none;
   cursor: zoom-in;
 
   &::after {
@@ -4226,18 +4063,19 @@ export const ExpandedNotePreviewButton = styled.button`
     position: absolute;
     inset: auto 0 2.8rem;
     height: 4.4rem;
-    background: linear-gradient(transparent, rgba(4, 10, 16, 0.96));
+    background: var(--dw-surface);
     pointer-events: none;
   }
 
   &:hover,
   &:focus-visible {
     border-color: rgba(var(--box-neon-rgb, 185, 236, 255), 0.72);
-    outline: none;
-    box-shadow:
-      inset 0 1px rgba(255, 255, 255, 0.06),
-      0 0 20px rgba(var(--box-primary-rgb, 119, 213, 255), 0.13);
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
+    box-shadow: none;
   }
+  background: var(--dw-surface-raised);
+  border-left-color: var(--box-primary, #8A8175);
 `;
 
 export const ExpandedNotePreviewText = styled.span`
@@ -4259,11 +4097,11 @@ export const ExpandedNotePreviewAction = styled.span`
   z-index: 1;
   justify-self: end;
   color: var(--box-neon, #dff7ff);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.61rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   font-weight: 850;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 export const ExpandedNoteBlank = styled.div`
@@ -4276,35 +4114,30 @@ export const ExpandedNoteBlank = styled.div`
   color: rgba(var(--box-muted-rgb, 215, 229, 239), 0.42);
   text-align: center;
   background:
-    repeating-linear-gradient(
-      180deg,
-      transparent 0 1.78rem,
-      rgba(var(--box-primary-rgb, 119, 213, 255), 0.055) 1.78rem calc(1.78rem + 1px)
-    ),
-    radial-gradient(circle at 50% 50%, rgba(var(--box-primary-rgb, 119, 213, 255), 0.06), transparent 45%),
-    rgba(4, 10, 16, 0.55);
+    var(--dw-surface-raised);
   border: 1px solid rgba(var(--box-primary-rgb, 119, 213, 255), 0.17);
   border-left: 4px solid rgba(var(--box-primary-rgb, 119, 213, 255), 0.46);
-  border-radius: 2px 9px 2px 2px;
+  border-radius: var(--dw-radius-sm);
 
   > span {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.72rem;
+    font-family: var(--dw-font-ui);
+    font-size: 0.75rem;
     font-weight: 850;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   > small {
     max-width: 24rem;
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     line-height: 1.45;
   }
+  background: var(--dw-surface);
 `;
 
 export const ExpandedPathText = styled(ExpandedDetailText)`
   color: rgba(215, 248, 236, 0.72);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 `;
 
 export const ExpandedBoxLink = styled(Link)`
@@ -4315,7 +4148,7 @@ export const ExpandedBoxLink = styled(Link)`
 export const ExpandedMuted = styled.p`
   margin: 0;
   color: ${RETRIEVAL.textMuted};
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 `;
 
 export const SiblingSection = styled.div`
@@ -4326,7 +4159,7 @@ export const SiblingSection = styled.div`
 export const SiblingLabel = styled.p`
   margin: 0;
   color: ${RETRIEVAL.textMuted};
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 `;
 
 export const SiblingChipRow = styled.div`
@@ -4338,11 +4171,11 @@ export const SiblingChipRow = styled.div`
 export const SiblingChip = styled.span`
   display: inline-flex;
   align-items: center;
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid rgba(127, 215, 255, 0.3);
   background: rgba(127, 215, 255, 0.14);
   color: #d6efff;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   line-height: 1;
   padding: 0.16rem 0.42rem;
 `;
@@ -4361,7 +4194,7 @@ export const LoadingState = styled.div`
 
 export const ErrorState = styled.div`
   padding: 0.78rem;
-  border-radius: 12px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(240, 138, 123, 0.44);
   background: rgba(240, 138, 123, 0.14);
   color: #ffd5ce;
@@ -4378,7 +4211,7 @@ export const LightboxBackdrop = styled.div`
   position: fixed;
   inset: 0;
   z-index: 2147483647;
-  background: rgba(3, 7, 12, 0.84);
+  background: var(--dw-surface);
   display: grid;
   place-items: center;
   padding: clamp(0.8rem, 2vw, 1.5rem);
@@ -4415,21 +4248,23 @@ export const LightboxImage = styled.img`
   `
       : ''}
   display: block;
-  border-radius: 12px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.55);
-  background: rgba(5, 10, 16, 0.96);
+  box-shadow: none;
+  background: var(--dw-surface);
 `;
 
 export const LightboxCloseButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   position: absolute;
   top: -0.2rem;
   right: -0.2rem;
   width: 34px;
   height: 34px;
-  border-radius: 2px 7px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid rgba(255, 255, 255, 0.32);
-  background: rgba(8, 16, 24, 0.9);
+  background: var(--dw-surface);
   color: #e7f3ff;
   font-size: 1.22rem;
   line-height: 1;
@@ -4440,6 +4275,6 @@ export const LightboxCaption = styled.p`
   margin: 0;
   color: rgba(232, 238, 244, 0.86);
   font-size: 0.79rem;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   text-align: center;
 `;

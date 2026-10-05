@@ -1,6 +1,8 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
+import { inputStyles, controlStyles } from '../../styles/primitives';
+import * as L from '../BoxForms/BoxEditForm.styles';
 
-const mono = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace";
+const uiFont = 'var(--dw-font-ui)';
 
 export const Shell = styled.section`
   position: relative;
@@ -9,11 +11,18 @@ export const Shell = styled.section`
   max-width: 760px;
   min-width: 0;
   margin: 0 auto;
-  border: 1px solid rgba(112,157,187,.38);
-  border-radius: 8px;
-  padding: .68rem;
-  background: rgba(7,12,18,.96);
-  box-shadow: inset 0 1px rgba(255,255,255,.025), 0 12px 32px rgba(0,0,0,.24);
+  border: 1px solid var(--dw-border);
+  border-left: 4px solid var(--dw-amber);
+  border-radius: var(--dw-radius);
+  padding: .75rem;
+  background: var(--dw-surface);
+  box-shadow: none;
+  min-width: 0;
+  font-family: var(--dw-font-ui);
+  & :is(button, a, input, select, textarea):focus-visible {
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
+  }
 `;
 
 export const Header = styled.header`
@@ -28,22 +37,31 @@ export const Header = styled.header`
 
 export const Eyebrow = styled.span`
   display: block;
-  color: rgba(127,215,255,.7);
-  font: 800 .56rem/1 ${mono};
-  letter-spacing: .14em;
-  text-transform: uppercase;
+  color: var(--dw-violet);
+  font: 800 0.75rem/1 ${uiFont};
+  letter-spacing: normal;
+  text-transform: none;
 `;
 
 export const Title = styled.h3`
+  display: flex;
+  align-items: center;
+  gap: .5rem;
   margin: .18rem 0 0;
-  color: #edf5fb;
-  font-size: clamp(1rem, 4vw, 1.18rem);
+  color: var(--dw-text);
+  font-size: clamp(1.08rem, 4vw, 1.35rem);
   line-height: 1.1;
 `;
 
+export const TitleIcon = styled.span`
+  color: var(--dw-violet);
+  font: 1.55rem/0.8 ${uiFont};
+  text-shadow: none;
+`;
+
 export const Close = styled.button`
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   margin: -.28rem -.12rem 0 0;
   border: 0;
   color: rgba(230,237,243,.68);
@@ -56,7 +74,7 @@ export const Close = styled.button`
 
 export const Form = styled.form`
   display: grid;
-  gap: .58rem;
+  gap: .55rem;
 `;
 
 export const IdentityRow = styled.div`
@@ -64,7 +82,7 @@ export const IdentityRow = styled.div`
   grid-template-columns: 5.4rem minmax(0,1fr);
   gap: .48rem;
 
-  @media(max-width:430px){ grid-template-columns:1fr; }
+  @media(max-width:430px){ grid-template-columns: 5.4rem minmax(0,1fr); }
 `;
 
 export const Field = styled.label`
@@ -75,32 +93,25 @@ export const Field = styled.label`
 
 export const Label = styled.span`
   color: rgba(127,215,255,.78);
-  font: 800 .56rem/1 ${mono};
-  letter-spacing: .11em;
-  text-transform: uppercase;
+  font: 800 0.75rem/1 ${uiFont};
+  letter-spacing: normal;
+  text-transform: none;
 `;
 
-const field = `
+const field = css`
+  ${inputStyles}
   box-sizing: border-box;
   width: 100%;
-  min-width: 0;
-  min-height: 42px;
-  border: 1px solid rgba(112,157,187,.48);
-  border-radius: 6px;
-  padding: .54rem .62rem;
-  color: #e6edf3;
-  background: rgba(5,11,17,.9);
-  outline: none;
-  &:focus { border-color: #7fd7ff; box-shadow: 0 0 0 2px rgba(127,215,255,.2); }
 `;
 
-export const Input = styled.input`${field}`;
+export const Input = styled.input`${field}
+`;
 export const CodeInput = styled(Input)`
   padding-inline: .35rem;
   text-align: center;
-  font-family: ${mono};
+  font-family: ${uiFont};
   font-size: 1.05rem;
-  letter-spacing: .16em;
+  letter-spacing: normal;
 `;
 export const Textarea = styled.textarea`
   ${field}
@@ -111,7 +122,29 @@ export const Textarea = styled.textarea`
 export const Availability = styled.span`
   min-height: .75rem;
   color: ${({ $bad, $good }) => $bad ? '#ffaaa7' : $good ? '#9be2b5' : 'rgba(230,237,243,.5)'};
-  font: 700 .54rem/1.2 ${mono};
+  font: 700 0.75rem/1.2 ${uiFont};
+`;
+
+export const LocationPanel = styled.div`
+  ${L.LocationSubform} {
+    border-color: rgba(54,181,249,.55);
+    border-left: 3px solid #39bbf4;
+    border-radius: var(--dw-radius);
+    background: var(--dw-surface);
+  }
+  ${L.LocationSubformTitle} {
+    color: #9bc9ff;
+    font: 800 0.75rem ${uiFont};
+    letter-spacing: normal;
+  }
+  ${L.LocationStructureGrid} { margin-top: 1px; gap: 7px; }
+  ${L.LocationLevelField} { color: #97aede; }
+  ${L.LocationInput} {
+    border-color: rgba(80,146,229,.52);
+    border-radius: 6px;
+    background: var(--dw-surface);
+  }
+  ${L.LocationInput}:focus { border-color: #61cfff; }
 `;
 
 export const PhotoField = styled.div`
@@ -120,8 +153,11 @@ export const PhotoField = styled.div`
   align-items: center;
   gap: .58rem;
   min-height: 58px;
-  border-block: 1px solid rgba(127,215,255,.2);
-  padding: .38rem 0;
+  border: 1px solid rgba(65,186,232,.43);
+  border-left: 3px solid #3dc9ea;
+  border-radius: 9px;
+  padding: .4rem .5rem;
+  background: var(--dw-surface-raised);
 
   @media(max-width:430px) {
     grid-template-columns: 48px minmax(0,1fr);
@@ -136,8 +172,8 @@ export const PhotoPreview = styled.div`
   background: ${({ $src }) => $src ? `center / cover no-repeat url("${$src}")` : 'rgba(3,9,15,.78)'};
   display: grid;
   place-items: center;
-  color: rgba(127,215,255,.48);
-  font: 800 .52rem ${mono};
+  color: #65d8f3;
+  font: 800 1.25rem ${uiFont};
 
   @media(max-width:430px) {
     width: 48px;
@@ -147,11 +183,11 @@ export const PhotoPreview = styled.div`
 
 export const PhotoCopy = styled.span`
   min-width: 0;
-  color: #e6edf3;
+  color: var(--dw-text);
   font-size: .76rem;
   line-height: 1.2;
   strong, small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  small { margin-top:.15rem; color:rgba(230,237,243,.52); font-size:.62rem; }
+  small { margin-top:.15rem; color:rgba(230,237,243,.52); font-size: 0.75rem; }
 `;
 
 export const PhotoPickerSlot = styled.div`
@@ -163,21 +199,21 @@ export const PhotoPickerSlot = styled.div`
 `;
 
 export const PhotoAction = styled.button`
-  min-height: 40px;
+  min-height: 44px;
   border: 1px solid rgba(232,177,92,.45);
   border-radius: 5px;
   padding: .42rem .56rem;
-  color: #e8b15c;
+  color: var(--dw-amber);
   background: rgba(232,177,92,.05);
-  font: 800 .58rem ${mono};
-  letter-spacing: .08em;
-  text-transform: uppercase;
+  font: 800 0.75rem ${uiFont};
+  letter-spacing: normal;
+  text-transform: none;
   cursor: pointer;
 
   &:hover:not(:disabled), &:focus-visible {
-    border-color: #e8b15c;
+    border-color: var(--dw-amber);
     outline: none;
-    box-shadow: 0 0 12px rgba(232,177,92,.14);
+    box-shadow: none;
   }
 
   &:disabled { opacity: .42; cursor: not-allowed; }
@@ -186,20 +222,23 @@ export const PhotoAction = styled.button`
 `;
 
 export const Details = styled.details`
-  border-top: 1px solid rgba(127,215,255,.18);
-  padding-top: .34rem;
+  border: 1px solid rgba(137,100,244,.45);
+  border-left: 4px solid var(--dw-amber);
+  border-radius: 8px;
+  padding: 0 .55rem .25rem;
+  background: var(--dw-surface-raised);
 
   &[open] > summary { margin-bottom: .52rem; }
 `;
 
 export const Summary = styled.summary`
-  min-height: 36px;
+  min-height: var(--dw-control-height);
   display: flex;
   align-items: center;
-  color: rgba(127,215,255,.72);
-  font: 800 .6rem ${mono};
-  letter-spacing: .09em;
-  text-transform: uppercase;
+  color: #af8dfd;
+  font: 800 0.75rem ${uiFont};
+  letter-spacing: normal;
+  text-transform: none;
   cursor: pointer;
 `;
 
@@ -238,9 +277,9 @@ export const StagingOption = styled.button`
   border-radius: 6px;
   padding: .34rem .42rem;
   color: ${({ $active }) => $active ? '#eef6fa' : 'rgba(230,237,243,.62)'};
-  background: ${({ $active, $tone }) =>
+  background: ${({ $active }) =>
     $active
-      ? `linear-gradient(100deg, ${$tone}22, rgba(5,11,17,.82))`
+      ? 'var(--dw-surface-raised)'
       : 'rgba(5,11,17,.5)'};
   text-align: left;
   cursor: pointer;
@@ -253,7 +292,7 @@ export const StagingOption = styled.button`
 
   strong {
     overflow: hidden;
-    font: 800 .63rem/1.1 ${mono};
+    font: 800 0.75rem/1.1 ${uiFont};
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -261,7 +300,7 @@ export const StagingOption = styled.button`
   small {
     overflow: hidden;
     color: rgba(184,202,212,.48);
-    font: 600 .52rem/1.1 ${mono};
+    font: 600 0.75rem/1.1 ${uiFont};
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -277,32 +316,34 @@ export const StagingLight = styled.span`
   height: 18px;
   border-radius: 2px;
   background: ${({ $active, $tone }) => $active ? $tone : 'rgba(154,171,187,.2)'};
-  box-shadow: ${({ $active, $tone }) => $active ? `0 0 8px ${$tone}88` : 'none'};
+  box-shadow: none;
 `;
 
-export const TagInput = styled(Input)`font-size:.8rem;`;
+export const TagInput = styled(Input)`font-size:.8rem;
+`;
 
 export const Footer = styled.footer`
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
   align-items: center;
-  justify-content: flex-end;
   gap: .42rem;
   padding-top: .18rem;
 `;
 
 export const Button = styled.button`
+  ${controlStyles}
   min-height: 42px;
-  border: 1px solid ${({ $primary }) => $primary ? 'rgba(232,177,92,.72)' : 'rgba(127,215,255,.28)'};
+  border: 1px solid ${({ $primary }) => $primary ? 'rgba(39,231,180,.84)' : 'rgba(65,198,233,.6)'};
   border-radius: 6px;
   padding: .45rem .72rem;
-  color: ${({ $primary }) => $primary ? '#ffe0a4' : 'rgba(230,237,243,.72)'};
-  background: ${({ $primary }) => $primary ? 'linear-gradient(90deg,rgba(95,59,15,.9),rgba(34,29,21,.95))' : 'transparent'};
-  font: 800 .65rem ${mono};
-  letter-spacing: .07em;
-  text-transform: uppercase;
+  color: var(--dw-text);
+  background: ${({ $primary }) => $primary ? 'var(--dw-surface-raised)' : 'rgba(6,22,35,.7)'};
+  font: 800 0.75rem ${uiFont};
+  letter-spacing: normal;
+  text-transform: none;
   cursor: pointer;
   &:disabled { opacity:.42; cursor:not-allowed; }
-  &:hover:not(:disabled), &:focus-visible { border-color:#e8b15c; box-shadow:0 0 14px rgba(232,177,92,.18); }
+  &:hover:not(:disabled), &:focus-visible { border-color:#57e5d1; box-shadow: none; }
 `;
 
 export const Message = styled.p`
@@ -310,7 +351,7 @@ export const Message = styled.p`
   border-left: 2px solid ${({ $error }) => $error ? '#f07872' : '#9be2b5'};
   padding: .4rem .52rem;
   color: ${({ $error }) => $error ? '#ffc5c2' : '#c9f8d9'};
-  background: rgba(4,10,16,.58);
-  font-size: .72rem;
+  background: var(--dw-surface-raised);
+  font-size: 0.75rem;
   line-height: 1.35;
 `;

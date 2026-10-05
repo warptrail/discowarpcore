@@ -1,15 +1,6 @@
-import styled, { css, keyframes } from 'styled-components';
+import { controlStyles } from './primitives';
+import styled, { css } from 'styled-components';
 import { MOBILE_BREAKPOINT, MOBILE_FONT_SM } from './tokens';
-
-const pulseGreen = keyframes`
-  0%, 100% { box-shadow: 0 0 0 rgba(0,255,128,0); }
-  50%      { box-shadow: 0 0 8px rgba(0,255,128,0.8); }
-`;
-
-const pulseRed = keyframes`
-  0%, 100% { box-shadow: 0 0 0 rgba(255,64,64,0); }
-  50%      { box-shadow: 0 0 8px rgba(255,64,64,0.9); }
-`;
 
 export const Chip = styled.span`
   display: inline-flex;
@@ -18,38 +9,35 @@ export const Chip = styled.span`
   min-height: 30px;
   max-width: 100%;
   padding: 0.18rem 0.28rem 0.18rem 0.5rem;
-  border-radius: 3px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.72rem;
-  letter-spacing: 0.055em;
+  border-radius: var(--dw-radius-sm);
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
   line-height: 1;
-  border: 1px solid rgba(104, 154, 186, 0.42);
-  background: linear-gradient(180deg, rgba(15, 30, 45, 0.82), rgba(8, 17, 27, 0.92));
-  color: #eaeaea;
+  border: 1px solid rgba(230, 237, 243, 0.16);
+  background: var(--dw-surface-raised);
+  color: var(--dw-text);
   user-select: none;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
   transition: border-color 180ms ease, color 180ms ease, background 180ms ease;
 
   ${({ $status }) =>
     $status === 'unchanged' &&
     css`
       border-color: rgba(76, 198, 193, 0.62);
-      color: #b9fff7;
+      color: var(--dw-teal);
     `}
 
   ${({ $status }) =>
     $status === 'new' &&
     css`
-      border-color: rgba(81, 232, 161, 0.88);
-      color: #9dffd0;
-      animation: ${pulseGreen} 1.6s ease-in-out infinite;
+      border-color: rgba(76, 198, 193, 0.7);
+      color: var(--dw-teal);
     `}
 
   ${({ $status }) =>
     $status === 'deleted' &&
     css`
-      border-color: rgba(255, 111, 125, 0.9);
-      animation: ${pulseRed} 1.6s ease-in-out infinite;
+      border-color: rgba(240, 138, 123, 0.7);
       opacity: 0.75;
     `}
 
@@ -57,12 +45,11 @@ export const Chip = styled.span`
     gap: 0.18rem;
     min-height: 29px;
     padding: 0.18rem 0.22rem 0.18rem 0.42rem;
-    border-radius: 3px;
+    border-radius: var(--dw-radius-sm);
     font-size: ${MOBILE_FONT_SM};
   }
 
   @media (prefers-reduced-motion: reduce) {
-    animation: none;
     transition: none;
   }
 `;
@@ -82,29 +69,30 @@ export const Text = styled.span`
 `;
 
 export const RemoveButton = styled.button`
+  ${controlStyles}
   all: unset;
   cursor: pointer;
-  font-weight: 800;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 700;
+  font-family: var(--dw-font-ui);
   font-size: 0.82rem;
   line-height: 1;
-  min-width: 24px;
-  min-height: 24px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0;
-  color: rgba(207, 235, 243, 0.7);
+  color: var(--dw-text-secondary);
   text-align: center;
 
   &:hover {
-    color: #ff6b6b;
+    color: var(--dw-coral);
   }
 
   &:focus-visible {
-    outline: 1px solid #73ddff;
+    outline: 2px solid var(--dw-cyan);
     outline-offset: 1px;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-width: 24px;
-    min-height: 24px;
+    min-width: 44px;
+    min-height: 44px;
   }
 `;

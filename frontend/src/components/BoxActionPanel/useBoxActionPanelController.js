@@ -76,13 +76,13 @@ export default function useBoxActionPanelController({
   );
 
   const attachMany = useCallback(
-    async (itemIds) => {
+    async (itemIds, compartmentKey) => {
       const res = await fetch(
         `/api/boxed-items/${boxMongoId}/addItems`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ itemIds }),
+          body: JSON.stringify({ itemIds, compartmentKey }),
         },
       );
       const data = await parseJsonSafe(res);
@@ -133,7 +133,13 @@ export default function useBoxActionPanelController({
 
     setIsMoving(true);
     try {
-      await attachMany(ids);
+      const byCompartment = new Map();
+      for (const item of items) {
+        const key = item.compartmentKey || '';
+        if (!byCompartment.has(key)) byCompartment.set(key, []);
+        byCompartment.get(key).push(item._id || item.id);
+      }
+      for (const [key, itemIds] of byCompartment) await attachMany(itemIds, key || undefined);
       await refreshBox?.();
       showToast?.({
         variant: 'success',

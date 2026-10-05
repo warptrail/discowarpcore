@@ -292,16 +292,24 @@ export default function ItemRow({
 
   useEffect(() => {
     if (!rowIsOpen || selectionMode) return undefined;
+    let scrollTimer;
     const frame = window.requestAnimationFrame(() => {
-      const row = rowRef.current;
-      if (!row) return;
-      const header = document.querySelector('#root header');
-      const headerHeight = header?.getBoundingClientRect().height || 0;
-      const top = Math.max(0, window.scrollY + row.getBoundingClientRect().top - headerHeight - 8);
-      window.scrollTo({ top, behavior: 'smooth' });
+      // The dossier expands with a grid transition. Waiting for that layout
+      // to finish prevents scrollTo from being clamped to the old page bottom.
+      scrollTimer = window.setTimeout(() => {
+        const row = rowRef.current;
+        if (!row) return;
+        const header = document.querySelector('#root header');
+        const headerHeight = header?.getBoundingClientRect().height || 0;
+        const top = Math.max(0, window.scrollY + row.getBoundingClientRect().top - headerHeight - 8);
+        window.scrollTo({ top, behavior: 'smooth' });
+      }, Math.max(0, collapseDurMs) + 40);
     });
-    return () => window.cancelAnimationFrame(frame);
-  }, [rowIsOpen, selectionMode]);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      if (scrollTimer) window.clearTimeout(scrollTimer);
+    };
+  }, [collapseDurMs, rowIsOpen, selectionMode]);
 
   useEffect(() => {
     setExpandedMode('overview');
@@ -503,6 +511,7 @@ export default function ItemRow({
   const handleMoveToSelectedBox = useCallback(
     async ({
       destBoxId,
+      compartmentKey,
       destLabel,
       destShortId,
       isOrphanedDestination = false,
@@ -539,6 +548,7 @@ export default function ItemRow({
               itemId: _id,
               sourceBoxId: sourceBoxMongoId,
               destBoxId,
+              compartmentKey,
               baseUrl: API_BASE,
             });
 
@@ -721,7 +731,7 @@ export default function ItemRow({
                   {name}
                 </S.Title>
                 {showBoxContext && !presentationOpen ? (
-                  <S.RowBoxContext>#{ownership?.boxId || '???'} {ownership?.boxLabel || 'Box'}</S.RowBoxContext>
+                  <S.RowBoxContext>#{ownership?.placementLabel || ownership?.boxId || '???'} {ownership?.boxLabel || 'Box'}</S.RowBoxContext>
                 ) : null}
                 {!presentationOpen && hasCollapsedDescription ? (
                   <S.RowInlineDescription>{collapsedDescription}</S.RowInlineDescription>

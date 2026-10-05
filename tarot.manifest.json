@@ -31,10 +31,8 @@
           "cwd": "frontend",
           "protocol": "http",
           "port": 7611,
-          "command": "npm",
+          "command": "/opt/homebrew/bin/npm",
           "args": [
-            "--prefix",
-            "frontend",
             "run",
             "dev",
             "--",
@@ -47,7 +45,8 @@
           "env": {
             "VITE_PORT": "7611",
             "VITE_STRICT_PORT": "true",
-            "VITE_API_TARGET": "http://127.0.0.1:7610"
+            "VITE_API_TARGET": "http://127.0.0.1:7610",
+            "__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS": "quantumzephyr.local"
           },
           "healthPath": "/",
           "dependencies": [
@@ -56,7 +55,7 @@
           "dependsOn": [
             "backend"
           ],
-          "autostart": true,
+          "autostart": false,
           "owner": "Disco Warp Core",
           "actions": [
             "start",
@@ -79,7 +78,7 @@
           "cwd": ".",
           "protocol": "http",
           "port": 7610,
-          "command": "node",
+          "command": "/opt/homebrew/bin/node",
           "args": [
             "backend/server.js"
           ],
@@ -94,7 +93,7 @@
           "dependsOn": [
             "mongodb"
           ],
-          "autostart": true,
+          "autostart": false,
           "owner": "Disco Warp Core",
           "actions": [
             "start",
@@ -113,16 +112,11 @@
           "port": 27017,
           "monitorOnly": true,
           "owner": "System",
-          "startCommand": [
-            "brew",
-            "services",
-            "start",
-            "mongodb-community"
-          ],
           "startupTimeoutMs": 30000,
           "actions": [
             "status"
-          ]
+          ],
+          "autostart": false
         }
       ]
     },
@@ -144,7 +138,7 @@
           "cwd": ".",
           "protocol": "http",
           "port": 7610,
-          "command": "node",
+          "command": "/opt/homebrew/bin/node",
           "args": [
             "backend/server.js"
           ],
@@ -159,7 +153,7 @@
           "dependsOn": [
             "mongodb"
           ],
-          "autostart": true,
+          "autostart": false,
           "owner": "Disco Warp Core",
           "actions": [
             "start",
@@ -178,16 +172,11 @@
           "port": 27017,
           "monitorOnly": true,
           "owner": "System",
-          "startCommand": [
-            "brew",
-            "services",
-            "start",
-            "mongodb-community"
-          ],
           "startupTimeoutMs": 30000,
           "actions": [
             "status"
-          ]
+          ],
+          "autostart": false
         }
       ]
     }
@@ -206,5 +195,12 @@
     "lastSyncAt": "2026-08-06T23:21:08.449Z",
     "lastError": ""
   },
-  "manifestVersion": 1
+  "manifestVersion": 1,
+  "agentRuntime": "native",
+  "agentMigration": {
+    "from": "legacy Node/Dock",
+    "to": "shared installed Rust agent",
+    "at": "2026-09-05T09:50:44.257Z",
+    "backup": "/Users/zephyr/Library/Application Support/DeckOne/Tarot/migrations/discowarpcore-native-1788601844125"
+  }
 }

@@ -1,3 +1,4 @@
+import { panelStyles, controlStyles } from '../../styles/primitives';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
@@ -8,9 +9,12 @@ import { getItemThumbnailUrl } from '../../util/itemImage';
 
 const Panel = styled.section`
   min-width: 0;
-  border-top: 1px solid rgba(var(--box-primary-rgb), 0.34);
-  border-bottom: 1px solid rgba(var(--box-primary-rgb), 0.28);
-  background: linear-gradient(90deg, rgba(var(--box-primary-rgb), 0.055), transparent 44%);
+  border-top: 1px solid var(--dw-border);
+  border-bottom: 1px solid var(--dw-border);
+  background: var(--dw-surface);
+
+  ${panelStyles}
+  border-left: 3px solid var(--dw-amber);
 `;
 
 const Header = styled.button`
@@ -26,15 +30,17 @@ const Header = styled.button`
   cursor: pointer;
   text-align: left;
 
-  &:hover { background: rgba(var(--box-primary-rgb), 0.08); }
+  &:hover { background: var(--dw-surface-raised); }
   &:focus-visible { outline: 2px solid var(--box-neon); outline-offset: -2px; }
+
+  ${controlStyles}
 `;
 
 const Title = styled.h3`
   margin: 0;
   font-size: 0.8rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: rgba(var(--box-neon-rgb), 0.84);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -44,9 +50,9 @@ const Title = styled.h3`
 
 const Count = styled.span`
   color: rgba(var(--box-primary-rgb), 0.78);
-  font-family: 'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace, monospace;
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
 `;
 
 const Viewport = styled.div`
@@ -60,7 +66,7 @@ const Viewport = styled.div`
 
 const Row = styled.div`
   min-height: 48px;
-  border-top: 1px solid rgba(var(--box-primary-rgb), 0.24);
+  border-top: 1px solid var(--dw-border);
   padding: 0.36rem 0.08rem;
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
@@ -72,14 +78,14 @@ const Thumb = styled.div`
   width: 34px;
   height: 34px;
   border-radius: 4px;
-  border: 1px solid rgba(var(--box-secondary-rgb), 0.44);
+  border: 1px solid var(--dw-border);
   overflow: hidden;
-  background: rgba(12, 19, 30, 0.94);
+  background: var(--dw-surface-raised);
   display: grid;
   place-items: center;
   color: rgba(var(--box-secondary-rgb), 0.76);
-  font-size: 0.6rem;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  text-transform: none;
 `;
 
 const ThumbImage = styled.img`
@@ -122,14 +128,14 @@ const Name = styled.div`
 
 const Meta = styled.div`
   color: rgba(var(--box-secondary-rgb), 0.74);
-  font-size: 0.69rem;
+  font-size: 0.75rem;
 `;
 
 const StateText = styled.div`
   color: ${({ $error }) =>
     $error ? '#f3c1c1' : 'rgba(var(--box-secondary-rgb), 0.76)'};
   font-size: 0.75rem;
-  border-top: 1px dashed rgba(var(--box-primary-rgb), 0.42);
+  border-top: 1px dashed var(--dw-border);
   padding: 0.58rem 0.08rem;
 `;
 

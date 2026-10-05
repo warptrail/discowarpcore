@@ -112,7 +112,7 @@ export function createInventoryApiClient({
 
   return {
     getHealth() {
-      return request('/health');
+      return request('/health/ready');
     },
 
     searchItems({
@@ -143,9 +143,9 @@ export function createInventoryApiClient({
       });
     },
 
-    searchBoxes({ q, group, location, limit, offset } = {}) {
+    searchBoxes({ q, location, limit, offset } = {}) {
       return request('/retrieval/boxes', {
-        query: { q, group, location, limit, offset },
+        query: { q, location, limit, offset },
       });
     },
 
@@ -168,4 +168,3 @@ export function createInventoryApiClient({
     },
   };
 }
-

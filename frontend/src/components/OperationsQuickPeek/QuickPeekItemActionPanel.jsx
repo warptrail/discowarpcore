@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
+import QuickPeekPlacementActions from './QuickPeekPlacementActions';
 import { editItem } from '../../api/editItem';
 import useItemTimestampActions from '../../hooks/useItemTimestampActions';
 import { ToastContext } from '../Toast';
@@ -6,9 +7,13 @@ import * as S from './OperationsQuickPeek.styles';
 
 export default function QuickPeekItemActionPanel({
   item,
+  box,
+  onMoved,
   position,
   total,
   onBack,
+  onEdit,
+  editing = false,
   onItemUpdated,
   declutterPending = false,
   inDeclutterDeck = false,
@@ -83,6 +88,7 @@ export default function QuickPeekItemActionPanel({
       <S.ItemHeaderActionPanel
         ref={actionPanelRef}
         $body={body}
+        $editable={Boolean(onEdit)}
         aria-label={`Actions for ${name}`}
       >
         <S.ItemActionsToggle
@@ -108,6 +114,9 @@ export default function QuickPeekItemActionPanel({
             <circle cx="7" cy="15" r="1.35" />
           </S.ActionMenuIcon>
         </S.ItemActionsToggle>
+        {onEdit ? (
+          <S.ItemCarouselActionButton type="button" aria-label="Quick edit item basics" aria-pressed={editing} onClick={onEdit}>Edit</S.ItemCarouselActionButton>
+        ) : null}
         {includePosition ? (
           <S.ItemCarouselActionButton
             type="button"
@@ -148,6 +157,7 @@ export default function QuickPeekItemActionPanel({
         ) : null}
         {actionMenuOpen ? (
           <S.ItemActionPopover role="group" aria-label={`Actions for ${name}`}>
+            <S.ActionGroup aria-label="Activity actions"><S.ActionGroupLabel>Activity</S.ActionGroupLabel><S.ActionGroupButtons>
             {timestampActions.map((action) => (
               <S.ItemCarouselActionButton
                 key={action.id}
@@ -162,6 +172,8 @@ export default function QuickPeekItemActionPanel({
                 }}
               >{action.id === 'checked' ? 'Check' : action.id === 'maintained' ? 'Maint.' : action.id === 'consumed' ? 'Consume' : 'Use'}</S.ItemCarouselActionButton>
             ))}
+            </S.ActionGroupButtons></S.ActionGroup>
+            <S.ActionGroup aria-label="Item settings" $inline><S.ActionGroupLabel>Item type</S.ActionGroupLabel><S.ActionGroupButtons $compact>
             <S.ItemCarouselActionButton
               type="button"
               $active={isConsumable}
@@ -174,7 +186,9 @@ export default function QuickPeekItemActionPanel({
                 setActionMenuOpen(false);
                 toggleConsumable();
               }}
-            >{isConsumable ? 'Con. ●' : 'Con. ○'}</S.ItemCarouselActionButton>
+            >{isConsumable ? 'Consumable ●' : 'Consumable ○'}</S.ItemCarouselActionButton>
+            </S.ActionGroupButtons></S.ActionGroup>
+            {box ? <QuickPeekPlacementActions item={item} box={box} onMoved={() => { setActionMenuOpen(false); onMoved?.(); }} /> : null}
           </S.ItemActionPopover>
         ) : null}
         {notePanel}

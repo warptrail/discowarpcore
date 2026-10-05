@@ -1,3 +1,4 @@
+import { controlStyles } from '../../styles/primitives';
 import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { formatTokenLabel } from '../../constants/renderTokens';
@@ -27,15 +28,15 @@ const PickerTitleBlock = styled.div`
 `;
 
 const PickerEyebrow = styled.span`
-  color: rgba(180, 206, 227, 0.82);
-  font-size: 0.62rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  color: var(--dw-text-secondary);
+  font-size: 0.75rem;
+  text-transform: none;
+  letter-spacing: 0;
   font-weight: 700;
 `;
 
 const PickerTitle = styled.span`
-  color: #eef8ff;
+  color: var(--dw-text-secondary);
   font-size: 0.8rem;
   font-weight: 800;
   line-height: 1.2;
@@ -43,14 +44,14 @@ const PickerTitle = styled.span`
 
 const BackButton = styled.button`
   min-height: 29px;
-  border-radius: 5px;
-  border: 1px solid rgba(102, 167, 212, 0.75);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
   background: linear-gradient(180deg, rgba(26, 60, 83, 0.96) 0%, rgba(17, 43, 62, 0.96) 100%);
-  color: #e8fff5;
-  font-size: 0.68rem;
+  color: var(--dw-text-secondary);
+  font-size: 0.75rem;
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  text-transform: none;
+  letter-spacing: 0;
   padding: 0 0.56rem;
   cursor: pointer;
 
@@ -58,6 +59,10 @@ const BackButton = styled.button`
     opacity: 0.56;
     cursor: not-allowed;
   }
+
+  ${controlStyles}
+  flex: 0 0 auto;
+  color: var(--dw-violet);
 `;
 
 const OptionGrid = styled.div`
@@ -71,8 +76,9 @@ const OptionGrid = styled.div`
 `;
 
 const OptionTile = styled.button`
+  ${controlStyles}
   min-height: 68px;
-  border-radius: 10px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid ${({ $selected, $borderColor }) =>
     $selected ? 'rgba(214, 242, 255, 0.92)' : $borderColor};
   background:
@@ -93,6 +99,10 @@ const OptionTile = styled.button`
     opacity: 0.56;
     cursor: not-allowed;
   }
+
+  box-shadow: none;
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 const OptionName = styled.span`
@@ -102,9 +112,9 @@ const OptionName = styled.span`
 `;
 
 const OptionMeta = styled.span`
-  font-size: 0.6rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0;
+  text-transform: none;
   color: ${({ $textColor }) => $textColor};
   opacity: 0.78;
 `;
@@ -148,6 +158,7 @@ export default function RenderTokenOptionPicker({
               key={optionId}
               type="button"
               $selected={selected}
+              aria-pressed={selected}
               $borderColor={surfaceColors.borderColor}
               $gradientStart={surfaceColors.gradientStart}
               $gradientEnd={surfaceColors.gradientEnd}

@@ -316,7 +316,7 @@ export default function ItemDetails({
   const externalLinks = normalizeExternalLinks(links);
   const ownership = getItemOwnershipContext(resolvedItemData);
   const resolvedBox = ownership.box || apiBox || null;
-  const resolvedBoxId = ownership.boxId || resolvedBox?.box_id || '';
+  const resolvedBoxId = ownership.placementLabel || ownership.boxId || resolvedBox?.box_id || '';
   const resolvedBoxLabel = ownership.boxLabel || resolvedBox?.label || '';
   const breadcrumbTrail =
     Array.isArray(breadcrumb) && breadcrumb.length
@@ -339,7 +339,6 @@ export default function ItemDetails({
     ? formatBoxSummary(topBox?.label, topBox?.box_id)
     : '—';
   const placementLocation = ownership.effectiveLocation || location || '—';
-  const placementBoxGroup = ownership.effectiveBoxGroup || '—';
   const keepPriorityLabel = formatKeepPriorityLabel(keepPriority);
   const keepPriorityToneValue = keepPriorityTone(keepPriority);
   const keepPriorityHeaderLabel = (keepPriorityLabel || 'Unspecified').toUpperCase();
@@ -381,7 +380,6 @@ export default function ItemDetails({
           boxId={resolvedBoxId}
           boxLabel={resolvedBoxLabel}
           location={placementLocation}
-          boxGroup={placementBoxGroup}
           breadcrumbTrail={breadcrumbTrail}
           keepPriorityLabel={keepPriorityLabel}
           keepPriority={keepPriority}
@@ -516,7 +514,6 @@ export default function ItemDetails({
 
           <DetailSection title="Assignment Snapshot" tone="coral">
             <DetailRow label="Location" value={placementLocation} stretch nowrap />
-            <DetailRow label="Box Group" value={placementBoxGroup} stretch nowrap />
             <DetailRow label="Last Checked" value={fmtDate(lastCheckedAt)} nowrap />
           </DetailSection>
 
@@ -598,7 +595,6 @@ export default function ItemDetails({
 
           <DetailSection title="Placement / Hierarchy" tone="coral" wide>
             <DetailRow label="Location" value={placementLocation} stretch />
-            <DetailRow label="Box Group" value={placementBoxGroup} stretch />
             <DetailRow label="Box" value={primaryBox} stretch />
             <DetailRow label="Box Description" value={resolvedBox?.description || '—'} stretch />
             <DetailRow label="Depth" value={depth ?? '—'} />

@@ -10,6 +10,13 @@ const ROUTE_LABELS = {
   needs_routing: 'Needs routing',
 };
 
+const COMPLETION_LABELS = {
+  discard: 'Mark trashed',
+  donate: 'Mark donated',
+  sell: 'Mark sold',
+  gift: 'Mark gifted',
+};
+
 const COMPLETION_DISPOSITIONS = {
   discard: 'trashed',
   donate: 'donated',
@@ -59,7 +66,7 @@ function ActionRow({ candidate, player, stagingBoxes, busy, onAction }) {
           disabled={busy || !disposition}
           onClick={() => onAction(candidate, 'complete', { disposition })}
         >
-          {busy ? 'Working…' : 'Mark destroyed'}
+          {busy ? 'Working…' : COMPLETION_LABELS[currentRoute] || 'Choose a route'}
         </S.ActionCompleteButton>
         <DeclutterActionOptions
           candidate={candidate}
@@ -83,7 +90,7 @@ export default function DeclutterActionsPanel({
   onAction,
 }) {
   if (!candidates.length) {
-    return <S.StatusPanel>No items are currently marked for destruction.</S.StatusPanel>;
+    return <S.StatusPanel>No items are currently approved to leave.</S.StatusPanel>;
   }
 
   return (
@@ -91,7 +98,7 @@ export default function DeclutterActionsPanel({
       <S.ActionConsoleHeading>
         <div>
           <S.Eyebrow>Exit todo list</S.Eyebrow>
-          <h2>Marked for Destruction</h2>
+          <h2>Approved to Leave</h2>
           <S.SmallText>Agreed exits stay active inventory until you confirm they are actually gone.</S.SmallText>
         </div>
         <strong>{candidates.length}</strong>

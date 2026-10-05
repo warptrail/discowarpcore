@@ -1,12 +1,13 @@
 import styled, { css, keyframes } from 'styled-components';
 import { QUICK_PEEK_EXIT_DURATION_MS } from './OperationsQuickPeek.motion';
+import { APP_VISUAL_THEME } from '../../styles/tokens';
 
 const COLORS = {
-  bg: '#090d12',
-  panel: '#0e151d',
-  panelRaised: '#131d27',
-  text: '#e6edf3',
-  dim: 'rgba(230, 237, 243, 0.62)',
+  bg: APP_VISUAL_THEME.background,
+  panel: APP_VISUAL_THEME.surface,
+  panelRaised: APP_VISUAL_THEME.surfaceRaised,
+  text: APP_VISUAL_THEME.text,
+  dim: APP_VISUAL_THEME.textSecondary,
   accent: 'var(--box-primary, #4cc6c1)',
   secondary: 'var(--box-secondary, #a7b6ff)',
   accentRgb: 'var(--box-primary-rgb, 76, 198, 193)',
@@ -100,17 +101,11 @@ export const Deck = styled.aside`
   min-height: 0;
   overflow: visible;
   color: ${COLORS.text};
-  background:
-    radial-gradient(circle at 78% 0%, rgba(${COLORS.secondaryRgb}, 0.13), transparent 38%),
-    linear-gradient(90deg, rgba(${COLORS.accentRgb}, 0.055), transparent 44%),
-    linear-gradient(160deg, rgba(14, 25, 34, 0.985), rgba(7, 11, 16, 0.995));
+  background: var(--dw-surface);
   border: 1px solid ${COLORS.line};
   border-bottom: 0;
-  border-radius: 12px 12px 0 0;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 -18px 50px rgba(0, 0, 0, 0.58),
-    0 0 24px rgba(${COLORS.accentRgb}, 0.13);
+  border-radius: var(--dw-radius);
+  box-shadow: none;
   transform: translateY(
     ${({ $expanded }) => ($expanded ? '0' : 'var(--quick-peek-collapsed-shift)')}
   );
@@ -118,7 +113,7 @@ export const Deck = styled.aside`
   animation: ${({ $closing }) =>
     $closing
       ? css`${undockAndDescend} ${QUICK_PEEK_EXIT_DURATION_MS}ms cubic-bezier(0.58, 0.02, 0.82, 0.42) both`
-      : css`${riseAndDock} 680ms cubic-bezier(0.16, 0.82, 0.24, 1) both`};
+      : css`${riseAndDock} 280ms cubic-bezier(0.16, 0.82, 0.24, 1) both`};
   will-change: translate, transform;
   pointer-events: ${({ $closing }) => ($closing ? 'none' : 'auto')};
 
@@ -138,27 +133,26 @@ export const Deck = styled.aside`
     height: auto;
     min-height: 0;
     border-bottom: 1px solid ${COLORS.line};
-    border-radius: 10px;
+    border-radius: var(--dw-radius);
     transform: none;
     animation: ${settle} 240ms cubic-bezier(0.22, 1, 0.36, 1);
     pointer-events: auto;
-  }
-
-  @media (min-width: 1100px) {
-    ${({ $itemFocused }) =>
-      $itemFocused &&
-      css`
-        width: min(720px, 58vw);
-      `}
   }
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
     animation: none;
   }
+  min-width: 0;
+  font-family: var(--dw-font-ui);
+  & :is(button, a, input, select, textarea):focus-visible {
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
+  }
 `;
 
 export const DeckCap = styled.header`
+  border-left: 4px solid ${COLORS.accent};
   position: relative;
   isolation: isolate;
   z-index: 8;
@@ -166,9 +160,7 @@ export const DeckCap = styled.header`
   padding: ${({ $expanded }) =>
     $expanded ? '0.55rem 0.18rem 0.42rem' : '0 0.18rem'};
   border-bottom: 1px solid ${COLORS.line};
-  background:
-    linear-gradient(90deg, rgba(${COLORS.accentRgb}, 0.12), transparent 42%),
-    rgba(8, 13, 19, 0.88);
+  background: var(--dw-surface);
   touch-action: none;
   user-select: none;
 
@@ -179,11 +171,12 @@ export const DeckCap = styled.header`
 `;
 
 export const DeckCapArtwork = styled.span`
+  display: none;
   position: absolute;
   z-index: -1;
   inset: 0;
   overflow: hidden;
-  border-radius: 11px 11px 0 0;
+  border-radius: var(--dw-radius);
   background-position: 72% 48%;
   background-size: cover;
   opacity: 0.22;
@@ -196,8 +189,7 @@ export const DeckCapArtwork = styled.span`
     inset: 0;
     content: '';
     background:
-      linear-gradient(90deg, rgba(8, 13, 19, 0.94) 0%, rgba(8, 13, 19, 0.48) 48%, rgba(8, 13, 19, 0.72) 100%),
-      linear-gradient(0deg, rgba(8, 13, 19, 0.84), transparent 72%);
+      var(--dw-surface);
   }
 `;
 
@@ -222,10 +214,10 @@ export const DetentButton = styled.button`
 export const DetentHandle = styled.span`
   width: 2.8rem;
   height: 3px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, ${COLORS.accent}, ${COLORS.secondary});
-  opacity: 0.62;
-  box-shadow: 0 0 10px rgba(${COLORS.accentRgb}, 0.3);
+  border-radius: var(--dw-radius);
+  background: ${COLORS.accent};
+  opacity: 1;
+  box-shadow: none;
 `;
 
 export const QuickPeekSearchDock = styled.div`
@@ -241,20 +233,14 @@ export const QuickPeekSearchDock = styled.div`
   border: 1px solid rgba(${COLORS.accentRgb}, 0.58);
   border-radius: 6px;
   color: ${COLORS.text};
-  background:
-    linear-gradient(90deg, rgba(${COLORS.accentRgb}, 0.1), transparent 36%),
-    rgba(7, 12, 18, 0.98);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.045),
-    0 0 14px rgba(${COLORS.accentRgb}, 0.16);
+  background: var(--dw-surface);
+  box-shadow: none;
   touch-action: none;
   animation: ${settle} 180ms cubic-bezier(0.22, 1, 0.36, 1);
 
   &:focus-within {
     border-color: rgba(${COLORS.accentRgb}, 0.88);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.06),
-      0 0 16px rgba(${COLORS.accentRgb}, 0.24);
+    box-shadow: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -266,7 +252,7 @@ export const QuickPeekSearchGlyph = styled.span`
   display: grid;
   place-items: center;
   color: ${COLORS.accent};
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--dw-font-ui);
   font-size: 0.9rem;
   opacity: 0.72;
 `;
@@ -279,8 +265,8 @@ export const QuickPeekSearchInput = styled.input`
   padding: 0 0.2rem;
   color: ${COLORS.text};
   background: transparent;
-  font: 700 0.72rem/1.2 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  letter-spacing: 0.01em;
+  font: 700 0.75rem/1.2 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: normal;
 
   &::placeholder {
     color: ${COLORS.dim};
@@ -358,10 +344,10 @@ export const CollapseEdgeButton = styled.button`
 export const CollapseEdgeHandle = styled.span`
   width: 3.4rem;
   height: 3px;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   background: currentColor;
   opacity: 0.82;
-  box-shadow: 0 0 7px rgba(238, 190, 91, 0.18);
+  box-shadow: none;
   transition:
     width 180ms ease,
     opacity 180ms ease,
@@ -371,9 +357,7 @@ export const CollapseEdgeHandle = styled.span`
   ${CollapseEdgeButton}:focus-visible & {
     width: 4.1rem;
     opacity: 1;
-    box-shadow:
-      0 0 8px rgba(255, 211, 116, 0.62),
-      0 0 18px rgba(238, 190, 91, 0.34);
+    box-shadow: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -382,31 +366,61 @@ export const CollapseEdgeHandle = styled.span`
 `;
 
 export const CapIconButton = styled.button`
+  position: relative;
+  isolation: isolate;
   display: grid;
   place-items: center;
   width: 40px;
   height: 44px;
   padding: 0;
-  border: 0;
-  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(${COLORS.accentRgb}, 0.42);
+  border-radius: var(--dw-radius);
   color: ${COLORS.accent};
-  background: transparent;
+  background: var(--dw-surface);
   font-size: 1.9rem;
   font-weight: 800;
   line-height: 1;
   cursor: pointer;
   opacity: 0.78;
+  box-shadow: none;
+  text-shadow: none;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+
+  &::after {
+    position: absolute;
+    z-index: -1;
+    inset: 1px;
+    content: '';
+    border-radius: 8px;
+    background: var(--dw-surface);
+    pointer-events: none;
+  }
 
   &:hover,
   &:focus-visible {
     color: ${COLORS.text};
-    background: rgba(${COLORS.accentRgb}, 0.1);
-    outline: 1px solid rgba(${COLORS.accentRgb}, 0.52);
+    border-color: rgba(${COLORS.accentRgb}, 0.92);
+    background: var(--dw-surface);
+    outline: none;
+    box-shadow: none;
+    transform: translateY(-1px);
   }
 
   &:disabled {
     opacity: 0.18;
     cursor: default;
+    box-shadow: none;
+    text-shadow: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 
@@ -446,7 +460,7 @@ export const CapDescription = styled.p`
   margin: 0;
   overflow: hidden;
   color: rgba(230, 237, 243, 0.72);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 650;
   line-height: 1.2;
   text-align: center;
@@ -480,8 +494,8 @@ export const CapNoteButton = styled.button`
   border: 1px solid rgba(${COLORS.accentRgb}, 0.44);
   border-radius: 4px;
   color: rgba(${COLORS.accentRgb}, 0.96);
-  background: rgba(5, 10, 15, 0.58);
-  font: 900 0.61rem ui-monospace, monospace;
+  background: var(--dw-surface-raised);
+  font: 900 0.75rem var(--dw-font-ui);
   cursor: pointer;
 
   &:hover,
@@ -502,12 +516,11 @@ export const BoxTitleLine = styled.div`
 
 export const BoxId = styled.span`
   color: ${COLORS.accent};
-  font-family:
-    'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace, Menlo,
-    Monaco, Consolas, monospace;
+  font-family: var(--dw-font-ui);
   font-size: 1.02rem;
   font-weight: 900;
-  letter-spacing: 0.08em;
+  letter-spacing: normal;
+  font-family: var(--dw-font-data);
 `;
 
 export const BoxName = styled.strong`
@@ -527,7 +540,7 @@ export const BoxContextLine = styled.span`
   gap: 0.75rem;
   min-width: 0;
   color: ${COLORS.dim};
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   line-height: 1.2;
 `;
 
@@ -535,23 +548,21 @@ export const BoxLocation = styled.span`
   min-width: 0;
   overflow: hidden;
   color: var(--box-location, rgba(${COLORS.accentRgb}, 0.92));
-  font-family:
-    'SFMono-Regular', ui-monospace, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--dw-font-ui);
   font-size: 0.78rem;
   font-weight: 860;
-  letter-spacing: 0.055em;
+  letter-spacing: normal;
   text-overflow: ellipsis;
-  text-transform: uppercase;
+  text-transform: none;
   white-space: nowrap;
-  text-shadow: 0 0 8px rgba(var(--box-location-rgb, ${COLORS.accentRgb}), 0.24);
+  text-shadow: none;
 `;
 
 export const PositionReadout = styled.span`
   flex: 0 0 auto;
   color: rgba(${COLORS.secondaryRgb}, 0.82);
-  font-family:
-    'SFMono-Regular', ui-monospace, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.08em;
+  font-family: var(--dw-font-ui);
+  letter-spacing: normal;
 `;
 
 export const DeckContent = styled.div`
@@ -624,10 +635,8 @@ export const BoxPhotoStage = styled.div`
   overflow: hidden;
   border: 1px solid rgba(${COLORS.accentRgb}, 0.34);
   border-radius: 8px;
-  background:
-    radial-gradient(circle at 50% 44%, rgba(${COLORS.accentRgb}, 0.12), transparent 58%),
-    rgba(3, 8, 13, 0.78);
-  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.44);
+  background: var(--dw-surface);
+  box-shadow: none;
 `;
 
 export const BoxPhotoBackdrop = styled.img`
@@ -682,8 +691,7 @@ export const BoxPhotoExpandHint = styled.span`
   height: 30px;
   border: 1px solid rgba(${COLORS.accentRgb}, 0.48);
   border-radius: 6px;
-  background: rgba(5, 10, 16, 0.66);
-  backdrop-filter: blur(10px);
+  background: var(--dw-surface-raised);
 
   svg {
     width: 15px;
@@ -707,10 +715,9 @@ export const BoxPhotoItemsButton = styled.button`
   border: 1px solid rgba(${COLORS.secondaryRgb}, 0.62);
   border-radius: 6px;
   color: ${COLORS.accent};
-  background: rgba(5, 10, 16, 0.72);
-  backdrop-filter: blur(12px) saturate(130%);
+  background: var(--dw-surface);
   cursor: pointer;
-  box-shadow: 0 0 15px rgba(${COLORS.accentRgb}, 0.12);
+  box-shadow: none;
 
   svg {
     width: 19px;
@@ -726,15 +733,15 @@ export const BoxPhotoItemsButton = styled.button`
     outline: none;
     color: ${COLORS.text};
     border-color: ${COLORS.accent};
-    box-shadow: 0 0 18px rgba(${COLORS.accentRgb}, 0.28);
+    box-shadow: none;
   }
 `;
 
 export const BoxPhotoFallback = styled.div`
   color: ${COLORS.dim};
-  font: 800 0.7rem/1.3 'SFMono-Regular', ui-monospace, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 800 0.7rem/1.3 'SFMono-Regular', var(--dw-font-ui);
+  letter-spacing: normal;
+  text-transform: none;
 `;
 
 export const BoxSnapshot = styled.div`
@@ -748,12 +755,9 @@ export const BoxSnapshot = styled.div`
       : '0'};
   background: ${({ $notesEmphasized }) =>
     $notesEmphasized
-      ? `linear-gradient(90deg, rgba(${COLORS.accentRgb}, 0.15), rgba(${COLORS.secondaryRgb}, 0.05) 72%, transparent)`
+      ? 'var(--dw-surface-raised)'
       : 'transparent'};
-  box-shadow: ${({ $notesEmphasized }) =>
-    $notesEmphasized
-      ? `inset 0 1px rgba(${COLORS.accentRgb}, 0.16), 0 0 20px rgba(${COLORS.accentRgb}, 0.08)`
-      : 'none'};
+  box-shadow: none;
 `;
 
 export const BoxSnapshotText = styled.div`
@@ -804,11 +808,11 @@ export const MetaLabel = styled.span`
     $emphasized
       ? `rgba(${COLORS.accentRgb}, 0.98)`
       : `rgba(${COLORS.secondaryRgb}, 0.8)`};
-  font-family: ui-monospace, monospace;
-  font-size: 0.56rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   font-weight: 900;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
 `;
 
 export const TagLine = styled.div`
@@ -817,8 +821,8 @@ export const TagLine = styled.div`
   min-width: 0;
   overflow: hidden;
   color: rgba(${COLORS.accentRgb}, 0.78);
-  font-family: ui-monospace, monospace;
-  font-size: 0.62rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   white-space: nowrap;
 `;
 
@@ -846,10 +850,10 @@ export const NoteItemsReturn = styled.button`
   border-radius: 5px 10px 5px 5px;
   padding: 0 0.72rem;
   color: rgba(230, 237, 243, 0.72);
-  background: rgba(6, 12, 17, 0.56);
-  font: 800 0.62rem ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  background: var(--dw-surface-raised);
+  font: 800 0.75rem var(--dw-font-ui);
+  letter-spacing: normal;
+  text-transform: none;
   cursor: pointer;
 
   span:last-child {
@@ -881,30 +885,8 @@ export const NotePaper = styled.button`
   border-radius: 3px 10px 5px 3px;
   padding: 1rem 1rem 0.82rem 1.42rem;
   color: var(--box-neon, ${COLORS.text});
-  background:
-    radial-gradient(
-      circle at 18% 7%,
-      rgba(${COLORS.accentRgb}, 0.13),
-      transparent 36%
-    ),
-    radial-gradient(
-      circle at 92% 88%,
-      rgba(${COLORS.secondaryRgb}, 0.09),
-      transparent 44%
-    ),
-    repeating-linear-gradient(
-      180deg,
-      transparent 0,
-      transparent 28px,
-      rgba(${COLORS.secondaryRgb}, 0.13) 29px,
-      transparent 30px
-    ),
-    linear-gradient(145deg, #0c1017, #05070b 72%, #090c12);
-  box-shadow:
-    0 18px 34px rgba(0, 0, 0, 0.48),
-    0 0 18px rgba(${COLORS.accentRgb}, 0.09),
-    inset 0 1px rgba(${COLORS.secondaryRgb}, 0.14),
-    inset 0 0 28px rgba(0, 0, 0, 0.34);
+  background: var(--dw-surface);
+  box-shadow: none;
   text-align: left;
   cursor: pointer;
   transform-origin: 50% 100%;
@@ -915,12 +897,8 @@ export const NotePaper = styled.button`
     z-index: 1;
     inset: 0 auto 0 0;
     width: 7px;
-    background: linear-gradient(
-      180deg,
-      rgba(${COLORS.accentRgb}, 0.98),
-      rgba(${COLORS.secondaryRgb}, 0.78)
-    );
-    box-shadow: 0 0 14px rgba(${COLORS.accentRgb}, 0.34);
+    background: var(--dw-surface);
+    box-shadow: none;
     content: '';
   }
 
@@ -930,7 +908,7 @@ export const NotePaper = styled.button`
     inset: 0 auto 0 2.02rem;
     width: 1px;
     background: rgba(${COLORS.accentRgb}, 0.24);
-    box-shadow: 0 0 8px rgba(${COLORS.accentRgb}, 0.2);
+    box-shadow: none;
     content: '';
     pointer-events: none;
   }
@@ -944,11 +922,7 @@ export const NotePaper = styled.button`
   &:focus-visible {
     border-color: rgba(${COLORS.accentRgb}, 0.72);
     outline: none;
-    box-shadow:
-      0 20px 38px rgba(0, 0, 0, 0.52),
-      0 0 0 2px rgba(${COLORS.accentRgb}, 0.24),
-      0 0 24px rgba(${COLORS.accentRgb}, 0.14),
-      inset 0 1px rgba(${COLORS.secondaryRgb}, 0.18);
+    box-shadow: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -959,10 +933,10 @@ export const NotePaper = styled.button`
 
 export const NotePaperKicker = styled.span`
   color: rgba(${COLORS.secondaryRgb}, 0.86);
-  font: 900 0.62rem ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.12em;
-  text-shadow: 0 0 10px rgba(${COLORS.secondaryRgb}, 0.32);
-  text-transform: uppercase;
+  font: 900 0.75rem var(--dw-font-ui);
+  letter-spacing: normal;
+  text-shadow: none;
+  text-transform: none;
 `;
 
 export const NotePaperBody = styled.span`
@@ -972,19 +946,17 @@ export const NotePaperBody = styled.span`
   font-weight: 720;
   line-height: 1.78;
   overflow-wrap: anywhere;
-  text-shadow:
-    0 0 5px rgba(var(--box-neon-rgb, 230, 237, 243), 0.42),
-    0 0 16px rgba(${COLORS.accentRgb}, 0.2);
+  text-shadow: none;
   white-space: pre-wrap;
 `;
 
 export const NotePaperHint = styled.span`
   justify-self: end;
   color: rgba(${COLORS.accentRgb}, 0.76);
-  font: 800 0.56rem ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.08em;
-  text-shadow: 0 0 8px rgba(${COLORS.accentRgb}, 0.24);
-  text-transform: uppercase;
+  font: 800 0.75rem var(--dw-font-ui);
+  letter-spacing: normal;
+  text-shadow: none;
+  text-transform: none;
 `;
 
 export const ItemsHeader = styled.div`
@@ -995,16 +967,50 @@ export const ItemsHeader = styled.div`
   padding: 0.52rem 0 0.4rem;
   border-top: 1px solid ${COLORS.line};
   color: ${COLORS.accent};
-  font-family: ui-monospace, monospace;
-  font-size: 0.72rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   font-weight: 900;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
 `;
 
 export const ItemsCount = styled.span`
   color: ${COLORS.dim};
-  font-size: 0.58rem;
+  font-size: 0.75rem;
+`;
+
+export const ItemsHeaderMeta = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.42rem;
+  min-width: 0;
+`;
+
+export const ItemSortButton = styled.button`
+  flex: 0 0 2.35rem;
+  width: 2.35rem;
+  height: 1.55rem;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(${COLORS.accentRgb}, 0.34);
+  border-radius: 6px;
+  color: rgba(${COLORS.accentRgb}, 0.86);
+  background: rgba(${COLORS.accentRgb}, 0.08);
+  font: 800 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: rgba(${COLORS.accentRgb}, 0.84);
+    background: rgba(${COLORS.accentRgb}, 0.16);
+    box-shadow: none;
+    outline: none;
+  }
 `;
 
 export const ItemList = styled.ul`
@@ -1019,6 +1025,11 @@ export const ItemList = styled.ul`
 export const ItemRow = styled.li`
   position: relative;
   border-bottom: 1px solid rgba(${COLORS.accentRgb}, 0.12);
+`;
+
+export const ItemMatchLabel = styled.span`
+  color: #b5f36b;
+  font-weight: 700;
 `;
 
 export const ItemRowButton = styled.button`
@@ -1036,12 +1047,17 @@ export const ItemRowButton = styled.button`
   text-align: left;
   cursor: pointer;
 
+  ${({ $matched }) => $matched && `
+    background: rgba(163, 230, 53, 0.13);
+    box-shadow: none;
+    padding-left: 0.5rem;
+  `}
+
   &:hover,
   &:focus-visible {
     outline: none;
-    background:
-      linear-gradient(90deg, rgba(${COLORS.accentRgb}, 0.12), transparent 74%);
-    box-shadow: inset 2px 0 0 ${COLORS.accent};
+    background: var(--dw-surface);
+    box-shadow: none;
   }
 `;
 
@@ -1053,7 +1069,7 @@ export const ItemThumbnail = styled.img`
   object-fit: cover;
   border: 1px solid rgba(${COLORS.accentRgb}, 0.3);
   border-radius: 4px;
-  background: rgba(4, 8, 12, 0.78);
+  background: var(--dw-surface);
 `;
 
 export const ItemThumbnailFallback = styled.span`
@@ -1063,9 +1079,7 @@ export const ItemThumbnailFallback = styled.span`
   height: 30px;
   border: 1px solid rgba(${COLORS.accentRgb}, 0.12);
   border-radius: 4px;
-  background:
-    linear-gradient(135deg, transparent 46%, rgba(${COLORS.accentRgb}, 0.1) 47% 53%, transparent 54%),
-    rgba(4, 8, 12, 0.54);
+  background: var(--dw-surface);
 `;
 
 export const ItemName = styled.strong`
@@ -1084,7 +1098,7 @@ export const ItemCategory = styled.span`
   min-width: 0;
   overflow: hidden;
   color: ${COLORS.dim};
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
@@ -1093,8 +1107,8 @@ export const ItemQuantity = styled.code`
   grid-column: 3;
   grid-row: 1 / span 2;
   color: ${COLORS.secondary};
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
+  font-size: 0.75rem;
+  letter-spacing: normal;
 `;
 
 export const EmptyItems = styled.p`
@@ -1131,21 +1145,12 @@ export const ItemCarouselCard = styled.div`
   overflow: hidden;
   border: 1px solid rgba(${COLORS.accentRgb}, 0.34);
   border-radius: 8px;
-  background:
-    linear-gradient(145deg, rgba(${COLORS.accentRgb}, 0.07), transparent 42%),
-    rgba(7, 12, 18, 0.82);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.045),
-    0 14px 34px rgba(0, 0, 0, 0.3);
+  background: var(--dw-surface);
+  box-shadow: none;
 
   @media (min-width: 768px) {
     display: grid;
-    grid-template-rows: minmax(0, 1fr) clamp(9.75rem, 24dvh, 12rem);
-  }
-
-  @media (min-width: 1100px) {
-    grid-template-columns: minmax(250px, 0.9fr) minmax(0, 1.1fr);
-    grid-template-rows: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
   }
 
   @media (max-width: 767px) {
@@ -1163,9 +1168,7 @@ export const ItemCarouselMedia = styled.div`
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 50% 44%, rgba(${COLORS.secondaryRgb}, 0.12), transparent 62%),
-    rgba(3, 8, 12, 0.88);
+  background: var(--dw-surface);
   cursor: ${({ $interactive }) => ($interactive ? 'zoom-in' : 'default')};
 
   &:focus-visible {
@@ -1180,12 +1183,7 @@ export const ItemCarouselMedia = styled.div`
     inset: 0;
     pointer-events: none;
     background:
-      linear-gradient(180deg, rgba(3, 7, 11, 0.42), transparent 22% 72%, rgba(3, 7, 11, 0.58)),
-      linear-gradient(90deg, rgba(3, 7, 11, 0.32), transparent 18% 82%, rgba(3, 7, 11, 0.32));
-  }
-
-  @media (min-width: 1100px) {
-    border-right: 1px solid rgba(${COLORS.accentRgb}, 0.22);
+      var(--dw-surface);
   }
 `;
 
@@ -1211,20 +1209,19 @@ export const ItemCarouselLightboxTrigger = styled.button`
 export const ItemCarouselArrow = styled.button`
   position: absolute;
   z-index: 4;
-  top: 50%;
+  bottom: 0.25rem;
   ${({ $side }) => ($side === 'previous' ? 'left: 0.35rem;' : 'right: 0.35rem;')}
-  transform: translateY(-50%);
   display: grid;
   place-items: center;
   width: 44px;
   height: 44px;
   padding: 0;
-  border: 1px solid rgba(${COLORS.accentRgb}, 0.26);
-  border-radius: 6px;
+  border: 0;
+  border-radius: 0;
   color: ${COLORS.accent};
-  background: rgba(5, 10, 15, 0.68);
-  backdrop-filter: blur(7px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.34);
+  background: transparent;
+  text-shadow: none;
+  font-family: var(--dw-font-ui);
   font-size: 1.9rem;
   font-weight: 800;
   line-height: 1;
@@ -1234,9 +1231,10 @@ export const ItemCarouselArrow = styled.button`
   &:focus-visible {
     color: ${COLORS.text};
     outline: none;
-    border-color: rgba(${COLORS.accentRgb}, 0.7);
-    background: rgba(${COLORS.accentRgb}, 0.1);
+    background: transparent;
   }
+
+  &:focus-visible { outline: 1px dashed currentColor; outline-offset: -5px; }
 
   &:disabled {
     opacity: 0.18;
@@ -1261,8 +1259,7 @@ export const ItemCarouselReturn = styled.button`
   border: 1px solid rgba(${COLORS.accentRgb}, 0.22);
   border-radius: 5px;
   color: rgba(230, 237, 243, 0.78);
-  background: rgba(5, 10, 15, 0.7);
-  backdrop-filter: blur(7px);
+  background: var(--dw-surface-raised);
   cursor: pointer;
 
   &:hover,
@@ -1283,8 +1280,8 @@ export const ItemListIcon = styled.svg`
 
 export const ItemCarouselPosition = styled.code`
   color: rgba(${COLORS.secondaryRgb}, 0.82);
-  font-size: 0.64rem;
-  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  letter-spacing: normal;
 `;
 
 export const ItemCarouselDeckToggle = styled.button`
@@ -1305,7 +1302,6 @@ export const ItemCarouselDeckToggle = styled.button`
   background: ${({ $active }) => (
     $active ? 'rgba(118, 39, 35, 0.76)' : 'rgba(5, 10, 15, 0.78)'
   )};
-  backdrop-filter: blur(7px);
   cursor: pointer;
 
   &:hover,
@@ -1315,7 +1311,7 @@ export const ItemCarouselDeckToggle = styled.button`
   }
 
   &:focus-visible {
-    box-shadow: 0 0 0 2px rgba(${COLORS.accentRgb}, 0.34);
+    box-shadow: none;
   }
 
   &:disabled {
@@ -1337,7 +1333,7 @@ export const ItemCarouselActionRail = styled.div`
 export const ItemHeaderActionPanel = styled.div`
   position: relative;
   display: grid;
-  grid-template-columns: repeat(3, max-content);
+  grid-template-columns: repeat(${({ $editable }) => $editable ? 4 : 3}, max-content);
   gap: 0.22rem;
   align-items: center;
   justify-content: center;
@@ -1354,16 +1350,16 @@ export const ItemHeaderActionPanel = styled.div`
     button {
       width: 100%;
       min-width: 0;
-      font-size: 0.48rem;
+      font-size: 0.75rem;
     }
   `}
 
   @media (max-width: 460px) {
-    grid-template-columns: ${({ $positionOnly }) => ($positionOnly ? '42px' : 'repeat(3, max-content)')};
+    grid-template-columns: ${({ $positionOnly, $editable }) => ($positionOnly ? '42px' : `repeat(${$editable ? 4 : 3}, max-content)`)};
 
     button {
       width: 42px;
-      font-size: 0.48rem;
+      font-size: 0.75rem;
     }
   }
 `;
@@ -1414,11 +1410,10 @@ export const ItemCarouselActionButton = styled.button`
           ? 'rgba(76, 37, 104, 0.76)'
           : 'rgba(5, 10, 15, 0.78)'
   )};
-  backdrop-filter: blur(7px);
   font-family: inherit;
-  font-size: 0.52rem;
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: normal;
   cursor: pointer;
 
   &:hover,
@@ -1428,7 +1423,7 @@ export const ItemCarouselActionButton = styled.button`
   }
 
   &:focus-visible {
-    box-shadow: 0 0 0 2px rgba(${COLORS.accentRgb}, 0.34);
+    box-shadow: none;
   }
 
   &:disabled {
@@ -1453,16 +1448,8 @@ export const ItemActionsToggle = styled(ItemCarouselActionButton)`
       border-color: rgba(var(--box-secondary-rgb, 167, 182, 255), 0.98);
       color: #f5fbff;
       background:
-        linear-gradient(
-          135deg,
-          rgba(var(--box-accent-rgb, 68, 205, 214), 0.64),
-          rgba(var(--box-secondary-rgb, 167, 182, 255), 0.5)
-        ),
-        rgba(7, 16, 24, 0.96);
-      box-shadow:
-        0 0 0 1px rgba(var(--box-accent-rgb, 68, 205, 214), 0.45),
-        0 0 12px rgba(var(--box-accent-rgb, 68, 205, 214), 0.66),
-        inset 0 0 10px rgba(255, 255, 255, 0.16);
+        var(--dw-surface);
+      box-shadow: none;
       filter: brightness(1.22) saturate(1.18);
     }
 
@@ -1499,12 +1486,10 @@ export const ItemHeaderOpenFullButton = styled.button`
   border: 1px solid rgba(${COLORS.secondaryRgb}, 0.58);
   border-radius: 5px;
   color: ${COLORS.text};
-  background:
-    linear-gradient(90deg, rgba(${COLORS.accentRgb}, 0.16), rgba(${COLORS.secondaryRgb}, 0.12)),
-    rgba(9, 14, 20, 0.78);
-  font: 900 0.48rem/1 inherit;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  background: var(--dw-surface);
+  font: 600 0.75rem/1.25 var(--dw-font-ui);
+  letter-spacing: normal;
+  text-transform: none;
   cursor: pointer;
 
   svg {
@@ -1516,7 +1501,7 @@ export const ItemHeaderOpenFullButton = styled.button`
   &:focus-visible {
     border-color: ${COLORS.accent};
     outline: none;
-    box-shadow: 0 0 12px rgba(${COLORS.accentRgb}, 0.2);
+    box-shadow: none;
   }
 `;
 
@@ -1526,17 +1511,18 @@ export const ItemActionPopover = styled.div`
   top: calc(100% + 0.42rem);
   left: 50%;
   display: grid;
-  grid-template-columns: repeat(4, 46px);
+  grid-template-columns: minmax(0, 1fr);
+  width: min(290px, calc(100vw - 48px));
+  max-height: min(440px, 48dvh);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--box-primary, #4cc6c1) #080e14;
   gap: 0.24rem;
   padding: 0.38rem;
   border: 1px solid rgba(${COLORS.accentRgb}, 0.48);
   border-radius: 7px;
-  background:
-    linear-gradient(135deg, rgba(${COLORS.accentRgb}, 0.14), transparent 62%),
-    rgba(6, 11, 17, 0.98);
-  box-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.54),
-    0 0 18px rgba(${COLORS.accentRgb}, 0.18);
+  background: var(--dw-surface);
+  box-shadow: none;
   transform: translateX(-50%);
 
   &::before {
@@ -1547,13 +1533,13 @@ export const ItemActionPopover = styled.div`
     height: 9px;
     border-top: 1px solid rgba(${COLORS.accentRgb}, 0.48);
     border-left: 1px solid rgba(${COLORS.accentRgb}, 0.48);
-    background: rgba(8, 14, 20, 0.98);
+    background: var(--dw-surface);
     content: '';
     transform: translateX(-50%) rotate(45deg);
   }
 
   @media (max-width: 460px) {
-    grid-template-columns: repeat(4, 42px);
+    grid-template-columns: minmax(0, 1fr);
   }
 `;
 
@@ -1571,25 +1557,21 @@ export const ItemNoteSheet = styled.section`
   overflow-y: auto;
   border: 1px solid rgba(${COLORS.accentRgb}, 0.5);
   border-radius: 8px;
-  background:
-    linear-gradient(135deg, rgba(${COLORS.accentRgb}, 0.12), transparent 62%),
-    rgba(5, 10, 16, 0.98);
-  box-shadow:
-    0 16px 34px rgba(0, 0, 0, 0.6),
-    0 0 22px rgba(${COLORS.accentRgb}, 0.2);
+  background: var(--dw-surface);
+  box-shadow: none;
   transform: translateX(-50%);
   scrollbar-width: thin;
   scrollbar-color: rgba(${COLORS.accentRgb}, 0.44) transparent;
 
   ${NoteFocusToolbar} {
-    min-height: 32px;
+    min-height: var(--dw-control-height);
   }
 
   ${NoteItemsReturn} {
-    min-height: 30px;
+    min-height: var(--dw-control-height);
     padding: 0 0.52rem;
     border-radius: 5px 8px 5px 5px;
-    font-size: 0.52rem;
+    font-size: 0.75rem;
   }
 
   ${NotePaper} {
@@ -1624,12 +1606,7 @@ export const ItemCarouselBody = styled.div`
   overflow: hidden;
   pointer-events: none;
   padding: 2.5rem 0.82rem 0.62rem;
-  background: linear-gradient(
-    180deg,
-    transparent 0,
-    rgba(5, 10, 15, 0.84) 2.4rem,
-    rgba(5, 10, 15, 0.98) 100%
-  );
+  background: var(--dw-surface);
 
   @media (min-width: 768px) {
     position: static;
@@ -1637,34 +1614,23 @@ export const ItemCarouselBody = styled.div`
     min-height: 0;
     max-height: none;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: hidden;
     pointer-events: auto;
     padding: 0.78rem 0.9rem 1rem;
     border-top: 1px solid rgba(${COLORS.accentRgb}, 0.22);
-    background:
-      linear-gradient(90deg, rgba(${COLORS.accentRgb}, 0.055), transparent 46%),
-      rgba(7, 12, 18, 0.96);
+    background: var(--dw-surface);
     scrollbar-width: thin;
     scrollbar-color: rgba(${COLORS.accentRgb}, 0.4) transparent;
-  }
-
-  @media (min-width: 1100px) {
-    align-self: stretch;
-    padding: 1.05rem 1.1rem;
-    border-top: 0;
-    background: rgba(7, 12, 18, 0.78);
   }
 
   @media (max-width: 767px) {
     position: static;
     max-height: none;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: hidden;
     pointer-events: auto;
     padding: 0.62rem 0.72rem 0.28rem;
-    background:
-      linear-gradient(90deg, rgba(${COLORS.accentRgb}, 0.055), transparent 46%),
-      rgba(7, 12, 18, 0.96);
+    background: var(--dw-surface);
     scrollbar-width: thin;
     scrollbar-color: rgba(${COLORS.accentRgb}, 0.4) transparent;
     scroll-padding-bottom: 2.25rem;
@@ -1722,12 +1688,10 @@ export const ItemCarouselImageFallback = styled.div`
   width: 100%;
   height: 100%;
   color: rgba(230, 237, 243, 0.3);
-  background:
-    linear-gradient(135deg, transparent 49.7%, rgba(${COLORS.accentRgb}, 0.12) 50%, transparent 50.3%),
-    rgba(4, 8, 12, 0.28);
-  font-family: ui-monospace, monospace;
-  font-size: 0.58rem;
-  letter-spacing: 0.14em;
+  background: var(--dw-surface);
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
+  letter-spacing: normal;
 `;
 
 export const ItemCarouselIdentity = styled.div`
@@ -1739,6 +1703,7 @@ export const ItemCarouselIdentity = styled.div`
 `;
 
 export const ItemCarouselName = styled.h3`
+  button { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
   margin: 0;
   color: ${COLORS.text};
   font-size: clamp(1rem, 4.8vw, 1.35rem);
@@ -1752,12 +1717,12 @@ export const ItemCarouselMeta = styled.div`
   gap: 0.35rem 0.6rem;
   align-items: center;
   color: ${COLORS.dim};
-  font-size: 0.68rem;
+  font-size: 0.75rem;
 
   code {
     color: ${COLORS.secondary};
-    font-size: 0.64rem;
-    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+    letter-spacing: normal;
   }
 `;
 
@@ -1775,7 +1740,7 @@ export const ItemCarouselDetail = styled.div`
     margin: 0;
     overflow: hidden;
     color: rgba(230, 237, 243, 0.8);
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     line-height: 1.32;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
@@ -1795,7 +1760,11 @@ export const ItemCarouselAnnotationLine = styled.div`
 `;
 
 export const ItemCarouselDescription = styled.p`
-  cursor: help;
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.32;
+  button { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+  cursor: text;
 
   @media (max-width: 767px) {
     -webkit-line-clamp: 2;
@@ -1813,7 +1782,7 @@ export const ItemCarouselNoteButton = styled.button`
   border-radius: 4px;
   color: #e8b5ff;
   background: rgba(76, 37, 104, 0.76);
-  font: 900 0.62rem ui-monospace, monospace;
+  font: 900 0.75rem var(--dw-font-ui);
   cursor: pointer;
 
   &:hover,
@@ -1821,7 +1790,7 @@ export const ItemCarouselNoteButton = styled.button`
     border-color: #f0caff;
     color: ${COLORS.text};
     outline: none;
-    box-shadow: 0 0 12px rgba(220, 143, 255, 0.24);
+    box-shadow: none;
   }
 `;
 
@@ -1838,7 +1807,7 @@ export const ItemCarouselCategoryValue = styled.p`
   margin: 0;
   overflow: hidden;
   color: rgba(230, 237, 243, 0.8);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   line-height: 1.32;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1847,7 +1816,7 @@ export const ItemCarouselCategoryValue = styled.p`
 export const ItemCarouselDeckButton = styled.button`
   flex: 0 0 auto;
   margin-left: auto;
-  min-height: 24px;
+  min-height: var(--dw-control-height);
   padding: 0.1rem 0.42rem;
   border: 1px solid ${({ $active }) => (
     $active ? 'rgba(240, 138, 123, 0.88)' : `rgba(${COLORS.accentRgb}, 0.44)`
@@ -1857,8 +1826,8 @@ export const ItemCarouselDeckButton = styled.button`
   background: ${({ $active }) => (
     $active ? 'rgba(118, 39, 35, 0.76)' : 'rgba(5, 10, 15, 0.72)'
   )};
-  font: 900 0.56rem ui-monospace, monospace;
-  letter-spacing: 0.04em;
+  font: 900 0.75rem var(--dw-font-ui);
+  letter-spacing: normal;
   cursor: pointer;
 
   &:hover,
@@ -1875,6 +1844,7 @@ export const ItemCarouselDeckButton = styled.button`
 `;
 
 export const ItemCarouselTags = styled.div`
+  button { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   display: flex;
   flex-wrap: wrap;
   gap: 0.28rem 0.48rem;
@@ -1882,8 +1852,8 @@ export const ItemCarouselTags = styled.div`
   padding: 0.38rem 0 0;
   overflow: hidden;
   color: rgba(${COLORS.accentRgb}, 0.8);
-  font-family: ui-monospace, monospace;
-  font-size: 0.64rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   line-height: 1.4;
 
   @media (min-width: 768px) {
@@ -1897,7 +1867,7 @@ export const ItemCarouselEmpty = styled.p`
   padding: 0.75rem 0;
   border-top: 1px solid ${COLORS.line};
   color: ${COLORS.dim};
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   text-align: center;
 `;
 
@@ -1911,7 +1881,7 @@ export const NestedBoxes = styled.details`
     justify-content: space-between;
     min-height: 44px;
     color: rgba(230, 237, 243, 0.76);
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     font-weight: 800;
     cursor: pointer;
     list-style: none;
@@ -1923,7 +1893,7 @@ export const NestedBoxes = styled.details`
 
   summary span {
     color: ${COLORS.accent};
-    font-family: ui-monospace, monospace;
+    font-family: var(--dw-font-ui);
   }
 `;
 
@@ -1934,7 +1904,7 @@ export const NestedBoxList = styled.ul`
   padding: 0 0 0.6rem;
   list-style: none;
   color: ${COLORS.dim};
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 
   li {
     display: flex;
@@ -1975,26 +1945,18 @@ export const OpenFullBoxButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 36px;
+  min-height: var(--dw-control-height);
   padding: 0 0.72rem;
   border: 1px solid rgba(${COLORS.secondaryRgb}, 0.58);
   border-radius: 7px;
   color: ${COLORS.text};
-  background:
-    linear-gradient(
-      90deg,
-      rgba(${COLORS.accentRgb}, 0.18),
-      rgba(${COLORS.secondaryRgb}, 0.14)
-    ),
-    rgba(9, 14, 20, 0.62);
-  -webkit-backdrop-filter: blur(14px) saturate(135%);
-  backdrop-filter: blur(14px) saturate(135%);
-  font-size: 0.68rem;
+  background: var(--dw-surface);
+  font-size: 0.75rem;
   font-weight: 900;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
   cursor: pointer;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.42);
+  box-shadow: none;
   transition:
     border-color 160ms ease,
     box-shadow 160ms ease;
@@ -2003,34 +1965,29 @@ export const OpenFullBoxButton = styled.button`
   &:focus-visible {
     border-color: ${COLORS.accent};
     outline: none;
-    box-shadow:
-      0 8px 24px rgba(0, 0, 0, 0.42),
-      0 0 16px rgba(${COLORS.accentRgb}, 0.2);
+    box-shadow: none;
   }
-
 `;
 
 export const BoxNotesFooterButton = styled.button`
   display: grid;
   place-items: center;
   width: 36px;
-  min-height: 36px;
+  min-height: var(--dw-control-height);
   padding: 0;
   border: 1px solid rgba(${COLORS.accentRgb}, 0.62);
   border-radius: 7px;
   color: ${COLORS.text};
-  background: rgba(9, 14, 20, 0.72);
-  font: 900 0.64rem/1 ui-monospace, monospace;
+  background: var(--dw-surface);
+  font: 900 0.75rem/1 var(--dw-font-ui);
   cursor: pointer;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.34);
+  box-shadow: none;
 
   &:hover,
   &:focus-visible {
     border-color: ${COLORS.accent};
     outline: none;
-    box-shadow:
-      0 8px 24px rgba(0, 0, 0, 0.42),
-      0 0 16px rgba(${COLORS.accentRgb}, 0.2);
+    box-shadow: none;
   }
 `;
 
@@ -2044,4 +2001,25 @@ export const OpenFullBoxIcon = styled.svg`
   stroke-linecap: round;
   stroke-linejoin: round;
   filter: drop-shadow(0 0 5px rgba(${COLORS.accentRgb}, 0.3));
+`;
+
+export const ActionGroup = styled.section`
+  display: grid; gap: 0.15rem; min-width: 0; padding: 0.25rem 0.35rem;
+  ${({ $inline }) => $inline && css`grid-template-columns: 1fr auto; align-items: center;`}
+  & + & { border-top: 1px solid rgba(${COLORS.accentRgb}, 0.16); }
+`;
+export const ActionGroupLabel = styled.span`
+  color: ${COLORS.dim}; font: 600 0.75rem/1.4 var(--dw-font-ui); letter-spacing: normal;
+`;
+export const ActionGroupButtons = styled.div`
+  display: flex; gap: 0.3rem;
+  button {
+    flex: ${({ $compact }) => $compact ? '0 0 auto' : '1'};
+    width: auto; min-height: var(--dw-control-height); padding: 0.2rem 0.45rem;
+    border: 0; border-radius: 3px; box-shadow: none;
+    font-size: 0.75rem; background: transparent;
+    &:hover { background: rgba(${COLORS.accentRgb}, 0.1); }
+    &:focus-visible { outline: 1px solid ${COLORS.accent}; outline-offset: -1px; }
+  }
+  @media (pointer: coarse) { button { min-height: 40px; } }
 `;

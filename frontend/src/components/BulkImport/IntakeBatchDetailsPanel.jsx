@@ -1,3 +1,4 @@
+import { panelStyles, controlStyles, inputStyles } from '../../styles/primitives';
 import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import {
@@ -8,9 +9,9 @@ import {
 import IntakeBatchImportedItemsPanel from './IntakeBatchImportedItemsPanel';
 
 const Panel = styled.section`
-  border: 1px solid rgba(96, 152, 189, 0.36);
-  border-radius: 14px;
-  background: linear-gradient(180deg, rgba(12, 20, 29, 0.95) 0%, rgba(8, 14, 22, 0.98) 100%);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   padding: 0.82rem;
   display: grid;
   gap: 0.78rem;
@@ -21,6 +22,9 @@ const Panel = styled.section`
     padding: 0.68rem;
     gap: 0.64rem;
   }
+
+  ${panelStyles}
+  border-left: 3px solid var(--dw-amber);
 `;
 
 const Header = styled.div`
@@ -32,9 +36,9 @@ const Header = styled.div`
 const Title = styled.h3`
   margin: 0;
   font-size: 0.88rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #e2effc;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--dw-text);
 `;
 
 const Text = styled.p`
@@ -46,9 +50,9 @@ const Text = styled.p`
 `;
 
 const Empty = styled.div`
-  border-radius: 10px;
-  border: 1px dashed rgba(104, 155, 191, 0.46);
-  background: rgba(8, 15, 23, 0.78);
+  border-radius: var(--dw-radius-sm);
+  border: 1px dashed var(--dw-border);
+  background: var(--dw-surface);
   color: #9fb8cf;
   font-size: 0.8rem;
   padding: 0.8rem;
@@ -56,9 +60,9 @@ const Empty = styled.div`
 `;
 
 const SummaryCard = styled.div`
-  border-radius: 12px;
-  border: 1px solid rgba(88, 143, 184, 0.42);
-  background: rgba(12, 23, 34, 0.84);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
   padding: 0.72rem;
   display: grid;
   gap: 0.56rem;
@@ -101,21 +105,23 @@ const BatchName = styled.div`
 
 const InlineButton = styled.button`
   min-height: 1.72rem;
-  border-radius: 8px;
-  border: 1px solid rgba(102, 167, 212, 0.58);
-  background: rgba(18, 39, 57, 0.82);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
   color: #cfe8fb;
   padding: 0 0.54rem;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   cursor: pointer;
 
   &:disabled {
     opacity: 0.56;
     cursor: not-allowed;
   }
+
+  ${controlStyles}
 `;
 
 const RenameForm = styled.form`
@@ -141,14 +147,14 @@ const ChipRow = styled.div`
 `;
 
 const Chip = styled.div`
-  border-radius: 999px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $tone }) =>
       $tone === 'success'
         ? 'rgba(104, 177, 141, 0.54)'
         : $tone === 'error'
           ? 'rgba(206, 114, 114, 0.54)'
-          : 'rgba(88, 143, 184, 0.42)'};
+          : 'var(--dw-border)'};
   background: ${({ $tone }) =>
     $tone === 'success'
       ? 'rgba(16, 40, 31, 0.85)'
@@ -158,8 +164,8 @@ const Chip = styled.div`
   color: ${({ $tone }) =>
     $tone === 'success' ? '#c9f1dd' : $tone === 'error' ? '#f2c8c8' : '#c2d8ec'};
   padding: 0.18rem 0.44rem;
-  font-size: 0.69rem;
-  letter-spacing: 0.04em;
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
   max-width: 100%;
   overflow-wrap: anywhere;
 `;
@@ -185,7 +191,7 @@ const SequenceRow = styled.div`
 `;
 
 const SequenceCard = styled.div`
-  border-radius: 12px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $tone }) =>
       $tone === 'stage'
@@ -208,9 +214,9 @@ const SequenceCard = styled.div`
 `;
 
 const SequenceStep = styled.div`
-  font-size: 0.66rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: ${({ $active, $tone }) =>
     $active
       ? $tone === 'stage'
@@ -239,7 +245,7 @@ const SequenceMeta = styled.div`
 
 const SummaryLine = styled.div`
   font-size: 0.77rem;
-  color: #bdd2e8;
+  color: var(--dw-text-secondary);
   min-width: 0;
   overflow-wrap: anywhere;
 `;
@@ -255,9 +261,9 @@ const Block = styled.div`
 `;
 
 const AccordionBlock = styled(Block)`
-  border-radius: 12px;
-  border: 1px solid rgba(88, 143, 184, 0.22);
-  background: rgba(8, 14, 22, 0.56);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
   padding: 0.68rem;
 `;
 
@@ -269,14 +275,14 @@ const BlockHeader = styled.div`
 const BlockTitle = styled.h4`
   margin: 0;
   font-size: 0.76rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: #d8e9fa;
 `;
 
 const BlockText = styled.p`
   margin: 0;
-  color: #8faac1;
+  color: var(--dw-text-muted);
   font-size: 0.74rem;
   line-height: 1.35;
 `;
@@ -291,9 +297,9 @@ const AccordionToggle = styled.button`
   align-items: center;
   flex-wrap: wrap;
   gap: 0.6rem;
-  border-radius: 10px;
-  border: 1px solid rgba(96, 152, 189, 0.28);
-  background: rgba(11, 20, 31, 0.88);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
   color: #d8e9fa;
   padding: 0.62rem 0.72rem;
   cursor: pointer;
@@ -303,6 +309,8 @@ const AccordionToggle = styled.button`
     flex: 1 1 12rem;
     min-width: 0;
   }
+
+  ${controlStyles}
 `;
 
 const AccordionMeta = styled.span`
@@ -310,7 +318,7 @@ const AccordionMeta = styled.span`
   min-width: 0;
   max-width: 100%;
   font-size: 0.72rem;
-  color: #8faac1;
+  color: var(--dw-text-muted);
   overflow-wrap: anywhere;
 `;
 
@@ -326,25 +334,25 @@ const StatusLine = styled.div`
 `;
 
 const GuidanceCard = styled.div`
-  border-radius: 12px;
-  border: 1px solid rgba(104, 177, 141, 0.38);
-  background: rgba(16, 40, 31, 0.72);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
   padding: 0.72rem;
   display: grid;
   gap: 0.34rem;
 `;
 
 const FooterResetRow = styled.div`
-  border-top: 1px solid rgba(88, 143, 184, 0.22);
+  border-top: 1px solid var(--dw-border);
   padding-top: 0.72rem;
   display: grid;
   gap: 0.44rem;
 `;
 
 const ProcessingEntryCard = styled.div`
-  border-radius: 12px;
-  border: 1px solid rgba(88, 143, 184, 0.34);
-  background: rgba(9, 17, 25, 0.86);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface);
   padding: 0.72rem;
   display: grid;
   gap: 0.56rem;
@@ -363,9 +371,9 @@ const ButtonRow = styled.div`
 `;
 
 const DestinationPanel = styled.div`
-  border-radius: 12px;
-  border: 1px solid rgba(207, 170, 101, 0.46);
-  background: rgba(45, 32, 16, 0.72);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
   padding: 0.72rem;
   display: grid;
   gap: 0.62rem;
@@ -388,16 +396,16 @@ const Field = styled.label`
 
 const FieldLabel = styled.span`
   color: #d9c79c;
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 const TextInput = styled.input`
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-  border-radius: 10px;
-  border: 1px solid rgba(207, 170, 101, 0.44);
-  background: rgba(8, 14, 22, 0.86);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface);
   color: #f5ead0;
   padding: 0 0.68rem;
   font-size: 0.8rem;
@@ -405,8 +413,10 @@ const TextInput = styled.input`
 
   &:focus {
     border-color: rgba(238, 202, 135, 0.82);
-    box-shadow: 0 0 0 2px rgba(238, 202, 135, 0.12);
+    box-shadow: none;
   }
+
+  ${inputStyles}
 `;
 
 const RenameInput = styled(TextInput)`
@@ -418,7 +428,7 @@ const RenameInput = styled(TextInput)`
 const Button = styled.button`
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
   min-width: 10.5rem;
-  border-radius: 10px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $tone, $active }) =>
       $tone === 'danger'
@@ -430,17 +440,17 @@ const Button = styled.button`
           : 'rgba(102, 167, 212, 0.75)'};
   background: ${({ $tone, $active }) =>
     $tone === 'danger'
-      ? 'linear-gradient(180deg, rgba(85, 26, 30, 0.96) 0%, rgba(62, 18, 20, 0.96) 100%)'
+      ? 'var(--dw-surface-raised)'
       : $tone === 'primary'
-        ? 'linear-gradient(180deg, rgba(23, 75, 60, 0.96) 0%, rgba(16, 51, 42, 0.96) 100%)'
+        ? 'var(--dw-surface-raised)'
         : $active
-          ? 'linear-gradient(180deg, rgba(25, 86, 62, 0.96) 0%, rgba(18, 61, 44, 0.96) 100%)'
-        : 'linear-gradient(180deg, rgba(26, 60, 83, 0.96) 0%, rgba(17, 43, 62, 0.96) 100%)'};
+          ? 'var(--dw-surface-raised)'
+        : 'var(--dw-surface-raised)'};
   color: #e8fff5;
   font-size: 0.79rem;
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  text-transform: none;
+  letter-spacing: 0.01em;
   padding: 0 0.8rem;
   cursor: pointer;
 
@@ -453,17 +463,23 @@ const Button = styled.button`
     font-size: ${MOBILE_FONT_SM};
     min-width: 100%;
   }
+
+  ${controlStyles}
+  border-left-color: ${({ $active, $selected, $recommended }) => ($active || $selected || $recommended) ? 'var(--dw-amber)' : 'var(--dw-border)'};
+  border-left-width: 3px;
+
+  color: ${({ $tone, $primary, $secondary }) => $tone === 'danger' ? 'var(--dw-coral)' : ($tone === 'primary' || $primary) ? 'var(--dw-cyan)' : $secondary ? 'var(--dw-violet)' : 'var(--dw-text)'};
 `;
 
 const SecondaryDangerButton = styled(Button)`
   min-width: 9rem;
   border-color: rgba(210, 104, 104, 0.52);
-  background: linear-gradient(180deg, rgba(48, 18, 22, 0.9) 0%, rgba(34, 14, 17, 0.94) 100%);
+  background: var(--dw-surface);
   color: #f0caca;
 `;
 
 const ValidationCard = styled.div`
-  border-radius: 12px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $ok }) => ($ok ? 'rgba(104, 177, 141, 0.6)' : 'rgba(206, 114, 114, 0.62)')};
   background: ${({ $ok }) => ($ok ? 'rgba(16, 40, 31, 0.85)' : 'rgba(56, 18, 20, 0.85)')};
@@ -482,8 +498,8 @@ const ValidationTop = styled.div`
 
 const ValidationTitle = styled.div`
   font-size: 0.78rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 const ValidationText = styled.div`
@@ -509,16 +525,16 @@ const FactList = styled.div`
 
 const FactLine = styled.div`
   font-size: 0.77rem;
-  color: #bdd2e8;
+  color: var(--dw-text-secondary);
   line-height: 1.4;
 `;
 
 const FactValue = styled.span`
-  color: #e2effc;
+  color: var(--dw-text);
 `;
 
 const FactNote = styled.span`
-  color: #8faac1;
+  color: var(--dw-text-muted);
 `;
 
 const FilenameList = styled.ul`
@@ -530,12 +546,12 @@ const FilenameList = styled.ul`
 
 const Filename = styled.li`
   font-size: 0.74rem;
-  color: #b8cee2;
+  color: var(--dw-text-secondary);
 `;
 
 const FilenameCount = styled.div`
   font-size: 0.74rem;
-  color: #8faac1;
+  color: var(--dw-text-muted);
 `;
 
 const ImportedItemsAnchor = styled.div`
@@ -1154,6 +1170,7 @@ export default function IntakeBatchDetailsPanel({
               <FieldLabel>Location</FieldLabel>
               <TextInput
                 type="text"
+                aria-label="Batch destination location"
                 value={destinationLocation}
                 onChange={(event) => setDestinationLocation(event.target.value)}
                 placeholder="Unknown location"
@@ -1164,6 +1181,7 @@ export default function IntakeBatchDetailsPanel({
               <FieldLabel>Box</FieldLabel>
               <TextInput
                 type="text"
+                aria-label="Batch destination box"
                 value={destinationBox}
                 onChange={(event) => setDestinationBox(event.target.value)}
                 placeholder="No box; import as orphaned"

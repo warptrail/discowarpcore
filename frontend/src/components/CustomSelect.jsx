@@ -51,7 +51,9 @@ export default function CustomSelect({
   const handleKeyDown = (event) => {
     if (disabled) return;
 
-    if (event.key === 'Escape') {
+    if (event.key === 'Escape' && isOpen) {
+      event.preventDefault();
+      event.stopPropagation();
       setIsOpen(false);
       return;
     }
@@ -78,6 +80,11 @@ export default function CustomSelect({
       return;
     }
 
+    if (event.key === 'Tab') {
+      setIsOpen(false);
+      return;
+    }
+
     if (event.key === 'Home' || event.key === 'End') {
       event.preventDefault();
       setIsOpen(true);
@@ -93,6 +100,8 @@ export default function CustomSelect({
         $variant={variant}
         $ownerStyle={ownerStyle}
         aria-label={ariaLabel}
+        role="combobox"
+        aria-activedescendant={isOpen && highlightedIndex >= 0 ? `${listboxId}-${highlightedIndex}` : undefined}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-controls={listboxId}
@@ -110,6 +119,8 @@ export default function CustomSelect({
             <S.SelectOption
               key={String(option.value)}
               type="button"
+              id={`${listboxId}-${index}`}
+              tabIndex={-1}
               role="option"
               aria-selected={index === selectedIndex}
               $active={index === highlightedIndex}

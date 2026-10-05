@@ -1,4 +1,5 @@
 import styled, { css } from 'styled-components';
+import { panelStyles, inputStyles } from './primitives';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_FONT_SM,
@@ -7,21 +8,15 @@ import {
 } from './tokens';
 
 const LCARS = {
-  bg: '#0c0f11',
-  panel: '#14181b',
-  panelAlt: '#1a1f24',
-  text: '#e6edf3',
-  textDim: 'rgba(230,237,243,0.72)',
+  bg: 'var(--dw-background)',
+  panel: 'var(--dw-surface)',
+  panelAlt: 'var(--dw-surface-raised)',
+  text: 'var(--dw-text)',
+  textDim: 'var(--dw-text-secondary)',
   line: 'rgba(255,255,255,0.08)',
 };
 
-const panelBase = css`
-  border: 1px solid ${LCARS.line};
-  border-radius: 12px;
-  box-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.25),
-    0 8px 22px rgba(0, 0, 0, 0.22);
-`;
+const panelBase = css`${panelStyles}`;
 
 export const PanelShell = styled.section`
   ${panelBase};
@@ -29,11 +24,9 @@ export const PanelShell = styled.section`
   gap: 0.5rem;
   padding: 0.5rem 0.56rem;
   margin-bottom: 0.6rem;
-  background:
-    linear-gradient(95deg, rgba(127, 215, 255, 0.11) 0%, transparent 40%),
-    ${LCARS.panel};
-  position: sticky;
-  top: 56px;
+  background: ${LCARS.panel};
+  position: relative;
+  top: 0;
   z-index: 40;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -41,8 +34,14 @@ export const PanelShell = styled.section`
     padding: 0.34rem 0.4rem;
     margin-bottom: 0.42rem;
     border-radius: ${MOBILE_PANEL_RADIUS};
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2), 0 4px 10px rgba(0, 0, 0, 0.18);
-    top: 48px;
+    box-shadow: none;
+    top: 0;
+  }
+  min-width: 0;
+  font-family: var(--dw-font-ui);
+  & :is(button, a, input, select, textarea):focus-visible {
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
   }
 `;
 
@@ -61,31 +60,28 @@ export const TitleRow = styled.div`
 export const TitlePip = styled.span`
   width: 8px;
   height: 24px;
-  border-radius: 8px;
-  background: #4cc6c1;
-  box-shadow: 0 0 0 2px rgba(76, 198, 193, 0.2) inset;
+  border-radius: var(--dw-radius);
+  background: var(--dw-amber);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: 6px;
     height: 18px;
-    border-radius: 6px;
+    border-radius: var(--dw-radius);
   }
 `;
 
 export const Title = styled.h3`
   margin: 0;
   font-size: 0.96rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
   color: #e6edf3;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: var(--dw-font-ui);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 0.82rem;
-    letter-spacing: 0.06em;
+    letter-spacing: normal;
   }
 `;
 
@@ -110,61 +106,31 @@ export const ControlGroup = styled.label`
   display: grid;
   gap: 0.22rem;
   padding: 0.34rem 0.5rem 0.42rem;
-  background:
-    linear-gradient(
-      94deg,
-      ${({ $tone = '#7FD7FF' }) => `${$tone}20`} 0%,
-      transparent 60%
-    ),
-    ${LCARS.panel};
+  background: ${LCARS.panelAlt};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.16rem;
     padding: 0.26rem 0.34rem 0.3rem;
-    border-radius: 9px;
+    border-radius: var(--dw-radius);
   }
 `;
 
 export const ControlLabel = styled.span`
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
   color: ${LCARS.textDim};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.08em;
+    letter-spacing: normal;
   }
 `;
 
 const controlField = css`
+  ${inputStyles}
   width: 100%;
-  border: 1px solid ${LCARS.line};
-  border-radius: 9px;
-  background: ${LCARS.bg};
-  color: ${LCARS.text};
-  min-height: 32px;
-  padding: 0.42rem 0.6rem;
-  font-size: 0.85rem;
-  outline: none;
-  transition:
-    border-color 130ms ease,
-    box-shadow 130ms ease,
-    background 130ms ease;
-
-  &:focus {
-    border-color: rgba(127, 215, 255, 0.7);
-    box-shadow: 0 0 0 2px rgba(127, 215, 255, 0.18);
-    background: ${LCARS.panelAlt};
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 34px;
-    padding: 0.34rem 0.46rem;
-    font-size: ${MOBILE_FONT_SM};
-    border-radius: 8px;
-  }
 `;
 
 export const SearchInput = styled.input`
@@ -186,21 +152,21 @@ export const SortSelect = styled.select`
 `;
 
 export const Status = styled.div`
-  min-height: 32px;
+  min-height: var(--dw-control-height);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid ${LCARS.line};
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   padding: 0.38rem 0.7rem;
   font-size: 0.76rem;
-  letter-spacing: 0.05em;
+  letter-spacing: normal;
   color: #7fd7ff;
-  background: rgba(12, 15, 17, 0.7);
+  background: var(--dw-surface-raised);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     justify-content: flex-start;
-    min-height: 30px;
+    min-height: var(--dw-control-height);
     padding: 0.28rem 0.5rem;
     font-size: ${MOBILE_FONT_XS};
   }

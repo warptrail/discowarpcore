@@ -15,10 +15,9 @@ const Form = styled.section`
   padding: 0.48rem;
   border: 1px solid rgba(127, 215, 255, 0.3);
   border-left: 5px solid rgba(76, 198, 193, 0.78);
-  border-radius: 2px 8px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   background:
-    linear-gradient(90deg, rgba(76, 198, 193, 0.08), transparent 34%),
-    rgba(7, 13, 20, 0.88);
+    var(--dw-surface);
 
   ${({ $console }) => $console && css`
     gap: 0.3rem;
@@ -27,6 +26,8 @@ const Form = styled.section`
     border-radius: 0;
     background: transparent;
   `}
+  border-left-color: var(--dw-amber);
+  min-width: 0;
 `;
 
 const InlineFormSlot = styled.div`
@@ -58,6 +59,7 @@ const PrimaryRow = styled.div`
       grid-column: 1 / -1;
     }
   }
+  @media (max-width: 360px) { grid-template-columns: minmax(0, 1fr); }
 `;
 
 const FacetGrid = styled.div`
@@ -79,6 +81,7 @@ const FacetGrid = styled.div`
   @media (max-width: 640px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  @media (max-width: 360px) { grid-template-columns: minmax(0, 1fr); }
 `;
 
 const Facet = styled.div`
@@ -97,10 +100,9 @@ const FacetLabelRow = styled.div`
 
 const FacetLabel = styled.span`
   color: rgba(204, 220, 230, 0.58);
-  font: 780 0.57rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 780 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 const ScopePlaque = styled.div`
@@ -110,13 +112,12 @@ const ScopePlaque = styled.div`
   padding: 0.3rem 0.56rem;
   border: 1px solid rgba(167, 182, 255, 0.38);
   border-left: 4px solid rgba(167, 182, 255, 0.82);
-  border-radius: 2px 6px 2px 2px;
+  border-radius: var(--dw-radius-sm);
   color: #dce3ff;
-  background: rgba(18, 18, 34, 0.72);
-  font: 820 0.64rem/1.1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    monospace;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  background: var(--dw-surface-raised);
+  font: 820 0.75rem/1.1 var(--dw-font-ui);
+  letter-spacing: 0;
+  text-transform: none;
 
   @media (max-width: 640px) {
     min-height: 44px;
@@ -181,10 +182,8 @@ export default function RetrievalSearchForm({
   sortOptions = [],
   selectedSort = '',
   onSortChange,
-  selectedBoxGroup = '',
   selectedBoxLocation = '',
   selectedBoxTags = [],
-  onBoxGroupChange,
   onBoxLocationChange,
   onBoxTagAdd,
   onBoxTagRemove,
@@ -313,14 +312,6 @@ export default function RetrievalSearchForm({
               options={filterOptions.locations}
               selectedKey={selectedBoxLocation}
               onChange={onBoxLocationChange}
-            />
-            <SelectField
-              id="retrieval-box-group"
-              label="Group"
-              placeholder="All groups"
-              options={filterOptions.groups}
-              selectedKey={selectedBoxGroup}
-              onChange={onBoxGroupChange}
             />
             <Facet>
               <FacetLabelRow>

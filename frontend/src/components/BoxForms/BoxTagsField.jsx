@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import * as S from './BoxEditForm.styles';
 
 export default function BoxTagsField({
@@ -7,8 +7,10 @@ export default function BoxTagsField({
   TagInputComponent,
   compact = false,
   inline = false,
+  full = false,
 }) {
   const [tagDraft, setTagDraft] = useState('');
+  const tagInputId = useId();
 
   const addTag = () => {
     const t = (tagDraft || '').trim();
@@ -29,10 +31,10 @@ export default function BoxTagsField({
   };
 
   return (
-    <S.Field style={{ marginTop: inline ? 0 : (compact ? 6 : 10) }} $compact={compact}>
-      <S.Label $compact={compact}>Tags</S.Label>
+    <S.Field style={{ marginTop: inline ? 0 : (compact ? 6 : 10) }} $compact={compact} $full={full}>
+      <S.Label htmlFor={tagInputId} $compact={compact}>Tags</S.Label>
       {TagInputComponent ? (
-        <TagInputComponent value={tags} onChange={setTags} />
+        <TagInputComponent id={tagInputId} aria-label="Box tags" value={tags} onChange={setTags} />
       ) : (
         <S.TagWrap $compact={compact}>
           <S.TagList $compact={compact}>
@@ -49,6 +51,8 @@ export default function BoxTagsField({
               </S.TagChip>
             ))}
             <S.TagAdder
+              id={tagInputId}
+              aria-label="Add a box tag"
               placeholder="Add tag and press Enter"
               value={tagDraft}
               onChange={(e) => setTagDraft(e.target.value)}

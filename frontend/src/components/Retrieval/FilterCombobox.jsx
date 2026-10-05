@@ -71,7 +71,10 @@ export default function FilterCombobox({
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
 
-      const width = Math.max(180, Math.round(rect.width));
+      const width = Math.min(
+        Math.max(180, Math.round(rect.width)),
+        Math.max(180, viewportWidth - margin * 2),
+      );
       const left = Math.min(
         Math.max(margin, Math.round(rect.left)),
         Math.max(margin, viewportWidth - width - margin),

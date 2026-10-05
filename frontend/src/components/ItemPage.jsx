@@ -36,7 +36,6 @@ import {
 import { getItemOwnershipContext } from '../util/itemOwnership';
 import {
   getItemDepartureRoute,
-  isItemPendingDeparture,
 } from '../util/itemDeparture';
 import {
   getBoxTheme,
@@ -154,6 +153,25 @@ export default function ItemPage() {
 
   const undoInFlightRef = useRef(new Set());
   const activeLoadIdRef = useRef(0);
+  const workspaceRef = useRef(null);
+
+  useEffect(() => {
+    const workspace = workspaceRef.current;
+    if (!workspace) return undefined;
+    const updateHeight = () => {
+      const top = workspace.getBoundingClientRect().top + window.scrollY;
+      workspace.style.setProperty('--item-workspace-top', `${top}px`);
+    };
+    const observer = new ResizeObserver(updateHeight);
+    const header = document.querySelector('header');
+    if (header) observer.observe(header);
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateHeight);
+    };
+  }, [item?._id]);
 
   const updateEditRoute = useCallback((nextFieldKey, { replace = false } = {}) => {
     const params = new URLSearchParams(location.search);
@@ -331,6 +349,19 @@ export default function ItemPage() {
     onSaved: handleFieldSaved,
   });
 
+  useEffect(() => {
+    if (!fieldEditor.error) return;
+    showToast?.({
+      id: `item-field-error:${itemId}:${activeFieldKey}`,
+      variant: 'error',
+      title: 'SAVE FAILED',
+      message: fieldEditor.error,
+      presentation: 'item-field',
+      timeoutMs: 5000,
+    });
+  }, [activeFieldKey, fieldEditor.error, itemId, showToast]);
+
+
   const requestDiscardBefore = useCallback((nextAction) => {
     if (fieldEditor.saving) return false;
 
@@ -502,7 +533,7 @@ export default function ItemPage() {
   }, [fieldEditor.isDirty, location.hash, location.pathname, location.search, navigate, requestDiscardBefore]);
 
   const requestMoveMutation = useCallback(
-    async ({ movingItemId, sourceBoxId, destBoxId }) => {
+    async ({ movingItemId, sourceBoxId, destBoxId, compartmentKey }) => {
       const res = await fetch(`${API_BASE}/api/boxed-items/moveItem`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -510,6 +541,7 @@ export default function ItemPage() {
           itemId: movingItemId,
           sourceBoxId,
           destBoxId,
+          compartmentKey,
         }),
       });
 
@@ -558,12 +590,14 @@ export default function ItemPage() {
             movingItemId: undoPayload.itemId,
             sourceBoxId: undoPayload.toBoxId,
             destBoxId: undoPayload.fromBoxId,
+            compartmentKey: undoPayload.compartmentKey,
           });
         } else if (undoPayload.type === 'remove') {
           await requestMoveMutation({
             movingItemId: undoPayload.itemId,
             sourceBoxId: undoPayload.fromBoxId,
             destBoxId: undoPayload.originalBoxId,
+            compartmentKey: undoPayload.compartmentKey,
           });
         } else if (undoPayload.type === 'place') {
           await requestRemoveFromBoxMutation({
@@ -620,7 +654,7 @@ export default function ItemPage() {
   );
 
   const handleMoveItem = useCallback(
-    async ({ destBoxId, destLabel, destShortId, sourceBoxId }) => {
+    async ({ destBoxId, destLabel, destShortId, sourceBoxId, compartmentKey }) => {
       if (!item?._id || !destBoxId) return false;
       if (String(item?.item_status || '').toLowerCase() === 'gone') {
         showToast?.({
@@ -644,6 +678,7 @@ export default function ItemPage() {
           movingItemId: beforeItem._id,
           sourceBoxId,
           destBoxId,
+          compartmentKey,
         });
 
         const refreshed = await loadItem({ preserveLoading: true });
@@ -676,6 +711,7 @@ export default function ItemPage() {
               at: Date.now(),
               itemId: beforeItem._id,
               fromBoxId: beforeBox?._id,
+              compartmentKey: beforeBox?.compartmentKey,
               fromBoxName: sourceName,
               toBoxId: afterBox?._id || destBoxId,
               toBoxName: destinationName,
@@ -1266,7 +1302,6 @@ export default function ItemPage() {
       varied: true,
     })),
   };
-  const itemPendingDeparture = isItemPendingDeparture(item);
   const lifecyclePanel = (
     <ItemLifecyclePanel
       item={item}
@@ -1279,7 +1314,7 @@ export default function ItemPage() {
 
   return (
     <S.Page style={pageThemeStyle}>
-      <S.PageMainGrid>
+      <S.PageMainGrid ref={workspaceRef}>
         <S.PageVisualColumn>
           <ItemPageImageHero
             item={item}
@@ -1317,7 +1352,6 @@ export default function ItemPage() {
         </ConsoleS.MediaEditorPanel>
           ) : null}
 
-          {itemPendingDeparture ? lifecyclePanel : null}
 
           <ItemButtonBar
         item={item}
@@ -1334,6 +1368,7 @@ export default function ItemPage() {
         declutterPending={declutterPending}
         onDeclutter={toggleDeclutterDeck}
           />
+          {lifecyclePanel}
         </S.PageVisualColumn>
 
         <S.PageDataColumn>
@@ -1350,7 +1385,7 @@ export default function ItemPage() {
         </S.PageDataColumn>
       </S.PageMainGrid>
 
-      {!itemPendingDeparture ? lifecyclePanel : null}
+
 
     </S.Page>
   );

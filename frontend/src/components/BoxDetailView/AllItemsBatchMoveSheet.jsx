@@ -21,14 +21,14 @@ export default function AllItemsBatchMoveSheet({ selectedItems, onClose, onCompl
   const sourceIds = new Set(targets.map((target) => target.sourceBoxId).filter(Boolean));
   const commonSourceBoxId = sourceIds.size === 1 ? [...sourceIds][0] : '';
 
-  const handleDestination = async ({ destBoxId, destLabel, destShortId }) => {
+  const handleDestination = async ({ destBoxId, destLabel, destShortId, compartmentKey }) => {
     if (moving || !destBoxId) return;
-    const skipped = targets.filter((target) => target.sourceBoxId === String(destBoxId));
-    const moveable = targets.filter((target) => target.sourceBoxId && target.sourceBoxId !== String(destBoxId));
+    const skipped = targets.filter((target) => !compartmentKey && target.sourceBoxId === String(destBoxId));
+    const moveable = targets.filter((target) => target.sourceBoxId && (compartmentKey || target.sourceBoxId !== String(destBoxId)));
     const missingSource = targets.filter((target) => !target.sourceBoxId);
     setMoving(true);
     try {
-      const results = await Promise.allSettled(moveable.map((target) => moveBoxedItem({ ...target, destBoxId, baseUrl: API_BASE })));
+      const results = await Promise.allSettled(moveable.map((target) => moveBoxedItem({ ...target, destBoxId, compartmentKey, baseUrl: API_BASE })));
       const movedIds = results.flatMap((result, index) => result.status === 'fulfilled' ? [moveable[index].itemId] : []);
       const failedIds = [
         ...missingSource.map((target) => target.itemId),

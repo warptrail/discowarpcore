@@ -18,13 +18,14 @@ export async function moveBoxedItem({
   itemId,
   sourceBoxId,
   destBoxId,
+  compartmentKey,
   baseUrl = '',
 }) {
   const endpoint = joinBaseAndPath(baseUrl, '/api/boxed-items/moveItem');
   const response = await fetch(endpoint, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ itemId, sourceBoxId, destBoxId }),
+    body: JSON.stringify({ itemId, sourceBoxId, destBoxId, compartmentKey }),
   });
 
   const body = await parseMoveBody(response);
@@ -70,6 +71,7 @@ export async function orphanBoxedItem({
 export async function addItemsToBox({
   itemIds,
   destBoxId,
+  compartmentKey,
   baseUrl = '',
 }) {
   const normalizedItemIds = Array.isArray(itemIds)
@@ -91,7 +93,7 @@ export async function addItemsToBox({
   const response = await fetch(endpoint, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ itemIds: normalizedItemIds }),
+    body: JSON.stringify({ itemIds: normalizedItemIds, compartmentKey }),
   });
 
   const body = await parseMoveBody(response);

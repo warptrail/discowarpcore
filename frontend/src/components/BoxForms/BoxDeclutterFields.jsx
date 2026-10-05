@@ -1,3 +1,4 @@
+import { panelStyles, controlStyles } from '../../styles/primitives';
 import styled from 'styled-components';
 
 const Panel = styled.div`
@@ -5,21 +6,26 @@ const Panel = styled.div`
   gap: 0.55rem;
   padding: ${({ $compact }) => ($compact ? '7px 0 0' : '0.65rem')};
   border: ${({ $compact }) =>
-    $compact ? '0' : '1px solid rgba(130, 168, 196, 0.28)'};
+    $compact ? '0' : '1px solid rgba(230, 237, 243, 0.12)'};
   border-top: ${({ $compact }) =>
-    $compact ? '1px solid rgba(151, 163, 176, 0.24)' : undefined};
+    $compact ? '1px solid rgba(230, 237, 243, 0.12)' : undefined};
   border-radius: ${({ $compact }) => ($compact ? '0' : '9px')};
-  background: ${({ $compact }) => ($compact ? 'transparent' : 'rgba(8, 15, 23, 0.55)')};
+  background: ${({ $compact }) => ($compact ? 'transparent' : 'var(--dw-surface-raised)')};
+
+  ${panelStyles}
+  border-left: 3px solid var(--dw-amber);
+
+  padding: 0.65rem;
 `;
 
 const Label = styled.div`
   display: grid;
   gap: 0.3rem;
-  color: rgba(214, 226, 241, 0.82);
+  color: var(--dw-text-secondary);
   font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 const FlagGrid = styled.div`
@@ -30,6 +36,8 @@ const FlagGrid = styled.div`
   @media (max-width: 390px) {
     gap: 0.25rem;
   }
+
+  @media (max-width: 360px) { grid-template-columns: 1fr; }
 `;
 
 const Flag = styled.button`
@@ -40,19 +48,23 @@ const Flag = styled.button`
   min-height: 46px;
   padding: 0.45rem 0.55rem;
   border: 1px solid ${({ $active, $tone }) =>
-    $active ? $tone : 'rgba(122, 142, 167, 0.22)'};
-  border-radius: 7px;
-  color: ${({ $active }) => ($active ? '#f2f7fa' : 'rgba(214, 226, 241, 0.66)')};
-  background: ${({ $active, $tone }) =>
-    $active ? `linear-gradient(100deg, ${$tone}24, rgba(8, 15, 23, 0.74))` : 'rgba(8, 15, 23, 0.42)'};
+    $active ? $tone : 'rgba(230, 237, 243, 0.14)'};
+  border-radius: var(--dw-radius-sm);
+  color: ${({ $active }) => ($active ? 'var(--dw-text)' : 'var(--dw-text-secondary)')};
+  background: var(--dw-surface);
   text-align: left;
   cursor: pointer;
-  box-shadow: ${({ $active, $tone }) => ($active ? `inset 0 0 0 1px ${$tone}18` : 'none')};
 
   &:focus-visible {
-    outline: 2px solid rgba(127, 215, 255, 0.66);
+    outline: 2px solid var(--dw-cyan);
     outline-offset: 2px;
   }
+
+  ${controlStyles}
+  border-left-color: ${({ $active, $selected, $recommended }) => ($active || $selected || $recommended) ? 'var(--dw-amber)' : 'var(--dw-border)'};
+  border-left-width: 3px;
+
+  color: ${({ $tone, $primary, $secondary }) => $tone === 'danger' ? 'var(--dw-coral)' : ($tone === 'primary' || $primary) ? 'var(--dw-cyan)' : $secondary ? 'var(--dw-violet)' : 'var(--dw-text)'};
 `;
 
 const FlagLight = styled.span`
@@ -60,7 +72,6 @@ const FlagLight = styled.span`
   height: 18px;
   border-radius: 2px;
   background: ${({ $active, $tone }) => ($active ? $tone : 'rgba(154, 171, 187, 0.24)')};
-  box-shadow: ${({ $active, $tone }) => ($active ? `0 0 9px ${$tone}88` : 'none')};
 `;
 
 const FlagText = styled.span`
@@ -77,8 +88,8 @@ const FlagTitle = styled.span`
 `;
 
 const FlagHint = styled.span`
-  color: rgba(184, 202, 212, 0.48);
-  font: 600 0.58rem/1.2 ui-monospace, monospace;
+  color: var(--dw-text-muted);
+  font: 600 0.75rem/1.2 var(--dw-font-ui);
   letter-spacing: 0.02em;
   text-transform: none;
 `;
@@ -87,7 +98,7 @@ const Check = styled.label`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: rgba(214, 226, 241, 0.8);
+  color: var(--dw-text-secondary);
   font-size: 0.76rem;
 `;
 

@@ -1,5 +1,7 @@
+import { panelStyles, controlStyles } from '../../styles/primitives';
 import React from 'react';
 import styled from 'styled-components';
+import { getBoxTheme, getBoxThemeCssVars } from '../../util/inventoryColorTheme';
 
 import EditBoxDetailsForm from '../EditBoxDetailsForm';
 
@@ -7,13 +9,16 @@ const Panel = styled.section`
   display: grid;
   gap: 0.5rem;
   min-width: 0;
+
+  ${panelStyles}
+  border-left: 3px solid var(--box-primary, #8A8175);
 `;
 
 const EmptyState = styled.div`
   display: grid;
   gap: 0.55rem;
   padding: 0.8rem 0;
-  border-top: 1px solid rgba(151, 163, 176, 0.24);
+  border-top: 1px solid var(--dw-border);
   color: rgba(224, 230, 236, 0.78);
 `;
 
@@ -32,26 +37,29 @@ const EmptyCopy = styled.p`
 const ReturnButton = styled.button`
   justify-self: start;
   min-height: 40px;
-  border: 1px solid rgba(151, 163, 176, 0.46);
-  border-radius: 6px;
-  background: rgba(14, 19, 27, 0.72);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface-raised);
   color: rgba(225, 231, 237, 0.9);
   cursor: pointer;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 780;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.01em;
   padding: 0 0.75rem;
-  text-transform: uppercase;
+  text-transform: none;
 
   &:hover {
     border-color: rgba(197, 205, 214, 0.72);
-    background: rgba(50, 59, 70, 0.38);
+    background: var(--dw-surface-raised);
   }
 
   &:focus-visible {
     outline: 2px solid rgba(206, 214, 222, 0.9);
     outline-offset: 2px;
   }
+
+  ${controlStyles}
+  color: var(--dw-violet);
 `;
 
 export default function IntakeBoxEditorPanel({
@@ -77,7 +85,7 @@ export default function IntakeBoxEditorPanel({
   }
 
   return (
-    <Panel>
+    <Panel style={getBoxThemeCssVars(getBoxTheme(box.box_id ?? box.shortId))}>
       <EditBoxDetailsForm
         compact
         boxMongoId={box._id}

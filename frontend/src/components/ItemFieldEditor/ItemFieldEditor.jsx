@@ -131,7 +131,7 @@ function LinksEditor({ draft, onChange }) {
   );
 }
 
-function FieldControl({ descriptor, draft, onChange }) {
+function FieldControl({ descriptor, draft, onChange, saving }) {
   if (descriptor.editor === 'textarea') {
     return (
       <FormS.TextArea
@@ -219,6 +219,7 @@ function FieldControl({ descriptor, draft, onChange }) {
         value={draft || ''}
         ariaLabel={descriptor.label}
         options={PRIMARY_OWNER_OPTIONS}
+        disabled={saving}
         optionAccent
         ownerStyle
         onChange={onChange}
@@ -348,6 +349,21 @@ export default function ItemFieldEditor({
   }, [descriptor.editor, notesEditing]);
 
   const handleKeyDown = (event) => {
+    if (event.nativeEvent.isComposing || event.repeat) return;
+
+    const commitTextField = descriptor.editor === 'text'
+      && event.target.tagName === 'INPUT'
+      && !event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey
+      && (event.key === 'Enter' || event.key === 'Tab');
+    if (commitTextField) {
+      event.preventDefault();
+      if (!saving) {
+        if (isDirty) void onSave?.();
+        else onRequestDiscard?.();
+      }
+      return;
+    }
+
     if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
       event.preventDefault();
       void onSave?.();
@@ -406,7 +422,14 @@ export default function ItemFieldEditor({
           <FieldControl
             descriptor={descriptor}
             draft={draft}
-            onChange={onChange}
+            saving={saving}
+            onChange={(value) => {
+              if (saving) return;
+              onChange(value);
+              if (descriptor.editor === 'primary-owner') {
+                void onSave?.({ value, commitSelection: true });
+              }
+            }}
           />
         )}
         {descriptor.hint ? <S.EditorHint>{descriptor.hint}</S.EditorHint> : null}

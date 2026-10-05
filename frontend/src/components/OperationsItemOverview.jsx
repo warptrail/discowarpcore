@@ -13,7 +13,6 @@ export default function OperationsItemOverview({
   boxId,
   boxLabel,
   location,
-  boxGroup,
   breadcrumbTrail = [],
   keepPriorityLabel,
   keepPriority,
@@ -64,7 +63,6 @@ export default function OperationsItemOverview({
         boxId={boxId}
         boxLabel={boxLabel}
         location={location}
-        boxGroup={boxGroup}
         breadcrumbTrail={breadcrumbTrail}
         keepPriorityLabel={keepPriorityLabel}
         keepPriority={keepPriority}

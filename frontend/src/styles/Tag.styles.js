@@ -5,7 +5,7 @@ const base = css`
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   padding: 0.2rem 0.6rem;
   font-size: 0.75rem;
   line-height: 1;
@@ -33,7 +33,7 @@ export const Tag = styled.span`
   ${({ $size = 'sm' }) =>
     $size === 'xs'
       ? css`
-          font-size: 0.7rem;
+          font-size: 0.75rem;
           padding: 0.15rem 0.5rem;
         `
       : $size === 'md'
@@ -49,29 +49,29 @@ export const Tag = styled.span`
       case 'filled':
         return css`
           color: #0a0a0a;
-          background: ${$selected ? '#9BE564' : '#4CC6C1'};
-          border: 1px solid ${$selected ? '#76c83b' : '#3aa9a4'};
+          background: ${$selected ? 'var(--dw-cyan)' : 'var(--dw-teal)'};
+          border: 1px solid ${$selected ? 'var(--dw-cyan)' : 'var(--dw-teal)'};
           &:hover {
             transform: translateY(-1px);
           }
         `;
       case 'outline':
         return css`
-          color: ${$selected ? '#9BE564' : '#cfcfcf'};
+          color: ${$selected ? 'var(--dw-cyan)' : 'var(--dw-text-secondary)'};
           background: transparent;
-          border: 1px solid ${$selected ? '#9BE564' : '#555'};
+          border: 1px solid ${$selected ? 'var(--dw-cyan)' : 'rgba(230, 237, 243, 0.18)'};
           &:hover {
-            border-color: #888;
+            border-color: var(--dw-cyan);
             transform: translateY(-1px);
           }
         `;
       default: // subtle
         return css`
-          color: #dcdcdc;
-          background: #2a2a2a;
-          border: 1px solid #4a4a4a;
+          color: var(--dw-text-secondary);
+          background: var(--dw-surface-raised);
+          border: 1px solid rgba(230, 237, 243, 0.16);
           &:hover {
-            background: #333;
+            background: var(--dw-surface);
             transform: translateY(-1px);
           }
         `;
@@ -87,7 +87,7 @@ export const TagCount = styled.span`
   min-width: 1.2em;
   height: 1.2em;
   padding: 0 0.35em;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   font-size: 0.72em;
   font-weight: 700;
   background: rgba(255, 255, 255, 0.08);

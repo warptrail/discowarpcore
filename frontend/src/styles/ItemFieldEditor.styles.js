@@ -1,9 +1,10 @@
+import { controlStyles } from './primitives';
 import styled, { keyframes } from 'styled-components';
 
 import * as FormS from './EditItemDetailsForm.styles';
 import { MOBILE_BREAKPOINT, MOBILE_CONTROL_MIN_HEIGHT } from './tokens';
 
-const mono = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";
+const uiFont = 'var(--dw-font-ui)';
 
 const reveal = keyframes`
   from { opacity: 0; transform: translateY(-5px); }
@@ -17,28 +18,18 @@ export const EditorShell = styled.section`
   min-width: 0;
   padding: 0.72rem 0.74rem 0.78rem 0.9rem;
   overflow: visible;
-  border: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.64);
-  border-radius: 2px 7px 4px 2px;
-  background:
-    linear-gradient(112deg, rgba(var(--item-accent-rgb, 127, 215, 255), 0.12), transparent 30%),
-    linear-gradient(180deg, rgba(15, 24, 34, 0.98), rgba(5, 11, 17, 0.99));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 0 20px rgba(var(--item-accent-rgb, 127, 215, 255), 0.13);
+  border: 1px solid rgba(230, 237, 243, 0.16);
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface);
+  box-shadow: none;
   animation: ${reveal} 160ms ease-out both;
 
   &::before {
     content: '';
     position: absolute;
     inset: 0 auto 0 0;
-    width: 5px;
-    background: linear-gradient(
-      180deg,
-      var(--item-accent, #7fd7ff),
-      var(--item-secondary, #a7b6ff) 56%,
-      var(--box-primary, #4cc6c1)
-    );
-    box-shadow: 0 0 14px rgba(var(--item-accent-rgb, 127, 215, 255), 0.42);
+    width: 3px;
+    background: var(--dw-amber);
   }
 
   &::after {
@@ -53,7 +44,8 @@ export const EditorShell = styled.section`
   }
 
   &:focus {
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -82,17 +74,17 @@ export const EditorHeadingGroup = styled.div`
 
 export const EditorKicker = styled.span`
   color: var(--item-secondary, #a7b6ff);
-  font: 800 0.55rem/1 ${mono};
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font: 700 0.75rem/1 ${uiFont};
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export const EditorTitle = styled.h3`
   margin: 0;
-  color: #f1fbff;
-  font: 820 0.82rem/1.2 ${mono};
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: var(--dw-text);
+  font: 700 0.82rem/1.2 ${uiFont};
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export const EditorState = styled.span`
@@ -103,9 +95,9 @@ export const EditorState = styled.span`
       : $dirty
         ? 'var(--item-accent, #7fd7ff)'
         : 'rgba(214, 226, 241, 0.44)'};
-  font: 800 0.52rem/1 ${mono};
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font: 700 0.75rem/1 ${uiFont};
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export const EditorBody = styled.div`
@@ -114,27 +106,27 @@ export const EditorBody = styled.div`
   min-width: 0;
 
   ${FormS.Field} {
-    border-radius: 3px;
+    border-radius: var(--dw-radius-sm);
     border-color: rgba(var(--item-accent-rgb, 127, 215, 255), 0.24);
-    background: rgba(4, 10, 16, 0.56);
+    background: var(--dw-surface);
   }
 
   ${FormS.Input}, ${FormS.TextArea}, ${FormS.Select} {
-    border-radius: 3px;
+    border-radius: var(--dw-radius-sm);
     border-color: rgba(var(--item-accent-rgb, 127, 215, 255), 0.42);
-    background: rgba(2, 8, 13, 0.9);
+    background: var(--dw-surface);
   }
 `;
 
 export const NotesTextArea = styled(FormS.TextArea)`
-  min-height: clamp(320px, 58dvh, 680px);
+  min-height: 16rem;
   padding: 0.82rem 0.9rem;
   font-size: 1rem;
   line-height: 1.62;
   resize: vertical;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: clamp(300px, 54dvh, 520px);
+    min-height: 12rem;
     padding: 0.7rem;
     font-size: 0.92rem;
   }
@@ -155,28 +147,30 @@ export const NotesModeBar = styled.header`
 `;
 
 export const NotesModeLabel = styled.span`
-  color: rgba(214, 226, 241, 0.52);
-  font: 800 0.54rem/1 ${mono};
-  letter-spacing: 0.11em;
+  color: var(--dw-text-secondary);
+  font: 700 0.75rem/1 ${uiFont};
+  letter-spacing: 0.01em;
 `;
 
 export const NotesModeButton = styled.button`
-  min-height: 30px;
+  ${controlStyles}
+  min-height: var(--dw-control-height);
   padding: 0.22rem 0.52rem;
   border: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.52);
-  border-radius: 2px 5px 2px 2px;
+  border-radius: var(--dw-radius);
   background: rgba(var(--item-accent-rgb, 127, 215, 255), 0.1);
   color: var(--item-accent, #7fd7ff);
-  font: 820 0.56rem/1 ${mono};
-  letter-spacing: 0.09em;
+  font: 700 0.75rem/1 ${uiFont};
+  letter-spacing: 0.01em;
   cursor: pointer;
 
   &:hover,
   &:focus-visible {
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
     border-color: var(--item-accent, #7fd7ff);
     background: rgba(var(--item-accent-rgb, 127, 215, 255), 0.18);
-    box-shadow: 0 0 12px rgba(var(--item-accent-rgb, 127, 215, 255), 0.14);
+    box-shadow: none;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -192,10 +186,8 @@ export const NotesReader = styled.div`
   padding: 0.78rem 0.86rem;
   border: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.42);
   border-left: 3px solid var(--item-accent, #7fd7ff);
-  border-radius: 2px 6px 3px 2px;
-  background:
-    linear-gradient(90deg, rgba(var(--item-accent-rgb, 127, 215, 255), 0.055), transparent 24%),
-    rgba(2, 8, 13, 0.9);
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface-raised);
   color: #e8f1f8;
   font-size: 0.94rem;
   font-weight: 560;
@@ -232,8 +224,8 @@ export const MoneyShell = styled.div`
   align-items: stretch;
   overflow: hidden;
   border: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.42);
-  border-radius: 3px;
-  background: rgba(2, 8, 13, 0.9);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
 
   &:focus-within {
     border-color: var(--item-accent, #7fd7ff);
@@ -253,7 +245,7 @@ export const MoneyPrefix = styled.span`
   border-right: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.24);
   color: var(--item-accent, #7fd7ff);
   background: rgba(var(--item-accent-rgb, 127, 215, 255), 0.09);
-  font: 850 0.72rem/1 ${mono};
+  font: 700 0.75rem/1 ${uiFont};
 `;
 
 export const ChoiceGrid = styled.div`
@@ -263,35 +255,37 @@ export const ChoiceGrid = styled.div`
 `;
 
 export const ChoiceButton = styled.button`
+  ${controlStyles}
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
   padding: 0.5rem 0.62rem;
   border: 1px solid ${({ $active }) =>
     $active
       ? 'var(--item-accent, #7fd7ff)'
       : 'rgba(var(--item-accent-rgb, 127, 215, 255), 0.28)'};
-  border-radius: 3px;
+  border-radius: var(--dw-radius-sm);
   color: ${({ $active }) => ($active ? '#f4fdff' : 'rgba(226, 238, 245, 0.7)')};
   background: ${({ $active }) =>
     $active
       ? 'rgba(var(--item-accent-rgb, 127, 215, 255), 0.18)'
       : 'rgba(4, 10, 16, 0.72)'};
-  font: 780 0.68rem/1 ${mono};
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 780 0.75rem/1 ${uiFont};
+  letter-spacing: 0.01em;
+  text-transform: none;
   cursor: pointer;
 
   &:hover,
   &:focus-visible {
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
     border-color: var(--item-accent, #7fd7ff);
-    box-shadow: 0 0 12px rgba(var(--item-accent-rgb, 127, 215, 255), 0.18);
+    box-shadow: none;
   }
 `;
 
 export const EditorHint = styled.p`
   margin: 0;
-  color: rgba(214, 226, 241, 0.58);
-  font-size: 0.7rem;
+  color: var(--dw-text-secondary);
+  font-size: 0.75rem;
   line-height: 1.4;
 `;
 
@@ -307,9 +301,9 @@ export const EditorError = styled.div`
 export const HistoryEmpty = styled.div`
   padding: 0.62rem;
   border: 1px dashed rgba(var(--item-accent-rgb, 127, 215, 255), 0.28);
-  color: rgba(214, 226, 241, 0.52);
+  color: var(--dw-text-secondary);
   text-align: center;
-  font: 700 0.66rem/1.4 ${mono};
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font: 700 0.75rem/1.4 ${uiFont};
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;

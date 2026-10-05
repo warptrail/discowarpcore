@@ -226,10 +226,14 @@ function printAnalysis(analysis) {
 }
 
 function buildLocationPlan(sourceLocations, targetLocations) {
+  const locationKey = (location) =>
+    ['room', 'vicinity', 'specifics']
+      .map((field) => String(location?.[field] || '').trim().toLowerCase())
+      .join('\u001f');
   const targetByName = new Map(
     targetLocations
-      .map((location) => [String(location.name || '').trim().toLowerCase(), location])
-      .filter(([name]) => name)
+      .map((location) => [locationKey(location), location])
+      .filter(([key]) => key && key !== '\u001f\u001f')
   );
   const locationIdMap = new Map();
   const insertLocations = [];
@@ -238,8 +242,8 @@ function buildLocationPlan(sourceLocations, targetLocations) {
     const oldId = objectIdKey(location._id);
     if (!oldId) continue;
 
-    const nameKey = String(location.name || '').trim().toLowerCase();
-    const existing = nameKey ? targetByName.get(nameKey) : null;
+    const locationKeyValue = locationKey(location);
+    const existing = locationKeyValue ? targetByName.get(locationKeyValue) : null;
     if (existing?._id) {
       locationIdMap.set(oldId, existing._id);
       continue;
@@ -251,7 +255,7 @@ function buildLocationPlan(sourceLocations, targetLocations) {
       ...remapDeep(cloneDoc(location), locationIdMap),
       _id: newId,
     });
-    if (nameKey) targetByName.set(nameKey, { ...location, _id: newId });
+    if (locationKeyValue) targetByName.set(locationKeyValue, { ...location, _id: newId });
   }
 
   return { locationIdMap, insertLocations };

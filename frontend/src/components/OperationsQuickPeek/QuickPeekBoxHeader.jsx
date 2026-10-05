@@ -30,6 +30,7 @@ export default function QuickPeekBoxHeader({
   const searchInputRef = useRef(null);
   const searchScrollGestureRef = useRef(null);
   const boxId = String(box?.box_id || '').trim();
+  const isAdrift = box?.systemType === 'orphaned';
   const label = String(box?.label || box?.name || 'Untitled box').trim();
   const location = String(box?.location || '').trim();
   const handleGrabberPointerDown = (event) => {
@@ -121,7 +122,7 @@ export default function QuickPeekBoxHeader({
       {searchOpen ? (
         <S.QuickPeekSearchDock
           role="search"
-          aria-label={`Search direct items in box ${boxId}`}
+          aria-label={isAdrift ? 'Search Items Adrift' : `Search direct items in box ${boxId}`}
           onPointerDown={handleSearchPointerDown}
           onPointerMove={handleSearchPointerMove}
           onPointerUp={finishSearchPointerGesture}
@@ -139,8 +140,8 @@ export default function QuickPeekBoxHeader({
               event.preventDefault();
               onSearchClose?.();
             }}
-            placeholder={`Find in #${boxId}`}
-            aria-label={`Find an item in box ${boxId}`}
+            placeholder={isAdrift ? 'Find in Items Adrift' : `Find in #${boxId}`}
+            aria-label={isAdrift ? 'Find an unboxed item' : `Find an item in box ${boxId}`}
           />
           <S.QuickPeekSearchClose
             type="button"
@@ -178,11 +179,11 @@ export default function QuickPeekBoxHeader({
         <S.CapIdentityStack>
           <S.BoxIdentity $expanded={expanded} aria-hidden={!expanded}>
             <S.BoxTitleLine>
-              <S.BoxId>#{boxId}</S.BoxId>
+              <S.BoxId>{isAdrift ? '◇' : `#${boxId}`}</S.BoxId>
               <S.BoxName>{label}</S.BoxName>
             </S.BoxTitleLine>
             <S.BoxContextLine>
-              <S.BoxLocation>{location || 'Location not recorded'}</S.BoxLocation>
+              <S.BoxLocation>{isAdrift ? 'No box assigned' : location || 'Location not recorded'}</S.BoxLocation>
               <S.PositionReadout>
                 {position} / {total}
               </S.PositionReadout>

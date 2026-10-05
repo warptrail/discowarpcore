@@ -1,3 +1,4 @@
+import { controlStyles } from '../../styles/primitives';
 import styled, { keyframes, css } from 'styled-components';
 import { Link } from 'react-router-dom';
 import {
@@ -35,21 +36,23 @@ export const WorkspaceRail = styled.div`
 `;
 
 export const BackButton = styled.button`
-  min-height: 28px;
+  ${controlStyles}
+  min-height: var(--dw-control-height);
   width: 32px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--dw-radius);
   padding: 0;
-  color: rgba(191, 255, 238, 0.66);
+  color: var(--dw-text-secondary);
   background: transparent;
-  font: 700 0.76rem/1 ui-monospace, monospace;
+  font: 700 0.76rem/1 var(--dw-font-ui);
   cursor: pointer;
   pointer-events: auto;
   font-size: 1.24rem;
   &:hover, &:focus-visible {
-    color: rgba(191, 255, 238, 0.98);
+    color: var(--dw-cyan);
     background: transparent;
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
   }
   &:disabled { opacity: .55; cursor: wait; }
 `;
@@ -57,8 +60,8 @@ export const BackButton = styled.button`
 export const WorkspaceContext = styled.span`
   min-width: 0;
   overflow: hidden;
-  color: rgba(226, 234, 242, 0.58);
-  font-size: 0.72rem;
+  color: var(--dw-text-muted);
+  font-size: 0.75rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
@@ -102,19 +105,9 @@ export const ItemCard = styled.li`
   row-gap: 0.4rem;
   min-height: 72px;
   padding: 0.56rem 0.62rem 0.56rem 0.78rem;
-  border-radius: 22px 11px 11px 18px;
-  border: 1px solid #334840;
-  background:
-    linear-gradient(
-      90deg,
-      rgba(62, 106, 87, 0.2) 0%,
-      rgba(30, 44, 38, 0.5) 30%,
-      rgba(27, 31, 34, 0.96) 60%
-    ) no-repeat,
-    #1b1f22;
-  background-size:
-    100% 100%,
-    auto;
+  border-radius: var(--dw-radius);
+  border: 1px solid rgba(230, 237, 243, 0.12);
+  background: var(--dw-surface);
   transition:
     background-color 0.2s ease,
     border-color 0.2s ease,
@@ -129,9 +122,9 @@ export const ItemCard = styled.li`
     top: 0.44rem;
     bottom: 0.44rem;
     width: 5px;
-    border-radius: 999px;
-    background: linear-gradient(180deg, #67c99a, #3f8f68 68%, #326e52);
-    opacity: 0.58;
+    border-radius: var(--dw-radius);
+    background: var(--dw-teal);
+    opacity: 0.65;
     pointer-events: none;
   }
 
@@ -191,51 +184,21 @@ export const ItemCard = styled.li`
     $focusMode &&
     ($isFocused
       ? css`
-          border-color: #4ec77b;
-          background:
-            linear-gradient(
-              90deg,
-              rgba(64, 137, 98, 0.32) 0%,
-              rgba(38, 68, 52, 0.62) 34%,
-              rgba(28, 47, 36, 0.94) 60%
-            ) no-repeat,
-            #213629;
-          background-size:
-            100% 100%,
-            auto;
-          box-shadow:
-            0 0 0 1px rgba(78, 199, 123, 0.4),
-            0 0 12px rgba(78, 199, 123, 0.2);
+          border-color: var(--dw-teal);
+          background: var(--dw-surface-raised);
         `
       : css`
           opacity: 0.45;
           min-height: 58px;
           padding: 0.44rem 0.56rem 0.44rem 0.72rem;
-          border-color: #252d2a;
-          background:
-            linear-gradient(90deg, rgba(54, 64, 59, 0.18) 0%, rgba(25, 29, 31, 0.9) 52%)
-              no-repeat,
-            #171a1c;
-          background-size:
-            100% 100%,
-            auto;
+          border-color: rgba(230, 237, 243, 0.1);
+          background: var(--dw-surface);
           box-shadow: none;
         `)}
 
   &:hover {
-    border-color: #4ec77b;
-    background:
-      linear-gradient(
-        90deg,
-        rgba(65, 123, 95, 0.3) 0%,
-        rgba(40, 67, 53, 0.54) 32%,
-        rgba(31, 47, 39, 0.9) 58%
-      ) no-repeat,
-      #253128;
-    background-size:
-      100% 100%,
-      auto;
-    box-shadow: 0 0 8px rgba(78, 199, 123, 0.32);
+    border-color: var(--dw-teal);
+    background: var(--dw-surface-raised);
   }
 
   ${({ $focusMode, $isFocused }) =>
@@ -243,17 +206,8 @@ export const ItemCard = styled.li`
     !$isFocused &&
     css`
       &:hover {
-        border-color: #323232;
-        background:
-          linear-gradient(
-            90deg,
-            rgba(54, 64, 59, 0.16) 0%,
-            rgba(24, 27, 29, 0.9) 52%
-          ) no-repeat,
-          #191919;
-        background-size:
-          100% 100%,
-          auto;
+        border-color: rgba(230, 237, 243, 0.1);
+        background: var(--dw-surface);
         box-shadow: none;
       }
     `}
@@ -271,9 +225,9 @@ export const ItemCard = styled.li`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     column-gap: 0.42rem;
     row-gap: 0.3rem;
-    border-radius: 16px 10px 10px 14px;
+    border-radius: var(--dw-radius);
     padding: 0.46rem 0.5rem 0.5rem 0.62rem;
-    border-color: #2f4039;
+    border-color: rgba(230, 237, 243, 0.12);
 
     &::before {
       left: 0.34rem;
@@ -337,7 +291,7 @@ export const ItemNameLink = styled(Link)`
 
   &:hover {
     text-decoration: underline;
-    text-decoration-color: rgba(78, 199, 123, 0.86);
+    text-decoration-color: var(--dw-teal);
     text-underline-offset: 2px;
   }
 `;
@@ -348,14 +302,14 @@ export const QtyPill = styled.span`
   align-items: center;
   min-height: 32px;
   padding: 0 0.62rem;
-  border-radius: 10px;
-  border: 1px solid #456b59;
-  background: linear-gradient(180deg, #1f352a, #16261f);
-  color: #d5f0e2;
+  border-radius: var(--dw-radius);
+  border: 1px solid rgba(230, 237, 243, 0.14);
+  background: var(--dw-surface-raised);
+  color: var(--dw-text-secondary);
   font-size: 0.76rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   white-space: nowrap;
 
   @media (max-width: 720px) {
@@ -365,7 +319,7 @@ export const QtyPill = styled.span`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: 28px;
     padding: 0 0.44rem;
-    border-radius: 8px;
+    border-radius: var(--dw-radius);
     font-size: ${MOBILE_FONT_XS};
   }
 `;
@@ -377,9 +331,9 @@ export const ItemActions = styled.div`
   grid-auto-columns: max-content;
   gap: 0.34rem;
   padding: 0.24rem;
-  border-radius: 11px;
-  border: 1px solid #323c38;
-  background: linear-gradient(180deg, #1a1f22, #15191b);
+  border-radius: var(--dw-radius);
+  border: 1px solid rgba(230, 237, 243, 0.12);
+  background: var(--dw-surface-raised);
 
   @media (max-width: 860px) {
     grid-column: 1 / -1;
@@ -394,7 +348,7 @@ export const ItemActions = styled.div`
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.26rem;
     padding: 0.2rem;
-    border-radius: 9px;
+    border-radius: var(--dw-radius);
   }
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
@@ -404,56 +358,57 @@ export const ItemActions = styled.div`
 
 const toneStyles = {
   primary: css`
-    background: #214734;
-    border-color: #3a8f64;
-    color: #dcf4e7;
+    background: rgba(76, 198, 193, 0.16);
+    border-color: var(--dw-teal);
+    color: var(--dw-text);
 
     &:hover:not(:disabled) {
-      background: #2c6047;
-      border-color: #4ec77b;
+      background: rgba(76, 198, 193, 0.24);
+      border-color: var(--dw-teal);
     }
   `,
   neutral: css`
-    background: #252525;
-    border-color: #3b3b3b;
-    color: #ececec;
+    background: var(--dw-surface-raised);
+    border-color: rgba(230, 237, 243, 0.16);
+    color: var(--dw-text);
 
     &:hover:not(:disabled) {
-      background: #2e2e2e;
-      border-color: #5a5a5a;
+      background: var(--dw-surface-raised);
+      border-color: var(--dw-cyan);
     }
   `,
   warning: css`
-    background: #3e3014;
-    border-color: #8d6b30;
-    color: #ffe8b8;
+    background: rgba(232, 177, 92, 0.12);
+    border-color: rgba(232, 177, 92, 0.42);
+    color: var(--dw-amber);
 
     &:hover:not(:disabled) {
-      background: #4f3d19;
-      border-color: #b38b3f;
+      background: rgba(232, 177, 92, 0.18);
+      border-color: var(--dw-amber);
     }
   `,
   danger: css`
-    background: #3b1c1f;
-    border-color: #7a353d;
-    color: #ffd8dc;
+    background: rgba(240, 138, 123, 0.12);
+    border-color: rgba(240, 138, 123, 0.42);
+    color: var(--dw-coral);
 
     &:hover:not(:disabled) {
-      background: #4b2328;
-      border-color: #b34b56;
+      background: rgba(240, 138, 123, 0.18);
+      border-color: var(--dw-coral);
     }
   `,
 };
 
 export const ActionButton = styled.button`
+  ${controlStyles}
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--dw-radius);
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
   min-width: 68px;
   padding: 0 0.66rem;
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -469,8 +424,7 @@ export const ActionButton = styled.button`
   ${({ $active }) =>
     $active &&
     css`
-      box-shadow: 0 0 0 1px rgba(78, 199, 123, 0.45);
-      border-color: #4ec77b;
+      border-color: var(--dw-cyan);
     `}
 
   &:disabled {
@@ -478,12 +432,14 @@ export const ActionButton = styled.button`
     cursor: not-allowed;
   }
 
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
+
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: 100%;
     min-width: 0;
-    min-height: 34px;
+    min-height: 44px;
     padding: 0.35rem 0.24rem;
-    border-radius: 7px;
+    border-radius: var(--dw-radius);
     font-size: ${MOBILE_FONT_XS};
     letter-spacing: 0.01em;
   }
@@ -491,9 +447,9 @@ export const ActionButton = styled.button`
 
 export const ItemWorkspace = styled.section`
   margin-top: 0.8rem;
-  border-radius: 10px;
-  border: 1px solid #2f2f2f;
-  background: #171717;
+  border-radius: var(--dw-radius);
+  border: 1px solid rgba(230, 237, 243, 0.12);
+  background: var(--dw-surface);
   padding: 0.8rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -506,17 +462,15 @@ export const ItemWorkspace = styled.section`
 export const InlineItemWorkspace = styled.li`
   list-style: none;
   margin-top: -0.2rem;
-  border-radius: 10px;
-  border: 1px solid #355943;
-  background: #131a15;
+  border-radius: var(--dw-radius);
+  border: 1px solid rgba(230, 237, 243, 0.12);
+  background: var(--dw-surface);
   padding: 0.8rem;
-  box-shadow: 0 0 0 1px rgba(78, 199, 123, 0.14);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     margin-top: -0.12rem;
     border-radius: ${MOBILE_PANEL_RADIUS};
     padding: 0.58rem;
-    box-shadow: 0 0 0 1px rgba(78, 199, 123, 0.08);
   }
 `;
 
@@ -536,8 +490,8 @@ export const WorkspaceHeader = styled.div`
 export const WorkspaceTitle = styled.h4`
   margin: 0;
   font-size: 0.9rem;
-  letter-spacing: 0.02em;
-  color: #d8ece0;
+  letter-spacing: 0.01em;
+  color: var(--dw-text);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_SM};
@@ -545,18 +499,19 @@ export const WorkspaceTitle = styled.h4`
 `;
 
 export const WorkspaceClose = styled.button`
-  border: 1px solid #3d3d3d;
-  background: #202020;
-  color: #ddd;
-  border-radius: 6px;
+  ${controlStyles}
+  border: 1px solid rgba(230, 237, 243, 0.16);
+  background: var(--dw-surface-raised);
+  color: var(--dw-text-secondary);
+  border-radius: var(--dw-radius);
   padding: 0.25rem 0.5rem;
   font-size: 0.78rem;
   cursor: pointer;
-  min-height: 34px;
+  min-height: 44px;
 
   &:hover {
-    background: #2a2a2a;
-    border-color: #565656;
+    background: var(--dw-surface-raised);
+    border-color: var(--dw-cyan);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -570,7 +525,7 @@ export const EmptyMessage = styled.div`
   border: 1px dashed rgba(255, 255, 255, 0.15);
   color: rgba(255, 255, 255, 0.8);
   padding: 1rem;
-  border-radius: 12px;
+  border-radius: var(--dw-radius);
   text-align: center;
   font-size: 0.95rem;
   margin-top: 0.5rem;
@@ -584,8 +539,6 @@ export const EmptyMessage = styled.div`
 
 export const DetailsPanel = styled.div`
   overflow: hidden;
-  background: #191919;
-  border-radius: 10px;
   transition:
     max-height 220ms ease,
     margin-bottom 220ms ease,
@@ -601,7 +554,6 @@ export const DetailsPanel = styled.div`
       max-height: none;
       overflow: visible;
       margin-bottom: 12px;
-      border: 1px solid #2f2f2f;
     `}
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -622,9 +574,9 @@ export const DetailsPanel = styled.div`
 
 export const ExportPanelContainer = styled.section`
   padding: 0.9rem;
-  border-radius: 10px;
-  border: 1px solid #2d3a34;
-  background: #151b18;
+  border-radius: var(--dw-radius);
+  border: 1px solid rgba(230, 237, 243, 0.12);
+  background: var(--dw-surface);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 0.62rem;
@@ -642,9 +594,9 @@ export const ExportPanelHeader = styled.div`
 
 export const ExportPanelTitle = styled.h4`
   margin: 0;
-  color: #dbefe3;
+  color: var(--dw-text);
   font-size: 0.92rem;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_SM};
@@ -653,7 +605,7 @@ export const ExportPanelTitle = styled.h4`
 
 export const ExportPanelBody = styled.p`
   margin: 0;
-  color: #c8d7d0;
+  color: var(--dw-text-secondary);
   font-size: 0.86rem;
   line-height: 1.45;
 `;
@@ -666,24 +618,25 @@ export const ExportPanelActions = styled.div`
 `;
 
 export const ExportDownloadButton = styled.button`
-  border: 1px solid #3a8f64;
-  background: #214734;
-  color: #dcf4e7;
-  border-radius: 8px;
+  ${controlStyles}
+  border: 1px solid var(--dw-teal);
+  background: rgba(76, 198, 193, 0.16);
+  color: var(--dw-text);
+  border-radius: var(--dw-radius);
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
   min-width: 132px;
   padding: 0 0.72rem;
   font-size: 0.82rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   cursor: pointer;
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease;
 
   &:hover:not(:disabled) {
-    background: #2c6047;
-    border-color: #4ec77b;
+    background: rgba(76, 198, 193, 0.24);
+    border-color: var(--dw-cyan);
   }
 
   &:disabled {
@@ -694,8 +647,8 @@ export const ExportDownloadButton = styled.button`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-width: 0;
     width: 100%;
-    min-height: 34px;
-    border-radius: 7px;
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+    border-radius: var(--dw-radius);
     font-size: ${MOBILE_FONT_XS};
     letter-spacing: 0.01em;
   }
@@ -703,24 +656,25 @@ export const ExportDownloadButton = styled.button`
 
 export const ExportPanelError = styled.p`
   margin: 0.48rem 0 0;
-  color: #ffb4bc;
+  color: var(--dw-coral);
   font-size: 0.8rem;
   line-height: 1.35;
 `;
 
 export const ExportPanelClose = styled.button`
-  border: 1px solid #3d3d3d;
-  background: #202020;
-  color: #ddd;
-  border-radius: 6px;
+  ${controlStyles}
+  border: 1px solid rgba(230, 237, 243, 0.16);
+  background: var(--dw-surface-raised);
+  color: var(--dw-text);
+  border-radius: var(--dw-radius);
   padding: 0.25rem 0.5rem;
   font-size: 0.78rem;
   cursor: pointer;
-  min-height: 34px;
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
 
   &:hover {
-    background: #2a2a2a;
-    border-color: #565656;
+    background: var(--dw-surface-raised);
+    border-color: var(--dw-cyan);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {

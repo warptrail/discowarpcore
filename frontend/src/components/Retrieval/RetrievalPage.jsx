@@ -90,8 +90,6 @@ function buildItemSearchText(item) {
       tags,
       item?.boxName,
       item?.boxNumber,
-      item?.boxGroupLabel,
-      item?.groupLabel,
       item?.locationLabel,
       item?.locationPath,
       item?.primaryOwnerName,
@@ -253,7 +251,6 @@ function sanitizeBoxModeState(rawState) {
   return {
     searchValue: String(source.searchValue || ''),
     boxIdPrefix: String(source.boxIdPrefix || '').replace(/\D/g, '').slice(0, 3),
-    selectedGroup: String(source.selectedGroup || ''),
     selectedLocation: String(source.selectedLocation || ''),
     selectedTags: sanitizeFilterValues(
       source.selectedTags || (legacySelectedTag ? [legacySelectedTag] : []),

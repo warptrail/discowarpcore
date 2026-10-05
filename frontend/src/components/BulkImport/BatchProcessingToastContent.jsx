@@ -1,3 +1,4 @@
+import { controlStyles, inputStyles } from '../../styles/primitives';
 import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { formatTokenLabel, normalizeRenderTokens } from '../../constants/renderTokens';
@@ -13,7 +14,7 @@ import {
 
 const Wrap = styled.div`
   display: grid;
-  gap: 0.36rem;
+  gap: ${({ $compactPresentation }) => ($compactPresentation ? '0.26rem' : '0.36rem')};
 `;
 
 const ConsoleGrid = styled.div`
@@ -42,9 +43,9 @@ const InlineGroup = styled.div`
 
 const InlineLabel = styled.span`
   flex: 0 0 auto;
-  font-size: 0.62rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 0.74rem;
+  text-transform: none;
+  letter-spacing: normal;
   color: rgba(180, 206, 227, 0.82);
   font-weight: 700;
 `;
@@ -55,10 +56,10 @@ const SummaryText = styled.span`
   text-overflow: ellipsis;
   white-space: nowrap;
   color: #f0fbff;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  font-family: 'SFMono-Regular', Menlo, Consolas, Monaco, 'Liberation Mono', monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  font-family: inherit;
 `;
 
 const RightGroup = styled.div`
@@ -83,35 +84,44 @@ const ModeSegmented = styled.div`
   flex-wrap: nowrap;
   min-width: 0;
   max-width: 100%;
-  border: 1px solid rgba(88, 136, 162, 0.62);
-  border-radius: 6px;
-  background: rgba(8, 17, 24, 0.96);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: ${({ $compact }) => ($compact ? 'rgba(9, 17, 25, 0.82)' : 'var(--dw-surface)')};
   overflow: hidden;
 `;
 
 const ModeSegmentButton = styled.button`
-  min-height: 29px;
-  padding: 0 0.6rem;
+  min-height: ${({ $compact }) => ($compact ? '36px' : '29px')};
+  padding: 0 ${({ $compact }) => ($compact ? '0.52rem' : '0.6rem')};
   border: 0;
-  border-right: ${({ $isLast }) => ($isLast ? '0' : '1px solid rgba(88, 136, 162, 0.45)')};
-  background: ${({ $active }) =>
-    $active
-      ? 'linear-gradient(180deg, rgba(45, 115, 156, 0.98) 0%, rgba(24, 71, 100, 0.98) 100%)'
-      : 'rgba(8, 17, 24, 0.96)'};
-  color: ${({ $active }) => ($active ? '#eef8ff' : 'rgba(159, 190, 206, 0.72)')};
-  font-size: 0.67rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  border-right: ${({ $isLast, $compact }) => ($isLast || $compact ? '0' : '1px solid var(--dw-border)')};
+  border-radius: ${({ $compact }) => ($compact ? '3px' : '0')};
+  background: ${({ $active, $compact }) =>
+    $compact
+      ? $active ? 'rgba(76, 198, 193, 0.14)' : 'transparent'
+      : $active ? 'var(--dw-surface-raised)' : 'rgba(8, 17, 24, 0.96)'};
+  color: ${({ $active, $compact }) =>
+    $active ? '#eef8ff' : $compact ? 'rgba(230, 237, 243, 0.74)' : 'rgba(159, 190, 206, 0.72)'};
+  font-family: inherit;
+  font-size: ${({ $compact }) => ($compact ? '0.76rem' : '0.67rem')};
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
   cursor: pointer;
-  box-shadow: ${({ $active }) =>
-    $active ? 'inset 0 0 0 1px rgba(182, 225, 255, 0.35), 0 0 0 1px rgba(95, 166, 219, 0.28)' : 'none'};
+  box-shadow: ${({ $active, $compact }) =>
+    $compact
+      ? $active ? 'inset 3px 0 0 rgba(76, 198, 193, 0.78)' : 'none'
+      : $active ? 'inset 0 0 0 1px rgba(182, 225, 255, 0.35), 0 0 0 1px rgba(95, 166, 219, 0.28)' : 'none'};
   transition: color 120ms ease, background 120ms ease, opacity 120ms ease, box-shadow 120ms ease;
 
   &:disabled {
     opacity: 0.56;
     cursor: not-allowed;
   }
+
+  ${controlStyles}
+  border-left-color: ${({ $active, $selected, $recommended }) => ($active || $selected || $recommended) ? 'var(--dw-amber)' : 'var(--dw-border)'};
+  border-left-width: 3px;
 `;
 
 const SourceBatchRow = styled.div`
@@ -158,25 +168,48 @@ const StageSummaryRow = styled.div`
   }
 `;
 
+const CompactSelectionRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+`;
+
+const CompactSelectionActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.32rem;
+  flex-wrap: wrap;
+
+  @media (max-width: 520px) {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+  }
+
+  > button:last-child {
+    width: 100%;
+  }
+`;
+
 const TokenMatrix = styled.div`
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
-  border: 1px solid rgba(88, 136, 162, 0.48);
-  border-radius: 8px;
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
   overflow: hidden;
-  background: rgba(8, 17, 24, 0.88);
+  background: var(--dw-surface);
 `;
 
 const TokenMatrixHeader = styled.span`
   min-width: 0;
   padding: 0.28rem 0.38rem 0.2rem;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: 1px solid var(--dw-border);
   color: rgba(180, 206, 227, 0.78);
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
   text-align: center;
 
   &:nth-child(2) {
@@ -189,12 +222,12 @@ const TokenMatrixValueButton = styled.button`
   min-height: 38px;
   padding: 0.32rem 0.38rem 0.38rem;
   border: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--dw-border);
+  border-right: 1px solid var(--dw-border);
   background:
     linear-gradient(180deg, ${({ $gradientStart }) => $gradientStart} 0%, ${({ $gradientEnd }) => $gradientEnd} 100%);
   color: ${({ $textColor }) => $textColor};
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 700;
   line-height: 1.15;
   text-align: center;
@@ -208,15 +241,17 @@ const TokenMatrixValueButton = styled.button`
     opacity: 0.56;
     cursor: not-allowed;
   }
+
+  ${controlStyles}
 `;
 
 const PickerPanel = styled.div`
   display: grid;
   gap: 0.24rem;
   width: 100%;
-  border: 1px solid rgba(88, 136, 162, 0.48);
-  border-radius: 6px;
-  background: rgba(8, 17, 24, 0.84);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   padding: 0.3rem;
 `;
 
@@ -230,12 +265,12 @@ const PickerRowButton = styled.button`
   text-align: left;
   border: 1px solid ${({ $active }) =>
     $active ? 'rgba(124, 196, 242, 0.92)' : 'rgba(87, 130, 158, 0.48)'};
-  border-radius: 8px;
+  border-radius: var(--dw-radius-sm);
   background: ${({ $active }) =>
     $active
-      ? 'linear-gradient(180deg, rgba(36, 79, 108, 0.92) 0%, rgba(23, 55, 79, 0.92) 100%)'
-      : 'linear-gradient(180deg, rgba(17, 38, 54, 0.9) 0%, rgba(10, 25, 36, 0.9) 100%)'};
-  color: #e6f4ff;
+      ? 'var(--dw-surface-raised)'
+      : 'var(--dw-surface-raised)'};
+  color: var(--dw-text);
   padding: 0.34rem 0.46rem;
   cursor: pointer;
   display: grid;
@@ -245,6 +280,10 @@ const PickerRowButton = styled.button`
     opacity: 0.56;
     cursor: not-allowed;
   }
+
+  ${controlStyles}
+  border-left-color: ${({ $active, $selected, $recommended }) => ($active || $selected || $recommended) ? 'var(--dw-amber)' : 'var(--dw-border)'};
+  border-left-width: 3px;
 `;
 
 const PickerRowMain = styled.div`
@@ -265,7 +304,7 @@ const PickerRowLabel = styled.span`
 `;
 
 const PickerRowDate = styled.span`
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   color: rgba(176, 205, 224, 0.84);
   white-space: nowrap;
 `;
@@ -274,13 +313,13 @@ const PickerRowMeta = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 0.46rem;
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   color: rgba(156, 186, 207, 0.8);
 `;
 
 const MonoMeta = styled.span`
-  font-family: 'SFMono-Regular', Menlo, Consolas, Monaco, 'Liberation Mono', monospace;
-  letter-spacing: 0.01em;
+  font-family: inherit;
+  letter-spacing: normal;
 `;
 
 const PickerPager = styled.div`
@@ -292,50 +331,55 @@ const PickerPager = styled.div`
 `;
 
 const PagerLabel = styled.span`
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   color: rgba(160, 191, 211, 0.84);
 `;
 
 const ActionButton = styled.button`
-  min-height: 29px;
-  border-radius: 5px;
-  border: 1px solid
-    ${({ $tone, $selected, $modeToggle }) =>
-      $modeToggle
-        ? $selected
-          ? 'rgba(124, 196, 242, 0.92)'
-          : 'rgba(87, 130, 158, 0.55)'
-        : $selected || $tone === 'primary'
-        ? 'rgba(100, 188, 151, 0.82)'
+  min-height: ${({ $compact }) => ($compact ? '38px' : '29px')};
+  border-radius: var(--dw-radius-sm);
+  border: ${({ $tone, $selected, $modeToggle }) => `1px solid ${$modeToggle
+      ? $selected
+        ? 'rgba(124, 196, 242, 0.92)'
+        : 'rgba(87, 130, 158, 0.55)'
+      : $selected || $tone === 'primary'
+        ? 'rgba(76, 198, 193, 0.62)'
         : $tone === 'warning'
           ? 'rgba(201, 163, 97, 0.7)'
-          : 'rgba(102, 167, 212, 0.75)'};
-  background: ${({ $tone, $selected, $modeToggle }) =>
-    $modeToggle
+          : 'rgba(230, 237, 243, 0.16)'}`};
+  background: ${({ $tone, $selected, $modeToggle, $compact }) =>
+    $compact
+      ? $tone === 'primary' ? 'rgba(76, 198, 193, 0.14)' : 'rgba(9, 17, 25, 0.68)'
+      : $modeToggle
       ? $selected
-        ? 'linear-gradient(180deg, rgba(36, 79, 108, 0.98) 0%, rgba(23, 55, 79, 0.98) 100%)'
-        : 'linear-gradient(180deg, rgba(27, 53, 72, 0.72) 0%, rgba(18, 38, 54, 0.72) 100%)'
+        ? 'var(--dw-surface-raised)'
+        : 'var(--dw-surface-raised)'
       : $selected || $tone === 'primary'
-      ? 'linear-gradient(180deg, rgba(23, 75, 60, 0.96) 0%, rgba(16, 51, 42, 0.96) 100%)'
+      ? 'var(--dw-surface-raised)'
       : $tone === 'warning'
-        ? 'linear-gradient(180deg, rgba(84, 55, 14, 0.96) 0%, rgba(57, 39, 13, 0.96) 100%)'
-        : 'linear-gradient(180deg, rgba(26, 60, 83, 0.96) 0%, rgba(17, 43, 62, 0.96) 100%)'};
-  color: ${({ $selected, $modeToggle }) =>
-    $modeToggle
+        ? 'var(--dw-surface-raised)'
+        : 'var(--dw-surface-raised)'};
+  color: ${({ $selected, $modeToggle, $compact, $tone }) =>
+    $compact
+      ? $tone === 'primary' ? '#d9f3ef' : 'rgba(230, 237, 243, 0.82)'
+      : $modeToggle
       ? $selected
         ? 'rgba(235, 247, 255, 0.98)'
         : 'rgba(186, 210, 227, 0.66)'
       : $selected
         ? '#f4fff8'
         : '#e8fff5'};
-  font-size: 0.68rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 0 0.48rem;
+  font-family: inherit;
+  font-size: ${({ $compact }) => ($compact ? '0.78rem' : '0.68rem')};
+  font-weight: 650;
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 0 ${({ $compact }) => ($compact ? '0.78rem' : '0.48rem')};
   cursor: pointer;
-  box-shadow: ${({ $selected, $modeToggle }) =>
-    $modeToggle
+  box-shadow: ${({ $selected, $modeToggle, $compact }) =>
+    $compact
+      ? 'none'
+      : $modeToggle
       ? $selected
         ? 'inset 0 0 0 1px rgba(182, 225, 255, 0.35), 0 0 0 1px rgba(102, 166, 214, 0.42)'
         : 'none'
@@ -348,24 +392,32 @@ const ActionButton = styled.button`
     opacity: 0.56;
     cursor: not-allowed;
   }
+
+  ${controlStyles}
+  border-left-color: ${({ $active, $selected, $recommended }) => ($active || $selected || $recommended) ? 'var(--dw-amber)' : 'var(--dw-border)'};
+  border-left-width: 3px;
+
+  color: ${({ $tone, $primary, $secondary }) => $tone === 'danger' ? 'var(--dw-coral)' : ($tone === 'primary' || $primary) ? 'var(--dw-cyan)' : $secondary ? 'var(--dw-violet)' : 'var(--dw-text)'};
 `;
 
 const InlineSelect = styled.select`
   min-width: 0;
   min-height: 29px;
   max-width: 180px;
-  border-radius: 5px;
-  border: 1px solid rgba(88, 136, 162, 0.62);
-  background: rgba(11, 24, 33, 0.95);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
   color: #d9ecf6;
   padding: 0 0.48rem;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   line-height: 1.2;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  box-shadow: none;
 
   &:disabled {
     opacity: 0.56;
   }
+
+  ${inputStyles}
 `;
 
 const ActionRow = styled.div`
@@ -382,9 +434,56 @@ const ActionRow = styled.div`
   }
 `;
 
+const CompactSetupRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.36rem;
+`;
+
+const AdvancedOptionsToggle = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 32px;
+  padding: 0.1rem 0;
+  border: 0;
+  background: transparent;
+  color: rgba(230, 237, 243, 0.75);
+  text-align: left;
+  font: inherit;
+  font-size: 0.76rem;
+  cursor: pointer;
+
+  > span:nth-child(2) {
+    color: rgba(230, 237, 243, 0.52);
+  }
+
+  > span:last-child {
+    margin-left: auto;
+    color: rgba(127, 215, 255, 0.88);
+  }
+
+  ${controlStyles}
+`;
+
+const CompactOptions = styled.div`
+  display: grid;
+  gap: 0.4rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--dw-border);
+`;
+
+const CompactTokenRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.42rem;
+`;
+
 const FooterActionButton = styled(ActionButton)`
   @media (max-width: 820px) {
-    width: 100%;
+    width: ${({ $compact }) => ($compact ? 'auto' : '100%')};
     justify-content: flex-start;
   }
 `;
@@ -393,6 +492,7 @@ const BATCH_PAGE_SIZE = 12;
 
 export default function BatchProcessingToastContent({
   selectedCount = 0,
+  compactPresentation = false,
   renderTokens = null,
   processingModeEnabled = false,
   consoleStage = 'setup',
@@ -432,6 +532,7 @@ export default function BatchProcessingToastContent({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerPage, setPickerPage] = useState(1);
   const [tokenPickerField, setTokenPickerField] = useState('');
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const sortedBatchOptions = useMemo(
     () =>
       [...safeSourceBatchOptions].sort((left, right) => {
@@ -477,7 +578,7 @@ export default function BatchProcessingToastContent({
   }, [showFullTokenControls]);
 
   return (
-    <Wrap>
+    <Wrap $compactPresentation={compactPresentation}>
       {processingModeEnabled ? (
         <>
           <ConsoleGrid>
@@ -498,6 +599,110 @@ export default function BatchProcessingToastContent({
                       }}
                     />
                   </GridRow>
+                ) : compactPresentation ? (
+                  <>
+                    <CompactSetupRow>
+                      {Array.isArray(actionModeOptions) && actionModeOptions.length ? (
+                        <ModeSegmented $compact role="group" aria-label="Image action">
+                          {actionModeOptions.map((option, index) => {
+                            const value = String(option?.value || '').trim();
+                            const label = String(option?.label || value || '').trim();
+                            if (!value || !label) return null;
+                            return (
+                              <ModeSegmentButton
+                                key={value}
+                                type="button"
+                                $active={value === actionMode}
+                                $compact
+                                $isLast={index === actionModeOptions.length - 1}
+                                disabled={Boolean(busyAction)}
+                                onClick={() => onActionModeChange?.(value)}
+                              >
+                                {label}
+                              </ModeSegmentButton>
+                            );
+                          })}
+                        </ModeSegmented>
+                      ) : <span />}
+                      <FooterActionButton
+                        type="button"
+                        $tone="primary"
+                        $compact
+                        onClick={onEnterSelectionStage}
+                        disabled={Boolean(busyAction)}
+                      >
+                        Select items
+                      </FooterActionButton>
+                    </CompactSetupRow>
+
+                    {showTokenModeControls ? (
+                      <>
+                        <AdvancedOptionsToggle
+                          type="button"
+                          aria-expanded={advancedOpen}
+                          aria-controls="batch-image-options"
+                          onClick={() => setAdvancedOpen((current) => !current)}
+                        >
+                          <span>Image style</span>
+                          <span>{normalizedTokenMode === 'random' ? 'Randomized' : 'Custom'}</span>
+                          <span>{advancedOpen ? 'Hide' : 'Edit'}</span>
+                        </AdvancedOptionsToggle>
+                        {advancedOpen ? (
+                          <CompactOptions id="batch-image-options">
+                            <CompactTokenRow>
+                              <ModeSegmented $compact role="group" aria-label="Image token mode">
+                                <ModeSegmentButton
+                                  type="button"
+                                  $compact
+                                  $active={normalizedTokenMode === 'explicit'}
+                                  disabled={Boolean(busyAction)}
+                                  onClick={() => onRenderTokenChange?.('mode', 'explicit')}
+                                >
+                                  Custom
+                                </ModeSegmentButton>
+                                <ModeSegmentButton
+                                  type="button"
+                                  $compact
+                                  $active={normalizedTokenMode === 'random'}
+                                  $isLast
+                                  disabled={Boolean(busyAction)}
+                                  onClick={() => onRenderTokenChange?.('mode', 'random')}
+                                >
+                                  Randomized
+                                </ModeSegmentButton>
+                              </ModeSegmented>
+                            </CompactTokenRow>
+                            {showFullTokenControls ? (
+                              <TokenMatrix>
+                                <TokenMatrixHeader>Background</TokenMatrixHeader>
+                                <TokenMatrixHeader>Glow</TokenMatrixHeader>
+                                <TokenMatrixValueButton
+                                  type="button"
+                                  $gradientStart={backgroundSurface.gradientStart}
+                                  $gradientEnd={backgroundSurface.gradientEnd}
+                                  $textColor={backgroundSurface.textColor}
+                                  disabled={Boolean(busyAction)}
+                                  onClick={() => setTokenPickerField('background')}
+                                >
+                                  {formatTokenLabel(normalizedRenderTokens.background)}
+                                </TokenMatrixValueButton>
+                                <TokenMatrixValueButton
+                                  type="button"
+                                  $gradientStart={glowSurface.gradientStart}
+                                  $gradientEnd={glowSurface.gradientEnd}
+                                  $textColor={glowSurface.textColor}
+                                  disabled={Boolean(busyAction)}
+                                  onClick={() => setTokenPickerField('glow')}
+                                >
+                                  {formatTokenLabel(normalizedRenderTokens.glow)}
+                                </TokenMatrixValueButton>
+                              </TokenMatrix>
+                            ) : null}
+                          </CompactOptions>
+                        ) : null}
+                      </>
+                    ) : null}
+                  </>
                 ) : (
                   <>
                 <GridRow $columns="minmax(0, 1fr)">
@@ -599,39 +804,68 @@ export default function BatchProcessingToastContent({
               </>
             ) : (
               <>
-                <GridRow $columns="minmax(0, 1fr)">
-                  <StageSummaryRow>
+                {compactPresentation ? (
+                  <CompactSelectionRow>
                     <FooterActionButton
                       type="button"
+                      $compact
                       onClick={onReturnToSetupStage}
                       disabled={Boolean(busyAction)}
                     >
                       Back
                     </FooterActionButton>
-                  </StageSummaryRow>
-                </GridRow>
-
-                <GridRow $columns="minmax(0, 1fr)">
-                  <SourceBatchRow>
-                    <SourceBatchSummary title={`${selectedCount} selected`}>
-                      <SummaryText>{`${selectedCount} selected`}</SummaryText>
-                    </SourceBatchSummary>
                     {safeSourceBatchOptions.length ? (
-                      <SourceBatchActions>
-                        <ActionButton
+                      <FooterActionButton
+                        type="button"
+                        $compact
+                        onClick={() => {
+                          setPickerOpen((current) => !current);
+                          setPickerPage(1);
+                        }}
+                        disabled={Boolean(busyAction)}
+                        aria-expanded={pickerOpen}
+                      >
+                        {pickerOpen ? 'Close batch list' : appliedBatchId ? 'Change batch' : 'Select batch'}
+                      </FooterActionButton>
+                    ) : null}
+                  </CompactSelectionRow>
+                ) : (
+                  <>
+                    <GridRow $columns="minmax(0, 1fr)">
+                      <StageSummaryRow>
+                        <FooterActionButton
                           type="button"
-                          onClick={() => {
-                            setPickerOpen((current) => !current);
-                            setPickerPage(1);
-                          }}
+                          onClick={onReturnToSetupStage}
                           disabled={Boolean(busyAction)}
                         >
-                          {pickerOpen ? 'Close' : appliedBatchId ? 'Change Batch' : sourceBatchApplyLabel}
-                        </ActionButton>
-                      </SourceBatchActions>
-                    ) : null}
-                  </SourceBatchRow>
-                </GridRow>
+                          Back
+                        </FooterActionButton>
+                      </StageSummaryRow>
+                    </GridRow>
+
+                    <GridRow $columns="minmax(0, 1fr)">
+                      <SourceBatchRow>
+                        <SourceBatchSummary title={`${selectedCount} selected`}>
+                          <SummaryText>{`${selectedCount} selected`}</SummaryText>
+                        </SourceBatchSummary>
+                        {safeSourceBatchOptions.length ? (
+                          <SourceBatchActions>
+                            <ActionButton
+                              type="button"
+                              onClick={() => {
+                                setPickerOpen((current) => !current);
+                                setPickerPage(1);
+                              }}
+                              disabled={Boolean(busyAction)}
+                            >
+                              {pickerOpen ? 'Close' : appliedBatchId ? 'Change Batch' : sourceBatchApplyLabel}
+                            </ActionButton>
+                          </SourceBatchActions>
+                        ) : null}
+                      </SourceBatchRow>
+                    </GridRow>
+                  </>
+                )}
 
                 {pickerOpen && safeSourceBatchOptions.length ? (
                   <GridRow $columns="minmax(0, 1fr)">
@@ -700,36 +934,68 @@ export default function BatchProcessingToastContent({
                 ) : null}
 
                 <GridRow $columns="minmax(0, 1fr)">
-                  <ActionRow>
-                    <FooterActionButton type="button" onClick={onSelectAllLoaded}>
-                      {selectAllLabel}
-                    </FooterActionButton>
-                    <FooterActionButton type="button" onClick={onSelectNoneLoaded}>
-                      {selectNoneLabel}
-                    </FooterActionButton>
-                    {showSelectUnprocessed ? (
-                      <FooterActionButton type="button" onClick={onSelectUnprocessedLoaded}>
-                        {selectUnprocessedLabel}
-                      </FooterActionButton>
-                    ) : null}
-                    {showFailedSelector ? (
+                  {compactPresentation ? (
+                    <CompactSelectionActions>
                       <FooterActionButton
                         type="button"
-                        onClick={onSelectFailedLoaded}
-                        disabled={!failedSelectableCount}
+                        $compact
+                        title={selectAllLabel}
+                        aria-label={selectAllLabel}
+                        onClick={onSelectAllLoaded}
                       >
-                        Select Failed
+                        Select all
                       </FooterActionButton>
-                    ) : null}
-                    <FooterActionButton
-                      type="button"
-                      $tone="primary"
-                      onClick={onProcessSelected}
-                      disabled={Boolean(busyAction) || !selectedCount}
-                    >
-                      {busyAction ? primaryBusyActionLabel : primaryActionLabel}
-                    </FooterActionButton>
-                  </ActionRow>
+                      <FooterActionButton
+                        type="button"
+                        $compact
+                        title={selectNoneLabel}
+                        aria-label={selectNoneLabel}
+                        onClick={onSelectNoneLoaded}
+                      >
+                        Clear
+                      </FooterActionButton>
+                      <FooterActionButton
+                        type="button"
+                        $compact
+                        $tone="primary"
+                        onClick={onProcessSelected}
+                        disabled={Boolean(busyAction) || !selectedCount}
+                      >
+                        {busyAction ? primaryBusyActionLabel : primaryActionLabel}
+                      </FooterActionButton>
+                    </CompactSelectionActions>
+                  ) : (
+                    <ActionRow>
+                      <FooterActionButton type="button" onClick={onSelectAllLoaded}>
+                        {selectAllLabel}
+                      </FooterActionButton>
+                      <FooterActionButton type="button" onClick={onSelectNoneLoaded}>
+                        {selectNoneLabel}
+                      </FooterActionButton>
+                      {showSelectUnprocessed ? (
+                        <FooterActionButton type="button" onClick={onSelectUnprocessedLoaded}>
+                          {selectUnprocessedLabel}
+                        </FooterActionButton>
+                      ) : null}
+                      {showFailedSelector ? (
+                        <FooterActionButton
+                          type="button"
+                          onClick={onSelectFailedLoaded}
+                          disabled={!failedSelectableCount}
+                        >
+                          Select Failed
+                        </FooterActionButton>
+                      ) : null}
+                      <FooterActionButton
+                        type="button"
+                        $tone="primary"
+                        onClick={onProcessSelected}
+                        disabled={Boolean(busyAction) || !selectedCount}
+                      >
+                        {busyAction ? primaryBusyActionLabel : primaryActionLabel}
+                      </FooterActionButton>
+                    </ActionRow>
+                  )}
                 </GridRow>
               </>
             )}

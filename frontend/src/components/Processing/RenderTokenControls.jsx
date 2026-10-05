@@ -1,3 +1,4 @@
+import { controlStyles } from '../../styles/primitives';
 import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import tokenColorsCsv from '../../assets/token-colors.csv?raw';
@@ -29,7 +30,7 @@ const FIELD_LABELS = {
 const Panel = styled.section`
   min-width: 0;
   padding-top: ${({ $compact }) => ($compact ? '0.42rem' : '0.52rem')};
-  border-top: 1px solid rgba(97, 151, 158, 0.28);
+  border-top: 1px solid var(--dw-border);
   display: grid;
   gap: ${({ $compact }) => ($compact ? '0.34rem' : '0.42rem')};
 `;
@@ -49,13 +50,15 @@ const ProfileToggle = styled.button`
   text-align: left;
 
   &:hover {
-    color: #effffc;
+    color: var(--dw-text-secondary);
   }
 
   &:focus-visible {
     outline: 2px solid rgba(173, 142, 255, 0.92);
     outline-offset: 2px;
   }
+
+  ${controlStyles}
 `;
 
 const ProfileLead = styled.span`
@@ -63,33 +66,35 @@ const ProfileLead = styled.span`
   align-items: baseline;
   gap: 0.44rem;
   min-width: 0;
+
+  flex-wrap: wrap;
+  row-gap: 0.2rem;
 `;
 
 const Label = styled.div`
-  color: #91bbba;
-  font-size: 0.62rem;
+  color: var(--dw-text-secondary);
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 const SummaryText = styled.span`
   min-width: 0;
   overflow: hidden;
-  color: #bdd5d4;
-  font-size: 0.61rem;
+  color: var(--dw-text-secondary);
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  font-family: 'SFMono-Regular', Menlo, Consolas, Monaco, 'Liberation Mono', monospace;
+  letter-spacing: 0;
+  font-family: var(--dw-font-ui);
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
 
 const ToggleAffordance = styled.span`
   flex: 0 0 auto;
-  color: #7bcac0;
-  font-family: 'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace,
-    Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  color: var(--dw-text-secondary);
+  font-family: var(--dw-font-ui);
   font-size: 0.86rem;
   line-height: 1;
 `;
@@ -106,20 +111,20 @@ const ModeSection = styled.div`
 `;
 
 const FieldLabel = styled.span`
-  color: #8faead;
-  font-size: 0.58rem;
+  color: var(--dw-text-secondary);
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 const Segmented = styled.div`
   display: inline-grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   width: fit-content;
-  border: 1px solid rgba(97, 151, 158, 0.46);
-  border-radius: 5px;
-  background: rgba(5, 11, 16, 0.8);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   overflow: hidden;
 `;
 
@@ -133,10 +138,10 @@ const SegmentButton = styled.button`
       ? 'rgba(38, 102, 96, 0.5)'
       : 'transparent'};
   color: ${({ $active }) => ($active ? '#effffc' : '#9fbdbc')};
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   cursor: pointer;
 
   &:disabled {
@@ -148,6 +153,9 @@ const SegmentButton = styled.button`
     outline: 2px solid rgba(173, 142, 255, 0.92);
     outline-offset: -2px;
   }
+
+  ${controlStyles}
+  border-left: 3px solid ${({ $active }) => $active ? 'var(--dw-amber)' : 'var(--dw-border)'};
 `;
 
 const TokenGrid = styled.div`
@@ -157,8 +165,9 @@ const TokenGrid = styled.div`
 `;
 
 const TokenTile = styled.button`
+  ${controlStyles}
   min-height: ${({ $compact }) => ($compact ? '42px' : '46px')};
-  border-radius: 5px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid ${({ $borderColor }) => $borderColor};
   background:
     linear-gradient(180deg, ${({ $gradientStart }) => $gradientStart} 0%, ${({ $gradientEnd }) => $gradientEnd} 100%);
@@ -180,24 +189,28 @@ const TokenTile = styled.button`
     outline: 2px solid rgba(173, 142, 255, 0.92);
     outline-offset: 2px;
   }
+
+  box-shadow: none;
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 const TokenTileLabel = styled.span`
-  font-size: 0.55rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0;
+  text-transform: none;
   opacity: 0.82;
 `;
 
 const TokenTileValue = styled.span`
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 760;
   line-height: 1.15;
 `;
 
 const RandomModeNote = styled.div`
-  color: #91b2b1;
-  font-size: 0.64rem;
+  color: var(--dw-text-secondary);
+  font-size: 0.75rem;
   line-height: 1.3;
 `;
 

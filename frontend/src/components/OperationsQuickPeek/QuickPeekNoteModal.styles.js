@@ -7,8 +7,7 @@ export const Backdrop = styled.div`
   display: grid;
   place-items: center;
   padding: clamp(0.75rem, 3vw, 1.5rem);
-  background: rgba(2, 5, 8, 0.68);
-  backdrop-filter: blur(5px);
+  background: var(--dw-surface-raised);
 `;
 
 export const Reader = styled.section`
@@ -21,14 +20,16 @@ export const Reader = styled.section`
   overflow: hidden;
   color: rgba(232, 239, 246, 0.96);
   background:
-    linear-gradient(135deg, rgba(var(--box-tone-rgb, 90, 205, 219), 0.1), transparent 44%),
-    rgba(7, 11, 16, 0.985);
+    var(--dw-surface);
   border: 1px solid rgba(var(--box-tone-rgb, 90, 205, 219), 0.58);
   border-radius: 8px;
-  box-shadow:
-    inset 0 1px rgba(255, 255, 255, 0.05),
-    0 18px 60px rgba(0, 0, 0, 0.72),
-    0 0 28px rgba(var(--box-tone-rgb, 90, 205, 219), 0.12);
+  box-shadow: none;
+  min-width: 0;
+  font-family: var(--dw-font-ui);
+  & :is(button, a, input, select, textarea):focus-visible {
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
+  }
 `;
 
 export const Header = styled.header`
@@ -41,11 +42,11 @@ export const Eyebrow = styled.span`
   display: block;
   margin-bottom: 0.22rem;
   color: rgba(var(--box-tone-rgb, 90, 205, 219), 0.96);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.64rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   font-weight: 900;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
 `;
 
 export const Title = styled.h2`
@@ -70,7 +71,7 @@ export const CloseButton = styled.button`
   color: rgba(205, 215, 228, 0.78);
   background: transparent;
   border: 0;
-  font: 700 1rem/1 ui-monospace, monospace;
+  font: 700 1rem/1 var(--dw-font-ui);
   cursor: pointer;
 
   &:hover,

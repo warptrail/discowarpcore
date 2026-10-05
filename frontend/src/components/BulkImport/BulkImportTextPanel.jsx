@@ -1,3 +1,4 @@
+import { panelStyles, inputStyles, controlStyles } from '../../styles/primitives';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import {
@@ -15,9 +16,9 @@ import {
 } from '../../styles/tokens';
 
 const Panel = styled.section`
-  border: 1px solid rgba(96, 152, 189, 0.36);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(12, 20, 29, 0.94) 0%, rgba(8, 14, 22, 0.98) 100%);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   padding: 0.8rem;
   display: grid;
   gap: 0.72rem;
@@ -26,6 +27,9 @@ const Panel = styled.section`
     padding: 0.64rem;
     gap: 0.6rem;
   }
+
+  ${panelStyles}
+  border-left: 3px solid var(--dw-amber);
 `;
 
 const Section = styled.div`
@@ -36,40 +40,32 @@ const Section = styled.div`
 const Label = styled.label`
   margin: 0;
   font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #9dbbd4;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--dw-text-secondary);
 `;
 
 const BoxIdInput = styled.input`
   width: 9.2rem;
   max-width: 100%;
-  border-radius: 9px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $state }) =>
       $state === 'valid'
         ? 'rgba(84, 188, 130, 0.72)'
         : $state === 'invalid'
           ? 'rgba(205, 111, 111, 0.72)'
-          : 'rgba(108, 152, 188, 0.5)'};
+          : 'var(--dw-border)'};
   background: ${({ $state }) =>
     $state === 'valid'
       ? 'rgba(13, 43, 31, 0.9)'
       : $state === 'invalid'
         ? 'rgba(53, 18, 20, 0.9)'
         : 'rgba(7, 11, 18, 0.9)'};
-  color: #eaf2ff;
+  color: var(--dw-text);
   font-size: 0.98rem;
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Monaco,
-    Consolas,
-    'Liberation Mono',
-    'Courier New',
-    monospace;
-  letter-spacing: 0.14em;
+  font-family: var(--dw-font-ui);
+  letter-spacing: 0.01em;
   text-align: center;
   min-height: 40px;
   padding: 0 0.62rem;
@@ -77,13 +73,18 @@ const BoxIdInput = styled.input`
   &:focus {
     outline: none;
     border-color: rgba(145, 187, 255, 0.9);
-    box-shadow: 0 0 0 2px rgba(91, 141, 236, 0.24);
+    box-shadow: none;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     font-size: ${MOBILE_FONT_SM};
   }
+
+  ${inputStyles}
+  font-family: var(--dw-font-data);
+
+  border-color: ${({ $state }) => $state === 'invalid' ? 'var(--dw-coral)' : $state === 'valid' ? 'var(--dw-teal)' : 'var(--dw-border)'};
 `;
 
 const StatusLine = styled.div`
@@ -102,32 +103,34 @@ const StatusLine = styled.div`
 const FileInput = styled.input`
   display: block;
   width: 100%;
-  border-radius: 9px;
-  border: 1px solid rgba(108, 152, 188, 0.5);
-  background: rgba(7, 11, 18, 0.9);
-  color: #d7e9fc;
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface);
+  color: var(--dw-text);
   padding: 0.48rem 0.56rem;
   min-height: 40px;
 
   &::file-selector-button {
-    border: 1px solid rgba(99, 167, 145, 0.64);
-    border-radius: 8px;
-    background: rgba(18, 49, 38, 0.94);
+    border: 1px solid var(--dw-border);
+    border-radius: var(--dw-radius-sm);
+    background: var(--dw-surface-raised);
     color: #dcfaec;
     font-size: 0.74rem;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    text-transform: none;
     font-weight: 700;
     padding: 0.35rem 0.6rem;
     margin-right: 0.55rem;
     cursor: pointer;
   }
+
+  ${inputStyles}
 `;
 
 const ParseSummary = styled.div`
-  border-radius: 10px;
-  border: 1px solid rgba(88, 143, 184, 0.42);
-  background: rgba(12, 23, 34, 0.84);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
   padding: 0.5rem 0.58rem;
   display: grid;
   gap: 0.2rem;
@@ -146,24 +149,28 @@ const SummaryLine = styled.div`
 
 const ImportButton = styled.button`
   min-height: 42px;
-  border-radius: 10px;
-  border: 1px solid rgba(100, 188, 151, 0.82);
-  background: linear-gradient(180deg, rgba(23, 75, 60, 0.96) 0%, rgba(16, 51, 42, 0.96) 100%);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface);
   color: #e8fff5;
   font-size: 0.84rem;
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  text-transform: none;
+  letter-spacing: 0.01em;
   cursor: pointer;
 
   &:disabled {
     opacity: 0.56;
     cursor: not-allowed;
   }
+
+  ${controlStyles}
+  color: var(--dw-cyan);
+  border-color: var(--dw-cyan);
 `;
 
 const Feedback = styled.div`
-  border-radius: 10px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $tone }) =>
       $tone === 'success'

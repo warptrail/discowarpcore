@@ -8,6 +8,8 @@ const {
   resetAllOwnDeclutterVotes,
   resolveDeclutterDiscussion,
   reopenDeclutterCandidate,
+  hydrateCandidates,
+  normalizePlayer,
 } = require('../services/declutterDeckService');
 const {
   completeAction,
@@ -191,7 +193,13 @@ function actionHandler(operation, action, fallback) {
   return async (req, res) => {
     const startedAt = process.hrtime.bigint();
     try {
-      const candidate = await action(req.params.candidateId, req.body || {});
+      const player = normalizePlayer(req.body?.player);
+      const result = await action(req.params.candidateId, req.body || {});
+      // Actions return documents containing private notes and round history.
+      // Always project those documents through the same player-scoped serializer.
+      const candidate = result?.toObject
+        ? (await hydrateCandidates([result.toObject()], player))[0]
+        : result;
       logSuccess(req, operation, startedAt, {
         candidateId: String(candidate?._id || candidate?.id || ''),
         itemId: String(candidate?.itemId || ''),

@@ -30,7 +30,7 @@ async function listLocationsApi(_req, res) {
 
 async function createLocationApi(req, res) {
   try {
-    const location = await createLocation({ name: req.body?.name });
+    const location = await createLocation(req.body);
     return res.status(201).json({ ok: true, location });
   } catch (err) {
     return handleLocationError(res, err, 'Failed to create location');
@@ -39,7 +39,7 @@ async function createLocationApi(req, res) {
 
 async function renameLocationApi(req, res) {
   try {
-    const location = await renameLocation(req.params.id, { name: req.body?.name });
+    const location = await renameLocation(req.params.id, req.body);
     return res.json({ ok: true, location });
   } catch (err) {
     return handleLocationError(res, err, 'Failed to rename location');

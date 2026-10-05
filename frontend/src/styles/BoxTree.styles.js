@@ -16,12 +16,8 @@ import {
 export * from './Lists.shared.styles';
 
 export const RailBack = styled(SharedRailBack)`
-  background: rgba(var(--box-primary-rgb, 127, 215, 255), 0.18);
-  border: 1px solid rgba(var(--box-primary-rgb, 127, 215, 255), 0.32);
-  filter: drop-shadow(
-    0 0 ${({ $isRoot }) => ($isRoot ? '5px' : '3px')}
-      rgba(var(--box-primary-rgb, 127, 215, 255), 0.1)
-  );
+  background: var(--box-primary, #8A8175);
+  border: 0;
 `;
 
 export const FinderReveal = styled.div`
@@ -62,12 +58,11 @@ export const FinderRevealContent = styled.div`
 
 export const RailFront = styled(SharedRailFront)`
   padding-left: ${({ $isRoot }) => ($isRoot ? '0.58rem' : '0.48rem')};
-  background: rgba(12, 15, 17, 0.97);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  background: var(--dw-background);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding-left: ${({ $isRoot }) => ($isRoot ? '0.36rem' : '0.32rem')};
-    background: rgba(12, 15, 17, 0.97);
+    background: var(--dw-background);
   }
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
@@ -83,7 +78,7 @@ export const TreeSectionTitle = styled(SectionTitle)`
   margin-bottom: 0.36rem;
   font-size: ${({ $isRoot }) => ($isRoot ? '1.16rem' : '1.02rem')};
   line-height: 1.18;
-  color: var(--box-neon, #7fd7ff);
+  color: var(--dw-text);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.3rem;
@@ -118,21 +113,20 @@ export const AsciiTree = styled.section`
   min-width: 0;
   margin-top: 0.18rem;
   padding: 0 0.12rem 0.22rem;
-  color: rgba(211, 228, 233, 0.86);
+  color: var(--dw-text-secondary);
 `;
 
 export const AsciiBranch = styled.div`
   margin: 0.18rem 0 0.1rem;
   padding: 0.34rem 0.42rem 0.38rem;
-  border-left: 1px solid rgba(76, 198, 193, 0.28);
-  background: rgba(7, 13, 19, 0.32);
-  font: 600 0.75rem/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
+  border-left: 1px solid rgba(var(--box-primary-rgb, 76, 198, 193), 0.36);
+  background: var(--dw-surface);
+  font: 600 0.75rem/1.5 var(--dw-font-ui);
   overflow-x: auto;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 0.26rem 0.28rem 0.3rem;
-    font-size: 0.68rem;
+    font-size: 0.75rem;
   }
 `;
 
@@ -141,17 +135,16 @@ export const AsciiLine = styled.div`
   align-items: baseline;
   min-width: max-content;
   min-height: 1.45rem;
-  padding-left: ${({ $depth = 0 }) => `${Math.min($depth, 8) * 0.18}rem`};
-`;
+  padding-left: ${({ $depth = 0 }) => `${Math.min($depth, 8) * 0.18}rem`};`;
 
 export const AsciiPrefix = styled.span`
-  color: rgba(127, 215, 255, 0.62);
+  color: var(--dw-text-muted);
   white-space: pre;
   user-select: none;
 `;
 
 export const AsciiBoxLabel = styled.span`
-  color: rgba(229, 245, 247, 0.94);
+  color: var(--box-primary, #8A8175);
   font-weight: 800;
 `;
 
@@ -191,7 +184,7 @@ export const AsciiLabel = styled.span`
 
 export const AsciiMeta = styled.span`
   margin-left: 0.55rem;
-  color: rgba(167, 139, 250, 0.74);
+  color: var(--dw-violet);
   font-size: 0.88em;
 `;
 
@@ -202,34 +195,33 @@ export const TreeBoxIdChip = styled.span`
   border: 1px solid currentColor;
   background: rgba(255, 255, 255, 0.07);
   color: inherit;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
+  font-family: var(--dw-font-ui);
   font-size: 0.74em;
   font-weight: 860;
-  letter-spacing: 0.12em;
+  letter-spacing: normal;
   line-height: 1;
-  text-transform: uppercase;
+  text-transform: none;
   padding: 0.24rem 0.56rem;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 0.12rem 0.32rem;
-    font-size: 0.66rem;
-    letter-spacing: 0.07em;
+    font-size: 0.75rem;
+    letter-spacing: normal;
   }
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
     padding: 0.1rem 0.28rem;
-    font-size: 0.62rem;
-    letter-spacing: 0.05em;
+    font-size: 0.75rem;
+    letter-spacing: normal;
   }
+  font-family: var(--dw-font-data);
 `;
 
 export const TreeBoxLabel = styled.span`
   color: #ecf2f8;
   font-size: 1em;
   font-weight: 820;
-  letter-spacing: 0.01em;
+  letter-spacing: normal;
   min-width: 0;
   overflow-wrap: anywhere;
 
@@ -270,7 +262,7 @@ export const CondensedControlsPanel = styled.div`
   animation: ${slideCondensedControlsDown} 180ms ease-out;
 
   ${ViewModeLabel} {
-    min-height: 32px;
+    min-height: var(--dw-control-height);
     padding: 0.22rem 0.48rem;
   }
 
@@ -319,7 +311,7 @@ export const SelectionButton = styled.button`
         : 'rgba(127, 215, 255, 0.08)'};
   color: ${({ $tone }) =>
     $tone === 'move' ? '#eafff7' : $tone === 'dispose' ? '#fff2df' : '#dceff8'};
-  min-height: 30px;
+  min-height: var(--dw-control-height);
   padding: 0 0.58rem;
   font-size: 0.78rem;
   font-weight: 760;

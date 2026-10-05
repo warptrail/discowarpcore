@@ -15,6 +15,7 @@ function MoveItemBar({
 
   const handleBoxSelected = ({
     destBoxId,
+    compartmentKey,
     destLabel,
     destShortId,
     isOrphanedDestination = false,
@@ -31,6 +32,7 @@ function MoveItemBar({
       itemQuantity: initialItem?.quantity,
       sourceBoxId,
       destBoxId,
+      compartmentKey,
       destLabel,
       destShortId,
     });

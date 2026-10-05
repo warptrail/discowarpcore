@@ -1,12 +1,13 @@
+import { panelStyles } from '../../styles/primitives';
 import styled from 'styled-components';
 import IntakeBatchManager from './IntakeBatchManager';
 import BulkImportTextPanel from './BulkImportTextPanel';
 import { MOBILE_BREAKPOINT } from '../../styles/tokens';
 
 const IntroPanel = styled.section`
-  border: 1px solid rgba(96, 152, 189, 0.3);
-  border-radius: 10px;
-  background: rgba(9, 17, 25, 0.78);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   padding: 0.8rem;
   display: grid;
   gap: 0.36rem;
@@ -14,19 +15,22 @@ const IntroPanel = styled.section`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 0.64rem;
   }
+
+  ${panelStyles}
+  border-left: 3px solid var(--dw-amber);
 `;
 
 const IntroTitle = styled.h2`
   margin: 0;
   font-size: 0.9rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #e2effc;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--dw-text);
 `;
 
 const IntroText = styled.p`
   margin: 0;
-  color: #a8c0d8;
+  color: var(--dw-text-secondary);
   font-size: 0.8rem;
   line-height: 1.42;
 `;

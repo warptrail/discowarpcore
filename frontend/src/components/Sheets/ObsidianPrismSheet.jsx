@@ -1,16 +1,11 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+
+import useDialogFocus from '../../hooks/useDialogFocus';
 
 import * as S from './ObsidianPrismSheet.styles';
 
 const EXIT_DURATION_MS = 220;
-
-function getFocusableElements(container) {
-  if (!container) return [];
-  return [...container.querySelectorAll(
-    'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
-  )].filter((element) => !element.hasAttribute('hidden'));
-}
 
 export default function ObsidianPrismSheet({
   eyebrow,
@@ -23,7 +18,7 @@ export default function ObsidianPrismSheet({
   children,
 }) {
   const sheetRef = useRef(null);
-  const previousFocusRef = useRef(null);
+  const titleId = useId();
   const closeTimerRef = useRef(0);
   const [closing, setClosing] = useState(false);
   const [headerBottom, setHeaderBottom] = useState(0);
@@ -34,26 +29,15 @@ export default function ObsidianPrismSheet({
     closeTimerRef.current = window.setTimeout(() => handler?.(), EXIT_DURATION_MS);
   }, [closing]);
 
-  useEffect(() => {
-    previousFocusRef.current = document.activeElement;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    window.requestAnimationFrame(() => sheetRef.current?.focus({ preventScroll: true }));
-
-    return () => {
-      window.clearTimeout(closeTimerRef.current);
-      document.body.style.overflow = previousOverflow;
-      const previousFocus = previousFocusRef.current;
-      window.requestAnimationFrame(() => previousFocus?.focus?.({ preventScroll: true }));
-    };
-  }, []);
+  useDialogFocus(sheetRef, () => dismiss(onClose));
+  useEffect(() => () => window.clearTimeout(closeTimerRef.current), []);
 
   useEffect(() => {
     const header = document.querySelector('#root header');
     if (!header) return undefined;
 
     const updateHeaderBottom = () => {
-      setHeaderBottom(Math.max(0, Math.round(header.getBoundingClientRect().bottom)));
+      setHeaderBottom(Math.min(window.innerHeight * 0.4, Math.max(0, Math.round(header.getBoundingClientRect().bottom))));
     };
     updateHeaderBottom();
 
@@ -66,32 +50,6 @@ export default function ObsidianPrismSheet({
     };
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        dismiss(onClose);
-        return;
-      }
-      if (event.key !== 'Tab') return;
-
-      const focusable = getFocusableElements(sheetRef.current);
-      if (!focusable.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [dismiss, onClose]);
-
   if (typeof document === 'undefined') return null;
 
   return createPortal(
@@ -101,7 +59,7 @@ export default function ObsidianPrismSheet({
         ref={sheetRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="obsidian-prism-sheet-title"
+        aria-labelledby={titleId}
         tabIndex={-1}
         $closing={closing}
         style={{ '--prism-sheet-top': `${headerBottom}px` }}
@@ -116,7 +74,7 @@ export default function ObsidianPrismSheet({
           </S.BackButton>
           <S.Heading>
             <S.Eyebrow>{eyebrow}</S.Eyebrow>
-            <S.Title id="obsidian-prism-sheet-title">{title}</S.Title>
+            <S.Title id={titleId}>{title}</S.Title>
             {context ? <S.Context>{context}</S.Context> : null}
           </S.Heading>
           <S.CloseButton

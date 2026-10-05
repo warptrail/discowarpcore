@@ -1,3 +1,4 @@
+import { controlStyles } from '../../styles/primitives';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
@@ -8,7 +9,13 @@ const Actions = styled.div`
   gap: 0.36rem;
   align-items: stretch;
   padding-top: 0.6rem;
-  border-top: 1px solid rgba(var(--box-primary-rgb), 0.28);
+  border-top: 1px solid var(--dw-border);
+
+  ${({ $choosing }) => $choosing && `
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-top: 0;
+    padding-top: 0.15rem;
+  `}
 
 `;
 
@@ -17,7 +24,7 @@ const Button = styled.button`
   grid-column: ${({ $primary, $fullRow }) => ($primary || $fullRow ? '1 / -1' : 'auto')};
   border: 1px solid ${({ $primary }) =>
     $primary ? 'rgba(var(--box-primary-rgb), 0.78)' : 'rgba(var(--box-secondary-rgb), 0.48)'};
-  border-radius: 5px;
+  border-radius: var(--dw-radius-sm);
   background: ${({ $primary }) =>
     $primary
       ? 'linear-gradient(110deg, rgba(var(--box-primary-rgb), 0.25), rgba(var(--box-secondary-rgb), 0.1))'
@@ -26,14 +33,54 @@ const Button = styled.button`
     $primary ? 'var(--box-neon)' : 'rgba(var(--box-secondary-rgb), 0.84)'};
   cursor: pointer;
   font: inherit;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.01em;
   padding: 0.35rem 0.65rem;
-  text-transform: uppercase;
+  text-transform: none;
 
-  &:hover { background: ${({ $primary }) => ($primary ? 'linear-gradient(110deg, rgba(var(--box-primary-rgb), 0.34), rgba(var(--box-secondary-rgb), 0.16))' : 'rgba(var(--box-primary-rgb), 0.13)')}; }
+  &:hover:not(:disabled) { background: var(--dw-surface-raised); }
   &:focus-visible { outline: 2px solid var(--box-neon); outline-offset: 2px; }
+
+  ${({ $choice }) => $choice && `
+    grid-column: auto;
+    min-height: 48px;
+    border-color: rgba(85, 213, 241, 0.62);
+    background: var(--dw-surface);
+    color: #9fe8ff;
+    font-size: 0.7rem;
+    text-align: left;
+  `}
+
+  ${({ $createChoice }) => $createChoice && `
+    grid-column: auto;
+    min-height: 48px;
+    border-color: rgba(91, 219, 178, 0.58);
+    background: var(--dw-surface);
+    color: #9df1cf;
+    font-size: 0.7rem;
+    text-align: left;
+  `}
+
+  ${({ $active, $createChoice }) => $active && `
+    border-color: ${$createChoice ? '#57ecc0' : '#6cddf9'};
+    box-shadow: inset 0 0 0 1px ${$createChoice ? 'rgba(87,236,192,.32)' : 'rgba(108,221,249,.32)'},
+      0 0 15px ${$createChoice ? 'rgba(87,236,192,.25)' : 'rgba(108,221,249,.25)'};
+  `}
+
+  ${controlStyles}
+  border-left-color: ${({ $active, $selected, $recommended }) => ($active || $selected || $recommended) ? 'var(--dw-amber)' : 'var(--dw-border)'};
+  border-left-width: 3px;
+
+  color: ${({ $tone, $primary, $secondary }) => $tone === 'danger' ? 'var(--dw-coral)' : ($tone === 'primary' || $primary) ? 'var(--dw-cyan)' : $secondary ? 'var(--dw-violet)' : 'var(--dw-text)'};
+`;
+
+const ChoiceIcon = styled.span`
+  display: inline-block;
+  margin-right: 0.35rem;
+  font-size: 1rem;
+  line-height: 0;
+  vertical-align: -0.06em;
 `;
 
 const OpenBox = styled(Link)`
@@ -41,12 +88,12 @@ const OpenBox = styled(Link)`
   align-items: center;
   justify-content: center;
   min-height: 42px;
-  border: 1px solid rgba(var(--box-secondary-rgb), 0.56);
-  border-radius: 5px;
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
   color: var(--box-neon);
   text-decoration: none;
 
-  &:hover { background: rgba(var(--box-primary-rgb), 0.13); }
+  &:hover { background: var(--dw-surface-raised); }
   &:focus-visible { outline: 2px solid var(--box-neon); outline-offset: 2px; }
 `;
 
@@ -54,7 +101,7 @@ const WorkspaceArrow = styled.svg`
   width: 1.2rem;
   height: 1.2rem;
   overflow: visible;
-  filter: drop-shadow(0 0 6px rgba(var(--box-primary-rgb), 0.3));
+  filter: none;
 `;
 
 export default function IntakeDestinationActions({
@@ -63,12 +110,14 @@ export default function IntakeDestinationActions({
   onChangeDestination,
   onEditBox,
   onCreateBox,
+  chooseOpen = false,
+  createOpen = false,
 }) {
-  if (!box?._id) {
+  if (!box?._id || chooseOpen || createOpen) {
     return (
-      <Actions>
-        <Button type="button" $primary onClick={onChangeDestination}>Choose box</Button>
-        <Button type="button" $fullRow onClick={onCreateBox}>Create a box</Button>
+      <Actions $choosing>
+        <Button type="button" $choice $active={chooseOpen} aria-expanded={chooseOpen} onClick={onChangeDestination}><ChoiceIcon aria-hidden="true">▣</ChoiceIcon> Choose box</Button>
+        <Button type="button" $createChoice $active={createOpen} aria-expanded={createOpen} onClick={onCreateBox}><ChoiceIcon aria-hidden="true">＋</ChoiceIcon> Create box</Button>
       </Actions>
     );
   }

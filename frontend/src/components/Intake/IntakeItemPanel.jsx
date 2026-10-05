@@ -1,3 +1,4 @@
+import { panelStyles, controlStyles } from '../../styles/primitives';
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import {
@@ -11,9 +12,9 @@ import IntakeMoveExistingTab from './IntakeMoveExistingTab';
 import IntakeOrphanedItemsTab from './IntakeOrphanedItemsTab';
 
 const Panel = styled.section`
-  border: 1px solid rgba(89, 121, 198, 0.4);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(14, 22, 34, 0.92) 0%, rgba(11, 17, 28, 0.95) 100%);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   padding: 0.68rem;
   display: grid;
   gap: 0.58rem;
@@ -21,6 +22,9 @@ const Panel = styled.section`
   max-width: 100%;
   min-width: 0;
   overflow: hidden;
+
+  ${panelStyles}
+  border-left: 3px solid var(--dw-amber);
 `;
 
 const TabBar = styled.div`
@@ -35,7 +39,7 @@ const TabBar = styled.div`
 
 const TabButton = styled.button`
   min-height: 44px;
-  border-radius: 10px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $active, $tone }) => {
       if ($active) return 'rgba(147, 220, 194, 0.86)';
@@ -44,16 +48,16 @@ const TabButton = styled.button`
       return 'rgba(102, 147, 220, 0.58)';
     }};
   background: ${({ $active, $tone }) => {
-    if ($active) return 'linear-gradient(180deg, rgba(19, 53, 44, 0.98) 0%, rgba(15, 39, 32, 0.96) 100%)';
-    if ($tone === 'orphaned') return 'linear-gradient(180deg, rgba(15, 47, 34, 0.95) 0%, rgba(12, 35, 27, 0.95) 100%)';
-    if ($tone === 'move') return 'linear-gradient(180deg, rgba(63, 44, 18, 0.95) 0%, rgba(48, 33, 14, 0.95) 100%)';
-    return 'linear-gradient(180deg, rgba(14, 33, 58, 0.95) 0%, rgba(12, 25, 46, 0.95) 100%)';
+    if ($active) return 'var(--dw-surface-raised)';
+    if ($tone === 'orphaned') return 'var(--dw-surface-raised)';
+    if ($tone === 'move') return 'var(--dw-surface-raised)';
+    return 'var(--dw-surface-raised)';
   }};
   color: ${({ $active }) => ($active ? '#eefff7' : '#dfecff')};
   font-size: 0.79rem;
   font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   cursor: pointer;
 
   &:hover {
@@ -64,13 +68,19 @@ const TabButton = styled.button`
     min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     font-size: ${MOBILE_FONT_SM};
   }
+
+  ${controlStyles}
+  border-left-color: ${({ $active, $selected, $recommended }) => ($active || $selected || $recommended) ? 'var(--dw-amber)' : 'var(--dw-border)'};
+  border-left-width: 3px;
+
+  color: ${({ $tone, $primary, $secondary }) => $tone === 'danger' ? 'var(--dw-coral)' : ($tone === 'primary' || $primary) ? 'var(--dw-cyan)' : $secondary ? 'var(--dw-violet)' : 'var(--dw-text)'};
 `;
 
 const Hint = styled.div`
   color: #adc2dd;
   font-size: 0.76rem;
-  border: 1px dashed rgba(122, 157, 210, 0.42);
-  border-radius: 9px;
+  border: 1px dashed var(--dw-border);
+  border-radius: var(--dw-radius-sm);
   padding: 0.5rem 0.56rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {

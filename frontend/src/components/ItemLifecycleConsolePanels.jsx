@@ -1,3 +1,4 @@
+import { controlStyles, inputStyles } from '../styles/primitives';
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { GONE_DISPOSITIONS } from '../api/itemLifecycle';
@@ -9,7 +10,7 @@ const Panel = styled.form`
 
 const Body = styled.p`
   margin: 0;
-  color: #e6ecef;
+  color: var(--dw-text);
   font-size: 0.85rem;
   line-height: 1.35;
 `;
@@ -17,43 +18,45 @@ const Body = styled.p`
 const Label = styled.label`
   display: grid;
   gap: 0.3rem;
-  color: #dbe6eb;
+  color: var(--dw-text-secondary);
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.01em;
 `;
 
 const Hint = styled.div`
-  color: #cfdde6;
+  color: var(--dw-text-muted);
   font-size: 0.76rem;
 `;
 
 const Select = styled.select`
-  min-height: 36px;
-  border-radius: 3px;
-  border: 1px solid #496473;
-  background: #13212c;
-  color: #f2f6f9;
+  ${inputStyles}
+  min-height: 44px;
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid rgba(230, 237, 243, 0.16);
+  background: var(--dw-surface-raised);
+  color: var(--dw-text);
   padding: 0 0.56rem;
 `;
 
 const TextArea = styled.textarea`
+  ${inputStyles}
   min-height: 88px;
-  border-radius: 3px;
-  border: 1px solid #496473;
-  background: #13212c;
-  color: #f2f6f9;
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid rgba(230, 237, 243, 0.16);
+  background: var(--dw-surface-raised);
+  color: var(--dw-text);
   padding: 0.46rem 0.56rem;
   resize: vertical;
 `;
 
 const ReadOnlyDisposition = styled.div`
-  min-height: 36px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   padding: 0 0.56rem;
   border: 1px solid rgba(240, 138, 123, 0.58);
-  border-radius: 3px;
+  border-radius: var(--dw-radius-sm);
   color: #ffe7e1;
   background: rgba(94, 35, 41, 0.34);
   font-size: 0.82rem;
@@ -66,7 +69,7 @@ const Verification = styled.label`
   gap: 0.5rem;
   padding: 0.55rem 0.58rem;
   border: 1px solid rgba(240, 138, 123, 0.48);
-  border-radius: 3px;
+  border-radius: var(--dw-radius-sm);
   color: #ffe5df;
   background: rgba(94, 35, 41, 0.2);
   font-size: 0.78rem;
@@ -85,14 +88,15 @@ const ActionRow = styled.div`
 `;
 
 const Button = styled.button`
-  min-height: 36px;
-  border-radius: 3px;
+  ${controlStyles}
+  min-height: 44px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid transparent;
   padding: 0 0.78rem;
   font-size: 0.76rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   cursor: pointer;
   background: ${({ $tone }) =>
     $tone === 'danger'

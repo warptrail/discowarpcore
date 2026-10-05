@@ -1,3 +1,4 @@
+import { controlStyles } from '../../styles/primitives';
 import styled from 'styled-components';
 
 const Rail = styled.nav`
@@ -7,17 +8,19 @@ const Rail = styled.nav`
   gap: 0.16rem;
   min-width: 0;
   padding: 0.12rem 0;
-  border-bottom: 1px solid rgba(var(--box-primary-rgb), 0.3);
+  border-bottom: 1px solid var(--dw-border);
+  background: var(--dw-surface);
+  box-shadow: none;
 `;
 
 const RailButton = styled.button`
   min-width: 0;
   min-height: 42px;
   border: 0;
-  border-bottom: 2px solid ${({ $active }) => ($active ? 'var(--box-neon)' : 'transparent')};
-  background: transparent;
+  border-bottom: 2px solid ${({ $active }) => ($active ? '#70dcf2' : 'transparent')};
+  background: ${({ $active }) => ($active ? 'rgba(53, 117, 163, 0.14)' : 'transparent')};
   color: ${({ $active }) =>
-    $active ? 'var(--box-neon)' : 'rgba(var(--box-secondary-rgb), 0.64)'};
+    $active ? '#c2f3ff' : '#8ca5b9'};
   cursor: pointer;
   font: inherit;
   font-size: 0.72rem;
@@ -27,8 +30,16 @@ const RailButton = styled.button`
   text-align: center;
   white-space: nowrap;
 
-  &:hover { color: rgba(var(--box-neon-rgb), 0.94); }
-  &:focus-visible { outline: 2px solid var(--box-neon); outline-offset: -2px; }
+  &:hover { color: #a9e9f8; background: var(--dw-surface-raised); }
+  &:focus-visible { outline: 2px solid #70dcf2; outline-offset: -2px; }
+
+  ${controlStyles}
+  border-left-color: ${({ $active, $selected, $recommended }) => ($active || $selected || $recommended) ? 'var(--dw-amber)' : 'var(--dw-border)'};
+  border-left-width: 3px;
+
+  padding: 0.4rem 0.2rem;
+  font-size: 0.75rem;
+  white-space: normal;
 `;
 
 const WORKSPACE_TABS = [

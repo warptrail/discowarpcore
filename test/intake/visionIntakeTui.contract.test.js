@@ -189,7 +189,7 @@ test('checkApiHealth requests backend health endpoint', async () => {
 
   assert.deepEqual(result, { ok: true });
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].url, 'http://dwc.local:5002/api/health');
+  assert.equal(calls[0].url, 'http://dwc.local:5002/api/health/ready');
   assert.deepEqual(calls[0].options, { headers: { Accept: 'application/json' } });
 });
 

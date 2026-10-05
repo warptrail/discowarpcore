@@ -27,7 +27,7 @@ http://localhost:5002
 At startup the TUI prints the current API target, warns when it targets localhost, and checks:
 
 ```text
-GET /api/health
+GET /api/health/ready
 ```
 
 ## Direct LAN API

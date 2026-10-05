@@ -1,6 +1,7 @@
 import { useContext, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import { controlStyles } from '../../styles/primitives';
 import { ToastContext } from './ToastContext';
 import useItemDeclutterDeck from '../../hooks/useItemDeclutterDeck';
 import { formatItemCategory } from '../../util/itemCategories';
@@ -24,7 +25,7 @@ const ImageFrame = styled.div`
   overflow: hidden;
   border: 0;
   border-radius: 3px;
-  background: #080e16;
+  background: var(--dw-background);
 `;
 
 const ZoomButton = styled.button`
@@ -32,19 +33,19 @@ const ZoomButton = styled.button`
   z-index: 2;
   right: 0.7rem;
   top: 0.65rem;
-  min-height: 32px;
+  min-height: 40px;
   padding: 0.16rem 0.28rem;
   border: 0;
-  background: rgba(2, 8, 14, 0.76);
+  background: var(--dw-background);
   color: rgba(207, 241, 255, 0.92);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.58rem;
-  font-weight: 800;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
+  font-weight: 600;
   letter-spacing: 0.08em;
   cursor: zoom-in;
 
   &::after {
-    content: 'VIEW IMAGE';
+    content: 'View image';
   }
 
   &:focus-visible { outline: 2px solid #8de8ff; outline-offset: 3px; }
@@ -63,8 +64,7 @@ const ImageShade = styled.div`
   padding: clamp(1rem, 4vw, 1.5rem);
   text-align: left;
   background:
-    linear-gradient(180deg, rgba(3, 8, 14, 0.04) 24%, rgba(3, 8, 14, 0.38) 56%, rgba(3, 8, 14, 0.94) 100%),
-    linear-gradient(90deg, rgba(var(--box-primary-rgb, 91, 215, 244), 0.13), transparent 48%);
+    linear-gradient(180deg, transparent 20%, rgba(3, 8, 14, 0.5) 48%, rgba(3, 8, 14, 0.96) 100%);
 `;
 
 const Context = styled.div`
@@ -78,9 +78,9 @@ const BoxLink = styled(Link)`
   width: fit-content;
   max-width: 100%;
   color: rgba(189, 235, 249, 0.86);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.73rem;
-  font-weight: 800;
+  font-family: var(--dw-font-ui);
+  font-size: 0.8rem;
+  font-weight: 600;
   letter-spacing: 0.07em;
   text-decoration: none;
   overflow: hidden;
@@ -111,26 +111,28 @@ const Meta = styled.div`
   flex-wrap: wrap;
   gap: 0.35rem 0.8rem;
   color: rgba(202, 234, 244, 0.8);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.66rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.8rem;
   letter-spacing: 0.04em;
   span { white-space: nowrap; }
 `;
 
 const Actions = styled.div`
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto auto;
-  gap: 1px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
 `;
 
 const ActionButton = styled.button`
+  ${controlStyles}
+  flex: ${({ $close, $primary }) => $close ? "0 0 44px" : $primary ? "1 1 120px" : "1 0 auto"};
   min-height: 40px;
   padding: 0.42rem 0.6rem;
   border: 0;
   border-radius: 2px;
-  background: ${({ $primary }) => $primary ? 'linear-gradient(135deg, #a7f0ff, #72d3e9)' : 'rgba(124, 184, 205, 0.18)'};
+  background: ${({ $primary }) => $primary ? 'var(--dw-cyan)' : 'var(--dw-surface-raised)'};
   color: ${({ $primary }) => $primary ? '#06121a' : 'rgba(230, 247, 255, 0.94)'};
-  font: inherit; font-size: 0.76rem; font-weight: 800; cursor: pointer;
+  font: inherit; font-size: 0.76rem; font-weight: 600; cursor: pointer;
   &:hover:not(:disabled) { filter: brightness(1.16); }
   &:focus-visible { outline: 2px solid #8de8ff; outline-offset: 2px; }
   &:disabled { cursor: wait; opacity: 0.64; }

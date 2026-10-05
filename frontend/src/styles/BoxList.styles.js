@@ -1,21 +1,23 @@
 // src/styles/BoxList.styles.js
 import { Link } from 'react-router-dom';
 import styled, { css, keyframes } from 'styled-components';
+import { panelStyles } from './primitives';
+import { APP_VISUAL_THEME } from './tokens';
 
 const LCARS = {
-  bg: '#0c0f11',
-  panel: '#14181b',
-  panelAlt: '#1a1f24',
-  text: '#e6edf3',
-  textDim: 'rgba(230,237,243,0.72)',
-  line: 'rgba(255,255,255,0.08)',
-  coral: '#F08A7B',
-  teal: '#4CC6C1',
-  lilac: '#A7B6FF',
-  amber: '#E8B15C',
+  bg: APP_VISUAL_THEME.background,
+  panel: APP_VISUAL_THEME.surface,
+  panelAlt: APP_VISUAL_THEME.surfaceRaised,
+  text: APP_VISUAL_THEME.text,
+  textDim: APP_VISUAL_THEME.textSecondary,
+  line: APP_VISUAL_THEME.borderSoft,
+  coral: APP_VISUAL_THEME.coral,
+  teal: APP_VISUAL_THEME.teal,
+  lilac: APP_VISUAL_THEME.violet,
+  amber: APP_VISUAL_THEME.amber,
   lime: '#9BE564',
-  ice: '#7FD7FF',
-  cyan: '#67D9D3',
+  ice: APP_VISUAL_THEME.cyan,
+  cyan: APP_VISUAL_THEME.teal,
 };
 
 const BRACKET_COLORS = [
@@ -25,13 +27,10 @@ const BRACKET_COLORS = [
   LCARS.amber,
   LCARS.lime,
 ];
-const ROOT_RAIL = '#7FD7FF';
-const RAIL_W = '3px';
+const ROOT_RAIL = APP_VISUAL_THEME.amber;
 const MOBILE_BREAKPOINT_NARROW = '560px';
-const MOBILE_RAIL_W = '2px';
-const RADIUS = '14px';
+const RADIUS = 'var(--dw-radius)';
 const radiusL = '12px';
-const railBaseX = '-0.74rem';
 const BOX_DEPTH_INDENT_PX = 22;
 const BOX_DEPTH_INDENT_MOBILE_PX = 12;
 
@@ -40,55 +39,15 @@ const railTone = ({ $isRoot, $depth = 0 }) =>
 const toneAlpha = (hex, alpha = 'ff') => `${hex}${alpha}`;
 const boxTone = `var(--box-primary, ${ROOT_RAIL})`;
 const boxToneRgb = 'var(--box-primary-rgb, 127, 215, 255)';
-const boxSecondary = `var(--box-secondary, ${LCARS.cyan})`;
-const boxSecondaryRgb = 'var(--box-secondary-rgb, 103, 217, 211)';
-const boxMutedRgb = 'var(--box-muted-rgb, 92, 132, 150)';
 const boxToneAlpha = (alpha) => `rgba(${boxToneRgb}, ${alpha})`;
-const boxSecondaryAlpha = (alpha) => `rgba(${boxSecondaryRgb}, ${alpha})`;
-const boxMutedAlpha = (alpha) => `rgba(${boxMutedRgb}, ${alpha})`;
-const depthStep = ({ $depth = 0 }) => Math.min(Math.max($depth, 0), 4);
 const childIndent = ({ $depth = 1, $mobile = false }) => {
   const depth = Math.max(Number($depth) || 0, 0);
   if (depth < 1 || depth >= 3) return '0px';
   return `${$mobile ? BOX_DEPTH_INDENT_MOBILE_PX : BOX_DEPTH_INDENT_PX}px`;
 };
-const railTop = ({ $isRoot }) => ($isRoot ? '0.22rem' : '0.3rem');
 
-const mobileRailBaseOffset = ({ $depth = 0 }) => {
-  if ($depth >= 3) return '-0.24rem';
-  if ($depth >= 1) return '-0.31rem';
-  return '-0.4rem';
-};
 
-const railOuterCorners = ({ $isRoot, $depth = 0 }) => {
-  const d = depthStep({ $depth });
-  if ($isRoot) {
-    return `${26 - d}px ${14 - d * 0.4}px ${10 - d * 0.25}px ${20 - d * 0.8}px / ${
-      16 - d * 0.6
-    }px ${12 - d * 0.3}px ${8 - d * 0.2}px ${20 - d * 0.8}px`;
-  }
-  return `${22 - d * 0.8}px ${11 - d * 0.3}px ${9 - d * 0.2}px ${
-    16 - d * 0.6
-  }px / ${13 - d * 0.5}px ${9 - d * 0.25}px ${7 - d * 0.15}px ${
-    16 - d * 0.6
-  }px`;
-};
 
-const railInnerCorners = ({ $isRoot, $depth = 0 }) => {
-  const d = depthStep({ $depth });
-  if ($isRoot) {
-    return `${23 - d * 0.9}px ${11 - d * 0.35}px ${8 - d * 0.2}px ${
-      17 - d * 0.7
-    }px / ${13 - d * 0.55}px ${10 - d * 0.25}px ${6 - d * 0.15}px ${
-      17 - d * 0.7
-    }px`;
-  }
-  return `${19 - d * 0.7}px ${9 - d * 0.25}px ${7 - d * 0.15}px ${
-    13 - d * 0.5
-  }px / ${10 - d * 0.4}px ${7 - d * 0.2}px ${5 - d * 0.1}px ${
-    13 - d * 0.5
-  }px`;
-};
 
 const breatheIn = keyframes`
   from {
@@ -101,98 +60,7 @@ const breatheIn = keyframes`
   }
 `;
 
-const notesPulse = keyframes`
-  0%,
-  100% {
-    opacity: 0.72;
-    box-shadow:
-      inset 0 0 0 1px ${toneAlpha(LCARS.lilac, '42')},
-      0 0 7px ${toneAlpha(LCARS.lilac, '20')};
-    transform: translateY(0);
-  }
-
-  50% {
-    opacity: 1;
-    box-shadow:
-      inset 0 0 0 1px ${toneAlpha(LCARS.ice, '86')},
-      0 0 14px ${toneAlpha(LCARS.ice, '32')};
-    transform: translateY(-1px);
-  }
-`;
-
-const orphanSpectrumShift = keyframes`
-  from { background-position: 0 0, 0% 50%; }
-  to { background-position: 0 0, 200% 50%; }
-`;
-
-const orphanRailShift = keyframes`
-  from { background-position: 50% 0%; }
-  to { background-position: 50% 200%; }
-`;
-
-const orphanSignalTurn = keyframes`
-  to { transform: rotate(360deg); }
-`;
-
-const selectedSignalFlow = keyframes`
-  0% { background-position: 0% 50%; }
-  100% { background-position: 200% 50%; }
-`;
-
-const selectedBorderFlow = keyframes`
-  0% { background-position: 0 0, 0% 50%; }
-  100% { background-position: 0 0, 200% 50%; }
-`;
-
-const selectedRailPulse = keyframes`
-  0%, 100% {
-    filter:
-      drop-shadow(0 0 3px ${boxToneAlpha(0.24)})
-      drop-shadow(0 0 8px ${boxSecondaryAlpha(0.1)});
-  }
-  50% {
-    filter:
-      drop-shadow(0 0 7px ${boxToneAlpha(0.52)})
-      drop-shadow(0 0 16px ${boxSecondaryAlpha(0.28)});
-  }
-`;
-
-const selectedCardPulse = keyframes`
-  0%, 100% {
-    box-shadow:
-      inset 0 0 0 1px ${boxToneAlpha(0.24)},
-      0 0 13px ${boxToneAlpha(0.14)};
-  }
-  50% {
-    box-shadow:
-      inset 0 0 0 1px ${boxSecondaryAlpha(0.42)},
-      0 0 27px ${boxToneAlpha(0.3)};
-  }
-`;
-
-const selectedWashOrbit = keyframes`
-  0% {
-    opacity: 0.12;
-    transform: rotate(0deg) scale(1);
-  }
-  50% {
-    opacity: 0.23;
-    transform: rotate(180deg) scale(1.06);
-  }
-  100% {
-    opacity: 0.12;
-    transform: rotate(360deg) scale(1);
-  }
-`;
-
-const panelBase = css`
-  background: ${LCARS.panel};
-  border: 1px solid ${LCARS.line};
-  border-radius: ${RADIUS};
-  box-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.25),
-    0 10px 28px rgba(0, 0, 0, 0.24);
-`;
+const panelBase = css`${panelStyles}`;
 
 const Container = styled.div`
   --pad: clamp(12px, 3vw, 20px);
@@ -203,12 +71,14 @@ const Container = styled.div`
   margin: 0 auto;
   padding: calc(var(--pad) * 1.2) var(--pad) calc(var(--pad) * 1.8);
   color: ${LCARS.text};
-  border-radius: 16px;
-  background:
-    radial-gradient(circle at top right, #7fd7ff15 0%, transparent 44%),
-    linear-gradient(180deg, #0d1013, #0b0e11 45%, #0d1013 100%);
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface);
 
   @media (max-width: 767px) {
+    max-width: none;
+    padding-inline: clamp(6px, 1.5vw, 10px);
+    padding-top: 8px;
+    border-radius: 0;
     padding-bottom: ${({ $quickPeekOpen }) =>
       $quickPeekOpen
         ? 'calc(68dvh + env(safe-area-inset-bottom))'
@@ -219,6 +89,12 @@ const Container = styled.div`
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
+  min-width: 0;
+  font-family: var(--dw-font-ui);
+  & :is(button, a, input, select, textarea):focus-visible {
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
+  }
 `;
 
 const Heading = styled.h2`
@@ -227,18 +103,18 @@ const Heading = styled.h2`
   align-items: center;
   gap: 0.6rem;
   font-size: clamp(20px, 4.2vw, 26px);
-  font-weight: 900;
+  font-weight: 650;
   color: ${LCARS.text};
   margin: 0.4rem 0 0.25rem;
-  letter-spacing: 0.25px;
+  letter-spacing: normal;
 
   &::before {
     content: '';
     width: 9px;
     height: 28px;
     border-radius: 8px;
-    background: ${LCARS.coral};
-    box-shadow: 0 0 0 2px ${toneAlpha(LCARS.coral, '2f')} inset;
+    background: var(--dw-amber);
+    box-shadow: none;
   }
 `;
 
@@ -274,49 +150,11 @@ const NodeSection = styled.div`
 const RailBack = styled.div`
   grid-area: 1 / 1;
   align-self: stretch;
-  justify-self: stretch;
-  margin-left: ${railBaseX};
-  margin-top: ${({ $isRoot }) => railTop({ $isRoot })};
-  border-radius: ${({ $isRoot, $depth = 0 }) =>
-    railOuterCorners({ $isRoot, $depth })};
-  background: ${boxTone};
-  opacity: ${({ $isRoot }) => ($isRoot ? 0.96 : 0.9)};
-  filter: drop-shadow(
-    0 0 ${({ $isRoot }) => ($isRoot ? '3px' : '2px')}
-      ${boxToneAlpha(0.18)}
-  );
+  width: 4px;
+  border-radius: var(--dw-radius-sm) 0 0 var(--dw-radius-sm);
+  background: var(--box-primary, #8A8175);
   pointer-events: none;
   z-index: 0;
-
-  ${({ $selected }) =>
-    $selected &&
-    css`
-      background: linear-gradient(
-        115deg,
-        ${boxTone} 0%,
-        ${boxSecondary} 20%,
-        ${LCARS.lilac} 40%,
-        ${LCARS.coral} 60%,
-        ${boxTone} 80%,
-        ${boxSecondary} 100%
-      );
-      background-size: 200% 200%;
-      opacity: 1;
-      animation:
-        ${selectedSignalFlow} 5.2s linear infinite,
-        ${selectedRailPulse} 2.8s ease-in-out infinite;
-
-      @media (prefers-reduced-motion: reduce) {
-        animation: none;
-        background-position: 48% 50%;
-        filter: drop-shadow(0 0 6px ${boxToneAlpha(0.34)});
-      }
-    `}
-
-  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
-    margin-left: ${({ $depth = 0 }) => mobileRailBaseOffset({ $depth })};
-    opacity: ${({ $isRoot, $depth = 0 }) => ($isRoot ? 0.94 : $depth >= 2 ? 0.62 : 0.78)};
-  }
 `;
 
 const RailFront = styled.div`
@@ -324,31 +162,12 @@ const RailFront = styled.div`
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.24rem;
-  width: auto;
+  gap: 0.3rem;
   min-width: 0;
+  margin-left: 4px;
+  border-radius: 0 var(--dw-radius-sm) var(--dw-radius-sm) 0;
+  background: var(--dw-surface);
   z-index: 1;
-  margin-left: calc(${RAIL_W} + 0.08rem);
-  margin-right: ${RAIL_W};
-  margin-top: ${({ $isRoot }) => `calc(${railTop({ $isRoot })} + ${RAIL_W})`};
-  margin-bottom: ${RAIL_W};
-  padding: 0;
-  border-radius: ${({ $isRoot, $depth = 0 }) =>
-    railInnerCorners({ $isRoot, $depth })};
-  background: linear-gradient(
-    140deg,
-    ${LCARS.bg} 34%,
-    rgba(12, 15, 17, 0.95) 68%,
-    rgba(12, 15, 17, 0.9) 100%
-  );
-
-  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
-    margin-left: calc(${MOBILE_RAIL_W} + 0.02rem);
-    margin-right: 1px;
-    margin-top: ${({ $isRoot }) => `calc(${railTop({ $isRoot })} + ${MOBILE_RAIL_W})`};
-    margin-bottom: ${MOBILE_RAIL_W};
-    padding: 0;
-  }
 `;
 
 const BoxCard = styled.button`
@@ -367,15 +186,8 @@ const BoxCard = styled.button`
   cursor: pointer;
   animation: ${breatheIn} 140ms ease both;
   border-color: ${boxToneAlpha(0.25)};
-  border-radius: ${({ $isRoot, $depth = 0 }) =>
-    railInnerCorners({ $isRoot, $depth })};
-  background:
-    linear-gradient(
-      var(--box-wash-angle, 92deg),
-      ${boxToneAlpha(0.08)} 0%,
-      transparent 36%
-    ),
-    ${LCARS.panel};
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   transition:
     transform 130ms ease,
     border-color 160ms ease,
@@ -384,7 +196,7 @@ const BoxCard = styled.button`
   ${({ $density }) =>
     $density === 'roomy' &&
     css`
-      border-radius: 16px;
+      border-radius: var(--dw-radius);
     `}
 
   ${({ $isSystem }) =>
@@ -392,13 +204,7 @@ const BoxCard = styled.button`
     css`
       border-style: dashed;
       border-color: ${boxToneAlpha(0.6)};
-      background:
-        linear-gradient(
-          var(--box-wash-angle, 92deg),
-          ${boxToneAlpha(0.14)} 0%,
-          transparent 42%
-        ),
-        ${LCARS.panel};
+      background: var(--dw-surface);
     `}
 
   &::before {
@@ -426,16 +232,7 @@ const BoxCard = styled.button`
     z-index: 0;
     inset: -115% -30%;
     pointer-events: none;
-    background: conic-gradient(
-      from 0deg,
-      transparent 0deg,
-      ${boxToneAlpha(0.44)} 48deg,
-      transparent 104deg,
-      ${boxSecondaryAlpha(0.42)} 166deg,
-      transparent 222deg,
-      ${toneAlpha(LCARS.lilac, '52')} 284deg,
-      transparent 342deg
-    );
+    background: var(--dw-surface);
     filter: blur(18px);
     opacity: 0;
     transform-origin: center;
@@ -444,25 +241,13 @@ const BoxCard = styled.button`
   &:hover {
     transform: translateY(-1px);
     border-color: ${boxToneAlpha(0.48)};
-    background:
-      linear-gradient(
-        var(--box-wash-angle, 92deg),
-        ${boxToneAlpha(0.12)} 0%,
-        transparent 42%
-      ),
-      ${LCARS.panelAlt};
+    background: var(--dw-surface);
 
     ${({ $isSystem }) =>
       $isSystem &&
       css`
         border-color: ${boxToneAlpha(0.7)};
-        background:
-          linear-gradient(
-            var(--box-wash-angle, 92deg),
-            ${boxToneAlpha(0.17)} 0%,
-            transparent 46%
-          ),
-          ${LCARS.panelAlt};
+        background: var(--dw-surface);
       `}
   }
 
@@ -474,57 +259,17 @@ const BoxCard = styled.button`
   ${({ $selected }) =>
     $selected &&
     css`
-      border-color: transparent;
-      background:
-        linear-gradient(${LCARS.panelAlt}, ${LCARS.panelAlt}) padding-box,
-        linear-gradient(
-            115deg,
-            ${boxTone},
-            ${boxSecondary},
-            ${LCARS.lilac},
-            ${LCARS.coral},
-            ${boxTone}
-          )
-          border-box;
-      background-size: 100% 100%, 200% 200%;
-      animation:
-        ${breatheIn} 140ms ease both,
-        ${selectedBorderFlow} 5.2s linear infinite,
-        ${selectedCardPulse} 2.8s ease-in-out infinite;
+      border-color: ${boxTone};
+      background: ${LCARS.panelAlt};
+      box-shadow: none;
 
       &::before {
-        background: linear-gradient(
-          180deg,
-          ${boxTone},
-          ${boxSecondary},
-          ${LCARS.lilac},
-          ${boxTone}
-        );
-        background-size: 100% 200%;
-        opacity: 0.88;
-        animation: ${selectedSignalFlow} 4.4s linear infinite;
+        background: ${boxTone};
+        opacity: 0.8;
       }
 
       &::after {
-        animation: ${selectedWashOrbit} 7.2s linear infinite;
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        animation: none;
-        background-position: 0 0, 48% 50%;
-        box-shadow:
-          inset 0 0 0 1px ${boxToneAlpha(0.3)},
-          0 0 16px ${boxToneAlpha(0.22)};
-
-        &::before,
-        &::after {
-          animation: none;
-        }
-
-        &::after {
-          opacity: 0.14;
-          transform: none;
-        }
+        display: none;
       }
     `}
 `;
@@ -542,7 +287,7 @@ const BoxHeader = styled.div`
 `;
 
 const BoxTitle = styled.div`
-  font-weight: 900;
+  font-weight: 650;
   font-size: ${({ $density }) =>
     $density === 'roomy'
       ? 'clamp(1rem, 1.9vw, 1.12rem)'
@@ -550,12 +295,12 @@ const BoxTitle = styled.div`
         ? 'clamp(0.88rem, 1.7vw, 1rem)'
         : 'clamp(0.94rem, 1.8vw, 1.08rem)'};
   color: ${boxTone};
-  text-shadow: 0 0 10px ${boxToneAlpha(0.12)};
+  text-shadow: none;
   ${({ $isSystem }) =>
     $isSystem &&
     css`
       color: ${boxTone};
-      text-shadow: 0 0 10px ${boxToneAlpha(0.18)};
+      text-shadow: none;
     `}
   white-space: nowrap;
   overflow: hidden;
@@ -573,17 +318,15 @@ const ShortId = styled.span`
   gap: 0.08rem;
   padding: 0.04rem 0.1rem 0.04rem 0;
   border-radius: 0;
-  font-family:
-    'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace, Menlo,
-    Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  font-weight: 900;
+  font-family: var(--dw-font-ui);
+  font-weight: 650;
   font-size: 1rem;
-  letter-spacing: 0.08em;
+  letter-spacing: normal;
   line-height: 1;
   color: ${boxTone};
   background: transparent;
   border: 0;
-  text-shadow: 0 0 10px ${boxToneAlpha(0.16)};
+  text-shadow: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
     font-size: 0.96rem;
@@ -594,6 +337,7 @@ const ShortId = styled.span`
     css`
       color: ${boxTone};
     `}
+  font-family: var(--dw-font-data);
 `;
 
 const ShortIdMarker = styled.span`
@@ -605,13 +349,14 @@ const ShortIdMarker = styled.span`
 const ShortIdDigits = styled.span`
   font-size: 1.22em;
   line-height: 1;
+  font-family: var(--dw-font-data);
 `;
 
 const Meta = styled.span`
   font-size: 12px;
   color: ${LCARS.textDim};
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid ${LCARS.line};
   align-self: start;
@@ -627,10 +372,10 @@ const FieldGroup = styled.div`
 
 const FieldLabel = styled.span`
   color: ${LCARS.textDim};
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
   line-height: 1.6;
 `;
 
@@ -670,9 +415,7 @@ const BoxImageFrame = styled.div`
   border: 0;
   border-right: 1px solid ${boxToneAlpha(0.22)};
   border-radius: 0;
-  background:
-    linear-gradient(180deg, rgba(8, 12, 15, 0.64), rgba(8, 12, 15, 0.92)),
-    #11161a;
+  background: var(--dw-surface);
   overflow: hidden;
   flex: 0 0 auto;
 
@@ -702,9 +445,7 @@ const BoxImageTrigger = styled(BoxImageFrame).attrs({
     z-index: 2;
     outline: none;
     filter: brightness(1.12) saturate(1.08);
-    box-shadow:
-      inset 0 0 0 2px ${boxToneAlpha(0.86)},
-      0 0 16px ${boxToneAlpha(0.28)};
+    box-shadow: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -725,24 +466,7 @@ const BoxImagePlaceholder = styled.div`
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  background:
-    radial-gradient(
-      118% 94% at var(--placeholder-primary-x, 48%) var(--placeholder-primary-y, 34%),
-      ${boxToneAlpha(0.3)} 0%,
-      ${boxToneAlpha(0.13)} 34%,
-      transparent 70%
-    ),
-    radial-gradient(
-      104% 88% at var(--placeholder-secondary-x, 67%) var(--placeholder-secondary-y, 72%),
-      ${boxSecondaryAlpha(0.21)} 0%,
-      transparent 68%
-    ),
-    linear-gradient(
-      var(--placeholder-wash-angle, 104deg),
-      rgba(8, 13, 19, 0.24),
-      rgba(8, 13, 19, 0.82) 78%
-    ),
-    #0d1318;
+  background: var(--dw-surface);
 
   &::after {
     content: '';
@@ -751,13 +475,7 @@ const BoxImagePlaceholder = styled.div`
     z-index: 0;
     pointer-events: none;
     opacity: 0.48;
-    background:
-      linear-gradient(135deg, transparent 36%, ${boxToneAlpha(0.09)} 50%, transparent 64%),
-      repeating-linear-gradient(
-        0deg,
-        transparent 0 5px,
-        rgba(255, 255, 255, 0.018) 6px 7px
-      );
+    background: var(--dw-surface);
   }
 `;
 
@@ -791,7 +509,7 @@ const LocationMeta = styled.span`
   max-width: 100%;
   color: var(--box-location, ${LCARS.cyan});
   font-size: clamp(0.82rem, 2vw, 0.94rem);
-  font-weight: 860;
+  font-weight: 650;
   line-height: 1.2;
 
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
@@ -804,18 +522,20 @@ const LocationMeta = styled.span`
 const LocationMetaLabel = styled.span`
   flex: 0 0 auto;
   color: ${toneAlpha(LCARS.cyan, 'bf')};
-  font-size: 0.56rem;
-  font-weight: 900;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
 `;
 
 const LocationMetaValue = styled.span`
+  color: ${({ $missing }) => ($missing ? '#ff777f' : 'inherit')};
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-shadow: 0 0 8px rgba(var(--box-location-rgb, 127, 215, 255), 0.24);
+  text-shadow: none;
+  text-transform: ${({ $missing }) => ($missing ? 'uppercase' : 'none')};
 `;
 
 const SecondaryMeta = styled.span`
@@ -825,12 +545,12 @@ const SecondaryMeta = styled.span`
   text-overflow: ellipsis;
   white-space: nowrap;
   color: ${toneAlpha(LCARS.textDim, 'd2')};
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   line-height: 1.2;
 
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
     flex: 1 1 auto;
-    font-size: 0.62rem;
+    font-size: 0.75rem;
   }
 `;
 
@@ -844,17 +564,17 @@ const BoxMetaLine = styled.div`
 
 const BoxMetaLabel = styled.span`
   color: ${toneAlpha(LCARS.textDim, 'c9')};
-  font-size: 0.58rem;
-  font-weight: 820;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
   line-height: 1.1;
 `;
 
 const BoxMetaValue = styled.span`
   min-width: 0;
   color: ${toneAlpha(LCARS.text, 'e6')};
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   line-height: 1.22;
   overflow-wrap: anywhere;
 `;
@@ -863,7 +583,7 @@ const BoxSummary = styled.p`
   margin: 0;
   padding: 0.16rem 0 0.1rem;
   color: ${toneAlpha(LCARS.textDim, 'd8')};
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   line-height: 1.28;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -874,15 +594,24 @@ const BoxSummary = styled.p`
     $density === 'compact' &&
     css`
       -webkit-line-clamp: 1;
-      font-size: 0.68rem;
+      font-size: 0.75rem;
     `}
 
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
     max-width: calc(100% - 6.6rem);
     padding-top: 0.02rem;
-    font-size: 0.6rem;
+    font-size: 0.75rem;
     line-height: 1.1;
   }
+`;
+
+const MatchSummaryLabel = styled.span`
+  color: #67d9e8;
+  font-family: var(--dw-font-ui);
+  font-size: 0.9em;
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
 `;
 
 const MatchSummary = styled.div`
@@ -891,7 +620,7 @@ const MatchSummary = styled.div`
   border-left: 2px solid ${LCARS.lime};
   color: ${toneAlpha(LCARS.lime, 'eb')};
   background: ${toneAlpha(LCARS.lime, '0d')};
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -906,38 +635,15 @@ const ContextChip = styled.span`
   max-width: 100%;
   border-style: solid;
   border-width: 1px;
-  border-radius: 10px;
-  padding: ${({ $variant }) =>
-    $variant === 'group' ? '0.38rem 0.62rem' : '0.28rem 0.5rem'};
-  background: ${({ $variant }) =>
-    $variant === 'group'
-      ? `linear-gradient(
-          106deg,
-          ${toneAlpha(LCARS.amber, '3e')} 0%,
-          ${toneAlpha(LCARS.coral, '20')} 62%,
-          rgba(26, 20, 12, 0.94) 100%
-        )`
-      : `linear-gradient(
-          106deg,
-          ${toneAlpha(LCARS.ice, '1f')} 0%,
-          ${toneAlpha(LCARS.ice, '12')} 62%,
-          rgba(11, 18, 27, 0.92) 100%
-        )`};
-  border-color: ${({ $variant }) =>
-    $variant === 'group'
-      ? toneAlpha(LCARS.amber, '96')
-      : toneAlpha(LCARS.ice, '7b')};
-  box-shadow: ${({ $variant }) =>
-    $variant === 'group'
-      ? `inset 0 0 0 1px ${toneAlpha(LCARS.amber, '33')},
-        0 0 14px ${toneAlpha(LCARS.amber, '2d')}`
-      : `inset 0 0 0 1px ${toneAlpha(LCARS.ice, '1f')},
-        0 0 10px ${toneAlpha(LCARS.ice, '14')}`};
+  border-radius: var(--dw-radius);
+  padding: 0.28rem 0.5rem;
+  background: var(--dw-surface-raised);
+  border-color: ${toneAlpha(LCARS.ice, '7b')};
+  box-shadow: none;
 
   @media (max-width: 560px) {
     border-radius: 9px;
-    padding: ${({ $variant }) =>
-      $variant === 'group' ? '0.32rem 0.52rem' : '0.24rem 0.42rem'};
+    padding: 0.24rem 0.42rem;
     gap: 0.34rem;
   }
 `;
@@ -945,10 +651,10 @@ const ContextChip = styled.span`
 const ContextChipLabel = styled.span`
   flex: 0 0 auto;
   color: ${toneAlpha(LCARS.textDim, 'd8')};
-  font-size: 0.6rem;
-  font-weight: 820;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
   line-height: 1.1;
 `;
 
@@ -956,8 +662,8 @@ const ContextChipValue = styled.span`
   min-width: 0;
   color: ${toneAlpha(LCARS.text, 'ef')};
   font-size: 0.82rem;
-  font-weight: 760;
-  letter-spacing: 0.018em;
+  font-weight: 650;
+  letter-spacing: normal;
   line-height: 1.2;
   overflow-wrap: anywhere;
 
@@ -1024,14 +730,14 @@ const TagBubble = styled.span`
   height: 24px;
   padding: 0;
   border-radius: 0;
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0.03em;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: normal;
   user-select: none;
-  color: ${boxMutedAlpha(0.95)};
+  color: var(--dw-text-secondary);
   background: transparent;
   border: 0;
-  text-shadow: 0 0 8px ${boxToneAlpha(0.1)};
+  text-shadow: none;
 
   &::before {
     content: '#';
@@ -1041,7 +747,7 @@ const TagBubble = styled.span`
 
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
     height: 18px;
-    font-size: 0.6rem;
+    font-size: 0.75rem;
     max-width: 4.4rem;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1052,8 +758,8 @@ const TagBubble = styled.span`
     $tiny &&
     css`
       height: 20px;
-      font-size: 10px;
-      font-weight: 700;
+      font-size: 0.75rem;
+      font-weight: 650;
       border-color: ${toneAlpha(railTone({ $isRoot, $depth }), '49')};
       color: ${toneAlpha(LCARS.text, 'b8')};
 
@@ -1062,9 +768,7 @@ const TagBubble = styled.span`
         css`
           border-color: ${boxToneAlpha(0.44)};
           color: ${boxTone};
-          background:
-            linear-gradient(90deg, ${boxToneAlpha(0.12)} 0%, transparent 74%),
-            #121518;
+          background: var(--dw-surface);
         `}
     `}
 `;
@@ -1075,42 +779,30 @@ const BoxFooter = styled.div`
 
 const CardManifest = styled.div`
   position: absolute;
-  right: 0.64rem;
+  right: 0.55rem;
   bottom: 0.42rem;
-  z-index: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 0.28rem;
-  max-width: min(58%, 360px);
-  color: ${boxTone};
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-  font-size: clamp(1rem, 2.35vw, 1.72rem);
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  line-height: 1;
-  opacity: 0.18;
+  gap: 0.3rem;
+  max-width: 56%;
+  padding: 0.16rem 0.3rem;
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface-raised);
+  color: var(--dw-text);
+  font: 600 0.75rem/1.25 var(--dw-font-ui);
   pointer-events: none;
-  text-shadow:
-    0 0 14px ${boxToneAlpha(0.19)},
-    0 0 2px rgba(230, 237, 243, 0.2);
-  text-transform: uppercase;
   white-space: nowrap;
-
-  @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
-    right: 0.62rem;
-    bottom: 0.76rem;
+  @media (max-width: 560px) {
     max-width: 48%;
-    font-size: 0.68rem;
-    opacity: 0.22;
+    right: 0.4rem;
+    bottom: 0.42rem;
     overflow: hidden;
   }
 `;
 
 const CardManifestMuted = styled.span`
-  color: ${toneAlpha(LCARS.textDim, 'd0')};
+  color: var(--dw-text-secondary);
 `;
 
 const BoxBodyRow = styled.div`
@@ -1154,17 +846,13 @@ const NotesSignal = styled.button`
   border: 1px solid ${toneAlpha(LCARS.lilac, '58')};
   border-radius: 5px;
   color: ${toneAlpha(LCARS.lilac, 'ec')};
-  background:
-    linear-gradient(135deg, ${toneAlpha(LCARS.lilac, '16')}, ${toneAlpha(LCARS.ice, '0e')}),
-    rgba(10, 14, 18, 0.82);
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-  font-size: 0.64rem;
-  font-weight: 900;
+  background: var(--dw-surface);
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
+  font-weight: 650;
   line-height: 1;
   cursor: pointer;
-  animation: ${notesPulse} 2.35s ease-in-out infinite;
+  animation: none;
   transition:
     border-color 150ms ease,
     color 150ms ease,
@@ -1188,7 +876,7 @@ const NotesSignal = styled.button`
     width: 34px;
     height: 34px;
     border-radius: 7px;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
   }
 `;
 
@@ -1199,9 +887,7 @@ const NotesPreviewArea = styled.div`
   padding: 0.7rem 0.78rem;
   border-radius: 8px;
   border: 1px solid ${toneAlpha(LCARS.lilac, '3e')};
-  background:
-    linear-gradient(135deg, ${toneAlpha(LCARS.lilac, '12')}, transparent 62%),
-    rgba(8, 12, 16, 0.78);
+  background: var(--dw-surface);
 
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
     ${({ $density }) =>
@@ -1214,10 +900,10 @@ const NotesPreviewArea = styled.div`
 
 const NotesPreviewLabel = styled.span`
   color: ${toneAlpha(LCARS.textDim, 'dc')};
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0.42px;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
 `;
 
 const NotesPreviewText = styled.p`
@@ -1240,9 +926,9 @@ const NotesPreviewText = styled.p`
 `;
 
 const StatPill = styled.span`
-  font-size: 0.64rem;
-  font-weight: 900;
-  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  border-radius: var(--dw-radius);
   padding: 0.18rem 0.48rem;
   line-height: 1.2;
   white-space: nowrap;
@@ -1253,16 +939,16 @@ const StatPill = styled.span`
   ${({ $variant }) =>
     $variant === 'boxes' &&
     css`
-      color: #061018;
-      background: linear-gradient(135deg, ${LCARS.ice}, ${LCARS.cyan});
+      color: var(--dw-text);
+      background: var(--dw-surface);
       border-color: ${toneAlpha(LCARS.ice, 'd8')};
     `}
 
   ${({ $variant }) =>
     $variant === 'items' &&
     css`
-      color: #091027;
-      background: linear-gradient(135deg, ${LCARS.lilac}, #8ec6ff);
+      color: var(--dw-text);
+      background: var(--dw-surface);
       border-color: ${toneAlpha(LCARS.lilac, 'd8')};
     `}
 `;
@@ -1298,11 +984,11 @@ const NestedChildrenToggle = styled.button`
   border: 1px solid ${toneAlpha(LCARS.ice, '58')};
   border-radius: 9px;
   color: ${toneAlpha(LCARS.ice, 'e8')};
-  background: linear-gradient(90deg, ${toneAlpha(LCARS.ice, '15')}, rgba(9, 18, 27, 0.9));
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  background: var(--dw-surface);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
   text-align: left;
   cursor: pointer;
 
@@ -1324,25 +1010,8 @@ const NestedChildrenIcon = styled.span`
 `;
 
 const OrphanedRailBack = styled(RailBack)`
-  background: linear-gradient(
-    180deg,
-    #ff5c7a,
-    #ff9f1c,
-    #ffe66d,
-    #62e6a8,
-    #38d9d1,
-    #4b9dff,
-    #9b7bff,
-    #ff67ca,
-    #ff5c7a
-  );
-  background-size: 100% 240%;
-  box-shadow: 0 0 14px rgba(111, 185, 255, 0.24);
-  animation: ${orphanRailShift} 7s linear infinite alternate;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
+  background: var(--box-primary, #8A8175);
+  box-shadow: none;
 `;
 
 const OrphanedAttentionLink = styled(Link)`
@@ -1355,57 +1024,19 @@ const OrphanedAttentionLink = styled(Link)`
   overflow: clip;
   isolation: isolate;
   border-color: transparent;
-  border-radius: ${({ $isRoot, $depth = 0 }) =>
-    railInnerCorners({ $isRoot, $depth })};
+  border-radius: var(--dw-radius-sm);
   color: ${LCARS.text};
   text-align: left;
   appearance: none;
   cursor: pointer;
-  background:
-    linear-gradient(100deg, rgba(10, 16, 23, 0.99), rgba(8, 12, 18, 0.98)) padding-box,
-    linear-gradient(
-        110deg,
-        #ff5c7a,
-        #ff9f1c,
-        #ffe66d,
-        #62e6a8,
-        #38d9d1,
-        #4b9dff,
-        #9b7bff,
-        #ff67ca,
-        #ff5c7a
-      )
-      border-box;
-  background-size: 100% 100%, 240% 100%;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.045),
-    0 8px 24px rgba(0, 0, 0, 0.3),
-    0 0 18px rgba(107, 164, 255, 0.1);
+  background: var(--dw-surface);
+  box-shadow: none;
   text-decoration: none;
-  animation: ${orphanSpectrumShift} 8s linear infinite alternate;
+
 
   &:hover {
-    border-color: transparent;
-    background:
-      linear-gradient(100deg, rgba(11, 18, 25, 0.99), rgba(9, 13, 20, 0.98)) padding-box,
-      linear-gradient(
-          110deg,
-          #ff5c7a,
-          #ff9f1c,
-          #ffe66d,
-          #62e6a8,
-          #38d9d1,
-          #4b9dff,
-          #9b7bff,
-          #ff67ca,
-          #ff5c7a
-        )
-        border-box;
-    background-size: 100% 100%, 240% 100%;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.065),
-      0 10px 28px rgba(0, 0, 0, 0.34),
-      0 0 24px rgba(128, 122, 255, 0.18);
+    border-color: var(--dw-amber);
+    background: var(--dw-surface-raised);
   }
 
   &:focus-visible {
@@ -1426,24 +1057,20 @@ const OrphanedSignal = styled(BoxImageFrame)`
   justify-items: center;
   gap: 0.24rem;
   border-right: 1px solid rgba(113, 210, 255, 0.15);
-  background:
-    radial-gradient(circle, rgba(119, 116, 255, 0.15), transparent 58%),
-    rgba(3, 8, 13, 0.72);
+  background: var(--dw-surface);
 
   span {
     color: rgba(164, 209, 255, 0.66);
-    font: 850 0.48rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-    letter-spacing: 0.1em;
+    font: 600 0.75rem/1 var(--dw-font-ui);
+    letter-spacing: normal;
   }
 
   strong {
     color: #d8faff;
     font-size: 1.32rem;
     line-height: 1;
-    text-shadow:
-      0 0 7px rgba(77, 218, 255, 0.76),
-      0 0 14px rgba(177, 99, 255, 0.38);
-    animation: ${orphanSignalTurn} 9s linear infinite;
+    text-shadow: none;
+    animation: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1460,8 +1087,8 @@ const OrphanedAttentionCopy = styled(BoxContent)`
 const OrphanedAttentionKicker = styled.span`
   overflow: hidden;
   color: rgba(113, 217, 255, 0.8);
-  font: 860 0.56rem/1.1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.12em;
+  font: 860 0.75rem/1.1 var(--dw-font-ui);
+  letter-spacing: normal;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
@@ -1472,20 +1099,20 @@ const OrphanedAttentionTitle = styled.strong`
   font-size: clamp(0.98rem, 2.2vw, 1.14rem);
   line-height: 1.1;
   text-overflow: ellipsis;
-  text-shadow: 0 0 12px rgba(118, 185, 255, 0.2);
+  text-shadow: none;
   white-space: nowrap;
 `;
 
 const OrphanedAttentionMeta = styled.span`
   overflow: hidden;
   color: rgba(224, 234, 245, 0.62);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   line-height: 1.18;
   text-overflow: ellipsis;
   white-space: nowrap;
 
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
-    font-size: 0.6rem;
+    font-size: 0.75rem;
   }
 `;
 
@@ -1495,13 +1122,9 @@ const TerminalTable = styled.div`
   gap: 0;
   overflow: hidden;
   border-color: ${toneAlpha(LCARS.ice, '6f')};
-  border-radius: 12px;
-  background:
-    linear-gradient(180deg, rgba(4, 10, 15, 0.96), rgba(7, 12, 16, 0.98)),
-    ${LCARS.bg};
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface);
+  font-family: var(--dw-font-ui);
 `;
 
 const terminalGrid = css`
@@ -1524,17 +1147,15 @@ const TerminalHeader = styled.div`
   ${terminalGrid};
   padding: 0.48rem 0.62rem;
   border-bottom: 1px solid ${toneAlpha(LCARS.ice, '42')};
-  background:
-    linear-gradient(90deg, ${toneAlpha(LCARS.ice, '22')}, transparent 70%),
-    rgba(11, 20, 27, 0.92);
+  background: var(--dw-surface);
 `;
 
 const TerminalHeadCell = styled.span`
   color: ${toneAlpha(LCARS.textDim, 'd5')};
-  font-size: 0.66rem;
-  font-weight: 850;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
 
   @media (max-width: 780px) {
     &:nth-child(n + 2) {
@@ -1552,19 +1173,12 @@ const TerminalRow = styled.button`
   ${terminalGrid};
   position: relative;
   min-width: 0;
-  min-height: 38px;
+  min-height: var(--dw-control-height);
   width: 100%;
   padding: 0.34rem 0.62rem;
   border: 0;
   border-bottom: 1px solid rgba(127, 215, 255, 0.1);
-  background:
-    linear-gradient(
-      90deg,
-      ${boxToneAlpha(0.09)} 0%,
-      rgba(255, 255, 255, 0.01) 52%,
-      transparent 100%
-    ),
-    rgba(10, 15, 18, 0.82);
+  background: var(--dw-surface);
   cursor: pointer;
   color: inherit;
   font: inherit;
@@ -1578,21 +1192,12 @@ const TerminalRow = styled.button`
     $isSystem &&
     css`
       border-bottom-style: dashed;
-      background:
-        linear-gradient(90deg, ${boxToneAlpha(0.12)}, transparent 70%),
-        rgba(9, 18, 20, 0.86);
+      background: var(--dw-surface);
     `}
 
   &:hover {
-    background:
-      linear-gradient(
-        90deg,
-        ${boxToneAlpha(0.16)} 0%,
-        rgba(127, 215, 255, 0.05) 60%,
-        transparent 100%
-      ),
-      rgba(14, 23, 28, 0.94);
-    box-shadow: inset 0 0 0 1px ${toneAlpha(LCARS.ice, '2b')};
+    background: var(--dw-surface);
+    box-shadow: none;
   }
 
   &:focus-visible {
@@ -1606,13 +1211,12 @@ const TerminalBoxCell = styled.div`
   align-items: center;
   gap: 0.42rem;
   min-width: 0;
-  padding-left: ${({ $depth = 0 }) => `${Math.min($depth, 6) * 18}px`};
-`;
+  padding-left: ${({ $depth = 0 }) => `${Math.min($depth, 6) * 18}px`};`;
 
 const TreeGlyph = styled.span`
   flex: 0 0 auto;
   width: 1.15rem;
-  color: ${boxMutedAlpha(0.95)};
+  color: var(--dw-text-secondary);
   font-size: 0.92rem;
   transform: rotate(${({ $expanded }) => ($expanded ? '90deg' : '0deg')});
   transform-origin: center;
@@ -1629,8 +1233,8 @@ const TerminalShortId = styled.span`
   border: 1px solid ${boxToneAlpha(0.52)};
   border-radius: 3px;
   padding: 0.08rem 0.3rem;
-  font-size: 0.7rem;
-  font-weight: 900;
+  font-size: 0.75rem;
+  font-weight: 650;
   line-height: 1.2;
 
   ${({ $isSystem }) =>
@@ -1639,13 +1243,14 @@ const TerminalShortId = styled.span`
       color: ${boxTone};
       border-color: ${boxToneAlpha(0.58)};
     `}
+  font-family: var(--dw-font-data);
 `;
 
 const TerminalTitle = styled.span`
   min-width: 0;
   color: ${toneAlpha(LCARS.text, 'f2')};
   font-size: 0.82rem;
-  font-weight: 780;
+  font-weight: 650;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1654,7 +1259,7 @@ const TerminalTitle = styled.span`
 const TerminalCell = styled.span`
   min-width: 0;
   color: ${toneAlpha(LCARS.textDim, 'd4')};
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1666,8 +1271,8 @@ const TerminalCell = styled.span`
 
 const TerminalMetric = styled.span`
   color: ${toneAlpha(LCARS.ice, 'e2')};
-  font-size: 0.72rem;
-  font-weight: 850;
+  font-size: 0.75rem;
+  font-weight: 650;
   text-align: right;
 
   @media (max-width: 780px) {
@@ -1677,17 +1282,17 @@ const TerminalMetric = styled.span`
 
 const TerminalChildrenToggle = styled.button`
   justify-self: stretch;
-  min-height: 34px;
+  min-height: var(--dw-control-height);
   margin: 0.28rem 0.62rem 0.36rem;
   border: 1px solid ${toneAlpha(LCARS.ice, '58')};
   border-radius: 8px;
   color: ${toneAlpha(LCARS.ice, 'e6')};
-  background: rgba(10, 23, 33, 0.86);
+  background: var(--dw-surface-raised);
   font-family: inherit;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
   cursor: pointer;
 
   &:hover {
@@ -1706,9 +1311,7 @@ const EmptyMessage = styled.div`
   padding: 16px;
   color: ${LCARS.textDim};
   border-style: dashed;
-  background:
-    linear-gradient(90deg, ${toneAlpha(LCARS.coral, '1b')}, transparent 34%),
-    ${LCARS.panelAlt};
+  background: var(--dw-surface);
   text-align: center;
   border-radius: ${radiusL};
 `;
@@ -1721,9 +1324,7 @@ const PaginationBar = styled.div`
   gap: 0.6rem;
   padding: 0.56rem 0.62rem;
   border-color: ${toneAlpha(LCARS.ice, '58')};
-  background:
-    linear-gradient(90deg, ${toneAlpha(LCARS.ice, '18')}, transparent 55%),
-    ${LCARS.panel};
+  background: var(--dw-surface);
 
   @media (max-width: 560px) {
     grid-template-columns: 30px minmax(0, 1fr) 30px;
@@ -1731,21 +1332,21 @@ const PaginationBar = styled.div`
     padding: 2px;
     border-radius: 4px;
     border-color: ${toneAlpha(LCARS.ice, '32')};
-    background: rgba(7, 13, 18, 0.54);
+    background: var(--dw-surface-raised);
     box-shadow: none;
   }
 `;
 
 const PaginationButton = styled.button`
-  min-height: 34px;
+  min-height: var(--dw-control-height);
   min-width: 92px;
   border-radius: 9px;
   border: 1px solid ${toneAlpha(LCARS.ice, '78')};
-  background: linear-gradient(180deg, rgba(13, 31, 45, 0.95), rgba(10, 24, 36, 0.95));
+  background: var(--dw-surface);
   color: ${toneAlpha(LCARS.ice, 'ea')};
   font-size: 0.78rem;
-  font-weight: 740;
-  letter-spacing: 0.04em;
+  font-weight: 650;
+  letter-spacing: normal;
   cursor: pointer;
   transition:
     border-color 130ms ease,
@@ -1754,7 +1355,7 @@ const PaginationButton = styled.button`
 
   &:hover:enabled {
     border-color: ${toneAlpha(LCARS.lime, '86')};
-    background: linear-gradient(180deg, rgba(23, 53, 39, 0.95), rgba(14, 34, 25, 0.95));
+    background: var(--dw-surface);
   }
 
   &:disabled {
@@ -1768,13 +1369,13 @@ const PaginationButton = styled.button`
 
   @media (max-width: 560px) {
     min-width: 0;
-    min-height: 30px;
+    min-height: var(--dw-control-height);
     padding: 0;
     border: 0;
     border-radius: 2px;
     background: transparent;
     box-shadow: none;
-    font: 800 1rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font: 800 1rem/1 var(--dw-font-ui);
 
     .pagination-label {
       display: none;
@@ -1790,11 +1391,11 @@ const PaginationInfo = styled.div`
   text-align: center;
   color: ${toneAlpha(LCARS.textDim, 'df')};
   font-size: 0.77rem;
-  letter-spacing: 0.04em;
+  letter-spacing: normal;
 
   @media (max-width: 560px) {
-    font: 760 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    letter-spacing: 0.08em;
+    font: 760 0.75rem/1 var(--dw-font-ui);
+    letter-spacing: normal;
   }
 `;
 
@@ -1832,6 +1433,7 @@ export const styledComponents = {
   BoxMetaValue,
   BoxSummary,
   MatchSummary,
+  MatchSummaryLabel,
 
   FieldGroup,
   FieldLabel,

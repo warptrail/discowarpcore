@@ -69,13 +69,13 @@ export default function useItemFieldEditor({
     return true;
   }, [baseline, saving]);
 
-  const save = useCallback(async () => {
-    if (!descriptor || !itemId || saving || !isDirty) return null;
+  const save = useCallback(async ({ value = draft, commitSelection = false } = {}) => {
+    if (!descriptor || !itemId || saving || (!isDirty && !commitSelection)) return null;
 
     let payload;
     let undoPayload;
     try {
-      payload = buildItemFieldPayload(descriptor, draft);
+      payload = buildItemFieldPayload(descriptor, value);
       undoPayload = buildItemFieldPayload(descriptor, baseline);
     } catch (validationError) {
       setError(validationError?.message || 'This field could not be validated.');

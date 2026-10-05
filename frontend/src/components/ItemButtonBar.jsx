@@ -74,6 +74,7 @@ export default function ItemButtonBar({
 
   const handleSelectDestination = async ({
     destBoxId,
+    compartmentKey,
     destLabel,
     destShortId,
     isOrphanedDestination = false,
@@ -87,6 +88,7 @@ export default function ItemButtonBar({
     if (!destBoxId || typeof onMoveItem !== 'function') return;
     const ok = await onMoveItem({
       destBoxId,
+      compartmentKey,
       destLabel,
       destShortId,
       sourceBoxId: boxMongoId || undefined,

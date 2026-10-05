@@ -1,3 +1,4 @@
+import { controlStyles, inputStyles } from './primitives';
 import styled from 'styled-components';
 import { MOBILE_BREAKPOINT, MOBILE_FONT_SM } from './tokens';
 
@@ -20,35 +21,36 @@ export const InputChip = styled.div`
   align-items: center;
   gap: 0.28rem;
   max-width: 100%;
-  min-height: 30px;
+  min-height: 44px;
   padding: 0.18rem 0.34rem 0.18rem 0.52rem;
-  border: 1px dashed rgba(127, 215, 255, 0.48);
-  border-radius: 3px;
-  background: rgba(8, 18, 27, 0.72);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(230, 237, 243, 0.18);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface-raised);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: 100%;
-    border-radius: 3px;
+    border-radius: var(--dw-radius-sm);
     padding: 0.22rem 0.34rem 0.22rem 0.52rem;
     font-size: ${MOBILE_FONT_SM};
   }
 `;
 
 export const Input = styled.input`
+  ${inputStyles}
   border: none;
-  outline: none;
+  outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
   background: transparent;
-  color: #eee;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.74rem;
-  letter-spacing: 0.045em;
+  color: var(--dw-text);
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
   width: 100%;
   min-width: 0;
 
   &::placeholder {
-    color: rgba(180, 212, 226, 0.52);
-    text-transform: uppercase;
+    color: var(--dw-text-muted);
+    text-transform: none;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -57,21 +59,22 @@ export const Input = styled.input`
 `;
 
 export const AddButton = styled.button`
+  ${controlStyles}
   all: unset;
   cursor: pointer;
   font-weight: 700;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--dw-font-ui);
   font-size: 0.9rem;
   line-height: 1;
-  color: #73ddff;
+  color: var(--dw-cyan);
   padding: 0;
-  min-height: 26px;
-  min-width: 26px;
+  min-height: 44px;
+  min-width: 44px;
   text-align: center;
   border-left: 1px solid rgba(127, 215, 255, 0.2);
 
   &:hover {
-    color: #d8a6ff;
+    color: var(--dw-violet);
   }
 
   &:focus-visible {

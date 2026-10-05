@@ -1,14 +1,14 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { updateBoxDetails } from '../api/boxes';
 import useShortIdAvailability from '../hooks/useShortIdAvailability';
 import useLocationRegistry from '../hooks/useLocationRegistry';
-import useBoxGroupRegistry from '../hooks/useBoxGroupRegistry';
 import { ToastContext } from './Toast';
 
 import * as S from './BoxForms/BoxEditForm.styles';
 import BoxIdentityFields from './BoxForms/BoxIdentityFields';
 import BoxTagsField from './BoxForms/BoxTagsField';
+import BoxComplexField from './BoxForms/BoxComplexField';
 import BoxDeclutterFields from './BoxForms/BoxDeclutterFields';
 import BoxFormActions from './BoxForms/BoxFormActions';
 import BoxImageField from './ImageFields/BoxImageField';
@@ -33,6 +33,9 @@ export default function EditBoxDetailsForm({
   onCancel,
   TagInputComponent,
   compact = false,
+  flat = false,
+  autoSave = false,
+  onAutoSaved,
 }) {
   const initialLocationId =
     initial?.locationId?._id ??
@@ -41,7 +44,6 @@ export default function EditBoxDetailsForm({
 
   const [shortId, setShortId] = useState(initial?.box_id ?? '');
   const [label, setLabel] = useState(initial?.label ?? '');
-  const [group, setGroup] = useState(initial?.group ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [locationId, setLocationId] = useState(
@@ -54,10 +56,12 @@ export default function EditBoxDetailsForm({
   );
   const [declutterPurpose, setDeclutterPurpose] = useState(initial?.declutterPurpose || 'standard');
   const [declutterIsDefault, setDeclutterIsDefault] = useState(Boolean(initial?.declutterIsDefault));
+  const [isComplexBox, setIsComplexBox] = useState(Boolean(initial?.isComplexBox));
   const [isGiftBox, setIsGiftBox] = useState(Boolean(initial?.isGiftBox));
   const [busy, setBusy] = useState(false);
   const [destroyBusy, setDestroyBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [autoSaveStatus, setAutoSaveStatus] = useState('idle');
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
   const initialTagsKey = JSON.stringify(initial?.tags || []);
@@ -68,16 +72,10 @@ export default function EditBoxDetailsForm({
     error: locationsError,
     createLocationInline,
   } = useLocationRegistry();
-  const {
-    groups: groupOptions,
-    loading: groupsLoading,
-    error: groupsError,
-  } = useBoxGroupRegistry();
 
   useEffect(() => {
     setShortId(initial?.box_id ?? '');
     setLabel(initial?.label ?? '');
-    setGroup(initial?.group ?? '');
     setDescription(initial?.description ?? '');
     setNotes(initial?.notes ?? '');
     const nextLocationId =
@@ -89,18 +87,19 @@ export default function EditBoxDetailsForm({
     setTags(Array.isArray(initial?.tags) ? initial.tags : []);
     setDeclutterPurpose(initial?.declutterPurpose || 'standard');
     setDeclutterIsDefault(Boolean(initial?.declutterIsDefault));
+    setIsComplexBox(Boolean(initial?.isComplexBox));
     setIsGiftBox(Boolean(initial?.isGiftBox));
   }, [
     initial?._id,
     initial?.box_id,
     initial?.label,
-    initial?.group,
     initial?.description,
     initial?.notes,
     initial?.locationId,
     initial?.tags,
     initial?.declutterPurpose,
     initial?.declutterIsDefault,
+    initial?.isComplexBox,
     initial?.isGiftBox,
     initialTagsKey,
   ]);
@@ -122,8 +121,6 @@ export default function EditBoxDetailsForm({
   const changed = useMemo(() => {
     const sameId = String(shortId || '') === String(initial?.box_id || '');
     const sameLabel = String(label || '') === String(initial?.label || '');
-    const sameGroup =
-      String(group || '').trim() === String(initial?.group || '').trim();
     const sameDescription =
       String(description || '').trim() === String(initial?.description || '').trim();
     const sameNotes =
@@ -139,16 +136,16 @@ export default function EditBoxDetailsForm({
     return !(
       sameId &&
       sameLabel &&
-      sameGroup &&
       sameDescription &&
       sameNotes &&
       sameLocation &&
       sameTags &&
       sameDeclutterPurpose &&
       sameDeclutterDefault &&
-      sameGiftBox
+      sameGiftBox &&
+      isComplexBox === Boolean(initial?.isComplexBox)
     );
-  }, [shortId, label, group, description, notes, locationId, tags, declutterPurpose, declutterIsDefault, isGiftBox, initial]);
+  }, [shortId, label, description, notes, locationId, tags, declutterPurpose, declutterIsDefault, isGiftBox, isComplexBox, initial]);
 
   const canSave =
     !busy &&
@@ -158,11 +155,15 @@ export default function EditBoxDetailsForm({
     shortIdAvail &&
     (label || '').trim().length > 0;
 
-  const handleCreateLocation = async (rawValue) => {
-    const normalized = String(rawValue || '').trim().replace(/\s+/g, ' ');
-    if (!normalized) {
-      setLocationError('Location name is required');
-      throw new Error('Location name is required');
+  const handleCreateLocation = async (location) => {
+    const normalized = {
+      room: String(location?.room || '').trim().replace(/\s+/g, ' '),
+      vicinity: String(location?.vicinity || '').trim().replace(/\s+/g, ' '),
+      specifics: String(location?.specifics || '').trim().replace(/\s+/g, ' '),
+    };
+    if (!normalized.room) {
+      setLocationError('Room is required');
+      throw new Error('Room is required');
     }
 
     setLocationCreateBusy(true);
@@ -195,37 +196,105 @@ export default function EditBoxDetailsForm({
     }
   };
 
-  const onSubmit = async (e) => {
-    e?.preventDefault?.();
-    if (!canSave) return;
+  const saveBoxDetails = useCallback(async () => {
+    if (!canSave) return false;
 
     setBusy(true);
     setError(null);
+    if (autoSave) {
+      setAutoSaveStatus('saving');
+      showToast?.({
+        id: `box-autosave-${boxMongoId}`,
+        variant: 'info',
+        title: 'Saving box updates',
+        message: 'Your changes are being saved.',
+        loading: true,
+        sticky: true,
+      });
+    }
 
     try {
       const updated = await updateBoxDetails(boxMongoId, {
         box_id: shortId,
         label: label.trim(),
-        group: group.trim() || null,
         description: description.trim() || null,
         notes: notes.trim() || null,
         locationId: locationId || null,
         tags,
         declutterPurpose,
         declutterIsDefault,
+        isComplexBox,
         isGiftBox,
       });
       const persistedShortId = String(updated?.box_id ?? updated?.shortId ?? '').trim();
       if (persistedShortId !== String(shortId).trim()) {
         throw new Error('The server did not persist the new box number. Please try again.');
       }
-      onSaved?.(updated);
+      if (autoSave) {
+        setAutoSaveStatus('saved');
+        showToast?.({
+          id: `box-autosave-${boxMongoId}`,
+          variant: 'success',
+          title: 'Box updated',
+          message: 'Your latest changes are saved.',
+          timeoutMs: 2400,
+        });
+        Promise.resolve(onAutoSaved?.(updated)).catch((syncError) => {
+          console.error('[EditBoxDetailsForm] refresh after autosave failed:', syncError);
+        });
+      } else {
+        onSaved?.(updated);
+      }
+      return true;
     } catch (e2) {
-      setError(e2.message || 'Update failed');
+      const message = e2.message || 'Update failed';
+      setError(message);
+      if (autoSave) {
+        setAutoSaveStatus('error');
+        showToast?.({
+          id: `box-autosave-${boxMongoId}`,
+          variant: 'danger',
+          title: 'Box update failed',
+          message,
+          sticky: true,
+        });
+      }
+      return false;
     } finally {
       setBusy(false);
     }
+  }, [
+    autoSave,
+    boxMongoId,
+    canSave,
+    declutterIsDefault,
+    declutterPurpose,
+    description,
+    isGiftBox,
+    isComplexBox,
+    label,
+    locationId,
+    notes,
+    onAutoSaved,
+    onSaved,
+    shortId,
+    showToast,
+    tags,
+  ]);
+
+  const onSubmit = (event) => {
+    event?.preventDefault?.();
+    if (!autoSave) void saveBoxDetails();
   };
+
+  useEffect(() => {
+    if (!autoSave || !changed || busy || !canSave) return undefined;
+    setAutoSaveStatus('pending');
+    const timer = window.setTimeout(() => {
+      void saveBoxDetails();
+    }, 650);
+    return () => window.clearTimeout(timer);
+  }, [autoSave, busy, canSave, changed, saveBoxDetails]);
 
   const handleDestroy = async () => {
     if (typeof onDestroy !== 'function' || destroyBusy || busy) return;
@@ -252,8 +321,6 @@ export default function EditBoxDetailsForm({
     shortIdAvail,
     label,
     setLabel,
-    group,
-    setGroup,
     locationId,
     setLocationId,
     locationOptions,
@@ -261,16 +328,14 @@ export default function EditBoxDetailsForm({
     onCreateLocation: handleCreateLocation,
     locationCreateBusy,
     locationError: locationError || locationsError,
-    groupOptions,
-    groupsLoading,
-    groupError: groupsError,
+    autoSave,
     tags,
     setTags,
     TagInputComponent,
   };
 
   return (
-    <S.Card onSubmit={onSubmit} noValidate $compact={compact}>
+    <S.Card onSubmit={onSubmit} noValidate $compact={compact} $flat={flat}>
       {!compact ? (
         <>
           <S.ConsoleGrid>
@@ -294,7 +359,7 @@ export default function EditBoxDetailsForm({
                 <S.SectionHeader>
                   <S.SectionLabel>Section 2</S.SectionLabel>
                   <S.SectionTitle>Organization</S.SectionTitle>
-                  <S.SectionHint>Location, group, tags</S.SectionHint>
+                  <S.SectionHint>Location, tags</S.SectionHint>
                 </S.SectionHeader>
                 <S.SectionBody>
                   <BoxIdentityFields
@@ -331,6 +396,7 @@ export default function EditBoxDetailsForm({
                     setTags={setTags}
                     TagInputComponent={TagInputComponent}
                   />
+                  <BoxComplexField value={isComplexBox} onChange={setIsComplexBox} />
                   <BoxDeclutterFields
                     purpose={declutterPurpose}
                     setPurpose={setDeclutterPurpose}
@@ -389,6 +455,7 @@ export default function EditBoxDetailsForm({
       ) : (
         <>
           <BoxIdentityFields compact {...identityFieldProps} />
+          <BoxComplexField value={isComplexBox} onChange={setIsComplexBox} />
           <BoxDeclutterFields
             compact
             purpose={declutterPurpose}
@@ -466,14 +533,28 @@ export default function EditBoxDetailsForm({
         </S.Hint>
       )}
 
-      <BoxFormActions
-        onCancel={onCancel}
-        busy={busy}
-        canSave={canSave}
-        onDestroy={onDestroy ? handleDestroy : null}
-        destroyBusy={destroyBusy}
-        compact={compact}
-      />
+      {autoSave ? (
+        <S.AutoSaveStatus $status={autoSaveStatus} role="status" aria-live="polite">
+          {autoSaveStatus === 'saving'
+            ? 'Saving…'
+            : autoSaveStatus === 'pending'
+              ? 'Changes queued to save'
+              : autoSaveStatus === 'saved'
+                ? 'All changes saved'
+                : autoSaveStatus === 'error'
+                  ? 'Could not save changes'
+                  : 'Changes save automatically'}
+        </S.AutoSaveStatus>
+      ) : (
+        <BoxFormActions
+          onCancel={onCancel}
+          busy={busy}
+          canSave={canSave}
+          onDestroy={onDestroy ? handleDestroy : null}
+          destroyBusy={destroyBusy}
+          compact={compact}
+        />
+      )}
     </S.Card>
   );
 }

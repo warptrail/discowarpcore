@@ -40,6 +40,10 @@ export default function NewItemPostSaveDetails({
   photoError = '',
   photoRetrying = false,
   onRetryPhoto,
+  glowStatus = '',
+  glowError = '',
+  glowQueuing = false,
+  onRetryGlow,
   onItemUpdated,
   onAddAnother,
 }) {
@@ -120,6 +124,16 @@ export default function NewItemPostSaveDetails({
           Item added; photo could not upload.{' '}
           <QuietButton type="button" onClick={onRetryPhoto} disabled={photoRetrying}>
             {photoRetrying ? 'Retrying…' : 'Retry photo'}
+          </QuietButton>
+        </InlineMessage>
+      ) : null}
+
+      {glowStatus ? <InlineMessage>{glowStatus}</InlineMessage> : null}
+      {glowError ? (
+        <InlineMessage $error>
+          Photo saved; Glow could not start: {glowError}.{' '}
+          <QuietButton type="button" onClick={onRetryGlow} disabled={glowQueuing}>
+            {glowQueuing ? 'Retrying…' : 'Retry Glow'}
           </QuietButton>
         </InlineMessage>
       ) : null}

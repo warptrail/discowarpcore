@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 
 const { MEDIA_ROOT, toMediaUrl } = require('../config/media');
 const Box = require('../models/Box');
+const { itemPlacement } = require('../utils/boxCompartments');
 const DeclutterSession = require('../models/DeclutterSession');
 const DeclutterSessionItem = require('../models/DeclutterSessionItem');
 const Item = require('../models/Item');
@@ -16,6 +17,7 @@ const {
   normalizeKeepPriorityValue,
 } = require('../utils/keepPriority');
 const { collectImageStoragePaths } = require('./imageMetadataService');
+const { formatLocationName } = require('../utils/locationName');
 
 const DECISIONS = DeclutterSessionItem.DECISIONS;
 const PLAYERS = DeclutterSessionItem.PLAYERS;
@@ -284,7 +286,7 @@ function resolveInheritedBoxValue(leafBoxId, maps, fieldName) {
 
     const value =
       fieldName === 'location'
-        ? firstNonEmpty(node?.locationId?.name, node?.location)
+        ? formatLocationName(node?.locationId)
         : firstNonEmpty(node?.[fieldName]);
     if (value) return value;
     cursor = maps.parentOf.get(cursor);
@@ -315,8 +317,8 @@ async function buildDeclutterItemSummaries(rawItems = []) {
   if (!items.length) return new Map();
 
   const boxes = await Box.find()
-    .select('_id box_id label group description items parentBox location locationId')
-    .populate('locationId', 'name')
+    .select('_id box_id label isComplexBox compartments itemCompartments description items parentBox location locationId')
+    .populate('locationId', 'room vicinity specifics')
     .lean();
   const maps = buildBoxMaps(boxes);
   const itemToLeafBoxId = buildItemToLeafBoxId(boxes);
@@ -334,9 +336,6 @@ async function buildDeclutterItemSummaries(rawItems = []) {
       : [];
     const inheritedLocation = leafBoxId
       ? resolveInheritedBoxValue(leafBoxId, maps, 'location')
-      : '';
-    const inheritedGroup = leafBoxId
-      ? resolveInheritedBoxValue(leafBoxId, maps, 'group')
       : '';
     const categoryKey = normalizeItemCategory(item?.category);
     const keepPriority = normalizeKeepPriorityValue(item?.keepPriority);
@@ -357,19 +356,16 @@ async function buildDeclutterItemSummaries(rawItems = []) {
       item_status: firstNonEmpty(item?.item_status, 'active').toLowerCase(),
       sourceBatchId: toIdString(item?.sourceBatchId),
       inheritedLocation,
-      inheritedGroup,
       breadcrumb,
       box: leafBox
         ? {
             _id: toIdString(leafBox._id),
             box_id: firstNonEmpty(leafBox.box_id),
             label: firstNonEmpty(leafBox.label),
-            group: firstNonEmpty(leafBox.group),
-            groupLabel: firstNonEmpty(leafBox.group),
-            resolvedGroup: inheritedGroup,
+            ...itemPlacement(leafBox, item._id),
             description: firstNonEmpty(leafBox.description),
-            location: firstNonEmpty(leafBox?.locationId?.name, leafBox.location),
-            locationName: firstNonEmpty(leafBox?.locationId?.name, leafBox.location),
+            location: formatLocationName(leafBox?.locationId),
+            locationName: formatLocationName(leafBox?.locationId),
           }
         : null,
       thumbnailUrl: imageUrls.thumbnailUrl,

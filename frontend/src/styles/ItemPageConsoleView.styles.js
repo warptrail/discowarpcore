@@ -1,8 +1,9 @@
+import { controlStyles } from './primitives';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { MOBILE_BREAKPOINT } from './tokens';
 
-const mono = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";
+const uiFont = 'var(--dw-font-ui)';
 
 const DOMAIN_RGB = {
   amber: '238, 181, 77',
@@ -23,15 +24,13 @@ const domainRgb = (tone) => DOMAIN_RGB[tone] || DOMAIN_RGB.neutral;
 
 export const WikiHero = styled.section`
   overflow: hidden;
-  border: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.42);
-  border-radius: 7px;
-  background: #070c12;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.045),
-    0 0 18px rgba(var(--item-accent-rgb, 127, 215, 255), 0.07);
+  border: 1px solid rgba(230, 237, 243, 0.12);
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface);
 `;
 
 export const WikiImageButton = styled.button`
+  ${controlStyles}
   position: relative;
   display: block;
   width: 100%;
@@ -41,9 +40,7 @@ export const WikiImageButton = styled.button`
   overflow: hidden;
   padding: 0;
   border: 0;
-  background:
-    radial-gradient(circle at 50% 46%, rgba(var(--item-accent-rgb, 127, 215, 255), 0.08), transparent 54%),
-    #050a10;
+  background: var(--dw-background);
   cursor: zoom-in;
 
   &:focus-visible {
@@ -79,23 +76,23 @@ export const WikiImageCaption = styled.span`
   justify-content: space-between;
   gap: 0.8rem;
   padding: 0.42rem 0.56rem;
-  background: linear-gradient(180deg, transparent, rgba(3, 8, 13, 0.92));
+  background: var(--dw-surface-raised);
   color: rgba(239, 248, 252, 0.9);
   pointer-events: none;
 `;
 
 export const WikiImageKicker = styled.span`
   color: var(--item-accent, #7fd7ff);
-  font: 800 0.58rem/1 ${mono};
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font: 700 0.75rem/1 ${uiFont};
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export const WikiImageAction = styled.span`
-  color: rgba(234, 243, 247, 0.66);
-  font: 700 0.56rem/1 ${mono};
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  color: var(--dw-text-secondary);
+  font: 700 0.75rem/1 ${uiFont};
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export const WikiImagePlaceholder = styled.div`
@@ -103,7 +100,7 @@ export const WikiImagePlaceholder = styled.div`
   place-content: center;
   gap: 0.45rem;
   min-height: 120px;
-  color: rgba(214, 226, 241, 0.45);
+  color: var(--dw-text-secondary);
   text-align: center;
 `;
 
@@ -111,7 +108,7 @@ export const WikiFactRail = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   border-top: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.2);
-  background: rgba(8, 14, 21, 0.96);
+  background: var(--dw-surface-raised);
 `;
 
 export const WikiFact = styled.div`
@@ -127,16 +124,16 @@ export const WikiFact = styled.div`
 `;
 
 export const WikiFactLabel = styled.span`
-  color: rgba(210, 228, 237, 0.46);
-  font: 760 0.52rem/1 ${mono};
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  color: var(--dw-text-secondary);
+  font: 760 0.75rem/1 ${uiFont};
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export const WikiFactValue = styled.span`
   overflow: hidden;
   color: rgba(242, 248, 251, 0.9);
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -150,7 +147,7 @@ export const WikiHeroCommandRail = styled.div`
   min-height: 34px;
   padding: 0.32rem 0.42rem 0.32rem 0.54rem;
   border-top: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.18);
-  background: rgba(3, 8, 13, 0.94);
+  background: var(--dw-surface);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     grid-template-columns: 1fr;
@@ -163,39 +160,41 @@ export const WikiHeroCommandCopy = styled.span`
   flex-wrap: wrap;
   gap: 0.36rem;
   min-width: 0;
-  color: rgba(214, 226, 241, 0.48);
-  font: 680 0.56rem/1.3 ${mono};
-  letter-spacing: 0.04em;
+  color: var(--dw-text-secondary);
+  font: 680 0.75rem/1.3 ${uiFont};
+  letter-spacing: 0.01em;
 
   strong {
     color: var(--item-secondary, #a7b6ff);
-    letter-spacing: 0.1em;
+    letter-spacing: 0.01em;
   }
 `;
 
 export const WikiHeroEditButton = styled.button`
-  min-height: 30px;
+  ${controlStyles}
+  min-height: var(--dw-control-height);
   padding: 0.28rem 0.58rem;
   border: 1px solid ${({ $active }) =>
     $active
       ? 'var(--item-accent, #7fd7ff)'
       : 'rgba(var(--item-accent-rgb, 127, 215, 255), 0.52)'};
-  border-radius: 2px 5px 3px 2px;
+  border-radius: var(--dw-radius);
   color: ${({ $active }) => ($active ? '#f4fdff' : 'var(--item-accent, #7fd7ff)')};
   background: ${({ $active }) =>
     $active
       ? 'rgba(var(--item-accent-rgb, 127, 215, 255), 0.18)'
       : 'rgba(var(--item-accent-rgb, 127, 215, 255), 0.07)'};
-  font: 800 0.58rem/1 ${mono};
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 700 0.75rem/1 ${uiFont};
+  letter-spacing: 0.01em;
+  text-transform: none;
   cursor: pointer;
 
   &:hover,
   &:focus-visible {
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
     border-color: var(--item-accent, #7fd7ff);
-    box-shadow: 0 0 13px rgba(var(--item-accent-rgb, 127, 215, 255), 0.2);
+    box-shadow: none;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -209,18 +208,16 @@ export const MediaEditorPanel = styled.section`
   gap: 0.6rem;
   padding: 0.7rem;
   overflow: hidden;
-  border: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.54);
-  border-radius: 2px 7px 4px 2px;
-  background:
-    linear-gradient(108deg, rgba(var(--item-accent-rgb, 127, 215, 255), 0.09), transparent 32%),
-    #091018;
+  border: 1px solid rgba(230, 237, 243, 0.14);
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface);
 
   &::before {
     content: '';
     position: absolute;
     inset: 0 auto 0 0;
-    width: 5px;
-    background: linear-gradient(180deg, var(--item-accent, #7fd7ff), var(--item-secondary, #a7b6ff));
+    width: 3px;
+    background: var(--dw-cyan);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -234,31 +231,29 @@ export const MediaEditorHeader = styled.header`
   justify-content: space-between;
   gap: 0.6rem;
   padding-left: 0.2rem;
-  color: rgba(214, 226, 241, 0.52);
-  font: 720 0.56rem/1 ${mono};
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: var(--dw-text-secondary);
+  font: 720 0.75rem/1 ${uiFont};
+  letter-spacing: 0.01em;
+  text-transform: none;
 
   strong {
     color: var(--item-accent, #7fd7ff);
-    font-size: 0.7rem;
+    font-size: 0.75rem;
   }
 `;
 
 export const ConsoleFrame = styled.section`
   overflow: hidden;
-  border: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.28);
-  border-radius: 7px;
-  background: #0b1118;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(230, 237, 243, 0.12);
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface);
+  box-shadow: none;
   transition: border-color 160ms ease, box-shadow 160ms ease;
 
   ${({ $fieldMode }) => $fieldMode && `
     overflow: visible;
-    border-color: rgba(var(--item-accent-rgb, 127, 215, 255), 0.74);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.05),
-      0 0 24px rgba(var(--item-accent-rgb, 127, 215, 255), 0.14);
+    border-color: var(--dw-cyan);
+    box-shadow: none;
   `}
 
   @media (prefers-reduced-motion: reduce) {
@@ -281,16 +276,14 @@ export const FieldLocatorStatus = styled.div`
   min-height: 38px;
   padding: 0.38rem 0.58rem;
   border-bottom: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.36);
-  background:
-    linear-gradient(90deg, rgba(var(--item-accent-rgb, 127, 215, 255), 0.16), transparent 62%),
-    rgba(5, 11, 17, 0.98);
+  background: var(--dw-surface-raised);
   color: rgba(225, 237, 244, 0.7);
-  font: 700 0.62rem/1.3 ${mono};
-  letter-spacing: 0.04em;
+  font: 700 0.75rem/1.3 ${uiFont};
+  letter-spacing: 0.01em;
 
   strong {
     color: var(--item-accent, #7fd7ff);
-    letter-spacing: 0.1em;
+    letter-spacing: 0.01em;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -301,20 +294,46 @@ export const FieldLocatorStatus = styled.div`
   }
 `;
 
+export const TableToolbar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.58rem;
+  color: rgba(213, 232, 241, 0.7);
+  background: var(--dw-surface-raised);
+  font: 760 0.75rem/1.3 ${uiFont};
+  text-transform: none;
+`;
+
+export const EmptyFieldsToggle = styled.button`
+  ${controlStyles}
+  min-height: var(--dw-control-height);
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--item-accent, #7fd7ff);
+  border-radius: var(--dw-radius-sm);
+  color: var(--item-accent, #7fd7ff);
+  background: rgba(var(--item-accent-rgb, 127, 215, 255), 0.08);
+  font: inherit;
+  cursor: pointer;
+  &[aria-pressed='true'] { background: rgba(var(--item-accent-rgb, 127, 215, 255), 0.2); }
+  &:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+`;
+
 export const ConsoleTable = styled.table`
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
   color: rgba(234, 243, 247, 0.9);
 
-  th { padding: 0.42rem 0.58rem; color: rgba(213, 232, 241, 0.54); border-bottom: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.34); background: rgba(4, 10, 16, 0.76); font: 760 0.58rem/1 ${mono}; letter-spacing: 0.11em; text-align: left; text-transform: uppercase; }
+  th { padding: 0.42rem 0.58rem; color: var(--dw-text-secondary); border-bottom: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.34); background: var(--dw-surface-raised); font: 760 0.75rem/1 ${uiFont}; letter-spacing: 0.01em; text-align: left; text-transform: none; }
   th:first-child { width: 18%; } th:nth-child(2) { width: 25%; }
   tr {
     border-bottom: 1px solid rgba(197, 219, 230, 0.06);
-    background: linear-gradient(90deg, rgba(var(--domain-rgb, 157, 174, 189), 0.055), rgba(var(--domain-rgb, 157, 174, 189), 0.012) 62%, transparent);
+    background: transparent;
     transition: background 140ms ease;
   }
-  tr:hover { background: linear-gradient(90deg, rgba(var(--domain-rgb, 157, 174, 189), 0.12), rgba(var(--domain-rgb, 157, 174, 189), 0.03) 62%, transparent); }
+  tr:hover { background: var(--dw-surface-raised); }
   tr:last-child { border-bottom: 0; }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -343,10 +362,8 @@ export const DomainGroup = styled.tbody`
     margin-bottom: 0.46rem;
     overflow: ${({ $active }) => ($active ? 'visible' : 'hidden')};
     border: 1px solid rgba(var(--domain-rgb), 0.2);
-    border-radius: 3px 7px 4px 3px;
-    background:
-      linear-gradient(112deg, rgba(var(--domain-rgb), 0.075), transparent 42%),
-      rgba(8, 14, 21, 0.985);
+    border-radius: var(--dw-radius);
+    background: var(--dw-surface);
     box-shadow: inset 3px 0 0 rgba(var(--domain-rgb), 0.72);
 
     & + & > tr:first-child {
@@ -359,12 +376,12 @@ export const DomainCell = styled.td`
   width: 18%;
   padding: 0.4rem 0.58rem;
   color: ${({ $first }) => ($first ? 'var(--domain-color)' : 'transparent')};
-  font: 800 0.56rem/1.15 ${mono};
-  letter-spacing: 0.1em;
+  font: 700 0.75rem/1.15 ${uiFont};
+  letter-spacing: 0.01em;
   vertical-align: top;
-  text-transform: uppercase;
+  text-transform: none;
 
-  ${({ $first }) => $first && 'text-shadow: 0 0 8px rgba(var(--domain-rgb), 0.28);'}
+
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     display: ${({ $first }) => ($first ? 'flex' : 'none')} !important;
@@ -375,19 +392,19 @@ export const DomainCell = styled.td`
     margin: -0.12rem -0.4rem 0.08rem;
     padding: 0.34rem 0.46rem;
     border-bottom: 1px solid rgba(var(--domain-rgb), 0.23);
-    background: linear-gradient(90deg, rgba(var(--domain-rgb), 0.13), transparent 76%);
+    background: var(--dw-surface-raised);
     color: var(--domain-color);
-    font-size: 0.58rem;
-    letter-spacing: 0.13em;
+    font-size: 0.75rem;
+    letter-spacing: 0.01em;
   }
 `;
 
 export const AttributeCell = styled.td`
   padding: 0.4rem 0.58rem;
-  color: rgba(210, 228, 237, 0.58);
-  font: 720 0.62rem/1.3 ${mono};
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  color: var(--dw-text-secondary);
+  font: 720 0.75rem/1.3 ${uiFont};
+  letter-spacing: 0.01em;
+  text-transform: none;
   vertical-align: top;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -395,9 +412,9 @@ export const AttributeCell = styled.td`
     align-self: center;
     padding: 0.18rem 0.28rem 0.18rem 0;
     color: rgba(var(--domain-rgb), 0.78);
-    font-size: 0.55rem;
+    font-size: 0.75rem;
     line-height: 1.3;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.01em;
   }
 `;
 
@@ -454,6 +471,7 @@ export const ConsoleRow = styled.tr`
 `;
 
 export const EditableValueButton = styled.button`
+  ${controlStyles}
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -468,7 +486,7 @@ export const EditableValueButton = styled.button`
       : $locator
         ? 'rgba(var(--domain-rgb), 0.42)'
         : 'transparent'};
-  border-radius: 2px 5px 3px 2px;
+  border-radius: var(--dw-radius);
   color: inherit;
   background: ${({ $active }) =>
     $active
@@ -480,10 +498,11 @@ export const EditableValueButton = styled.button`
 
   &:hover,
   &:focus-visible {
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
     border-color: rgba(var(--domain-rgb), 0.72);
     background: rgba(var(--domain-rgb), 0.09);
-    box-shadow: 0 0 13px rgba(var(--domain-rgb), 0.14);
+    box-shadow: none;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -526,6 +545,7 @@ export const NotePreviewRow = styled.div`
 `;
 
 export const NotePreviewButton = styled.button`
+  ${controlStyles}
   display: grid;
   align-items: start;
   width: 100%;
@@ -536,7 +556,7 @@ export const NotePreviewButton = styled.button`
   overflow: hidden;
   padding: 0.32rem 0.42rem;
   border: 1px solid transparent;
-  border-radius: 2px 5px 3px 2px;
+  border-radius: var(--dw-radius);
   color: inherit;
   background: transparent;
   text-align: left;
@@ -544,7 +564,8 @@ export const NotePreviewButton = styled.button`
 
   &:hover,
   &:focus-visible {
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
     border-color: rgba(var(--domain-rgb), 0.58);
     background: rgba(var(--domain-rgb), 0.08);
   }
@@ -568,6 +589,7 @@ export const NotePreview = styled.span`
 `;
 
 export const NoteEditButton = styled.button`
+  ${controlStyles}
   align-self: center;
   box-sizing: border-box;
   min-height: 0;
@@ -579,8 +601,8 @@ export const NoteEditButton = styled.button`
   border-left: 1px solid var(--domain-color, var(--item-accent, #c9a7ff));
   color: var(--domain-color, var(--item-accent, #c9a7ff));
   background: rgba(var(--domain-rgb), 0.08);
-  font: 820 0.44rem/1 ${mono};
-  letter-spacing: 0.08em;
+  font: 700 0.75rem/1 ${uiFont};
+  letter-spacing: 0.01em;
   cursor: pointer;
 
   &:hover,
@@ -608,14 +630,15 @@ export const TagValueEditorRow = styled.div`
 `;
 
 export const EditableTagButton = styled.button`
+  ${controlStyles}
   align-self: start;
   padding: 0.16rem 0.2rem;
   border: 0;
   border-left: 1px solid var(--domain-color, var(--item-accent, #7fd7ff));
   color: var(--domain-color, var(--item-accent, #7fd7ff));
   background: rgba(var(--domain-rgb), 0.08);
-  font: 820 0.44rem/1 ${mono};
-  letter-spacing: 0.08em;
+  font: 700 0.75rem/1 ${uiFont};
+  letter-spacing: 0.01em;
   cursor: pointer;
 
   &:hover,
@@ -631,8 +654,8 @@ export const TagLinks = styled.span`
   gap: 0.12rem 0.44rem;
   min-width: 0;
   color: var(--item-secondary, #a7b6ff);
-  font: 700 0.68rem/1.3 ${mono};
-  letter-spacing: 0.02em;
+  font: 700 0.75rem/1.3 ${uiFont};
+  letter-spacing: 0.01em;
 `;
 
 export const TagLink = styled(Link)`
@@ -655,8 +678,8 @@ export const EditableSignal = styled.span`
   border-left: 1px solid var(--domain-color, var(--item-accent, #7fd7ff));
   color: var(--domain-color, var(--item-accent, #7fd7ff));
   background: rgba(var(--domain-rgb), 0.08);
-  font: 820 0.44rem/1 ${mono};
-  letter-spacing: 0.08em;
+  font: 700 0.75rem/1 ${uiFont};
+  letter-spacing: 0.01em;
 `;
 
 export const FieldEditorRow = styled.tr`
@@ -664,7 +687,7 @@ export const FieldEditorRow = styled.tr`
   z-index: 50;
   padding: 0 !important;
   border-bottom: 1px solid rgba(var(--domain-rgb), 0.52) !important;
-  background: rgba(3, 8, 13, 0.96);
+  background: var(--dw-surface-raised);
 `;
 
 export const FieldEditorCell = styled.td`
@@ -680,7 +703,7 @@ export const FieldEditorCell = styled.td`
   }
 `;
 
-export const Empty = styled.span`color: rgba(214, 226, 241, 0.42);`;
+export const Empty = styled.span`color: var(--dw-text-secondary);`;
 export const ConsoleLink = styled(Link)`color: var(--item-secondary, #a7b6ff); font-weight: 720; text-decoration: none; &:hover, &:focus-visible { color: var(--item-accent, #7fd7ff); text-decoration: underline; text-underline-offset: 2px; }`;
 export const ExternalLinksList = styled.span`
   display: flex;
@@ -693,7 +716,7 @@ export const ExternalLink = styled.a`
   min-height: 40px;
   padding: 0.28rem 0.48rem;
   border: 1px solid rgba(var(--domain-rgb), 0.35);
-  border-radius: 2px 5px 3px 2px;
+  border-radius: var(--dw-radius);
   color: rgb(var(--domain-rgb));
   background: rgba(var(--domain-rgb), 0.07);
   font-weight: 720;
@@ -702,29 +725,33 @@ export const ExternalLink = styled.a`
   &::after {
     content: '↗';
     margin-left: 0.34rem;
-    font: 800 0.58rem/1 ${mono};
+    font: 700 0.75rem/1 ${uiFont};
     opacity: 0.66;
   }
 
   &:hover,
   &:focus-visible {
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
     border-color: rgba(var(--domain-rgb), 0.74);
     color: #f2ffff;
-    box-shadow: 0 0 12px rgba(var(--domain-rgb), 0.14);
+    box-shadow: none;
   }
 `;
-export const ImageCommand = styled.button`margin: 0.5rem; min-height: 32px; padding: 0.3rem 0.58rem; border: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.56); border-radius: 4px; background: rgba(var(--item-accent-rgb, 127, 215, 255), 0.08); color: var(--item-accent, #7fd7ff); font: 760 0.62rem/1 ${mono}; letter-spacing: 0.07em; text-transform: uppercase; cursor: pointer; &:hover, &:focus-visible { outline: none; border-color: var(--item-accent, #7fd7ff); box-shadow: 0 0 11px rgba(var(--item-accent-rgb, 127, 215, 255), 0.28); }`;
+export const ImageCommand = styled.button`
+  ${controlStyles}margin: 0.5rem; min-height: var(--dw-control-height); padding: 0.3rem 0.58rem; border: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.56); border-radius: var(--dw-radius-sm); background: rgba(var(--item-accent-rgb, 127, 215, 255), 0.08); color: var(--item-accent, #7fd7ff); font: 760 0.75rem/1 ${uiFont}; letter-spacing: 0.01em; text-transform: none; cursor: pointer; &:hover, &:focus-visible { outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px; border-color: var(--item-accent, #7fd7ff); box-shadow: none; }`;
 
-export const HierarchyFrame = styled.section`display: grid; gap: 0.7rem; padding: 0.68rem; border: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.5); border-radius: 7px; background: linear-gradient(112deg, rgba(var(--item-accent-rgb, 127, 215, 255), 0.07), transparent 24%), #0b1118; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);`;
+export const HierarchyFrame = styled.section`display: grid; gap: 0.7rem; padding: 0.68rem; border: 1px solid rgba(230, 237, 243, 0.12); border-radius: var(--dw-radius); background: var(--dw-surface);`;
 export const HierarchyBranch = styled.section`display: grid; gap: 0; padding-left: 0.8rem; border-left: 1px solid rgba(var(--box-primary-rgb, 76, 198, 193), 0.34);`;
-export const NodeLabel = styled.div`margin: 0 0 0.2rem -0.45rem; color: var(--item-secondary, #a7b6ff); font: 800 0.58rem/1 ${mono}; letter-spacing: 0.11em; text-transform: uppercase;`;
+export const NodeLabel = styled.div`margin: 0 0 0.2rem -0.45rem; color: var(--item-secondary, #a7b6ff); font: 700 0.75rem/1 ${uiFont}; letter-spacing: 0.01em; text-transform: none;`;
 export const HierarchyLine = styled.div`display: grid; grid-template-columns: minmax(92px, 0.35fr) minmax(0, 1fr) auto; gap: 0.5rem; align-items: start; padding: 0.38rem 0.18rem; border-bottom: 1px solid rgba(197, 219, 230, 0.075); &:last-child { border-bottom: 0; } @media (max-width: ${MOBILE_BREAKPOINT}) { grid-template-columns: minmax(84px, 0.32fr) minmax(0, 1fr); gap: 0.42rem; }`;
-export const NodeKind = styled.span`color: ${({ $kind }) => ($kind === 'item' ? 'var(--item-accent, #7fd7ff)' : 'var(--box-muted, #a9ebe6)')}; font: 760 0.59rem/1.2 ${mono}; letter-spacing: 0.07em; text-transform: uppercase;`;
+export const NodeKind = styled.span`color: ${({ $kind }) => ($kind === 'item' ? 'var(--item-accent, #7fd7ff)' : 'var(--box-muted, #a9ebe6)')}; font: 760 0.75rem/1.2 ${uiFont}; letter-spacing: 0.01em; text-transform: none;`;
 export const NodeValue = styled.span`color: rgba(242, 248, 251, 0.92); font-size: 0.82rem; overflow-wrap: anywhere;`;
-export const NodeMeta = styled.code`color: rgba(214, 226, 241, 0.42); font-size: 0.6rem; overflow-wrap: anywhere;`;
-export const BoxLink = styled(Link)`display: inline-flex; align-items: flex-start; flex-wrap: wrap; gap: 0.38rem; color: rgba(242, 248, 251, 0.92); font-weight: 680; text-decoration: none; &:hover, &:focus-visible { outline: none; text-decoration: none; } &:hover > span:last-child, &:focus-visible > span:last-child { color: var(--box-neon, #c5f4f1); text-decoration: none; text-shadow: 0 0 8px rgba(var(--box-primary-rgb, 76, 198, 193), 0.16); } &:focus-visible { box-shadow: 0 0 0 2px rgba(var(--box-primary-rgb, 76, 198, 193), 0.36); }`;
-export const BoxShortId = styled.span`display: inline-flex; align-items: baseline; gap: 0.06rem; color: var(--box-primary, #4cc6c1); font: 900 0.72rem/1.2 ${mono}; letter-spacing: 0.08em; text-shadow: 0 0 9px rgba(var(--box-primary-rgb, 76, 198, 193), 0.18);`;
+export const NodeMeta = styled.code`color: var(--dw-text-secondary); font-size: 0.75rem; overflow-wrap: anywhere;`;
+export const BoxLink = styled(Link)`display: inline-flex; align-items: flex-start; flex-wrap: wrap; gap: 0.38rem; color: rgba(242, 248, 251, 0.92); font-weight: 680; text-decoration: none; &:hover, &:focus-visible { outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px; text-decoration: none; } &:hover > span:last-child, &:focus-visible > span:last-child { color: var(--box-neon, #c5f4f1); text-decoration: none; text-shadow: none; } &:focus-visible { box-shadow: 0 0 0 2px rgba(var(--box-primary-rgb, 76, 198, 193), 0.36); }`;
+export const BoxShortId = styled.span`display: inline-flex; align-items: baseline; gap: 0.06rem; color: var(--box-primary, #4cc6c1); font: 700 0.75rem/1.2 ${uiFont}; letter-spacing: 0.01em; text-shadow: none;`;
 export const BoxShortIdMarker = styled.span`font-size: 0.68em; opacity: 0.58;`;
 export const BoxShortIdDigits = styled.span`font-size: 1.22em;`;
 export const BoxLabel = styled.span`color: rgba(242, 248, 251, 0.92); line-height: 1.2; transition: color 180ms ease, text-shadow 180ms ease; @media (prefers-reduced-motion: reduce) { transition: none; }`;

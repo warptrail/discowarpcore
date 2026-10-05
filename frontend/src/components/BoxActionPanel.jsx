@@ -57,7 +57,6 @@ export default function BoxActionPanel({
     setActivePanel,
     clearActivePanel,
     handleEmptyTab,
-    handleFormSaved,
   } = controller;
   const [mode, setMode] = useState('default');
   const [destroyConfirmInput, setDestroyConfirmInput] = useState('');
@@ -75,6 +74,11 @@ export default function BoxActionPanel({
   const isDestroyConfirmMode = mode === 'destroyConfirm';
   const isDestroyConfirmValid = destroyConfirmInput === DESTROY_CONFIRM_PHRASE;
   const isDestroyBusy = !!busy || isMoving;
+
+  const handleAutoSaved = useCallback(async (updated) => {
+    const navigated = onBoxSaved?.(updated) === true;
+    if (!navigated) await refreshBox?.();
+  }, [onBoxSaved, refreshBox]);
 
   useEffect(() => {
     setProcessedPreviewUrl('');
@@ -476,9 +480,12 @@ export default function BoxActionPanel({
       <DetailsPanel $open={!isDestroyConfirmMode && activePanel === 'edit'} $maxHeight={760}>
         {!isDestroyConfirmMode && activePanel === 'edit' && (
           <EditBoxDetailsForm
+            compact
+            flat
+            autoSave
             boxMongoId={boxMongoId}
             initial={boxTree}
-            onSaved={handleFormSaved}
+            onAutoSaved={handleAutoSaved}
             onImageUpdated={() => {
               setProcessedPreviewUrl('');
               setImageRefreshToken(Date.now());
@@ -494,10 +501,6 @@ export default function BoxActionPanel({
             persistedRenderTokens={processImageState?.renderTokens || null}
             processedPreviewUrl={processedPreviewUrl}
             imageRefreshToken={imageRefreshToken}
-            onCancel={() => {
-              handleBackToManage();
-              refreshBox?.();
-            }}
           />
         )}
       </DetailsPanel>

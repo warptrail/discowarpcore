@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
+import { controlStyles, inputStyles } from '../../styles/primitives';
+import AllItemsQuickSort from './AllItemsQuickSort';
 import FilterCombobox from '../Retrieval/FilterCombobox';
 import * as GridStyles from '../../styles/InventoryGridHeader.styles';
 import {
@@ -11,122 +13,154 @@ import {
 
 const Shell = styled.div`
   display: grid;
-  gap: 0.48rem;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.8rem;
+  row-gap: 0.48rem;
+
+  @media (max-width: 760px) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.55rem;
+  }
 `;
 
 const SearchField = styled.label`
   display: grid;
-  gap: 0.22rem;
-  padding: 0.48rem;
-  border: 1px solid rgba(76, 198, 193, 0.36);
-  border-radius: 7px;
-  background:
-    linear-gradient(105deg, rgba(76, 198, 193, 0.13), transparent 46%),
-    rgba(7, 13, 18, 0.88);
+  min-width: 0;
 `;
 
 const Label = styled.span`
   color: rgba(230, 237, 243, 0.66);
-  font: 800 0.58rem/1.2 "SFMono-Regular", Consolas, monospace;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-family: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: normal;
+  text-transform: none;
+`;
+
+const SearchLabel = styled(Label)`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 `;
 
 const SearchInput = styled.input`
+  ${inputStyles}
   width: 100%;
-  min-height: 38px;
-  padding: 0.46rem 0.56rem;
-  border: 1px solid rgba(127, 215, 255, 0.42);
-  border-radius: 5px;
-  outline: none;
-  background: rgba(6, 11, 16, 0.94);
+  min-height: 44px;
+  padding: 0.56rem 0.72rem;
+  border: 1px solid rgba(230, 237, 243, 0.16);
+  border-radius: 8px;
+  outline: 2px solid transparent;
+  background: var(--dw-surface-raised);
   color: #e6edf3;
-  font: 0.86rem/1.2 "SFMono-Regular", Consolas, monospace;
+  font-family: inherit;
+  font-size: 0.92rem;
+  line-height: 1.25;
 
   &::placeholder {
     color: rgba(230, 237, 243, 0.4);
   }
 
   &:focus {
-    border-color: rgba(127, 215, 255, 0.9);
-    box-shadow: 0 0 0 2px rgba(127, 215, 255, 0.13);
+    border-color: rgba(127, 215, 255, 0.72);
+    box-shadow: none;
   }
 `;
 
 const ModeRail = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.3rem;
+  grid-template-columns: repeat(3, max-content);
+  gap: 0.16rem;
+  padding: 0.14rem;
+  border: 1px solid rgba(230, 237, 243, 0.12);
+  border-radius: 5px;
+  background: var(--dw-surface-raised);
 
   @media (max-width: 520px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 `;
 
 const ModeButton = styled.button`
-  min-height: 34px;
-  padding: 0.34rem 0.44rem;
-  border: 1px solid
-    ${({ $active }) => ($active ? 'rgba(127, 215, 255, 0.82)' : 'rgba(127, 215, 255, 0.24)')};
-  border-radius: 5px;
-  background:
-    ${({ $active }) =>
-      $active
-        ? 'linear-gradient(180deg, rgba(45, 139, 181, 0.34), rgba(16, 42, 56, 0.88))'
-        : 'rgba(9, 16, 22, 0.84)'};
-  color: ${({ $active }) => ($active ? '#bfeeff' : 'rgba(230, 237, 243, 0.7)')};
-  font: 800 0.64rem/1.1 "SFMono-Regular", Consolas, monospace;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  ${controlStyles}
+  min-height: var(--dw-control-height);
+  padding: 0.4rem 0.72rem;
+  border: 0;
+  border-radius: 3px;
+  background: ${({ $active }) =>
+    $active ? 'rgba(76, 198, 193, 0.13)' : 'transparent'};
+  box-shadow: none;
+  border-left: 3px solid ${({ $active }) => $active ? 'var(--dw-cyan)' : 'transparent'};
+  color: ${({ $active }) =>
+    $active ? '#d9f3ef' : 'rgba(230, 237, 243, 0.68)'};
+  font-family: inherit;
+  font-size: 0.76rem;
+  font-weight: 650;
+  line-height: 1.1;
+  text-transform: none;
   cursor: pointer;
 
   &:hover,
   &:focus-visible {
-    border-color: rgba(127, 215, 255, 0.72);
-    color: #e6f8ff;
+    background: rgba(76, 198, 193, 0.1);
+    color: #e6f8f5;
+    outline: 2px solid var(--dw-cyan);
   }
-`;
-
-const QuickRow = styled.div`
-  display: flex;
-  gap: 0.3rem;
-  overflow-x: auto;
-  padding-bottom: 0.08rem;
-  scrollbar-width: thin;
 `;
 
 const QuickButton = styled(ModeButton)`
   flex: 0 0 auto;
-  min-height: 29px;
+  min-height: var(--dw-control-height);
   padding-inline: 0.58rem;
-  font-size: 0.59rem;
+  font-size: 0.75rem;
 `;
 
 const RefineToggle = styled.button`
+  ${controlStyles}
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  min-height: 32px;
-  padding: 0.36rem 0.52rem;
-  border: 1px solid rgba(76, 198, 193, 0.34);
-  border-radius: 5px;
-  background: rgba(9, 23, 28, 0.82);
-  color: #7fd7d3;
-  font: 800 0.62rem/1.1 "SFMono-Regular", Consolas, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  gap: 0.44rem;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0.16rem 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(230, 237, 243, 0.74);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.1;
+  text-transform: none;
   cursor: pointer;
+
+  > span:last-child {
+    color: var(--dw-violet);
+    font-size: 0.75rem;
+  }
+
+  &:hover,
+  &:focus-visible {
+    color: #c9efff;
+    outline: 2px solid var(--dw-cyan);
+  }
 `;
 
 const RefinePanel = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.8fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.42rem;
-  padding: 0.46rem;
-  border: 1px solid rgba(127, 215, 255, 0.2);
-  border-radius: 7px;
-  background: rgba(5, 11, 16, 0.74);
+  grid-column: 1 / -1;
+  padding: 0.7rem 0 0.18rem;
+  border: 0;
+  border-top: 1px solid rgba(230, 237, 243, 0.1);
+  border-radius: 0;
+  background: transparent;
 
   @media (max-width: 620px) {
     grid-template-columns: 1fr;
@@ -149,54 +183,74 @@ const ColorRail = styled.div`
   gap: 0.28rem;
 `;
 
-const ColorControls = styled.div`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 36px;
-  gap: 0.35rem;
-  align-items: stretch;
+const ColorButton = styled(QuickButton)`
+  border-color: ${({ $active, $tone }) =>
+    $active ? `${$tone}d9` : `${$tone}55`};
+  background: ${({ $active }) =>
+    $active
+      ? 'var(--dw-surface-raised)'
+      : 'rgba(9, 16, 22, 0.84)'};
 `;
 
-const RandomizeButton = styled.button`
-  display: grid;
-  width: 36px;
-  min-width: 36px;
-  min-height: 32px;
-  padding: 0;
-  place-items: center;
-  border: 1px solid
-    ${({ $active }) => ($active ? 'rgba(232, 177, 92, 0.9)' : 'rgba(127, 215, 255, 0.38)')};
-  border-radius: 5px;
-  background:
-    ${({ $active }) =>
-      $active
-        ? 'linear-gradient(180deg, rgba(232, 177, 92, 0.3), rgba(35, 25, 10, 0.92))'
-        : 'rgba(9, 16, 22, 0.9)'};
-  box-shadow: ${({ $active }) => ($active ? '0 0 12px rgba(232, 177, 92, 0.24)' : 'none')};
-  color: #e6edf3;
-  font-size: 1.05rem;
-  line-height: 1;
-  cursor: pointer;
+const InventorySummary = styled.details`
+  grid-column: 1 / -1;
+  padding-top: 0.18rem;
+  border-top: 1px solid rgba(230, 237, 243, 0.1);
 
-  &:hover,
-  &:focus-visible {
-    border-color: rgba(232, 177, 92, 0.92);
-    background: rgba(232, 177, 92, 0.16);
-    outline: none;
+  > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 44px;
+    color: rgba(230, 237, 243, 0.74);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  > summary::after {
+    content: '+';
+    color: #7fd7d3;
+    font-size: 1rem;
+  }
+
+  &[open] > summary::after {
+    content: '−';
   }
 `;
 
-const ColorButton = styled(QuickButton)`
-  border-color:
-    ${({ $active, $tone }) =>
-      $active ? `${$tone}d9` : `${$tone}55`};
-  background:
-    ${({ $active, $tone }) =>
-      $active
-        ? `linear-gradient(180deg, ${$tone}42, ${$tone}1f)`
-        : 'rgba(9, 16, 22, 0.84)'};
+const InventorySummaryGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+  padding: 0.18rem 0 0.42rem;
+
+  @media (max-width: 620px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 `;
 
-const QUICK_FILTERS = BASE_FILTER_OPTIONS.slice(0, 4);
+const InventorySummaryValue = styled.div`
+  display: flex;
+  align-items: baseline;
+  gap: 0.32rem;
+  min-width: 0;
+  color: rgba(230, 237, 243, 0.68);
+  font-size: 0.76rem;
+
+  strong {
+    color: #e6edf3;
+    font-size: 0.9rem;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+  }
+`;
+
 const COLOR_TONES = {
   none: '#7fd7ff',
   batch: '#a7b6ff',
@@ -225,72 +279,83 @@ export default function AllItemsBrowseControls({
   onSearchChange,
   categoryOptions = [],
   batchOptions = [],
+  visibleCount = 0,
+  totalCount = 0,
+  activeCount = 0,
+  goneCount = 0,
+  orphanedCount = 0,
 }) {
   const [refineOpen, setRefineOpen] = useState(false);
   const filterOptions = useMemo(
-    () => toComboboxOptions([...BASE_FILTER_OPTIONS, ...categoryOptions, ...batchOptions]),
+    () =>
+      toComboboxOptions([
+        ...BASE_FILTER_OPTIONS,
+        ...categoryOptions,
+        ...batchOptions,
+      ]),
     [batchOptions, categoryOptions],
   );
   const activeRefinements = [
     filter !== 'all',
-    sortBy !== 'alpha',
+    statusFilter !== 'active',
     colorBy !== 'none',
   ].filter(Boolean).length;
 
   return (
     <Shell>
       <SearchField>
-        <Label>Find anything</Label>
+        <SearchLabel>Find anything</SearchLabel>
         <SearchInput
           type="search"
           value={searchQuery}
           onChange={(event) => onSearchChange?.(event.target.value)}
-          placeholder="Name, tag, note, category, box, location..."
+          placeholder="Search items, boxes, tags…"
           aria-label="Search all items"
           autoComplete="off"
         />
       </SearchField>
 
-      <ModeRail role="group" aria-label="Inventory history view">
-        {STATUS_FILTER_OPTIONS.map((option) => (
-          <ModeButton
-            key={option.value}
-            type="button"
-            $active={statusFilter === option.value}
-            aria-pressed={statusFilter === option.value}
-            onClick={() => onStatusChange?.(option.value)}
-          >
-            {option.label}
-          </ModeButton>
-        ))}
-      </ModeRail>
-
-      <QuickRow role="group" aria-label="Quick item filters">
-        {QUICK_FILTERS.map((option) => (
-          <QuickButton
-            key={option.value}
-            type="button"
-            $active={filter === option.value}
-            aria-pressed={filter === option.value}
-            onClick={() => onFilterChange?.(option.value)}
-          >
-            {option.label}
-          </QuickButton>
-        ))}
-      </QuickRow>
-
-      <RefineToggle
-        type="button"
-        aria-expanded={refineOpen}
-        aria-controls="all-items-browse-refine"
-        onClick={() => setRefineOpen((current) => !current)}
+      <AllItemsQuickSort
+        sortBy={sortBy}
+        sortDirection={sortDirection}
+        onSortChange={onSortChange}
+        onSortDirectionChange={onSortDirectionChange}
+        onRandomize={onRandomize}
       >
-        <span>{refineOpen ? 'Hide refine' : 'Refine browse'}</span>
-        <span>{activeRefinements ? `${activeRefinements} active` : refineOpen ? '−' : '+'}</span>
-      </RefineToggle>
+        <RefineToggle
+          type="button"
+          aria-expanded={refineOpen}
+          aria-controls="all-items-browse-refine"
+          onClick={() => setRefineOpen((current) => !current)}
+        >
+          <span>Filters</span>
+          <span>
+            {activeRefinements
+              ? `${activeRefinements} active`
+              : refineOpen
+                ? '−'
+                : '+'}
+          </span>
+        </RefineToggle>
+      </AllItemsQuickSort>
 
       {refineOpen ? (
         <RefinePanel id="all-items-browse-refine">
+          <ColorField>
+            <ModeRail role="group" aria-label="Inventory history view">
+              {STATUS_FILTER_OPTIONS.map((option) => (
+                <ModeButton
+                  key={option.value}
+                  type="button"
+                  $active={statusFilter === option.value}
+                  aria-pressed={statusFilter === option.value}
+                  onClick={() => onStatusChange?.(option.value)}
+                >
+                  {option.label}
+                </ModeButton>
+              ))}
+            </ModeRail>
+          </ColorField>
           <RefineField>
             <Label>Filter inventory</Label>
             <FilterCombobox
@@ -322,46 +387,63 @@ export default function AllItemsBrowseControls({
               <GridStyles.SortDirectionButton
                 type="button"
                 onClick={() =>
-                  onSortDirectionChange?.(sortDirection === 'desc' ? 'asc' : 'desc')
+                  onSortDirectionChange?.(
+                    sortDirection === 'desc' ? 'asc' : 'desc',
+                  )
                 }
                 aria-label={`Sort direction: ${sortDirection === 'desc' ? 'Descending' : 'Ascending'}`}
                 title={`Sort direction: ${sortDirection === 'desc' ? 'Descending' : 'Ascending'}`}
                 $descending={sortDirection === 'desc'}
               >
-                <span aria-hidden="true">{sortDirection === 'desc' ? '⬇' : '⬆'}</span>
+                <span aria-hidden="true">
+                  {sortDirection === 'desc' ? '⬇' : '⬆'}
+                </span>
               </GridStyles.SortDirectionButton>
             </GridStyles.SortControlRow>
           </RefineField>
 
           <ColorField>
             <Label>Color signal</Label>
-            <ColorControls>
-              <ColorRail role="group" aria-label="Color items by">
-                {COLOR_BY_OPTIONS.map((option) => (
-                  <ColorButton
-                    key={option.value}
-                    type="button"
-                    $tone={COLOR_TONES[option.value]}
-                    $active={colorBy === option.value}
-                    aria-pressed={colorBy === option.value}
-                    onClick={() => onColorByChange?.(option.value)}
-                  >
-                    {option.label}
-                  </ColorButton>
-                ))}
-              </ColorRail>
-              <RandomizeButton
-                type="button"
-                $active={sortBy === 'random'}
-                aria-label="Randomize item order"
-                aria-pressed={sortBy === 'random'}
-                title="Randomize item order"
-                onClick={() => onRandomize?.()}
-              >
-                <span aria-hidden="true">🎲</span>
-              </RandomizeButton>
-            </ColorControls>
+
+            <ColorRail role="group" aria-label="Color items by">
+              {COLOR_BY_OPTIONS.map((option) => (
+                <ColorButton
+                  key={option.value}
+                  type="button"
+                  $tone={COLOR_TONES[option.value]}
+                  $active={colorBy === option.value}
+                  aria-pressed={colorBy === option.value}
+                  onClick={() => onColorByChange?.(option.value)}
+                >
+                  {option.label}
+                </ColorButton>
+              ))}
+            </ColorRail>
           </ColorField>
+          <InventorySummary>
+            <summary>Inventory summary</summary>
+            <InventorySummaryGrid>
+              <InventorySummaryValue>
+                <strong>{Number(visibleCount || 0).toLocaleString()}</strong>{' '}
+                shown
+              </InventorySummaryValue>
+              <InventorySummaryValue>
+                <strong>{Number(totalCount || 0).toLocaleString()}</strong>{' '}
+                total history
+              </InventorySummaryValue>
+              <InventorySummaryValue>
+                <strong>{Number(activeCount || 0).toLocaleString()}</strong>{' '}
+                active
+              </InventorySummaryValue>
+              <InventorySummaryValue>
+                <strong>{Number(goneCount || 0).toLocaleString()}</strong> gone
+              </InventorySummaryValue>
+              <InventorySummaryValue>
+                <strong>{Number(orphanedCount || 0).toLocaleString()}</strong>{' '}
+                adrift
+              </InventorySummaryValue>
+            </InventorySummaryGrid>
+          </InventorySummary>
         </RefinePanel>
       ) : null}
     </Shell>

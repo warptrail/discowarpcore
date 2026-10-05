@@ -45,7 +45,7 @@ server.registerTool(
   'inventory_health',
   {
     title: 'Check inventory API health',
-    description: 'Check whether the configured Disco Warp Core API is reachable.',
+    description: 'Check whether the configured Disco Warp Core API and MongoDB are ready.',
     inputSchema: {},
   },
   () => run(() => api.getHealth())
@@ -66,7 +66,6 @@ server.registerTool(
       location: z.string().optional(),
       owner: z.string().optional(),
       keep_priority: z.string().optional(),
-      group: z.string().optional().describe('Box group filter.'),
       sort: z.string().optional(),
       limit: z.number().int().min(1).max(100).default(20),
       offset: z.number().int().min(0).max(100_000).default(0),
@@ -76,7 +75,6 @@ server.registerTool(
     if (input.kind === 'boxes') {
       return api.searchBoxes({
         q: input.query,
-        group: input.group,
         location: input.location,
         limit: input.limit,
         offset: input.offset,
@@ -143,4 +141,3 @@ server.registerTool(
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
-

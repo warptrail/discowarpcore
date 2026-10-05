@@ -322,18 +322,27 @@ function DesktopItemRow({
               <S.CompactLabel>tags</S.CompactLabel>
               <S.CompactValue>{tagsValue}</S.CompactValue>
             </S.CompactMetaEntry>
-          </S.OperatorMetaCell>
-
-          <S.OperatorMetaCell>
             <S.CompactMetaEntry>
               <S.CompactLabel>status</S.CompactLabel>
               <S.CompactValue $accent={colorBy === 'status'} $accentColor={accentColor}>
                 {statusValue}
               </S.CompactValue>
             </S.CompactMetaEntry>
+            {meta?.isGone ? (
+              <S.CompactMetaEntry>
+                <S.CompactLabel>history</S.CompactLabel>
+                {renderStatusDetails(meta)}
+              </S.CompactMetaEntry>
+            ) : null}
             <S.CompactMetaEntry>
-              <S.CompactLabel>lifecycle</S.CompactLabel>
-              {renderStatusDetails(meta)}
+              <S.CompactLabel>box</S.CompactLabel>
+              {renderBoxValue(meta, { accentActive: colorBy === 'box', accentColor })}
+            </S.CompactMetaEntry>
+            <S.CompactMetaEntry>
+              <S.CompactLabel>location</S.CompactLabel>
+              <S.CompactValue $accent={colorBy === 'location'} $accentColor={accentColor}>
+                {meta?.locationLabel || '—'}
+              </S.CompactValue>
             </S.CompactMetaEntry>
             {imageProcessingState ? (
               <S.CompactMetaEntry>
@@ -349,19 +358,6 @@ function DesktopItemRow({
                 ) : null}
               </S.CompactMetaEntry>
             ) : null}
-          </S.OperatorMetaCell>
-
-          <S.OperatorMetaCell>
-            <S.CompactMetaEntry>
-              <S.CompactLabel>box</S.CompactLabel>
-              {renderBoxValue(meta, { accentActive: colorBy === 'box', accentColor })}
-            </S.CompactMetaEntry>
-            <S.CompactMetaEntry>
-              <S.CompactLabel>location</S.CompactLabel>
-              <S.CompactValue $accent={colorBy === 'location'} $accentColor={accentColor}>
-                {meta?.locationLabel || '—'}
-              </S.CompactValue>
-            </S.CompactMetaEntry>
           </S.OperatorMetaCell>
         </S.OperatorRowGrid>
       </S.TD>
@@ -397,12 +393,10 @@ export default function AllItemsDesktopTable({
             <tr>
               <S.RowHeaderTH colSpan={5}>
                 <S.OperatorRowGrid>
-                  <S.OperatorHeaderCell>thumb</S.OperatorHeaderCell>
+                  <S.OperatorHeaderCell aria-hidden="true" />
                   <S.OperatorHeaderCell>item</S.OperatorHeaderCell>
                   <S.OperatorHeaderCell>qty</S.OperatorHeaderCell>
-                  <S.OperatorHeaderCell>category / tags</S.OperatorHeaderCell>
-                  <S.OperatorHeaderCell>status / lifecycle</S.OperatorHeaderCell>
-                  <S.OperatorHeaderCell>box / location</S.OperatorHeaderCell>
+                  <S.OperatorHeaderCell>details</S.OperatorHeaderCell>
                 </S.OperatorRowGrid>
               </S.RowHeaderTH>
             </tr>

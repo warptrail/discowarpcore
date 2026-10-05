@@ -1,6 +1,9 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { controlStyles } from '../../styles/primitives';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
+import useDialogFocus from '../../hooks/useDialogFocus';
+import { getBoxTheme, getBoxThemeCssVars } from '../../util/inventoryColorTheme';
 
 const Backdrop = styled.div`
   position: fixed;
@@ -11,42 +14,47 @@ const Backdrop = styled.div`
   z-index: 190;
   display: grid;
   justify-items: end;
-  background: rgba(1, 4, 8, 0.44);
-  backdrop-filter: blur(3px);
+  min-height: 0;
+  background: rgba(3, 6, 10, 0.72);
 
-  @media (min-width: 700px) {
+  @media (min-width: 600px) {
     align-items: center;
     justify-items: center;
-    padding: 24px;
+    padding: 16px;
   }
 `;
 const Sheet = styled.aside`
   position: relative;
   box-sizing: border-box;
-  width: min(620px, calc(100vw - 18px));
+  width: 100%;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 0 16px 16px;
-  border-left: 1px solid rgba(106, 222, 214, 0.36);
-  background:
-    radial-gradient(circle at 100% 0, rgba(167, 139, 250, 0.12), transparent 32%),
-    rgba(8, 12, 18, 0.98);
-  box-shadow: -24px 0 60px rgba(0, 0, 0, 0.5);
+  border: 0;
+  border-top: 3px solid var(--box-primary, #8A8175);
+  background: var(--dw-surface);
+  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.3);
   animation: sheet-in 240ms cubic-bezier(0.22, 1, 0.36, 1);
   @keyframes sheet-in { from { transform: translateX(24px); opacity: 0; } }
   @media (prefers-reduced-motion: reduce) { animation: none; }
 
-  @media (min-width: 700px) {
-    width: min(640px, calc(100vw - 48px));
-    height: min(calc(100% - 48px), 760px);
-    padding: 0 18px 18px;
-    border: 1px solid rgba(127, 215, 255, 0.18);
-    border-radius: 8px;
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.58), 0 0 0 1px rgba(76, 198, 193, 0.06);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: -2px; }
+
+  @media (min-width: 600px) {
+    width: min(620px, 100%);
+    height: auto;
+    max-height: min(100%, 760px);
+    padding: 0 16px 16px;
+    border: 1px solid var(--dw-border);
+    border-top: 3px solid var(--box-primary, #8A8175);
+    border-radius: var(--dw-radius);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.36);
   }
 `;
 const Head = styled.header`
-  position: relative;
   position: sticky;
   top: 0;
   z-index: 2;
@@ -54,40 +62,44 @@ const Head = styled.header`
   justify-content: space-between;
   align-items: center;
   margin: 0 -16px;
-  padding: 16px 16px 8px 42px;
-  background: rgba(8, 12, 18, 0.92);
+  padding: 12px 48px 8px 16px;
+  background: var(--dw-surface);
+  border-bottom: 1px solid rgba(230, 237, 243, 0.1);
 
-  @media (min-width: 700px) {
-    margin-inline: -18px;
-    padding-inline: 42px 18px;
+  @media (min-width: 600px) {
+    margin-inline: -16px;
+    padding-inline: 16px 52px;
   }
 `;
 const Title = styled.h2`
   margin: 0;
-  color: #edf3f6;
+  color: var(--dw-text);
   font-size: clamp(1.2rem, 2.4vw, 1.55rem);
-  letter-spacing: 0.015em;
+  letter-spacing: 0.01em;
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 const TitleId = styled.span`
   margin-right: 0.42em;
-  color: rgba(127, 215, 255, 0.78);
-  font: 800 0.82em/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.04em;
+  color: var(--box-primary, #8A8175);
+  font: 700 0.82em/1 var(--dw-font-data);
+  letter-spacing: 0.01em;
 `;
 const TitleLabel = styled.span`
-  color: #f4f7fa;
-  font-weight: 820;
+  color: var(--dw-text);
+  font-weight: 700;
 `;
 const Close = styled.button`
+  ${controlStyles}
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 28px;
-  height: 28px;
+  top: 6px;
+  right: 8px;
+  width: 44px;
+  height: 44px;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--dw-radius-sm);
   background: transparent;
-  color: rgba(232, 238, 243, 0.62);
+  color: var(--dw-text-secondary);
   font-size: 1.05rem;
   line-height: 1;
   cursor: pointer;
@@ -96,15 +108,17 @@ const Close = styled.button`
 
   &:hover,
   &:focus-visible {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.07);
-    outline: none;
+    color: var(--dw-cyan);
+    background: var(--dw-surface-raised);
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: -2px;
   }
 `;
 
 export default function BoxManagementSheet({ open, boxId, title, onClose, children }) {
   const sheetRef = useRef(null);
   const [headerBottom, setHeaderBottom] = useState(0);
+  useDialogFocus(sheetRef, onClose, open);
 
   useLayoutEffect(() => {
     if (!open || typeof document === 'undefined') return undefined;
@@ -130,21 +144,12 @@ export default function BoxManagementSheet({ open, boxId, title, onClose, childr
     };
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return undefined;
-    const onKey = (event) => {
-      if (event.key === 'Escape') onClose?.();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose, open]);
-
   if (!open || typeof document === 'undefined') return null;
   return createPortal(
     <Backdrop $top={headerBottom} onPointerDown={(event) => {
       if (!sheetRef.current?.contains(event.target)) onClose?.();
     }}>
-      <Sheet ref={sheetRef} aria-label={`Manage ${title}`}>
+      <Sheet style={getBoxThemeCssVars(getBoxTheme(boxId))} ref={sheetRef} role="dialog" aria-modal="true" tabIndex={-1} aria-label={`Manage ${title}`}>
         <Head>
           <Title><TitleId>#{boxId}</TitleId><TitleLabel>{title}</TitleLabel></Title>
           <Close type="button" onClick={onClose} aria-label="Close management sheet">×</Close>

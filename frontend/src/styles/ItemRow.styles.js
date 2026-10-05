@@ -1,3 +1,4 @@
+import { controlStyles } from './primitives';
 import styled, { keyframes, css } from 'styled-components';
 import {
   MOBILE_BREAKPOINT,
@@ -8,7 +9,7 @@ import {
   MOBILE_PANEL_RADIUS,
 } from './tokens';
 
-const ROW_BG = '#111';
+const ROW_BG = 'var(--dw-surface)';
 
 export const flashColors = {
   blue: 'rgba(0, 255, 200, 0.8)',
@@ -27,11 +28,6 @@ const flashGlow = (colorName) => {
     }
   `;
 };
-
-const selectedFramePulse = keyframes`
-  0%, 100% { opacity: 0.84; filter: saturate(1); }
-  50% { opacity: 1; filter: saturate(1.24) brightness(1.12); }
-`;
 
 export const Wrapper = styled.div`
   --r: 10px;
@@ -56,26 +52,16 @@ export const Wrapper = styled.div`
   &::before {
     inset: 0;
     z-index: 0;
-    opacity: 0.68;
-    background: linear-gradient(
-      118deg,
-      var(--item-accent, #7fd7ff),
-      var(--item-secondary, #67d9d3)
-    );
+    opacity: 0.5;
+    background: rgba(230, 237, 243, 0.18);
   }
 
   ${({ $open, $pulsing }) =>
     ($open || $pulsing) &&
     css`
       &::before {
-        opacity: 0.94;
-        background: linear-gradient(
-          118deg,
-          var(--item-accent, #7fd7ff),
-          var(--item-secondary, #67d9d3)
-        );
-        box-shadow: 0 0 16px rgba(var(--item-accent-rgb, 127, 215, 255), 0.2);
-        animation: ${selectedFramePulse} 2.8s ease-in-out 520ms infinite;
+        opacity: 0.88;
+        background: var(--dw-cyan);
       }
     `}
 
@@ -89,13 +75,7 @@ export const Wrapper = styled.div`
     inset: var(--gap);
     z-index: 1;
     border-radius: calc(var(--r) - var(--gap));
-    background:
-      linear-gradient(
-        100deg,
-        rgba(var(--item-accent-rgb, 127, 215, 255), 0.055),
-        transparent 42%
-      ),
-      ${ROW_BG};
+    background: ${ROW_BG};
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -118,6 +98,7 @@ export const RowShell = styled.div`
 `;
 
 export const Row = styled.button`
+  ${controlStyles}
   position: relative;
   display: block;
   width: 100%;
@@ -193,12 +174,7 @@ export const RowHeader = styled.div`
       padding: 0.34rem
         ${({ $hasItemLink }) => ($hasItemLink ? '3.35rem' : '0.32rem')}
         0.42rem 0.5rem;
-      background: linear-gradient(
-        90deg,
-        rgba(var(--item-accent-rgb, 76, 198, 193), 0.18),
-        rgba(var(--item-secondary-rgb, 167, 182, 255), 0.06) 58%,
-        rgba(var(--item-secondary-rgb, 167, 182, 255), 0.025) 100%
-      );
+      background: var(--dw-surface-raised);
       box-shadow: none;
 
       @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -228,15 +204,11 @@ export const ItemHomeLink = styled.a`
   border: 0;
   border-left: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.28);
   border-radius: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(var(--item-accent-rgb, 127, 215, 255), 0.1),
-    rgba(5, 10, 17, 0.22)
-  );
+  background: var(--dw-surface-raised);
   color: rgba(var(--item-accent-rgb, 127, 215, 255), 0.92);
   font-family: system-ui, sans-serif;
   font-size: 1.28rem;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1;
   text-decoration: none;
   transition:
@@ -247,14 +219,11 @@ export const ItemHomeLink = styled.a`
 
   &:hover,
   &:focus-visible {
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
     color: #ffffff;
     border-left-color: rgba(var(--item-accent-rgb, 127, 215, 255), 0.78);
-    background: linear-gradient(
-      180deg,
-      rgba(var(--item-accent-rgb, 127, 215, 255), 0.23),
-      rgba(5, 10, 17, 0.22)
-    );
+    background: var(--dw-surface-raised);
     box-shadow: inset 0 0 14px rgba(var(--item-accent-rgb, 127, 215, 255), 0.14);
   }
 
@@ -307,24 +276,24 @@ export const RowSelectionState = styled.span`
   height: 19px;
   margin: 0;
   border: 1px solid ${({ $selected }) => ($selected ? 'rgba(218, 128, 255, 0.95)' : 'rgba(180, 197, 218, 0.48)')};
-  border-radius: 5px;
+  border-radius: var(--dw-radius);
   background: ${({ $selected }) => ($selected ? 'rgba(170, 75, 219, 0.48)' : 'rgba(9, 16, 25, 0.72)')};
   color: #fff;
-  font: 900 0.72rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font: 700 0.75rem/1 var(--dw-font-ui);
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.62);
 `;
 
 export const RowBoxContext = styled.span`
   color: rgba(143, 211, 218, 0.78);
-  font: 700 0.56rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.04em;
+  font: 700 0.75rem/1.2 var(--dw-font-ui);
+  letter-spacing: 0.01em;
 `;
 
 export const RowInlineDescription = styled.span`
   display: -webkit-box;
   overflow: hidden;
-  color: rgba(231, 236, 243, 0.64);
-  font-size: 0.72rem;
+  color: var(--dw-text-secondary);
+  font-size: 0.75rem;
   line-height: 1.32;
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
@@ -382,12 +351,7 @@ export const RowThumbPlaceholder = styled.div`
   height: 100%;
   border-radius: 0;
   border: 0;
-  background: linear-gradient(
-      135deg,
-      rgba(var(--item-accent-rgb, 255, 255, 255), 0.1),
-      rgba(255, 255, 255, 0.015)
-    ),
-    rgba(255, 255, 255, 0.025);
+  background: var(--dw-surface-raised);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: 100%;
@@ -408,11 +372,11 @@ export const ThumbnailQuantity = styled.span`
   bottom: 2px;
   min-width: 15px;
   padding: 2px 3px;
-  border-radius: 3px;
-  background: rgba(5, 10, 15, 0.82);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   color: rgba(245, 250, 255, 0.9);
-  font: 800 0.5rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.02em;
+  font: 700 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
 `;
 
 export const TitleGroup = styled.div`
@@ -436,23 +400,23 @@ export const TitleGroup = styled.div`
 export const RowDeckState = styled.span`
   width: fit-content;
   color: rgba(219, 224, 255, 0.72);
-  font-family: ${"'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace, monospace"};
-  font-size: 0.55rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   font-weight: 720;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.01em;
   line-height: 1;
-  text-transform: uppercase;
+  text-transform: none;
 `;
 
 export const RowDestructionState = styled.span`
   width: fit-content;
   color: #ffd36a;
-  font-family: ${"'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace, monospace"};
-  font-size: 0.55rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.01em;
   line-height: 1.2;
-  text-transform: uppercase;
+  text-transform: none;
 `;
 
 export const RowActions = styled.div`
@@ -545,12 +509,12 @@ export const QuickTagLane = styled.div`
 export const QuickTag = styled.span`
   display: inline-flex;
   align-items: center;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 640;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   line-height: 1;
   padding: 0.13rem 0.38rem;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(var(--item-accent-rgb, 76, 198, 193), 0.48);
   color: #d7f5f2;
   background: rgba(var(--item-accent-rgb, 76, 198, 193), 0.13);
@@ -566,12 +530,12 @@ export const QuickTag = styled.span`
 export const QuickTagOverflow = styled.span`
   display: inline-flex;
   align-items: center;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
   line-height: 1;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.01em;
   padding: 0.12rem 0.34rem;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(167, 182, 255, 0.52);
   background: rgba(167, 182, 255, 0.14);
   color: #dbe2ff;
@@ -608,8 +572,8 @@ export const QuickSummaryFallback = styled.div`
   min-width: 0;
   font-size: 0.78rem;
   line-height: 1.2;
-  color: rgba(231, 236, 243, 0.45);
-  letter-spacing: 0.03em;
+  color: var(--dw-text-secondary);
+  letter-spacing: 0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -626,7 +590,7 @@ export const RowChevron = styled.span`
   width: 18px;
   height: 18px;
   align-self: center;
-  color: rgba(231, 236, 243, 0.66);
+  color: var(--dw-text-secondary);
   font-size: 0.76rem;
   line-height: 1;
   transform: rotate(${({ $open }) => ($open ? '180deg' : '0deg')});
@@ -719,7 +683,7 @@ export const Title = styled.div`
   color: #e7ecf3;
   font-size: clamp(1.02rem, 1.85vw, 1.15rem);
   font-weight: 760;
-  letter-spacing: 0.015em;
+  letter-spacing: 0.01em;
   line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
@@ -728,10 +692,10 @@ export const Title = styled.div`
   ${({ $expanded }) =>
     $expanded &&
     css`
-      color: rgba(231, 236, 243, 0.68);
+      color: var(--dw-text-secondary);
       font-size: 0.78rem;
       font-weight: 700;
-      letter-spacing: 0.035em;
+      letter-spacing: 0.01em;
       line-height: 1.15;
     `}
 
@@ -760,7 +724,7 @@ export const Title = styled.div`
     ${({ $expanded }) =>
       $expanded &&
       css`
-        font-size: 0.74rem;
+        font-size: 0.75rem;
         line-height: 1.12;
       `}
   }
@@ -770,32 +734,32 @@ export const QuantitySubtext = styled.span`
   display: block;
   justify-self: start;
   max-width: 100%;
-  color: rgba(231, 236, 243, 0.5);
-  font-size: 0.64rem;
+  color: var(--dw-text-secondary);
+  font-size: 0.75rem;
   font-weight: 700;
   line-height: 1;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.04em;
+    letter-spacing: 0.01em;
   }
 `;
 
 export const Breadcrumb = styled.div`
   color: rgba(231, 236, 243, 0.74);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.05em;
+    letter-spacing: 0.01em;
     line-height: 1.12;
   }
 `;
@@ -809,11 +773,11 @@ export const TagRow = styled.div`
 export const Tag = styled.span`
   display: inline-flex;
   align-items: center;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 620;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   padding: 0.18rem 0.48rem;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(76, 198, 193, 0.48);
   color: #d7f5f2;
   background: rgba(76, 198, 193, 0.13);
@@ -847,14 +811,14 @@ export const Qty = styled.span`
   align-items: center;
   justify-self: start;
   width: fit-content;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(167, 182, 255, 0.48);
   background: rgba(167, 182, 255, 0.12);
   color: #d7defd;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 740;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   padding: 0.2rem 0.5rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -878,22 +842,21 @@ export const FlatBoxContextLine = styled.div`
 export const FlatBoxIdPill = styled.span`
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(167, 182, 255, 0.58);
   background: rgba(167, 182, 255, 0.14);
   color: #dce2ff;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  font-size: 0.68rem;
+  font-family: var(--dw-font-data);
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   padding: 0.14rem 0.42rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
     padding: 0.12rem 0.3rem;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.01em;
   }
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
@@ -904,20 +867,20 @@ export const FlatBoxIdPill = styled.span`
 export const FlatBoxStatePill = styled.span`
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(240, 138, 123, 0.7);
   background: rgba(240, 138, 123, 0.15);
   color: #ffc8c0;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   padding: 0.14rem 0.46rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
     padding: 0.12rem 0.34rem;
-    letter-spacing: 0.07em;
+    letter-spacing: 0.01em;
   }
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
@@ -926,7 +889,7 @@ export const FlatBoxStatePill = styled.span`
 `;
 
 export const MoveWorkspace = styled.section`
-  border-radius: 10px;
+  border-radius: var(--dw-radius);
   border: 1px solid #355943;
   background: #131a15;
   padding: 0.78rem;
@@ -940,7 +903,7 @@ export const MoveWorkspace = styled.section`
 `;
 
 export const EditWorkspace = styled.section`
-  border-radius: 10px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(76, 198, 193, 0.42);
   background: #11161f;
   padding: 0.78rem;
@@ -969,7 +932,7 @@ export const MoveWorkspaceHeader = styled.div`
 export const MoveWorkspaceTitle = styled.h4`
   margin: 0;
   font-size: 0.9rem;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   color: #d8ece0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -978,14 +941,15 @@ export const MoveWorkspaceTitle = styled.h4`
 `;
 
 export const MoveWorkspaceClose = styled.button`
+  ${controlStyles}
   border: 1px solid #3d3d3d;
   background: #202020;
   color: #ddd;
-  border-radius: 6px;
+  border-radius: var(--dw-radius);
   padding: 0.25rem 0.5rem;
   font-size: 0.78rem;
   cursor: pointer;
-  min-height: 34px;
+  min-height: var(--dw-control-height);
 
   &:hover:enabled {
     background: #2a2a2a;
@@ -1004,23 +968,24 @@ export const MoveWorkspaceClose = styled.button`
 `;
 
 export const EditButton = styled.button`
+  ${controlStyles}
   border: 1px solid rgba(240, 138, 123, 0.62);
-  background: linear-gradient(180deg, #2f364d, #262c3f);
+  background: var(--dw-surface-raised);
   color: #f1f4fb;
-  border-radius: 8px;
+  border-radius: var(--dw-radius);
   padding: 0.26rem 0.62rem;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 720;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   cursor: pointer;
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
   transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
 
   &:hover {
     border-color: rgba(76, 198, 193, 0.84);
-    background: linear-gradient(180deg, #354261, #2b3552);
-    box-shadow: 0 0 12px rgba(76, 198, 193, 0.2);
+    background: var(--dw-surface-raised);
+    box-shadow: none;
   }
 
   &:active {
@@ -1028,9 +993,9 @@ export const EditButton = styled.button`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 34px;
+    min-height: var(--dw-control-height);
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.05em;
+    letter-spacing: 0.01em;
     padding: 0.2rem 0.44rem;
   }
 `;

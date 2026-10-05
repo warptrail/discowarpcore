@@ -1,3 +1,4 @@
+import { controlStyles, inputStyles } from '../styles/primitives';
 import styled from 'styled-components';
 import {
   MOBILE_BREAKPOINT,
@@ -8,11 +9,11 @@ import {
 } from '../styles/tokens';
 
 export const FormContainer = styled.div`
-  background-color: #1e1e1e;
-  color: #eee;
+  background-color: var(--dw-surface);
+  color: var(--dw-text);
   padding: 1rem;
-  border-radius: 0px 0px 10px 10px;
-  border: 1px solid #333;
+  border-radius: var(--dw-radius);
+  border: 1px solid rgba(230, 237, 243, 0.1);
   border-top: none;
   min-width: 0;
   max-width: 100%;
@@ -35,8 +36,8 @@ export const Label = styled.label`
 
 export const FieldHint = styled.div`
   margin-top: 0.3rem;
-  color: rgba(234, 234, 234, 0.66);
-  font-size: 0.74rem;
+  color: var(--dw-text-secondary);
+  font-size: 0.75rem;
   line-height: 1.35;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -45,11 +46,12 @@ export const FieldHint = styled.div`
 `;
 
 export const Input = styled.input`
+  ${inputStyles}
   width: 100%;
-  background-color: #2a2a2a;
-  color: white;
-  border: 1px solid #444;
-  border-radius: 6px;
+  background-color: var(--dw-surface-raised);
+  color: var(--dw-text);
+  border: 1px solid rgba(230, 237, 243, 0.16);
+  border-radius: var(--dw-radius);
   padding: 0.5rem;
   margin-bottom: 1rem;
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
@@ -57,7 +59,7 @@ export const Input = styled.input`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     margin-bottom: 0.72rem;
     padding: 0.42rem;
-    min-height: 36px;
+    min-height: 44px;
     font-size: ${MOBILE_FONT_SM};
   }
 `;
@@ -67,11 +69,12 @@ export const LinkInput = styled(Input)`
 `;
 
 export const TextArea = styled.textarea`
+  ${inputStyles}
   width: 100%;
-  background-color: #2a2a2a;
-  color: white;
-  border: 1px solid #444;
-  border-radius: 6px;
+  background-color: var(--dw-surface-raised);
+  color: var(--dw-text);
+  border: 1px solid rgba(230, 237, 243, 0.16);
+  border-radius: var(--dw-radius);
   padding: 0.5rem;
   margin-bottom: 1rem;
   min-height: 80px;
@@ -86,11 +89,12 @@ export const TextArea = styled.textarea`
 `;
 
 export const Select = styled.select`
+  ${inputStyles}
   width: 100%;
-  background-color: #2a2a2a;
-  color: white;
-  border: 1px solid #444;
-  border-radius: 6px;
+  background-color: var(--dw-surface-raised);
+  color: var(--dw-text);
+  border: 1px solid rgba(230, 237, 243, 0.16);
+  border-radius: var(--dw-radius);
   padding: 0.5rem;
   margin-bottom: 1rem;
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
@@ -98,7 +102,7 @@ export const Select = styled.select`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     margin-bottom: 0.72rem;
     padding: 0.42rem;
-    min-height: 36px;
+    min-height: 44px;
     font-size: ${MOBILE_FONT_SM};
   }
 `;
@@ -106,14 +110,14 @@ export const Select = styled.select`
 export const SectionTitle = styled.h4`
   margin: 1rem 0 0.5rem;
   font-size: 0.92rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #b7d4d1;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  color: var(--dw-teal);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     margin: 0.72rem 0 0.4rem;
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.04em;
+    letter-spacing: 0.01em;
   }
 `;
 
@@ -130,10 +134,10 @@ export const FieldGrid = styled.div`
 
 export const StaticValue = styled.div`
   width: 100%;
-  background-color: #252a33;
-  color: #f1f4f8;
-  border: 1px solid #425067;
-  border-radius: 6px;
+  background-color: var(--dw-surface-raised);
+  color: var(--dw-text);
+  border: 1px solid rgba(230, 237, 243, 0.16);
+  border-radius: var(--dw-radius);
   padding: 0.5rem;
   margin-bottom: 1rem;
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
@@ -143,7 +147,7 @@ export const StaticValue = styled.div`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     margin-bottom: 0.72rem;
     padding: 0.42rem;
-    min-height: 36px;
+    min-height: 44px;
     font-size: ${MOBILE_FONT_SM};
   }
 `;
@@ -198,23 +202,24 @@ export const LinkRow = styled.div`
 
 const linkButtonBase = `
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-  border-radius: 6px;
+  border-radius: var(--dw-radius);
   cursor: pointer;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 36px;
+    min-height: 44px;
     font-size: ${MOBILE_FONT_XS};
   }
 `;
 
 export const LinkRemoveButton = styled.button`
+  ${controlStyles}
   ${linkButtonBase}
   border: 1px solid rgba(242, 132, 132, 0.55);
   background: rgba(88, 34, 34, 0.82);
   color: #ffd5d5;
   padding: 0.45rem 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  text-transform: none;
+  letter-spacing: 0.01em;
   font-weight: 650;
 
   &:hover {
@@ -224,14 +229,15 @@ export const LinkRemoveButton = styled.button`
 `;
 
 export const LinkAddButton = styled.button`
+  ${controlStyles}
   ${linkButtonBase}
   justify-self: start;
   border: 1px solid rgba(111, 201, 188, 0.62);
-  background: rgba(26, 76, 69, 0.72);
+  background: var(--dw-surface);
   color: #d5fff8;
   padding: 0.45rem 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  text-transform: none;
+  letter-spacing: 0.01em;
   font-weight: 700;
 
   &:hover {
@@ -261,6 +267,7 @@ export const CheckboxRow = styled.label`
 `;
 
 export const Checkbox = styled.input`
+  ${inputStyles}
   width: auto;
   margin: 0;
 `;
@@ -277,12 +284,13 @@ export const ButtonRow = styled.div`
 `;
 
 export const Button = styled.button`
+  ${controlStyles}
   background-color: ${(props) =>
     props.$variant === 'close' ? '#555' : '#009688'};
-  color: white;
+  color: var(--dw-text);
   border: none;
   padding: 0.5rem 1rem;
-  border-radius: 6px;
+  border-radius: var(--dw-radius);
   cursor: pointer;
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
 
@@ -300,7 +308,7 @@ export const Button = styled.button`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     flex: 1;
     min-width: 0;
-    min-height: 36px;
+    min-height: 44px;
     padding: 0.42rem 0.62rem;
     font-size: ${MOBILE_FONT_SM};
   }

@@ -1,5 +1,6 @@
+import { controlStyles } from './primitives';
 import { Link } from 'react-router-dom';
-import styled, { css, keyframes } from 'styled-components';
+import styled, { css } from 'styled-components';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_FONT_SM,
@@ -8,20 +9,20 @@ import {
 } from './tokens';
 
 const LCARS = {
-  panel: '#141920',
-  panelSoft: '#1b212b',
-  line: 'rgba(231, 236, 243, 0.11)',
-  text: '#e7ecf3',
-  textDim: 'rgba(231, 236, 243, 0.72)',
-  textMuted: 'rgba(231, 236, 243, 0.56)',
-  teal: '#4cc6c1',
-  coral: '#f08a7b',
-  amber: '#e8b15c',
+  panel: 'var(--dw-surface)',
+  panelSoft: 'var(--dw-surface-raised)',
+  line: 'rgba(230, 237, 243, 0.1)',
+  text: 'var(--dw-text)',
+  textDim: 'var(--dw-text-secondary)',
+  textMuted: 'var(--dw-text-muted)',
+  teal: 'var(--dw-teal)',
+  coral: 'var(--dw-coral)',
+  amber: 'var(--dw-amber)',
   green: '#54d097',
   lilac: '#a097ff',
 };
 
-const mono = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+const uiFont = 'var(--dw-font-ui)';
 
 export const Page = styled.section`
   display: grid;
@@ -35,25 +36,26 @@ export const Page = styled.section`
 `;
 
 export const RetrievalReturnButton = styled.button`
+  ${controlStyles}
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.42rem;
   min-height: 42px;
   width: 100%;
-  border: 1px solid rgba(var(--box-neon-rgb, 76, 198, 193), 0.62);
-  border-radius: 4px;
-  background: rgba(var(--box-primary-rgb, 76, 198, 193), 0.12);
+  border: 1px solid rgba(76, 198, 193, 0.3);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface-raised);
   color: rgba(225, 250, 248, 0.92);
-  font: 760 0.68rem/1 ${mono};
-  letter-spacing: 0.065em;
-  text-transform: uppercase;
+  font: 760 0.75rem/1 ${uiFont};
+  letter-spacing: 0.01em;
+  text-transform: none;
   cursor: pointer;
 
   &:hover,
   &:focus-visible {
     background: rgba(var(--box-primary-rgb, 76, 198, 193), 0.2);
-    box-shadow: 0 0 14px rgba(var(--box-neon-rgb, 76, 198, 193), 0.18);
+    box-shadow: none;
   }
 
   &:active {
@@ -61,8 +63,8 @@ export const RetrievalReturnButton = styled.button`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 38px;
-    font-size: 0.61rem;
+    min-height: var(--dw-control-height);
+    font-size: 0.75rem;
   }
 `;
 
@@ -74,11 +76,46 @@ export const PageMainGrid = styled.div`
   @media (min-width: 980px) {
     grid-template-columns: minmax(320px, 0.78fr) minmax(0, 1.42fr);
     align-items: start;
+    height: auto;
+    min-height: 0;
     gap: clamp(1rem, 2vw, 1.6rem);
   }
 `;
 
+const terminalScrollbar = css`
+  scrollbar-width: thin;
+  scrollbar-color: var(--item-accent, #7fd7ff) #080e14;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #080e14;
+    border-left: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.18);
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(var(--item-accent-rgb, 127, 215, 255), 0.65);
+    border: 2px solid #080e14;
+    border-radius: var(--dw-radius-sm);
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--item-accent, #7fd7ff);
+  }
+  &::-webkit-scrollbar-corner {
+    background: #080e14;
+  }
+`;
+
 export const PageVisualColumn = styled.div`
+  ${terminalScrollbar}
+  grid-auto-rows: max-content;
+  @media (min-width: 980px) {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
   display: grid;
   align-content: start;
   gap: 0.72rem;
@@ -86,12 +123,13 @@ export const PageVisualColumn = styled.div`
 `;
 
 export const PageDataColumn = styled.div`
+  ${terminalScrollbar}
   min-width: 0;
 
   @media (min-width: 980px) {
-    position: sticky;
-    top: 1rem;
-    max-height: calc(100vh - 2rem);
+    min-height: 0;
+    height: 100%;
+    overscroll-behavior: contain;
     overflow: auto;
     scrollbar-width: thin;
   }
@@ -102,25 +140,27 @@ export const ViewModeNav = styled.nav`
   grid-template-columns: repeat(2, minmax(0, 1fr));
   width: 100%;
   overflow: hidden;
-  border: 1px solid rgba(var(--item-secondary-rgb, 167, 182, 255), 0.28);
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.018);
+  border: 1px solid ${LCARS.line};
+  border-radius: var(--dw-radius-sm);
+  background: ${LCARS.panel};
 `;
 
 export const ViewModeButton = styled.button`
-  min-height: 31px;
+  ${controlStyles}
+  min-height: var(--dw-control-height);
   padding: 0 0.34rem;
   border: 0;
   border-right: 1px solid rgba(var(--item-secondary-rgb, 167, 182, 255), 0.2);
   color: ${({ $active }) => ($active ? '#effbff' : 'rgba(214, 226, 241, 0.64)')};
   background: ${({ $active }) => ($active ? 'rgba(var(--item-secondary-rgb, 167, 182, 255), 0.16)' : 'transparent')};
-  font: 760 0.55rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font: 760 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
   cursor: pointer;
 
   &:last-child { border-right: 0; }
-  &:hover, &:focus-visible { outline: none; color: #ffffff; background: rgba(var(--item-secondary-rgb, 167, 182, 255), 0.18); }
+  &:hover, &:focus-visible { outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px; color: #ffffff; background: rgba(var(--item-secondary-rgb, 167, 182, 255), 0.18); }
   &:focus-visible { box-shadow: inset 0 0 0 1px var(--item-secondary, #a7b6ff); }
 `;
 
@@ -132,8 +172,8 @@ export const BreadcrumbNav = styled.nav`
   min-width: 0;
   padding: 0.66rem 0.8rem;
   border: 1px solid rgba(var(--box-primary-rgb, 76, 198, 193), 0.34);
-  border-radius: 6px;
-  background: linear-gradient(90deg, rgba(var(--box-primary-rgb, 76, 198, 193), 0.07), transparent 38%), ${LCARS.panelSoft};
+  border-radius: var(--dw-radius);
+  background: ${LCARS.panelSoft};
 
   ${({ $compact }) => $compact && `
     gap: 0.2rem;
@@ -146,9 +186,9 @@ export const BreadcrumbNav = styled.nav`
       gap: 0.18rem;
       padding: 0.08rem 0.14rem;
       border: 0;
-      border-radius: 2px;
+      border-radius: var(--dw-radius-sm);
       background: transparent;
-      font-size: 0.66rem;
+      font-size: 0.75rem;
     }
   `}
 
@@ -160,7 +200,7 @@ export const BreadcrumbNav = styled.nav`
     ` : `
       gap: 0.26rem;
       padding: 0.45rem 0.52rem;
-      border-radius: 6px;
+      border-radius: var(--dw-radius);
     `)}
   }
 `;
@@ -171,7 +211,7 @@ const crumbBase = `
   gap: 0.34rem;
   min-width: 0;
   padding: 0.26rem 0.42rem;
-  border-radius: 3px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid rgba(var(--box-primary-rgb, 76, 198, 193), 0.25);
   background: rgba(var(--box-primary-rgb, 76, 198, 193), 0.035);
   font-size: 0.82rem;
@@ -179,7 +219,7 @@ const crumbBase = `
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.24rem;
     padding: 0.2rem 0.34rem;
-    border-radius: 7px;
+    border-radius: var(--dw-radius);
     font-size: ${MOBILE_FONT_SM};
   }
 `;
@@ -209,11 +249,10 @@ export const BreadcrumbText = styled.span`
 `;
 
 export const CrumbId = styled.span`
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  font-size: 0.66rem;
+  font-family: var(--dw-font-data);
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.01em;
   color: var(--box-neon, ${LCARS.textDim});
   border: 0;
   border-radius: 0;
@@ -221,9 +260,9 @@ export const CrumbId = styled.span`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.06em;
+    letter-spacing: 0.01em;
     padding: 0.06rem 0.2rem;
-    border-radius: 5px;
+    border-radius: var(--dw-radius);
   }
 `;
 
@@ -284,7 +323,7 @@ export const Title = styled.h2`
   color: ${LCARS.text};
   font-size: clamp(1.14rem, 2vw, 1.36rem);
   line-height: 1.22;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 1rem;
@@ -294,20 +333,20 @@ export const Title = styled.h2`
 
 export const Meta = styled.div`
   color: ${LCARS.textMuted};
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 640;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.05em;
+    letter-spacing: 0.01em;
   }
 `;
 
 export const StateCard = styled.div`
   border: 1px solid ${({ $tone }) => ($tone === 'error' ? '#a84a4a' : LCARS.line)};
-  border-radius: 10px;
+  border-radius: var(--dw-radius);
   padding: 0.86rem 0.92rem;
   color: ${({ $tone }) => ($tone === 'error' ? '#ffc8c8' : LCARS.text)};
   background: ${({ $tone }) =>
@@ -320,33 +359,15 @@ export const StateCard = styled.div`
   }
 `;
 
-const departurePulse = keyframes`
-  0%, 100% {
-    border-color: rgba(255, 101, 91, 0.64);
-    box-shadow: 0 0 0 1px rgba(255, 78, 68, 0.08), 0 0 13px rgba(255, 67, 58, 0.12);
-  }
-  50% {
-    border-color: rgba(255, 139, 112, 0.96);
-    box-shadow: 0 0 0 1px rgba(255, 101, 91, 0.2), 0 0 22px rgba(255, 67, 58, 0.3);
-  }
-`;
-
 export const DepartureAlert = styled.section`
   display: grid;
   gap: 0.5rem;
   padding: 0.62rem 0.68rem;
-  border: 1px solid rgba(255, 101, 91, 0.76);
-  border-left: 4px solid #ff655b;
-  border-radius: 3px;
-  color: #fff3df;
-  background:
-    linear-gradient(90deg, rgba(255, 69, 58, 0.16), transparent 46%),
-    #100d12;
-  animation: ${departurePulse} 1.35s ease-in-out infinite;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
+  border: 1px solid rgba(240, 138, 123, 0.36);
+  border-left: 3px solid var(--dw-coral);
+  border-radius: var(--dw-radius-sm);
+  color: var(--dw-text);
+  background: var(--dw-surface);
 `;
 
 export const DepartureAlertHeader = styled.div`
@@ -369,8 +390,8 @@ export const DepartureAlertHeading = styled.span`
 
 export const DepartureAlertKicker = styled.span`
   color: ${({ $urgent }) => ($urgent ? '#ffb08e' : '#ffd36a')};
-  font: 760 0.59rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.12em;
+  font: 760 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
 `;
 
 export const DepartureAlertTitle = styled.strong`
@@ -383,11 +404,11 @@ export const DepartureAlertStatus = styled.span`
   flex: 0 0 auto;
   padding: 0.28rem 0.38rem;
   border: 1px solid rgba(255, 101, 91, 0.6);
-  border-radius: 2px;
+  border-radius: var(--dw-radius-sm);
   color: #ffd0cb;
   background: rgba(255, 69, 58, 0.12);
-  font: 820 0.52rem/1 ${mono};
-  letter-spacing: 0.08em;
+  font: 700 0.75rem/1 ${uiFont};
+  letter-spacing: 0.01em;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: fit-content;
@@ -412,7 +433,7 @@ export const DepartureAlertMeta = styled.div`
     min-width: 0;
     padding: 0.4rem 0.48rem;
     color: rgba(255, 239, 232, 0.8);
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     line-height: 1.2;
   }
 
@@ -421,10 +442,10 @@ export const DepartureAlertMeta = styled.div`
   }
 
   b {
-    color: rgba(255, 175, 163, 0.64);
-    font: 760 0.48rem/1 ${mono};
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    color: var(--dw-text-secondary);
+    font: 760 0.75rem/1 ${uiFont};
+    letter-spacing: 0.01em;
+    text-transform: none;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -451,19 +472,20 @@ export const DepartureAlertActions = styled.div`
 `;
 
 export const DepartureInlineToggle = styled.button`
+  ${controlStyles}
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  min-height: 32px;
+  min-height: var(--dw-control-height);
   padding: 0.28rem 0.5rem;
   border: 1px solid rgba(255, 151, 128, 0.76);
-  border-radius: 2px;
+  border-radius: var(--dw-radius-sm);
   color: #fff1ec;
   background: rgba(255, 101, 91, 0.15);
-  font: 800 0.6rem/1 ${mono};
-  letter-spacing: 0.065em;
-  text-transform: uppercase;
+  font: 700 0.75rem/1 ${uiFont};
+  letter-spacing: 0.01em;
+  text-transform: none;
   cursor: pointer;
 
   span {
@@ -473,7 +495,8 @@ export const DepartureInlineToggle = styled.button`
 
   &:hover:enabled,
   &:focus-visible {
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
     border-color: #ffad99;
     background: rgba(255, 101, 91, 0.23);
   }
@@ -490,13 +513,13 @@ export const DepartureAlertLink = styled(Link)`
   min-height: 32px;
   padding: 0.28rem 0.5rem;
   border: 1px solid rgba(255, 151, 128, 0.54);
-  border-radius: 2px;
+  border-radius: var(--dw-radius-sm);
   color: #ffd2c7;
   background: rgba(255, 101, 91, 0.08);
-  font: 760 0.63rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.07em;
+  font: 760 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
   text-decoration: none;
-  text-transform: uppercase;
+  text-transform: none;
 
   &:hover,
   &:focus-visible {
@@ -507,22 +530,24 @@ export const DepartureAlertLink = styled(Link)`
 `;
 
 export const DepartureLifecycleButton = styled.button`
-  min-height: 32px;
+  ${controlStyles}
+  min-height: var(--dw-control-height);
   padding: 0.28rem 0.5rem;
   border: 1px solid ${({ $quiet }) => ($quiet
     ? 'rgba(213, 226, 234, 0.22)'
     : 'rgba(255, 101, 91, 0.72)')};
-  border-radius: 2px;
+  border-radius: var(--dw-radius-sm);
   color: ${({ $quiet }) => ($quiet ? 'rgba(225, 233, 238, 0.64)' : '#fff0ed')};
   background: ${({ $quiet }) => ($quiet ? 'transparent' : 'rgba(255, 69, 58, 0.18)')};
-  font: 800 0.58rem/1 ${mono};
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font: 700 0.75rem/1 ${uiFont};
+  letter-spacing: 0.01em;
+  text-transform: none;
   cursor: pointer;
 
   &:hover:enabled,
   &:focus-visible {
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
     border-color: #ff9b83;
     color: #ffffff;
     background: rgba(255, 69, 58, 0.24);
@@ -539,7 +564,7 @@ export const DepartureDestinationPanel = styled.section`
   gap: 0.22rem;
   padding: 0.48rem;
   border-top: 1px solid rgba(255, 173, 159, 0.24);
-  background: rgba(5, 9, 14, 0.62);
+  background: var(--dw-surface);
 `;
 
 export const DepartureDestinationHeader = styled.header`
@@ -548,14 +573,14 @@ export const DepartureDestinationHeader = styled.header`
   justify-content: space-between;
   gap: 0.65rem;
   color: #ffd0c7;
-  font: 800 0.56rem/1.15 ${mono};
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 700 0.75rem/1.15 ${uiFont};
+  letter-spacing: 0.01em;
+  text-transform: none;
 
   small {
-    color: rgba(233, 224, 222, 0.54);
-    font: 620 0.56rem/1.25 ${mono};
-    letter-spacing: 0.025em;
+    color: var(--dw-text-secondary);
+    font: 620 0.75rem/1.25 ${uiFont};
+    letter-spacing: 0.01em;
     text-transform: none;
   }
 
@@ -595,35 +620,31 @@ export const ItemButtonBar = styled.section`
   overflow: hidden;
   padding: 0;
   border: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.16);
-  border-radius: 6px;
-  background: #0a0f15;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    border-radius: 5px;
+    border-radius: var(--dw-radius);
   }
 `;
 
 export const ItemControlsToggle = styled.button`
+  ${controlStyles}
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.8rem;
   width: 100%;
-  min-height: 34px;
+  min-height: var(--dw-control-height);
   padding: 0.28rem 0.44rem;
   border: 0;
-  background:
-    linear-gradient(90deg, rgba(var(--item-accent-rgb, 127, 215, 255), 0.075), transparent 42%),
-    rgba(8, 13, 19, 0.96);
+  background: var(--dw-surface);
   color: ${LCARS.text};
   text-align: left;
   cursor: pointer;
 
   &:hover {
-    background:
-      linear-gradient(90deg, rgba(var(--item-accent-rgb, 127, 215, 255), 0.12), transparent 50%),
-      rgba(10, 16, 23, 0.98);
+    background: var(--dw-surface-raised);
   }
 
   &:focus-visible {
@@ -642,18 +663,16 @@ export const ItemControlsToggleCopy = styled.span`
 
 export const ItemControlsKicker = styled.span`
   color: var(--item-accent, #7fd7ff);
-  font: 800 0.58rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font: 700 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export const ItemControlsSummary = styled.span`
-  color: rgba(226, 237, 243, 0.58);
-  font: 680 0.58rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  color: var(--dw-text-secondary);
+  font: 680 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export const ItemControlsChevron = styled.span`
@@ -670,10 +689,10 @@ export const ItemControlsChevron = styled.span`
 
 export const ItemControlsPanel = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
   border-top: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.1);
-  background: rgba(4, 9, 14, 0.72);
+  background: var(--dw-surface-raised);
 
   > *:last-child {
     border-right: 0;
@@ -688,16 +707,17 @@ export const DeclutterControlGroup = styled.section`
   grid-column: 1 / -1;
   padding: 0.24rem 0.3rem;
   border-bottom: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.16);
-  background: rgba(var(--item-accent-rgb, 127, 215, 255), 0.025);
+  background: transparent;
 `;
 
 export const DeclutterControlButton = styled.button`
+  ${controlStyles}
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.4rem;
   width: 100%;
-  min-height: 32px;
+  min-height: var(--dw-control-height);
   padding: 0.18rem 0.34rem;
   border: 1px solid ${({ $active, $gone }) =>
     $gone
@@ -705,10 +725,10 @@ export const DeclutterControlButton = styled.button`
       : $active
       ? 'rgba(var(--item-secondary-rgb, 167, 182, 255), 0.7)'
       : 'rgba(var(--item-accent-rgb, 127, 215, 255), 0.68)'};
-  border-radius: 2px;
+  border-radius: var(--dw-radius-sm);
   background: ${({ $active, $gone }) =>
     $gone
-      ? 'linear-gradient(90deg, rgba(135, 18, 24, 0.68), rgba(62, 8, 14, 0.94))'
+      ? 'rgba(240, 138, 123, 0.14)'
       : $active
       ? 'rgba(var(--item-secondary-rgb, 167, 182, 255), 0.13)'
       : 'rgba(var(--item-accent-rgb, 127, 215, 255), 0.09)'};
@@ -724,10 +744,7 @@ export const DeclutterControlButton = styled.button`
       $active
         ? 'rgba(var(--item-secondary-rgb, 167, 182, 255), 0.19)'
         : 'rgba(var(--item-accent-rgb, 127, 215, 255), 0.15)'};
-    box-shadow: 0 0 10px ${({ $active }) =>
-      $active
-        ? 'rgba(var(--item-secondary-rgb, 167, 182, 255), 0.18)'
-        : 'rgba(var(--item-accent-rgb, 127, 215, 255), 0.18)'};
+    box-shadow: none;
   }
 
   &:focus-visible {
@@ -748,27 +765,24 @@ export const DeclutterControlButton = styled.button`
 
 export const DeclutterControlContext = styled.span`
   color: ${({ $gone }) => ($gone ? 'rgba(255, 204, 204, 0.72)' : 'rgba(210, 228, 237, 0.5)')};
-  font: 760 0.52rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 760 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export const DeclutterControlTitle = styled.strong`
   min-width: 0;
   color: inherit;
-  font: 780 0.59rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  font: 780 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export const DeclutterControlState = styled.span`
   color: ${({ $gone }) => ($gone ? '#ff9c9c' : 'var(--item-accent, #7fd7ff)')};
-  font: 850 0.54rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  font: 700 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export const ControlGroup = styled.section`
@@ -779,7 +793,7 @@ export const ControlGroup = styled.section`
   padding: 0.3rem;
   border-right: 0;
 
-  ${({ $wide }) => $wide && 'grid-column: span 2;'}
+  ${({ $wide, $activity }) => ($wide || $activity) && 'grid-column: 1 / -1;'}
   ${({ $full }) => $full && 'grid-column: 1 / -1; border-right: 0;'}
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -801,11 +815,10 @@ export const ControlGroup = styled.section`
 `;
 
 export const ControlGroupLabel = styled.span`
-  color: rgba(210, 228, 237, 0.5);
-  font: 760 0.5rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  color: var(--dw-text-secondary);
+  font: 760 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export const DepartureActivity = styled.div`
@@ -819,23 +832,23 @@ export const DepartureActivity = styled.div`
 
 export const DepartureActivityTitle = styled.strong`
   color: #ffd0b9;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   line-height: 1.2;
 `;
 
 export const DepartureActivityDetail = styled.span`
-  color: rgba(255, 231, 215, 0.68);
-  font-size: 0.64rem;
+  color: var(--dw-text-secondary);
+  font-size: 0.75rem;
   line-height: 1.3;
 `;
 
 export const DepartureActivityLink = styled(Link)`
   width: fit-content;
   color: #ffb08e;
-  font: 760 0.56rem/1 ${mono};
-  letter-spacing: 0.06em;
+  font: 760 0.75rem/1 ${uiFont};
+  letter-spacing: 0.01em;
   text-decoration: none;
-  text-transform: uppercase;
+  text-transform: none;
 
   &:hover,
   &:focus-visible {
@@ -861,21 +874,21 @@ export const ContainerTimestampSection = styled.section`
 
 export const ContainerTimestampLabel = styled.span`
   color: ${LCARS.textMuted};
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.07em;
+    letter-spacing: 0.01em;
   }
 `;
 
 export const ContainerTimestampActions = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.14rem;
+  gap: 0.35rem;
   min-width: 0;
 `;
 
@@ -885,9 +898,9 @@ export const ActivityLockNotice = styled.span`
   border-left: 2px solid rgba(255, 101, 91, 0.72);
   color: rgba(255, 191, 181, 0.74);
   background: rgba(255, 69, 58, 0.07);
-  font: 740 0.49rem/1.25 ${mono};
-  letter-spacing: 0.065em;
-  text-transform: uppercase;
+  font: 740 0.75rem/1.25 ${uiFont};
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export const LifecycleArchiveLink = styled(Link)`
@@ -897,17 +910,18 @@ export const LifecycleArchiveLink = styled(Link)`
   align-items: center;
   padding: 0.28rem 0.5rem;
   border: 1px solid rgba(76, 198, 193, 0.58);
-  border-radius: 2px;
+  border-radius: var(--dw-radius-sm);
   color: #d8fff8;
   background: rgba(76, 198, 193, 0.1);
-  font: 780 0.6rem/1 ${mono};
-  letter-spacing: 0.06em;
+  font: 780 0.75rem/1 ${uiFont};
+  letter-spacing: 0.01em;
   text-decoration: none;
-  text-transform: uppercase;
+  text-transform: none;
 
   &:hover,
   &:focus-visible {
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
     border-color: #6be0d8;
     color: #ffffff;
     background: rgba(76, 198, 193, 0.18);
@@ -923,28 +937,28 @@ export const ItemModeActions = styled.div`
 `;
 
 export const ItemModeButton = styled.button`
+  ${controlStyles}
   min-width: 0;
-  min-height: 31px;
+  min-height: var(--dw-control-height);
   padding: 0.16rem 0.3rem;
   border: 1px solid
     ${({ $active }) =>
       $active
         ? 'rgba(var(--item-accent-rgb, 127, 215, 255), 0.66)'
         : 'rgba(214, 226, 241, 0.18)'};
-  border-radius: 3px;
+  border-radius: var(--dw-radius-sm);
   background: ${({ $active }) =>
     $active
       ? 'rgba(var(--item-accent-rgb, 127, 215, 255), 0.12)'
       : 'rgba(255, 255, 255, 0.025)'};
   color: ${({ $active }) =>
     $active ? 'var(--item-accent, #7fd7ff)' : 'rgba(230, 239, 245, 0.72)'};
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  font-size: 0.55rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   font-weight: 780;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.01em;
   line-height: 1;
-  text-transform: uppercase;
+  text-transform: none;
   cursor: ${({ $active }) => ($active ? 'default' : 'pointer')};
   transition: border-color 180ms ease, background 180ms ease, color 180ms ease;
 
@@ -969,22 +983,23 @@ export const ItemModeButton = styled.button`
 `;
 
 export const ContainerButton = styled.button`
+  ${controlStyles}
   border: 1px solid ${({ $active }) =>
     $active
       ? 'rgba(var(--box-primary-rgb, 76, 198, 193), 0.68)'
       : 'rgba(var(--item-accent-rgb, 127, 215, 255), 0.54)'};
-  border-radius: 3px;
+  border-radius: var(--dw-radius-sm);
   background: ${({ $active }) =>
     $active
       ? 'rgba(var(--box-primary-rgb, 76, 198, 193), 0.13)'
       : 'rgba(var(--item-accent-rgb, 127, 215, 255), 0.09)'};
   color: ${LCARS.text};
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   padding: 0.35rem 0.56rem;
-  min-height: 34px;
+  min-height: var(--dw-control-height);
   cursor: pointer;
   transition: border-color 120ms ease, background 120ms ease;
 
@@ -1004,8 +1019,8 @@ export const ContainerButton = styled.button`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     flex: 1 1 100px;
-    min-height: 34px;
-    font-size: 0.55rem;
+    min-height: var(--dw-control-height);
+    font-size: 0.75rem;
     padding: 0.18rem 0.3rem;
   }
 `;
@@ -1037,37 +1052,30 @@ const timestampToneBg = (tone) =>
         ? 'rgba(var(--item-secondary-rgb, 167, 182, 255), 0.12)'
         : 'rgba(var(--item-accent-rgb, 127, 215, 255), 0.12)';
 
-const timestampToneGlow = (tone) =>
-  tone === 'consumed'
-    ? 'rgba(242, 98, 98, 0.26)'
-    : tone === 'maintained'
-      ? 'rgba(var(--box-primary-rgb, 76, 198, 193), 0.22)'
-      : tone === 'checked'
-        ? 'rgba(var(--item-secondary-rgb, 167, 182, 255), 0.22)'
-        : 'rgba(var(--item-accent-rgb, 127, 215, 255), 0.2)';
-
 export const ContainerTimestampButton = styled.button`
+  ${controlStyles}
   display: grid;
+  min-width: 0;
   align-content: center;
   justify-items: center;
   gap: 0.14rem;
   border: 1px solid ${({ $tone }) => timestampToneBorder($tone)};
   background: ${({ $tone }) => timestampToneBg($tone)};
   color: ${({ $tone }) => timestampToneColor($tone)};
-  border-radius: 3px;
+  border-radius: var(--dw-radius-sm);
   padding: 0.14rem 0.24rem;
   min-height: 42px;
-  font-size: 0.55rem;
+  font-size: 0.75rem;
   font-weight: 730;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.01em;
   line-height: 1;
-  text-transform: uppercase;
+  text-transform: none;
   cursor: pointer;
   transition: filter 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
 
   &:hover:enabled {
     filter: brightness(1.08);
-    box-shadow: 0 0 10px ${({ $tone }) => timestampToneGlow($tone)};
+    box-shadow: none;
   }
 
   &:active:enabled {
@@ -1081,8 +1089,8 @@ export const ContainerTimestampButton = styled.button`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: 42px;
-    font-size: 0.51rem;
-    letter-spacing: 0.025em;
+    font-size: 0.75rem;
+    letter-spacing: 0.01em;
     padding: 0.12rem 0.14rem;
   }
 
@@ -1093,10 +1101,9 @@ export const ContainerTimestampButton = styled.button`
 
 export const ContainerTimestampStat = styled.span`
   max-width: 100%;
-  color: rgba(225, 242, 248, 0.58);
-  font: 650 0.47rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  letter-spacing: 0.035em;
+  color: var(--dw-text-secondary);
+  font: 650 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
   overflow: hidden;
   text-overflow: ellipsis;
   text-transform: none;
@@ -1123,7 +1130,7 @@ export const ContainerPickerWrap = styled.div`
   grid-column: 1 / -1;
   border-top: 1px solid rgba(var(--item-accent-rgb, 127, 215, 255), 0.16);
   padding: 0.18rem 0.24rem 0.24rem;
-  background: rgba(4, 9, 14, 0.54);
+  background: var(--dw-surface);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 0.16rem 0.2rem 0.2rem;

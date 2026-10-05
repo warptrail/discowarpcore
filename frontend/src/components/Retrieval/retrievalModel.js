@@ -97,7 +97,7 @@ function buildBoxLookup(rawTree) {
   const byShortId = new Map();
   const nodes = readTreeNodes(rawTree);
 
-  const visit = (node, ancestorLabels = [], inheritedLocation = '', inheritedGroup = '') => {
+  const visit = (node, ancestorLabels = [], inheritedLocation = '') => {
     if (!node || typeof node !== 'object') return;
 
     const boxNumber = firstNonEmpty(node.box_id, node.boxId, node.shortId);
@@ -117,11 +117,6 @@ function buildBoxLookup(rawTree) {
       node.locationLabel,
       inheritedLocation,
     );
-    const groupLabel = firstNonEmpty(
-      node.groupLabel,
-      node.group,
-      inheritedGroup,
-    );
 
     const locationPath =
       locationLabel && boxPath
@@ -135,7 +130,6 @@ function buildBoxLookup(rawTree) {
       boxPath,
       locationLabel,
       locationPath,
-      groupLabel,
     };
 
     if (boxMongoId) byMongoId.set(boxMongoId, entry);
@@ -143,7 +137,7 @@ function buildBoxLookup(rawTree) {
 
     const children = Array.isArray(node.childBoxes) ? node.childBoxes : [];
     for (const child of children) {
-      visit(child, pathLabels, locationLabel || inheritedLocation, groupLabel || inheritedGroup);
+      visit(child, pathLabels, locationLabel || inheritedLocation);
     }
   };
 
@@ -278,13 +272,6 @@ function getItemBoxContext(item, boxLookup) {
     ownership.inheritedLocation,
     item?.location,
   );
-  const groupLabel = firstNonEmpty(
-    lookupEntry?.groupLabel,
-    ownership.effectiveBoxGroup,
-    ownership.inheritedGroup,
-    item?.boxGroupLabel,
-    item?.groupLabel,
-  );
 
   const locationPath = firstNonEmpty(
     lookupEntry?.locationPath,
@@ -318,7 +305,6 @@ function getItemBoxContext(item, boxLookup) {
     locationLabel: locationLabel || UNKNOWN_LOCATION_LABEL,
     locationPath: locationPath || locationLabel || UNKNOWN_LOCATION_LABEL,
     locationKey: normalizeFacetKey(locationLabel || UNKNOWN_LOCATION_LABEL),
-    groupLabel,
   };
 }
 
@@ -369,7 +355,6 @@ export function buildRetrievalItems(rawItems, rawTree) {
       tags.join(' '),
       context.boxName,
       context.boxNumber,
-      context.groupLabel,
       context.locationLabel,
       context.locationPath,
       context.boxPath,
@@ -395,8 +380,6 @@ export function buildRetrievalItems(rawItems, rawTree) {
       boxName: context.boxName,
       boxPath: context.boxPath,
       boxKey: context.boxKey,
-      boxGroupLabel: context.groupLabel,
-      groupLabel: context.groupLabel,
       locationLabel: context.locationLabel,
       locationPath: context.locationPath,
       locationKey: context.locationKey,
@@ -612,14 +595,12 @@ function getCanonicalKeepPriorityOptions() {
 export function normalizeRetrievalFilterOptions(rawFilters) {
   const categories = normalizeOptionRows(rawFilters?.categories);
   const tags = normalizeOptionRows(rawFilters?.tags);
-  const groups = normalizeOptionRows(rawFilters?.groups);
   const locations = normalizeOptionRows(rawFilters?.locations);
   const owners = normalizeOptionRows(rawFilters?.owners);
   const keepPriorities = getCanonicalKeepPriorityOptions();
 
   const categoryLabelByKey = new Map(categories.map((option) => [option.key, option.label]));
   const tagLabelByKey = new Map(tags.map((option) => [option.key, option.label]));
-  const groupLabelByKey = new Map(groups.map((option) => [option.key, option.label]));
   const locationLabelByKey = new Map(locations.map((option) => [option.key, option.label]));
   const ownerLabelByKey = new Map(owners.map((option) => [option.key, option.label]));
   const keepPriorityLabelByKey = new Map(
@@ -629,13 +610,11 @@ export function normalizeRetrievalFilterOptions(rawFilters) {
   return {
     categories,
     tags,
-    groups,
     locations,
     owners,
     keepPriorities,
     categoryLabelByKey,
     tagLabelByKey,
-    groupLabelByKey,
     locationLabelByKey,
     ownerLabelByKey,
     keepPriorityLabelByKey,
@@ -682,14 +661,14 @@ export function normalizeRetrievalItemsPage(rawItems) {
         tags,
         boxId: firstNonEmpty(rawItem?.boxId, rawItem?.boxMongoId),
         boxNumber: firstNonEmpty(rawItem?.boxNumber),
+        compartmentKey: firstNonEmpty(rawItem?.compartmentKey),
+        placementLabel: firstNonEmpty(rawItem?.placementLabel, rawItem?.boxNumber),
         boxName: firstNonEmpty(
           rawItem?.boxName,
           orphaned ? ORPHANED_BOX_NAME : '',
           UNKNOWN_BOX_NAME,
         ),
         boxPath: firstNonEmpty(rawItem?.boxPath),
-        boxGroupLabel: firstNonEmpty(rawItem?.boxGroupLabel, rawItem?.groupLabel),
-        groupLabel: firstNonEmpty(rawItem?.groupLabel, rawItem?.boxGroupLabel),
         locationLabel: firstNonEmpty(rawItem?.locationLabel, UNKNOWN_LOCATION_LABEL),
         locationPath: firstNonEmpty(rawItem?.locationPath, UNKNOWN_LOCATION_LABEL),
         primaryOwnerName: firstNonEmpty(rawItem?.primaryOwnerName),
@@ -730,8 +709,7 @@ export function normalizeRetrievalBoxesPage(rawBoxes) {
       const description = firstNonEmpty(rawBox?.description);
       const notes = firstNonEmpty(rawBox?.notes);
       const tags = uniqueTrimmedValues(rawBox?.tags);
-      const groupLabel = firstNonEmpty(rawBox?.groupLabel, rawBox?.group);
-      const locationLabel = firstNonEmpty(rawBox?.locationLabel, rawBox?.location, UNKNOWN_LOCATION_LABEL);
+        const locationLabel = firstNonEmpty(rawBox?.locationLabel, rawBox?.location, UNKNOWN_LOCATION_LABEL);
       const boxPath = firstNonEmpty(rawBox?.boxPath);
       const directItemCount = Number.isFinite(Number(rawBox?.directItemCount))
         ? Number(rawBox.directItemCount)
@@ -744,10 +722,10 @@ export function normalizeRetrievalBoxesPage(rawBoxes) {
         id,
         boxId,
         boxLabel,
+        isComplexBox: Boolean(rawBox?.isComplexBox),
         description,
         notes,
         tags,
-        groupLabel,
         locationLabel,
         locationKey: normalizeFacetKey(locationLabel),
         boxPath,

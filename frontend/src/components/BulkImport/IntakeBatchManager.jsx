@@ -45,7 +45,7 @@ const Grid = styled.div`
 `;
 
 const Feedback = styled.div`
-  border-radius: 10px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $tone }) =>
       $tone === 'success'

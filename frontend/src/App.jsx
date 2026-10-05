@@ -5,7 +5,7 @@ import styled from 'styled-components';
 import GlobalStyles from './styles/globalStyles';
 
 import Header from './components/Header';
-import { MOBILE_BREAKPOINT, MOBILE_PAGE_GAP } from './styles/tokens';
+import { MOBILE_BREAKPOINT } from './styles/tokens';
 
 const OperationsPage = lazy(() => import('./components/OperationsPage'));
 const AllItemsList = lazy(() => import('./components/AllItemsList'));
@@ -26,8 +26,9 @@ const AppContainer = styled.div`
   )};
   margin: 0 auto;
   padding: ${({ $retrievalPage }) =>
-    $retrievalPage ? 'clamp(1rem, 2vw, 1.5rem)' : 'clamp(1rem, 3vw, 2rem)'};
-  font-family: Arial, Helvetica, sans-serif;
+    $retrievalPage ? 'clamp(0.75rem, 2vw, 1.25rem)' : 'clamp(0.75rem, 2vw, 1.5rem)'};
+  font-family: var(--dw-font-ui);
+  min-height: 100dvh;
   min-width: 0;
 
   @media (min-width: 980px) {
@@ -42,23 +43,81 @@ const AppContainer = styled.div`
   }
 
   @media (min-width: calc(${MOBILE_BREAKPOINT} + 1px)) and (max-width: 899px) {
-    padding: ${({ $retrievalPage }) => ($retrievalPage ? '0.75rem' : '2rem')};
+    padding: 0.75rem;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     max-width: 100%;
-    padding: ${MOBILE_PAGE_GAP};
+    padding: 0;
   }
 `;
+
+const SkipLink = styled.a`
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 2000;
+  transform: translateY(calc(-100% - 1rem));
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--dw-cyan);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
+  color: var(--dw-text);
+  font: 600 0.9rem/1.3 var(--dw-font-ui);
+  text-decoration: none;
+  &:focus { transform: translateY(0); outline: 2px solid var(--dw-amber); outline-offset: 3px; }
+`;
+
+const RouteContent = styled.main`
+  position: relative;
+  min-width: 0;
+  scroll-margin-top: calc(var(--dw-header-height, 0px) + 16px);
+  &:focus { outline: none; }
+  @media (min-width: 980px) {
+    ${({ $retrievalPage }) => $retrievalPage && `
+      height: 100%;
+      min-height: 0;
+    `}
+  }
+`;
+
+const RouteHeading = styled.h1`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+`;
+
+function getRouteTitle(pathname) {
+  if (/^\/boxes\//.test(pathname)) return 'Box inventory';
+  if (/^\/items\//.test(pathname)) return 'Item details';
+  if (/^\/tags\//.test(pathname)) return 'Inventory by tag';
+  const titles = {
+    '/': 'Operations',
+    '/operations': 'Operations',
+    '/create-box': 'Create a box',
+    '/intake': 'Intake',
+    '/import': 'Bulk import',
+    '/all-items': 'All items',
+    '/declutter': 'Declutter',
+    '/declutter/history': 'Declutter history',
+    '/logs': 'System logs',
+    '/retrieval': 'Retrieval',
+  };
+  return titles[pathname.replace(/\/$/, '') || '/'] || 'Inventory';
+}
 
 const RouteLoading = styled.div`
   min-height: 35vh;
   display: grid;
   place-items: center;
-  color: rgba(230, 237, 243, 0.66);
-  font: 800 0.72rem/1.2 "SFMono-Regular", Consolas, monospace;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  color: var(--dw-text-secondary);
+  font: 500 0.9rem/1.4 var(--dw-font-ui);
 `;
 
 // ! End STYLES
@@ -117,6 +176,9 @@ function App() {
     location.pathname,
   );
   const isItemPage = /^\/items\/[^/]+\/?$/.test(location.pathname);
+  const isIntakePage = /^\/intake\/?$/.test(location.pathname);
+  const isImportPage = /^\/import\/?$/.test(location.pathname);
+  const routeTitle = getRouteTitle(location.pathname);
   useEffect(() => {
     disableAutofillWithin(document.body);
 
@@ -142,25 +204,43 @@ function App() {
   return (
     <AppContainer $retrievalPage={isRetrievalPage} $itemPage={isItemPage}>
       <GlobalStyles />
+      <SkipLink
+        href="#route-content"
+        onClick={(event) => {
+          event.preventDefault();
+          document.getElementById('route-content')?.focus();
+        }}
+      >
+        Skip to content
+      </SkipLink>
       <Header />
 
-      <Suspense fallback={<RouteLoading>Loading console…</RouteLoading>}>
-        <Routes>
-          <Route path="/" element={<OperationsPage />} />
-          <Route path="/operations" element={<OperationsPage />} />
-          <Route path="/boxes/:shortId" element={<BoxDetailView />} />
-          <Route path="/create-box" element={<BoxCreate />} />
-          <Route path="/intake" element={<IntakeRoutePage />} />
-          <Route path="/import" element={<BulkImportPage />} />
-          <Route path="/all-items" element={<AllItemsList />} />
-          <Route path="/declutter" element={<DeclutterDeckPage />} />
-          <Route path="/declutter/history" element={<DeclutterHistoryPage />} />
-          <Route path="/logs" element={<LogsPage />} />
-          <Route path="/retrieval" element={retrievalPage} />
-          <Route path="/tags/:tag" element={retrievalPage} />
-          <Route path="/items/:itemId" element={<ItemPage />} />
-        </Routes>
-      </Suspense>
+      <RouteContent
+        as={isIntakePage ? 'div' : 'main'}
+        id="route-content"
+        tabIndex={-1}
+        aria-label={isIntakePage ? undefined : routeTitle}
+        $retrievalPage={isRetrievalPage}
+      >
+        {!isImportPage && <RouteHeading>{routeTitle}</RouteHeading>}
+        <Suspense fallback={<RouteLoading role="status">Loading inventory…</RouteLoading>}>
+          <Routes>
+            <Route path="/" element={<OperationsPage />} />
+            <Route path="/operations" element={<OperationsPage />} />
+            <Route path="/boxes/:shortId" element={<BoxDetailView />} />
+            <Route path="/create-box" element={<BoxCreate />} />
+            <Route path="/intake" element={<IntakeRoutePage />} />
+            <Route path="/import" element={<BulkImportPage />} />
+            <Route path="/all-items" element={<AllItemsList />} />
+            <Route path="/declutter" element={<DeclutterDeckPage />} />
+            <Route path="/declutter/history" element={<DeclutterHistoryPage />} />
+            <Route path="/logs" element={<LogsPage />} />
+            <Route path="/retrieval" element={retrievalPage} />
+            <Route path="/tags/:tag" element={retrievalPage} />
+            <Route path="/items/:itemId" element={<ItemPage />} />
+          </Routes>
+        </Suspense>
+      </RouteContent>
     </AppContainer>
   );
 }

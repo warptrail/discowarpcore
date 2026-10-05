@@ -2,6 +2,7 @@
 const Item = require('../models/Item');
 const mongoose = require('mongoose');
 const Box = require('../models/Box');
+const { itemPlacement } = require('../utils/boxCompartments');
 const Batch = require('../models/Batch');
 const MediaState = require('../models/MediaState');
 const DeclutterCandidate = require('../models/DeclutterCandidate');
@@ -191,7 +192,7 @@ async function enrichItemsWithBoxContext(
   const boxesPromise = Array.isArray(providedBoxes)
     ? Promise.resolve(providedBoxes)
     : Box.find()
-      .select('_id box_id label description items parentBox')
+      .select('_id box_id label isComplexBox compartments itemCompartments description items parentBox')
       .lean();
   const mediaPromise = attachMediaStateSummaries(items);
   const batchPromise = Array.isArray(providedBatchDocs)
@@ -240,6 +241,7 @@ async function enrichItemsWithBoxContext(
             _id: maps.byId.get(String(leafBox._id))._id,
             box_id: maps.byId.get(String(leafBox._id)).box_id,
             label: maps.byId.get(String(leafBox._id)).label,
+            ...itemPlacement(maps.byId.get(String(leafBox._id)), i._id),
             description: maps.byId.get(String(leafBox._id)).description,
           }
         : null;
@@ -711,7 +713,7 @@ async function getItemsPage({
   const safeOffset = Math.max(0, Number(offset) || 0);
   const contextStartNs = process.hrtime.bigint();
   const [boxes, batchDocs] = await Promise.all([
-    Box.find().select('_id box_id label description location items parentBox').lean(),
+    Box.find().select('_id box_id label isComplexBox compartments itemCompartments description location items parentBox').lean(),
     Batch.find()
       .select('_id identity.batchId identity.batchName identity.createdAt identity.updatedAt archiveState importSnapshot')
       .lean(),
@@ -1342,7 +1344,7 @@ async function markItemGone(id, payload = {}) {
     .select('_id box_id label')
     .lean();
 
-  await Box.updateMany({ items: id }, { $pull: { items: id } });
+  await Box.updateMany({ items: id }, { $pull: { items: id }, $unset: { [`itemCompartments.${id}`]: 1 } });
 
   const updated = await Item.findByIdAndUpdate(
     id,
@@ -1391,7 +1393,7 @@ async function restoreItemToActive(id) {
   const item = await Item.findById(id).select('_id name last_active_box').lean();
   if (!item) return null;
 
-  await Box.updateMany({ items: id }, { $pull: { items: id } });
+  await Box.updateMany({ items: id }, { $pull: { items: id }, $unset: { [`itemCompartments.${id}`]: 1 } });
 
   let restoredToBoxId = null;
   let restoredToBox = null;
@@ -1466,7 +1468,7 @@ async function hardDeleteItem(id) {
 
   const previousPaths = collectImageStoragePaths(current);
 
-  await Box.updateMany({ items: id }, { $pull: { items: id } });
+  await Box.updateMany({ items: id }, { $pull: { items: id }, $unset: { [`itemCompartments.${id}`]: 1 } });
   const deleted = await Item.findByIdAndDelete(id);
   if (!deleted) return null;
 

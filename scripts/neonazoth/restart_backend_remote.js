@@ -74,7 +74,7 @@ function requestHealth(port) {
     const request = http.get({
       hostname: '127.0.0.1',
       port,
-      path: '/api/health',
+      path: '/api/health/ready',
       timeout: 2500,
     }, (response) => {
       response.resume();

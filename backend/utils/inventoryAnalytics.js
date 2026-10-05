@@ -26,14 +26,11 @@ function calculateBoxCollectionStats({
   });
   const referencedItemIds = new Set();
   const locations = new Set();
-  const groups = new Set();
   let boxesWithNotes = 0;
 
   for (const box of scopedBoxes) {
     const location = toTrimmed(box?.location).toLowerCase();
-    const group = toTrimmed(box?.group).toLowerCase();
     if (location) locations.add(location);
-    if (group) groups.add(group);
     if (toTrimmed(box?.notes)) boxesWithNotes += 1;
 
     for (const itemId of Array.isArray(box?.items) ? box.items : []) {
@@ -71,7 +68,6 @@ function calculateBoxCollectionStats({
     metrics: {
       boxCount: scopedBoxes.length,
       locationCount: locations.size,
-      groupCount: groups.size,
       boxNoteCount: boxesWithNotes,
       itemRecordCount,
       itemQuantity,

@@ -7,15 +7,25 @@ let cache = [];
 let loaded = false;
 let fetchPromise = null;
 
-const normalizeLocationName = (value) =>
-  String(value || '')
+const normalizeLocationPart = (value) =>
+  String(value ?? '')
     .trim()
-    .replace(/\s+/g, ' ')
-    .toLowerCase();
+    .replace(/\s+/g, ' ');
+
+const normalizeLocationStructure = (value) => ({
+  room: normalizeLocationPart(value?.room),
+  vicinity: normalizeLocationPart(value?.vicinity),
+  specifics: normalizeLocationPart(value?.specifics),
+});
+
+const locationStructureKey = (value) => {
+  const { room, vicinity, specifics } = normalizeLocationStructure(value);
+  return [room, vicinity, specifics].map((part) => part.toLowerCase()).join('\u001f');
+};
 
 const sortByName = (locations) =>
   [...(Array.isArray(locations) ? locations : [])].sort((a, b) =>
-    String(a?.name || '').localeCompare(String(b?.name || ''), undefined, {
+    locationStructureKey(a).localeCompare(locationStructureKey(b), undefined, {
       sensitivity: 'base',
       numeric: true,
     }),
@@ -75,19 +85,19 @@ export default function useLocationRegistry() {
     refreshLocations().catch(() => {});
   }, [refreshLocations]);
 
-  const createLocationInline = useCallback(async (name) => {
-    const normalized = String(name || '').trim().replace(/\s+/g, ' ');
-    if (!normalized) {
-      throw new Error('Location name is required');
+  const createLocationInline = useCallback(async (location) => {
+    const normalized = normalizeLocationStructure(location);
+    if (!normalized.room) {
+      throw new Error('Room is required');
     }
 
     const existing = cache.find(
-      (loc) => normalizeLocationName(loc?.name) === normalizeLocationName(normalized),
+      (loc) => locationStructureKey(loc) === locationStructureKey(normalized),
     );
     if (existing) return existing;
 
     try {
-      const created = await createLocation({ name: normalized });
+      const created = await createLocation(normalized);
       if (created?._id) {
         cache = sortByName([...cache, created]);
         loaded = true;
@@ -97,8 +107,7 @@ export default function useLocationRegistry() {
       await fetchAndCacheLocations();
       const matched = cache.find(
         (loc) =>
-          normalizeLocationName(loc?.name) ===
-          normalizeLocationName(normalized),
+          locationStructureKey(loc) === locationStructureKey(normalized),
       );
       if (matched) return matched;
       throw new Error('Location created but could not be resolved');
@@ -108,8 +117,7 @@ export default function useLocationRegistry() {
         await fetchAndCacheLocations();
         const matched = cache.find(
           (loc) =>
-            normalizeLocationName(loc?.name) ===
-            normalizeLocationName(normalized),
+            locationStructureKey(loc) === locationStructureKey(normalized),
         );
         if (matched) return matched;
       }

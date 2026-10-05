@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
+import { controlStyles, inputStyles } from '../../styles/primitives';
 
 import {
   addItemsToDeclutterSession,
@@ -31,13 +32,11 @@ const Field = styled.label`
 
 const Label = styled.span`
   color: rgba(230, 237, 243, 0.64);
-  font-size: 0.6rem;
+  font-size: 0.75rem;
   font-weight: 820;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  letter-spacing: 0;
+  text-transform: none;
+  font-family: var(--dw-font-ui);
 `;
 
 const Select = styled.select`
@@ -45,10 +44,11 @@ const Select = styled.select`
   min-height: 31px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 4px;
-  background: rgba(9, 14, 20, 0.96);
+  background: var(--dw-surface);
   color: #e6edf3;
   padding: 0.34rem 0.46rem;
   font-size: 0.78rem;
+  ${inputStyles};
 `;
 
 const Input = styled.input`
@@ -56,7 +56,7 @@ const Input = styled.input`
   min-height: 31px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 4px;
-  background: rgba(9, 14, 20, 0.96);
+  background: var(--dw-surface);
   color: #e6edf3;
   padding: 0.34rem 0.46rem;
   font-size: 0.78rem;
@@ -64,6 +64,7 @@ const Input = styled.input`
   &::placeholder {
     color: rgba(230, 237, 243, 0.42);
   }
+  ${inputStyles};
 `;
 
 const ActionRow = styled.div`
@@ -74,6 +75,8 @@ const ActionRow = styled.div`
 `;
 
 const Button = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   min-height: 31px;
   border-radius: 4px;
   border: 1px solid
@@ -82,15 +85,12 @@ const Button = styled.button`
         ? 'rgba(100, 188, 151, 0.82)'
         : 'rgba(102, 167, 212, 0.56)'};
   background:
-    ${({ $tone = 'default' }) =>
-      $tone === 'primary'
-        ? 'linear-gradient(180deg, rgba(23, 75, 60, 0.96), rgba(16, 51, 42, 0.96))'
-        : 'rgba(14, 24, 34, 0.95)'};
+    var(--dw-surface-raised);
   color: ${({ $tone = 'default' }) => ($tone === 'primary' ? '#e8fff5' : '#cfefff')};
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   font-weight: 850;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  text-transform: none;
+  letter-spacing: 0;
   padding: 0 0.58rem;
   cursor: pointer;
 
@@ -98,6 +98,9 @@ const Button = styled.button`
     opacity: 0.54;
     cursor: not-allowed;
   }
+  ${controlStyles};
+  border-left: 3px solid var(--dw-amber);
+  background: var(--dw-surface-raised);
 `;
 
 const StatusText = styled.div`

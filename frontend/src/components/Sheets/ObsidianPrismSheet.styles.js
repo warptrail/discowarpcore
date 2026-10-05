@@ -1,10 +1,8 @@
 import styled, { css, keyframes } from 'styled-components';
 
 const riseAndSettle = keyframes`
-  0% { opacity: 0; translate: 0 104%; }
-  68% { opacity: 1; translate: 0 -8px; }
-  84% { translate: 0 3px; }
-  100% { opacity: 1; translate: 0 0; }
+  from { opacity: 0; translate: 0 32px; }
+  to { opacity: 1; translate: 0 0; }
 `;
 
 const descend = keyframes`
@@ -47,16 +45,16 @@ export const Sheet = styled.section`
   grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
   overflow: hidden;
-  color: #e8edf4;
-  background: rgba(9, 13, 19, 0.985);
-  border-top: 1px solid rgba(99, 203, 196, 0.34);
+  color: var(--dw-text);
+  background: var(--dw-surface);
+  border-top: 2px solid var(--dw-amber);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.045),
     0 -18px 48px rgba(0, 0, 0, 0.52);
   animation: ${({ $closing }) =>
     $closing
       ? css`${descend} 220ms cubic-bezier(0.58, 0.02, 0.82, 0.42) both`
-      : css`${riseAndSettle} 560ms cubic-bezier(0.16, 0.82, 0.24, 1) both`};
+      : css`${riseAndSettle} 260ms cubic-bezier(0.16, 0.82, 0.24, 1) both`};
   will-change: translate, opacity;
 
   &:focus {
@@ -69,8 +67,8 @@ export const Sheet = styled.section`
     bottom: 12px;
     left: 50%;
     width: min(760px, calc(100vw - 24px));
-    border: 1px solid rgba(99, 203, 196, 0.28);
-    border-radius: 8px;
+    border: 1px solid var(--dw-border);
+    border-radius: 16px 8px 8px 8px;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.045),
       0 22px 64px rgba(0, 0, 0, 0.62);
@@ -90,15 +88,13 @@ export const Sheet = styled.section`
 export const Header = styled.header`
   position: relative;
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: start;
   gap: 0.35rem;
   min-height: 72px;
   padding: 0.72rem 0.28rem 0.68rem;
-  border-bottom: 1px solid rgba(166, 181, 203, 0.16);
-  background:
-    radial-gradient(circle at 52% -80%, rgba(87, 211, 202, 0.14), transparent 68%),
-    rgba(12, 17, 24, 0.96);
+  border-bottom: 1px solid var(--dw-border-soft);
+  background: var(--dw-surface);
 
   @media (min-width: 600px) {
     min-height: 78px;
@@ -109,23 +105,23 @@ export const Header = styled.header`
 const divot = css`
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 0;
-  color: rgba(224, 233, 243, 0.7);
+  color: var(--dw-text-secondary);
   background: transparent;
   font: 500 1.5rem/1 system-ui, sans-serif;
   cursor: pointer;
   transition: color 180ms ease, transform 180ms ease;
 
   &:hover {
-    color: #f3fbff;
+    color: var(--dw-text);
     transform: translateY(-1px);
   }
 
   &:focus-visible {
-    outline: 2px solid rgba(87, 211, 202, 0.72);
+    outline: 2px solid var(--dw-cyan);
     outline-offset: -3px;
   }
 `;
@@ -150,8 +146,8 @@ export const Heading = styled.div`
 `;
 
 export const Eyebrow = styled.span`
-  color: rgba(117, 221, 213, 0.76);
-  font: 780 0.58rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--dw-teal);
+  font: 700 0.7rem/1.2 var(--dw-font-data);
   letter-spacing: 0.13em;
   text-transform: uppercase;
 `;
@@ -160,7 +156,7 @@ export const Title = styled.h2`
   min-width: 0;
   margin: 0;
   overflow: hidden;
-  color: #f0f4f8;
+  color: var(--dw-text);
   font-size: clamp(1.08rem, 4vw, 1.42rem);
   font-weight: 720;
   line-height: 1.14;
@@ -172,8 +168,8 @@ export const Title = styled.h2`
 export const Context = styled.span`
   min-width: 0;
   overflow: hidden;
-  color: rgba(213, 222, 234, 0.58);
-  font: 650 0.64rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--dw-text-muted);
+  font: 500 0.8rem/1.4 var(--dw-font-ui);
   letter-spacing: 0.04em;
   text-overflow: ellipsis;
   white-space: nowrap;

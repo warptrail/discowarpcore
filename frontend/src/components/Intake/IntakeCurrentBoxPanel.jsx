@@ -1,5 +1,7 @@
+import { panelStyles } from '../../styles/primitives';
 import React from 'react';
 import styled from 'styled-components';
+import { getBoxTheme, getBoxThemeCssVars } from '../../util/inventoryColorTheme';
 
 import IntakeBoxSelectorPanel from './IntakeBoxSelectorPanel';
 import IntakeDestinationActions from './IntakeDestinationActions';
@@ -11,40 +13,44 @@ const Panel = styled.section`
   gap: 0.7rem;
   min-width: 0;
   padding: 0.8rem;
-  border: 1px solid rgba(var(--box-primary-rgb), 0.4);
-  border-radius: 7px;
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
   background:
-    linear-gradient(122deg, rgba(var(--box-primary-rgb), 0.13), transparent 38%),
-    linear-gradient(300deg, rgba(var(--box-secondary-rgb), 0.055), transparent 44%),
-    rgba(8, 15, 19, 0.9);
-  box-shadow:
-    inset 3px 0 0 rgba(var(--box-primary-rgb), 0.5),
-    inset 0 1px 0 rgba(var(--box-neon-rgb), 0.06);
+    var(--dw-surface);
+  box-shadow: none;
+
+  @media (max-width: 700px) {
+    padding: 0.7rem;
+  }
 
   @media (min-width: 760px) {
     padding: 0.9rem 1rem;
   }
+
+  ${panelStyles}
+  border-left: 3px solid var(--box-primary, #8A8175);
 `;
 
 const EmptyState = styled.div`
   display: grid;
-  gap: 0.2rem;
-  padding: 0.1rem 0 0.15rem;
+  gap: 0.3rem;
+  padding: 0.15rem 0 0.3rem;
+`;
+
+const EmptyEyebrow = styled.span`
+  color: var(--dw-violet);
+  font: 800 0.75rem/1.2 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 const EmptyTitle = styled.h2`
   margin: 0;
-  color: var(--box-neon);
-  font-size: 1.02rem;
-  font-weight: 760;
-`;
-
-const EmptyHint = styled.p`
-  max-width: 46ch;
-  margin: 0;
-  color: rgba(var(--box-secondary-rgb), 0.72);
-  font-size: 0.8rem;
-  line-height: 1.42;
+  color: var(--dw-text);
+  font-size: clamp(1.35rem, 5vw, 1.9rem);
+  font-weight: 820;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
 `;
 
 const SelectorRegion = styled.div`
@@ -58,6 +64,7 @@ export default function IntakeCurrentBoxPanel({
   currentBoxInsight,
   selectedBoxId = '',
   selectorOpen = false,
+  createOpen = false,
   onSelectBox,
   onToggleSelector,
   onCreateBox,
@@ -68,8 +75,16 @@ export default function IntakeCurrentBoxPanel({
   const hasCurrentBox = Boolean(selectedBox?._id);
 
   return (
-    <Panel aria-label="Current intake destination">
-      {hasCurrentBox ? (
+    <Panel aria-label="Current intake destination" style={getBoxThemeCssVars(getBoxTheme(selectedBox?.box_id ?? selectedBox?.shortId))}>
+      {createOpen ? (
+        <IntakeDestinationActions
+          box={selectedBox}
+          chooseOpen={false}
+          createOpen
+          onChangeDestination={onToggleSelector}
+          onCreateBox={onCreateBox}
+        />
+      ) : hasCurrentBox ? (
         <>
           <IntakeDestinationSummary
             box={selectedBox}
@@ -83,6 +98,7 @@ export default function IntakeCurrentBoxPanel({
             onChangeDestination={onToggleSelector}
             onEditBox={onEditBox}
             onCreateBox={onCreateBox}
+            chooseOpen={selectorOpen}
           />
           <IntakeDestinationPhotoDisclosure
             box={selectedBox}
@@ -92,14 +108,13 @@ export default function IntakeCurrentBoxPanel({
       ) : (
         <>
           <EmptyState>
-            <EmptyTitle>Select a current box</EmptyTitle>
-            <EmptyHint>
-              Choose the box once. Every new Intake item will land there until you change it.
-            </EmptyHint>
+            <EmptyEyebrow>Box destination</EmptyEyebrow>
+            <EmptyTitle>Select a box</EmptyTitle>
           </EmptyState>
           <IntakeDestinationActions
             onChangeDestination={onToggleSelector}
             onCreateBox={onCreateBox}
+            chooseOpen={selectorOpen}
           />
         </>
       )}
@@ -109,11 +124,11 @@ export default function IntakeCurrentBoxPanel({
           <IntakeBoxSelectorPanel
             boxes={boxes}
             selectedBoxId={selectedBoxId}
-            title={hasCurrentBox ? 'Change current box' : 'Choose a current box'}
+            title="Current selection"
             onSelectBox={onSelectBox}
-            onClose={onToggleSelector}
-            showClose
+            showClose={false}
             showFacets={false}
+            showResultCountInToast
           />
         </SelectorRegion>
       ) : null}

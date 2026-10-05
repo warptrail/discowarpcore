@@ -1,3 +1,4 @@
+import { inputStyles, controlStyles } from '../../styles/primitives';
 import styled, { css } from 'styled-components';
 import {
   MOBILE_BREAKPOINT,
@@ -8,31 +9,29 @@ import {
 } from '../../styles/tokens';
 
 const LCARS = {
-  panel: '#11161f',
-  panelSoft: '#171f2c',
-  inset: '#0b1018',
-  line: 'rgba(130, 168, 196, 0.34)',
-  text: '#e6edf4',
-  textDim: 'rgba(214, 226, 241, 0.78)',
-  teal: '#4cc6c1',
-  amber: '#e8b15c',
-  lilac: '#a7b6ff',
-  coral: '#f08a7b',
+  panel: 'var(--dw-surface)',
+  panelSoft: 'var(--dw-surface-raised)',
+  inset: 'var(--dw-background)',
+  line: 'rgba(230, 237, 243, 0.14)',
+  text: 'var(--dw-text)',
+  textDim: 'var(--dw-text-secondary)',
+  teal: 'var(--dw-teal)',
+  amber: 'var(--dw-amber)',
+  lilac: 'var(--dw-violet)',
+  coral: 'var(--dw-coral)',
 };
 
 export const Card = styled.form`
   position: relative;
   display: grid;
   gap: ${({ $compact }) => ($compact ? '8px' : '12px')};
-  background: ${LCARS.panel};
-  border: 1px solid rgba(130, 168, 196, 0.18);
-  border-radius: 12px;
-  padding: ${({ $compact }) => ($compact ? '10px' : '13px')};
+  background: ${({ $flat }) => ($flat ? 'transparent' : LCARS.panel)};
+  border: ${({ $flat }) => ($flat ? '0' : '1px solid rgba(230, 237, 243, 0.12)')};
+  border-radius: ${({ $flat }) => ($flat ? '0' : '12px')};
+  padding: ${({ $compact, $flat }) => ($flat ? '2px 0 0' : ($compact ? '10px' : '13px'))};
   min-width: 0;
   max-width: 100%;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
-    0 12px 24px rgba(0, 0, 0, 0.24);
+  box-shadow: none;
   isolation: isolate;
 
   & > * {
@@ -69,10 +68,10 @@ export const ConsoleHeader = styled.div`
 `;
 
 export const ConsoleKicker = styled.span`
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 760;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: ${LCARS.textDim};
 `;
 
@@ -80,8 +79,8 @@ export const ConsoleTitle = styled.h4`
   margin: 0;
   color: ${LCARS.text};
   font-size: 14px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export const ConsoleHint = styled.p`
@@ -109,14 +108,16 @@ export const ConsoleSide = styled.div`
 `;
 
 export const SectionCard = styled.section`
-  border: 1px solid rgba(130, 168, 196, 0.16);
-  border-radius: 11px;
-  padding: 9px;
-  background: rgba(23, 31, 44, 0.5);
+  min-width: 0;
+  border: 0;
+  border-top: 1px solid var(--dw-border-soft);
+  border-radius: 0;
+  padding: 10px 0 0;
+  background: transparent;
   box-shadow: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    border-radius: 9px;
+    border-radius: var(--dw-radius-sm);
     padding: 7px;
   }
 
@@ -144,28 +145,28 @@ export const SectionHeader = styled.div`
 `;
 
 export const SectionLabel = styled.span`
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 760;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: rgba(214, 226, 241, 0.66);
   display: none;
 
   @media (max-width: 600px) {
-    font-size: 9px;
+    font-size: 12px;
   }
 `;
 
 export const SectionTitle = styled.h5`
   margin: 0;
   font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: ${LCARS.text};
 `;
 
 export const SectionHint = styled.span`
-  font-size: 10px;
+  font-size: 12px;
   color: rgba(214, 226, 241, 0.62);
   display: none;
 
@@ -187,9 +188,9 @@ export const SectionBody = styled.div`
 export const MediaFrame = styled.div`
   display: grid;
   gap: 8px;
-  border: 1px solid rgba(130, 168, 196, 0.24);
-  border-radius: 10px;
-  background: linear-gradient(180deg, rgba(11, 16, 24, 0.92), rgba(10, 15, 22, 0.9));
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-background);
   padding: 8px;
 `;
 
@@ -218,7 +219,7 @@ export const IdentityCompactGrid = styled.div`
   display: grid;
   gap: 8px;
   align-items: start;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 132px minmax(0, 1fr);
 
   & > :last-child {
     grid-column: 1 / -1;
@@ -239,7 +240,7 @@ export const CompactContextGrid = styled.div`
   gap: 7px;
   min-width: 0;
   padding-top: 7px;
-  border-top: 1px solid rgba(151, 163, 176, 0.24);
+  border-top: 1px solid var(--dw-border);
 
   @media (min-width: 560px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -249,7 +250,7 @@ export const CompactContextGrid = styled.div`
 export const CompactMediaRegion = styled.div`
   min-width: 0;
   padding-top: 7px;
-  border-top: 1px solid rgba(151, 163, 176, 0.24);
+  border-top: 1px solid var(--dw-border);
 `;
 
 export const Field = styled.div`
@@ -257,13 +258,14 @@ export const Field = styled.div`
   flex-direction: column;
   gap: ${({ $compact }) => ($compact ? '2px' : '0')};
   min-width: 0;
+  grid-column: ${({ $full }) => ($full ? '1 / -1' : 'auto')};
 `;
 
 export const Label = styled.label`
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 740;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: ${LCARS.textDim};
   margin-bottom: ${({ $compact }) => ($compact ? '4px' : '6px')};
 
@@ -273,15 +275,15 @@ export const Label = styled.label`
   }
 
   @media (max-width: 600px) {
-    font-size: 9px;
+    font-size: 12px;
     margin-bottom: 2px;
   }
 `;
 
 export const Input = styled.input`
   padding: ${({ $compact }) => ($compact ? '8px 10px' : '10px 12px')};
-  border-radius: 8px;
-  border: 1px solid rgba(122, 142, 167, 0.44);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
   background: ${LCARS.inset};
   color: #c9d8eb;
   font-size: ${({ $compact }) => ($compact ? '13px' : '14px')};
@@ -291,7 +293,7 @@ export const Input = styled.input`
   &:focus {
     outline: none;
     border-color: ${LCARS.teal};
-    box-shadow: 0 0 0 2px rgba(76, 198, 193, 0.2);
+    box-shadow: none;
   }
 
   ${({ $invalid }) =>
@@ -304,15 +306,17 @@ export const Input = styled.input`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_SM};
     padding: 8px 10px;
-    min-height: 36px;
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
   }
+
+  ${inputStyles}
 `;
 
 export const Textarea = styled.textarea`
   width: 100%;
   padding: ${({ $compact }) => ($compact ? '8px 10px' : '10px 12px')};
-  border-radius: 8px;
-  border: 1px solid rgba(122, 142, 167, 0.44);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
   background: ${LCARS.inset};
   color: #c9d8eb;
   font-size: ${({ $compact }) => ($compact ? '13px' : '14px')};
@@ -325,7 +329,7 @@ export const Textarea = styled.textarea`
   &:focus {
     outline: none;
     border-color: ${LCARS.teal};
-    box-shadow: 0 0 0 2px rgba(76, 198, 193, 0.2);
+    box-shadow: none;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -338,12 +342,16 @@ export const Textarea = styled.textarea`
     min-height: ${({ $compact }) => ($compact ? '68px' : '76px')};
     padding: 7px 9px;
   }
+
+  ${inputStyles}
+  min-height: 88px;
+  resize: vertical;
 `;
 
 export const Select = styled.select`
   padding: ${({ $compact }) => ($compact ? '8px 10px' : '10px 12px')};
-  border-radius: 8px;
-  border: 1px solid rgba(122, 142, 167, 0.44);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
   background: ${LCARS.inset};
   color: #c9d8eb;
   font-size: ${({ $compact }) => ($compact ? '13px' : '14px')};
@@ -353,26 +361,27 @@ export const Select = styled.select`
   &:focus {
     outline: none;
     border-color: ${LCARS.teal};
-    box-shadow: 0 0 0 2px rgba(76, 198, 193, 0.2);
+    box-shadow: none;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_SM};
     padding: 8px 10px;
-    min-height: 36px;
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
   }
+
+  ${inputStyles}
 `;
 
 export const LocationSection = styled.div`
-  border: 1px solid rgba(130, 168, 196, 0.28);
-  border-radius: 10px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 34%),
-    #171e2a;
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface-raised);
   padding: ${({ $compact }) => ($compact ? '6px' : '8px')};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: ${({ $compact }) => ($compact ? '5px' : '6px')};
-    border-radius: 9px;
+    border-radius: var(--dw-radius-sm);
   }
 `;
 
@@ -380,13 +389,134 @@ export const LocationShell = styled.div`
   position: relative;
 `;
 
+export const LocationStructureGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+
+  & > :first-child {
+    grid-column: 1 / -1;
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+
+    & > :first-child {
+      grid-column: auto;
+    }
+  }
+`;
+
+export const LocationSubform = styled.section`
+  display: grid;
+  gap: 7px;
+  padding: 9px;
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface-raised);
+`;
+
+export const LocationSubformHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+`;
+
+export const LocationSubformTitle = styled.span`
+  color: rgba(214, 226, 241, 0.66);
+  font-size: 12px;
+  font-weight: 760;
+  letter-spacing: 0.01em;
+  text-transform: none;
+`;
+
+export const LocationLevelField = styled.label`
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  color: ${LCARS.textDim};
+  font-size: 12px;
+  font-weight: 740;
+  letter-spacing: 0.01em;
+  text-transform: none;
+`;
+
+export const LocationAction = styled.button`
+  flex: 1;
+  margin: 0;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface-raised);
+  color: #c9f5ef;
+  font: 740 11px/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  cursor: pointer;
+
+  &:hover:enabled,
+  &:focus-visible {
+    border-color: #4cc6c1;
+    background: var(--dw-surface-raised);
+    outline: none;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+  }
+
+  ${controlStyles}
+`;
+
+export const LocationActionRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: ${({ $iconOnly }) => ($iconOnly ? 'flex-end' : 'flex-start')};
+  gap: 6px;
+  margin-top: 7px;
+`;
+
+export const LocationClear = styled.button`
+  width: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0;
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: transparent;
+  color: rgba(214, 226, 241, 0.52);
+  font: 700 17px/1 var(--dw-font-ui);
+  cursor: pointer;
+
+  &:hover:enabled,
+  &:focus-visible {
+    border-color: rgba(240, 138, 123, 0.54);
+    background: var(--dw-surface-raised);
+    color: #f6b3aa;
+    outline: none;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  ${controlStyles}
+  flex: 0 0 auto;
+  width: auto;
+  justify-self: start;
+`;
+
 export const LocationInput = styled.input`
   width: 100%;
   min-height: ${({ $compact }) => ($compact ? '36px' : '40px')};
   padding: ${({ $compact }) => ($compact ? '8px 10px' : '9px 12px')};
-  border-radius: 8px;
-  border: 1px solid rgba(122, 142, 167, 0.45);
-  background: #0b1018;
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-background);
   color: #c9d8eb;
   font-size: 14px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -394,8 +524,8 @@ export const LocationInput = styled.input`
   &:focus {
     outline: none;
     border-color: #4cc6c1;
-    box-shadow: 0 0 0 2px rgba(76, 198, 193, 0.2);
-    background: #0c121b;
+    box-shadow: none;
+    background: var(--dw-background);
   }
 
   &:disabled {
@@ -404,10 +534,12 @@ export const LocationInput = styled.input`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 36px;
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     padding: 8px 10px;
     font-size: ${MOBILE_FONT_SM};
   }
+
+  ${inputStyles}
 `;
 
 export const LocationDropdown = styled.ul`
@@ -419,10 +551,10 @@ export const LocationDropdown = styled.ul`
   list-style: none;
   margin: 0;
   padding: 6px;
-  border-radius: 8px;
-  border: 1px solid rgba(122, 142, 167, 0.45);
-  background: #0b1018;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.38);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-background);
+  box-shadow: none;
   max-height: 240px;
   overflow: auto;
 
@@ -441,7 +573,7 @@ export const LocationOption = styled.li`
   justify-content: space-between;
   gap: 8px;
   padding: 8px 10px;
-  border-radius: 6px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $active }) => ($active ? 'rgba(76, 198, 193, 0.55)' : 'transparent')};
   background: ${({ $active }) => ($active ? 'rgba(76, 198, 193, 0.15)' : 'transparent')};
@@ -450,7 +582,7 @@ export const LocationOption = styled.li`
 
   &:hover {
     border-color: rgba(76, 198, 193, 0.45);
-    background: rgba(76, 198, 193, 0.18);
+    background: var(--dw-surface-raised);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -466,26 +598,26 @@ export const LocationOptionName = styled.span`
 `;
 
 export const LocationOptionMeta = styled.span`
-  font-size: 11px;
+  font-size: 12px;
   color: rgba(214, 226, 241, 0.68);
   white-space: nowrap;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: 10px;
+    font-size: 12px;
   }
 `;
 
 export const CreateBadge = styled.span`
-  border: 1px solid rgba(167, 182, 255, 0.52);
-  border-radius: 999px;
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
   padding: 2px 8px;
-  font-size: 11px;
+  font-size: 12px;
   color: #dce4ff;
-  background: rgba(167, 182, 255, 0.16);
+  background: var(--dw-surface-raised);
   white-space: nowrap;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: 10px;
+    font-size: 12px;
     padding: 2px 6px;
   }
 `;
@@ -512,14 +644,14 @@ const shortIdFocusRing = ($status, $paletteRgb) => {
 };
 
 export const ShortIdInput = styled.input`
-  font-family: monospace;
+  font-family: var(--dw-font-ui);
   text-align: center;
   width: ${({ $compact }) => ($compact ? '4em' : '4.5em')};
   margin: 0 auto;
   padding: ${({ $compact }) => ($compact ? '8px 8px' : '10px 12px')};
-  border-radius: 8px;
+  border-radius: var(--dw-radius-sm);
   border: 2px solid ${({ $status, $palette }) => shortIdBorderColor($status, $palette)};
-  background: #101010;
+  background: var(--dw-background);
   color: #cfe0ff;
   font-size: ${({ $compact }) => ($compact ? '16px' : '18px')};
   letter-spacing: 2px;
@@ -537,6 +669,12 @@ export const ShortIdInput = styled.input`
     padding: 8px 8px;
     font-size: 16px;
   }
+
+  ${inputStyles}
+  font-family: var(--dw-font-data);
+
+  border-color: ${({ $status }) => $status === 'invalid' ? 'var(--dw-coral)' : $status === 'inProgress' ? 'var(--dw-amber)' : $status === 'valid' ? 'var(--dw-teal)' : 'var(--dw-border)'};
+  padding-inline: 0.4rem;
 `;
 
 export const Hint = styled.div`
@@ -552,9 +690,9 @@ export const Hint = styled.div`
 
 export const TagWrap = styled.div`
   padding: ${({ $compact }) => ($compact ? '6px' : '8px')};
-  border-radius: 8px;
-  border: 1px solid rgba(122, 142, 167, 0.32);
-  background: #101010;
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-background);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 6px;
@@ -572,11 +710,10 @@ export const TagChip = styled.span`
   align-items: center;
   gap: ${({ $compact }) => ($compact ? '5px' : '6px')};
   padding: ${({ $compact }) => ($compact ? '4px 7px' : '6px 8px')};
-  border-radius: 7px;
-  background: rgba(20, 28, 40, 0.9);
-  border: 1px solid rgba(111, 148, 190, 0.32);
-  font-family: 'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace,
-    Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface-raised);
+  border: 1px solid var(--dw-border);
+  font-family: var(--dw-font-ui);
   font-size: ${({ $compact }) => ($compact ? '11px' : '12px')};
   color: #98c2ff;
 `;
@@ -591,21 +728,28 @@ export const RemoveX = styled.button`
   &:hover {
     color: #ff8080;
   }
+
+  ${controlStyles}
+  color: var(--dw-coral);
+
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0.2rem;
 `;
 
 export const TagAdder = styled.input`
   padding: ${({ $compact }) => ($compact ? '5px 8px' : '6px 8px')};
   min-width: 140px;
-  border-radius: 8px;
-  border: 1px solid rgba(122, 142, 167, 0.44);
-  background: #0f0f0f;
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-background);
   color: #c9d8eb;
   font-size: ${({ $compact }) => ($compact ? '11px' : '12px')};
 
   &:focus {
     outline: none;
     border-color: #4d96ff;
-    box-shadow: 0 0 0 2px rgba(77, 150, 255, 0.2);
+    box-shadow: none;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -613,13 +757,15 @@ export const TagAdder = styled.input`
     min-width: 0;
     font-size: ${MOBILE_FONT_SM};
   }
+
+  ${inputStyles}
 `;
 
 export const FileStub = styled.div`
   padding: ${({ $compact }) => ($compact ? '8px' : '12px')};
-  border-radius: 8px;
+  border-radius: var(--dw-radius-sm);
   border: 1px dashed #2a2a2a;
-  background: #101010;
+  background: var(--dw-background);
   color: #bdbdbd;
   font-size: ${({ $compact }) => ($compact ? '11px' : '12px')};
 
@@ -635,9 +781,9 @@ export const ImagePreview = styled.img`
   height: ${({ $compact }) => ($compact ? '96px' : 'auto')};
   max-height: ${({ $compact }) => ($compact ? '96px' : '170px')};
   object-fit: cover;
-  border-radius: 10px;
-  border: 1px solid #2f2f2f;
-  background: #0f0f0f;
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-background);
   margin-bottom: ${({ $compact }) => ($compact ? '0' : '8px')};
 `;
 
@@ -666,13 +812,8 @@ export const FormActionDock = styled.div`
   flex-wrap: wrap;
   margin-top: ${({ $compact }) => ($compact ? '8px' : '10px')};
   padding: ${({ $compact }) => ($compact ? '8px 0' : '12px 0 10px')};
-  border-top: 1px solid rgba(130, 168, 196, 0.18);
-  background: linear-gradient(
-    180deg,
-    rgba(17, 22, 31, 0),
-    rgba(17, 22, 31, 0.94) 44%,
-    rgba(17, 22, 31, 0.99)
-  );
+  border-top: 1px solid var(--dw-border);
+  background: var(--dw-surface);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     position: sticky;
@@ -680,22 +821,36 @@ export const FormActionDock = styled.div`
     justify-content: stretch;
     margin-top: 6px;
     padding: 8px 0 max(8px, env(safe-area-inset-bottom));
-    background: rgba(8, 12, 18, 0.98);
+    background: var(--dw-surface);
   }
+`;
+
+export const AutoSaveStatus = styled.div`
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--dw-border);
+  color: ${({ $status }) => {
+    if ($status === 'error') return 'var(--dw-coral)';
+    if ($status === 'saved') return 'var(--dw-teal)';
+    return 'var(--dw-text-muted)';
+  }};
+  font: 650 10px/1.2 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-align: right;
 `;
 
 export const Ghost = styled.button`
   padding: ${({ $compact }) => ($compact ? '8px 10px' : '10px 12px')};
   width: auto;
-  border-radius: 8px;
-  border: 1px solid #2f2f2f;
-  background: #141414;
-  color: #eaeaea;
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
+  color: var(--dw-text);
   cursor: pointer;
-  min-height: ${({ $compact }) => ($compact ? '36px' : MOBILE_CONTROL_MIN_HEIGHT)};
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
 
   &:hover {
-    border-color: #4ec77b;
+    border-color: var(--dw-cyan);
   }
 
   &:disabled {
@@ -705,25 +860,28 @@ export const Ghost = styled.button`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: 100%;
-    min-height: 36px;
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     font-size: ${MOBILE_FONT_SM};
   }
+
+  ${controlStyles}
+  color: var(--dw-violet);
 `;
 
 export const Primary = styled.button`
   padding: ${({ $compact }) => ($compact ? '8px 10px' : '10px 12px')};
   width: auto;
-  border-radius: 8px;
-  border: 1px solid #2a3e30;
-  background: #1b2a1f;
-  color: #d9f2e6;
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-teal);
+  background: var(--dw-surface-raised);
+  color: var(--dw-text);
   font-weight: 700;
   cursor: pointer;
-  min-height: ${({ $compact }) => ($compact ? '36px' : MOBILE_CONTROL_MIN_HEIGHT)};
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
 
   &:hover {
-    border-color: #4ec77b;
-    box-shadow: 0 0 0 2px rgba(78, 199, 123, 0.15) inset;
+    border-color: var(--dw-cyan);
+    background: var(--dw-surface-raised);
   }
 
   &:disabled {
@@ -733,15 +891,19 @@ export const Primary = styled.button`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: 100%;
-    min-height: 36px;
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     font-size: ${MOBILE_FONT_SM};
   }
+
+  ${controlStyles}
+  color: var(--dw-cyan);
+  border-color: var(--dw-cyan);
 `;
 
 export const DangerGhost = styled(Ghost)`
   border-color: rgba(201, 103, 103, 0.68);
-  background: rgba(57, 20, 20, 0.92);
-  color: #ffd9d9;
+  background: var(--dw-surface-raised);
+  color: var(--dw-coral);
 
   &:hover {
     border-color: rgba(232, 129, 129, 0.92);

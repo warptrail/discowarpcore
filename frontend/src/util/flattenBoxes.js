@@ -2,6 +2,8 @@
 // including items in any childBoxes (nested recursively).
 // It returns a flat array of all items, each annotated with which box they came from.
 
+import { getItemCompartment } from './boxCompartments';
+
 export default function flattenBoxes(box, parentLabel = null) {
   // Initialize an empty array to collect all flattened items
   let flatItems = [];
@@ -10,7 +12,9 @@ export default function flattenBoxes(box, parentLabel = null) {
   if (box.items && Array.isArray(box.items)) {
     // Annotate each item with its parent box label and ID for context
     const labeledItems = box.items.map((item) => ({
-      ...item, // copy all original item properties
+      ...item,
+      compartmentKey: getItemCompartment(box, item),
+      placementLabel: `${box.box_id || ''}${getItemCompartment(box, item)}`, // copy all original item properties
       parentBoxLabel: box.label || parentLabel || 'Unlabeled Box', // fallback if label is missing
       parentBoxId: box.box_id || '???', // fallback ID if missing
       parentBoxMongoId: box._id || box.id || '', // source mongo id for move actions

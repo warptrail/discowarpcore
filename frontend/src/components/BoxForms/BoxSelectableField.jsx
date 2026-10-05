@@ -36,6 +36,7 @@ export default function BoxSelectableField({
   helperText = '',
   allowFreeform = false,
   clearOnFocus = false,
+  bare = false,
 }) {
   const [inputValue, setInputValue] = useState('');
   const [open, setOpen] = useState(false);
@@ -183,6 +184,7 @@ export default function BoxSelectableField({
       aria-label={dropdownAriaLabel || `${label} options`}
       style={dropdownStyle}
       $portal
+      onPointerDown={(event) => event.stopPropagation()}
     >
       {includeNoneOption ? (
         <S.LocationOption
@@ -238,8 +240,8 @@ export default function BoxSelectableField({
     </S.LocationDropdown>
   ) : null;
 
-  return (
-    <S.LocationSection $compact={compact}>
+  const field = (
+    <>
       <S.Label htmlFor={inputId} $compact={compact}>{label}</S.Label>
       <S.LocationShell>
         <S.LocationInput
@@ -344,6 +346,14 @@ export default function BoxSelectableField({
       {helperText ? <S.Hint $compact={compact}>{helperText}</S.Hint> : null}
       {loading ? <S.Hint $compact={compact}>{loadingMessage}</S.Hint> : null}
       {errorMessage ? <S.Hint $error $compact={compact}>{errorMessage}</S.Hint> : null}
+    </>
+  );
+
+  if (bare) return field;
+
+  return (
+    <S.LocationSection $compact={compact}>
+      {field}
     </S.LocationSection>
   );
 }

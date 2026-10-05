@@ -1,3 +1,4 @@
+import { controlStyles } from '../styles/primitives';
 // src/components/ItemCentricViewPanel.jsx
 import React, { useState, useMemo, useEffect } from 'react';
 import styled from 'styled-components';
@@ -119,13 +120,12 @@ export default function ItemCentricViewPanel({
 const Panel = styled.section`
   width: 100%;
   box-sizing: border-box;
-  background: ${({ theme }) => theme?.colors?.panelBg || '#0e0f13'};
-  color: ${({ theme }) => theme?.colors?.textPrimary || '#e7ecf3'};
+  background: ${({ theme }) => theme?.colors?.panelBg || 'var(--dw-surface)'};
+  color: ${({ theme }) => theme?.colors?.textPrimary || 'var(--dw-text)'};
   border: 1px solid
     ${({ theme }) => theme?.colors?.border || 'rgba(120, 130, 155, 0.25)'};
-  border-radius: 16px;
+  border-radius: var(--dw-radius);
   padding: 16px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
 `;
 
 const HeaderRow = styled.div`
@@ -139,7 +139,6 @@ const Title = styled.h2`
   margin: 0;
   font-size: clamp(1.25rem, 2.5vw, 1.75rem);
   letter-spacing: 0.3px;
-  text-shadow: 0 0 12px rgba(0, 255, 255, 0.1);
 `;
 
 const Actions = styled.div`
@@ -148,12 +147,13 @@ const Actions = styled.div`
 `;
 
 const GhostButton = styled.button`
+  ${controlStyles}
   background: transparent;
   border: 1px solid
     ${({ theme }) => theme?.colors?.border || 'rgba(120, 130, 155, 0.35)'};
-  color: ${({ theme }) => theme?.colors?.textSecondary || '#b9c3cf'};
+  color: ${({ theme }) => theme?.colors?.textSecondary || 'var(--dw-text-secondary)'};
   padding: 6px 10px;
-  border-radius: 10px;
+  border-radius: var(--dw-radius);
   cursor: pointer;
   transition: transform 120ms ease, border-color 120ms ease;
   &:hover {
@@ -177,11 +177,9 @@ const Thumb = styled.img`
   width: 100%;
   height: 120px;
   object-fit: cover;
-  border-radius: 14px;
+  border-radius: var(--dw-radius);
   border: 1px solid
     ${({ theme }) => theme?.colors?.accentDim || 'rgba(77, 235, 212, 0.35)'};
-  box-shadow: 0 0 0 4px rgba(77, 235, 212, 0.06),
-    inset 0 0 24px rgba(77, 235, 212, 0.05);
 `;
 
 const QuickFacts = styled.dl`
@@ -198,7 +196,7 @@ const Fact = styled.div`
 `;
 
 const FactLabel = styled.dt`
-  color: ${({ theme }) => theme?.colors?.textSecondary || '#a9b2bf'};
+  color: ${({ theme }) => theme?.colors?.textSecondary || 'var(--dw-text-secondary)'};
   font-size: 0.9rem;
 `;
 
@@ -222,16 +220,12 @@ const BoxBadge = styled.span`
   display: inline-block;
   min-width: 38px;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   border: 1px solid ${({ theme }) => theme?.colors?.accent || '#4debd4'};
   color: ${({ theme }) => theme?.colors?.accentText || '#bff6ef'};
   font-size: 0.8rem;
   text-align: center;
-  background: linear-gradient(
-    180deg,
-    rgba(77, 235, 212, 0.08),
-    rgba(77, 235, 212, 0.02)
-  );
+  background: var(--dw-surface-raised);
 `;
 
 const Section = styled.section`
@@ -241,14 +235,14 @@ const Section = styled.section`
 const SectionTitle = styled.h3`
   margin: 0 0 8px 0;
   font-size: 1rem;
-  color: ${({ theme }) => theme?.colors?.textSecondary || '#a9b2bf'};
+  color: ${({ theme }) => theme?.colors?.textSecondary || 'var(--dw-text-secondary)'};
   font-weight: 600;
 `;
 
 const Notes = styled.p`
   margin: 0;
   line-height: 1.5;
-  color: ${({ theme }) => theme?.colors?.textPrimary || '#e7ecf3'};
+  color: ${({ theme }) => theme?.colors?.textPrimary || 'var(--dw-text)'};
   white-space: pre-wrap;
 `;
 
@@ -260,7 +254,7 @@ const TagRow = styled.div`
 
 const Tag = styled.span`
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   border: 1px dashed ${({ theme }) => theme?.colors?.accent || '#4debd4'};
   background: rgba(77, 235, 212, 0.06);
   color: ${({ theme }) => theme?.colors?.accentText || '#bff6ef'};
@@ -270,5 +264,5 @@ const Tag = styled.span`
 const EmptyState = styled.div`
   padding: 32px;
   text-align: center;
-  color: ${({ theme }) => theme?.colors?.textSecondary || '#a9b2bf'};
+  color: ${({ theme }) => theme?.colors?.textSecondary || 'var(--dw-text-secondary)'};
 `;

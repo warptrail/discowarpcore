@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 
 const coral = '#F08A7B';
 const lilac = '#A7B6FF';
-const cyan = '#67D9D3';
 
 export const Lane = styled.section`
   position: relative;
@@ -14,20 +13,25 @@ export const Lane = styled.section`
   padding: 0 0.7rem 0.65rem 0.9rem;
   overflow: hidden;
   border: 1px solid rgba(240, 138, 123, 0.58);
-  border-radius: 22px 8px 10px 16px;
+  border-radius: var(--dw-radius);
   background:
-    radial-gradient(circle at 92% 0%, rgba(167, 182, 255, 0.14), transparent 34%),
-    linear-gradient(100deg, rgba(240, 138, 123, 0.09), transparent 24%),
-    rgba(7, 14, 20, 0.94);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+    var(--dw-surface);
+  box-shadow: none;
+  min-width: 0;
+  font-family: var(--dw-font-ui);
+  & :is(button, a, input, select, textarea):focus-visible {
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
+  }
 `;
 
 export const SignalRail = styled.span`
+  background-color: var(--dw-amber);
   position: absolute;
   inset: 0 auto 0 0;
-  width: 7px;
-  background: linear-gradient(180deg, ${coral}, #E8B15C 38%, ${lilac} 72%, ${cyan});
-  box-shadow: 0 0 18px rgba(240, 138, 123, 0.3);
+  width: 4px;
+  background: var(--dw-amber);
+  box-shadow: none;
 `;
 
 export const Header = styled.header`
@@ -41,8 +45,8 @@ export const Header = styled.header`
 
 export const Kicker = styled.div`
   color: ${coral};
-  font: 850 0.58rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.14em;
+  font: 850 0.75rem/1.2 var(--dw-font-ui);
+  letter-spacing: normal;
 `;
 
 export const Title = styled.h2`
@@ -55,18 +59,18 @@ export const Title = styled.h2`
 export const Subtitle = styled.p`
   margin: 0.18rem 0 0;
   color: rgba(230, 237, 243, 0.64);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
 `;
 
 export const Count = styled.div`
   display: grid;
   justify-items: end;
   color: ${lilac};
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  text-transform: uppercase;
+  font-family: var(--dw-font-ui);
+  text-transform: none;
 
   strong { font-size: 1.7rem; line-height: 0.9; }
-  span { margin-top: 0.2rem; font-size: 0.52rem; letter-spacing: 0.08em; }
+  span { margin-top: 0.2rem; font-size: 0.75rem; letter-spacing: normal; }
 `;
 
 export const ItemList = styled.div`
@@ -88,7 +92,7 @@ export const ItemLink = styled(Link)`
   text-decoration: none;
 
   &:hover, &:focus-visible {
-    background: linear-gradient(90deg, rgba(240, 138, 123, 0.12), transparent 76%);
+    background: var(--dw-surface);
     outline: none;
   }
 `;
@@ -102,7 +106,7 @@ export const Thumbnail = styled.span`
   border: 1px solid rgba(240, 138, 123, 0.42);
   border-radius: 5px;
   color: rgba(167, 182, 255, 0.6);
-  background: rgba(3, 9, 14, 0.8);
+  background: var(--dw-surface);
 
   img { width: 100%; height: 100%; object-fit: cover; }
 `;
@@ -127,7 +131,7 @@ export const ItemMeta = styled.span`
   min-width: 0;
   margin-top: 0.13rem;
   color: rgba(167, 182, 255, 0.66);
-  font-size: 0.58rem;
+  font-size: 0.75rem;
 
   span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   span:last-child { color: rgba(230, 237, 243, 0.48); }
@@ -135,7 +139,7 @@ export const ItemMeta = styled.span`
 
 export const Quantity = styled.span`
   color: ${coral};
-  font: 800 0.65rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font: 800 0.75rem/1 var(--dw-font-ui);
 `;
 
 export const Message = styled.p`
@@ -149,10 +153,10 @@ export const AllItemsLink = styled(Link)`
   justify-self: end;
   margin-top: 0.55rem;
   color: ${coral};
-  font: 800 0.58rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.08em;
+  font: 800 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: normal;
   text-decoration: none;
-  text-transform: uppercase;
+  text-transform: none;
 
   &:hover, &:focus-visible { color: #ffd0c9; outline: none; }
 `;

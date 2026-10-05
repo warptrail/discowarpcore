@@ -1,6 +1,7 @@
 const DeclutterCandidate = require('../models/DeclutterCandidate');
 const Item = require('../models/Item');
 const Box = require('../models/Box');
+const { getItemCompartment, getCompartments } = require('../utils/boxCompartments');
 const { attachItemToBox, detachItem } = require('./boxItemService');
 const { markItemGone } = require('./itemService');
 const { writeBackendLog, serializeError } = require('../utils/backendLogger');
@@ -26,15 +27,19 @@ function workflowLog(level, event, fields = {}) {
 }
 
 async function rememberPreActionBox(candidate) {
-  if (candidate.preActionBoxId) return candidate.preActionBoxId;
-  const box = await Box.findOne({ items: candidate.itemId }).select('_id').lean();
+  if (candidate.preActionPlacementRecorded || candidate.preActionBoxId) return candidate.preActionBoxId;
+  const box = await Box.findOne({ items: candidate.itemId }).lean();
   candidate.preActionBoxId = box?._id || null;
-  if (candidate.preActionBoxId) {
-    await DeclutterCandidate.updateOne(
-      { _id: candidate._id, preActionBoxId: null },
-      { $set: { preActionBoxId: candidate.preActionBoxId } }
-    );
-  }
+  candidate.preActionCompartmentKey = box ? getItemCompartment(box, candidate.itemId) : '';
+  candidate.preActionPlacementRecorded = true;
+  await DeclutterCandidate.updateOne(
+    { _id: candidate._id },
+    { $set: {
+      preActionBoxId: candidate.preActionBoxId,
+      preActionCompartmentKey: candidate.preActionCompartmentKey,
+      preActionPlacementRecorded: true,
+    } }
+  );
   return candidate.preActionBoxId;
 }
 
@@ -232,6 +237,11 @@ function archiveRound(candidate, reason) {
     actionCompletedAt: candidate.actionCompletedAt,
     resolvedAt: candidate.resolvedAt,
     notes: candidate.notes,
+    privateNotes: candidate.privateNotes,
+    sharedNotes: candidate.sharedNotes,
+    preActionBoxId: candidate.preActionBoxId,
+    preActionPlacementRecorded: candidate.preActionPlacementRecorded,
+    preActionCompartmentKey: candidate.preActionCompartmentKey,
     reason,
     archivedAt: new Date(),
   };
@@ -242,11 +252,14 @@ async function restorePreActionPlacement(candidate) {
     $set: { declutterExitState: 'none' },
     $pull: { tags: DESTRUCTION_TAG },
   });
-  const boxExists = candidate.preActionBoxId
-    ? await Box.exists({ _id: candidate.preActionBoxId })
-    : null;
-  if (boxExists) {
-    await attachItemToBox({ itemId: candidate.itemId, boxId: candidate.preActionBoxId });
+  // Keep never moves inventory. Legacy rounds without a saved placement are
+  // also unknown, not proof the item used to be unboxed.
+  if (candidate.resolution === 'kept' || (!candidate.preActionPlacementRecorded && !candidate.preActionBoxId)) return;
+  const box = candidate.preActionBoxId ? await Box.findById(candidate.preActionBoxId).lean() : null;
+  if (box) {
+    const compartmentKey = getCompartments(box).some((row) => row.key === candidate.preActionCompartmentKey)
+      ? candidate.preActionCompartmentKey : undefined;
+    await attachItemToBox({ itemId: candidate.itemId, boxId: box._id, compartmentKey });
   } else {
     await detachItem({ itemId: candidate.itemId });
   }
@@ -358,6 +371,11 @@ async function reopenActionRound(candidateId, { player, reason = '' } = {}) {
   if (!item || item.item_status === 'gone') throw Object.assign(new Error('Gone inventory cannot be reopened.'), { status: 409 });
   await restorePreActionPlacement(candidate);
   candidate.roundHistory.push(archiveRound(candidate, reason || 'fresh_vote_round'));
+  candidate.privateNotes = {};
+  candidate.voteRevision = Number(candidate.voteRevision || 0) + 1;
+  candidate.preActionBoxId = null;
+  candidate.preActionPlacementRecorded = false;
+  candidate.preActionCompartmentKey = '';
   candidate.votes = {
     discofish: { decision: 'pending', exitPreference: null, decidedAt: null },
     laserfox: { decision: 'pending', exitPreference: null, decidedAt: null },

@@ -1,3 +1,4 @@
+import { panelStyles, inputStyles, controlStyles } from '../styles/primitives';
 import { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
@@ -7,30 +8,27 @@ import useShortIdAvailability from '../hooks/useShortIdAvailability';
 import useLocationRegistry from '../hooks/useLocationRegistry';
 import BoxLocationField from './BoxForms/BoxLocationField';
 import BoxTagsField from './BoxForms/BoxTagsField';
+import BoxComplexField from './BoxForms/BoxComplexField';
 import BoxDeclutterFields from './BoxForms/BoxDeclutterFields';
 
 const LCARS = {
-  panel: '#11161f',
-  panelSoft: '#171e2a',
-  inset: '#0b1018',
-  line: 'rgba(130, 168, 196, 0.36)',
-  text: '#e6edf4',
-  textDim: 'rgba(214, 226, 241, 0.8)',
-  teal: '#4cc6c1',
+  panel: 'var(--dw-surface)',
+  panelSoft: 'var(--dw-surface-raised)',
+  inset: 'var(--dw-background)',
+  line: 'rgba(230, 237, 243, 0.14)',
+  text: 'var(--dw-text)',
+  textDim: 'var(--dw-text-secondary)',
+  teal: 'var(--dw-teal)',
 };
 
 const Container = styled.div`
   position: relative;
   max-width: 500px;
-  margin: ${({ $embedded }) => ($embedded ? '0' : '3rem auto')};
+  margin: ${({ $embedded }) => ($embedded ? '0' : '1rem auto')};
   padding: ${({ $embedded }) => ($embedded ? '0.86rem 0.86rem 0.96rem' : '1rem 1rem 1.1rem')};
-  border-radius: 14px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid ${LCARS.line};
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 34%),
-    ${LCARS.panel};
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
-    0 14px 28px rgba(0, 0, 0, 0.24);
+  background: ${LCARS.panel};
   color: ${LCARS.text};
   overflow: hidden;
 
@@ -40,6 +38,9 @@ const Container = styled.div`
     max-width: 100%;
   `
       : ''}
+
+  ${panelStyles}
+  border-left: 3px solid var(--dw-amber);
 `;
 
 const Heading = styled.h2`
@@ -48,8 +49,8 @@ const Heading = styled.h2`
   margin: 0 0 0.9rem;
   padding-left: 0.25rem;
   font-size: 0.98rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: ${LCARS.textDim};
 `;
 
@@ -66,31 +67,28 @@ const Label = styled.label`
   font-size: 0.74rem;
   font-weight: 700;
   color: ${LCARS.textDim};
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 const Field = styled.div`
   display: grid;
   gap: 0.4rem;
-  padding: 0.55rem 0.65rem;
-  border-radius: 10px;
-  border: 1px solid rgba(140, 160, 179, 0.2);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 70%),
-    ${LCARS.panelSoft};
+  min-width: 0;
+  padding: 0;
 `;
 
 const Hint = styled.div`
   font-size: 0.72rem;
-  color: rgba(214, 226, 241, 0.7);
+  color: var(--dw-text-muted);
   letter-spacing: 0.02em;
   line-height: 1.35;
 `;
 
 const Input = styled.input`
   width: 100%;
-  border-radius: 9px;
-  border: 1px solid rgba(122, 142, 167, 0.45);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
   background: ${LCARS.inset};
   color: ${LCARS.text};
   font-size: 1rem;
@@ -99,23 +97,23 @@ const Input = styled.input`
   transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
 
   &::placeholder {
-    color: rgba(214, 226, 241, 0.44);
+    color: var(--dw-text-muted);
   }
 
   &:focus {
     outline: none;
     border-color: ${LCARS.teal};
-    box-shadow:
-      0 0 0 2px rgba(76, 198, 193, 0.25),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.03);
-    background: #0c121b;
+    box-shadow: none;
+    background: ${LCARS.inset};
   }
+
+  ${inputStyles}
 `;
 
 const Textarea = styled.textarea`
   width: 100%;
-  border-radius: 9px;
-  border: 1px solid rgba(122, 142, 167, 0.45);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
   background: ${LCARS.inset};
   color: ${LCARS.text};
   font-size: 0.94rem;
@@ -127,24 +125,25 @@ const Textarea = styled.textarea`
   white-space: pre-wrap;
 
   &::placeholder {
-    color: rgba(214, 226, 241, 0.44);
+    color: var(--dw-text-muted);
   }
 
   &:focus {
     outline: none;
     border-color: ${LCARS.teal};
-    box-shadow:
-      0 0 0 2px rgba(76, 198, 193, 0.25),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.03);
-    background: #0c121b;
+    box-shadow: none;
+    background: ${LCARS.inset};
   }
+
+  ${inputStyles}
+  min-height: 88px;
+  resize: vertical;
 `;
 
 const ShortIdInput = styled(Input)`
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
+  font-family: var(--dw-font-ui);
   text-align: center;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.01em;
   width: 8.5rem;
   max-width: 100%;
 `;
@@ -156,52 +155,45 @@ const Status = styled.div`
   letter-spacing: 0.03em;
   color: ${({ $tone }) =>
     $tone === 'valid'
-      ? '#9be2b5'
+      ? 'var(--dw-teal)'
       : $tone === 'invalid'
-        ? '#ffbdbd'
+        ? 'var(--dw-coral)'
         : $tone === 'pending'
-          ? '#f8d799'
+          ? 'var(--dw-amber)'
           : LCARS.textDim};
 `;
 
 const Error = styled.div`
-  border: 1px solid rgba(240, 138, 123, 0.4);
-  background: rgba(240, 138, 123, 0.12);
-  color: #ffccc6;
-  border-radius: 10px;
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
+  color: var(--dw-coral);
+  border-radius: var(--dw-radius-sm);
   padding: 0.6rem 0.72rem;
   font-size: 0.86rem;
 `;
 
 const Button = styled.button`
   min-width: 8rem;
-  border-radius: 999px;
-  border: 1px solid ${({ $secondary }) => ($secondary ? '#6f7c8f' : '#2f8f4d')};
-  color: ${({ $secondary }) => ($secondary ? '#dce8ff' : '#d6ffe4')};
-  background: ${({ $secondary }) =>
-    $secondary
-      ? 'linear-gradient(180deg, #2a3344, #202739)'
-      : 'linear-gradient(180deg, #2d8f47, #216b36)'};
-  box-shadow: 0 0 0 1px rgba(17, 30, 20, 0.42);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid ${({ $secondary }) => ($secondary ? 'rgba(230, 237, 243, 0.18)' : 'var(--dw-teal)')};
+  color: var(--dw-text);
+  background: ${({ $secondary }) => ($secondary ? 'var(--dw-surface-raised)' : 'rgba(76, 198, 193, 0.2)')};
+  min-height: 44px;
   padding: 0.58rem 1.08rem;
   font-size: 0.84rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   cursor: pointer;
   transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease,
     background 120ms ease;
 
   &:hover:enabled {
-    border-color: ${({ $secondary }) => ($secondary ? '#8898b5' : '#42b765')};
-    background: ${({ $secondary }) =>
-      $secondary
-        ? 'linear-gradient(180deg, #33405a, #27324b)'
-        : 'linear-gradient(180deg, #35a353, #257840)'};
-    box-shadow:
-      0 0 0 1px rgba(21, 35, 26, 0.45),
-      0 0 16px ${({ $secondary }) => ($secondary ? 'rgba(77, 108, 168, 0.28)' : 'rgba(51, 163, 83, 0.28)')};
+    border-color: ${({ $secondary }) => ($secondary ? 'var(--dw-cyan)' : 'var(--dw-teal)')};
+    background: ${({ $secondary }) => ($secondary ? 'var(--dw-surface-raised)' : 'rgba(76, 198, 193, 0.28)')};
   }
+
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
 
   &:active:enabled {
     transform: translateY(1px);
@@ -211,6 +203,10 @@ const Button = styled.button`
     opacity: 0.56;
     cursor: not-allowed;
   }
+
+  ${controlStyles}
+
+  color: ${({ $tone, $primary, $secondary }) => $tone === 'danger' ? 'var(--dw-coral)' : ($tone === 'primary' || $primary) ? 'var(--dw-cyan)' : $secondary ? 'var(--dw-violet)' : 'var(--dw-text)'};
 `;
 
 const ButtonRow = styled.div`
@@ -243,13 +239,14 @@ function BoxCreate({
   const navigate = useNavigate();
   const [boxId, setBoxId] = useState('');
   const [label, setLabel] = useState('');
-  const [group, setGroup] = useState('');
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
   const [locationId, setLocationId] = useState('');
+  const [locationDraft, setLocationDraft] = useState({ room: '', vicinity: '', specifics: '' });
   const [tags, setTags] = useState([]);
   const [declutterPurpose, setDeclutterPurpose] = useState('standard');
   const [declutterIsDefault, setDeclutterIsDefault] = useState(false);
+  const [isComplexBox, setIsComplexBox] = useState(false);
   const [isGiftBox, setIsGiftBox] = useState(false);
   const [locationCreateBusy, setLocationCreateBusy] = useState(false);
   const [locationError, setLocationError] = useState('');
@@ -272,11 +269,15 @@ function BoxCreate({
   });
   const availabilityState = shortIdValid ? shortIdAvail : null;
 
-  const handleCreateLocation = async (rawValue) => {
-    const normalized = String(rawValue || '').trim().replace(/\s+/g, ' ');
-    if (!normalized) {
-      setLocationError('Location name is required');
-      throw new Error('Location name is required');
+  const handleCreateLocation = async (location) => {
+    const normalized = {
+      room: String(location?.room || '').trim().replace(/\s+/g, ' '),
+      vicinity: String(location?.vicinity || '').trim().replace(/\s+/g, ' '),
+      specifics: String(location?.specifics || '').trim().replace(/\s+/g, ' '),
+    };
+    if (!normalized.room) {
+      setLocationError('Room is required');
+      throw new Error('Room is required');
     }
 
     setLocationCreateBusy(true);
@@ -314,16 +315,21 @@ function BoxCreate({
     }
 
     try {
+      let resolvedLocationId = locationId;
+      if (String(locationDraft.room || '').trim()) {
+        const resolvedLocation = await handleCreateLocation(locationDraft);
+        resolvedLocationId = String(resolvedLocation?._id || '');
+      }
       const created = await createBox({
         box_id: boxId,
         label: label.trim(),
-        group: group.trim() || undefined,
         description: description.trim() || undefined,
         notes: notes.trim() || undefined,
-        locationId: locationId || null,
+        locationId: resolvedLocationId || null,
         tags: normalizeTags(tags),
         declutterPurpose,
         declutterIsDefault,
+        isComplexBox,
         isGiftBox,
       });
       await Promise.resolve(onCreated?.(created));
@@ -414,20 +420,6 @@ function BoxCreate({
           />
         </Field>
 
-        <Field>
-          <Label htmlFor="group">Group</Label>
-          <Input
-            id="group"
-            value={group}
-            type="text"
-            onChange={(e) => setGroup(e.target.value)}
-            placeholder="e.g. Entertainment Center"
-          />
-          <Hint>
-            Optional larger furniture/unit grouping, e.g. Entertainment Center
-            or Tool Chest.
-          </Hint>
-        </Field>
 
         <Field>
           <Label htmlFor="description">Physical Description</Label>
@@ -455,6 +447,8 @@ function BoxCreate({
           <BoxLocationField
             locationId={locationId}
             setLocationId={setLocationId}
+            onLocationDraftChange={setLocationDraft}
+            hideAssignAction
             locationOptions={locations}
             locationsLoading={locationsLoading}
             onCreateLocation={handleCreateLocation}
@@ -464,6 +458,7 @@ function BoxCreate({
         </Field>
 
         <BoxTagsField tags={tags} setTags={setTags} />
+        <BoxComplexField value={isComplexBox} onChange={setIsComplexBox} />
         <BoxDeclutterFields
           purpose={declutterPurpose}
           setPurpose={setDeclutterPurpose}

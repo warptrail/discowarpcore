@@ -1,3 +1,4 @@
+import { panelStyles, controlStyles } from '../../styles/primitives';
 import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { MOBILE_BREAKPOINT } from '../../styles/tokens';
@@ -5,9 +6,9 @@ import { MOBILE_BREAKPOINT } from '../../styles/tokens';
 const BATCHES_PER_PAGE = 50;
 
 const Panel = styled.section`
-  border: 1px solid rgba(96, 152, 189, 0.36);
-  border-radius: 14px;
-  background: linear-gradient(180deg, rgba(12, 20, 29, 0.95) 0%, rgba(8, 14, 22, 0.98) 100%);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   padding: 0.82rem;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
@@ -21,6 +22,9 @@ const Panel = styled.section`
     padding: 0.68rem;
     gap: 0.6rem;
   }
+
+  ${panelStyles}
+  border-left: 3px solid var(--dw-amber);
 `;
 
 const Header = styled.div`
@@ -40,9 +44,9 @@ const HeaderText = styled.div`
 const Title = styled.h3`
   margin: 0;
   font-size: 0.88rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #e2effc;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--dw-text);
 `;
 
 const Text = styled.p`
@@ -53,14 +57,14 @@ const Text = styled.p`
 `;
 
 const CountChip = styled.div`
-  border-radius: 999px;
-  border: 1px solid rgba(88, 143, 184, 0.36);
-  background: rgba(10, 22, 33, 0.92);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
   color: #bfdaee;
   padding: 0.22rem 0.5rem;
-  font-size: 0.68rem;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
   white-space: nowrap;
   flex: 0 0 auto;
 `;
@@ -88,9 +92,9 @@ const SectionHeader = styled.div`
 `;
 
 const SectionTitle = styled.div`
-  font-size: 0.67rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: #8eb1cc;
 `;
 
@@ -98,14 +102,14 @@ const QueueRow = styled.button`
   text-align: left;
   width: 100%;
   min-width: 0;
-  border-radius: 10px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $selected }) =>
       $selected ? 'rgba(125, 193, 239, 0.78)' : 'rgba(87, 128, 160, 0.28)'};
   background: ${({ $selected }) =>
     $selected
-      ? 'linear-gradient(180deg, rgba(24, 58, 81, 0.98) 0%, rgba(17, 38, 55, 0.98) 100%)'
-      : 'linear-gradient(180deg, rgba(11, 21, 31, 0.96) 0%, rgba(8, 16, 24, 0.98) 100%)'};
+      ? 'var(--dw-surface-raised)'
+      : 'var(--dw-surface-raised)'};
   box-shadow: ${({ $selected }) =>
     $selected ? '0 0 0 1px rgba(118, 184, 228, 0.16)' : 'none'};
   color: #d9ebfb;
@@ -131,26 +135,26 @@ const QueueRow = styled.button`
     background: ${({ $selected, $accentTone }) => {
       if ($accentTone === 'archived') {
         return $selected
-          ? 'linear-gradient(180deg, #df7b7b 0%, #b34d4d 100%)'
+          ? 'var(--dw-surface-raised)'
           : 'rgba(179, 77, 77, 0.6)';
       }
       if ($accentTone === 'imported') {
         return $selected
-          ? 'linear-gradient(180deg, #8fe1b8 0%, #5dbd89 100%)'
+          ? 'var(--dw-surface-raised)'
           : 'rgba(93, 189, 137, 0.58)';
       }
       if ($accentTone === 'validated') {
         return $selected
-          ? 'linear-gradient(180deg, #f1c676 0%, #d39a38 100%)'
+          ? 'var(--dw-surface-raised)'
           : 'rgba(211, 154, 56, 0.58)';
       }
       if ($accentTone === 'failed') {
         return $selected
-          ? 'linear-gradient(180deg, #ea908f 0%, #ce6563 100%)'
+          ? 'var(--dw-surface-raised)'
           : 'rgba(206, 101, 99, 0.58)';
       }
       return $selected
-        ? 'linear-gradient(180deg, #8ec3f3 0%, #5d97d4 100%)'
+        ? 'var(--dw-surface-raised)'
         : 'rgba(81, 121, 151, 0.44)';
     }};
   }
@@ -160,16 +164,20 @@ const QueueRow = styled.button`
       $selected ? 'rgba(125, 193, 239, 0.84)' : 'rgba(102, 167, 212, 0.48)'};
     background: ${({ $selected }) =>
       $selected
-        ? 'linear-gradient(180deg, rgba(27, 64, 89, 0.98) 0%, rgba(19, 42, 60, 0.98) 100%)'
-        : 'linear-gradient(180deg, rgba(13, 25, 37, 0.98) 0%, rgba(10, 19, 29, 0.98) 100%)'};
+        ? 'var(--dw-surface-raised)'
+        : 'var(--dw-surface-raised)'};
     transform: translateY(-1px);
   }
 
   &:focus-visible {
     outline: none;
     border-color: rgba(145, 187, 255, 0.9);
-    box-shadow: 0 0 0 2px rgba(91, 141, 236, 0.22);
+    box-shadow: none;
   }
+
+  ${controlStyles}
+  border-left-color: ${({ $active, $selected, $recommended }) => ($active || $selected || $recommended) ? 'var(--dw-amber)' : 'var(--dw-border)'};
+  border-left-width: 3px;
 `;
 
 const RowTop = styled.div`
@@ -190,7 +198,7 @@ const BatchName = styled.div`
 `;
 
 const StatePill = styled.div`
-  border-radius: 999px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $tone }) =>
       $tone === 'success'
@@ -199,7 +207,7 @@ const StatePill = styled.div`
           ? 'rgba(201, 163, 97, 0.5)'
           : $tone === 'error'
             ? 'rgba(206, 114, 114, 0.5)'
-            : 'rgba(88, 143, 184, 0.36)'};
+            : 'var(--dw-border)'};
   background: ${({ $tone }) =>
     $tone === 'success'
       ? 'rgba(16, 40, 31, 0.85)'
@@ -217,17 +225,17 @@ const StatePill = styled.div`
           ? '#f2c8c8'
           : '#c2d8ec'};
   padding: 0.14rem 0.42rem;
-  font-size: 0.64rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
   flex: 0 0 auto;
   white-space: nowrap;
 `;
 
 const SelectedLine = styled.div`
-  font-size: 0.65rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: #7fd3c6;
 `;
 
@@ -240,7 +248,7 @@ const SecondaryLine = styled.div`
 `;
 
 const SubduedLine = styled.div`
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   color: #819cb4;
   min-width: 0;
   overflow-wrap: anywhere;
@@ -254,7 +262,7 @@ const StageRow = styled.div`
 `;
 
 const StageChip = styled.div`
-  border-radius: 999px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $tone }) =>
       $tone === 'stage'
@@ -279,15 +287,15 @@ const StageChip = styled.div`
           : '#c9f1dd'
       : '#85a3bc'};
   padding: 0.14rem 0.38rem;
-  font-size: 0.62rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 const Empty = styled.div`
-  border-radius: 10px;
-  border: 1px dashed rgba(104, 155, 191, 0.46);
-  background: rgba(8, 15, 23, 0.78);
+  border-radius: var(--dw-radius-sm);
+  border: 1px dashed var(--dw-border);
+  background: var(--dw-surface);
   color: #9fb8cf;
   font-size: 0.8rem;
   padding: 0.78rem;
@@ -311,7 +319,7 @@ const Pagination = styled.div`
   justify-content: space-between;
   gap: 0.56rem;
   min-width: 0;
-  border-top: 1px solid rgba(88, 143, 184, 0.22);
+  border-top: 1px solid var(--dw-border);
   padding-top: 0.56rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -335,15 +343,15 @@ const PageActions = styled.div`
 
 const PageButton = styled.button`
   min-height: 2rem;
-  border-radius: 8px;
-  border: 1px solid rgba(102, 167, 212, 0.58);
-  background: rgba(18, 39, 57, 0.82);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
   color: #cfe8fb;
   padding: 0 0.62rem;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   cursor: pointer;
 
   &:disabled {
@@ -354,6 +362,8 @@ const PageButton = styled.button`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     flex: 1 1 0;
   }
+
+  ${controlStyles}
 `;
 
 function toDisplayDate(value) {

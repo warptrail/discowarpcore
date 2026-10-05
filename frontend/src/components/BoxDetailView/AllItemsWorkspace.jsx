@@ -30,14 +30,19 @@ export default function AllItemsWorkspace({ box, items, searchQuery, openItemId,
 
   return (
     <BoxDetailActionSection
-      title="All items"
+      title={box?.compartmentKey ? `Compartment ${box.box_id}${box.compartmentKey}` : 'All items'}
       count={items?.length || 0}
-      scopeNote="this box + nested boxes"
+      scopeNote={box?.compartmentKey ? 'this compartment' : 'this box + nested boxes'}
       box={box}
       onItemsChanged={onItemsChanged}
       onManageBox={onManageBox}
       hideInlineActions={selectionMode}
-      headerAction={!selectionMode ? <S.SectionActionButton type="button" onClick={() => setSelectionMode(true)}>Move items</S.SectionActionButton> : null}
+      headerAction={!selectionMode ? (
+        <S.SectionActionButton type="button" aria-label="Move items" onClick={() => setSelectionMode(true)}>
+          <S.SectionActionFull>Move items</S.SectionActionFull>
+          <S.SectionActionCompact aria-hidden="true">Move</S.SectionActionCompact>
+        </S.SectionActionButton>
+      ) : null}
     >
       {selectionMode ? (
         <S.SelectionToolbar aria-label="Move selected items">

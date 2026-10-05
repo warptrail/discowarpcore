@@ -3,6 +3,7 @@ import { createBox, uploadBoxImage } from '../../api/boxes';
 import useShortIdAvailability from '../../hooks/useShortIdAvailability';
 import useLocationRegistry from '../../hooks/useLocationRegistry';
 import cropImageToSquare from '../../util/cropImageToSquare';
+import BoxComplexField from '../BoxForms/BoxComplexField';
 import BoxLocationField from '../BoxForms/BoxLocationField';
 import ImageSourcePicker from '../ImageSourcePicker';
 import QuickBoxStagingPurpose from './QuickBoxStagingPurpose';
@@ -12,9 +13,10 @@ const normalizeTags = (value) => [...new Set(String(value || '').split(',').map(
 
 export default function OperationsQuickBoxCreate({ onCreated, onCancel, eyebrow = 'Operations intake' }) {
   const [boxId, setBoxId] = useState('');
+  const [isComplexBox, setIsComplexBox] = useState(false);
   const [label, setLabel] = useState('');
   const [locationId, setLocationId] = useState('');
-  const [group, setGroup] = useState('');
+  const [locationDraft, setLocationDraft] = useState({ room: '', vicinity: '', specifics: '' });
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
   const [tagDraft, setTagDraft] = useState('');
@@ -36,11 +38,15 @@ export default function OperationsQuickBoxCreate({ onCreated, onCancel, eyebrow 
     return () => URL.revokeObjectURL(url);
   }, [photo]);
 
-  const createLocation = async (raw) => {
+  const createLocation = async (location) => {
     setLocationBusy(true);
     setLocationError('');
     try {
-      const created = await createLocationInline(String(raw || '').trim());
+      const created = await createLocationInline({
+        room: String(location?.room || '').trim(),
+        vicinity: String(location?.vicinity || '').trim(),
+        specifics: String(location?.specifics || '').trim(),
+      });
       if (!created?._id) throw new Error('Location could not be created');
       setLocationId(String(created._id));
       return created;
@@ -69,14 +75,19 @@ export default function OperationsQuickBoxCreate({ onCreated, onCancel, eyebrow 
     if (!label.trim()) { setError('Give the box a short label.'); return; }
     setBusy(true);
     try {
+      let resolvedLocationId = locationId;
+      if (String(locationDraft.room || '').trim()) {
+        const resolvedLocation = await createLocation(locationDraft);
+        resolvedLocationId = String(resolvedLocation?._id || '');
+      }
       const created = await createBox({
         box_id: boxId,
         label: label.trim(),
-        locationId: locationId || null,
-        group: group.trim() || undefined,
+        locationId: resolvedLocationId || null,
         description: description.trim() || undefined,
         notes: notes.trim() || undefined,
         tags: normalizeTags(tagDraft),
+        isComplexBox,
         declutterPurpose,
         declutterIsDefault: false,
         isGiftBox: declutterPurpose === 'gift_staging',
@@ -101,7 +112,7 @@ export default function OperationsQuickBoxCreate({ onCreated, onCancel, eyebrow 
   return (
     <S.Shell aria-label="Quick create a new box">
       <S.Header>
-        <div><S.Eyebrow>{eyebrow}</S.Eyebrow><S.Title>Create a new box</S.Title></div>
+        <div><S.Eyebrow>{eyebrow}</S.Eyebrow><S.Title><S.TitleIcon aria-hidden="true">◇</S.TitleIcon>Create a new box</S.Title></div>
         <S.Close type="button" onClick={onCancel} aria-label="Close quick box creator">×</S.Close>
       </S.Header>
       <S.Form onSubmit={submit}>
@@ -112,10 +123,12 @@ export default function OperationsQuickBoxCreate({ onCreated, onCancel, eyebrow 
         <S.Availability $bad={shortIdValid && !shortIdAvail && !shortIdChecking} $good={shortIdValid && shortIdAvail && !shortIdChecking}>
           {shortIdChecking ? 'CHECKING SIGNAL…' : checkError ? 'COULD NOT VERIFY ID' : shortIdValid ? (shortIdAvail ? 'ID AVAILABLE' : 'ID ALREADY IN USE') : 'THREE DIGITS REQUIRED'}
         </S.Availability>
-        <BoxLocationField compact locationId={locationId} setLocationId={setLocationId} locationOptions={locations} locationsLoading={locationsLoading} onCreateLocation={createLocation} createBusy={locationBusy} errorMessage={locationError || registryError} />
+        <S.LocationPanel>
+          <BoxLocationField compact showHierarchyHint={false} locationId={locationId} setLocationId={setLocationId} onLocationDraftChange={setLocationDraft} hideAssignAction locationOptions={locations} locationsLoading={locationsLoading} onCreateLocation={createLocation} createBusy={locationBusy} errorMessage={locationError || registryError} />
+        </S.LocationPanel>
         <S.PhotoField>
-          <S.PhotoPreview $src={previewUrl}>{previewUrl ? '' : 'PHOTO'}</S.PhotoPreview>
-          <S.PhotoCopy><strong>{photo ? photo.name : 'Optional box photo'}</strong><small>Crop and upload after creation</small></S.PhotoCopy>
+          <S.PhotoPreview $src={previewUrl}>{previewUrl ? '' : '▧'}</S.PhotoPreview>
+          <S.PhotoCopy><strong>{photo ? photo.name : 'Box photo'}</strong><small>Optional</small></S.PhotoCopy>
           <S.PhotoPickerSlot>
             <ImageSourcePicker
               disabled={busy}
@@ -132,11 +145,11 @@ export default function OperationsQuickBoxCreate({ onCreated, onCancel, eyebrow 
         <S.Details>
           <S.Summary>Optional details</S.Summary>
           <S.DetailGrid>
+            <BoxComplexField value={isComplexBox} onChange={setIsComplexBox} disabled={busy || Boolean(createdWithoutPhoto)} />
             <QuickBoxStagingPurpose
               value={declutterPurpose}
               onChange={setDeclutterPurpose}
             />
-            <S.Field><S.Label>Group</S.Label><S.Input value={group} onChange={(e) => setGroup(e.target.value)} placeholder="Furniture or unit" /></S.Field>
             <S.Field><S.Label>Tags</S.Label><S.TagInput value={tagDraft} onChange={(e) => setTagDraft(e.target.value)} placeholder="comma, separated" /></S.Field>
             <S.Field><S.Label>Physical description</S.Label><S.Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Color, size, markings…" /></S.Field>
             <S.Field><S.Label>Notes</S.Label><S.Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Anything useful later…" /></S.Field>

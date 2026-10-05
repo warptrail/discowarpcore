@@ -6,7 +6,7 @@ import { ToastContext } from '../Toast';
 import * as S from './BoxDetailTabContent.styles';
 
 function formatBoxContextLabel(box) {
-  const shortId = String(box?.box_id || '').trim();
+  const shortId = String(box?.placementLabel || box?.box_id || '').trim();
   const label = String(box?.label || box?.name || '').trim();
   if (shortId && label) return `#${shortId} ${label}`;
   if (shortId) return `#${shortId}`;
@@ -29,6 +29,10 @@ export default function BoxInlineItemActions({
 
     return {
       _id: mongoId,
+      compartmentKey: box?.compartmentKey || (box?.isComplexBox ? 'A' : ''),
+      placementLabel: `${box?.box_id || ''}${box?.compartmentKey || (box?.isComplexBox ? 'A' : '')}`,
+      isComplexBox: Boolean(box?.isComplexBox),
+      compartments: box?.compartments,
       box_id: String(box?.box_id ?? box?.shortId ?? '').trim(),
       label: String(box?.label ?? box?.name ?? '').trim(),
     };
@@ -38,7 +42,7 @@ export default function BoxInlineItemActions({
 
   useEffect(() => {
     setActivePanel('');
-  }, [selectedBox?._id]);
+  }, [selectedBox?._id, selectedBox?.compartmentKey]);
 
   const handleToggle = (nextPanel) => {
     setActivePanel((prev) => (prev === nextPanel ? '' : nextPanel));
@@ -120,6 +124,7 @@ export default function BoxInlineItemActions({
       {activePanel === 'assign' && selectedBox?._id ? (
         <MiniOrphanedList
           boxMongoId={selectedBox._id}
+          compartmentKey={selectedBox.compartmentKey}
           title="Assign Items Adrift"
           contextId={selectedBox.box_id}
           contextLabel={selectedBox.label}

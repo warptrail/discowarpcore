@@ -1,3 +1,4 @@
+import { panelStyles, inputStyles, controlStyles } from '../../styles/primitives';
 import styled from 'styled-components';
 import {
   MOBILE_BREAKPOINT,
@@ -6,9 +7,9 @@ import {
 } from '../../styles/tokens';
 
 const Panel = styled.section`
-  border: 1px solid rgba(96, 152, 189, 0.34);
-  border-radius: 10px;
-  background: rgba(9, 17, 25, 0.82);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   padding: 0.9rem;
   display: grid;
   gap: 0.78rem;
@@ -17,6 +18,9 @@ const Panel = styled.section`
     padding: 0.68rem;
     gap: 0.64rem;
   }
+
+  ${panelStyles}
+  border-left: 3px solid var(--dw-amber);
 `;
 
 const Header = styled.div`
@@ -39,14 +43,14 @@ const HeaderText = styled.div`
 const Title = styled.h2`
   margin: 0;
   font-size: 0.92rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #e2effc;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--dw-text);
 `;
 
 const Text = styled.p`
   margin: 0;
-  color: #a8c0d8;
+  color: var(--dw-text-secondary);
   font-size: 0.8rem;
   line-height: 1.42;
 `;
@@ -65,40 +69,42 @@ const Section = styled.div`
 const Label = styled.label`
   margin: 0;
   font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #9dbbd4;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--dw-text-secondary);
 `;
 
 const FileInput = styled.input`
   display: block;
   width: 100%;
   min-height: 40px;
-  border-radius: 9px;
-  border: 1px solid rgba(108, 152, 188, 0.5);
-  background: rgba(7, 11, 18, 0.9);
-  color: #d7e9fc;
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface);
+  color: var(--dw-text);
   padding: 0.48rem 0.56rem;
 
   &::file-selector-button {
-    border: 1px solid rgba(99, 167, 145, 0.64);
-    border-radius: 8px;
-    background: rgba(18, 49, 38, 0.94);
+    border: 1px solid var(--dw-border);
+    border-radius: var(--dw-radius-sm);
+    background: var(--dw-surface-raised);
     color: #dcfaec;
     font-size: 0.74rem;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    text-transform: none;
     font-weight: 700;
     padding: 0.35rem 0.6rem;
     margin-right: 0.55rem;
     cursor: pointer;
   }
+
+  ${inputStyles}
 `;
 
 const StatusLine = styled.div`
   min-height: 1rem;
   font-size: 0.76rem;
-  color: #9fb2c4;
+  color: var(--dw-text-muted);
 `;
 
 const FactList = styled.div`
@@ -108,12 +114,12 @@ const FactList = styled.div`
 
 const Fact = styled.div`
   font-size: 0.76rem;
-  color: #bdd2e8;
+  color: var(--dw-text-secondary);
 `;
 
 const Button = styled.button`
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-  border-radius: 10px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $tone }) =>
       $tone === 'primary'
@@ -121,13 +127,13 @@ const Button = styled.button`
         : 'rgba(102, 167, 212, 0.75)'};
   background: ${({ $tone }) =>
     $tone === 'primary'
-      ? 'linear-gradient(180deg, rgba(23, 75, 60, 0.96) 0%, rgba(16, 51, 42, 0.96) 100%)'
-      : 'linear-gradient(180deg, rgba(26, 60, 83, 0.96) 0%, rgba(17, 43, 62, 0.96) 100%)'};
+      ? 'var(--dw-surface-raised)'
+      : 'var(--dw-surface-raised)'};
   color: #e8fff5;
   font-size: 0.79rem;
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  text-transform: none;
+  letter-spacing: 0.01em;
   padding: 0 0.82rem;
   cursor: pointer;
 
@@ -139,6 +145,10 @@ const Button = styled.button`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_SM};
   }
+
+  ${controlStyles}
+
+  color: ${({ $tone, $primary, $secondary }) => $tone === 'danger' ? 'var(--dw-coral)' : ($tone === 'primary' || $primary) ? 'var(--dw-cyan)' : $secondary ? 'var(--dw-violet)' : 'var(--dw-text)'};
 `;
 
 export default function IntakeBatchCreatePanel({

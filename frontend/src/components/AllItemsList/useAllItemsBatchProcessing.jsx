@@ -464,6 +464,7 @@ export default function useAllItemsBatchProcessing({
   const batchConsole = useBatchImageProcessingConsole({
     contextId: enabled ? 'all-items-batch-focused' : '',
     contextLabel: 'Batch Focused',
+    compactPresentation: true,
     processingModeEnabled,
     setProcessingModeEnabled,
     renderTokens,

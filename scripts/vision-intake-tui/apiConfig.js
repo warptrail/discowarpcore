@@ -59,7 +59,7 @@ function resolveApiConfig(env = process.env) {
 
 async function checkApiHealth(apiBase, { fetchImpl = fetch } = {}) {
   const normalizedApiBase = normalizeApiBase(apiBase);
-  const url = `${normalizedApiBase}/api/health`;
+  const url = `${normalizedApiBase}/api/health/ready`;
   let response;
 
   try {

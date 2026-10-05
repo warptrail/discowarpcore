@@ -1,3 +1,4 @@
+const { itemPlacement } = require('../utils/boxCompartments');
 // models/Item.js
 const mongoose = require('mongoose');
 const {
@@ -12,6 +13,7 @@ const {
 } = require('../utils/itemDisposition');
 const { KEEP_PRIORITY_VALUES } = require('../utils/keepPriority');
 const { DECLUTTER_READINESS_VALUES } = require('../utils/declutterReadiness');
+const { formatLocationName } = require('../utils/locationName');
 const DECLUTTER_EXIT_STATES = [
   'none',
   'needs_routing',
@@ -111,7 +113,8 @@ async function loadBoxLineage(Box, leafBox, maxDepth = 64) {
     visited.add(cursorId);
 
     const parent = await Box.findById(cursorId)
-      .select('_id box_id label group parentBox location')
+      .select('_id box_id label isComplexBox compartments itemCompartments parentBox location locationId')
+      .populate('locationId', 'room vicinity specifics')
       .lean();
     if (!parent) break;
 
@@ -407,8 +410,8 @@ itemSchema.statics.findItemById = async function (id, { select, perf = false } =
     const leaf = isGone
       ? null
       : await Box.findOne({ items: item._id })
-          .select('_id box_id label group description parentBox location locationId')
-          .populate('locationId', 'name')
+          .select('_id box_id label isComplexBox compartments itemCompartments description parentBox location locationId')
+          .populate('locationId', 'room vicinity specifics')
           .lean();
     perfData.containingBoxLookupMs = elapsedMs(containingBoxLookupStartNs);
 
@@ -436,13 +439,12 @@ itemSchema.statics.findItemById = async function (id, { select, perf = false } =
       }));
     const depth = breadcrumb.length;
     const rootBox = breadcrumb.length > 0 ? breadcrumb[0] : null;
-    const leafLocation = firstNonEmpty(leaf?.locationId?.name, leaf?.location);
-    const leafGroup = firstNonEmpty(leaf?.group);
+    const leafLocation = firstNonEmpty(formatLocationName(leaf?.locationId), leaf?.location);
 
     // Effective location is the first non-empty location from leaf -> ancestors.
     let resolvedLocation = '';
     for (const node of lineage) {
-      const locationValue = firstNonEmpty(node?.location);
+      const locationValue = firstNonEmpty(formatLocationName(node?.locationId), node?.location);
       if (locationValue) {
         resolvedLocation = locationValue;
         break;
@@ -450,29 +452,16 @@ itemSchema.statics.findItemById = async function (id, { select, perf = false } =
     }
     const inheritedLocation = firstNonEmpty(leafLocation, resolvedLocation);
 
-    // Effective group is the first non-empty group from leaf -> ancestors.
-    let resolvedGroup = '';
-    for (const node of lineage) {
-      const groupValue = firstNonEmpty(node?.group);
-      if (groupValue) {
-        resolvedGroup = groupValue;
-        break;
-      }
-    }
-    const inheritedGroup = firstNonEmpty(leafGroup, resolvedGroup);
     perfData.breadcrumbBuildMs = elapsedMs(breadcrumbBuildStartNs);
 
     return withNormalizedItemCategory({
       ...item,
       inheritedLocation,
-      inheritedGroup,
       box: {
         _id: leaf._id,
         box_id: leaf.box_id,
         label: leaf.label,
-        group: leafGroup,
-        groupLabel: leafGroup,
-        resolvedGroup: inheritedGroup,
+        ...itemPlacement(leaf, item._id),
         description: leaf.description,
         location: leafLocation,
         locationName: leafLocation,
@@ -480,7 +469,9 @@ itemSchema.statics.findItemById = async function (id, { select, perf = false } =
           leaf?.locationId && typeof leaf.locationId === 'object'
             ? {
                 _id: leaf.locationId._id,
-                name: firstNonEmpty(leaf.locationId.name),
+                room: leaf.locationId.room,
+                vicinity: leaf.locationId.vicinity,
+                specifics: leaf.locationId.specifics,
               }
             : null,
       },

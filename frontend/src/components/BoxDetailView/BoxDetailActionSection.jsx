@@ -20,7 +20,10 @@ export default function BoxDetailActionSection({
         <S.SectionTitle>{title}</S.SectionTitle>
         {count !== undefined && count !== null ? (
           <S.SectionCount>
-            {count} {count === 1 ? 'item' : 'items'}
+            <S.SectionCountCompact aria-hidden="true">{count}</S.SectionCountCompact>
+            <S.SectionCountFull>
+              {count} {count === 1 ? 'item' : 'items'}
+            </S.SectionCountFull>
           </S.SectionCount>
         ) : null}
         {scopeNote ? <S.SectionNote>{scopeNote}</S.SectionNote> : null}

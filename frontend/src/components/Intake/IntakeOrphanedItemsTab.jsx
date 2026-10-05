@@ -14,9 +14,9 @@ const Wrap = styled.div`
 const Info = styled.div`
   color: #9fc2b5;
   font-size: 0.75rem;
-  border: 1px solid rgba(106, 162, 132, 0.45);
-  border-radius: 9px;
-  background: rgba(13, 29, 22, 0.7);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface-raised);
   padding: 0.46rem 0.52rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -27,9 +27,9 @@ const Info = styled.div`
 const Viewport = styled.div`
   max-height: min(42vh, 360px);
   overflow: auto;
-  border: 1px solid rgba(85, 140, 113, 0.42);
-  border-radius: 10px;
-  background: rgba(8, 15, 12, 0.54);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface-raised);
   padding: 0.46rem;
 
   & > section {

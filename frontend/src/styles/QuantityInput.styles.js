@@ -1,36 +1,19 @@
 import styled from 'styled-components';
-
-const LCARS = {
-  shell: '#101620',
-  shellSoft: '#1a2230',
-  line: 'rgba(106, 140, 176, 0.7)',
-  teal: '#4cc6c1',
-  lilac: '#a7b6ff',
-  text: '#ebf2f9',
-};
+import { controlStyles, inputStyles } from './primitives';
 
 export const Wrapper = styled.div`
-  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0;
   width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'fit-content')};
-  padding: ${({ $compact }) => ($compact ? '0.08rem' : '0.18rem')};
-  border-radius: ${({ $compact }) => ($compact ? '5px' : '14px')};
-  border: 1px solid ${LCARS.line};
-  background:
-    radial-gradient(circle at 50% 0%, rgba(76, 198, 193, 0.16), transparent 54%),
-    linear-gradient(135deg, ${LCARS.shell}, ${LCARS.shellSoft});
-  box-shadow: ${({ $compact }) => ($compact ? 'none' : 'inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 8px 16px rgba(0, 0, 0, 0.25)')};
-  isolation: isolate;
-  overflow: hidden;
+  max-width: 100%;
+  min-width: 0;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface);
 
-  &:focus-within {
-    border-color: rgba(167, 182, 255, 0.86);
-    box-shadow:
-      0 0 0 2px rgba(167, 182, 255, 0.16),
-      0 8px 18px rgba(0, 0, 0, 0.28);
-  }
+  &:focus-within { border-color: var(--dw-cyan); }
 `;
 
 export const ValueShell = styled.div`
@@ -43,87 +26,40 @@ export const ValueShell = styled.div`
 
 export const ValueKicker = styled.span`
   position: absolute;
-  top: 0.12rem;
-  z-index: 2;
-  color: rgba(167, 182, 255, 0.7);
-  font-size: 0.48rem;
-  font-weight: 900;
-  letter-spacing: 0.14em;
+  top: 2px;
+  z-index: 1;
+  color: var(--dw-text-secondary);
+  font-size: 0.55rem;
+  font-weight: 650;
   pointer-events: none;
 `;
 
 export const Button = styled.button`
-  position: relative;
-  z-index: 1;
-  min-width: ${({ $compact }) => ($compact ? '1.8rem' : '2.45rem')};
-  height: ${({ $compact }) => ($compact ? '1.8rem' : '2.45rem')};
+  ${controlStyles}
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(76, 198, 193, 0.55);
-  border-radius: ${({ $compact }) => ($compact ? '3px' : '9px')};
-  background: linear-gradient(180deg, rgba(76, 198, 193, 0.3), rgba(76, 198, 193, 0.13));
-  color: ${LCARS.text};
-  font-size: ${({ $compact }) => ($compact ? '0.95rem' : '1.35rem')};
-  font-weight: 700;
+  flex: 0 0 40px;
+  min-width: 40px;
+  height: 40px;
+  padding: 0;
+  color: var(--dw-cyan);
+  font-size: 1.2rem;
   line-height: 1;
-  cursor: pointer;
-  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
-
-  &:hover:enabled {
-    background: linear-gradient(180deg, rgba(76, 198, 193, 0.36), rgba(76, 198, 193, 0.2));
-    border-color: rgba(76, 198, 193, 0.8);
-  }
-
-  &:active:enabled {
-    transform: translateY(1px);
-  }
-
-  &:disabled {
-    opacity: 0.46;
-    cursor: not-allowed;
-  }
-
-  @media (max-width: 560px) {
-    ${({ $compact }) => !$compact && `
-    min-width: 2.75rem;
-    height: 2.75rem;
-    `}
-  }
 `;
 
 export const Input = styled.input`
-  position: relative;
-  z-index: 1;
-  width: ${({ $compact }) => ($compact ? '2.5rem' : '3.6rem')};
-  height: ${({ $compact }) => ($compact ? '1.8rem' : '2.45rem')};
+  ${inputStyles}
+  width: ${({ $compact }) => ($compact ? '2.6rem' : '3.6rem')};
+  max-width: 100%;
+  height: 40px;
+  padding: ${({ $compact }) => ($compact ? '0.15rem' : '0.55rem 0.2rem 0')};
   text-align: center;
-  font-size: ${({ $compact }) => ($compact ? '0.78rem' : '1.14rem')};
-  font-weight: 700;
-  color: ${LCARS.text};
-  border-radius: ${({ $compact }) => ($compact ? '3px' : '8px')};
-  border: 1px solid rgba(167, 182, 255, 0.56);
-  background: #0b1018;
-  outline: none;
-  padding: ${({ $compact }) => ($compact ? '0.05rem' : '0.42rem 0.2rem 0')};
-
-  &:focus {
-    border-color: ${LCARS.lilac};
-    box-shadow: 0 0 0 2px rgba(167, 182, 255, 0.24);
-  }
+  font-family: var(--dw-font-data);
+  font-size: 1rem;
+  font-weight: 650;
+  appearance: textfield;
 
   &::-webkit-inner-spin-button,
-  &::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-
-  -moz-appearance: textfield;
-
-  @media (max-width: 560px) {
-    ${({ $compact }) => !$compact && `
-    width: 3.6rem;
-    height: 2.75rem;
-    `}
-  }
+  &::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 `;

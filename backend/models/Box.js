@@ -12,8 +12,6 @@ function normalizeOptionalString(value) {
 const boxSchema = new mongoose.Schema({
   box_id: { type: String, required: true, unique: true },
   label: { type: String, required: true },
-  group: { type: String, trim: true, set: normalizeOptionalString },
-  location: String,
   locationId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Location',
@@ -30,6 +28,12 @@ const boxSchema = new mongoose.Schema({
     index: true,
   },
   declutterIsDefault: { type: Boolean, default: false },
+  isComplexBox: { type: Boolean, default: false },
+  compartments: {
+    type: [{ _id: false, key: String, label: String }],
+    default: function () { return this.isComplexBox ? [{ key: 'A', label: '' }, { key: 'B', label: '' }] : []; },
+  },
+  itemCompartments: { type: Map, of: String, default: {} },
   isGiftBox: { type: Boolean, default: false, index: true },
   imagePath: { type: String, default: '' },
   image: {
@@ -78,7 +82,7 @@ boxSchema.statics.newId = function () {
 // 🔎 New helper: fetch slim set for breadcrumb maps
 boxSchema.statics.findAllBoxesForMaps = async function () {
   return this.find()
-    .select('_id box_id label group description notes parentBox location locationId isGiftBox declutterPurpose declutterIsDefault')
+    .select('_id box_id label description notes parentBox location locationId isComplexBox compartments itemCompartments isGiftBox declutterPurpose declutterIsDefault')
     .lean();
 };
 

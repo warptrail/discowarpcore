@@ -1,4 +1,5 @@
 import styled, { css } from 'styled-components';
+import { inputStyles, controlStyles } from '../styles/primitives';
 
 import {
   MOBILE_BREAKPOINT,
@@ -14,36 +15,8 @@ const focusRing = css`
 `;
 
 const control = css`
+  ${inputStyles}
   width: 100%;
-  min-width: 0;
-  min-height: 40px;
-  border: 1px solid rgba(126, 147, 158, 0.38);
-  border-radius: 4px;
-  background: #090d10;
-  color: #e3eaed;
-  padding: 0 0.62rem;
-  font: 500 0.78rem/1.2 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
-
-  &:hover {
-    border-color: rgba(135, 190, 192, 0.58);
-  }
-
-  &:focus {
-    outline: none;
-    border-color: rgba(112, 224, 211, 0.82);
-    background: #0d1317;
-    box-shadow: inset 0 0 0 1px rgba(112, 224, 211, 0.12);
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 40px;
-    font-size: ${MOBILE_FONT_SM};
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
 `;
 
 export const Panel = styled.section`
@@ -51,13 +24,17 @@ export const Panel = styled.section`
   overflow: hidden;
   border: 1px solid rgba(129, 151, 164, 0.32);
   border-radius: 7px;
-  background:
-    linear-gradient(112deg, rgba(78, 198, 193, 0.055), transparent 30%, rgba(167, 139, 250, 0.035) 100%),
-    #0b0f12;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+  background: var(--dw-surface);
+  box-shadow: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     border-radius: 5px;
+  }
+  min-width: 0;
+  font-family: var(--dw-font-ui);
+  & :is(button, a, input, select, textarea):focus-visible {
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
   }
 `;
 
@@ -69,7 +46,7 @@ export const Header = styled.header`
   gap: 0.75rem;
   padding: 0.52rem 0.68rem;
   border-bottom: 1px solid rgba(129, 151, 164, 0.25);
-  background: rgba(8, 12, 15, 0.86);
+  background: var(--dw-surface);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: 50px;
@@ -86,9 +63,9 @@ export const HeadingBlock = styled.div`
 export const Eyebrow = styled.h3`
   margin: 0;
   color: #d9e4e7;
-  font: 800 0.7rem/1.15 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font: 800 0.7rem/1.15 var(--dw-font-ui);
+  letter-spacing: normal;
+  text-transform: none;
 `;
 
 export const TargetLine = styled.div`
@@ -101,7 +78,8 @@ export const TargetLine = styled.div`
 export const TargetId = styled.span`
   flex: 0 0 auto;
   color: #72d9d0;
-  font: 700 0.72rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font: 700 0.75rem/1 var(--dw-font-ui);
+  font-family: var(--dw-font-data);
 `;
 
 export const TargetLabel = styled.span`
@@ -117,9 +95,9 @@ export const TargetLabel = styled.span`
 export const Availability = styled.span`
   flex: 0 0 auto;
   color: #9caab2;
-  font: 700 0.68rem/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font: 700 0.75rem/1.2 var(--dw-font-ui);
+  letter-spacing: normal;
+  text-transform: none;
 `;
 
 export const Body = styled.div`
@@ -170,9 +148,9 @@ export const Field = styled.label`
 export const ControlLabel = styled.span`
   padding-left: 1px;
   color: rgba(188, 202, 210, 0.7);
-  font: 750 0.58rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  font: 750 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: normal;
+  text-transform: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
@@ -194,7 +172,7 @@ export const CustomSelectShell = styled.div`
     min-height: 40px;
     border-color: rgba(126, 147, 158, 0.38);
     border-radius: 4px;
-    background: #090d10;
+    background: var(--dw-background);
     padding: 0 0.62rem;
     font-size: 0.78rem;
   }
@@ -204,7 +182,7 @@ export const CustomSelectShell = styled.div`
     margin-top: 3px;
     padding: 3px;
     border-radius: 4px;
-    background: rgba(7, 12, 16, 0.995);
+    background: var(--dw-surface);
   }
 
   & > div > div[role='listbox'] > button {
@@ -232,15 +210,15 @@ export const DirectionButton = styled.button`
   min-height: 40px;
   border: 1px solid rgba(126, 147, 158, 0.38);
   border-radius: 4px;
-  background: #10161a;
+  background: var(--dw-surface);
   color: #a9e4df;
-  font: 800 1rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font: 800 1rem/1 var(--dw-font-ui);
   cursor: pointer;
   transition: border-color 180ms ease, background 180ms ease;
 
   &:hover {
     border-color: rgba(112, 224, 211, 0.72);
-    background: #142025;
+    background: var(--dw-surface);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -253,6 +231,7 @@ export const DirectionButton = styled.button`
 `;
 
 export const ResetButton = styled.button`
+  ${controlStyles}
   ${focusRing};
   min-height: 40px;
   border: 0;
@@ -261,9 +240,9 @@ export const ResetButton = styled.button`
   background: transparent;
   color: #c8b9ef;
   padding: 0 0.34rem;
-  font: 750 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font: 750 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: normal;
+  text-transform: none;
   cursor: pointer;
 
   @media (max-width: 900px) {
@@ -273,6 +252,11 @@ export const ResetButton = styled.button`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: 40px;
   }
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  justify-self: start;
+  padding-inline: 0.65rem;
 `;
 
 export const ListViewport = styled.div`
@@ -302,11 +286,11 @@ export const ItemRow = styled.div`
   gap: 0.58rem;
   padding: 0.48rem 0.54rem;
   border-bottom: 1px solid rgba(129, 151, 164, 0.18);
-  background: rgba(11, 15, 18, 0.72);
+  background: var(--dw-surface);
   transition: background 180ms ease;
 
   &:hover {
-    background: rgba(17, 24, 28, 0.92);
+    background: var(--dw-surface-raised);
   }
 
   &:last-child {
@@ -330,7 +314,7 @@ export const ThumbFrame = styled.div`
   overflow: hidden;
   border: 1px solid rgba(128, 151, 162, 0.32);
   border-radius: 3px;
-  background: #070a0c;
+  background: var(--dw-background);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: 40px;
@@ -348,9 +332,7 @@ export const ThumbImage = styled.img`
 export const ThumbPlaceholder = styled.div`
   width: 100%;
   height: 100%;
-  background:
-    linear-gradient(135deg, rgba(76, 198, 193, 0.08), rgba(167, 139, 250, 0.06)),
-    #0d1215;
+  background: var(--dw-surface);
 `;
 
 export const ItemIdentity = styled.div`
@@ -400,7 +382,7 @@ export const MetaLine = styled.div`
   gap: 0.34rem;
   overflow: hidden;
   color: rgba(180, 193, 200, 0.7);
-  font: 600 0.62rem/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font: 600 0.75rem/1.2 var(--dw-font-ui);
   white-space: nowrap;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -426,18 +408,18 @@ export const AssignButton = styled.button`
   min-height: 40px;
   border: 1px solid rgba(112, 224, 211, 0.5);
   border-radius: 4px;
-  background: rgba(19, 37, 40, 0.86);
+  background: var(--dw-surface-raised);
   color: #d7f2ef;
   padding: 0 0.62rem;
-  font: 800 0.64rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font: 800 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: normal;
+  text-transform: none;
   cursor: pointer;
   transition: border-color 180ms ease, background 180ms ease, color 180ms ease;
 
   &:hover:not(:disabled) {
     border-color: rgba(112, 224, 211, 0.9);
-    background: rgba(27, 55, 58, 0.96);
+    background: var(--dw-surface-raised);
     color: #f2fffd;
   }
 
@@ -463,7 +445,7 @@ export const StateText = styled.div`
   border-left: 2px solid ${({ $error }) => ($error ? '#dc7f88' : 'rgba(112, 224, 211, 0.52)')};
   color: ${({ $error }) => ($error ? '#f0b7bc' : '#aab7bd')};
   padding: 0.34rem 0.48rem;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
 `;
 
 export const PaginationRow = styled.div`
@@ -473,7 +455,7 @@ export const PaginationRow = styled.div`
   gap: 0.4rem;
   padding: 0.44rem 0.52rem;
   border-top: 1px solid rgba(129, 151, 164, 0.2);
-  background: #090d10;
+  background: var(--dw-background);
 `;
 
 export const PaginationButton = styled.button`
@@ -481,11 +463,11 @@ export const PaginationButton = styled.button`
   min-height: 40px;
   border: 1px solid rgba(126, 147, 158, 0.38);
   border-radius: 4px;
-  background: #11171b;
+  background: var(--dw-surface);
   color: #d8e3e6;
   padding: 0 0.65rem;
-  font: 750 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  text-transform: uppercase;
+  font: 750 0.75rem/1 var(--dw-font-ui);
+  text-transform: none;
   cursor: pointer;
 
   &:disabled {
@@ -496,7 +478,7 @@ export const PaginationButton = styled.button`
 
 export const PaginationInfo = styled.span`
   color: #8e9ca4;
-  font: 650 0.64rem/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font: 650 0.75rem/1.2 var(--dw-font-ui);
   text-align: center;
 `;
 

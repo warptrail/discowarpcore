@@ -2,11 +2,38 @@
 
 export const OPEN_ACCENT = '#50aaff';
 export const CLOSE_ACCENT = '#3cdca0';
-export const BASE_BORDER = '#333';
-export const ACTIVE_BORDER = '#4cc6c1';
-export const CARD_BG = '#161616';
-export const ROW_BG = '#1a1a1a';
-export const ROW_BG_ACTIVE = '#202020';
+export const BASE_BORDER = '#2b394b';
+export const ACTIVE_BORDER = '#7edee2';
+export const CARD_BG = '#111a26';
+export const ROW_BG = '#15202e';
+export const ROW_BG_ACTIVE = '#203247';
+
+// LCARS // Cyberpunk // Minimal. Opaque navy instruments, warm structural rails,
+// cool interaction accents. Keep inventory colors independent of these UI tokens.
+export const APP_VISUAL_THEME = {
+  background: '#080e17',
+  surface: '#111a26',
+  surfaceRaised: '#192637',
+  border: '#344459',
+  borderSoft: '#263447',
+  text: '#edf3fa',
+  textSecondary: '#bdcadb',
+  textMuted: '#93a7be',
+  cyan: '#80dfff',
+  teal: '#7edee2',
+  violet: '#b5a7f5',
+  amber: '#efbd78',
+  coral: '#ff9d9d',
+};
+
+export const APP_GEOMETRY = {
+  radius: '8px',
+  radiusSmall: '4px',
+  controlHeight: '40px',
+  shadow: '0 12px 36px rgba(0, 0, 0, 0.32)',
+  fontUI: "'Avenir Next', 'Segoe UI', system-ui, sans-serif",
+  fontData: "'SFMono-Regular', Consolas, 'Liberation Mono', monospace",
+};
 
 /* ===== Responsive Tokens ===== */
 export const MOBILE_MAX_WIDTH = 700;
@@ -15,9 +42,9 @@ export const MOBILE_NARROW_BREAKPOINT = '520px';
 
 /* ===== Mobile Density Tokens ===== */
 export const MOBILE_PAGE_GAP = '0.55rem';
-export const MOBILE_PANEL_RADIUS = '10px';
-export const MOBILE_CONTROL_MIN_HEIGHT = '38px';
-export const MOBILE_TOUCH_TARGET = '36px';
+export const MOBILE_PANEL_RADIUS = '8px';
+export const MOBILE_CONTROL_MIN_HEIGHT = '44px';
+export const MOBILE_TOUCH_TARGET = '44px';
 export const MOBILE_FONT_SM = '0.82rem';
 export const MOBILE_FONT_XS = '0.72rem';
 

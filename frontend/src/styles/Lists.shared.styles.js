@@ -1,6 +1,8 @@
 // frontend/src/styles/Lists.shared.styles.js
 import styled, { css } from 'styled-components';
+import { panelStyles } from './primitives';
 import {
+  APP_VISUAL_THEME,
   MOBILE_BREAKPOINT,
   MOBILE_FONT_SM,
   MOBILE_FONT_XS,
@@ -11,16 +13,16 @@ import {
 
 /* ===== LCARS-ish tokens (subtle but present) ===== */
 const LCARS = {
-  bg: '#0c0f11',
-  panel: '#14181b',
-  panelAlt: '#1a1f24',
-  line: 'rgba(255,255,255,0.08)',
-  text: '#e6edf3',
-  textDim: 'rgba(230,237,243,0.70)',
-  lilac: '#A7B6FF',
-  coral: '#F08A7B',
-  amber: '#E8B15C',
-  teal: '#4CC6C1',
+  bg: APP_VISUAL_THEME.background,
+  panel: APP_VISUAL_THEME.surface,
+  panelAlt: APP_VISUAL_THEME.surfaceRaised,
+  line: APP_VISUAL_THEME.borderSoft,
+  text: APP_VISUAL_THEME.text,
+  textDim: APP_VISUAL_THEME.textSecondary,
+  lilac: APP_VISUAL_THEME.violet,
+  coral: APP_VISUAL_THEME.coral,
+  amber: APP_VISUAL_THEME.amber,
+  teal: APP_VISUAL_THEME.teal,
   lime: '#9BE564',
 };
 
@@ -31,64 +33,24 @@ const BRACKET_COLORS = [
   '#E8B15C', // amber
   '#9BE564', // lime
 ];
-const ROOT_RAIL = '#7FD7FF';
-const RAIL_W = '3px';
+const ROOT_RAIL = APP_VISUAL_THEME.amber;
 const BOX_DEPTH_INDENT_PX = 22;
 const BOX_DEPTH_INDENT_MOBILE_PX = 12;
 
 const railTone = ({ $isRoot, $depth = 0 }) =>
   $isRoot ? ROOT_RAIL : BRACKET_COLORS[$depth % BRACKET_COLORS.length];
 const toneAlpha = (hex, alpha = 'ff') => `${hex}${alpha}`;
-const depthStep = ({ $depth = 0 }) => Math.min(Math.max($depth, 0), 4);
 const childIndent = ({ $depth = 1, $mobile = false }) => {
   const depth = Math.max(Number($depth) || 0, 0);
   if (depth < 1 || depth > 3) return '0px';
   return `${$mobile ? BOX_DEPTH_INDENT_MOBILE_PX : BOX_DEPTH_INDENT_PX}px`;
 };
 
-const railOuterCorners = ({ $isRoot, $depth = 0 }) => {
-  const d = depthStep({ $depth });
-  if ($isRoot) {
-    return `${26 - d}px ${14 - d * 0.4}px ${10 - d * 0.25}px ${20 - d * 0.8}px / ${
-      16 - d * 0.6
-    }px ${12 - d * 0.3}px ${8 - d * 0.2}px ${20 - d * 0.8}px`;
-  }
-  return `${22 - d * 0.8}px ${11 - d * 0.3}px ${9 - d * 0.2}px ${
-    16 - d * 0.6
-  }px / ${13 - d * 0.5}px ${9 - d * 0.25}px ${7 - d * 0.15}px ${
-    16 - d * 0.6
-  }px`;
-};
 
-const railInnerCorners = ({ $isRoot, $depth = 0 }) => {
-  const d = depthStep({ $depth });
-  if ($isRoot) {
-    return `${23 - d * 0.9}px ${11 - d * 0.35}px ${8 - d * 0.2}px ${
-      17 - d * 0.7
-    }px / ${13 - d * 0.55}px ${10 - d * 0.25}px ${6 - d * 0.15}px ${
-      17 - d * 0.7
-    }px`;
-  }
-  return `${19 - d * 0.7}px ${9 - d * 0.25}px ${7 - d * 0.15}px ${
-    13 - d * 0.5
-  }px / ${10 - d * 0.4}px ${7 - d * 0.2}px ${5 - d * 0.1}px ${
-    13 - d * 0.5
-  }px`;
-};
-const railBaseX = '-0.74rem';
-const railTop = ({ $isRoot }) => ($isRoot ? '0.22rem' : '0.3rem');
 
-const radius = '14px';
-const chipRadius = '999px';
+const chipRadius = 'var(--dw-radius-sm)';
 
-const panelBase = css`
-  background: ${LCARS.panel};
-  border: 1px solid ${LCARS.line};
-  border-radius: ${radius};
-  box-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.25),
-    0 10px 28px rgba(0, 0, 0, 0.24);
-`;
+const panelBase = css`${panelStyles}`;
 
 /* ===== Core layout (names preserved) ===== */
 export const Container = styled.div`
@@ -103,6 +65,12 @@ export const Container = styled.div`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.36rem;
     padding: 0;
+  }
+  min-width: 0;
+  font-family: var(--dw-font-ui);
+  & :is(button, a, input, select, textarea):focus-visible {
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
   }
 `;
 
@@ -140,7 +108,7 @@ export const Title = styled.h3`
   font-size: 1.25rem;
   font-weight: 800;
   margin: 0;
-  letter-spacing: 0.2px;
+  letter-spacing: normal;
 
   /* LCARS elbow */
   &::before {
@@ -148,8 +116,8 @@ export const Title = styled.h3`
     width: 8px;
     height: 28px;
     border-radius: 8px;
-    background: ${LCARS.coral};
-    box-shadow: 0 0 0 2px ${LCARS.coral}20 inset;
+    background: var(--dw-amber);
+    box-shadow: none;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -171,21 +139,18 @@ export const ShortId = styled.span`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_SM};
   }
+  font-family: var(--dw-font-data);
 `;
 
 export const SectionTitle = styled.h4`
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: var(--dw-font-ui);
   font-size: 1.1rem;
   font-weight: 800;
-  letter-spacing: 0.015em;
+  letter-spacing: normal;
   margin: 0.72rem 0 0.28rem 0;
   color: ${({ $isRoot, $depth = 0 }) =>
     toneAlpha(railTone({ $isRoot, $depth }), 'ee')};
-  text-shadow: 0 0 10px
-    ${({ $isRoot, $depth = 0 }) =>
-      toneAlpha(railTone({ $isRoot, $depth }), '2a')};
+  text-shadow: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 0.94rem;
@@ -210,15 +175,11 @@ export const TagBubble = styled.button`
     border-color 120ms ease,
     background 120ms ease,
     transform 120ms ease;
-  background:
-    linear-gradient(90deg, ${LCARS.teal}22, transparent 36%) no-repeat,
-    ${LCARS.panel};
+  background: var(--dw-surface);
 
   &:hover {
     border-color: ${LCARS.teal};
-    background:
-      linear-gradient(90deg, ${LCARS.lime}1f, transparent 44%) no-repeat,
-      ${LCARS.panelAlt};
+    background: var(--dw-surface);
     transform: translateY(-1px);
   }
 
@@ -278,11 +239,9 @@ export const ViewModeLabel = styled.label`
   display: inline-flex;
   align-items: center;
   gap: 0.46rem;
-  min-height: 38px;
+  min-height: 44px;
   padding: 0.32rem 0.54rem;
-  background:
-    linear-gradient(90deg, ${LCARS.teal}18, transparent 58%),
-    ${LCARS.panel};
+  background: var(--dw-surface);
   color: ${LCARS.text};
   cursor: pointer;
   user-select: none;
@@ -290,23 +249,23 @@ export const ViewModeLabel = styled.label`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: 100%;
     justify-content: center;
-    min-height: 34px;
+    min-height: 44px;
     padding: 0.28rem 0.42rem;
     border-radius: ${MOBILE_PANEL_RADIUS};
   }
 `;
 
 export const ViewModeLabelText = styled.span`
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 820;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
   color: ${LCARS.textDim};
   white-space: nowrap;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.06em;
+    letter-spacing: normal;
   }
 `;
 
@@ -331,10 +290,10 @@ export const ViewModeCheckbox = styled.input`
 export const ViewModeSlider = styled.span`
   position: absolute;
   inset: 0;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.2);
+  box-shadow: none;
   transition:
     background 160ms ease,
     border-color 160ms ease,
@@ -348,18 +307,16 @@ export const ViewModeSlider = styled.span`
     left: 3px;
     width: 18px;
     height: 18px;
-    border-radius: 999px;
+    border-radius: var(--dw-radius);
     background: ${LCARS.text};
-    box-shadow: 0 2px 7px rgba(0, 0, 0, 0.34);
+    box-shadow: none;
     transition: transform 160ms ease;
   }
 
   ${ViewModeCheckbox}:checked + & {
     border-color: rgba(76, 198, 193, 0.62);
     background: rgba(76, 198, 193, 0.32);
-    box-shadow:
-      inset 0 0 0 1px rgba(76, 198, 193, 0.18),
-      0 0 12px rgba(76, 198, 193, 0.12);
+    box-shadow: none;
   }
 
   ${ViewModeCheckbox}:checked + &::after {
@@ -368,9 +325,8 @@ export const ViewModeSlider = styled.span`
   }
 
   ${ViewModeCheckbox}:focus-visible + & {
-    box-shadow:
-      0 0 0 2px rgba(127, 215, 255, 0.24),
-      inset 0 0 0 1px rgba(0, 0, 0, 0.2);
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
   }
 `;
 
@@ -417,31 +373,11 @@ export const SectionGroup = styled.div`
 export const RailBack = styled.div`
   grid-area: 1 / 1;
   align-self: stretch;
-  justify-self: stretch;
-  margin-left: ${railBaseX};
-  margin-top: ${({ $isRoot }) => railTop({ $isRoot })};
-  border-radius: ${({ $isRoot, $depth = 0 }) =>
-    railOuterCorners({ $isRoot, $depth })};
-  background: ${({ $isRoot, $depth = 0 }) => railTone({ $isRoot, $depth })};
-  opacity: ${({ $isRoot }) => ($isRoot ? 0.96 : 0.9)};
-  filter: drop-shadow(
-    0 0 ${({ $isRoot }) => ($isRoot ? '3px' : '2px')}
-      ${({ $isRoot, $depth = 0 }) => `${railTone({ $isRoot, $depth })}2d`}
-  );
+  width: 4px;
+  border-radius: var(--dw-radius-sm) 0 0 var(--dw-radius-sm);
+  background: var(--box-primary, #8A8175);
   pointer-events: none;
   z-index: 0;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    margin-left: -0.36rem;
-    margin-top: ${({ $isRoot }) => ($isRoot ? '0.18rem' : '0.24rem')};
-    opacity: ${({ $isRoot }) => ($isRoot ? 0.74 : 0.62)};
-    filter: none;
-  }
-
-  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
-    margin-left: -0.28rem;
-    opacity: ${({ $isRoot }) => ($isRoot ? 0.66 : 0.56)};
-  }
 `;
 
 export const RailFront = styled.div`
@@ -449,50 +385,12 @@ export const RailFront = styled.div`
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.32rem;
-  width: auto;
+  gap: 0.3rem;
   min-width: 0;
+  margin-left: 4px;
+  border-radius: 0 var(--dw-radius-sm) var(--dw-radius-sm) 0;
+  background: var(--dw-surface);
   z-index: 1;
-  margin-left: calc(${RAIL_W} + 0.08rem);
-  margin-right: ${RAIL_W};
-  margin-top: ${({ $isRoot }) => `calc(${railTop({ $isRoot })} + ${RAIL_W})`};
-  margin-bottom: ${RAIL_W};
-  padding-top: 0.34rem;
-  padding-right: 0.45rem;
-  padding-left: ${({ $isRoot }) => ($isRoot ? '0' : '0.48rem')};
-  padding-bottom: 0.2rem;
-  border-radius: ${({ $isRoot, $depth = 0 }) =>
-    railInnerCorners({ $isRoot, $depth })};
-  background: linear-gradient(
-    140deg,
-    ${LCARS.bg} 32%,
-    rgba(12, 15, 17, 0.94) 68%,
-    rgba(12, 15, 17, 0.9) 100%
-  );
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    margin-left: calc(${RAIL_W} + 0.01rem);
-    margin-right: 0;
-    margin-top: ${({ $isRoot }) => ($isRoot ? '0.2rem' : '0.24rem')};
-    padding-top: 0.2rem;
-    padding-right: 0.14rem;
-    padding-left: ${({ $isRoot }) => ($isRoot ? '0' : '0.32rem')};
-    padding-bottom: 0.12rem;
-    border-radius: 9px 7px 7px 8px / 8px 7px 6px 8px;
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    background: linear-gradient(
-      140deg,
-      rgba(12, 15, 17, 0.96) 42%,
-      rgba(12, 15, 17, 0.92) 100%
-    );
-  }
-
-  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
-    margin-top: ${({ $isRoot }) => ($isRoot ? '0.18rem' : '0.22rem')};
-    padding-right: 0.1rem;
-    padding-left: ${({ $isRoot }) => ($isRoot ? '0' : '0.28rem')};
-    padding-bottom: 0.1rem;
-  }
 `;
 
 /* ===== NEW: Breadcrumb / Tree map + Stats ===== */
@@ -505,9 +403,7 @@ export const CrumbBar = styled.div`
   gap: 0.75rem;
   align-items: center;
   padding: 0.6rem 0.75rem;
-  background:
-    linear-gradient(90deg, ${LCARS.coral}1c, transparent 35%) no-repeat,
-    ${LCARS.panel};
+  background: var(--dw-surface);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     grid-template-columns: 1fr;
@@ -615,14 +511,14 @@ export const LevelDots = styled.div`
   & > i {
     width: 8px;
     height: 8px;
-    border-radius: 999px;
+    border-radius: var(--dw-radius);
     background: ${LCARS.textDim};
     opacity: 0.6;
   }
   & > i[data-on='true'] {
     background: ${LCARS.teal};
     opacity: 1;
-    box-shadow: 0 0 0 2px ${LCARS.teal}22;
+    box-shadow: none;
   }
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {

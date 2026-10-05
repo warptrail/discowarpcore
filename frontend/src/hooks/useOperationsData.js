@@ -1,38 +1,34 @@
 import { useCallback, useEffect, useState } from 'react';
 import { API_BASE } from '../api/API_BASE';
+import { addCapturedOrphanedItem } from '../util/operationsAdrift';
 import { BOX_RECORD_UPDATED_EVENT } from '../constants/inventoryFinderEvents';
 
 const OPERATIONS_PAGE_LIMIT = 50;
 
-function normalizeGroupLabel(value) {
-  return String(value || '').trim();
-}
-
-function collectGroupOptionsFromTree(nodes) {
-  const byKey = new Map();
-  const walk = (list) => {
-    for (const node of list || []) {
-      const label = normalizeGroupLabel(node?.group);
-      if (label && !byKey.has(label.toLowerCase())) byKey.set(label.toLowerCase(), label);
-      walk(node?.childBoxes);
-    }
-  };
-  walk(nodes);
-  return [...byKey.values()].sort((left, right) => left.localeCompare(right, undefined, {
-    sensitivity: 'base',
-    numeric: true,
-  }));
+function inheritBoxLocations(nodes, ancestorLocation = '') {
+  return (nodes || []).map((node) => {
+    const ownLocation = String(node?.location || '').trim();
+    const effectiveLocation = ownLocation || ancestorLocation;
+    return {
+      ...node,
+      location: effectiveLocation,
+      inheritedLocation: ownLocation ? '' : effectiveLocation,
+      childBoxes: inheritBoxLocations(node?.childBoxes, effectiveLocation),
+    };
+  });
 }
 
 export default function useOperationsData({ includeSupportingData = true } = {}) {
   const [boxes, setBoxes] = useState([]);
-  const [groups, setGroups] = useState([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [orphanedItems, setOrphanedItems] = useState([]);
   const [locations, setLocations] = useState([]);
   const [refreshTick, setRefreshTick] = useState(0);
+  const recordOrphanedItem = useCallback((item) => {
+    setOrphanedItems((current) => addCapturedOrphanedItem(current, item));
+  }, []);
   const requestRefresh = useCallback(() => setRefreshTick((current) => current + 1), []);
 
   useEffect(() => {
@@ -91,17 +87,13 @@ export default function useOperationsData({ includeSupportingData = true } = {})
             }),
           )
           : [];
-        const allBoxes = [firstPage, ...remainingPages].flat();
+        const allBoxes = inheritBoxLocations([firstPage, ...remainingPages].flat());
         const nextTotal = Number.isFinite(apiTotal) ? apiTotal : allBoxes.length;
-        const apiGroups = Array.isArray(boxesBody?.filters?.groups)
-          ? boxesBody.filters.groups
-          : collectGroupOptionsFromTree(allBoxes);
         const orphanedBody = orphanedResponse?.ok ? await orphanedResponse.json() : [];
         const locationsBody = locationsResponse?.ok ? await locationsResponse.json() : {};
         if (controller.signal.aborted) return;
 
         setBoxes(allBoxes);
-        setGroups(apiGroups.map(normalizeGroupLabel).filter(Boolean));
         setTotal(nextTotal);
         setTotalPages(Math.max(1, Math.ceil(nextTotal / OPERATIONS_PAGE_LIMIT)));
         setOrphanedItems(
@@ -124,7 +116,6 @@ export default function useOperationsData({ includeSupportingData = true } = {})
 
   return {
     boxes,
-    groups,
     page,
     setPage,
     total,
@@ -133,6 +124,7 @@ export default function useOperationsData({ includeSupportingData = true } = {})
     orphanedCount: orphanedItems.length,
     locations,
     requestRefresh,
+    recordOrphanedItem,
     pageLimit: OPERATIONS_PAGE_LIMIT,
   };
 }

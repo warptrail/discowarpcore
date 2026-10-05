@@ -21,20 +21,20 @@ const MetaRow = styled.div`
 `;
 
 const StatusPill = styled.span`
-  border: 1px solid rgba(176, 222, 246, 0.42);
-  border-radius: 999px;
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
   padding: 0.12rem 0.42rem;
-  color: rgba(235, 248, 255, 0.94);
-  background: rgba(5, 18, 28, 0.34);
-  font-size: 0.66rem;
+  color: var(--dw-text-secondary);
+  background: var(--dw-surface);
+  font-size: 0.75rem;
   font-weight: 780;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 const MetaText = styled.span`
   min-width: 0;
-  color: rgba(234, 246, 255, 0.88);
+  color: var(--dw-text-secondary);
   font-size: 0.78rem;
   line-height: 1.3;
   overflow-wrap: anywhere;
@@ -44,9 +44,9 @@ const Track = styled.div`
   position: relative;
   overflow: hidden;
   height: 10px;
-  border-radius: 999px;
-  background: rgba(3, 10, 16, 0.62);
-  border: 1px solid rgba(197, 230, 247, 0.22);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
+  border: 1px solid var(--dw-border);
 `;
 
 const Fill = styled.div`
@@ -57,11 +57,15 @@ const Fill = styled.div`
   background: linear-gradient(90deg, #64d2ff 0%, #8ff0c6 58%, #f7d774 100%);
   box-shadow: 0 0 14px rgba(100, 210, 255, 0.42);
   transition: width 180ms ease;
+
+  background: var(--dw-cyan);
+  box-shadow: none;
+  @media (prefers-reduced-motion: reduce) { transition: none; }
 `;
 
 const Detail = styled.div`
-  color: rgba(219, 236, 247, 0.76);
-  font-size: 0.68rem;
+  color: var(--dw-text-secondary);
+  font-size: 0.75rem;
   line-height: 1.3;
 `;
 
@@ -94,7 +98,7 @@ export default function ImageProcessingToastContent({
         <StatusPill>{statusLabel}</StatusPill>
         <MetaText>{toTrimmed(label) || 'ObjectGlow/media processing is running.'}</MetaText>
       </MetaRow>
-      <Track aria-label="Image processing progress">
+      <Track role="progressbar" aria-label="Image processing progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent ?? undefined} aria-valuetext={statusLabel}>
         <Fill
           $percent={progressWidth}
           $indeterminate={percent == null && normalizedStatus === 'processing'}

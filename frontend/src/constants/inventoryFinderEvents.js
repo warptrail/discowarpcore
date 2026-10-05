@@ -45,13 +45,5 @@ export const RETRIEVAL_FINDER_CLOSE_EVENT =
 export const RETRIEVAL_FINDER_TOGGLE_EVENT =
   'disco-warp-core:retrieval-finder-toggle';
 
-export const ALL_ITEMS_FILTERS_STATE_EVENT =
-  'disco-warp-core:all-items-filters-state';
-export const ALL_ITEMS_FILTERS_TOGGLE_EVENT =
-  'disco-warp-core:all-items-filters-toggle';
-export const ALL_ITEMS_INSIGHTS_STATE_EVENT =
-  'disco-warp-core:all-items-insights-state';
-export const ALL_ITEMS_INSIGHTS_OPEN_EVENT =
-  'disco-warp-core:all-items-insights-open';
 export const ALL_ITEMS_DETAIL_OPEN_EVENT =
   'disco-warp-core:all-items-detail-open';

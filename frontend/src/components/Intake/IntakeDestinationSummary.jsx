@@ -1,3 +1,4 @@
+import { controlStyles } from '../../styles/primitives';
 import React from 'react';
 import styled from 'styled-components';
 
@@ -17,13 +18,12 @@ const Identity = styled.div`
 
 const BoxCode = styled.div`
   color: var(--box-neon);
-  font-family: 'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace,
-    Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-family: var(--dw-font-ui);
   font-size: clamp(1rem, 4vw, 1.2rem);
   font-weight: 850;
   letter-spacing: 0.075em;
   line-height: 1;
-  text-shadow: 0 0 14px rgba(var(--box-primary-rgb), 0.28);
+  text-shadow: none;
 `;
 
 const BoxName = styled.h2`
@@ -43,7 +43,7 @@ const Facts = styled.dl`
   gap: 0.45rem 0.8rem;
   margin: 0;
   padding-top: 0.55rem;
-  border-top: 1px solid rgba(var(--box-primary-rgb), 0.28);
+  border-top: 1px solid var(--dw-border);
 
   @media (min-width: 760px) {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -56,10 +56,10 @@ const Fact = styled.div`
 
 const FactLabel = styled.dt`
   color: rgba(var(--box-secondary-rgb), 0.68);
-  font-size: 0.6rem;
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 const FactValue = styled.dd`
@@ -81,10 +81,10 @@ const DetailLine = styled.div`
 
 const DetailLabel = styled.div`
   color: rgba(var(--box-secondary-rgb), 0.68);
-  font-size: 0.6rem;
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 const Notes = styled.p`
@@ -114,7 +114,7 @@ const PathButton = styled.button`
     $current ? 'var(--box-neon)' : 'rgba(var(--box-primary-rgb), 0.82)'};
   cursor: ${({ $clickable }) => ($clickable ? 'pointer' : 'default')};
   font: inherit;
-  font-size: 0.69rem;
+  font-size: 0.75rem;
   font-weight: ${({ $current }) => ($current ? 700 : 600)};
   overflow: hidden;
   padding: 0;
@@ -123,6 +123,8 @@ const PathButton = styled.button`
 
   &:hover { ${({ $clickable }) => ($clickable ? 'color: #effffc;' : '')} }
   &:focus-visible { outline: 2px solid var(--box-neon); outline-offset: 2px; }
+
+  ${controlStyles}
 `;
 
 const PathDivider = styled.span`
@@ -132,9 +134,8 @@ const PathDivider = styled.span`
 
 const TagLine = styled.div`
   color: rgba(var(--box-primary-rgb), 0.78);
-  font-family: 'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace,
-    Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
-  font-size: 0.68rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -170,8 +171,7 @@ export default function IntakeDestinationSummary({
   if (!box?._id) return null;
 
   const locationName =
-    box?.locationId?.name || box?.location?.name || box?.locationName || box?.location || '';
-  const groupName = String(box?.group || '').trim();
+    box?.locationName || box?.location || '';
   const notes = String(box?.notes || '').trim();
   const tags = Array.isArray(box?.tags) ? box.tags.filter(Boolean) : [];
   const stats = currentBoxInsight?.stats || makeFallbackStats(box);
@@ -181,7 +181,6 @@ export default function IntakeDestinationSummary({
 
   const facts = [
     locationName ? { label: 'Location', value: locationName } : null,
-    groupName ? { label: 'Group', value: groupName } : null,
     { label: 'Direct items', value: `${stats.directUnique} · qty ${stats.directQuantity}` },
     stats.descendantBoxes > 0
       ? { label: 'Nested boxes', value: `${stats.descendantBoxes} total` }

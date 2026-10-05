@@ -1,3 +1,5 @@
+import { panelStyles, controlStyles, inputStyles } from '../../styles/primitives';
+import BoxCompartmentSelect from '../BoxForms/BoxCompartmentSelect';
 import React, { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { API_BASE } from '../../api/API_BASE';
@@ -11,19 +13,22 @@ import IntakeBoxSelectorPanel from './IntakeBoxSelectorPanel';
 import { getItemThumbnailUrl } from '../../util/itemImage';
 
 const Panel = styled.section`
-  border: 1px solid rgba(177, 134, 75, 0.45);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(33, 25, 16, 0.94) 0%, rgba(23, 18, 13, 0.96) 100%);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   padding: 0.72rem;
   display: grid;
   gap: 0.55rem;
+
+  ${panelStyles}
+  border-left: 3px solid var(--dw-amber);
 `;
 
 const Heading = styled.h3`
   margin: 0;
   font-size: 0.8rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: #f0ddbf;
 `;
 
@@ -47,8 +52,8 @@ const Field = styled.div`
 const Label = styled.div`
   margin: 0;
   font-size: 0.72rem;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: #d4bf9f;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -59,7 +64,7 @@ const Label = styled.div`
 const PickerTrigger = styled.button`
   width: 100%;
   min-height: 48px;
-  border-radius: 10px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid ${({ $active }) => ($active ? 'rgba(236, 197, 133, 0.9)' : 'rgba(184, 151, 94, 0.55)')};
   background: ${({ $active }) => ($active ? 'rgba(44, 31, 16, 0.95)' : 'rgba(19, 14, 10, 0.9)')};
   color: #f7e6c9;
@@ -81,6 +86,10 @@ const PickerTrigger = styled.button`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
   }
+
+  ${controlStyles}
+  border-left-color: ${({ $active, $selected, $recommended }) => ($active || $selected || $recommended) ? 'var(--dw-amber)' : 'var(--dw-border)'};
+  border-left-width: 3px;
 `;
 
 const PickerHeadline = styled.div`
@@ -101,9 +110,9 @@ const PickerSubline = styled.div`
 `;
 
 const PickerPanel = styled.div`
-  border: 1px solid rgba(177, 145, 91, 0.48);
-  border-radius: 10px;
-  background: rgba(19, 13, 8, 0.85);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   padding: 0.5rem;
   display: grid;
   gap: 0.42rem;
@@ -112,9 +121,9 @@ const PickerPanel = styled.div`
 const SearchInput = styled.input`
   width: 100%;
   min-height: 40px;
-  border-radius: 8px;
-  border: 1px solid rgba(184, 151, 94, 0.56);
-  background: rgba(24, 18, 12, 0.96);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface);
   color: #f8e8cb;
   font-size: 0.86rem;
   padding: 0 0.58rem;
@@ -122,13 +131,15 @@ const SearchInput = styled.input`
   &:focus {
     outline: none;
     border-color: rgba(236, 197, 133, 0.94);
-    box-shadow: 0 0 0 2px rgba(220, 168, 82, 0.2);
+    box-shadow: none;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     font-size: ${MOBILE_FONT_SM};
   }
+
+  ${inputStyles}
 `;
 
 const OptionList = styled.div`
@@ -141,7 +152,7 @@ const OptionList = styled.div`
 const OptionButton = styled.button`
   width: 100%;
   border: 1px solid ${({ $selected }) => ($selected ? 'rgba(236, 197, 133, 0.92)' : 'rgba(163, 131, 81, 0.5)')};
-  border-radius: 9px;
+  border-radius: var(--dw-radius-sm);
   background: ${({ $selected }) => ($selected ? 'rgba(57, 39, 16, 0.94)' : 'rgba(24, 17, 10, 0.9)')};
   padding: 0.42rem 0.5rem;
   text-align: left;
@@ -159,20 +170,24 @@ const OptionButton = styled.button`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     grid-template-columns: 36px minmax(0, 1fr);
   }
+
+  ${controlStyles}
+  border-left-color: ${({ $active, $selected, $recommended }) => ($active || $selected || $recommended) ? 'var(--dw-amber)' : 'var(--dw-border)'};
+  border-left-width: 3px;
 `;
 
 const Thumb = styled.div`
   width: 40px;
   height: 40px;
-  border-radius: 8px;
-  border: 1px solid rgba(167, 132, 84, 0.5);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
   overflow: hidden;
-  background: rgba(27, 20, 12, 0.95);
+  background: var(--dw-surface);
   display: grid;
   place-items: center;
   color: #bd9f71;
-  font-size: 0.58rem;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  text-transform: none;
 `;
 
 const ThumbImage = styled.img`
@@ -189,7 +204,7 @@ const OptionTitle = styled.div`
 `;
 
 const OptionMeta = styled.div`
-  font-size: 0.69rem;
+  font-size: 0.75rem;
   color: #d2b98f;
   line-height: 1.25;
 `;
@@ -197,14 +212,14 @@ const OptionMeta = styled.div`
 const SubmitButton = styled.button`
   width: 100%;
   min-height: 52px;
-  border-radius: 12px;
-  border: 1px solid rgba(228, 176, 92, 0.76);
-  background: linear-gradient(180deg, rgba(116, 74, 25, 0.92) 0%, rgba(83, 53, 19, 0.95) 100%);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface);
   color: #fff0d7;
   font-size: 0.91rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   cursor: pointer;
 
   &:hover:not(:disabled) {
@@ -220,6 +235,10 @@ const SubmitButton = styled.button`
     min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     font-size: ${MOBILE_FONT_SM};
   }
+
+  ${controlStyles}
+  color: var(--dw-cyan);
+  border-color: var(--dw-cyan);
 `;
 
 const StateText = styled.div`
@@ -229,8 +248,8 @@ const StateText = styled.div`
 `;
 
 const MissingState = styled.div`
-  border: 1px dashed rgba(191, 155, 94, 0.52);
-  border-radius: 10px;
+  border: 1px dashed var(--dw-border);
+  border-radius: var(--dw-radius-sm);
   padding: 0.6rem;
   font-size: 0.78rem;
   color: #d6c39f;
@@ -269,6 +288,7 @@ export default function IntakeMoveItemPanel({
   onItemMoved,
 }) {
   const [sourceItemId, setSourceItemId] = useState(seedItemId || '');
+  const [compartmentKey, setCompartmentKey] = useState('A');
   const [destBoxId, setDestBoxId] = useState('');
   const [itemSearch, setItemSearch] = useState('');
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
@@ -362,6 +382,7 @@ export default function IntakeMoveItemPanel({
           itemId: sourceItemId,
           sourceBoxId: currentBox._id,
           destBoxId,
+          compartmentKey: selectedDestination?.isComplexBox ? compartmentKey : undefined,
         }),
       });
 
@@ -456,6 +477,7 @@ export default function IntakeMoveItemPanel({
                 value={itemSearch}
                 onChange={(event) => setItemSearch(event.target.value)}
                 placeholder="Search recent items"
+                aria-label="Search recent items"
                 disabled={busy}
               />
 
@@ -536,6 +558,7 @@ export default function IntakeMoveItemPanel({
           ) : null}
         </Field>
 
+        <BoxCompartmentSelect box={selectedDestination} value={compartmentKey} onChange={setCompartmentKey} disabled={busy} />
         <SubmitButton type="submit" disabled={!canMove}>
           {busy ? 'Moving…' : 'Move Item'}
         </SubmitButton>

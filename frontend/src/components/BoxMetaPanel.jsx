@@ -4,6 +4,7 @@ import * as S from '../styles/BoxMetaPanel.styles';
 import { BOX_CONTEXT_STATE_EVENT } from '../constants/inventoryFinderEvents';
 import BoxPresentationHero from './BoxMetaPanel/BoxPresentationHero';
 import { getBoxPreviewImageUrl } from '../util/itemImage';
+import { getBoxTheme, getBoxThemeCssVars } from '../util/inventoryColorTheme';
 
 /**
  * BoxMetaPanel
@@ -58,7 +59,7 @@ function DescendantBranch({ node, depth = 0, onNavigateBox }) {
   const nested = kidsOf(node);
 
   return (
-    <S.DescendantNode>
+    <S.DescendantNode style={getBoxThemeCssVars(getBoxTheme(nodeId))}>
       <S.DescendantRow>
         <S.DescendantConnector $depth={depth} />
         <S.DescendantLink
@@ -111,9 +112,8 @@ export default function BoxMetaPanel({
 }) {
   const shortId = String(box?.box_id ?? box?.shortId ?? '');
   const title = box?.label ?? box?.name ?? 'Box';
-  const group = String(box?.group ?? '').trim();
   const location = String(
-    box?.location ?? box?.locationName ?? box?.locationId?.name ?? ''
+    box?.location ?? box?.locationName ?? ''
   ).trim();
   const description = String(box?.description ?? '').trim();
   const notes = String(box?.notes ?? '').trim();
@@ -123,13 +123,13 @@ export default function BoxMetaPanel({
   const children = kidsOf(box);
   const [metaIndex, setMetaIndex] = useState(0);
   const metadata = useMemo(() => [
-    group ? `Group · ${group}` : '',
     `${Array.isArray(box?.items) ? box.items.length : 0} items`,
+    box?.isComplexBox ? 'Complex box' : '',
     children.length ? `${children.length} nested boxes` : '',
     box?.createdAt ? `Created · ${new Date(box.createdAt).toLocaleDateString()}` : '',
     box?.updatedAt ? `Updated · ${new Date(box.updatedAt).toLocaleDateString()}` : '',
     previewTags.length ? `${previewTags.length} tags` : '',
-  ].filter(Boolean), [box?.createdAt, box?.items, box?.updatedAt, children.length, group, previewTags.length]);
+  ].filter(Boolean), [box?.isComplexBox, box?.createdAt, box?.items, box?.updatedAt, children.length, previewTags.length]);
   useEffect(() => {
     if (metadata.length < 2) return undefined;
     const timer = window.setInterval(() => setMetaIndex((index) => (index + 1) % metadata.length), 3200);
@@ -187,7 +187,7 @@ export default function BoxMetaPanel({
   if (!box) return null;
 
   return (
-    <S.Panel>
+    <S.Panel style={getBoxThemeCssVars(getBoxTheme(shortId))}>
       <S.IdentityZone>
         <S.IdentityHeader>
           <S.RotatingMeta aria-live="polite">{metadata[metaIndex % Math.max(metadata.length, 1)]}</S.RotatingMeta>
@@ -200,7 +200,6 @@ export default function BoxMetaPanel({
           box={box}
           boxId={pad3(currentCrumb?.id)}
           title={currentCrumb?.label ?? title}
-          group={group}
           location={location}
           description={description}
           tags={previewTags}

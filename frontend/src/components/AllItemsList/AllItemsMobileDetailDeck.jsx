@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { controlStyles } from '../../styles/primitives';
 import { getItemHomeHref } from '../../api/itemDetails';
 import { rememberAllItemsReturn } from './allItemsReturnState';
 
@@ -35,10 +36,8 @@ const Deck = styled.section`
   overflow: hidden;
   border: 1px solid rgba(103, 212, 202, 0.46);
   border-radius: 2px 2px 8px 8px;
-  background: #091015;
-  box-shadow:
-    0 20px 42px rgba(0, 0, 0, 0.72),
-    inset 3px 0 0 rgba(103, 212, 202, 0.12);
+  background: var(--dw-surface);
+  box-shadow: none;
 `;
 
 const Header = styled.header`
@@ -47,7 +46,7 @@ const Header = styled.header`
   gap: 0.6rem;
   padding: 0.66rem 0.72rem;
   border-bottom: 1px solid rgba(127, 215, 255, 0.12);
-  background: #0b1319;
+  background: var(--dw-surface);
 `;
 
 const Name = styled.h2`
@@ -62,17 +61,18 @@ const Name = styled.h2`
 const Position = styled.div`
   margin-top: 0.2rem;
   color: #67d4ca;
-  font: 0.68rem/1.2 "SFMono-Regular", Consolas, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 0.75rem/1.2 var(--dw-font-ui);
+  letter-spacing: normal;
+  text-transform: none;
 `;
 
 const Close = styled.button`
+  ${controlStyles}
   width: 34px;
   height: 34px;
   border: 1px solid rgba(127, 215, 255, 0.26);
   border-radius: 3px;
-  background: #0d171e;
+  background: var(--dw-surface);
   color: #d8f3ff;
   font-size: 1rem;
 `;
@@ -82,15 +82,15 @@ const Card = styled.div`
   padding: 0.9rem 1rem;
   overflow: auto;
   border: 0;
-  background: #0b1218;
+  background: var(--dw-surface);
 `;
 
 const SectionTitle = styled.h3`
   margin: 0 0 0.8rem;
   color: #4cc6c1;
-  font: 800 0.72rem/1.2 "SFMono-Regular", Consolas, monospace;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
+  font: 800 0.75rem/1.2 var(--dw-font-ui);
+  letter-spacing: normal;
+  text-transform: none;
 `;
 
 const DataList = styled.dl`
@@ -101,8 +101,8 @@ const DataList = styled.dl`
 
   dt {
     color: rgba(185, 195, 205, 0.64);
-    font: 0.68rem/1.35 "SFMono-Regular", Consolas, monospace;
-    text-transform: uppercase;
+    font: 0.75rem/1.35 var(--dw-font-ui);
+    text-transform: none;
   }
 
   dd {
@@ -120,22 +120,23 @@ const Footer = styled.footer`
   gap: 0.42rem;
   padding: 0.58rem 0.7rem 0.68rem;
   border-top: 1px solid rgba(127, 215, 255, 0.12);
-  background: #0a1117;
+  background: var(--dw-surface);
 `;
 
 const NavButton = styled.button`
+  ${controlStyles}
   min-height: 42px;
   border: 1px solid rgba(127, 215, 255, 0.3);
   border-radius: 3px;
-  background: #0d161d;
+  background: var(--dw-surface);
   color: #e6edf3;
-  font: 900 2rem/0.8 "SFMono-Regular", Consolas, monospace;
+  font: 900 2rem/0.8 var(--dw-font-ui);
   cursor: pointer;
 
   &:hover,
   &:focus-visible {
     border-color: rgba(103, 212, 202, 0.72);
-    background: rgba(18, 48, 60, 0.94);
+    background: var(--dw-surface-raised);
     color: #aef9ef;
   }
 
@@ -145,20 +146,21 @@ const NavButton = styled.button`
 `;
 
 const OpenItemButton = styled.button`
+  ${controlStyles}
   min-height: 42px;
   border: 1px solid rgba(103, 212, 202, 0.58);
   border-radius: 3px;
-  background: #12303c;
+  background: var(--dw-surface);
   color: #e6edf3;
-  font: 820 0.68rem/1 "SFMono-Regular", Consolas, monospace;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  font: 820 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: normal;
+  text-transform: none;
   cursor: pointer;
 
   &:hover,
   &:focus-visible {
-    background: #174353;
-    box-shadow: 0 0 14px rgba(103, 212, 202, 0.18);
+    background: var(--dw-surface);
+    box-shadow: none;
   }
 
   &:active {

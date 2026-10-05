@@ -429,7 +429,7 @@ npm run intake:tui
 ```
 
 `192.168.1.37:5002` is NeonAzoth's production backend on the home LAN. The TUI
-prints the API target and checks `/api/health` before it opens; confirm that it
+prints the API target and checks `/api/health/ready` before it opens; confirm that it
 says `http://192.168.1.37:5002` before choosing a direct database import.
 
 Do not use the default `localhost:5002` for production unless you deliberately
@@ -470,7 +470,7 @@ The full deployment option:
 5. installs frontend dependencies there too;
 6. runs the production frontend build;
 7. verifies and gracefully restarts the exact Disco Warp Core backend process;
-8. checks the remote backend health endpoint at `http://127.0.0.1:5002/api/health`;
+8. checks the remote backend readiness endpoint at `http://127.0.0.1:5002/api/health/ready`;
 9. prints the current LAN URL.
 
 The sync protects production-only material such as `.env` files, media,
@@ -676,6 +676,68 @@ root with `npm --prefix frontend run <script>`:
 
 The remote deployment TUI runs the frontend `build` step on NeonAzoth. The
 source-only deploy does not.
+
+## Item JSON inputs, MCP, and production drift items
+
+The inventory MCP is **read-only**. It exposes health, search, item/box lookup,
+and location listing; it has no item creation tool or MCP ingestion schema.
+Adding an item through an assistant currently requires an authorized write
+through the existing Express API. A successful MCP read can verify that write.
+
+Always identify the destination in the request, for example:
+**“Add this to live production on NeonAzoth as a drift item, with no box.”**
+The production API is `http://127.0.0.1:5002/api` **on the Linux machine**, reached
+over `ssh -T neonazoth`. The Mac development API is
+`http://127.0.0.1:7610/api`; writing there does not add to production inventory.
+
+For a single-item request, use this JSON shape:
+
+```json
+{
+  "name": "Water Flosser USB Charging Cables",
+  "quantity": 3,
+  "category": "bathroom",
+  "description": "White USB-A charging cables with proprietary connectors for rechargeable water flossers.",
+  "condition": "unknown",
+  "isConsumable": false,
+  "keepPriority": "medium",
+  "tags": ["cable", "charger", "usb", "water-flosser", "oral-care", "bathroom"],
+  "notes": "Used. Exact brand/model compatibility not identified."
+}
+```
+
+| Field | Supported input |
+| --- | --- |
+| `name` | Required nonempty string. |
+| `quantity` | Number; use a positive integer. Defaults to `1`. |
+| `description`, `notes` | Strings. |
+| `tags` | Array of strings. |
+| `isConsumable` | Boolean. Defaults to `false`. |
+| `condition` | `unknown`, `new`, `good`, `fair`, `poor`, or `needs_repair`. Defaults to `unknown`; record “used” in notes when wear is unspecified. |
+| `keepPriority` | `null`, `low`, `medium`, `high`, `essential`, or `decommissioned`. Defaults to `null`. |
+| `category` | `miscellaneous`, `tools`, `hardware`, `automotive`, `cleaning`, `kitchen`, `appliances`, `electronics`, `office`, `books`, `clothing`, `bathroom`, `medical`, `decor`, `furniture`, `garden`, `camping`, `hobbies`, `toys`, `games`, or `seasonal`. Unsupported values normalize to `miscellaneous`. |
+
+**Drift creation requires an explicit timestamp.** When sending this object to
+`POST /api/items`, the writer must add `orphanedAt` with the actual creation time
+as an ISO 8601 timestamp, and leave the item unassigned to any box. The single-item
+endpoint defaults `orphanedAt` to `null`; an unboxed record alone will therefore
+not appear in Items Adrift. Do not use `boxId` on this endpoint to assign a box;
+box placement uses the existing box-item API workflow.
+
+After creation, read the returned item ID from production and check
+`GET /api/items/orphaned` to confirm drift visibility. If the record exists but
+its drift timestamp is missing, correct that record with
+`PATCH /api/items/:id`; do not create a duplicate.
+
+The separate AI JSON batch importer (`POST /api/items/ai-json/import`) expects an
+`items` array and optional `batchContext`. It accepts item fields `name`,
+`description`, `category`, `tags`, `quantity`, `imageKey`, `location`, and `box`.
+It currently **does not preserve** `notes`, `condition`, `keepPriority`, or
+`isConsumable`. For drift imports, leave both the item and batch-context `box`
+unset; that importer sets `orphanedAt` automatically. An item `box` of `null`
+still inherits a populated batch-context box.
+
+See [Inventory MCP over SSH](docs/inventory-mcp.md) for tool and connection details.
 
 ## LAN-only by design
 

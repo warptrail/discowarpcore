@@ -1,5 +1,6 @@
 // services/boxItemService.js
 const Box = require('../models/Box');
+const { resolveCompartment, getItemCompartment } = require('../utils/boxCompartments');
 const Item = require('../models/Item');
 const { withNormalizedItemCategory } = require('../utils/itemCategory');
 const {
@@ -85,10 +86,10 @@ async function logItemMovedEvent({
  * - Add to destination box (idempotent via $addToSet)
  * - Clear orphaning flags + location (box owns location)
  */
-async function attachItemToBox({ itemId, boxId, suppressMoveLog = false }) {
+async function attachItemToBox({ itemId, boxId, compartmentKey, suppressMoveLog = false }) {
   const [item, destinationBox, sourceBox] = await Promise.all([
     Item.findById(itemId).select('_id name item_status isIntendedGift').lean(),
-    Box.findById(boxId).select('_id box_id label isGiftBox').lean(),
+    Box.findById(boxId).select('_id box_id label isGiftBox isComplexBox compartments itemCompartments').lean(),
     findContainingBoxForItem(itemId),
   ]);
 
@@ -104,6 +105,7 @@ async function attachItemToBox({ itemId, boxId, suppressMoveLog = false }) {
     throw new Error('Box not found');
   }
 
+  const targetCompartment = resolveCompartment(destinationBox, compartmentKey);
   const giftIntentWasSet = shouldSetGiftIntent(item, destinationBox);
   if (giftIntentWasSet) {
     await Item.updateOne(
@@ -129,6 +131,20 @@ async function attachItemToBox({ itemId, boxId, suppressMoveLog = false }) {
 
   const destinationRef = toBoxRef(destinationBox, 'Box');
   if (sourceBox && String(sourceBox._id) === destinationRef.id) {
+    // An unspecified compartment preserves an existing placement within this box.
+    if (compartmentKey !== undefined) {
+      await Box.updateOne({ _id: boxId, items: itemId }, {
+        $set: { [`itemCompartments.${itemId}`]: targetCompartment },
+      });
+      const previous = getItemCompartment(destinationBox, itemId);
+      if (previous !== targetCompartment) {
+        await logEventBestEffort({
+          event_type: 'item_moved', entity_type: 'item', entity_id: String(itemId),
+          entity_label: item.name, summary: `Moved ${item.name} from ${destinationBox.box_id}${previous} to ${destinationBox.box_id}${targetCompartment}`,
+          details: { from_box_id: String(boxId), to_box_id: String(boxId), from_compartment: previous, to_compartment: targetCompartment },
+        }, { label: `compartment_move:${itemId}` });
+      }
+    }
     await Item.updateOne(
       { _id: itemId, ...ACTIVE_ITEM_FILTER },
       { $unset: { orphanedAt: 1 }, $set: { location: '' } }
@@ -137,12 +153,12 @@ async function attachItemToBox({ itemId, boxId, suppressMoveLog = false }) {
   }
 
   // 1) remove from any other box
-  await Box.updateMany({ items: itemId }, { $pull: { items: itemId } });
+  await Box.updateMany({ items: itemId }, { $pull: { items: itemId }, $unset: { [`itemCompartments.${itemId}`]: 1 } });
 
   // 2) add to destination
   const r = await Box.updateOne(
     { _id: boxId },
-    { $addToSet: { items: itemId } }
+    { $addToSet: { items: itemId }, $set: { [`itemCompartments.${itemId}`]: targetCompartment } }
   );
   if (!r.matchedCount && !r.n) throw new Error('Box not found');
 
@@ -158,6 +174,7 @@ async function attachItemToBox({ itemId, boxId, suppressMoveLog = false }) {
       fromBox: sourceBox,
       toBox: destinationBox,
       reason: 'attach_item_to_box',
+      extraDetails: { to_compartment: targetCompartment },
     });
   }
 
@@ -177,7 +194,7 @@ async function removeItemFromBox(boxId, itemId) {
     Box.findOne({ _id: boxId, items: itemId }).select('_id box_id label').lean(),
   ]);
 
-  await Box.updateOne({ _id: boxId }, { $pull: { items: itemId } });
+  await Box.updateOne({ _id: boxId }, { $pull: { items: itemId }, $unset: { [`itemCompartments.${itemId}`]: 1 } });
 
   const destinationBox = await findContainingBoxForItem(itemId);
   if (!destinationBox) {
@@ -207,13 +224,14 @@ async function createItemInBox(boxId, itemPayload) {
   if (!itemPayload || !itemPayload.name)
     throw new Error('Item name is required');
 
-  const destinationBox = await Box.findById(boxId).select('_id box_id label').lean();
+  const destinationBox = await Box.findById(boxId).select('_id box_id label isComplexBox compartments').lean();
   if (!destinationBox) {
     throw new Error('Box not found');
   }
 
+  resolveCompartment(destinationBox, itemPayload.compartmentKey);
   const item = await Item.create(itemPayload);
-  await attachItemToBox({ itemId: item._id, boxId, suppressMoveLog: true });
+  await attachItemToBox({ itemId: item._id, boxId, compartmentKey: itemPayload.compartmentKey, suppressMoveLog: true });
 
   const itemRef = toItemRef(item);
   const destinationRef = toBoxRef(destinationBox, 'Box');
@@ -240,20 +258,20 @@ async function createItemInBox(boxId, itemPayload) {
 /**
  * Alias for attach (keep API naming)
  */
-async function addItemToBox(boxId, itemId) {
-  return attachItemToBox({ itemId, boxId });
+async function addItemToBox(boxId, itemId, compartmentKey) {
+  return attachItemToBox({ itemId, boxId, compartmentKey });
 }
 
 /**
  * Bulk add items to a box (idempotent). Returns counts + destination box.
  */
-async function addItemsToBox(boxId, itemIds) {
+async function addItemsToBox(boxId, itemIds, compartmentKey) {
   if (!Array.isArray(itemIds) || !itemIds.length) {
     throw new Error('itemIds must be a non-empty array');
   }
   let attached = 0;
   for (const id of itemIds) {
-    await attachItemToBox({ itemId: id, boxId });
+    await attachItemToBox({ itemId: id, boxId, compartmentKey });
     attached += 1;
   }
   const box = await Box.findById(boxId).lean();
@@ -264,8 +282,8 @@ async function addItemsToBox(boxId, itemIds) {
  * Move item between boxes.
  * (No need to pull from the source; attach handles single-parent.)
  */
-async function moveItemBetweenBoxes(sourceBoxId, destBoxId, itemId) {
-  await attachItemToBox({ itemId, boxId: destBoxId });
+async function moveItemBetweenBoxes(sourceBoxId, destBoxId, itemId, compartmentKey) {
+  await attachItemToBox({ itemId, boxId: destBoxId, compartmentKey });
   return Box.findById(destBoxId).lean();
 }
 
@@ -278,7 +296,7 @@ async function detachItem({ itemId }) {
     Box.find({ items: itemId }).select('_id box_id label').lean(),
   ]);
 
-  await Box.updateMany({ items: itemId }, { $pull: { items: itemId } });
+  await Box.updateMany({ items: itemId }, { $pull: { items: itemId }, $unset: { [`itemCompartments.${itemId}`]: 1 } });
   await Item.updateOne(
     { _id: itemId, ...ACTIVE_ITEM_FILTER },
     { $set: { orphanedAt: new Date(), location: '' } }
@@ -338,7 +356,7 @@ async function emptyBoxItems(boxId) {
     );
   }
 
-  await Box.updateOne({ _id: boxId }, { $set: { items: [] } });
+  await Box.updateOne({ _id: boxId }, { $set: { items: [], itemCompartments: {} } });
 
   if (itemDocs.length) {
     for (const item of itemDocs) {

@@ -3,7 +3,9 @@ const mongoose = require('mongoose');
 const DeclutterCandidate = require('../models/DeclutterCandidate');
 const Item = require('../models/Item');
 const Box = require('../models/Box');
+const { itemPlacement } = require('../utils/boxCompartments');
 const { writeBackendLog } = require('../utils/backendLogger');
+const { formatLocationName } = require('../utils/locationName');
 
 const PLAYERS = DeclutterCandidate.PLAYERS;
 const VOTES = DeclutterCandidate.VOTES;
@@ -224,6 +226,7 @@ function getCanonicalResolution(candidate, votes) {
 }
 
 function getCanonicalStagingRoute(candidate, votes) {
+  if (candidate.resolution === 'kept') return null;
   if (candidate.stagingRoute) return candidate.stagingRoute;
   if (LEGACY_RELEASE_RESOLUTIONS[candidate.resolution]) {
     return LEGACY_RELEASE_RESOLUTIONS[candidate.resolution];
@@ -281,7 +284,9 @@ function toClientCandidate(candidate, item, player = '') {
       ? getRecommendedDiscussionChoice(votes)
       : null,
     resolvedAt: candidate.resolvedAt || null,
-    notes: candidate.notes || '',
+    // Legacy notes have no reliable author; retain them in storage, not in a private draft.
+    notes: player ? candidate.privateNotes?.[player] || '' : '',
+    sharedNotes: candidate.sharedNotes || '',
     createdAt: candidate.createdAt || null,
     updatedAt: candidate.updatedAt || null,
     myVote,
@@ -309,8 +314,8 @@ async function hydrateCandidates(candidates, player) {
           .select('_id name quantity description notes tags image imagePath category keepPriority primaryOwnerName item_status disposition disposition_at disposition_notes declutterReadiness declutterExitState isIntendedGift location orphanedAt')
           .lean(),
         Box.find({ items: { $in: itemIds } })
-          .select('_id box_id label group location locationId items')
-          .populate('locationId', 'name')
+          .select('_id box_id label isComplexBox compartments itemCompartments location locationId items')
+          .populate('locationId', 'room vicinity specifics')
           .lean(),
       ])
     : [[], []];
@@ -328,8 +333,8 @@ async function hydrateCandidates(candidates, player) {
       id: String(box._id),
       box_id: box.box_id || '',
       label: box.label || '',
-      group: box.group || '',
-      locationName: box?.locationId?.name || box.location || '',
+      ...itemPlacement(box, item._id),
+      locationName: formatLocationName(box?.locationId),
     };
   }
   const byId = new Map(items.map((item) => [String(item._id), item]));
@@ -675,11 +680,15 @@ async function nominateDeclutterCandidate(payload = {}) {
     confirmedAt: null,
     actionCompletedAt: null,
     preActionBoxId: null,
+    preActionPlacementRecorded: false,
+    preActionCompartmentKey: '',
+    privateNotes: {},
+    sharedNotes: String(payload.notes || '').trim().slice(0, 2000),
     actionOverride: {},
     notes: String(payload.notes || '').trim().slice(0, 2000),
   };
   const candidate = existing
-    ? await DeclutterCandidate.findByIdAndUpdate(existing._id, { $set: nextValues }, { new: true })
+    ? await DeclutterCandidate.findByIdAndUpdate(existing._id, { $set: nextValues, $inc: { voteRevision: 1 } }, { new: true })
     : await DeclutterCandidate.create(nextValues);
   await syncItemReadiness(itemId, 'in_deck');
   return {
@@ -704,126 +713,99 @@ async function removeDeclutterCandidateByItem(itemId) {
   return { removed: true, itemId: normalizedItemId };
 }
 
-async function voteOnDeclutterCandidate(candidateId, payload = {}) {
+// Conditional writes protect the whole derived state as well as each person's vote.
+// A retry always derives consensus from the latest committed pair of votes.
+async function updatePlayerVote(candidateId, player, vote, payload = {}) {
   const id = assertObjectId(candidateId, 'candidateId');
-  const player = normalizePlayer(payload.player, { required: true });
-  const vote = normalizeVote(payload.vote);
-  const candidate = await DeclutterCandidate.findById(id);
-  if (!candidate) throw createHttpError(404, 'Declutter candidate was not found.');
-  if (candidate.deckState !== 'active') {
-    throw createHttpError(409, 'This decision is locked. Use an Actions command to reopen a confirmed result.');
+  const notesProvided = Object.prototype.hasOwnProperty.call(payload, 'notes');
+  const notes = String(payload.notes || '').trim().slice(0, 2000);
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const candidate = await DeclutterCandidate.findById(id);
+    if (!candidate) throw createHttpError(404, 'Declutter candidate was not found.');
+    const item = await Item.findById(candidate.itemId).select('_id item_status').lean();
+    if (!item) throw createHttpError(404, 'Inventory item was not found.');
+    assertItemIsReviewable(item);
+    const votes = normalizeVotes(candidate);
+    const previous = votes[player];
+    const sameVote = previous.decision === vote.decision && previous.exitPreference === vote.exitPreference;
+    const sameNotes = !notesProvided || notes === (candidate.privateNotes?.[player] || '');
+    // A network retry of an already accepted vote is safe even after consensus.
+    if (sameVote && sameNotes && vote.decision !== 'pending') {
+      return (await hydrateCandidates([candidate.toObject()], player))[0];
+    }
+    if (candidate.deckState !== 'active') {
+      throw createHttpError(409, 'This decision is locked. Use an Actions command to reopen a confirmed result.');
+    }
+    if (sameVote && sameNotes) return (await hydrateCandidates([candidate.toObject()], player))[0];
+    votes[player] = {
+      decision: vote.decision,
+      exitPreference: vote.exitPreference,
+      decidedAt: vote.decision === 'pending' ? null : sameVote ? previous.decidedAt : new Date(),
+    };
+    const state = deriveCandidateState(votes);
+    const revision = Number(candidate.voteRevision || 0);
+    const updated = await DeclutterCandidate.findOneAndUpdate(
+      { _id: id, deckState: 'active', voteRevision: revision === 0 ? { $in: [0, null] } : revision },
+      {
+        $set: {
+          votes,
+          deckState: state.deckState,
+          resolution: state.resolution,
+          stagingRoute: state.stagingRoute,
+          confirmationState: state.confirmationState,
+          consensusReachedAt: state.consensusReachedAt,
+          confirmedAt: null,
+          resolvedAt: null,
+          ...(notesProvided ? { [`privateNotes.${player}`]: notes } : {}),
+        },
+        $inc: { voteRevision: 1 },
+      },
+      { new: true, runValidators: true }
+    );
+    if (!updated) continue;
+    // Pending/discussion rounds are already in_deck. A delayed earlier voter must
+    // never overwrite the readiness set by the voter who just reached consensus.
+    let finalized = updated;
+    if (state.confirmationState === 'confirmed') {
+      const { finalizeCandidateImmediately } = require('./declutterActionService');
+      finalized = await finalizeCandidateImmediately(updated, { source: 'vote_consensus' });
+    }
+    writeBackendLog('info', state.confirmationState === 'confirmed'
+      ? 'declutter.candidate.consensus_confirmed' : 'declutter.candidate.vote_changed', {
+      candidateId: id, itemId: String(updated.itemId), player,
+      deckState: state.deckState, resolution: state.resolution,
+    });
+    return (await hydrateCandidates([finalized.toObject()], player))[0];
   }
-  const item = await Item.findById(candidate.itemId).select('_id item_status').lean();
-  if (!item) throw createHttpError(404, 'Inventory item was not found.');
-  assertItemIsReviewable(item);
+  throw createHttpError(409, 'The decision changed while saving. Please retry your choice.');
+}
 
-  candidate.votes = normalizeVotes(candidate);
-  const previousVote = candidate.votes[player];
-  if (
-    previousVote.decision === vote.decision &&
-    previousVote.exitPreference === vote.exitPreference
-  ) {
-    return (await hydrateCandidates([candidate.toObject()], player))[0];
-  }
-  candidate.votes[player] = {
-    decision: vote.decision,
-    exitPreference: vote.exitPreference,
-    decidedAt: new Date(),
-  };
-  candidate.markModified('votes');
-  if (Object.prototype.hasOwnProperty.call(payload, 'notes')) {
-    candidate.notes = String(payload.notes || '').trim().slice(0, 2000);
-  }
-  const state = deriveCandidateState(candidate.votes);
-  candidate.deckState = state.deckState;
-  candidate.resolution = state.resolution;
-  candidate.stagingRoute = state.stagingRoute;
-  candidate.confirmationState = state.confirmationState;
-  candidate.consensusReachedAt = state.consensusReachedAt;
-  candidate.confirmedAt = null;
-  candidate.resolvedAt = null;
-  await candidate.save();
-  await syncItemReadiness(candidate.itemId, state.readiness);
-  let finalizedCandidate = candidate;
-  if (state.confirmationState === 'confirmed') {
-    const { finalizeCandidateImmediately } = require('./declutterActionService');
-    finalizedCandidate = await finalizeCandidateImmediately(candidate, { source: 'vote_consensus' });
-  }
-  writeBackendLog('info', state.confirmationState === 'confirmed'
-    ? 'declutter.candidate.consensus_confirmed'
-    : 'declutter.candidate.vote_changed', {
-    candidateId: String(candidate._id),
-    itemId: String(candidate.itemId),
-    player,
-    deckState: state.deckState,
-    resolution: state.resolution,
-  });
-  return (await hydrateCandidates([finalizedCandidate.toObject()], player))[0];
+async function voteOnDeclutterCandidate(candidateId, payload = {}) {
+  const player = normalizePlayer(payload.player, { required: true });
+  return updatePlayerVote(candidateId, player, normalizeVote(payload.vote), payload);
 }
 
 async function resetOwnDeclutterVote(candidateId, payload = {}) {
-  const id = assertObjectId(candidateId, 'candidateId');
   const player = normalizePlayer(payload.player, { required: true });
-  const candidate = await DeclutterCandidate.findById(id);
-  if (!candidate) throw createHttpError(404, 'Declutter candidate was not found.');
-  if (candidate.deckState !== 'active') {
-    throw createHttpError(409, 'Confirmed decisions can only be changed through Actions.');
-  }
-  const item = await Item.findById(candidate.itemId).select('_id item_status').lean();
-  if (!item) throw createHttpError(404, 'Inventory item was not found.');
-  assertItemIsReviewable(item);
-  candidate.votes = normalizeVotes(candidate);
-  if (candidate.votes[player].decision === 'pending') {
-    return (await hydrateCandidates([candidate.toObject()], player))[0];
-  }
-  candidate.votes[player] = { decision: 'pending', exitPreference: null, decidedAt: null };
-  candidate.markModified('votes');
-  const state = deriveCandidateState(candidate.votes);
-  candidate.deckState = state.deckState;
-  candidate.resolution = state.resolution;
-  candidate.stagingRoute = state.stagingRoute;
-  candidate.confirmationState = state.confirmationState;
-  candidate.consensusReachedAt = state.consensusReachedAt;
-  candidate.confirmedAt = null;
-  candidate.resolvedAt = null;
-  await candidate.save();
-  await syncItemReadiness(candidate.itemId, 'in_deck');
-  writeBackendLog('info', 'declutter.candidate.vote_reset', {
-    candidateId: String(candidate._id),
-    itemId: String(candidate.itemId),
-    player,
-  });
-  return (await hydrateCandidates([candidate.toObject()], player))[0];
+  return updatePlayerVote(candidateId, player, { decision: 'pending', exitPreference: null });
 }
 
 async function resetAllOwnDeclutterVotes(payload = {}) {
   const player = normalizePlayer(payload.player, { required: true });
   const candidates = await DeclutterCandidate.find({
-    deckState: 'active',
-    [`votes.${player}.decision`]: { $ne: 'pending' },
-  });
+    deckState: 'active', [`votes.${player}.decision`]: { $ne: 'pending' },
+  }).select('_id');
   const resetIds = [];
   for (const candidate of candidates) {
-    candidate.votes = normalizeVotes(candidate);
-    candidate.votes[player] = { decision: 'pending', exitPreference: null, decidedAt: null };
-    candidate.markModified('votes');
-    const state = deriveCandidateState(candidate.votes);
-    candidate.deckState = state.deckState;
-    candidate.resolution = state.resolution;
-    candidate.stagingRoute = state.stagingRoute;
-    candidate.confirmationState = state.confirmationState;
-    candidate.consensusReachedAt = state.consensusReachedAt;
-    candidate.confirmedAt = null;
-    candidate.resolvedAt = null;
-    await candidate.save();
-    await syncItemReadiness(candidate.itemId, 'in_deck');
-    resetIds.push(String(candidate._id));
+    try {
+      await resetOwnDeclutterVote(candidate._id, { player });
+      resetIds.push(String(candidate._id));
+    } catch (error) {
+      // A partner may have completed this round while the bulk reset was running.
+      if (error.status !== 409) throw error;
+    }
   }
-  writeBackendLog('info', 'declutter.candidate.vote_reset_all', {
-    player,
-    resetCount: resetIds.length,
-    candidateIds: resetIds,
-  });
+  writeBackendLog('info', 'declutter.candidate.vote_reset_all', { player, resetCount: resetIds.length, candidateIds: resetIds });
   return { player, resetCount: resetIds.length, candidateIds: resetIds };
 }
 
@@ -860,7 +842,7 @@ async function resolveDeclutterDiscussion(candidateId, payload = {}) {
     at: now,
   };
   if (Object.prototype.hasOwnProperty.call(payload, 'notes')) {
-    candidate.notes = String(payload.notes || '').trim().slice(0, 2000);
+    candidate.sharedNotes = String(payload.notes || '').trim().slice(0, 2000);
   }
   await candidate.save();
   await syncItemReadiness(candidate.itemId, state.readiness);
@@ -899,6 +881,8 @@ async function reopenDeclutterCandidate(candidateId) {
     confirmedAt: existing.confirmedAt,
     resolvedAt: existing.resolvedAt,
     notes: existing.notes,
+    privateNotes: existing.privateNotes,
+    sharedNotes: existing.sharedNotes,
     reason: 'discussion_reopened',
     archivedAt: new Date(),
   };
@@ -907,6 +891,7 @@ async function reopenDeclutterCandidate(candidateId) {
     {
       $set: {
         votes: emptyVotes(),
+        privateNotes: {},
         deckState: 'active',
         resolution: 'pending',
         stagingRoute: null,
@@ -916,6 +901,7 @@ async function reopenDeclutterCandidate(candidateId) {
         confirmedAt: null,
       },
       $push: { roundHistory: historyEntry },
+      $inc: { voteRevision: 1 },
     },
     { new: true }
   );

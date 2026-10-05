@@ -1,6 +1,8 @@
 const Box = require('../models/Box');
+const { getCompartments, itemPlacement } = require('../utils/boxCompartments');
 const Item = require('../models/Item');
 const { withNormalizedItemCategory } = require('../utils/itemCategory');
+const { formatLocationName } = require('../utils/locationName');
 
 const ACTIVE_ITEM_FILTER = { item_status: { $ne: 'gone' } };
 const EXPORT_FORMAT = 'discowarpcore.box-export.v1';
@@ -10,6 +12,7 @@ const DEFAULT_FRONTEND_BASE_ORIGIN = '';
 const BOX_EXPORT_CSV_COLUMNS = [
   'box_id',
   'box_label',
+  'compartment',
   'item_id',
   'item_name',
   'quantity',
@@ -86,10 +89,7 @@ function normalizeTags(tags) {
 }
 
 function resolveLocationName(box) {
-  if (box?.locationId && typeof box.locationId === 'object' && box.locationId.name) {
-    return String(box.locationId.name).trim();
-  }
-  return String(box?.location ?? '').trim();
+  return formatLocationName(box?.locationId);
 }
 
 function buildCanonicalBoxPath(boxShortId) {
@@ -319,6 +319,7 @@ function buildBoxCsvRowsFromPayload(payload) {
   return directItems.map((item) => ({
     box_id: boxId,
     box_label: boxLabel,
+    compartment: String(item?.compartmentKey || ''),
     item_id: String(item?.mongoId || ''),
     item_name: String(item?.name || ''),
     quantity: item?.quantity ?? '',
@@ -929,8 +930,8 @@ async function buildBoxJsonExport(
   }
 
   const root = await Box.findById(boxMongoId)
-    .populate('locationId', 'name')
-    .select('_id box_id label name description notes location locationId tags parentBox items')
+    .populate('locationId', 'room vicinity specifics')
+    .select('_id box_id label name isComplexBox compartments itemCompartments description notes location locationId tags parentBox items')
     .lean();
 
   if (!root) {
@@ -938,8 +939,8 @@ async function buildBoxJsonExport(
   }
 
   const directChildBoxesDocs = await Box.find({ parentBox: root._id })
-    .populate('locationId', 'name')
-    .select('_id box_id label name description notes location locationId tags')
+    .populate('locationId', 'room vicinity specifics')
+    .select('_id box_id label name isComplexBox compartments itemCompartments description notes location locationId tags')
     .sort({ box_id: 1, _id: 1 })
     .lean();
 
@@ -960,7 +961,7 @@ async function buildBoxJsonExport(
   const directItems = directItemIds
     .map((id) => itemMap.get(id))
     .filter(Boolean)
-    .map(formatExportItem);
+    .map((item) => ({ ...formatExportItem(item), ...itemPlacement(root, item._id) }));
 
   const directChildBoxes = directChildBoxesDocs.map(formatExportChildBox);
   const breadcrumb = await buildBreadcrumbPath(root);
@@ -986,6 +987,8 @@ async function buildBoxJsonExport(
       mongoId: String(root._id),
       boxId: shortId,
       label: normalizeBoxLabel(root),
+      isComplexBox: Boolean(root.isComplexBox),
+      compartments: getCompartments(root),
       description: String(root?.description || ''),
       notes: String(root?.notes || ''),
       generatedAt,

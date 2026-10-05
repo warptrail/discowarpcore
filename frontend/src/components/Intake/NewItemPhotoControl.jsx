@@ -1,6 +1,9 @@
 import React from 'react';
 import ImageSourcePicker from '../ImageSourcePicker';
+import RenderTokenControls from '../Processing/RenderTokenControls';
+import { RENDER_TOKEN_OPTIONS } from '../../constants/renderTokens';
 import {
+  PhotoControlPanel,
   PhotoButton,
   PhotoButtonLabel,
   PhotoCopy,
@@ -9,6 +12,7 @@ import {
   PhotoStage,
   QuietButton,
   SourceActions,
+  GlowAddon,
 } from './NewItemComposer.styles';
 
 export default function NewItemPhotoControl({
@@ -17,6 +21,10 @@ export default function NewItemPhotoControl({
   previewUrl,
   onFileSelected,
   onRemove,
+  glowEnabled = false,
+  onGlowEnabledChange,
+  renderTokens,
+  onRenderTokenChange,
 }) {
   const renderSourceAction = ({ label, onClick, disabled: actionDisabled }) => (
     <QuietButton type="button" onClick={onClick} disabled={actionDisabled}>
@@ -25,7 +33,8 @@ export default function NewItemPhotoControl({
   );
 
   return (
-    <PhotoStage>
+    <PhotoControlPanel>
+      <PhotoStage>
       {previewUrl ? (
         <PhotoPreview src={previewUrl} alt="New item preview" />
       ) : (
@@ -66,6 +75,25 @@ export default function NewItemPhotoControl({
           ) : null}
         </SourceActions>
       </PhotoCopy>
-    </PhotoStage>
+      </PhotoStage>
+      {photoFile ? (
+        <GlowAddon>
+          <label>
+            <input type="checkbox" checked={glowEnabled} onChange={(event) => onGlowEnabledChange?.(event.target.checked)} disabled={disabled} />
+            <span>Process with Object Glow after adding</span>
+          </label>
+          {glowEnabled ? (
+            <RenderTokenControls
+              title="Glow profile"
+              compact
+              renderTokens={renderTokens}
+              renderTokenOptions={RENDER_TOKEN_OPTIONS}
+              onRenderTokenChange={onRenderTokenChange}
+              disabled={disabled}
+            />
+          ) : null}
+        </GlowAddon>
+      ) : null}
+    </PhotoControlPanel>
   );
 }

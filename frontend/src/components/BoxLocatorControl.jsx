@@ -13,14 +13,14 @@ function pluralizeBoxes(count) {
 function getScopeReadout({ query, visibleBoxCount, exactMatch }) {
   const normalized = normalizeBoxId(query).slice(0, MAX_PREFIX_LENGTH);
 
-  if (!normalized) return 'ALL BOXES';
+  if (!normalized) return 'All boxes';
   if (normalized.length === 1) {
     return `${normalized}XX · ${pluralizeBoxes(visibleBoxCount)}`;
   }
   if (normalized.length === 2) {
     return `${normalized}X · ${pluralizeBoxes(visibleBoxCount)}`;
   }
-  if (!exactMatch) return 'NO BOX SIGNAL';
+  if (!exactMatch) return 'No matching box';
 
   const label = String(exactMatch?.label || exactMatch?.name || 'Untitled box').trim();
   return `#${normalized} · ${label}`;
@@ -49,7 +49,7 @@ export default function BoxLocatorControl({
   return (
     <S.BoxLocatorScope $active={Boolean(normalizedQuery)} $compact={compact} title={compact ? readout : undefined}>
       <S.BoxLocatorInputGroup $compact={compact}>
-        <S.ControlLabel>Box Locator</S.ControlLabel>
+        <S.ControlLabel>Box locator</S.ControlLabel>
         <BoxIdPrefixInput
           inputAs={S.BoxLocatorInput}
           $compact={compact}

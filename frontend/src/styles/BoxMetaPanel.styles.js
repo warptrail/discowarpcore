@@ -1,3 +1,4 @@
+import { controlStyles } from './primitives';
 // src/styles/BoxMetaPanel.styles.js
 import styled from 'styled-components';
 import {
@@ -9,22 +10,22 @@ import {
 } from './tokens';
 
 const LCARS = {
-  bg: '#0E0F12',
-  panel: '#151921',
-  panelSoft: '#1B2029',
-  line: 'rgba(255,255,255,0.08)',
-  text: '#E7ECF3',
-  textDim: 'rgba(231,236,243,0.72)',
-  lilac: '#A7B6FF',
-  coral: '#F08A7B',
-  amber: '#E8B15C',
-  teal: '#4CC6C1',
+  bg: 'var(--dw-background)',
+  panel: 'var(--dw-surface)',
+  panelSoft: 'var(--dw-surface-raised)',
+  line: 'rgba(230, 237, 243, 0.12)',
+  text: 'var(--dw-text)',
+  textDim: 'var(--dw-text-secondary)',
+  lilac: 'var(--dw-violet)',
+  coral: 'var(--dw-coral)',
+  amber: 'var(--dw-amber)',
+  teal: 'var(--dw-teal)',
   lime: '#9BE564',
 };
 
-const PANEL_RADIUS = '14px';
-const NODE_RADIUS = '10px';
-const TERMINAL_CHIP_RADIUS = '6px';
+const PANEL_RADIUS = 'var(--dw-radius)';
+const NODE_RADIUS = 'var(--dw-radius)';
+const TERMINAL_CHIP_RADIUS = 'var(--dw-radius-sm)';
 const FAST = '150ms ease';
 
 const toneColor = (tone) =>
@@ -42,28 +43,18 @@ export const Panel = styled.section`
   position: relative;
   display: grid;
   gap: 10px;
-  padding: 18px 14px 12px;
-  border: 1px solid rgba(var(--box-primary-rgb, 125, 168, 182), 0.28);
-  border-radius: 10px;
-  background:
-    linear-gradient(
-      var(--box-wash-angle, 118deg),
-      rgba(var(--box-primary-rgb, 125, 168, 182), 0.09),
-      rgba(var(--box-secondary-rgb, 167, 182, 255), 0.035) 46%,
-      transparent
-    ),
-    rgba(15, 20, 27, 0.9);
-  box-shadow:
-    inset 3px 0 0 rgba(var(--box-primary-rgb, 125, 168, 182), 0.68),
-    inset 0 1px rgba(255, 255, 255, 0.035),
-    0 10px 24px rgba(0, 0, 0, 0.18);
-  backdrop-filter: blur(12px);
+  padding: 12px 14px;
+  min-width: 0;
+  border: 1px solid ${LCARS.line};
+  border-radius: var(--dw-radius);
+  background: ${LCARS.panel};
+  box-shadow: inset 3px 0 0 var(--box-primary, #8A8175);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 10px;
-    padding: 16px 11px 10px;
-    border-radius: 8px;
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.24), 0 6px 12px rgba(0, 0, 0, 0.18);
+    padding: 10px 11px;
+    border-radius: var(--dw-radius);
+    box-shadow: inset 3px 0 0 var(--box-primary, #8A8175);
 
   }
 `;
@@ -84,16 +75,15 @@ export const HeroMediaStage = styled.div`
   display: grid;
   place-items: center;
   width: 100%;
-  height: clamp(240px, 31vw, 320px);
+  height: clamp(180px, 26vw, 280px);
   overflow: hidden;
-  border: 1px solid rgba(var(--box-primary-rgb, 125, 168, 182), 0.25);
-  border-radius: 10px;
-  background: #0d1318;
-  box-shadow: inset 0 0 42px rgba(0, 0, 0, 0.4);
+  border: 1px solid ${LCARS.line};
+  border-radius: var(--dw-radius);
+  background: ${LCARS.bg};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    height: 230px;
-    border-radius: 8px;
+    height: 190px;
+    border-radius: var(--dw-radius);
   }
 `;
 
@@ -104,11 +94,13 @@ export const HeroImageBackdrop = styled.img`
   height: 116%;
   object-fit: cover;
   opacity: 0.2;
-  filter: blur(24px) saturate(1.18);
+  filter: none;
+  visibility: hidden;
   transform: scale(1.04);
 `;
 
 export const HeroImageButton = styled.button`
+  ${controlStyles}
   position: absolute;
   inset: 0;
   z-index: 1;
@@ -116,10 +108,10 @@ export const HeroImageButton = styled.button`
   place-items: center;
   width: 100%;
   height: 100%;
-  padding: 10px 10px 58px;
+  padding: 10px;
   border: 0;
   color: var(--box-neon, #edf3ff);
-  background: linear-gradient(180deg, transparent 54%, rgba(3, 7, 11, 0.42));
+  background: transparent;
   cursor: zoom-in;
 
   &:focus-visible {
@@ -145,10 +137,10 @@ export const HeroExpandHint = styled.span`
   width: 30px;
   height: 30px;
   border: 1px solid rgba(var(--box-primary-rgb, 125, 168, 182), 0.42);
-  border-radius: 7px;
-  background: rgba(5, 10, 16, 0.66);
-  font: 800 0.9rem/1 ui-monospace, monospace;
-  backdrop-filter: blur(10px);
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface);
+  font: 700 0.9rem/1 var(--dw-font-ui);
+  backdrop-filter: none;
 `;
 
 export const HeroImagePlaceholder = styled.div`
@@ -156,33 +148,16 @@ export const HeroImagePlaceholder = styled.div`
   inset: 0;
   overflow: hidden;
   isolation: isolate;
-  background:
-    radial-gradient(
-      118% 94% at var(--placeholder-primary-x, 48%) var(--placeholder-primary-y, 34%),
-      rgba(var(--box-primary-rgb, 125, 168, 182), 0.3) 0%,
-      rgba(var(--box-primary-rgb, 125, 168, 182), 0.13) 34%,
-      transparent 70%
-    ),
-    radial-gradient(
-      104% 88% at var(--placeholder-secondary-x, 67%) var(--placeholder-secondary-y, 72%),
-      rgba(var(--box-secondary-rgb, 167, 182, 255), 0.21) 0%,
-      transparent 68%
-    ),
-    linear-gradient(
-      var(--placeholder-wash-angle, 104deg),
-      rgba(8, 13, 19, 0.24),
-      rgba(8, 13, 19, 0.82) 78%
-    ),
-    #0d1318;
+  background: var(--dw-background);
 
   &::after {
     content: '';
     position: absolute;
-    inset: 0;
-    opacity: 0.48;
-    background:
-      linear-gradient(135deg, transparent 36%, rgba(var(--box-primary-rgb, 125, 168, 182), 0.09) 50%, transparent 64%),
-      repeating-linear-gradient(0deg, transparent 0 5px, rgba(255, 255, 255, 0.018) 6px 7px);
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--box-primary, var(--dw-teal));
   }
 `;
 
@@ -191,20 +166,16 @@ export const HeroHeaderCard = styled.div`
   z-index: 2;
   display: grid;
   gap: 12px;
-  width: calc(100% - 34px);
-  margin: -66px auto 0;
+  width: 100%;
+  margin: 8px 0 0;
   padding: 14px 16px 15px;
-  border: 1px solid rgba(var(--box-primary-rgb, 125, 168, 182), 0.32);
-  border-radius: 10px;
-  background:
-    linear-gradient(112deg, rgba(var(--box-primary-rgb, 125, 168, 182), 0.16), transparent 44%),
-    rgba(10, 16, 23, 0.74);
-  box-shadow: 0 18px 35px rgba(0, 0, 0, 0.4), inset 0 1px rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(20px) saturate(1.14);
+  border: 1px solid ${LCARS.line};
+  border-radius: var(--dw-radius);
+  background: ${LCARS.panelSoft};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    width: calc(100% - 18px);
-    margin-top: -54px;
+    width: 100%;
+    margin-top: 8px;
     padding: 12px;
   }
 `;
@@ -222,10 +193,10 @@ export const MetaPreviewBlock = styled.div`
 
 export const MetaPreviewLabel = styled.div`
   margin-bottom: 4px;
-  color: rgba(184, 202, 212, 0.48);
-  font: 700 0.58rem/1 ui-monospace, monospace;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  color: var(--dw-text-secondary);
+  font: 700 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export const MetaPreviewText = styled.div`
@@ -239,6 +210,7 @@ export const MetaPreviewText = styled.div`
 `;
 
 export const MetaPreviewButton = styled.button`
+  ${controlStyles}
   display: block;
   width: 100%;
   min-width: 0;
@@ -264,8 +236,8 @@ export const MetaPreviewHint = styled.span`
   display: block;
   margin-top: 0.34rem;
   color: rgba(var(--box-primary-rgb, 125, 168, 182), 0.92);
-  font: 800 0.56rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.11em;
+  font: 700 0.75rem/1.2 var(--dw-font-ui);
+  letter-spacing: 0.01em;
 `;
 
 export const IdentityHeader = styled.div`
@@ -273,11 +245,8 @@ export const IdentityHeader = styled.div`
   align-items: center;
   justify-content: flex-end;
   gap: 4px;
-  position: absolute;
+  position: relative;
   z-index: 2;
-  top: 4px;
-  left: 8px;
-  right: 8px;
   min-height: 24px;
   pointer-events: none;
 
@@ -291,9 +260,9 @@ export const RotatingMeta = styled.span`
   margin-right: auto;
   min-width: 0;
   overflow: hidden;
-  color: rgba(184, 202, 212, 0.46);
-  font: 600 0.68rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.04em;
+  color: var(--dw-text-secondary);
+  font: 600 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
   white-space: nowrap;
   text-overflow: ellipsis;
   animation: prism-meta 320ms ease;
@@ -322,23 +291,24 @@ export const IdentityActions = styled.div`
 
 export const IdentityKicker = styled.span`
   color: rgba(121, 222, 216, 0.64);
-  font: 700 0.66rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+  font: 700 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export const IconButton = styled.button`
+  ${controlStyles}
   display: inline-grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   border: 0;
-  border-radius: 6px;
-  color: rgba(190, 204, 214, 0.48);
+  border-radius: var(--dw-radius);
+  color: var(--dw-text-secondary);
   background: transparent;
   cursor: pointer;
-  font: 800 0.9rem/1 ui-monospace, monospace;
+  font: 700 0.9rem/1 var(--dw-font-ui);
   letter-spacing: -0.08em;
   transition: 180ms ease;
 
@@ -352,9 +322,9 @@ export const IconButton = styled.button`
 `;
 
 export const UsefulCount = styled.span`
-  color: rgba(231, 236, 243, 0.68);
-  font: 700 0.76rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.025em;
+  color: var(--dw-text-secondary);
+  font: 700 0.76rem/1.4 var(--dw-font-ui);
+  letter-spacing: 0.01em;
 `;
 
 export const ScopeBadge = styled.span`
@@ -363,13 +333,13 @@ export const ScopeBadge = styled.span`
   gap: 8px;
   padding: 4px 10px;
   border-radius: ${TERMINAL_CHIP_RADIUS};
-  border: 1px solid ${({ $tone }) => `${toneColor($tone)}66`};
-  background: ${({ $tone }) => `${toneColor($tone)}1f`};
+  border: 1px solid ${LCARS.line};
+  background: ${LCARS.panelSoft};
   color: ${({ $tone }) => toneColor($tone)};
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 
   &:before {
     content: '';
@@ -377,7 +347,6 @@ export const ScopeBadge = styled.span`
     height: 7px;
     border-radius: 50%;
     background: currentColor;
-    box-shadow: 0 0 8px currentColor;
     opacity: 0.75;
   }
 
@@ -385,12 +354,11 @@ export const ScopeBadge = styled.span`
     gap: 6px;
     padding: 3px 8px;
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.06em;
+    letter-spacing: 0.01em;
 
     &:before {
       width: 6px;
       height: 6px;
-      box-shadow: 0 0 5px currentColor;
     }
   }
 `;
@@ -398,8 +366,8 @@ export const ScopeBadge = styled.span`
 export const DepthHint = styled.span`
   color: ${LCARS.textDim};
   font-size: 0.76rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
@@ -407,21 +375,21 @@ export const DepthHint = styled.span`
 `;
 
 export const EditBoxButton = styled.button`
+  ${controlStyles}
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 34px;
+  min-height: var(--dw-control-height);
   padding: 7px 13px;
-  border-radius: 9px;
-  border: 1px solid ${LCARS.teal}7a;
-  background: linear-gradient(110deg, ${LCARS.teal}2e, ${LCARS.lilac}1f),
-    ${LCARS.panelSoft};
+  border-radius: var(--dw-radius);
+  border: 1px solid rgba(76, 198, 193, 0.35);
+  background: ${LCARS.panelSoft};
   color: ${LCARS.text};
   font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   line-height: 1;
-  text-transform: uppercase;
+  text-transform: none;
   white-space: nowrap;
   cursor: pointer;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045);
@@ -430,10 +398,9 @@ export const EditBoxButton = styled.button`
 
   &:hover {
     border-color: ${LCARS.teal};
-    background: linear-gradient(110deg, ${LCARS.teal}42, ${LCARS.lilac}2b),
-      ${LCARS.panelSoft};
+    background: ${LCARS.panelSoft};
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.055),
-      0 0 12px ${LCARS.teal}26;
+      0 0 0 2px rgba(76, 198, 193, 0.18);
     transform: translateY(-1px);
   }
 
@@ -442,11 +409,11 @@ export const EditBoxButton = styled.button`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 31px;
+    min-height: var(--dw-control-height);
     padding: 6px 10px;
-    border-radius: 8px;
+    border-radius: var(--dw-radius);
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.04em;
+    letter-spacing: 0.01em;
   }
 `;
 
@@ -474,11 +441,10 @@ export const CurrentBox = styled.div`
 `;
 
 export const CurrentBoxId = styled.span`
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
+  font-family: var(--dw-font-data);
   font-size: 1.08rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   line-height: 1;
   padding: 3px 0;
   border-radius: 0;
@@ -488,7 +454,7 @@ export const CurrentBoxId = styled.span`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_SM};
-    letter-spacing: 0.09em;
+    letter-spacing: 0.01em;
     padding: 3px 0;
   }
 `;
@@ -523,15 +489,15 @@ export const CurrentBoxTagsSection = styled.div`
 
 export const CurrentBoxTagsLabel = styled.span`
   color: ${LCARS.textDim};
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   line-height: 1;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.07em;
+    letter-spacing: 0.01em;
   }
 `;
 
@@ -552,9 +518,9 @@ export const CurrentBoxTag = styled.span`
   border: 1px solid rgba(var(--box-secondary-rgb, 167, 182, 255), 0.4);
   background: rgba(var(--box-secondary-rgb, 167, 182, 255), 0.12);
   color: ${LCARS.text};
-  font-size: 0.69rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
@@ -570,7 +536,7 @@ export const CurrentBoxTag = styled.span`
 export const CurrentBoxTitle = styled.span`
   color: var(--box-neon, #edf3ff);
   font-size: clamp(1.05rem, 2.2vw, 1.28rem);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.015em;
   white-space: nowrap;
   overflow: hidden;
@@ -595,10 +561,10 @@ export const CompactDescription = styled.p`
     content: 'Visual description';
     display: block;
     margin-bottom: 3px;
-    color: rgba(231, 236, 243, 0.48);
-    font: 700 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    color: var(--dw-text-secondary);
+    font: 700 0.75rem/1 var(--dw-font-ui);
+    letter-spacing: 0.01em;
+    text-transform: none;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -628,31 +594,30 @@ export const CurrentBoxLocationChip = styled.span`
 `;
 
 export const CurrentBoxLocationLabel = styled.span`
-  color: rgba(184, 202, 212, 0.48);
-  font-size: 0.58rem;
+  color: var(--dw-text-secondary);
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   line-height: 1;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.07em;
+    letter-spacing: 0.01em;
   }
 `;
 
 export const CurrentBoxLocationValue = styled.span`
   color: var(--box-location, #7fd7ff);
   font-size: 0.96rem;
-  font-weight: 840;
-  letter-spacing: 0.03em;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   line-height: 1.1;
   min-width: 0;
   max-width: min(44vw, 340px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-shadow: 0 0 8px rgba(var(--box-location-rgb, 127, 215, 255), 0.24);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 0.9rem;
@@ -661,15 +626,14 @@ export const CurrentBoxLocationValue = styled.span`
 `;
 
 export const BoxIdMono = styled.span`
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  font-size: 0.74rem;
+  font-family: var(--dw-font-data);
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.01em;
   line-height: 1;
   padding: 3px 6px;
-  border-radius: 6px;
-  color: ${LCARS.textDim};
+  border-radius: var(--dw-radius);
+  color: var(--box-primary, #8A8175);
   background: ${LCARS.panelSoft};
   border: 1px solid ${LCARS.line};
 `;
@@ -686,17 +650,9 @@ export const NotesZone = styled.section`
   gap: 8px;
   overflow: hidden;
   border: 1px solid rgba(232, 177, 92, 0.38);
-  border-radius: 12px;
-  background: linear-gradient(
-      135deg,
-      rgba(232, 177, 92, 0.18),
-      rgba(76, 198, 193, 0.08) 54%,
-      rgba(167, 182, 255, 0.08)
-    ),
-    ${LCARS.panelSoft};
+  border-radius: var(--dw-radius);
+  background: ${LCARS.panelSoft};
   padding: 11px 13px 12px 15px;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 12px 26px rgba(0, 0, 0, 0.2);
 
   &:before {
     content: '';
@@ -704,14 +660,13 @@ export const NotesZone = styled.section`
     inset: 10px auto 10px 0;
     width: 3px;
     border-radius: 0 999px 999px 0;
-    background: linear-gradient(180deg, ${LCARS.amber}, ${LCARS.teal});
-    box-shadow: 0 0 16px rgba(232, 177, 92, 0.34);
+    background: ${LCARS.amber};
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 7px;
     padding: 10px 11px 11px 13px;
-    border-radius: 10px;
+    border-radius: var(--dw-radius);
   }
 `;
 
@@ -722,12 +677,12 @@ export const NotesHeader = styled.div`
 `;
 
 export const NotesLabel = styled.span`
-  color: #ffe3a8;
+  color: var(--dw-amber);
   font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   line-height: 1;
-  text-transform: uppercase;
+  text-transform: none;
 `;
 
 export const NotesBody = styled.p`
@@ -770,11 +725,11 @@ export const StatItem = styled.div`
 `;
 
 export const StatLabel = styled.span`
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: ${LCARS.textDim};
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
@@ -796,12 +751,12 @@ export const ChildrenZone = styled.div`
   gap: 10px;
   padding: 12px;
   border: 1px solid ${LCARS.line};
-  border-radius: 12px;
-  background: rgba(14, 15, 18, 0.22);
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 10px;
-    border-radius: 10px;
+    border-radius: var(--dw-radius);
   }
 `;
 
@@ -822,8 +777,8 @@ export const SectionHeader = styled.div`
 export const Label = styled.span`
   font-size: 0.8rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: ${LCARS.textDim};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -842,15 +797,14 @@ export const SectionHint = styled.span`
 `;
 
 export const MetaCount = styled.span`
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
+  font-family: var(--dw-font-ui);
   color: ${LCARS.textDim};
   font-size: 0.78rem;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.01em;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.07em;
+    letter-spacing: 0.01em;
   }
 `;
 
@@ -891,7 +845,7 @@ export const BoxLink = styled.a`
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border-radius: 9px;
+  border-radius: var(--dw-radius);
   color: ${LCARS.text};
   text-decoration: none;
   background: ${LCARS.panelSoft};
@@ -900,16 +854,15 @@ export const BoxLink = styled.a`
   transition: border-color ${FAST}, background ${FAST}, transform ${FAST};
 
   &:hover {
-    border-color: ${LCARS.teal}4d;
-    background: linear-gradient(98deg, ${LCARS.teal}1a, transparent 52%),
-      ${LCARS.panelSoft};
+    border-color: rgba(76, 198, 193, 0.3);
+    background: ${LCARS.panelSoft};
     transform: translateY(-1px);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 7px;
     padding: 7px 8px;
-    border-radius: 8px;
+    border-radius: var(--dw-radius);
   }
 `;
 
@@ -919,9 +872,9 @@ export const DescendantLink = styled(BoxLink)`
 
 export const DescendantMeta = styled.span`
   color: ${LCARS.textDim};
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
   white-space: nowrap;
 
   @media (max-width: 560px) {

@@ -670,11 +670,6 @@ export default function RetrievalExpandedPanel({
       fullItem?.location,
       resolvedItem?.locationLabel,
     ) || '—';
-    const boxGroupValue = firstText(
-      ownership.effectiveBoxGroup,
-      fullItem?.boxGroup,
-      fullItem?.box?.group,
-    ) || '—';
     const valueValue = Number(fullItem?.valueCents) > 0
       ? usdFormatter.format(fullItem.valueCents / 100)
       : Number.isFinite(Number(fullItem?.value))
@@ -709,7 +704,6 @@ export default function RetrievalExpandedPanel({
         { label: 'Assignment', value: placementState },
         { label: 'Box', value: boxValue },
         { label: 'Location', value: locationValue },
-        { label: 'Box Group', value: boxGroupValue },
         { label: 'Depth', value: fullItem?.depth ?? '—' },
         { label: 'Top Box', value: fullItem?.topBox?.label || fullItem?.topBox?.box_id || '—' },
         { label: 'Orphaned At', value: formatDate(fullItem?.orphanedAt) },

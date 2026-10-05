@@ -34,6 +34,7 @@ function normalizeDestination(destination) {
 
   return {
     destBoxId,
+    compartmentKey: destination?.compartmentKey,
     destLabel: String(destination?.destLabel || '').trim(),
     destShortId: String(destination?.destShortId || '').trim(),
   };
@@ -215,6 +216,7 @@ export default function useAllItemsItemSelection({
       const result = await addItemsToBox({
         itemIds: normalizedItemIds,
         destBoxId: normalizedDestination.destBoxId,
+        compartmentKey: normalizedDestination.compartmentKey,
         baseUrl: API_BASE,
       });
       await onRefreshItems?.();

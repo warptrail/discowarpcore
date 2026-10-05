@@ -1,3 +1,4 @@
+import { controlStyles, inputStyles } from '../styles/primitives';
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
 
@@ -14,35 +15,26 @@ const riseIn = keyframes`
 
 const ConfirmWrap = styled.section`
   margin: 0;
-  border: 1px solid #7a2a2a;
-  border-radius: 12px;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(126, 33, 33, 0.34) 0%,
-      rgba(37, 14, 14, 0.95) 56%,
-      rgba(24, 12, 12, 0.98) 100%
-    ),
-    #170f0f;
-  box-shadow:
-    0 -10px 20px rgba(255, 110, 110, 0.18),
-    0 0 0 1px rgba(255, 104, 104, 0.2) inset;
+  border: 1px solid rgba(240, 138, 123, 0.42);
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface);
   padding: 1rem;
   animation: ${riseIn} 220ms ease-out;
+  @media (prefers-reduced-motion: reduce) { animation: none; }
 `;
 
 const Banner = styled.div`
-  font-weight: 800;
-  letter-spacing: 0.02em;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   font-size: 1.02rem;
-  color: #ffd9d9;
+  color: var(--dw-coral);
   margin-bottom: 0.65rem;
 `;
 
 const Body = styled.div`
   display: grid;
   gap: 0.65rem;
-  color: #f3e6e6;
+  color: var(--dw-text);
 `;
 
 const Intro = styled.p`
@@ -55,29 +47,31 @@ const ConsequenceList = styled.ul`
   padding-left: 1.1rem;
   display: grid;
   gap: 0.3rem;
-  color: #f7d3d3;
+  color: var(--dw-text-secondary);
 `;
 
 const Prompt = styled.label`
   margin-top: 0.2rem;
   display: block;
   font-weight: 700;
-  color: #ffe9e9;
+  color: var(--dw-text);
 `;
 
 const ConfirmInput = styled.input`
+  ${inputStyles}
   width: 100%;
   margin-top: 0.45rem;
   padding: 0.65rem 0.7rem;
-  border-radius: 8px;
-  border: 1px solid #6e3b3b;
-  background: #120f0f;
-  color: #fff;
+  border-radius: var(--dw-radius);
+  border: 1px solid rgba(240, 138, 123, 0.42);
+  background: var(--dw-background);
+  color: var(--dw-text);
   font-size: 0.98rem;
 
   &:focus {
-    outline: none;
-    border-color: #ff7f7f;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
+    border-color: var(--dw-coral);
     box-shadow: 0 0 0 2px rgba(255, 127, 127, 0.25);
   }
 `;
@@ -90,33 +84,36 @@ const ActionRow = styled.div`
 `;
 
 const ActionBtn = styled.button`
-  border-radius: 8px;
-  border: 1px solid #3f3f3f;
-  background: #202020;
-  color: #e8e8e8;
+  ${controlStyles}
+  border-radius: var(--dw-radius);
+  border: 1px solid rgba(230, 237, 243, 0.16);
+  background: var(--dw-surface-raised);
+  color: var(--dw-text);
   padding: 0.5rem 0.8rem;
+  min-height: 44px;
   font-weight: 700;
   cursor: pointer;
 
   &:hover:not(:disabled) {
-    background: #2a2a2a;
-    border-color: #585858;
+    background: var(--dw-surface-raised);
+    border-color: var(--dw-cyan);
   }
 
   &:disabled {
     opacity: 0.55;
     cursor: not-allowed;
   }
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
 `;
 
 const DestroyBtn = styled(ActionBtn)`
-  border-color: #8a2e2e;
-  background: #3b1111;
-  color: #ffd5d5;
+  border-color: rgba(240, 138, 123, 0.42);
+  background: rgba(240, 138, 123, 0.12);
+  color: var(--dw-coral);
 
   &:hover:not(:disabled) {
-    background: #4a1616;
-    border-color: #bf4949;
+    background: rgba(240, 138, 123, 0.18);
+    border-color: var(--dw-coral);
   }
 `;
 

@@ -3,6 +3,8 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import * as S from '../styles/BoxDetailView.styles';
 
+import BoxCompartments from './BoxDetailView/BoxCompartments';
+import { getCompartments, getItemCompartment } from '../util/boxCompartments';
 import BoxMetaPanel from './BoxMetaPanel';
 import TabControlBar from './TabControlBar';
 
@@ -26,11 +28,21 @@ const VALID_TABS = new Set(['tree', 'flat', 'edit']);
 const VALID_PANELS = new Set(['empty', 'nest', 'edit', 'export', 'destroy']);
 
 export default function BoxDetailView({ parentPath, onNavigateBox }) {
-  const { shortId } = useParams();
+  const { shortId: routeAddress } = useParams();
+  const addressMatch = String(routeAddress || '').match(/^(\d{3})([A-Z])$/i);
+  const shortId = addressMatch ? addressMatch[1] : routeAddress;
+  const routeCompartment = addressMatch?.[2]?.toUpperCase() || '';
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [boxImageRefreshToken, setBoxImageRefreshToken] = useState(0);
   const [treeViewMode, setTreeViewMode] = useState('full');
+
+  useEffect(() => {
+    if (!routeCompartment) return;
+    const next = new URLSearchParams(searchParams);
+    next.set('compartment', routeCompartment);
+    navigate(`/boxes/${shortId}?${next}`, { replace: true });
+  }, [routeCompartment, shortId, navigate, searchParams]);
 
   const activeTab = useMemo(() => {
     const tab = searchParams.get('tab');
@@ -55,7 +67,12 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
     refreshBox,
   } =
     useBoxDetailData(shortId);
-  const search = useBoxWorkspaceSearch({ shortId, items: flatItems });
+  const selectedCompartment = getCompartments(tree).some((row) => row.key === searchParams.get('compartment')) ? searchParams.get('compartment') : '';
+  const compartmentItems = selectedCompartment
+    ? flatItems.filter((item) => String(item.parentBoxMongoId) === String(tree?._id) && getItemCompartment(tree, item) === selectedCompartment)
+    : flatItems;
+  const scopedTree = selectedCompartment ? { ...tree, compartmentKey: selectedCompartment, items: (tree.items || []).filter((item) => getItemCompartment(tree, item) === selectedCompartment), childBoxes: [] } : tree;
+  const search = useBoxWorkspaceSearch({ shortId, items: compartmentItems });
   const hasChildBoxes = Array.isArray(tree?.childBoxes) && tree.childBoxes.length > 0;
   const browseTab = activeTab === 'tree' ? 'tree' : 'flat';
   const managementOpen = activeTab === 'edit';
@@ -91,7 +108,7 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
           shortId: String(tree?.box_id ?? tree?.shortId ?? ''),
           title: String(tree?.label ?? tree?.name ?? 'Box'),
           location: String(
-            tree?.location ?? tree?.locationName ?? tree?.locationId?.name ?? ''
+            tree?.location ?? tree?.locationName ?? ''
           ).trim(),
         },
       })
@@ -243,6 +260,9 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
               stats={stats}
               imageRefreshToken={boxImageRefreshToken}
             />
+            <BoxCompartments key={tree._id} box={tree} selectedKey={selectedCompartment} onChanged={refreshBox} onSelect={(key) => {
+              setSearchParams((current) => { const next = new URLSearchParams(current); if (key) next.set('compartment', key); else next.delete('compartment'); return next; });
+            }} />
             <TabControlBar
               mode={browseTab}
               onChange={handleTabChange}
@@ -260,10 +280,11 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
 
         <S.TabViewport ref={resultsRef}>
           <BoxDetailTabContent
+            key={`${tree?._id}:${selectedCompartment}:${JSON.stringify(tree?.itemCompartments || {})}`}
             activeTab={browseTab}
             loading={loading}
             error={error}
-            tree={tree}
+            tree={scopedTree}
             flatItems={search.visibleItems}
             openItemId={openItemId}
             handleOpen={handleOpen}

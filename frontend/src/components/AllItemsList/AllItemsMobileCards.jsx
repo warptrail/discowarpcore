@@ -184,7 +184,7 @@ function MobileItemCard({
                 <S.MobileQty>{meta?.quantityLabel || '—'}</S.MobileQty>
               </S.MobileCondensedPrimary>
               <S.MobileSummaryLine>
-                {summaryParts.join(' // ') || 'Tap for item details'}
+                {summaryParts.join(' · ') || 'Tap for item details'}
               </S.MobileSummaryLine>
             </S.MobileCondensedText>
           </S.MobileCondensedRow>

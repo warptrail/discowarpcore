@@ -4,6 +4,7 @@ import * as S from '../styles/BoxTree.styles';
 import { compareItemsByMode, matchesItemQuery, normalizeItemQuery } from '../util/itemBrowse';
 import BoxDetailActionSection from './BoxDetailView/BoxDetailActionSection';
 import BoxTreeUnit from './BoxTreeUnit';
+import { getBoxTheme, getBoxThemeCssVars } from '../util/inventoryColorTheme';
 
 function formatBoxChipId(value) { const raw = String(value ?? '').trim(); return !raw ? '#???' : /^\d+$/.test(raw) ? `#${raw.padStart(3, '0')}` : `#${raw}`; }
 function countItemsInTree(node) { return !node ? 0 : (node.items || []).length + (node.childBoxes || []).reduce((sum, child) => sum + countItemsInTree(child), 0); }
@@ -13,10 +14,10 @@ function AsciiTreeNode({ node, depth = 0, prefix = '', onOpenItem, openItemId })
   return entries.map((entry, index) => {
     const last = index === entries.length - 1; const branch = `${prefix}${last ? '└── ' : '├── '}`;
     if (entry.kind === 'item') { const id = String(entry.value?._id || entry.value?.id || ''); return <S.AsciiLine key={entry.key} $depth={depth}><S.AsciiItemButton type="button" $active={id === openItemId} onClick={() => onOpenItem?.(id)}><S.AsciiPrefix>{branch}</S.AsciiPrefix><S.AsciiLabel>{entry.value?.name || 'Unnamed item'}</S.AsciiLabel></S.AsciiItemButton></S.AsciiLine>; }
-    const child = entry.value; return <React.Fragment key={entry.key}><S.AsciiLine $depth={depth}><S.AsciiPrefix>{branch}</S.AsciiPrefix><S.AsciiBoxLabel>{formatBoxChipId(child?.box_id ?? child?.shortId)} {child?.label || child?.name || 'Box'}</S.AsciiBoxLabel></S.AsciiLine><AsciiTreeNode node={child} depth={depth + 1} prefix={`${prefix}${last ? '    ' : '│   '}`} onOpenItem={onOpenItem} openItemId={openItemId} /></React.Fragment>;
+    const child = entry.value; return <React.Fragment key={entry.key}><S.AsciiLine $depth={depth} style={getBoxThemeCssVars(getBoxTheme(child?.box_id ?? child?.shortId))}><S.AsciiPrefix>{branch}</S.AsciiPrefix><S.AsciiBoxLabel>{formatBoxChipId(child?.box_id ?? child?.shortId)} {child?.label || child?.name || 'Box'}</S.AsciiBoxLabel></S.AsciiLine><AsciiTreeNode node={child} depth={depth + 1} prefix={`${prefix}${last ? '    ' : '│   '}`} onOpenItem={onOpenItem} openItemId={openItemId} /></React.Fragment>;
   });
 }
-function AsciiTree({ node, onOpenItem, openItemId }) { return <S.AsciiTree role="tree"><S.AsciiLine><S.AsciiPrefix>. </S.AsciiPrefix><S.AsciiBoxLabel>{formatBoxChipId(node?.box_id ?? node?.shortId)} {node?.label || node?.name || 'Box'}</S.AsciiBoxLabel></S.AsciiLine><S.AsciiBranch><AsciiTreeNode node={node} onOpenItem={onOpenItem} openItemId={openItemId} /></S.AsciiBranch></S.AsciiTree>; }
+function AsciiTree({ node, onOpenItem, openItemId }) { return <S.AsciiTree role="tree" style={getBoxThemeCssVars(getBoxTheme(node?.box_id ?? node?.shortId))}><S.AsciiLine><S.AsciiPrefix>. </S.AsciiPrefix><S.AsciiBoxLabel>{formatBoxChipId(node?.box_id ?? node?.shortId)} {node?.label || node?.name || 'Box'}</S.AsciiBoxLabel></S.AsciiLine><S.AsciiBranch><AsciiTreeNode node={node} onOpenItem={onOpenItem} openItemId={openItemId} /></S.AsciiBranch></S.AsciiTree>; }
 
 export default function BoxTree({ node, openItemId, onOpenItem, refreshBox, searchQuery, sortMode = 'recentlyAdded', viewMode = 'full', scopeLabel = 'Box tree', onManageBox, ...itemListProps }) {
   const query = normalizeItemQuery(searchQuery);

@@ -6,7 +6,6 @@ export default function OperationsPage() {
   return (
     <BoxList
       boxes={data.boxes}
-      groups={data.groups}
       orphanedCount={data.orphanedCount}
       orphanedItems={data.orphanedItems}
       locations={data.locations}
@@ -18,6 +17,7 @@ export default function OperationsPage() {
       }}
       onPageChange={data.setPage}
       onOperationsDataRefreshRequest={data.requestRefresh}
+      onOrphanedItemCreated={data.recordOrphanedItem}
     />
   );
 }

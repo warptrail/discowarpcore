@@ -11,20 +11,17 @@ test('calculates filtered box metrics without double-counting shared item refere
       {
         _id: 'box-a',
         location: 'Garage',
-        group: 'Tools',
         notes: 'Top shelf',
         items: ['item-a', 'item-b'],
       },
       {
         _id: 'box-b',
         location: 'garage',
-        group: 'Tools',
         items: ['item-b', 'item-c'],
       },
       {
         _id: 'box-c',
         location: 'Office',
-        group: 'Paper',
         items: ['item-d'],
       },
     ],
@@ -43,7 +40,6 @@ test('calculates filtered box metrics without double-counting shared item refere
     metrics: {
       boxCount: 2,
       locationCount: 1,
-      groupCount: 1,
       boxNoteCount: 1,
       itemRecordCount: 3,
       itemQuantity: 6,

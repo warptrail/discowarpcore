@@ -1,3 +1,4 @@
+import { panelStyles, inputStyles, controlStyles } from '../../styles/primitives';
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { API_BASE } from '../../api/API_BASE';
@@ -17,19 +18,22 @@ import ImageSourcePicker from '../ImageSourcePicker';
 import { uploadCroppedItemImage } from './intakeImageHelpers';
 
 const Panel = styled.section`
-  border: 1px solid rgba(89, 121, 198, 0.4);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(16, 24, 36, 0.9) 0%, rgba(12, 17, 28, 0.94) 100%);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   padding: 0.72rem;
   display: grid;
   gap: 0.6rem;
+
+  ${panelStyles}
+  border-left: 3px solid var(--dw-amber);
 `;
 
 const Heading = styled.h3`
   margin: 0;
   font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  text-transform: none;
+  letter-spacing: 0.01em;
   color: #dbe8ff;
 `;
 
@@ -53,8 +57,8 @@ const Field = styled.div`
 const Label = styled.label`
   margin: 0;
   font-size: 0.72rem;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: #a7bdd8;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -65,9 +69,9 @@ const Label = styled.label`
 const Input = styled.input`
   width: 100%;
   min-height: 48px;
-  border-radius: 10px;
-  border: 1px solid rgba(116, 145, 198, 0.52);
-  background: rgba(9, 13, 22, 0.9);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface);
   color: #eff5ff;
   font-size: 1rem;
   padding: 0 0.72rem;
@@ -75,8 +79,10 @@ const Input = styled.input`
   &:focus {
     outline: none;
     border-color: rgba(152, 188, 255, 0.95);
-    box-shadow: 0 0 0 2px rgba(111, 156, 240, 0.2);
+    box-shadow: none;
   }
+
+  ${inputStyles}
 `;
 
 const CompactInput = styled(Input)`
@@ -86,9 +92,9 @@ const CompactInput = styled(Input)`
 const Select = styled.select`
   width: 100%;
   min-height: 48px;
-  border-radius: 10px;
-  border: 1px solid rgba(116, 145, 198, 0.52);
-  background: rgba(9, 13, 22, 0.9);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface);
   color: #eff5ff;
   font-size: 1rem;
   padding: 0 0.72rem;
@@ -96,8 +102,10 @@ const Select = styled.select`
   &:focus {
     outline: none;
     border-color: rgba(152, 188, 255, 0.95);
-    box-shadow: 0 0 0 2px rgba(111, 156, 240, 0.2);
+    box-shadow: none;
   }
+
+  ${inputStyles}
 `;
 
 const InlineRow = styled.div`
@@ -108,14 +116,14 @@ const InlineRow = styled.div`
 
 const ActionButton = styled.button`
   min-height: 48px;
-  border-radius: 10px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid ${({ $tone }) => ($tone === 'photo' ? 'rgba(126, 188, 144, 0.58)' : 'rgba(87, 129, 209, 0.6)')};
   background: ${({ $tone }) => ($tone === 'photo' ? 'rgba(16, 46, 35, 0.92)' : 'rgba(14, 29, 57, 0.95)')};
   color: ${({ $tone }) => ($tone === 'photo' ? '#d9f8e4' : '#e2edff')};
   font-size: 0.84rem;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.01em;
   font-weight: 700;
-  text-transform: uppercase;
+  text-transform: none;
   padding: 0 0.82rem;
   cursor: pointer;
 
@@ -132,19 +140,23 @@ const ActionButton = styled.button`
     min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     font-size: ${MOBILE_FONT_SM};
   }
+
+  ${controlStyles}
+
+  color: ${({ $tone, $primary, $secondary }) => $tone === 'danger' ? 'var(--dw-coral)' : ($tone === 'primary' || $primary) ? 'var(--dw-cyan)' : $secondary ? 'var(--dw-violet)' : 'var(--dw-text)'};
 `;
 
 const SubmitButton = styled.button`
   width: 100%;
   min-height: 52px;
-  border-radius: 12px;
-  border: 1px solid rgba(96, 184, 151, 0.8);
-  background: linear-gradient(180deg, rgba(25, 75, 60, 0.96) 0%, rgba(17, 52, 42, 0.96) 100%);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface);
   color: #e8fff5;
   font-size: 0.92rem;
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  text-transform: none;
+  letter-spacing: 0.01em;
   cursor: pointer;
 
   &:hover:not(:disabled) {
@@ -155,6 +167,10 @@ const SubmitButton = styled.button`
     opacity: 0.54;
     cursor: not-allowed;
   }
+
+  ${controlStyles}
+  color: var(--dw-cyan);
+  border-color: var(--dw-cyan);
 `;
 
 const FileMeta = styled.div`
@@ -169,8 +185,8 @@ const StateText = styled.div`
 `;
 
 const MissingBox = styled.div`
-  border: 1px dashed rgba(134, 167, 226, 0.5);
-  border-radius: 10px;
+  border: 1px dashed var(--dw-border);
+  border-radius: var(--dw-radius-sm);
   padding: 0.62rem;
   color: #b5c6e1;
   font-size: 0.78rem;

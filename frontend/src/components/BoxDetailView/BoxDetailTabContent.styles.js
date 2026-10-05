@@ -1,3 +1,4 @@
+import { controlStyles } from '../../styles/primitives';
 import styled from 'styled-components';
 import { MOBILE_BREAKPOINT } from '../../styles/tokens';
 
@@ -39,36 +40,87 @@ export const SectionHeading = styled.header`
   margin: 0.72rem 0 0.22rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    gap: 0.42rem 0.55rem;
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    gap: 0.42rem;
+    margin: 0.62rem 0 0.12rem;
   }
 `;
 
 export const SectionTitle = styled.h2`
   margin: 0;
-  color: var(--box-neon, rgba(231, 236, 243, 0.86));
-  font: 800 0.82rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  color: var(--dw-text);
+  font: 700 0.82rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    white-space: nowrap;
+  }
 `;
 
 export const SectionCount = styled.span`
-  color: rgba(231, 236, 243, 0.54);
-  font: 700 0.68rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--dw-text-secondary);
+  font: 700 0.75rem/1 var(--dw-font-ui);
   white-space: nowrap;
+`;
+
+export const SectionCountFull = styled.span`
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
+  }
+`;
+
+export const SectionCountCompact = styled.span`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.36rem;
+
+    &::before {
+      content: '·';
+      color: rgba(var(--box-primary-rgb, 76, 198, 193), 0.72);
+    }
+  }
 `;
 
 export const SectionNote = styled.span`
-  color: rgba(174, 197, 208, 0.48);
-  font: 700 0.58rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  color: var(--dw-text-secondary);
+  font: 700 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
   white-space: nowrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
+  }
 `;
 
 export const SectionActionButton = styled.button`
-  flex: 0 0 auto; min-height: 28px; border: 1px solid rgba(var(--box-primary-rgb, 76, 198, 193), 0.58); border-radius: 7px;
-  background: rgba(25, 73, 76, 0.24); color: rgba(207, 249, 247, 0.92); padding: 0.3rem 0.52rem;
-  font: 800 0.61rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.07em; text-transform: uppercase; cursor: pointer;
+  ${controlStyles}
+  flex: 0 0 auto; min-height: var(--dw-control-height); border: 1px solid rgba(var(--box-primary-rgb, 76, 198, 193), 0.58); border-radius: var(--dw-radius);
+  background: var(--dw-surface-raised); color: var(--dw-cyan); padding: 0.3rem 0.52rem;
+  font: 700 0.75rem/1 var(--dw-font-ui); letter-spacing: 0.01em; text-transform: none; cursor: pointer;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    justify-self: end;
+  }
+`;
+
+export const SectionActionFull = styled.span`
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
+  }
+`;
+
+export const SectionActionCompact = styled.span`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: inline;
+  }
 `;
 
 export const SelectionToolbar = styled.div`
@@ -80,9 +132,9 @@ export const SelectionToolbar = styled.div`
   align-items: center;
   gap: 0.42rem;
   padding: 0.46rem;
-  border: 1px solid rgba(184, 91, 234, 0.48);
-  border-radius: 10px;
-  background: rgba(13, 14, 29, 0.96);
+  border: 1px solid rgba(230, 237, 243, 0.14);
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -120,37 +172,40 @@ export const SelectionSummary = styled.span`
   }
 `;
 export const SelectionEyebrow = styled.span`
-  color: rgba(218, 128, 255, 0.95);
-  font: 900 0.61rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  color: var(--dw-violet);
+  font: 700 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 export const SelectionCount = styled.span`
-  color: rgba(239, 215, 255, 0.9); font: 800 0.68rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.06em;
+  color: var(--dw-text); font: 700 0.75rem/1 var(--dw-font-ui); letter-spacing: 0.01em;
 `;
 export const SelectionButton = styled.button`
-  min-height: 32px; border: 1px solid rgba(154, 129, 243, 0.58); border-radius: 7px; background: ${({ $primary }) => ($primary ? 'rgba(109, 78, 187, 0.32)' : 'rgba(20, 28, 49, 0.78)')};
-  color: rgba(229, 230, 255, 0.9); padding: 0.28rem 0.46rem; font: 700 0.59rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer;
+  ${controlStyles}
+  min-height: 44px; border: 1px solid ${({ $primary }) => ($primary ? 'var(--dw-cyan)' : 'rgba(230, 237, 243, 0.16)')}; border-radius: var(--dw-radius); background: var(--dw-surface-raised);
+  color: var(--dw-text); padding: 0.28rem 0.46rem; font: 700 0.75rem/1 var(--dw-font-ui); letter-spacing: 0.01em; text-transform: none; cursor: pointer;
   &:disabled { opacity: 0.45; cursor: not-allowed; }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: 100%;
-    min-height: 38px;
+    min-height: var(--dw-control-height);
   }
 `;
 
 export const SectionRule = styled.div`
   height: 1px;
   flex: 1;
-  background: linear-gradient(
-    90deg,
-    rgba(var(--box-primary-rgb, 76, 198, 193), 0.52),
-    rgba(var(--box-secondary-rgb, 167, 139, 250), 0.12),
-    transparent
-  );
+  background: rgba(230, 237, 243, 0.12);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+  }
 `;
 
 export const SectionManageButton = styled.button`
+  ${controlStyles}
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -159,12 +214,16 @@ export const SectionManageButton = styled.button`
   height: 28px;
   margin-left: auto;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--dw-radius);
   background: transparent;
-  color: rgba(190, 204, 214, 0.48);
+  color: var(--dw-text-secondary);
   gap: 3px;
   cursor: pointer;
   &:hover, &:focus-visible { color: rgba(226, 237, 242, 0.9); background: rgba(120, 170, 182, 0.08); outline: 1px solid rgba(120, 170, 182, 0.28); }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-left: 0;
+  }
 `;
 
 export const ManageDot = styled.span`
@@ -172,8 +231,7 @@ export const ManageDot = styled.span`
   height: 4px;
   border-radius: 50%;
   background: ${({ $i }) => ['#4cc6c1', '#a78bfa', '#7fb7ff', '#70d6a7'][$i]};
-  box-shadow: 0 0 5px currentColor;
-  animation: manage-dot-wave 1.35s ease-in-out infinite;
+  box-shadow: none;
   animation-delay: ${({ $i }) => `${$i * 110}ms`};
 
   @keyframes manage-dot-wave {
@@ -186,16 +244,14 @@ export const ManageDot = styled.span`
 
 export const FlatEmpty = styled.div`
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  border-radius: var(--dw-radius);
   padding: 0.5rem 0.62rem;
   font-size: 0.88rem;
   color: rgba(230, 237, 243, 0.72);
-  background:
-    linear-gradient(90deg, rgba(167, 182, 255, 0.16) 0%, transparent 44%),
-    #14181b;
+  background: var(--dw-surface);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    border-radius: 10px;
+    border-radius: var(--dw-radius);
     padding: 0.44rem 0.52rem;
     font-size: 0.8rem;
   }
@@ -211,10 +267,10 @@ export const InlineActionsArea = styled.section`
 `;
 
 export const InlineActionsLabel = styled.div`
-  color: rgba(163, 183, 194, 0.64);
-  font: 700 0.58rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+  color: var(--dw-text-secondary);
+  font: 700 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export const InlineActionsRow = styled.div`
@@ -234,8 +290,9 @@ export const InlineActionsRow = styled.div`
 `;
 
 export const InlineActionButton = styled.button`
+  ${controlStyles}
   position: relative;
-  min-height: ${({ $compact }) => ($compact ? '27px' : '36px')};
+  min-height: var(--dw-control-height);
   min-width: 0;
   padding: ${({ $compact }) => ($compact ? '0 0.52rem' : '0.35rem 0.62rem 0.48rem')};
   border: 0;
@@ -243,10 +300,10 @@ export const InlineActionButton = styled.button`
   border-radius: 0;
   background: ${({ $active }) => ($active ? 'rgba(45, 154, 151, 0.08)' : 'transparent')};
   color: ${({ $active }) => ($active ? 'rgba(229, 255, 251, 0.96)' : 'rgba(185, 205, 216, 0.65)')};
-  font-size: ${({ $compact }) => ($compact ? '0.57rem' : '0.65rem')};
+  font-size: 0.75rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  text-transform: none;
+  letter-spacing: 0.01em;
   cursor: pointer;
   line-height: 1.12;
   text-align: left;
@@ -260,8 +317,7 @@ export const InlineActionButton = styled.button`
     left: 0.56rem;
     height: 2px;
     background: ${({ $active }) => ($active ? 'rgba(76, 198, 193, 0.88)' : 'transparent')};
-    box-shadow: ${({ $active }) => ($active ? '0 0 8px rgba(76, 198, 193, 0.3)' : 'none')};
-    transition: background 180ms ease, box-shadow 180ms ease;
+    transition: background 180ms ease;
   }
 
   &:hover:not(:disabled) {
@@ -281,10 +337,10 @@ export const InlineActionButton = styled.button`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: ${({ $compact }) => ($compact ? '26px' : '38px')};
+    min-height: var(--dw-control-height);
     padding-inline: ${({ $compact }) => ($compact ? '0.52rem' : '0.42rem')};
-    font-size: ${({ $compact }) => ($compact ? '0.52rem' : '0.58rem')};
-    letter-spacing: 0.05em;
+    font-size: 0.75rem;
+    letter-spacing: 0.01em;
     text-align: center;
   }
 `;
@@ -292,13 +348,13 @@ export const InlineActionButton = styled.button`
 export const InlinePanelShell = styled.div`
   display: grid;
   gap: 0.46rem;
-  border: 1px solid rgba(88, 146, 112, 0.5);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(8, 18, 13, 0.9) 0%, rgba(7, 14, 10, 0.94) 100%);
+  border: 1px solid rgba(230, 237, 243, 0.12);
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface);
   padding: 0.52rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    border-radius: 10px;
+    border-radius: var(--dw-radius);
     padding: 0.42rem;
   }
 
@@ -314,20 +370,20 @@ export const InlinePanelHeader = styled.div`
 
 export const InlinePanelTitle = styled.h4`
   margin: 0;
-  font-size: 0.74rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #cae5d4;
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--dw-text);
 `;
 
 export const InlinePanelContext = styled.div`
-  font-size: 0.74rem;
-  color: rgba(183, 214, 194, 0.9);
+  font-size: 0.75rem;
+  color: var(--dw-text-secondary);
 `;
 
 export const QuickCreateNotice = styled.div`
   border: 1px dashed rgba(120, 168, 205, 0.48);
-  border-radius: 10px;
+  border-radius: var(--dw-radius);
   padding: 0.48rem 0.58rem;
   color: rgba(202, 224, 244, 0.82);
   font-size: 0.76rem;

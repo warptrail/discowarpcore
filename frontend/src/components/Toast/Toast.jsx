@@ -1,6 +1,7 @@
 // Toast.jsx
 import { isValidElement } from 'react';
 import styled, { css, keyframes } from 'styled-components';
+import { controlStyles } from '../../styles/primitives';
 import { Link } from 'react-router-dom';
 import {
   MOBILE_BREAKPOINT,
@@ -12,18 +13,6 @@ import {
   getBoxThemeCssVars,
 } from '../../util/inventoryColorTheme';
 
-const idlePromptBlink = keyframes`
-  0%,
-  48%,
-  100% {
-    opacity: 1;
-  }
-
-  56%,
-  68% {
-    opacity: 0.42;
-  }
-`;
 
 const Wrap = styled.div`
   --toast-compact-progress: 0;
@@ -42,7 +31,7 @@ const Wrap = styled.div`
       ? 'calc(48px - (16px * var(--toast-compact-progress)))'
       : 'calc(46px - (6px * var(--toast-compact-progress)))'};
   background: ${({ $idle }) =>
-    $idle ? 'rgba(12, 17, 23, 0.96)' : 'rgba(8, 13, 19, 0.98)'};
+    $idle ? 'var(--dw-surface)' : 'var(--dw-surface-raised)'};
   border: 1px solid
     ${({ $variant, $idle }) =>
       $idle
@@ -50,7 +39,7 @@ const Wrap = styled.div`
         : $variant === 'danger'
           ? 'rgba(238, 132, 150, 0.34)'
           : $variant === 'warning'
-            ? 'rgba(177, 159, 239, 0.3)'
+            ? 'var(--dw-amber)'
             : $variant === 'success'
               ? 'rgba(101, 220, 213, 0.28)'
               : 'rgba(127, 215, 255, 0.25)'};
@@ -93,6 +82,28 @@ const Wrap = styled.div`
     padding var(--toast-duration) var(--toast-ease),
     box-shadow var(--toast-duration) var(--toast-ease);
 
+  ${({ $batchConsole }) => $batchConsole && css`
+    gap: 0.14rem;
+    margin: 0;
+    min-height: 0;
+    padding: 0.34rem 2.7rem 0.34rem 0.54rem;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  `}
+
+  ${({ $quietIdle }) => $quietIdle && css`
+    gap: 0;
+    margin: 0;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  `}
+
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.5rem;
     margin: 6px 0;
@@ -101,6 +112,36 @@ const Wrap = styled.div`
     padding-right: ${({ $hasClose }) => ($hasClose ? '2.65rem' : '0.58rem')};
     border-radius: 8px;
     box-shadow: 0 4px 13px rgba(0, 0, 0, 0.2);
+
+    ${({ $batchConsole }) => $batchConsole && css`
+      gap: 0.12rem;
+      margin: 0;
+      min-height: 0;
+      padding: 0.28rem 2.55rem 0.28rem 0.42rem;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    `}
+
+    ${({ $quietIdle }) => $quietIdle && css`
+      gap: 0;
+      margin: 0;
+      min-height: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    `}
+
+    ${({ $operationsDock }) => $operationsDock && css`
+      margin: 0;
+      border: 0;
+      border-radius: 0;
+      background: var(--dw-surface);
+      box-shadow: none;
+    `}
   }
 
   ${({ $itemPageRail }) =>
@@ -111,7 +152,7 @@ const Wrap = styled.div`
       padding: 0.38rem 0.5rem;
       border-color: rgba(var(--item-accent-rgb, 127, 215, 255), 0.46);
       border-radius: 6px;
-      background: #090f16;
+      background: var(--dw-surface);
       box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.055),
         0 5px 15px rgba(0, 0, 0, 0.22);
@@ -136,7 +177,7 @@ const Wrap = styled.div`
           ? 'rgba(196, 177, 255, 0.48)'
           : 'rgba(var(--box-primary-rgb, 101, 220, 213), 0.5)'};
       border-radius: 6px;
-      background: rgba(6, 10, 15, 0.985);
+      background: var(--dw-surface);
       box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.055),
         0 4px 14px rgba(0, 0, 0, 0.28);
@@ -174,6 +215,10 @@ const Body = styled.div`
       ? 'calc(0.55rem - (0.19rem * var(--toast-compact-progress)))'
       : 'calc(0.2rem - (0.12rem * var(--toast-compact-progress)))'};
   transition: gap var(--toast-duration) var(--toast-ease);
+
+  ${({ $batchConsole }) => $batchConsole && css`
+    gap: 0.12rem;
+  `}
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 0.88rem;
@@ -256,11 +301,11 @@ const Title = styled.div`
       font-family:
         ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
         'Courier New', monospace;
-      font-size: 0.7rem;
+      font-size: 0.82rem;
       font-weight: 780;
       letter-spacing: 0.11em;
       line-height: 1.15;
-      text-transform: uppercase;
+      text-transform: none;
     `}
 
   ${({ $itemPageTitle }) =>
@@ -275,7 +320,7 @@ const Title = styled.div`
       font-weight: 760;
       letter-spacing: 0.035em;
       line-height: 1.04;
-      text-shadow: 0 0 12px rgba(var(--item-accent-rgb, 127, 215, 255), 0.2);
+      text-shadow: none;
 
       &::before {
         content: '';
@@ -284,11 +329,7 @@ const Title = styled.div`
         height: 0.82em;
         margin-right: 0.42rem;
         border-radius: 1px 4px 2px 1px;
-        background: linear-gradient(
-          180deg,
-          var(--item-accent, #7fd7ff),
-          var(--item-secondary, #a7b6ff)
-        );
+        background: var(--dw-surface);
         box-shadow: 0 0 9px rgba(var(--item-accent-rgb, 127, 215, 255), 0.34);
         vertical-align: -0.08em;
       }
@@ -376,8 +417,7 @@ const IdlePromptButton = styled.button`
   font-weight: 750;
   text-align: left;
   cursor: pointer;
-  animation: ${({ $calm }) =>
-    $calm ? 'none' : css`${idlePromptBlink} 1.9s steps(2, end) infinite`};
+
 
   &:hover,
   &:focus-visible {
@@ -435,6 +475,12 @@ const IdleIconButton = styled.button`
     height: 44px;
     margin: -0.32rem 0;
   }
+
+  @media (max-width: 560px) {
+    ${({ $hideOnMobile }) => $hideOnMobile && css`
+      display: none;
+    `}
+  }
 `;
 
 const RetrievalStateWrap = styled.div`
@@ -449,7 +495,7 @@ const RetrievalConsoleKicker = styled.span`
   font-size: 0.62rem;
   font-weight: 760;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
+  text-transform: none;
 `;
 
 const RetrievalNameBase = `
@@ -500,9 +546,7 @@ const RetrievalBoxId = styled.span`
   display: inline-flex;
   align-items: center;
   color: var(--box-neon, rgba(189, 231, 255, 0.98));
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: var(--dw-font-ui);
   font-weight: 840;
   font-size: 0.93rem;
   line-height: 1.2;
@@ -514,9 +558,7 @@ const RetrievalBoxIdLink = styled(Link)`
   display: inline-flex;
   align-items: center;
   color: var(--box-neon, rgba(189, 231, 255, 0.98));
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: var(--dw-font-ui);
   font-weight: 840;
   font-size: 0.93rem;
   line-height: 1.2;
@@ -579,7 +621,7 @@ const RetrievalMeta = styled.span`
   font-weight: 820;
   line-height: 1.25;
   letter-spacing: 0.015em;
-  text-shadow: 0 0 10px rgba(var(--box-location-rgb, 127, 215, 255), 0.26);
+  text-shadow: none;
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -595,7 +637,7 @@ const RetrievalMiniThumb = styled.img`
   object-fit: cover;
   border: 1px solid rgba(var(--box-primary-rgb, 119, 213, 255), 0.58);
   border-radius: 2px 6px 2px 2px;
-  background: rgba(5, 11, 17, 0.84);
+  background: var(--dw-surface);
   box-shadow: 0 0 10px rgba(var(--box-primary-rgb, 119, 213, 255), 0.16);
 `;
 const Controls = styled.div`
@@ -606,7 +648,7 @@ const Controls = styled.div`
   align-items: center;
   gap: 0.1rem;
   flex: 0 0 auto;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
     align-self: flex-start;
@@ -618,7 +660,7 @@ const Controls = styled.div`
       align-self: center;
       align-items: center;
       gap: 0.32rem;
-      flex-wrap: nowrap;
+      flex-wrap: wrap;
       padding: 0;
       border: 0;
       border-radius: 0;
@@ -633,6 +675,7 @@ const Controls = styled.div`
     `}
 `;
 const Btn = styled.button`
+  ${controlStyles}
   appearance: none;
   display: inline-flex;
   align-items: center;
@@ -647,14 +690,12 @@ const Btn = styled.button`
   color: rgba(215, 230, 238, 0.78);
   background: transparent;
   box-shadow: none;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-  font-size: 0.68rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.82rem;
   font-weight: 760;
-  letter-spacing: 0.065em;
+  letter-spacing: 0;
   line-height: 1;
-  text-transform: uppercase;
+  text-transform: none;
   transition:
     background 140ms ease,
     color 140ms ease,
@@ -678,7 +719,7 @@ const Btn = styled.button`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: ${({ $fieldCommand }) => ($fieldCommand ? '44px' : '40px')};
     min-width: ${({ $fieldCommand }) => ($fieldCommand ? '44px' : '40px')};
-    font-size: 0.7rem;
+    font-size: 0.82rem;
   }
 
   &:hover:enabled {
@@ -825,6 +866,7 @@ export default function Toast({
   themedIdle = false,
   idleIcon = '📦',
   idleIconAction = null,
+  hideIdleIconOnMobile = false,
   idleText = 'Standing by…',
   idleAction = null,
   idleAddon = null,
@@ -835,8 +877,11 @@ export default function Toast({
   presentation = 'default',
   themeStyle = null,
   allowOverflow = false,
+  operationsDock = false,
+  quietIdle = false,
 }) {
   const isFieldCommandRail = presentation === 'item-field';
+  const isBatchConsole = presentation === 'batch-console';
   const isItemPageRail = presentation === 'item-page' || isFieldCommandRail;
   const resolvedCompactProgress = Number.isFinite(Number(compactProgress))
     ? Math.min(1, Math.max(0, Number(compactProgress)))
@@ -875,6 +920,9 @@ export default function Toast({
       $hasContent={hasContent}
       $hasClose={!isIdle && !!onClose}
       $allowOverflow={allowOverflow}
+      $operationsDock={operationsDock}
+      $batchConsole={isBatchConsole}
+      $quietIdle={quietIdle && isIdle}
       style={{
         ...retrievalThemeStyle,
         ...(themeStyle || {}),
@@ -883,7 +931,7 @@ export default function Toast({
       role={variant === 'danger' ? 'alert' : 'status'}
       aria-live={variant === 'danger' ? 'assertive' : 'polite'}
     >
-      <Body $hasContent={hasContent} $compact={compact}>
+      <Body $hasContent={hasContent} $compact={compact} $batchConsole={isBatchConsole}>
         {isFieldCommandRail ? (
           <FieldCommandRail>
             <ItemPageRailContext>
@@ -928,12 +976,13 @@ export default function Toast({
                   aria-label={idleIconAction.ariaLabel || 'Home'}
                   title={idleIconAction.title || idleIconAction.ariaLabel || 'Home'}
                   $alignTop={idleIconAction.alignTop}
+                  $hideOnMobile={hideIdleIconOnMobile}
                 >
                   <span aria-hidden="true">{idleIcon}</span>
                 </IdleIconButton>
-              ) : (
+              ) : idleIcon ? (
                 <span aria-hidden="true">{idleIcon}</span>
-              )}
+              ) : null}
               {idleAction ? (
                 <IdlePromptButton
                   type="button"
@@ -1034,12 +1083,13 @@ export default function Toast({
       ) : null}
       {!isIdle && onClose ? (
         <CloseBtn
+          type="button"
           $compact={compact}
           $toastVariant={variant}
           $fieldCommand={isFieldCommandRail}
           $retrievalActive={hasRetrievalActive}
           onClick={onClose}
-          aria-label="Dismiss notification"
+          aria-label={isBatchConsole ? 'Exit batch image mode' : 'Dismiss notification'}
         >
           ✕
         </CloseBtn>

@@ -1,5 +1,7 @@
+import { panelStyles, controlStyles } from '../../styles/primitives';
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
+import { getBoxTheme, getBoxThemeCssVars } from '../../util/inventoryColorTheme';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_CONTROL_MIN_HEIGHT,
@@ -16,18 +18,21 @@ import {
 
 const Panel = styled.section`
   border: ${({ $compact }) => ($compact ? '1px dashed rgba(112, 168, 180, 0.48)' : '1px solid rgba(112, 168, 180, 0.5)')};
-  border-radius: 10px;
-  background: ${({ $compact }) => ($compact ? 'rgba(10, 18, 21, 0.82)' : 'linear-gradient(180deg, rgba(11, 21, 28, 0.94) 0%, rgba(10, 17, 23, 0.96) 100%)')};
+  border-radius: var(--dw-radius-sm);
+  background: ${({ $compact }) => ($compact ? 'rgba(10, 18, 21, 0.82)' : 'var(--dw-surface-raised)')};
   padding: ${({ $compact }) => ($compact ? '0.5rem' : '0.7rem')};
   display: grid;
   gap: 0.48rem;
+
+  ${panelStyles}
+  border-left: 3px solid var(--box-primary, #8A8175);
 `;
 
 const Heading = styled.h4`
   margin: 0;
   font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  text-transform: none;
+  letter-spacing: 0.01em;
   color: #d7e9f0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -43,11 +48,11 @@ const Hint = styled.p`
 `;
 
 const ImageWrap = styled.div`
-  border-radius: 10px;
+  border-radius: var(--dw-radius-sm);
   overflow: hidden;
-  border: 1px solid rgba(108, 154, 170, 0.5);
+  border: 1px solid var(--dw-border);
   max-width: 220px;
-  background: rgba(11, 19, 25, 0.92);
+  background: var(--dw-surface);
 `;
 
 const Image = styled.img`
@@ -59,8 +64,8 @@ const Image = styled.img`
 `;
 
 const ImageStub = styled.div`
-  border: 1px dashed rgba(103, 146, 160, 0.46);
-  border-radius: 8px;
+  border: 1px dashed var(--dw-border);
+  border-radius: var(--dw-radius-sm);
   padding: 0.45rem 0.5rem;
   color: #95aeb7;
   font-size: 0.75rem;
@@ -68,14 +73,14 @@ const ImageStub = styled.div`
 
 const DeleteButton = styled.button`
   min-height: 40px;
-  border-radius: 8px;
-  border: 1px solid rgba(206, 128, 128, 0.62);
-  background: rgba(74, 30, 30, 0.92);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
   color: #ffdcdc;
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   padding: 0 0.62rem;
   cursor: pointer;
   width: fit-content;
@@ -89,18 +94,21 @@ const DeleteButton = styled.button`
     min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     font-size: ${MOBILE_FONT_SM};
   }
+
+  ${controlStyles}
+  color: var(--dw-coral);
 `;
 
 const SinglePickerButton = styled.button`
   min-height: 40px;
-  border-radius: 8px;
-  border: 1px solid rgba(103, 170, 189, 0.66);
-  background: rgba(15, 35, 45, 0.94);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
   color: #deeff7;
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   padding: 0 0.62rem;
   cursor: pointer;
   width: fit-content;
@@ -114,6 +122,8 @@ const SinglePickerButton = styled.button`
     min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     font-size: ${MOBILE_FONT_SM};
   }
+
+  ${controlStyles}
 `;
 
 const StateText = styled.div`
@@ -123,8 +133,8 @@ const StateText = styled.div`
 `;
 
 const MissingBox = styled.div`
-  border: 1px dashed rgba(123, 162, 177, 0.48);
-  border-radius: 8px;
+  border: 1px dashed var(--dw-border);
+  border-radius: var(--dw-radius-sm);
   padding: 0.5rem;
   color: #a2b9c5;
   font-size: 0.76rem;
@@ -206,7 +216,7 @@ export default function IntakeBoxPhotoPanel({
   }
 
   return (
-    <Panel $compact={compact}>
+    <Panel $compact={compact} style={getBoxThemeCssVars(getBoxTheme(currentBox.box_id ?? currentBox.shortId))}>
       {showHeading ? (
         <>
           <Heading>{hasImage ? 'Replace Box Photo' : 'Add Box Photo'}</Heading>

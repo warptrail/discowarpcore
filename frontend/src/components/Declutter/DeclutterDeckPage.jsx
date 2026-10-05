@@ -49,6 +49,8 @@ export default function DeclutterDeckPage() {
   const requestedMode = searchParams.get('mode') || 'deck';
   const routeMode = DECLUTTER_MODES.has(requestedMode) ? requestedMode : 'deck';
   const [player, setPlayer] = useState(getStoredDeclutterPlayer);
+  const activePlayerRef = useRef(player);
+  const deckRequestRef = useRef(0);
   const [deck, setDeck] = useState(null);
   const [mode, setMode] = useState(routeMode);
   const [notesDraft, setNotesDraft] = useState('');
@@ -78,14 +80,18 @@ export default function DeclutterDeckPage() {
   }, [routeMode]);
 
   const loadDeck = useCallback(async ({ silent = false } = {}) => {
+    if (activePlayerRef.current !== player) return;
+    const request = ++deckRequestRef.current;
+    const isCurrent = () => request === deckRequestRef.current && activePlayerRef.current === player;
     if (!silent) setLoading(true);
     setError('');
     try {
-      setDeck(await fetchDeclutterDeck(player));
+      const nextDeck = await fetchDeclutterDeck(player);
+      if (isCurrent()) setDeck(nextDeck);
     } catch (err) {
-      setError(err?.message || 'Failed to load the Declutter Deck.');
+      if (isCurrent()) setError(err?.message || 'Failed to load the Declutter Deck.');
     } finally {
-      if (!silent) setLoading(false);
+      if (!silent && isCurrent()) setLoading(false);
     }
   }, [player]);
 
@@ -93,7 +99,13 @@ export default function DeclutterDeckPage() {
 
   useEffect(() => {
     const syncPlayer = (event) => {
-      if (event.detail?.playerId) setPlayer(event.detail.playerId);
+      if (event.detail?.playerId && event.detail.playerId !== activePlayerRef.current) {
+        activePlayerRef.current = event.detail.playerId;
+        deckRequestRef.current += 1;
+        setDeck(null);
+        setNotesDraft('');
+        setPlayer(event.detail.playerId);
+      }
     };
     window.addEventListener(DECLUTTER_PLAYER_CHANGE_EVENT, syncPlayer);
     return () => window.removeEventListener(DECLUTTER_PLAYER_CHANGE_EVENT, syncPlayer);
@@ -116,7 +128,7 @@ export default function DeclutterDeckPage() {
   }, [mode]);
 
   const mergeCandidate = useCallback((updated) => {
-    if (!updated?.id) return;
+    if (!updated?.id || activePlayerRef.current !== player) return;
     setDeck((current) => {
       if (!current) return current;
       const candidateId = String(updated.id);
@@ -156,7 +168,7 @@ export default function DeclutterDeckPage() {
         },
       };
     });
-  }, []);
+  }, [player]);
 
   const isReviewableCandidate = useCallback(
     (candidate) => String(candidate?.item?.item_status || '').toLowerCase() !== 'gone',

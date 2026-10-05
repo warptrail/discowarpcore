@@ -35,7 +35,6 @@ async function getRetrievalBoxesApi(req, res) {
     const payload = await getRetrievalBoxesPage({
       q: req.query.q,
       boxPrefix: req.query.boxPrefix,
-      group: req.query.group,
       tag: req.query.tag,
       tagOperator: req.query.tagOperator,
       location: req.query.location,

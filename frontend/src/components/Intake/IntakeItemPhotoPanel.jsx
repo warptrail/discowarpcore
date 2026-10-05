@@ -1,3 +1,4 @@
+import { panelStyles, controlStyles, inputStyles } from '../../styles/primitives';
 import React, { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import {
@@ -15,19 +16,22 @@ import {
 } from './intakeImageHelpers';
 
 const Panel = styled.section`
-  border: 1px solid rgba(99, 151, 123, 0.44);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(14, 25, 20, 0.94) 0%, rgba(10, 18, 14, 0.96) 100%);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   padding: 0.72rem;
   display: grid;
   gap: 0.56rem;
+
+  ${panelStyles}
+  border-left: 3px solid var(--dw-amber);
 `;
 
 const Heading = styled.h4`
   margin: 0;
   font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  text-transform: none;
+  letter-spacing: 0.01em;
   color: #dbefdf;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -50,14 +54,14 @@ const ModeRow = styled.div`
 
 const ModeButton = styled.button`
   min-height: 36px;
-  border-radius: 8px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid ${({ $active }) => ($active ? 'rgba(156, 226, 171, 0.86)' : 'rgba(112, 163, 124, 0.55)')};
   background: ${({ $active }) => ($active ? 'rgba(22, 64, 38, 0.95)' : 'rgba(13, 34, 20, 0.9)')};
   color: ${({ $active }) => ($active ? '#e8ffe8' : '#c3d9c8')};
   font-size: 0.74rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   padding: 0 0.62rem;
   cursor: pointer;
 
@@ -65,6 +69,10 @@ const ModeButton = styled.button`
     min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     font-size: ${MOBILE_FONT_SM};
   }
+
+  ${controlStyles}
+  border-left-color: ${({ $active, $selected, $recommended }) => ($active || $selected || $recommended) ? 'var(--dw-amber)' : 'var(--dw-border)'};
+  border-left-width: 3px;
 `;
 
 const Field = styled.div`
@@ -75,17 +83,17 @@ const Field = styled.div`
 const Label = styled.label`
   margin: 0;
   font-size: 0.72rem;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: #b9d6c2;
 `;
 
 const Select = styled.select`
   width: 100%;
   min-height: 48px;
-  border-radius: 10px;
-  border: 1px solid rgba(112, 169, 134, 0.55);
-  background: rgba(10, 20, 14, 0.9);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface);
   color: #e9f7ed;
   font-size: 0.98rem;
   padding: 0 0.7rem;
@@ -93,16 +101,18 @@ const Select = styled.select`
   &:focus {
     outline: none;
     border-color: rgba(145, 218, 169, 0.9);
-    box-shadow: 0 0 0 2px rgba(94, 181, 128, 0.2);
+    box-shadow: none;
   }
+
+  ${inputStyles}
 `;
 
 const Preview = styled.div`
-  border-radius: 10px;
+  border-radius: var(--dw-radius-sm);
   overflow: hidden;
-  border: 1px solid rgba(109, 166, 133, 0.46);
+  border: 1px solid var(--dw-border);
   max-width: 220px;
-  background: rgba(12, 22, 15, 0.9);
+  background: var(--dw-surface);
 `;
 
 const PreviewImage = styled.img`
@@ -113,8 +123,8 @@ const PreviewImage = styled.img`
 `;
 
 const PreviewStub = styled.div`
-  border: 1px dashed rgba(111, 153, 123, 0.48);
-  border-radius: 8px;
+  border: 1px dashed var(--dw-border);
+  border-radius: var(--dw-radius-sm);
   padding: 0.45rem 0.5rem;
   color: #a7c4b0;
   font-size: 0.75rem;
@@ -122,14 +132,14 @@ const PreviewStub = styled.div`
 
 const DeleteButton = styled.button`
   min-height: 40px;
-  border-radius: 8px;
-  border: 1px solid rgba(206, 128, 128, 0.62);
-  background: rgba(74, 30, 30, 0.92);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
   color: #ffdcdc;
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   padding: 0 0.62rem;
   cursor: pointer;
   width: fit-content;
@@ -143,6 +153,9 @@ const DeleteButton = styled.button`
     min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     font-size: ${MOBILE_FONT_SM};
   }
+
+  ${controlStyles}
+  color: var(--dw-coral);
 `;
 
 const StateText = styled.div`
@@ -152,8 +165,8 @@ const StateText = styled.div`
 `;
 
 const MissingState = styled.div`
-  border: 1px dashed rgba(117, 160, 129, 0.5);
-  border-radius: 8px;
+  border: 1px dashed var(--dw-border);
+  border-radius: var(--dw-radius-sm);
   padding: 0.5rem;
   color: #b7cfbe;
   font-size: 0.76rem;

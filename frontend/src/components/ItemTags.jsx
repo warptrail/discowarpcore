@@ -10,10 +10,10 @@ const TagList = styled.div`
 `;
 
 const Tag = styled.span`
-  background-color: #333;
-  color: #fff;
+  background-color: var(--dw-surface-raised);
+  color: var(--dw-text-secondary);
   padding: 4px 8px;
-  border-radius: 12px;
+  border-radius: var(--dw-radius);
   font-size: 0.85rem;
 `;
 

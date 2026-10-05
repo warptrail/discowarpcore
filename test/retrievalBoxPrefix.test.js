@@ -9,19 +9,18 @@ const {
 } = require('../backend/services/retrievalService');
 
 const boxes = [
-  { boxId: '099', searchText: 'garage cables', groupKey: '', locationKey: 'garage' },
-  { boxId: '100', searchText: 'office paper', groupKey: '', locationKey: 'office' },
-  { boxId: '105', searchText: 'garage snow gear', groupKey: '', locationKey: 'garage' },
-  { boxId: '109', searchText: 'garage towels', groupKey: '', locationKey: 'garage' },
-  { boxId: '110', searchText: 'garage records', groupKey: '', locationKey: 'garage' },
-  { boxId: '199', searchText: 'closet archive', groupKey: '', locationKey: 'closet' },
-  { boxId: '200', searchText: 'garage tools', groupKey: '', locationKey: 'garage' },
+  { boxId: '099', searchText: 'garage cables', locationKey: 'garage' },
+  { boxId: '100', searchText: 'office paper', locationKey: 'office' },
+  { boxId: '105', searchText: 'garage snow gear', locationKey: 'garage' },
+  { boxId: '109', searchText: 'garage towels', locationKey: 'garage' },
+  { boxId: '110', searchText: 'garage records', locationKey: 'garage' },
+  { boxId: '199', searchText: 'closet archive', locationKey: 'closet' },
+  { boxId: '200', searchText: 'garage tools', locationKey: 'garage' },
 ];
 
 const filter = (boxIdPrefix, query = '') => filterRetrievalBoxes(boxes, {
   query,
   boxIdPrefix,
-  groupFilters: [],
   locationFilters: [],
 });
 
@@ -87,8 +86,8 @@ test('box rows expose box tags while filtering uses tags from direct items', () 
 
 test('box tag filtering supports ANY and ALL matching across direct-item tags', () => {
   const rows = [
-    { boxId: '105', tagKeys: ['winter', 'clothing'], groupKey: '', locationKey: '', searchText: '' },
-    { boxId: '106', tagKeys: ['winter'], groupKey: '', locationKey: '', searchText: '' },
+    { boxId: '105', tagKeys: ['winter', 'clothing'], locationKey: '', searchText: '' },
+    { boxId: '106', tagKeys: ['winter'], locationKey: '', searchText: '' },
   ];
 
   assert.deepEqual(

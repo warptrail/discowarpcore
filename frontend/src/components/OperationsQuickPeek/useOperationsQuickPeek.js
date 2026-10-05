@@ -28,6 +28,7 @@ const DESKTOP_PEEK_HEADER_GAP_PX = 10;
 const PEEK_ANCHOR_SETTLE_MS = 760;
 
 function normalizeBoxId(value) {
+  if (value === 'adrift') return 'adrift';
   return String(value || '').replace(/\D/g, '').trim();
 }
 
@@ -288,7 +289,7 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
 
   const openFullBox = useCallback(() => {
     if (!selectedBoxId) return;
-    navigate(`/boxes/${selectedBoxId}`);
+    navigate(selectedBoxId === 'adrift' ? '/all-items?filter=orphaned' : `/boxes/${selectedBoxId}`);
   }, [navigate, selectedBoxId]);
 
   useEffect(() => {

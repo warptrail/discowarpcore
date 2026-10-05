@@ -1,3 +1,4 @@
+import { controlStyles } from '../styles/primitives';
 // BoxControlBar.jsx
 import React from 'react';
 import styled, { css } from 'styled-components';
@@ -10,7 +11,7 @@ import {
 const Bar = styled.div`
   display: grid;
   gap: 8px;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   @media (max-width: 639px) {
     & > *:last-child:nth-child(odd) {
       grid-column: 1 / -1;
@@ -29,19 +30,20 @@ const Bar = styled.div`
 `;
 
 const btnActiveStyles = css`
-  border-color: #4ec77b;
-  background: #19231d;
-  box-shadow: 0 0 0 2px rgba(78, 199, 123, 0.15) inset;
-  color: #e9fcee;
+  border-color: var(--dw-cyan);
+  box-shadow: inset 3px 0 0 var(--dw-amber);
+  background: var(--dw-surface-raised);
+  color: var(--dw-text);
 `;
 
 const Btn = styled.button`
+  ${controlStyles}
   width: 100%;
   padding: 12px 10px;
-  border-radius: 10px;
-  border: 1px solid #2f2f2f;
-  background: #1f1f1f;
-  color: #eaeaea;
+  border-radius: var(--dw-radius);
+  border: 1px solid rgba(230, 237, 243, 0.16);
+  background: var(--dw-surface);
+  color: var(--dw-text);
   font-weight: 700;
   cursor: pointer;
   transition:
@@ -51,9 +53,9 @@ const Btn = styled.button`
     background 0.2s ease;
 
   &:hover {
-    border-color: #4ec77b;
-    box-shadow: 0 0 6px rgba(78, 199, 123, 0.35);
+    border-color: var(--dw-teal);
   }
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   &:active {
     transform: translateY(1px);
   }
@@ -66,7 +68,7 @@ const Btn = styled.button`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 8px 7px;
-    border-radius: 9px;
+    border-radius: var(--dw-radius);
     font-size: ${MOBILE_FONT_SM};
     letter-spacing: 0.01em;
   }
@@ -75,37 +77,33 @@ const Btn = styled.button`
 `;
 
 const warningBtnActiveStyles = css`
-  border-color: #ffd400;
-  background: #231f19;
-  box-shadow: 0 0 0 2px rgba(255, 212, 0, 0.25) inset;
-  color: #ffe27a;
+  border-color: var(--dw-amber);
+  background: rgba(232, 177, 92, 0.1);
+  color: var(--dw-amber);
 `;
 
 const WarningBtn = styled(Btn)`
-  border-color: #3a3623;
+  border-color: rgba(232, 177, 92, 0.3);
 
   &:hover {
-    border-color: #ffd400;
-    background: #231f19;
-    box-shadow: 0 0 6px rgba(255, 212, 0, 0.35);
+    border-color: var(--dw-amber);
+    background: rgba(232, 177, 92, 0.1);
   }
 
   ${(props) => props.$active && warningBtnActiveStyles}
 `;
 
 const dangerBtnActiveStyles = css`
-  border-color: #ff4d4f;
-  background: #2a1616;
-  box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2) inset;
+  border-color: var(--dw-coral);
+  background: rgba(240, 138, 123, 0.1);
 `;
 
 const DangerBtn = styled(Btn)`
-  border-color: #3a2323;
+  border-color: rgba(240, 138, 123, 0.3);
 
   &:hover {
-    border-color: #ff4d4f;
-    background: #2a1616;
-    box-shadow: 0 0 6px rgba(255, 77, 79, 0.35);
+    border-color: var(--dw-coral);
+    background: rgba(240, 138, 123, 0.1);
   }
 
   ${(props) => props.$active && dangerBtnActiveStyles}

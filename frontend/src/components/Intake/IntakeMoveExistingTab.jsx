@@ -1,3 +1,4 @@
+import { inputStyles, controlStyles } from '../../styles/primitives';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { API_BASE } from '../../api/API_BASE';
@@ -44,9 +45,9 @@ const Input = styled.input`
   width: 100%;
   min-width: 0;
   min-height: 42px;
-  border-radius: 10px;
-  border: 1px solid rgba(189, 153, 96, 0.56);
-  background: rgba(19, 14, 10, 0.9);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
   color: #f7e8d1;
   font-size: 0.9rem;
   padding: 0 0.66rem;
@@ -54,22 +55,24 @@ const Input = styled.input`
   &:focus {
     outline: none;
     border-color: rgba(235, 193, 121, 0.92);
-    box-shadow: 0 0 0 2px rgba(214, 155, 68, 0.22);
+    box-shadow: none;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     font-size: ${MOBILE_FONT_SM};
   }
+
+  ${inputStyles}
 `;
 
 const Select = styled.select`
   width: 100%;
   min-width: 0;
   min-height: 42px;
-  border-radius: 10px;
-  border: 1px solid rgba(189, 153, 96, 0.56);
-  background: rgba(19, 14, 10, 0.9);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
   color: #f7e8d1;
   font-size: 0.86rem;
   padding: 0 0.62rem;
@@ -77,13 +80,15 @@ const Select = styled.select`
   &:focus {
     outline: none;
     border-color: rgba(235, 193, 121, 0.92);
-    box-shadow: 0 0 0 2px rgba(214, 155, 68, 0.22);
+    box-shadow: none;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     font-size: ${MOBILE_FONT_SM};
   }
+
+  ${inputStyles}
 `;
 
 const Viewport = styled.div`
@@ -93,18 +98,18 @@ const Viewport = styled.div`
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  border: 1px solid rgba(184, 147, 89, 0.44);
-  border-radius: 10px;
-  background: rgba(24, 17, 11, 0.58);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface-raised);
   padding: 0.44rem;
   display: grid;
   gap: 0.4rem;
 `;
 
 const Row = styled.div`
-  border: 1px solid rgba(175, 140, 85, 0.46);
-  border-radius: 9px;
-  background: rgba(22, 16, 10, 0.86);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface-raised);
   padding: 0.45rem;
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr) minmax(0, 148px);
@@ -125,15 +130,15 @@ const Row = styled.div`
 const Thumb = styled.div`
   width: 52px;
   height: 52px;
-  border-radius: 8px;
-  border: 1px solid rgba(179, 146, 89, 0.44);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
   overflow: hidden;
-  background: rgba(20, 14, 9, 0.95);
+  background: var(--dw-surface-raised);
   display: grid;
   place-items: center;
   color: #c3a980;
-  font-size: 0.62rem;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  text-transform: none;
 
   @media (max-width: 1280px) {
     width: 48px;
@@ -181,11 +186,11 @@ const TagRow = styled.div`
 `;
 
 const Tag = styled.span`
-  border-radius: 999px;
-  border: 1px solid rgba(170, 135, 86, 0.56);
-  background: rgba(34, 22, 10, 0.9);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
   color: #e6d2b1;
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   padding: 0.18rem 0.38rem;
   line-height: 1;
 `;
@@ -193,14 +198,14 @@ const Tag = styled.span`
 const MoveButton = styled.button`
   width: 100%;
   min-height: 34px;
-  border-radius: 8px;
-  border: 1px solid rgba(219, 173, 99, 0.72);
-  background: rgba(94, 62, 19, 0.95);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
   color: #fff1dc;
   font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   padding: 0.2rem 0.54rem;
   cursor: pointer;
   align-self: center;
@@ -222,6 +227,10 @@ const MoveButton = styled.button`
     min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     font-size: ${MOBILE_FONT_XS};
   }
+
+  ${controlStyles}
+  color: var(--dw-cyan);
+  border-color: var(--dw-cyan);
 `;
 
 const LoadMoreWrap = styled.div`
@@ -231,14 +240,14 @@ const LoadMoreWrap = styled.div`
 
 const LoadMoreButton = styled.button`
   min-height: 36px;
-  border-radius: 8px;
-  border: 1px solid rgba(219, 173, 99, 0.72);
-  background: rgba(74, 49, 18, 0.95);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
   color: #ffeccf;
   font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   padding: 0 0.78rem;
   cursor: pointer;
 
@@ -246,6 +255,8 @@ const LoadMoreButton = styled.button`
     opacity: 0.56;
     cursor: not-allowed;
   }
+
+  ${controlStyles}
 `;
 
 const CountMeta = styled.div`
@@ -451,12 +462,14 @@ export default function IntakeMoveExistingTab({
       <Controls>
         <Input
           type="text"
+          aria-label="Search items to move"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search by name, tags, category…"
         />
 
         <Select
+          aria-label="Filter items by category"
           value={categoryFilter}
           onChange={(event) => setCategoryFilter(event.target.value)}
         >
@@ -470,12 +483,14 @@ export default function IntakeMoveExistingTab({
 
         <Input
           type="text"
+          aria-label="Filter items by tag"
           value={tagFilter}
           onChange={(event) => setTagFilter(event.target.value)}
           placeholder="Filter tag"
         />
 
         <Select
+          aria-label="Sort items to move"
           value={sortBy}
           onChange={(event) => setSortBy(event.target.value)}
         >

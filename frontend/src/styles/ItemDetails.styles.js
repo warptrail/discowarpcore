@@ -1,3 +1,4 @@
+import { controlStyles, inputStyles } from './primitives';
 import styled, { css, keyframes } from 'styled-components';
 import { Link } from 'react-router-dom';
 import {
@@ -8,17 +9,17 @@ import {
 } from './tokens';
 
 const LCARS = {
-  panel: '#141920',
-  panelSoft: '#1b212b',
-  panelInset: '#11161e',
-  line: 'rgba(231, 236, 243, 0.11)',
-  text: '#e7ecf3',
-  textDim: 'rgba(231, 236, 243, 0.72)',
-  textMuted: 'rgba(231, 236, 243, 0.56)',
-  teal: '#4cc6c1',
-  coral: '#f08a7b',
-  amber: '#e8b15c',
-  lilac: '#a7b6ff',
+  panel: 'var(--dw-surface)',
+  panelSoft: 'var(--dw-surface-raised)',
+  panelInset: 'var(--dw-background)',
+  line: 'rgba(230, 237, 243, 0.1)',
+  text: 'var(--dw-text)',
+  textDim: 'var(--dw-text-secondary)',
+  textMuted: 'var(--dw-text-muted)',
+  teal: 'var(--dw-teal)',
+  coral: 'var(--dw-coral)',
+  amber: 'var(--dw-amber)',
+  lilac: 'var(--dw-violet)',
 };
 
 const toneColor = (tone) =>
@@ -78,19 +79,19 @@ const metaChipBase = css`
   justify-content: center;
   min-height: 30px;
   padding: 0.26rem 0.72rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
+  border-radius: var(--dw-radius);
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.01em;
   line-height: 1;
-  text-transform: uppercase;
+  text-transform: none;
   white-space: nowrap;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: 27px;
     padding: 0.2rem 0.54rem;
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.06em;
+    letter-spacing: 0.01em;
   }
 `;
 
@@ -104,12 +105,9 @@ export const Panel = styled.section`
   gap: 0.95rem;
   padding: 1rem;
   border: 1px solid ${LCARS.line};
-  border-radius: 14px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 28%),
-    ${LCARS.panel};
-  box-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.3),
-    0 10px 22px rgba(0, 0, 0, 0.22);
+  border-radius: var(--dw-radius);
+  background: ${LCARS.panel};
+  box-shadow: none;
   overflow: hidden;
   isolation: isolate;
 
@@ -124,39 +122,27 @@ export const Panel = styled.section`
     left: 0.92rem;
     right: 0.92rem;
     top: 0.58rem;
-    height: 4px;
-    border-radius: 999px;
-    background: linear-gradient(
-      90deg,
-      ${({ $priorityTone }) => keepPriorityAccent($priorityTone).soft} 0 16%,
-      transparent 16% 20%,
-      ${({ $priorityTone }) => keepPriorityAccent($priorityTone).base} 20% 72%,
-      transparent 72% 76%,
-      ${({ $priorityTone }) => keepPriorityAccent($priorityTone).bright} 76% 100%
-    );
-    opacity: 0.62;
+    height: 2px;
+    border-radius: var(--dw-radius);
+    background: var(--dw-surface-raised);
+    opacity: 0.42;
   }
 
   &::after {
     left: 0;
     top: 1rem;
     bottom: 1rem;
-    width: 7px;
+    width: 3px;
     border-radius: 0 999px 999px 0;
-    background: linear-gradient(
-      180deg,
-      ${({ $priorityTone }) => keepPriorityAccent($priorityTone).deep},
-      ${({ $priorityTone }) => keepPriorityAccent($priorityTone).base} 58%,
-      ${({ $priorityTone }) => keepPriorityAccent($priorityTone).bright}
-    );
-    opacity: 0.4;
+    background: var(--dw-surface-raised);
+    opacity: 0.3;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.62rem;
     padding: 0.68rem;
     border-radius: ${MOBILE_PANEL_RADIUS};
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.24), 0 5px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: none;
 
     &::before {
       left: 0.68rem;
@@ -205,12 +191,11 @@ export const ItemIdFooter = styled.div`
   padding: 0.55rem 0.15rem 0.05rem;
   border-top: 1px solid ${LCARS.line};
   color: ${LCARS.textMuted};
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  font-size: 0.68rem;
+  font-family: var(--dw-font-data);
+  font-size: 0.75rem;
   font-weight: 650;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   text-align: right;
 `;
 
@@ -233,7 +218,7 @@ export const FeaturedImageWrap = styled.div`
   place-items: center;
   z-index: 1;
   min-width: 0;
-  border-radius: 12px;
+  border-radius: var(--dw-radius);
   overflow: hidden;
   border: 1px solid ${LCARS.line};
   background: ${LCARS.panelInset};
@@ -256,7 +241,8 @@ export const FeaturedImageWrap = styled.div`
       }
 
       &:focus-visible {
-        outline: none;
+        outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
         border-color: rgba(76, 198, 193, 0.86);
         box-shadow:
           inset 0 0 0 1px rgba(255, 255, 255, 0.08),
@@ -269,7 +255,7 @@ export const FeaturedImageWrap = styled.div`
     `}
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    border-radius: 10px;
+    border-radius: var(--dw-radius);
   }
 
   @media (min-width: ${SUMMARY_DESKTOP_BREAKPOINT}) {
@@ -288,7 +274,7 @@ export const FeaturedImage = styled.img`
     max-height: none;
     object-fit: contain;
     object-position: center;
-    background: radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.06), transparent 64%);
+    background: var(--dw-surface-raised);
   }
 `;
 
@@ -353,8 +339,8 @@ export const IdentityField = styled.article`
   min-width: 0;
   padding: 0.46rem 0.5rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(8, 14, 22, 0.14));
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface-raised);
   display: grid;
   gap: 0.2rem;
 `;
@@ -365,17 +351,17 @@ export const IdentityFieldRow = styled(IdentityField)`
 
 export const IdentityFieldLabel = styled.div`
   color: ${LCARS.textMuted};
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   font-weight: 740;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.07em;
+    letter-spacing: 0.01em;
   }
 `;
 
@@ -429,7 +415,7 @@ export const Header = styled.h3`
   font-size: clamp(1.05rem, 1.65vw, 1.25rem);
   font-weight: 780;
   line-height: 1.25;
-  letter-spacing: 0.015em;
+  letter-spacing: 0.01em;
   color: ${LCARS.text};
   overflow-wrap: anywhere;
 `;
@@ -494,9 +480,8 @@ export const SectionCard = styled.section`
   min-width: 0;
   padding: 0.68rem 0.72rem 0.64rem;
   border: 1px solid ${LCARS.line};
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.016), transparent 60%),
-    ${LCARS.panelSoft};
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface-raised);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025);
 
   ${({ $wide }) =>
@@ -519,7 +504,7 @@ export const SectionCard = styled.section`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 0.52rem 0.56rem 0.52rem;
-    border-radius: 10px;
+    border-radius: var(--dw-radius);
 
     &::before {
       top: 0.5rem;
@@ -534,16 +519,16 @@ export const SectionTitle = styled.h4`
   margin: 0 0 0.45rem;
   padding-left: 0.45rem;
   color: ${LCARS.textDim};
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     margin: 0 0 0.34rem;
     padding-left: 0.35rem;
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.08em;
+    letter-spacing: 0.01em;
   }
 `;
 
@@ -584,10 +569,10 @@ export const DetailRow = styled.div`
 
 export const RowLabel = styled.div`
   color: ${LCARS.textMuted};
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 740;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 
   ${({ $stackLabel }) =>
     $stackLabel &&
@@ -597,7 +582,7 @@ export const RowLabel = styled.div`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.07em;
+    letter-spacing: 0.01em;
   }
 
   ${({ $nowrap }) =>
@@ -655,7 +640,7 @@ export const MutedValue = styled.span`
 export const KeepPriorityBadge = styled.span`
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   padding: 0.2rem 0.56rem;
   border: 1px solid ${({ $tone }) => `${keepPriorityAccent($tone).base}80`};
   background: ${({ $tone }) =>
@@ -663,15 +648,15 @@ export const KeepPriorityBadge = styled.span`
       $tone
     ).base}26)`};
   color: ${({ $tone }) => keepPriorityAccent($tone).bright};
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 720;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 0.14rem 0.42rem;
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.05em;
+    letter-spacing: 0.01em;
   }
 `;
 
@@ -684,12 +669,12 @@ export const TagList = styled.div`
 export const TagChip = styled.span`
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   padding: 0.2rem 0.52rem;
   border: 1px solid ${LCARS.teal}66;
   background: ${LCARS.teal}1a;
   color: #c9f2ee;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 620;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -707,12 +692,12 @@ export const UsageList = styled.div`
 export const UsageItem = styled.span`
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   padding: 0.14rem 0.44rem;
   border: 1px solid ${LCARS.line};
   background: rgba(255, 255, 255, 0.03);
   color: ${LCARS.textDim};
-  font-size: 0.74rem;
+  font-size: 0.75rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 0.12rem 0.34rem;
@@ -764,20 +749,19 @@ export const BreadcrumbNode = styled.span`
 `;
 
 export const BreadcrumbId = styled.span`
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  font-size: 0.68rem;
+  font-family: var(--dw-font-data);
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.01em;
   color: ${LCARS.textDim};
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid ${LCARS.line};
-  border-radius: 6px;
+  border-radius: var(--dw-radius);
   padding: 0.08rem 0.3rem;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.06em;
+    letter-spacing: 0.01em;
     padding: 0.06rem 0.22rem;
   }
 `;
@@ -802,8 +786,9 @@ export const UploadStack = styled.div`
 `;
 
 export const UploadInput = styled.input`
+  ${inputStyles}
   width: 100%;
-  border-radius: 8px;
+  border-radius: var(--dw-radius);
   border: 1px solid ${LCARS.line};
   background: rgba(255, 255, 255, 0.03);
   color: ${LCARS.text};
@@ -814,7 +799,7 @@ export const UploadInput = styled.input`
     border: 1px solid ${LCARS.teal}66;
     background: ${LCARS.teal}1a;
     color: #c9f2ee;
-    border-radius: 6px;
+    border-radius: var(--dw-radius);
     padding: 0.24rem 0.5rem;
     margin-right: 0.5rem;
     cursor: pointer;
@@ -858,7 +843,7 @@ export const PreviewImage = styled.img`
   width: min(320px, 100%);
   max-height: 240px;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: var(--dw-radius);
   border: 1px solid ${LCARS.line};
   background: ${LCARS.panelInset};
 `;
@@ -870,8 +855,8 @@ export const LightboxOverlay = styled.div`
   display: grid;
   place-items: center;
   padding: clamp(0.9rem, 3.6vw, 2rem);
-  background: rgba(4, 8, 14, 0.82);
-  backdrop-filter: blur(3px);
+  background: var(--dw-surface);
+  backdrop-filter: none;
 `;
 
 export const LightboxFrame = styled.div`
@@ -879,7 +864,7 @@ export const LightboxFrame = styled.div`
   max-width: min(94vw, 1320px);
   max-height: 92vh;
   width: fit-content;
-  border-radius: 14px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(137, 181, 220, 0.3);
   background: #080e16;
   box-shadow:
@@ -888,20 +873,21 @@ export const LightboxFrame = styled.div`
   padding: clamp(0.45rem, 1.5vw, 0.8rem);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    border-radius: 12px;
+    border-radius: var(--dw-radius);
     padding: 0.46rem;
   }
 `;
 
 export const LightboxCloseButton = styled.button`
+  ${controlStyles}
   position: absolute;
   top: clamp(0.34rem, 1vw, 0.5rem);
   right: clamp(0.34rem, 1vw, 0.5rem);
   width: 2rem;
   height: 2rem;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(233, 240, 247, 0.34);
-  background: rgba(9, 14, 22, 0.82);
+  background: var(--dw-surface);
   color: ${LCARS.text};
   font-size: 1.25rem;
   line-height: 1;
@@ -916,13 +902,14 @@ export const LightboxCloseButton = styled.button`
     color 140ms ease;
 
   &:hover {
-    background: rgba(28, 39, 56, 0.9);
+    background: var(--dw-surface);
     border-color: rgba(76, 198, 193, 0.58);
     color: #eaf8f7;
   }
 
   &:focus-visible {
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
     border-color: rgba(76, 198, 193, 0.9);
     box-shadow: 0 0 0 2px rgba(76, 198, 193, 0.32);
   }
@@ -935,7 +922,7 @@ export const LightboxImage = styled.img`
   width: auto;
   height: auto;
   object-fit: contain;
-  border-radius: 10px;
+  border-radius: var(--dw-radius);
 `;
 
 const shimmer = keyframes`
@@ -952,7 +939,7 @@ export const Skeleton = styled.div`
   gap: 0.7rem;
   padding: 1rem;
   border: 1px solid ${LCARS.line};
-  border-radius: 12px;
+  border-radius: var(--dw-radius);
   background: ${LCARS.panelInset};
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -963,8 +950,8 @@ export const Skeleton = styled.div`
 
   div {
     height: 0.95rem;
-    border-radius: 6px;
-    background: linear-gradient(90deg, #252a31 20%, #313843 38%, #252a31 62%);
+    border-radius: var(--dw-radius);
+    background: var(--dw-surface-raised);
     background-size: 360% 100%;
     animation: ${shimmer} 1.35s ease infinite;
   }
@@ -972,7 +959,7 @@ export const Skeleton = styled.div`
 
 export const ErrorMsg = styled.div`
   padding: 1rem;
-  border-radius: 10px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(255, 107, 107, 0.45);
   background: rgba(255, 107, 107, 0.11);
   color: #ff9a9a;

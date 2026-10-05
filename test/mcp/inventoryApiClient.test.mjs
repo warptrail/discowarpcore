@@ -68,6 +68,22 @@ test('searchItems sends retrieval filters through the API', async () => {
   assert.deepEqual(result, { items: [], total: 0 });
 });
 
+test('getHealth checks the database-readiness endpoint', async () => {
+  const calls = [];
+  const client = createInventoryApiClient({
+    baseUrl: 'http://example.test/api',
+    fetchImpl: async (url) => {
+      calls.push(String(url));
+      return jsonResponse({ ok: true, database: 'ready' });
+    },
+  });
+
+  const result = await client.getHealth();
+
+  assert.equal(new URL(calls[0]).pathname, '/api/health/ready');
+  assert.deepEqual(result, { ok: true, database: 'ready' });
+});
+
 test('getBox requests the short-id box endpoint with safe defaults', async () => {
   const calls = [];
   const client = createInventoryApiClient({
@@ -104,4 +120,3 @@ test('surfaces API failures without hiding the status or response body', async (
     }
   );
 });
-

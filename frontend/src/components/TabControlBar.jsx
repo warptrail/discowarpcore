@@ -1,3 +1,4 @@
+import { controlStyles } from '../styles/primitives';
 import React from 'react';
 import styled, { css } from 'styled-components';
 import { MOBILE_BREAKPOINT } from '../styles/tokens';
@@ -5,13 +6,15 @@ import { MOBILE_BREAKPOINT } from '../styles/tokens';
 const Bar = styled.div`
   display: flex;
   align-items: end;
+  flex-wrap: wrap;
+  min-width: 0;
   gap: 1.35rem;
   width: 100%;
   margin: 0.16rem 0 0.55rem;
   padding: 0.6rem 0 0;
-  border-top: 1px solid rgba(76, 198, 193, 0.2);
-  border-bottom: 1px solid rgba(167, 139, 250, 0.14);
-  background: rgba(7, 13, 19, 0.34);
+  border-top: 1px solid var(--dw-border);
+  border-bottom: 1px solid var(--dw-border-soft);
+  background: var(--dw-surface);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     align-items: stretch;
@@ -37,28 +40,27 @@ const Group = styled.fieldset`
 const Legend = styled.legend`
   grid-column: 1 / -1;
   padding: 0 0 0.34rem;
-  color: rgba(163, 183, 194, 0.64);
-  font: 700 0.58rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+  color: var(--dw-text-secondary);
+  font: 700 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 const Btn = styled.button`
+  ${controlStyles}
   appearance: none;
   position: relative;
   min-width: 0;
-  min-height: 42px;
+  min-height: 44px;
   padding: 0.42rem 0.72rem 0.62rem;
   border: 0;
   border-right: 1px solid rgba(127, 215, 255, 0.1);
   border-radius: 0;
   cursor: pointer;
-  color: rgba(185, 205, 216, 0.65);
+  color: var(--dw-text-secondary);
   background: transparent;
-  font: 700 0.7rem/1.1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  letter-spacing: 0.055em;
+  font: 700 0.75rem/1.1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
   text-align: left;
   transition: color 180ms ease, background 180ms ease;
   user-select: none;
@@ -78,11 +80,11 @@ const Btn = styled.button`
     $active &&
     css`
       color: rgba(229, 255, 251, 0.96);
-      background: rgba(45, 154, 151, 0.08);
+      background: var(--dw-surface-raised);
 
       &::after {
-        background: rgba(76, 198, 193, 0.88);
-        box-shadow: 0 0 8px rgba(76, 198, 193, 0.3);
+        background: var(--dw-amber);
+        box-shadow: none;
       }
     `}
 
@@ -105,7 +107,7 @@ const Btn = styled.button`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: 44px;
     padding-inline: 0.5rem;
-    font-size: 0.65rem;
+    font-size: 0.75rem;
   }
 
   @media (prefers-reduced-motion: reduce) {

@@ -1,11 +1,13 @@
 // services/boxService.js
 const Box = require('../models/Box');
+const { DEFAULT_COMPARTMENTS, getCompartments, validateCompartments, withBoxCompartments } = require('../utils/boxCompartments');
 const Item = require('../models/Item');
 const Location = require('../models/Location');
 
 const { orphanAllItemsInBox } = require('./itemService');
 const { resolveBoxLocationFields } = require('./locationService');
 const { withNormalizedItemCategory } = require('../utils/itemCategory');
+const { formatLocationName } = require('../utils/locationName');
 const { STAGING_BOX_PURPOSES } = require('../utils/declutterBoxPurpose');
 
 const { computeStats, flattenBoxes } = require('../utils/boxHelpers');
@@ -28,10 +30,9 @@ const {
 const ACTIVE_ITEM_FILTER = { item_status: { $ne: 'gone' } };
 const DEFAULT_BOX_TREE_LIMIT = 50;
 const MAX_BOX_TREE_LIMIT = 50;
-const INVALID_BOX_GROUP_CODE = 'INVALID_BOX_GROUP';
 const INVALID_BOX_DESCRIPTION_CODE = 'INVALID_BOX_DESCRIPTION';
 const INVALID_BOX_NOTES_CODE = 'INVALID_BOX_NOTES';
-const BOX_SORT_KEYS = new Set(['boxId', 'name', 'location', 'itemCount', 'group']);
+const BOX_SORT_KEYS = new Set(['boxId', 'name', 'location', 'itemCount']);
 
 function makeHttpError(status, code, message, extra = {}) {
   const err = new Error(message);
@@ -75,31 +76,6 @@ async function markGiftIntentForBoxItems(box, trigger) {
     );
   }
   return updatedCount;
-}
-
-function normalizeOptionalBoxGroupInput(rawValue) {
-  if (rawValue === undefined) {
-    return { provided: false, value: undefined, clear: false };
-  }
-
-  if (rawValue === null) {
-    return { provided: true, value: undefined, clear: true };
-  }
-
-  if (typeof rawValue !== 'string') {
-    throw makeHttpError(
-      400,
-      INVALID_BOX_GROUP_CODE,
-      'group must be a string when provided'
-    );
-  }
-
-  const trimmed = rawValue.trim();
-  if (!trimmed) {
-    return { provided: true, value: undefined, clear: true };
-  }
-
-  return { provided: true, value: trimmed, clear: false };
 }
 
 function normalizeOptionalBoxNotesInput(rawValue) {
@@ -183,9 +159,9 @@ async function buildLocationNameMap(nodes = []) {
   const ids = collectLocationIds(nodes);
   if (!ids.length) return new Map();
   const locations = await Location.find({ _id: { $in: ids } })
-    .select('_id name')
+    .select('_id room vicinity specifics')
     .lean();
-  return new Map(locations.map((loc) => [String(loc._id), loc.name]));
+  return new Map(locations.map((loc) => [String(loc._id), formatLocationName(loc)]));
 }
 
 function withLocation(box, locationNameMap) {
@@ -193,9 +169,26 @@ function withLocation(box, locationNameMap) {
   const resolvedName = id ? locationNameMap.get(id) : null;
   return {
     ...box,
+    isComplexBox: Boolean(box.isComplexBox),
+    compartments: getCompartments(box),
     locationId: id,
     location: resolvedName ?? box?.location ?? '',
   };
+}
+
+async function findNearestAncestorLocation(box) {
+  let parentId = box?.parentBox || null;
+  while (parentId) {
+    const parent = await Box.findById(parentId)
+      .select('_id parentBox location locationId')
+      .populate('locationId', 'room vicinity specifics')
+      .lean();
+    if (!parent) break;
+    const location = formatLocationName(parent?.locationId) || '';
+    if (location) return location;
+    parentId = parent.parentBox || null;
+  }
+  return '';
 }
 
 function toBoundedPositiveInteger(value, fallback, { min = 1, max = Number.MAX_SAFE_INTEGER } = {}) {
@@ -213,10 +206,6 @@ function toSearchToken(value) {
 
 function normalizeSearchQuery(value) {
   return toSearchToken(value).replace(/\s+/g, ' ');
-}
-
-function normalizeGroupFilter(value) {
-  return toSearchToken(value);
 }
 
 function normalizeBoxSortBy(value, { fallback = 'boxId', allowEmpty = false } = {}) {
@@ -272,20 +261,6 @@ function compareBoxes(left, right, sortBy = 'boxId') {
     return compareBoxIds(left, right);
   }
 
-  if (normalizedSortBy === 'group') {
-    const leftGroup = normalizeGroupFilter(left?.group);
-    const rightGroup = normalizeGroupFilter(right?.group);
-    const leftEmpty = !leftGroup;
-    const rightEmpty = !rightGroup;
-    if (leftEmpty !== rightEmpty) return leftEmpty ? 1 : -1;
-
-    const diff = compareText(leftGroup, rightGroup);
-    if (diff !== 0) return diff;
-    const nameDiff = compareText(leftName, rightName);
-    if (nameDiff !== 0) return nameDiff;
-    return compareBoxIds(left, right);
-  }
-
   if (normalizedSortBy === 'itemCount') {
     const diff = getNodeItemCount(right) - getNodeItemCount(left);
     if (diff !== 0) return diff;
@@ -326,7 +301,6 @@ function buildBoxSearchText(node) {
       node?.box_id,
       node?.label,
       node?.name,
-      node?.group,
       node?.location,
       node?.description,
       node?.notes,
@@ -337,14 +311,7 @@ function buildBoxSearchText(node) {
   );
 }
 
-function boxMatchesFilters(node, { normalizedQuery = '', normalizedGroup = '' } = {}) {
-  if (normalizedGroup) {
-    const boxGroup = normalizeGroupFilter(node?.group);
-    if (!boxGroup || boxGroup !== normalizedGroup) {
-      return false;
-    }
-  }
-
+function boxMatchesFilters(node, { normalizedQuery = '' } = {}) {
   if (normalizedQuery) {
     const searchText = buildBoxSearchText(node);
     if (!searchText.includes(normalizedQuery)) {
@@ -355,16 +322,16 @@ function boxMatchesFilters(node, { normalizedQuery = '', normalizedGroup = '' } 
   return true;
 }
 
-function filterBoxTreeNode(node, { normalizedQuery = '', normalizedGroup = '' } = {}) {
+function filterBoxTreeNode(node, { normalizedQuery = '' } = {}) {
   if (!node || typeof node !== 'object') return null;
 
   const children = Array.isArray(node.childBoxes)
     ? node.childBoxes
-        .map((child) => filterBoxTreeNode(child, { normalizedQuery, normalizedGroup }))
+        .map((child) => filterBoxTreeNode(child, { normalizedQuery }))
         .filter(Boolean)
     : [];
 
-  const selfMatches = boxMatchesFilters(node, { normalizedQuery, normalizedGroup });
+  const selfMatches = boxMatchesFilters(node, { normalizedQuery });
   if (!selfMatches && !children.length) return null;
 
   return {
@@ -373,40 +340,15 @@ function filterBoxTreeNode(node, { normalizedQuery = '', normalizedGroup = '' } 
   };
 }
 
-function sortDistinctLabels(values = []) {
-  return [...values].sort((left, right) =>
-    String(left || '').localeCompare(String(right || ''), undefined, {
-      sensitivity: 'base',
-      numeric: true,
-    })
-  );
-}
-
-async function getDistinctBoxGroups() {
-  const raw = await Box.distinct('group', {
-    group: { $exists: true, $nin: [null, ''] },
-  });
-
-  const byKey = new Map();
-  for (const entry of raw || []) {
-    const label = String(entry || '').trim();
-    if (!label) continue;
-    const key = label.toLowerCase();
-    if (!byKey.has(key)) {
-      byKey.set(key, label);
-    }
-  }
-
-  return sortDistinctLabels([...byKey.values()]);
-}
-
 async function getBoxByMongoId(id) {
-  const box = await Box.findById(id).populate('locationId', 'name').lean();
+  const box = await Box.findById(id).populate('locationId', 'room vicinity specifics').lean();
   if (!box) return null;
   return {
     ...box,
+    isComplexBox: Boolean(box.isComplexBox),
+    compartments: getCompartments(box),
     locationId: box.locationId?._id ? String(box.locationId._id) : null,
-    location: box.locationId?.name ?? box.location ?? '',
+    location: formatLocationName(box.locationId),
   };
 }
 async function getBoxByShortId(shortId) {
@@ -420,21 +362,23 @@ async function getBoxByShortId(shortId) {
   const box =
     (await Box.findOne({ box_id: raw })
       .populate({ path: 'items', match: ACTIVE_ITEM_FILTER })
-      .populate('locationId', 'name')
+      .populate('locationId', 'room vicinity specifics')
       .lean()) ||
     (await Box.findOne({ box_id: normalized })
       .populate({ path: 'items', match: ACTIVE_ITEM_FILTER })
-      .populate('locationId', 'name')
+      .populate('locationId', 'room vicinity specifics')
       .lean());
 
   if (!box) return null;
   return {
     ...box,
+    isComplexBox: Boolean(box.isComplexBox),
+    compartments: getCompartments(box),
     items: Array.isArray(box.items)
-      ? box.items.map((item) => withNormalizedItemCategory(item))
+      ? withBoxCompartments(box).items.map((item) => withNormalizedItemCategory(item))
       : [],
     locationId: box.locationId?._id ? String(box.locationId._id) : null,
-    location: box.locationId?.name ?? box.location ?? '',
+    location: formatLocationName(box.locationId),
   };
 }
 
@@ -445,12 +389,12 @@ async function resolveBoxByShortId(shortId) {
   const normalized = raw.replace(/^0+/, '') || '0';
   const box =
     (await Box.findOne({ box_id: raw })
-      .select('_id box_id label name group description notes location locationId imagePath image')
-      .populate('locationId', 'name')
+      .select('_id box_id label name isComplexBox compartments itemCompartments description notes location locationId imagePath image')
+      .populate('locationId', 'room vicinity specifics')
       .lean()) ||
     (await Box.findOne({ box_id: normalized })
-      .select('_id box_id label name group description notes location locationId imagePath image')
-      .populate('locationId', 'name')
+      .select('_id box_id label name isComplexBox compartments itemCompartments description notes location locationId imagePath image')
+      .populate('locationId', 'room vicinity specifics')
       .lean());
 
   if (!box) return null;
@@ -459,11 +403,12 @@ async function resolveBoxByShortId(shortId) {
     _id: String(box._id),
     box_id: box.box_id,
     label: box.label ?? box.name ?? 'Box',
-    group: box.group ?? null,
+    isComplexBox: Boolean(box.isComplexBox),
+    compartments: getCompartments(box),
     description: box.description ?? null,
     notes: box.notes ?? null,
     locationId: box.locationId?._id ? String(box.locationId._id) : null,
-    location: box.locationId?.name ?? box.location ?? '',
+    location: formatLocationName(box.locationId),
     imagePath: box.imagePath ?? '',
     image: box.image ?? null,
   };
@@ -481,7 +426,7 @@ async function getBoxDataStructure(
   // 1) Root box (by public short id)
   const root = await Box.findOne({ box_id: shortId })
     .select(
-      '_id box_id label name group description notes tags parentBox items location locationId imagePath image'
+      '_id box_id label name isComplexBox compartments itemCompartments description notes tags parentBox items location locationId imagePath image'
     )
     .lean();
   if (!root) return null;
@@ -495,7 +440,7 @@ async function getBoxDataStructure(
   while (frontier.length) {
     const children = await Box.find({ parentBox: { $in: frontier } })
       .select(
-        '_id box_id label name group description notes tags parentBox items location locationId imagePath image'
+        '_id box_id label name isComplexBox compartments itemCompartments description notes tags parentBox items location locationId imagePath image'
       )
       .lean();
 
@@ -528,17 +473,23 @@ async function getBoxDataStructure(
   }
 
   // 4) Build hydrated nested tree
-  function link(node) {
+  function link(node, ancestorLocation = '') {
     const id = String(node._id);
     const itemDocs = Array.isArray(node.items)
       ? node.items.map((iid) => itemsById.get(String(iid))).filter(Boolean)
       : [];
     const kids = childrenByParent.get(id) || [];
+    const ownLocation = node.locationId
+      ? locationNameMap.get(String(node.locationId)) ?? node.location ?? ''
+      : node.location ?? '';
+    const location = String(ownLocation || '').trim() || ancestorLocation;
     return {
       _id: node._id,
       box_id: node.box_id,
       label: node.label,
-      group: node.group ?? null,
+      isComplexBox: Boolean(node.isComplexBox),
+      compartments: getCompartments(node),
+      itemCompartments: node.itemCompartments || {},
       description: node.description ?? null,
       notes: node.notes ?? null,
       tags: Array.isArray(node.tags)
@@ -550,14 +501,14 @@ async function getBoxDataStructure(
       image: node.image ?? null,
       parentBox: node.parentBox ? String(node.parentBox) : null,
       locationId: node.locationId ? String(node.locationId) : null,
-      location: node.locationId
-        ? locationNameMap.get(String(node.locationId)) ?? node.location ?? ''
-        : node.location ?? '',
-      items: itemDocs,
-      childBoxes: kids.map(link),
+      location,
+      inheritedLocation: ownLocation ? '' : location,
+      items: withBoxCompartments({ ...node, items: itemDocs }).items,
+      childBoxes: kids.map((child) => link(child, location)),
     };
   }
-  const tree = link(root);
+  const rootAncestorLocation = await findNearestAncestorLocation(root);
+  const tree = link(root, rootAncestorLocation);
 
   // 5) Optional: ancestors for breadcrumb (root → … → parent)
   let ancestors;
@@ -596,7 +547,8 @@ async function getBoxDataStructure(
     _id: root._id,
     box_id: root.box_id,
     label: root.label,
-    group: root.group ?? null,
+    isComplexBox: Boolean(root.isComplexBox),
+    compartments: getCompartments(root),
     description: root.description ?? null,
     notes: root.notes ?? null,
     tree,
@@ -656,7 +608,7 @@ async function getBoxTreeByShortId(shortId) {
   }
 
   // 4) Build the nested tree (non-mutating copies if you prefer)
-  function link(node) {
+  function link(node, ancestorLocation = '') {
     // Attach full item docs
     const itemDocs = Array.isArray(node.items)
       ? node.items
@@ -666,21 +618,28 @@ async function getBoxTreeByShortId(shortId) {
 
     // Attach children
     const kids = childrenByParent.get(String(node._id)) || [];
-    const childBoxes = kids.map(link);
+    const ownLocation = node.locationId
+      ? locationNameMap.get(String(node.locationId)) ?? node.location ?? ''
+      : node.location ?? '';
+    const location = String(ownLocation || '').trim() || ancestorLocation;
+    const childBoxes = kids.map((child) => link(child, location));
 
     // Return with conventional fields
     return {
       ...node,
+      isComplexBox: Boolean(node.isComplexBox),
+      compartments: getCompartments(node),
+      itemCompartments: node.itemCompartments || {},
       locationId: node.locationId ? String(node.locationId) : null,
-      location: node.locationId
-        ? locationNameMap.get(String(node.locationId)) ?? node.location ?? ''
-        : node.location ?? '',
-      items: itemDocs,
+      location,
+      inheritedLocation: ownLocation ? '' : location,
+      items: withBoxCompartments({ ...node, items: itemDocs }).items,
       childBoxes,
     };
   }
 
-  const tree = link(root);
+  const rootAncestorLocation = await findNearestAncestorLocation(root);
+  const tree = link(root, rootAncestorLocation);
 
   // (Optional small cleanup) strip __v if you don’t want it in the response
   // const stripMeta = (n) => ({
@@ -693,28 +652,29 @@ async function getBoxTreeByShortId(shortId) {
   return tree;
 }
 
-async function getAllBoxes({ q = '', group = '', sortBy = '' } = {}) {
+async function getAllBoxes({ q = '', sortBy = '' } = {}) {
   const normalizedQuery = normalizeSearchQuery(q);
-  const normalizedGroup = normalizeGroupFilter(group);
   const normalizedSortBy = normalizeBoxSortBy(sortBy, { allowEmpty: true });
   const boxes = await Box.find()
     .populate({
       path: 'parentBox',
       select: '_id box_id description', // 👈 Only these fields
     })
-    .populate('locationId', 'name')
+    .populate('locationId', 'room vicinity specifics')
     .populate({ path: 'items', match: ACTIVE_ITEM_FILTER })
     .lean();
   const filtered = boxes
     .map((box) => ({
       ...box,
+    isComplexBox: Boolean(box.isComplexBox),
+    compartments: getCompartments(box),
       items: Array.isArray(box.items)
-        ? box.items.map((item) => withNormalizedItemCategory(item))
+        ? withBoxCompartments(box).items.map((item) => withNormalizedItemCategory(item))
         : [],
       locationId: box.locationId?._id ? String(box.locationId._id) : null,
-      location: box.locationId?.name ?? box.location ?? '',
+      location: formatLocationName(box.locationId),
     }))
-    .filter((box) => boxMatchesFilters(box, { normalizedQuery, normalizedGroup }));
+    .filter((box) => boxMatchesFilters(box, { normalizedQuery }));
 
   if (!normalizedSortBy) return filtered;
   return [...filtered].sort((left, right) =>
@@ -730,7 +690,7 @@ async function getBoxesExcludingId(id) {
  * Recursive function that populates all children and items of a given box.
  */
 
-async function populateChildren(box) {
+async function populateChildren(box, ancestorLocation = '') {
   // Find all child boxes where this box is the parent
   const children = await Box.find({ parentBox: box._id })
     .sort({ box_id: 1, _id: 1 })
@@ -742,13 +702,16 @@ async function populateChildren(box) {
     let child = children[i];
     // Populate items inside the child box
     child = withLocation(child, locationNameMap);
+    const ownLocation = String(child.location || '').trim();
+    child.location = ownLocation || ancestorLocation;
+    child.inheritedLocation = ownLocation ? '' : child.location;
     child.items = await Item.find({
       ...ACTIVE_ITEM_FILTER,
       _id: { $in: child.items },
     }).lean();
-    child.items = child.items.map((item) => withNormalizedItemCategory(item));
+    child.items = withBoxCompartments(child).items.map((item) => withNormalizedItemCategory(item));
 
-    child.childBoxes = await populateChildren(child);
+    child.childBoxes = await populateChildren(child, child.location);
     children[i] = child;
   }
 
@@ -763,7 +726,6 @@ async function getBoxTree({
   page = 1,
   limit = DEFAULT_BOX_TREE_LIMIT,
   q = '',
-  group = '',
   sortBy = 'boxId',
 } = {}) {
   const safeRequestedPage = toBoundedPositiveInteger(page, 1, { min: 1 });
@@ -772,9 +734,8 @@ async function getBoxTree({
     max: MAX_BOX_TREE_LIMIT,
   });
   const normalizedQuery = normalizeSearchQuery(q);
-  const normalizedGroup = normalizeGroupFilter(group);
   const normalizedSortBy = normalizeBoxSortBy(sortBy);
-  const hasFilters = Boolean(normalizedQuery || normalizedGroup);
+  const hasFilters = Boolean(normalizedQuery);
   const needsInMemorySort = normalizedSortBy !== 'boxId';
   const needsInMemoryPaging = hasFilters || needsInMemorySort;
 
@@ -809,15 +770,15 @@ async function getBoxTree({
       ...ACTIVE_ITEM_FILTER,
       _id: { $in: box.items },
     }).lean();
-    box.items = box.items.map((item) => withNormalizedItemCategory(item));
-    box.childBoxes = await populateChildren(box);
+    box.items = withBoxCompartments(box).items.map((item) => withNormalizedItemCategory(item));
+    box.childBoxes = await populateChildren(box, box.location);
     topLevelBoxes[i] = box;
   }
 
   let items = topLevelBoxes;
   if (hasFilters) {
     items = topLevelBoxes
-      .map((node) => filterBoxTreeNode(node, { normalizedQuery, normalizedGroup }))
+      .map((node) => filterBoxTreeNode(node, { normalizedQuery }))
       .filter(Boolean);
   }
 
@@ -833,7 +794,6 @@ async function getBoxTree({
     items = items.slice(start, start + safeLimit);
   }
 
-  const groups = await getDistinctBoxGroups();
 
   return {
     items,
@@ -842,9 +802,6 @@ async function getBoxTree({
     limit: safeLimit,
     total,
     totalPages,
-    filters: {
-      groups,
-    },
   };
 }
 
@@ -854,17 +811,23 @@ async function getBoxesByParent(parentId) {
   console.log(filter);
   const boxes = await Box.find(filter)
     .populate('parentBox')
-    .populate('locationId', 'name')
+    .populate('locationId', 'room vicinity specifics')
     .lean();
   return boxes.map((box) => ({
     ...box,
+    isComplexBox: Boolean(box.isComplexBox),
+    compartments: getCompartments(box),
     locationId: box.locationId?._id ? String(box.locationId._id) : null,
-    location: box.locationId?.name ?? box.location ?? '',
+    location: formatLocationName(box.locationId),
   }));
 }
 
 async function createBox(data) {
   const payload = { ...data };
+  payload.isComplexBox = data?.isComplexBox === true;
+  payload.compartments = payload.isComplexBox
+    ? validateCompartments(data?.compartments || DEFAULT_COMPARTMENTS) : [];
+  delete payload.itemCompartments;
   payload.isGiftBox = data?.isGiftBox === true;
   if (payload.declutterPurpose === 'standard') payload.declutterIsDefault = false;
   if (
@@ -900,18 +863,6 @@ async function createBox(data) {
       payload.notes = notesInput.value;
     }
   }
-  const groupInput = normalizeOptionalBoxGroupInput(
-    data && Object.prototype.hasOwnProperty.call(data, 'group')
-      ? data.group
-      : undefined
-  );
-  if (groupInput.provided) {
-    if (groupInput.clear) {
-      delete payload.group;
-    } else {
-      payload.group = groupInput.value;
-    }
-  }
   const resolvedLocation = await resolveBoxLocationFields({
     locationId:
       data && Object.prototype.hasOwnProperty.call(data, 'locationId')
@@ -924,7 +875,6 @@ async function createBox(data) {
   });
   if (resolvedLocation) {
     payload.locationId = resolvedLocation.locationId;
-    payload.location = resolvedLocation.location;
   }
   const created = await Box.create(payload);
   const createdPlain = toPlain(created);
@@ -948,7 +898,6 @@ async function createBox(data) {
       summary: `Created box ${quoteLabel(createdRef.label)}`,
       details: {
         box_id: createdRef.box_id,
-        group: toTrimmedOrNull(createdPlain?.group),
         is_gift_box: Boolean(createdPlain?.isGiftBox),
         parent_box_id: parentRef.id,
         parent_box_label: parentRef.label,
@@ -962,6 +911,10 @@ async function createBox(data) {
 
 async function updateBox(id, data) {
   const patch = { ...data };
+  delete patch.itemCompartments;
+  if (Object.prototype.hasOwnProperty.call(patch, 'isComplexBox')) {
+    patch.isComplexBox = patch.isComplexBox === true;
+  }
   if (Object.prototype.hasOwnProperty.call(patch, 'isGiftBox')) {
     patch.isGiftBox = patch.isGiftBox === true;
   }
@@ -1010,22 +963,16 @@ async function updateBox(id, data) {
       patch.notes = notesInput.value;
     }
   }
-  const groupInput = normalizeOptionalBoxGroupInput(
-    data && Object.prototype.hasOwnProperty.call(data, 'group')
-      ? data.group
-      : undefined
-  );
-  let unsetGroup = false;
-  if (groupInput.provided) {
-    patchFields.add('group');
-    if (groupInput.clear) {
-      unsetGroup = true;
-      delete patch.group;
-    } else {
-      patch.group = groupInput.value;
+  const existing = await Box.findById(id).lean();
+  if (existing) {
+    const complex = patch.isComplexBox ?? existing.isComplexBox;
+    if (complex && (patch.compartments || !existing.compartments?.length)) {
+      patch.compartments = validateCompartments(patch.compartments || DEFAULT_COMPARTMENTS, existing.compartments || []);
+      patchFields.add('compartments');
+    } else if (patch.compartments) {
+      throw makeHttpError(400, 'NOT_COMPLEX', 'Enable complex box before editing compartments.');
     }
   }
-  const existing = await Box.findById(id).lean();
 
   const resolvedLocation = await resolveBoxLocationFields({
     locationId:
@@ -1041,7 +988,6 @@ async function updateBox(id, data) {
   });
   if (resolvedLocation) {
     patch.locationId = resolvedLocation.locationId;
-    patch.location = resolvedLocation.location;
   }
 
   // Only guard when a parent change is being requested.
@@ -1093,7 +1039,6 @@ async function updateBox(id, data) {
   // Perform the update
   const setDoc = { ...patch };
   const unsetDoc = {};
-  if (unsetGroup) unsetDoc.group = 1;
   if (unsetDescription) unsetDoc.description = 1;
   if (unsetNotes) unsetDoc.notes = 1;
   const updateDoc = Object.keys(unsetDoc).length
@@ -1184,7 +1129,6 @@ async function updateBox(id, data) {
     nonParentCandidates
   );
   if (changedNonParentFields.length) {
-    const groupChanged = changedNonParentFields.includes('group');
     await logEventBestEffort(
       {
         event_type: 'box_updated',
@@ -1196,12 +1140,6 @@ async function updateBox(id, data) {
         )}`,
         details: {
           changed_fields: changedNonParentFields,
-          ...(groupChanged
-            ? {
-                previous_group: toTrimmedOrNull(existing?.group),
-                group: toTrimmedOrNull(updatedPlain?.group),
-              }
-            : {}),
         },
       },
       { label: `box_updated:${boxRef.id}` }

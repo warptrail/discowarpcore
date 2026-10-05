@@ -22,7 +22,7 @@ export default function DeclutterSystemCollectionCard({ candidates = [], onOpen 
       <S.SystemCollectionTop>
         <div>
           <S.Eyebrow>System collection</S.Eyebrow>
-          <S.SystemCollectionTitle>Marked for Destruction</S.SystemCollectionTitle>
+          <S.SystemCollectionTitle>Approved to Leave</S.SystemCollectionTitle>
           <S.SmallText>Confirmed exits • items may still be anywhere in the house</S.SmallText>
         </div>
         <S.SystemCollectionTotal>{candidates.length}</S.SystemCollectionTotal>

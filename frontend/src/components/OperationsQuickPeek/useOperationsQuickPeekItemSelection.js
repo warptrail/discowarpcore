@@ -86,8 +86,9 @@ export default function useOperationsQuickPeekItemSelection(
     (offset) => {
       if (!selectedItem || selectableItems.length < 2) return;
 
-      const nextIndex = selectedIndex + offset;
-      if (nextIndex < 0 || nextIndex >= selectableItems.length) return;
+      const nextIndex = (
+        selectedIndex + offset + selectableItems.length
+      ) % selectableItems.length;
 
       setTransitionDirection(offset > 0 ? 1 : -1);
       writeItemParam(getItemId(selectableItems[nextIndex]), {
@@ -129,6 +130,8 @@ export default function useOperationsQuickPeekItemSelection(
         target.closest('input, textarea, select, [contenteditable="true"]'),
       );
 
+      if (isTypingTarget) return;
+
       if (event.key === 'Escape') {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -136,7 +139,6 @@ export default function useOperationsQuickPeekItemSelection(
         return;
       }
 
-      if (isTypingTarget) return;
       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
 
       event.preventDefault();
@@ -154,9 +156,8 @@ export default function useOperationsQuickPeekItemSelection(
     selectedIndex,
     totalItems: selectableItems.length,
     transitionDirection,
-    canSelectPrevious: selectedIndex > 0,
-    canSelectNext:
-      selectedIndex >= 0 && selectedIndex < selectableItems.length - 1,
+    canSelectPrevious: selectableItems.length > 1 && selectedIndex >= 0,
+    canSelectNext: selectableItems.length > 1 && selectedIndex >= 0,
     openItem,
     backToItems,
     openFullItem,

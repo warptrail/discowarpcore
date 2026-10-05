@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { controlStyles, inputStyles } from '../../styles/primitives';
 import FilterCombobox from '../Retrieval/FilterCombobox';
 import * as GridStyles from '../../styles/InventoryGridHeader.styles';
 import { ARCHIVE_SORT_OPTIONS } from './allItemsList.utils';
@@ -11,9 +12,7 @@ const Shell = styled.div`
   padding: 0.48rem;
   border: 1px solid rgba(240, 138, 123, 0.34);
   border-radius: 7px;
-  background:
-    linear-gradient(105deg, rgba(240, 138, 123, 0.11), transparent 48%),
-    rgba(7, 13, 18, 0.9);
+  background: var(--dw-surface);
 
   @media (max-width: 620px) {
     grid-template-columns: 1fr;
@@ -28,21 +27,22 @@ const SearchField = styled.label`
 
 const Label = styled.span`
   color: rgba(240, 180, 168, 0.76);
-  font: 800 0.58rem/1.2 "SFMono-Regular", Consolas, monospace;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font: 800 0.75rem/1.2 var(--dw-font-ui);
+  letter-spacing: normal;
+  text-transform: none;
 `;
 
 const SearchInput = styled.input`
+  ${inputStyles}
   width: 100%;
-  min-height: 38px;
+  min-height: var(--dw-control-height);
   padding: 0.46rem 0.56rem;
   border: 1px solid rgba(240, 138, 123, 0.42);
   border-radius: 5px;
-  outline: none;
-  background: rgba(6, 11, 16, 0.94);
+  outline: 2px solid transparent;
+  background: var(--dw-surface-raised);
   color: #f1e8e6;
-  font: 0.86rem/1.2 "SFMono-Regular", Consolas, monospace;
+  font: 0.86rem/1.2 var(--dw-font-ui);
 
   &::placeholder {
     color: rgba(230, 237, 243, 0.4);
@@ -50,7 +50,7 @@ const SearchInput = styled.input`
 
   &:focus {
     border-color: rgba(240, 160, 145, 0.92);
-    box-shadow: 0 0 0 2px rgba(240, 138, 123, 0.13);
+    box-shadow: none;
   }
 `;
 
@@ -68,19 +68,20 @@ const StatusRail = styled.div`
 `;
 
 const StatusButton = styled.button`
-  min-height: 34px;
+  ${controlStyles}
+  min-height: var(--dw-control-height);
   padding: 0.34rem 0.44rem;
   border: 1px solid
     ${({ $active }) => ($active ? 'rgba(240, 160, 145, 0.86)' : 'rgba(240, 138, 123, 0.26)')};
   border-radius: 5px;
   background: ${({ $active }) =>
     $active
-      ? 'linear-gradient(180deg, rgba(148, 68, 57, 0.38), rgba(50, 24, 22, 0.9))'
+      ? 'var(--dw-surface-raised)'
       : 'rgba(9, 16, 22, 0.84)'};
   color: ${({ $active }) => ($active ? '#ffd5cd' : 'rgba(230, 237, 243, 0.72)')};
-  font: 800 0.64rem/1.1 "SFMono-Regular", Consolas, monospace;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font: 800 0.75rem/1.1 var(--dw-font-ui);
+  letter-spacing: normal;
+  text-transform: none;
   cursor: pointer;
 `;
 

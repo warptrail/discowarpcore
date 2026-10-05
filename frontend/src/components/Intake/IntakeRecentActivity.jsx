@@ -1,13 +1,13 @@
+import { panelStyles, controlStyles } from '../../styles/primitives';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styled, { css, keyframes } from 'styled-components';
 import { getBoxColorTones } from '../Retrieval/boxColors';
 import { hexToRgbString } from '../../util/inventoryColorTheme';
 import IntakeActivityFiltersSheet from './IntakeActivityFiltersSheet';
-import CustomSelect from '../CustomSelect';
+import IntakeRoutingControls from './IntakeRoutingControls';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_FONT_SM,
-  MOBILE_FONT_XS,
 } from '../../styles/tokens';
 import { getItemThumbnailUrl } from '../../util/itemImage';
 
@@ -38,233 +38,16 @@ function getBatchAccentRgb(index) {
 }
 
 const Panel = styled.section`
-  border: 1px solid rgba(93, 131, 162, 0.45);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(13, 19, 29, 0.93) 0%, rgba(10, 15, 22, 0.96) 100%);
+  min-width: 0;
+  background: var(--dw-surface);
   overflow: visible;
-`;
 
-const Header = styled.header`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.52rem 0.66rem;
-  border-bottom: 1px solid rgba(76, 106, 132, 0.4);
-  background: linear-gradient(90deg, rgba(96, 139, 180, 0.2) 0%, rgba(96, 139, 180, 0) 55%);
-`;
-
-const Title = styled.h3`
-  margin: 0;
-  font-size: 0.8rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #d8e6f4;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${MOBILE_FONT_XS};
-  }
-`;
-
-const Counter = styled.span`
-  color: #9db2c7;
-  font-size: 0.73rem;
-`;
-
-const FilterLauncher = styled.div`
-  min-height: 48px;
-  padding: 0.36rem 0.5rem;
-  border-bottom: 1px solid rgba(76, 106, 132, 0.32);
-  background: rgba(10, 16, 24, 0.72);
-`;
-
-const CascadingFilters = styled.div`
-  display: grid;
-  grid-template-columns: minmax(120px, 0.9fr) minmax(104px, 0.72fr) minmax(150px, 1.35fr) minmax(130px, 0.9fr) auto;
-  gap: 1px;
-  margin-top: 0.36rem;
-  border: 1px solid rgba(86, 142, 157, 0.4);
-  border-radius: 5px;
-  overflow: visible;
-  background: rgba(86, 142, 157, 0.26);
-
-  @media (max-width: 760px) {
-    grid-template-columns: 1fr 1fr;
-  }
-`;
-
-const CascadeSelectSlot = styled.div`
-  min-width: 0;
-  background: #09111a;
-
-  > div > button[aria-haspopup='listbox'] {
-    min-height: 38px;
-    border: 0;
-    border-radius: 0;
-    padding: 0 0.48rem;
-    background: #09111a;
-    box-shadow: none;
-    font-size: 0.68rem;
-  }
-
-  > div > button[aria-haspopup='listbox']:hover,
-  > div > button[aria-haspopup='listbox']:focus-visible,
-  > div > button[aria-haspopup='listbox'][aria-expanded='true'] {
-    border: 0;
-    background: #101a22;
-    box-shadow: inset 0 0 0 1px rgba(167, 139, 250, 0.72);
-  }
-`;
-
-const CascadeValue = styled.input`
-  min-width: 0;
-  min-height: 38px;
-  border: 0;
-  border-radius: 0;
-  padding: 0 0.5rem;
-  background: #09111a;
-  color: #e7faf7;
-  font: inherit;
-  font-size: 0.7rem;
-
-  &::placeholder { color: #6f8d8f; }
-  &:focus-visible { outline: 2px solid #a78bfa; outline-offset: -2px; }
-`;
-
-const CascadeReset = styled.button`
-  min-width: 40px;
-  min-height: 38px;
-  border: 0;
-  border-radius: 0;
-  background: #09111a;
-  color: #82bbb8;
-  font: inherit;
-  cursor: pointer;
-
-  &:hover { color: #e7faf7; }
-  &:focus-visible { outline: 2px solid #a78bfa; outline-offset: -2px; }
-
-  @media (max-width: 760px) { grid-column: span 2; }
-`;
-
-const ControlGroup = styled.div`
-  display: flex;
-  align-items: stretch;
-  min-height: 40px;
-  border: 1px solid rgba(86, 142, 157, 0.4);
-  border-radius: 5px;
-  background: rgba(9, 15, 23, 0.46);
-  overflow: hidden;
-`;
-
-const FilterButton = styled.button`
-  flex: 1;
-  min-width: 0;
-  min-height: 40px;
-  padding: 0.38rem 0.5rem;
-  border: 0;
-  background: transparent;
-  color: #d8e6f4;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.34rem;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-
-  &:focus-visible {
-    outline: 2px solid #a78bfa;
-    outline-offset: 2px;
-  }
-`;
-
-const SearchButton = styled.button`
-  display: grid;
-  flex: 0 0 40px;
-  width: 40px;
-  min-height: 40px;
-  place-items: center;
-  border: 0;
-  border-left: 1px solid rgba(86, 142, 157, 0.38);
-  background: transparent;
-  color: #8adfd7;
-  cursor: pointer;
-  font: inherit;
-  font-size: 1.2rem;
-  line-height: 1;
-
-  &:hover {
-    color: #d8fffa;
-    background: rgba(81, 186, 173, 0.1);
-  }
-
-  &:focus-visible {
-    outline: 2px solid #a78bfa;
-    outline-offset: -2px;
-  }
-`;
-
-const SearchField = styled.div`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 34px;
-  align-items: center;
-  width: 100%;
-  min-height: 40px;
-`;
-
-const SearchInput = styled.input`
-  min-width: 0;
-  height: 38px;
-  padding: 0;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: #e7faf7;
-  font: inherit;
-  font-size: 0.82rem;
-
-  &::placeholder {
-    color: #74908f;
-  }
-`;
-
-const SearchCloseButton = styled.button`
-  display: grid;
-  width: 34px;
-  height: 34px;
-  place-items: center;
-  border: 0;
-  border-left: 1px solid rgba(86, 142, 157, 0.38);
-  background: transparent;
-  color: #86a8aa;
-  cursor: pointer;
-  font: inherit;
-  font-size: 1rem;
-
-  &:hover { color: #d8fffa; }
-  &:focus-visible { outline: 2px solid #a78bfa; outline-offset: -2px; }
-`;
-
-const FilterSummary = styled.span`
-  min-width: 0;
-  color: ${({ $active }) => ($active ? '#d6fffa' : '#91a9be')};
-  font-size: 0.7rem;
-  overflow: hidden;
-  font-weight: ${({ $active }) => ($active ? 760 : 680)};
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const FilterChevron = styled.span`
-  color: #83d8d0;
-  font-size: 0.9rem;
-  line-height: 1;
+  ${panelStyles}
+  border-left: 3px solid var(--dw-amber);
 `;
 
 const Body = styled.div`
-  padding: 0.5rem;
+  padding: 0.5rem 0.25rem;
   display: grid;
   gap: 0.34rem;
   max-height: min(48vh, 360px);
@@ -279,17 +62,17 @@ const Body = styled.div`
 const Row = styled.div`
   position: relative;
   --activity-accent-rgb: ${({ $accentRgb }) => $accentRgb || '119, 213, 255'};
-  border: 1px solid rgba(79, 105, 136, 0.46);
-  border-radius: 9px;
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
   padding: 0.32rem 0.38rem;
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  align-items: start;
-  gap: 0.42rem;
-  background: rgba(13, 20, 31, 0.87);
+  grid-template-columns: 40px minmax(0, 1fr) 72px;
+  align-items: center;
+  column-gap: 0.55rem;
+  min-height: 68px;
+  background: var(--dw-surface-raised);
   background:
-    linear-gradient(90deg, rgba(var(--activity-accent-rgb), 0.2) 0%, rgba(13, 20, 31, 0.87) 38%),
-    rgba(13, 20, 31, 0.87);
+    var(--dw-surface);
   cursor: ${({ $clickable }) => ($clickable ? 'pointer' : 'default')};
   border-color: ${({ $active, $accentRgb, $clickable }) =>
     $active
@@ -312,9 +95,9 @@ const Row = styled.div`
     position: absolute;
     z-index: 0;
     inset: -1px;
-    border: 1px solid rgba(var(--activity-accent-rgb), 0.9);
-    border-radius: 9px;
-    box-shadow: 0 0 13px rgba(var(--activity-accent-rgb), 0.36);
+    border: 1px solid var(--dw-border);
+    border-radius: var(--dw-radius-sm);
+    box-shadow: none;
     opacity: 0;
     pointer-events: none;
   }
@@ -349,8 +132,8 @@ const Row = styled.div`
 const Thumb = styled.div`
   width: 40px;
   height: 40px;
-  border-radius: 7px;
-  border: 1px solid rgba(88, 129, 173, 0.5);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
   overflow: hidden;
   background: ${({ $missing }) =>
     $missing
@@ -378,7 +161,7 @@ const ThumbImage = styled.img`
 const RowBody = styled.div`
   min-width: 0;
   display: grid;
-  gap: 0.12rem;
+  gap: 0.22rem;
 `;
 
 const Primary = styled.div`
@@ -386,7 +169,9 @@ const Primary = styled.div`
   font-size: 0.8rem;
   line-height: 1.24;
   font-weight: 600;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_SM};
@@ -397,28 +182,32 @@ const PrimaryItem = styled.span`
   min-width: 0;
   color: #f0f8ff;
   font-weight: 600;
-  overflow-wrap: anywhere;
 `;
 
-const PrimaryDestination = styled.span`
+const PrimaryDestination = styled.div`
   min-width: 0;
   color: ${({ $accentRgb }) => `rgb(${$accentRgb || '197, 217, 238'})`};
-  margin-left: 0.24rem;
-  overflow-wrap: anywhere;
+  font-size: 0.76rem;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const Meta = styled.div`
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: baseline;
   gap: 0.08rem 0.28rem;
+  min-width: 0;
+  overflow: hidden;
 `;
 
 const MetaToken = styled.span`
   display: inline-block;
   min-width: 0;
   color: #8ea6be;
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   line-height: 1.2;
   white-space: nowrap;
 
@@ -431,8 +220,8 @@ const MetaToken = styled.span`
 
 const ExactTimeToken = styled(MetaToken)`
   color: #94adc7;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.61rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
 `;
 
 const QuantityToken = styled(MetaToken)`
@@ -440,24 +229,40 @@ const QuantityToken = styled(MetaToken)`
   font-weight: 700;
 `;
 
-const LocatorToken = styled(MetaToken)`
+const LocatorToken = styled.div`
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.26rem;
+  align-self: stretch;
+  border-left: 1px solid var(--dw-border);
   color: ${({ $boxNeonRgb }) => `rgba(${$boxNeonRgb || '119, 213, 255'}, 1)`};
   text-shadow: ${({ $boxNeonRgb }) => `0 0 6px rgba(${$boxNeonRgb || '119, 213, 255'}, 0.34)`};
-  font-size: 0.69rem;
+  font-family: var(--dw-font-ui);
+  font-size: 1.05rem;
   line-height: 1;
   font-weight: 820;
   letter-spacing: 0.03em;
   white-space: nowrap;
 `;
 
+const LocatorLabel = styled.span`
+  color: #8ea6be;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  text-shadow: none;
+`;
+
 const BatchToken = styled(MetaToken)`
   color: ${({ $accentRgb }) => ($accentRgb ? `rgb(${$accentRgb})` : '#9db2c7')};
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   line-height: 1.2;
   font-weight: 780;
-  max-width: 100%;
-  overflow-wrap: break-word;
-  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const Arrow = styled.span`
@@ -475,19 +280,21 @@ const StateText = styled.div`
 const LoadMoreButton = styled.button`
   width: 100%;
   min-height: 40px;
-  border: 1px solid rgba(86, 142, 157, 0.44);
-  border-radius: 5px;
-  background: rgba(9, 17, 26, 0.88);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   color: #8adfd7;
   font: inherit;
   font-size: 0.7rem;
   font-weight: 760;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   cursor: pointer;
 
   &:hover { color: #d8fffa; border-color: rgba(138, 223, 215, 0.7); }
   &:focus-visible { outline: 2px solid #a78bfa; outline-offset: 2px; }
+
+  ${controlStyles}
 `;
 
 function getItemTimestamp(item) {
@@ -807,115 +614,41 @@ export default function IntakeRecentActivity({
   return (
     <>
       <Panel>
-        <Header>
-          <Title>Inventory Routing</Title>
-          <Counter aria-live="polite">{matchingItems.length}</Counter>
-        </Header>
-
-        <FilterLauncher>
-          <ControlGroup>
-            {searchOpen ? (
-              <SearchField>
-                <SearchInput
-                  ref={searchInputRef}
-                  type="search"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Escape') closeSearch();
-                  }}
-                  placeholder="Search inventory"
-                  aria-label="Search inventory"
-                />
-                <SearchCloseButton type="button" onClick={closeSearch} aria-label="Close activity search">
-                  ×
-                </SearchCloseButton>
-              </SearchField>
-            ) : (
-              <>
-              <FilterButton
-                ref={filterTriggerRef}
-                type="button"
-                aria-controls="intake-activity-filters"
-                aria-expanded={filtersOpen}
-                onClick={() => setFiltersOpen(true)}
-              >
-                <FilterSummary $active={filtersActive}>{filterSummary}</FilterSummary>
-                <FilterChevron aria-hidden="true">⌃</FilterChevron>
-              </FilterButton>
-              <SearchButton type="button" onClick={() => setSearchOpen(true)} aria-label="Search inventory">
-                <span aria-hidden="true">⌕</span>
-              </SearchButton>
-              </>
-            )}
-          </ControlGroup>
-          <CascadingFilters aria-label="Inventory attribute filters">
-            <CascadeSelectSlot>
-              <CustomSelect
-                value={attribute}
-                ariaLabel="Filter attribute"
-                tone="#a78bfa"
-                options={ATTRIBUTE_OPTIONS.map(([value, label]) => ({ value, label }))}
-                onChange={(nextAttribute) => {
-                setAttribute(nextAttribute);
-                setOperator(nextAttribute === 'quantity' ? 'is' : 'contains');
-                setAttributeValue('');
-              }}
-              />
-            </CascadeSelectSlot>
-            <CascadeSelectSlot>
-              <CustomSelect
-                value={operator}
-                ariaLabel="Filter operator"
-                tone="#74d4ff"
-                options={operatorOptions.map(([value, label]) => ({ value, label }))}
-                onChange={setOperator}
-              />
-            </CascadeSelectSlot>
-            <CascadeValue
-              type={attribute === 'quantity' ? 'number' : 'search'}
-              list={attributeSuggestions.length ? 'intake-inventory-filter-values' : undefined}
-              value={attributeValue}
-              aria-label="Filter value"
-              placeholder={attribute === 'all' ? 'Search any item data…' : `Filter by ${ATTRIBUTE_OPTIONS.find(([value]) => value === attribute)?.[1].toLowerCase()}…`}
-              onChange={(event) => setAttributeValue(event.target.value)}
-            />
-            {attributeSuggestions.length ? (
-              <datalist id="intake-inventory-filter-values">
-                {attributeSuggestions.map((value) => <option key={value} value={value} />)}
-              </datalist>
-            ) : null}
-            <CascadeSelectSlot>
-              <CustomSelect
-                value={sortMode}
-                ariaLabel="Sort inventory"
-                tone="#78f5c8"
-                options={[
-                  { value: 'created_desc', label: 'Added · newest' },
-                  { value: 'created_asc', label: 'Added · oldest' },
-                  { value: 'name_asc', label: 'Name · A–Z' },
-                  { value: 'name_desc', label: 'Name · Z–A' },
-                  { value: 'quantity_desc', label: 'Quantity · high' },
-                ]}
-                onChange={setSortMode}
-              />
-            </CascadeSelectSlot>
-            <CascadeReset
-              type="button"
-              aria-label="Reset inventory finder"
-              title="Reset finder"
-              onClick={() => {
-                setAttribute('all');
-                setOperator('contains');
-                setAttributeValue('');
-                setSearchQuery('');
-                setSortMode('created_desc');
-              }}
-            >
-              CLR
-            </CascadeReset>
-          </CascadingFilters>
-        </FilterLauncher>
+        <IntakeRoutingControls
+          count={matchingItems.length}
+          searchOpen={searchOpen}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          setSearchOpen={setSearchOpen}
+          closeSearch={closeSearch}
+          searchInputRef={searchInputRef}
+          filterTriggerRef={filterTriggerRef}
+          filtersOpen={filtersOpen}
+          openFilters={() => setFiltersOpen(true)}
+          filterSummary={filterSummary}
+          attribute={attribute}
+          attributeOptions={ATTRIBUTE_OPTIONS}
+          onAttributeChange={(nextAttribute) => {
+            setAttribute(nextAttribute);
+            setOperator(nextAttribute === 'quantity' ? 'is' : 'contains');
+            setAttributeValue('');
+          }}
+          operator={operator}
+          operatorOptions={operatorOptions}
+          setOperator={setOperator}
+          attributeValue={attributeValue}
+          setAttributeValue={setAttributeValue}
+          attributeSuggestions={attributeSuggestions}
+          sortMode={sortMode}
+          setSortMode={setSortMode}
+          onReset={() => {
+            setAttribute('all');
+            setOperator('contains');
+            setAttributeValue('');
+            setSearchQuery('');
+            setSortMode('created_desc');
+          }}
+        />
 
         <Body>
         {loading ? <StateText>Loading inventory…</StateText> : null}
@@ -976,29 +709,28 @@ export default function IntakeRecentActivity({
                 </Thumb>
 
                 <RowBody>
-                  <Primary>
+                  <Primary title={itemName}>
                     <PrimaryItem>{itemName}</PrimaryItem>
-                    <PrimaryDestination $accentRgb={activityAccentRgb}>
-                      <Arrow>→</Arrow>
-                      <span>{destination.label}</span>
-                    </PrimaryDestination>
                   </Primary>
+                  <PrimaryDestination $accentRgb={activityAccentRgb} title={destination.label}>
+                    <Arrow aria-hidden="true">→</Arrow>
+                    <span>{destination.label}</span>
+                  </PrimaryDestination>
                   <Meta>
                     <MetaToken>{formatRelativeTime(timestamp)}</MetaToken>
                     <ExactTimeToken>{formatCompactTimestamp(timestamp)}</ExactTimeToken>
                     <QuantityToken>×{quantity}</QuantityToken>
-                    {boxToken ? (
-                      <LocatorToken $boxNeonRgb={boxTones.neonRgb}>
-                        {boxToken}
-                      </LocatorToken>
-                    ) : null}
                     {batchLabel ? (
-                      <BatchToken $accentRgb={activityAccentRgb}>
+                      <BatchToken $accentRgb={activityAccentRgb} title={batchLabel}>
                         {batchLabel}
                       </BatchToken>
                     ) : null}
                   </Meta>
                 </RowBody>
+                <LocatorToken $boxNeonRgb={boxTones.neonRgb}>
+                  <LocatorLabel>{boxToken ? 'Box' : 'Unboxed'}</LocatorLabel>
+                  <span>{boxToken || '—'}</span>
+                </LocatorToken>
               </Row>
             );
           })}

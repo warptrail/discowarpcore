@@ -1,3 +1,4 @@
+import { controlStyles, inputStyles } from './primitives';
 import styled, { keyframes } from 'styled-components';
 import {
   MOBILE_BREAKPOINT,
@@ -7,9 +8,9 @@ import {
 } from './tokens';
 
 const LCARS = {
-  inset: '#0b1018',
-  text: '#e6edf4',
-  teal: '#4cc6c1',
+  inset: 'var(--dw-background)',
+  text: 'var(--dw-text)',
+  teal: 'var(--dw-teal)',
 };
 
 const disabledStyles = `
@@ -58,8 +59,7 @@ export const CarouselCap = styled.header`
   min-height: 52px;
   padding: 0.36rem 0 0.5rem;
   border-bottom: 1px solid rgba(169, 187, 207, 0.16);
-  background: rgba(9, 13, 19, 0.94);
-  backdrop-filter: blur(12px);
+  background: var(--dw-surface);
 `;
 
 export const CarouselTitle = styled.h3`
@@ -67,7 +67,7 @@ export const CarouselTitle = styled.h3`
   gap: 0.16rem;
   min-width: 0;
   margin: 0;
-  color: #e7f3f8;
+  color: var(--dw-text);
   font-size: 0.92rem;
   font-weight: 720;
   line-height: 1.12;
@@ -76,9 +76,9 @@ export const CarouselTitle = styled.h3`
 
 export const CarouselDirty = styled.span`
   color: ${({ $dirty }) => ($dirty ? '#e7c17d' : 'rgba(214, 226, 241, 0.46)')};
-  font: 700 0.55rem/1.1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 700 0.75rem/1.1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export const CarouselControls = styled.div`
@@ -89,13 +89,14 @@ export const CarouselControls = styled.div`
 `;
 
 export const CarouselArrow = styled.button`
+  ${controlStyles}
   display: grid;
   place-items: center;
   width: 40px;
   height: 40px;
   padding: 0;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--dw-radius-sm);
   color: rgba(218, 232, 240, 0.76);
   background: transparent;
   font-size: 1.38rem;
@@ -117,11 +118,12 @@ export const CarouselDots = styled.div`
 `;
 
 export const CarouselDot = styled.button`
+  ${controlStyles}
   width: ${({ $active }) => ($active ? '12px' : '5px')};
   height: 5px;
   padding: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   background: ${({ $active }) => ($active ? 'rgba(105, 211, 202, 0.78)' : 'rgba(201, 221, 232, 0.22)')};
   cursor: pointer;
   transition: width 160ms ease, background 160ms ease;
@@ -167,15 +169,15 @@ export const Field = styled.div`
 `;
 
 export const Label = styled.label`
-  color: rgba(213, 222, 234, 0.68);
-  font: 720 0.65rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  color: var(--dw-text-secondary);
+  font: 720 0.75rem/1.2 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export const FieldHint = styled.span`
-  color: rgba(214, 226, 241, 0.64);
-  font-size: 0.72rem;
+  color: var(--dw-text-secondary);
+  font-size: 0.75rem;
   line-height: 1.35;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -185,9 +187,9 @@ export const FieldHint = styled.span`
 
 const fieldControlStyles = `
   width: 100%;
-  border-radius: 7px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(134, 154, 177, 0.34);
-  background: rgba(7, 11, 17, 0.92);
+  background: var(--dw-surface);
   color: ${LCARS.text};
   font-size: 0.96rem;
   font-weight: 540;
@@ -197,11 +199,12 @@ const fieldControlStyles = `
   transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
 
   &::placeholder {
-    color: rgba(214, 226, 241, 0.44);
+    color: var(--dw-text-secondary);
   }
 
   &:focus {
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
     border-color: ${LCARS.teal};
     box-shadow: 0 0 0 2px rgba(76, 198, 193, 0.16);
     background: #0c121b;
@@ -211,10 +214,12 @@ const fieldControlStyles = `
 `;
 
 export const Input = styled.input`
+  ${inputStyles}
   ${fieldControlStyles}
 `;
 
 export const TextArea = styled.textarea`
+  ${inputStyles}
   ${fieldControlStyles}
   min-height: 5.4rem;
   resize: vertical;
@@ -223,6 +228,7 @@ export const TextArea = styled.textarea`
 `;
 
 export const Select = styled.select`
+  ${inputStyles}
   ${fieldControlStyles}
 `;
 
@@ -239,9 +245,9 @@ export const InlineGrid = styled.div`
 
 export const ReadOnlyValue = styled.div`
   min-height: 44px;
-  border-radius: 7px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(122, 142, 167, 0.26);
-  background: rgba(12, 18, 27, 0.58);
+  background: var(--dw-surface);
   color: ${LCARS.text};
   font-size: 0.92rem;
   font-weight: 560;
@@ -287,15 +293,16 @@ export const HistoryRow = styled.div`
 `;
 
 export const LinkRemoveButton = styled.button`
+  ${controlStyles}
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-  border-radius: 8px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(240, 138, 123, 0.58);
-  background: rgba(78, 28, 28, 0.78);
+  background: var(--dw-surface);
   color: #ffd6d1;
   font-size: 0.75rem;
   font-weight: 680;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   padding: 0.34rem 0.62rem;
   cursor: pointer;
   transition: border-color 140ms ease, background 140ms ease;
@@ -310,7 +317,7 @@ export const LinkRemoveButton = styled.button`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 36px;
+    min-height: var(--dw-control-height);
     font-size: ${MOBILE_FONT_XS};
   }
 `;
@@ -320,16 +327,17 @@ export const HistoryRemoveButton = styled(LinkRemoveButton)`
 `;
 
 export const AddInlineButton = styled.button`
+  ${controlStyles}
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
   align-self: start;
-  border-radius: 8px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(76, 198, 193, 0.52);
-  background: rgba(24, 66, 63, 0.58);
+  background: var(--dw-surface);
   color: #d6fffc;
   font-size: 0.76rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   padding: 0.38rem 0.7rem;
   cursor: pointer;
   transition: border-color 140ms ease, background 140ms ease;
@@ -344,7 +352,7 @@ export const AddInlineButton = styled.button`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 36px;
+    min-height: var(--dw-control-height);
     font-size: ${MOBILE_FONT_XS};
   }
 `;
@@ -367,6 +375,7 @@ export const CheckboxRow = styled.label`
 `;
 
 export const Checkbox = styled.input`
+  ${inputStyles}
   width: 1rem;
   height: 1rem;
   accent-color: ${LCARS.teal};
@@ -375,12 +384,12 @@ export const Checkbox = styled.input`
 const actionButtonBase = `
   min-width: 6.2rem;
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   padding: 0.52rem 1.05rem;
   font-size: 0.84rem;
   font-weight: 700;
-  letter-spacing: 0.045em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   cursor: pointer;
   transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
 
@@ -394,6 +403,7 @@ const actionButtonBase = `
 `;
 
 export const FileInput = styled.input`
+  ${inputStyles}
   ${fieldControlStyles}
   padding: 0.36rem 0.46rem;
 
@@ -401,7 +411,7 @@ export const FileInput = styled.input`
     border: 1px solid rgba(76, 198, 193, 0.56);
     background: rgba(76, 198, 193, 0.16);
     color: #d9fffb;
-    border-radius: 6px;
+    border-radius: var(--dw-radius);
     padding: 0.24rem 0.56rem;
     margin-right: 0.5rem;
     cursor: pointer;
@@ -415,7 +425,7 @@ export const ImagePreview = styled.img`
   width: min(240px, 100%);
   max-height: 180px;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(140, 160, 179, 0.3);
   background: ${LCARS.inset};
 `;
@@ -431,16 +441,14 @@ export const LifecycleSection = styled.section`
   gap: 0.52rem;
   padding: 0.58rem 0.62rem;
   border: 1px solid rgba(76, 198, 193, 0.28);
-  border-radius: 7px;
-  background:
-    linear-gradient(180deg, rgba(76, 198, 193, 0.055), transparent 44%),
-    rgba(7, 14, 21, 0.88);
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface-raised);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.46rem;
     padding: 0.52rem 0.5rem;
-    border-radius: 6px;
+    border-radius: var(--dw-radius);
   }
 `;
 
@@ -457,16 +465,16 @@ export const LifecycleHeader = styled.h3`
   gap: 0.12rem;
   min-width: 0;
   margin: 0;
-  color: #e7f3f8;
-  font: 780 0.72rem/1.1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  color: var(--dw-text);
+  font: 780 0.75rem/1.1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export const LifecycleEyebrow = styled.span`
   color: var(--item-accent, ${LCARS.teal});
-  font: 800 0.5rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.14em;
+  font: 700 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
 `;
 
 export const LifecycleStatusChip = styled.span`
@@ -476,12 +484,12 @@ export const LifecycleStatusChip = styled.span`
   align-items: center;
   padding: 0.22rem 0.42rem;
   border: 1px solid ${({ $gone }) => ($gone ? 'rgba(240, 138, 123, 0.58)' : 'rgba(100, 214, 167, 0.56)')};
-  border-radius: 4px;
+  border-radius: var(--dw-radius-sm);
   color: ${({ $gone }) => ($gone ? '#ffd0c8' : '#c9ffe6')};
   background: ${({ $gone }) => ($gone ? 'rgba(114, 42, 40, 0.24)' : 'rgba(29, 101, 67, 0.25)')};
-  font: 820 0.54rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 700 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: 28px;
@@ -516,10 +524,10 @@ export const LifecycleMetaRow = styled.div`
 `;
 
 export const LifecycleMetaLabel = styled.span`
-  color: rgba(168, 206, 232, 0.66);
-  font: 760 0.52rem/1.15 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  color: var(--dw-text-secondary);
+  font: 760 0.75rem/1.15 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
@@ -529,7 +537,7 @@ export const LifecycleMetaLabel = styled.span`
 export const LifecycleMetaValue = styled.span`
   min-width: 0;
   color: #e6edf4;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   line-height: 1.3;
   word-break: break-word;
 
@@ -539,12 +547,13 @@ export const LifecycleMetaValue = styled.span`
 `;
 
 export const SmallActionButton = styled.button`
+  ${controlStyles}
   ${actionButtonBase}
   min-width: 0;
   min-height: 40px;
   padding: 0.42rem 0.7rem;
-  font: 820 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  border-radius: 5px;
+  font: 700 0.75rem/1 var(--dw-font-ui);
+  border-radius: var(--dw-radius);
   border: 1px solid ${({ $tone }) =>
     $tone === 'danger' ? 'rgba(240, 138, 123, 0.62)' : 'rgba(167, 182, 255, 0.58)'};
   color: ${({ $tone }) => ($tone === 'danger' ? '#ffd8d3' : '#e3e7ff')};
@@ -556,8 +565,7 @@ export const SmallActionButton = styled.button`
       $tone === 'danger' ? 'rgba(240, 138, 123, 0.82)' : 'rgba(167, 182, 255, 0.82)'};
     background: ${({ $tone }) =>
       $tone === 'danger' ? 'rgba(145, 51, 48, 0.45)' : 'rgba(76, 82, 136, 0.45)'};
-    box-shadow: 0 0 12px ${({ $tone }) =>
-      $tone === 'danger' ? 'rgba(240, 138, 123, 0.16)' : 'rgba(167, 182, 255, 0.16)'};
+    box-shadow: none;
   }
 `;
 

@@ -22,6 +22,11 @@ const voteSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const privateNotesSchema = new mongoose.Schema({
+  discofish: { type: String, default: '', trim: true, maxlength: 2000 },
+  laserfox: { type: String, default: '', trim: true, maxlength: 2000 },
+}, { _id: false });
+
 const declutterCandidateSchema = new mongoose.Schema(
   {
     itemId: {
@@ -33,6 +38,9 @@ const declutterCandidateSchema = new mongoose.Schema(
     },
     nominatedBy: { type: String, enum: [...DECLUTTER_PLAYERS, ''], default: '' },
     nominatedAt: { type: Date, default: Date.now },
+    voteRevision: { type: Number, default: 0 },
+    privateNotes: { type: privateNotesSchema, default: () => ({}) },
+    sharedNotes: { type: String, default: '', trim: true, maxlength: 2000 },
     votes: {
       discofish: { type: voteSchema, default: () => ({}) },
       laserfox: { type: voteSchema, default: () => ({}) },
@@ -59,6 +67,8 @@ const declutterCandidateSchema = new mongoose.Schema(
       ref: 'Box',
       default: null,
     },
+    preActionPlacementRecorded: { type: Boolean, default: false },
+    preActionCompartmentKey: { type: String, default: '' },
     actionOverride: {
       player: { type: String, enum: [...DECLUTTER_PLAYERS, 'system', ''], default: '' },
       action: { type: String, default: '', trim: true },
@@ -82,6 +92,11 @@ const declutterCandidateSchema = new mongoose.Schema(
         actionCompletedAt: { type: Date, default: null },
         resolvedAt: { type: Date, default: null },
         notes: { type: String, default: '' },
+        privateNotes: { type: privateNotesSchema, default: () => ({}) },
+        sharedNotes: { type: String, default: '' },
+        preActionBoxId: { type: mongoose.Schema.Types.ObjectId, ref: 'Box', default: null },
+        preActionPlacementRecorded: { type: Boolean, default: false },
+        preActionCompartmentKey: { type: String, default: '' },
         reason: { type: String, default: '' },
         archivedAt: { type: Date, default: Date.now },
       },

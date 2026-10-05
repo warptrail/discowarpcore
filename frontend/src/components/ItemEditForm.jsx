@@ -296,13 +296,14 @@ export default function ItemEditForm({
     }
   };
 
-  const handleMoveRequestProxy = ({ destBoxId, destLabel, destShortId }) => {
+  const handleMoveRequestProxy = ({ destBoxId, destLabel, destShortId, compartmentKey }) => {
     onMoveRequest({
       itemId: initialItem._id,
       itemName: initialItem.name,
       itemQuantity: initialItem.quantity,
       sourceBoxId,
       destBoxId,
+      compartmentKey,
       destLabel,
       destShortId,
     });

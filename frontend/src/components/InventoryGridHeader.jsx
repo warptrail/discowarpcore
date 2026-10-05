@@ -20,16 +20,27 @@ import {
 const SORT_OPTIONS = [
   { value: 'boxId', label: 'Box ID' },
   { value: 'name', label: 'Name' },
-  { value: 'group', label: 'Group' },
   { value: 'location', label: 'Location' },
   { value: 'itemCount', label: 'Item Count' },
 ];
+
+function MobileTelemetry({ values }) {
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    if (values.length < 2) return undefined;
+    const timer = window.setInterval(() => {
+      setIndex((current) => (current + 1) % values.length);
+    }, 3600);
+    return () => window.clearInterval(timer);
+  }, [values]);
+
+  return <S.MobileTelemetryValue key={index}>{values[index]}</S.MobileTelemetryValue>;
+}
 
 const FILTER_OPTIONS = [
   { value: 'all', label: 'All Boxes' },
   { value: 'withItems', label: 'Boxes With Items' },
   { value: 'empty', label: 'Empty Boxes' },
-  { value: 'inGroups', label: 'Boxes In Groups' },
 ];
 
 const KEEP_PRIORITY_FILTER_OPTIONS = [
@@ -37,6 +48,12 @@ const KEEP_PRIORITY_FILTER_OPTIONS = [
   ...KEEP_PRIORITY_SCALE_OPTIONS,
   { value: 'gone', label: 'No longer have' },
 ];
+
+const formatLocation = (location) =>
+  [location?.room, location?.vicinity, location?.specifics]
+    .map((part) => String(part || '').trim())
+    .filter(Boolean)
+    .join(' · ');
 
 const plural = (count, singular, pluralWord) =>
   `${count} ${count === 1 ? singular : pluralWord}`;
@@ -79,9 +96,6 @@ export default function InventoryGridHeader({
   locationFilter = 'all',
   onLocationFilterChange,
   locations = [],
-  groupFilter = 'all',
-  onGroupFilterChange,
-  groups = [],
   ownerFilter = 'all',
   onOwnerFilterChange,
   owners = [],
@@ -99,6 +113,7 @@ export default function InventoryGridHeader({
   const [finderMinimized, setFinderMinimized] = useState(true);
   const [finderCollapsing, setFinderCollapsing] = useState(false);
   const [consoleFinderMount, setConsoleFinderMount] = useState(null);
+  const [mobileTelemetryMount, setMobileTelemetryMount] = useState(null);
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   const mobileActionsButtonRef = useRef(null);
   const mobileActionsMenuRef = useRef(null);
@@ -108,7 +123,6 @@ export default function InventoryGridHeader({
       filterBy !== 'all' ||
       categoryFilter !== 'all' ||
       locationFilter !== 'all' ||
-      groupFilter !== 'all' ||
       ownerFilter !== 'all' ||
       keepPriorityFilter !== 'all',
   );
@@ -124,6 +138,10 @@ export default function InventoryGridHeader({
     const observer = new MutationObserver(syncMount);
     observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    setMobileTelemetryMount(document.getElementById('mobile-telemetry-mount'));
   }, []);
 
   useEffect(() => {
@@ -331,7 +349,7 @@ export default function InventoryGridHeader({
             value={locationFilter}
             options={[
               { value: 'all', label: 'All Locations' },
-              ...locations.map((loc) => ({ value: loc._id, label: loc.name })),
+              ...locations.map((loc) => ({ value: loc._id, label: formatLocation(loc) })),
             ]}
             onChange={onLocationFilterChange}
             ariaLabel="Filter by location"
@@ -339,16 +357,6 @@ export default function InventoryGridHeader({
           />
         </S.ControlGroup>
 
-        <S.ControlGroup $tone="#E58FBB">
-          <S.ControlLabel>Group</S.ControlLabel>
-          <CustomSelect
-            value={groupFilter}
-            options={[{ value: 'all', label: 'All Groups' }, ...groups]}
-            onChange={onGroupFilterChange}
-            ariaLabel="Filter by group"
-            tone="#E58FBB"
-          />
-        </S.ControlGroup>
 
         <S.ControlGroup $tone="#8ED0A8">
           <S.ControlLabel>Owner</S.ControlLabel>
@@ -393,7 +401,7 @@ export default function InventoryGridHeader({
           onKeyDown={(event) => {
             if (event.key === 'Enter') commitSearchToConsole();
           }}
-          placeholder="search"
+          placeholder="Whatchya' looking for??"
           aria-label="Search inventory"
         />
       </S.PrimarySearchGroup>
@@ -425,7 +433,6 @@ export default function InventoryGridHeader({
   return (
     <S.HeaderShell>
       <S.ControlConsole role="group" aria-label="Operations control console">
-        <S.MapStatus aria-label="Map unavailable">MAP // PENDING</S.MapStatus>
         <S.UtilityRow>
           <S.ViewModeToggle
             role="group"
@@ -530,6 +537,16 @@ export default function InventoryGridHeader({
       {consoleFinderMount
         ? createPortal(primaryFinderControls, consoleFinderMount)
         : null}
+      {mobileTelemetryMount ? createPortal(
+        <MobileTelemetry
+          values={[
+            `${plural(totalBoxes, 'box', 'boxes')}`,
+            `${plural(totalItems, 'item', 'items')}`,
+            `${plural(orphanedCount, 'item adrift', 'items adrift')}`,
+          ]}
+        />,
+        mobileTelemetryMount,
+      ) : null}
     </S.HeaderShell>
   );
 }

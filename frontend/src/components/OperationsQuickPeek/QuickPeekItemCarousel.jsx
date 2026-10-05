@@ -5,6 +5,8 @@ import {
 } from '../../util/itemImage';
 import RetrievalImageLightbox from '../Retrieval/RetrievalImageLightbox';
 import * as S from './OperationsQuickPeek.styles';
+import QuickPeekItemEditor from './QuickPeekItemEditor';
+import { getItemOwnershipContext } from '../../util/itemOwnership';
 
 function quantityLabel(item) {
   const quantity = Number(item?.quantity);
@@ -68,6 +70,8 @@ function ItemPreviewImage({ item, name }) {
 
 export default function QuickPeekItemCarousel({
   item,
+  onItemUpdated,
+  boxed = true,
   position,
   total,
   transitionDirection,
@@ -88,7 +92,7 @@ export default function QuickPeekItemCarousel({
   const description = String(item?.description || '').trim();
   const itemNotes = String(item?.notes || '').trim();
   const tags = getTags(item);
-  const hasDetails = Boolean(description || category || tags.length > 0);
+  const edit = (field, label, content) => <QuickPeekItemEditor item={item} field={field} label={label} onSaved={onItemUpdated}>{content}</QuickPeekItemEditor>;
 
   useEffect(() => {
     setLightboxOpen(false);
@@ -124,7 +128,7 @@ export default function QuickPeekItemCarousel({
           disabled={!canSelectPrevious}
           onClick={onPrevious}
         >
-          ‹
+          ⟨
         </S.ItemCarouselArrow>
 
         <S.ItemCarouselArrow
@@ -134,21 +138,21 @@ export default function QuickPeekItemCarousel({
           disabled={!canSelectNext}
           onClick={onNext}
         >
-          ›
+          ⟩
         </S.ItemCarouselArrow>
         </S.ItemCarouselMedia>
 
         <S.ItemCarouselBody>
           <S.ItemCarouselIdentity>
-            <S.ItemCarouselName>{name}</S.ItemCarouselName>
+            <S.ItemCarouselName>{edit('name', 'Name', name)}</S.ItemCarouselName>
             <S.ItemCarouselMeta>
-              <code>QTY {quantityLabel(item)}</code>
+              <div>{edit('quantity', 'Quantity', `QTY ${quantityLabel(item)}`)}</div>
             </S.ItemCarouselMeta>
           </S.ItemCarouselIdentity>
 
-          {hasDetails ? (
+          {(
             <S.ItemCarouselDetails>
-              {description ? (
+              {(
                 <S.ItemCarouselDetail>
                   <S.ItemCarouselAnnotationLine>
                     <S.MetaLabel>Description</S.MetaLabel>
@@ -161,16 +165,16 @@ export default function QuickPeekItemCarousel({
                       >N</S.ItemCarouselNoteButton>
                     ) : null}
                   </S.ItemCarouselAnnotationLine>
-                  <S.ItemCarouselDescription title={description}>
-                    {description}
+                  <S.ItemCarouselDescription as="div" title={description}>
+                    {edit('description', 'Description', description)}
                   </S.ItemCarouselDescription>
                 </S.ItemCarouselDetail>
-              ) : null}
-              {category ? (
+              )}
+              {(
                 <S.ItemCarouselDetail>
                   <S.ItemCarouselCategoryLine>
                     <S.MetaLabel>Category</S.MetaLabel>
-                    <S.ItemCarouselCategoryValue>{category}</S.ItemCarouselCategoryValue>
+                    <S.ItemCarouselCategoryValue as="div">{edit('category', 'Category', category)}</S.ItemCarouselCategoryValue>
                     <S.ItemCarouselDeckButton
                       type="button"
                       $active={inDeclutterDeck}
@@ -182,17 +186,16 @@ export default function QuickPeekItemCarousel({
                     >Deck</S.ItemCarouselDeckButton>
                   </S.ItemCarouselCategoryLine>
                 </S.ItemCarouselDetail>
-              ) : null}
-              {tags.length > 0 ? (
+              )}
+              {(
                 <S.ItemCarouselTags aria-label="Item tags">
-                  {tags.map((tag) => <span key={tag}>#{tag}</span>)}
+                  {edit('tags', 'Tags', tags.map((tag) => `#${tag}`).join(' '))}
                 </S.ItemCarouselTags>
-              ) : null}
+              )}
             </S.ItemCarouselDetails>
-          ) : (
-            <S.ItemCarouselEmpty>No additional details recorded.</S.ItemCarouselEmpty>
           )}
 
+          {!boxed && getItemOwnershipContext(item).isOrphaned ? edit('location', 'Location', item.location) : null}
         </S.ItemCarouselBody>
       </S.ItemCarouselCard>
 

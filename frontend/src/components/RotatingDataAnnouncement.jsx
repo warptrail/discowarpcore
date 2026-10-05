@@ -4,25 +4,24 @@ import styled, { keyframes } from 'styled-components';
 const announcementIn = keyframes`
   from {
     opacity: 0;
-    filter: blur(4px);
     transform: translateY(3px);
   }
   to {
     opacity: 1;
-    filter: blur(0);
     transform: translateY(0);
   }
 `;
 
 const Announcement = styled.span`
-  display: block;
+  display: inline-block;
   min-width: 0;
+  max-width: 100%;
   overflow: hidden;
-  color: rgba(194, 246, 234, 0.92);
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 0.88em;
-  font-weight: 700;
-  letter-spacing: 0.015em;
+  color: var(--dw-text-secondary);
+  font-family: var(--dw-font-ui);
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: normal;
   text-overflow: ellipsis;
   white-space: nowrap;
   animation: ${announcementIn} 280ms ease-out;
@@ -52,7 +51,6 @@ function buildBoxAnalyticsAnnouncements(analytics) {
   const itemRecordCount = Number(metrics.itemRecordCount) || 0;
   const itemQuantity = Number(metrics.itemQuantity) || 0;
   const locationCount = Number(metrics.locationCount) || 0;
-  const groupCount = Number(metrics.groupCount) || 0;
   const noteCount =
     (Number(metrics.boxNoteCount) || 0) + (Number(metrics.itemNoteCount) || 0);
   const totalValueCents = Number(metrics.totalValueCents) || 0;
@@ -61,9 +59,6 @@ function buildBoxAnalyticsAnnouncements(analytics) {
     `${pluralize(itemQuantity, 'item')} in ${pluralize(itemRecordCount, 'record')}`,
   ];
 
-  if (groupCount > 0) {
-    announcements.push(`${pluralize(groupCount, 'group')} represented`);
-  }
   if (noteCount > 0) {
     announcements.push(`${pluralize(noteCount, 'note')} ready when context matters`);
   }
@@ -101,7 +96,7 @@ export default function RotatingDataAnnouncement({
   const text = announcements[activeIndex] || 'Box inventory standing by';
 
   return (
-    <Announcement key={`${activeIndex}-${text}`} aria-label={announcements.join('. ')}>
+    <Announcement key={`${activeIndex}-${text}`} aria-label={announcements.join('. ') || text} title={announcements.join('. ') || text}>
       {text}
     </Announcement>
   );

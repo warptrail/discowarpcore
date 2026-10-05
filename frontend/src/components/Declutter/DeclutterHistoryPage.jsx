@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import {
@@ -21,7 +21,7 @@ const FILTERS = [
   ['action', 'Actions'],
   ['kept', 'Confirmed keep'],
   ['release_approved', 'Approved to leave'],
-  ['physically_completed', 'Destroyed'],
+  ['physically_completed', 'Completed departures'],
 ];
 const HISTORY_PAGE_SIZE = 10;
 const ROUTE_FILTERS = [
@@ -47,7 +47,12 @@ export default function DeclutterHistoryPage() {
 
   useEffect(() => {
     const syncPlayer = (event) => {
-      if (event.detail?.playerId) setPlayer(event.detail.playerId);
+      if (event.detail?.playerId && event.detail.playerId !== activePlayerRef.current) {
+        activePlayerRef.current = event.detail.playerId;
+        historyRequestRef.current += 1;
+        setHistory({ candidates: [], total: 0, page: 1, totalPages: 1 });
+        setPlayer(event.detail.playerId);
+      }
     };
     window.addEventListener(DECLUTTER_PLAYER_CHANGE_EVENT, syncPlayer);
     return () => window.removeEventListener(DECLUTTER_PLAYER_CHANGE_EVENT, syncPlayer);
@@ -64,6 +69,8 @@ export default function DeclutterHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [player, setPlayer] = useState(getStoredDeclutterPlayer);
+  const activePlayerRef = useRef(player);
+  const historyRequestRef = useRef(0);
   const [stagingBoxes, setStagingBoxes] = useState([]);
   const [busyCandidateId, setBusyCandidateId] = useState('');
   const keptCandidates = filter === 'all'
@@ -74,20 +81,24 @@ export default function DeclutterHistoryPage() {
     : [];
 
   const loadHistory = useCallback(async () => {
+    if (activePlayerRef.current !== player) return;
+    const request = ++historyRequestRef.current;
+    const isCurrent = () => request === historyRequestRef.current && activePlayerRef.current === player;
     setLoading(true);
     setError('');
     try {
-      setHistory(await fetchDeclutterHistory({
+      const nextHistory = await fetchDeclutterHistory({
         filter,
         route,
         player,
         page: requestedPage,
         limit: HISTORY_PAGE_SIZE,
-      }));
+      });
+      if (isCurrent()) setHistory(nextHistory);
     } catch (err) {
-      setError(err?.message || 'Failed to load declutter history.');
+      if (isCurrent()) setError(err?.message || 'Failed to load declutter history.');
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }, [filter, player, requestedPage, route]);
 

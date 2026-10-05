@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
+import { controlStyles } from '../styles/primitives';
 
 import ItemsFlatList from './ItemsFlatList';
+import { getBoxTheme, getBoxThemeCssVars } from '../util/inventoryColorTheme';
 
 function boxId(node) { return String(node?.box_id ?? node?.shortId ?? '').trim(); }
 function countDescendants(node) {
@@ -26,14 +28,16 @@ export default function BoxTreeUnit({ node, root = false, depth = 0, autoExpand 
   const railDepth = Math.min(depth, 3);
 
   return (
-    <Unit $depth={railDepth} $root={root}>
+    <Unit $depth={railDepth} $root={root} style={getBoxThemeCssVars(getBoxTheme(id))}>
       <UnitHeader>
         <Disclosure type="button" onClick={() => isExpandable && setExpanded((current) => !current)} disabled={!isExpandable} aria-expanded={expanded} aria-label={`${expanded ? 'Collapse' : 'Expand'} ${label}`}>
           {expanded ? '▾' : '▸'}
         </Disclosure>
         <HeaderCopy>
-          <BoxTitle>#{id || '???'} {label}</BoxTitle>
-          {node?.location ? <Location>{node.location}</Location> : null}
+          <BoxTitle><BoxCode>#{id || '???'}</BoxCode> {label}</BoxTitle>
+          <Location $missing={!String(node?.location ?? '').trim()}>
+            {String(node?.location ?? '').trim() || 'Location not recorded'}
+          </Location>
         </HeaderCopy>
         <Counts>{directItems.length} direct · {descendants} nested</Counts>
         {!root && id ? <BoxLink href={`/boxes/${encodeURIComponent(id)}`}>Open ↗</BoxLink> : null}
@@ -54,17 +58,72 @@ const Unit = styled.section`
   border-left: ${({ $root }) => ($root ? '0' : '2px solid rgba(var(--box-primary-rgb, 76, 198, 193), 0.26)')};
 `;
 const UnitHeader = styled.header`
-  display: flex; align-items: center; gap: 0.42rem; min-width: 0; padding: 0.42rem 0.5rem;
-  border: 1px solid rgba(var(--box-primary-rgb, 76, 198, 193), 0.28); border-radius: 9px;
-  background: linear-gradient(90deg, rgba(var(--box-primary-rgb, 76, 198, 193), 0.12), rgba(14, 19, 29, 0.65));
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.15rem 0.5rem;
+  min-width: 0;
+  padding: 0.45rem;
+  border: 1px solid var(--dw-border-soft);
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface);
+  font-family: var(--dw-font-ui);
 `;
 const Disclosure = styled.button`
-  width: 25px; height: 25px; flex: 0 0 auto; border: 0; border-radius: 5px; background: rgba(8, 15, 23, 0.68); color: rgba(192, 229, 235, 0.9); cursor: pointer;
-  &:disabled { opacity: 0.35; cursor: default; }
+  ${controlStyles}
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  color: var(--box-primary, var(--dw-cyan));
 `;
-const HeaderCopy = styled.div`min-width: 0; display: grid; gap: 0.14rem;`;
-const BoxTitle = styled.div`overflow: hidden; color: rgba(228, 241, 244, 0.94); font: 800 0.72rem/1.1 ui-monospace, SFMono-Regular, Menlo, monospace; text-overflow: ellipsis; white-space: nowrap;`;
-const Location = styled.div`color: var(--box-location, #7fd7ff); font: 820 0.68rem/1.1 ui-monospace, SFMono-Regular, Menlo, monospace; text-shadow: 0 0 8px rgba(var(--box-location-rgb, 127, 215, 255), 0.24); text-transform: uppercase;`;
-const Counts = styled.span`margin-left: auto; color: rgba(190, 207, 222, 0.62); font: 700 0.54rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap;`;
-const BoxLink = styled.a`color: rgba(173, 209, 255, 0.84); font: 700 0.54rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; text-decoration: none; white-space: nowrap;`;
-const UnitBody = styled.div`display: grid; gap: 0.42rem; padding: 0.38rem 0 0.1rem; min-width: 0;`;
+const HeaderCopy = styled.div`
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+`;
+const BoxTitle = styled.div`
+  overflow: hidden;
+  color: var(--dw-text);
+  font: 650 0.82rem/1.3 var(--dw-font-ui);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+const BoxCode = styled.span`
+  font-family: var(--dw-font-data);
+  color: var(--box-primary, var(--dw-cyan));
+`;
+const Location = styled.div`
+  color: ${({ $missing }) => ($missing ? 'var(--dw-coral)' : 'var(--box-location, var(--dw-text-secondary))')};
+  font: 500 0.75rem/1.35 var(--dw-font-ui);
+  overflow-wrap: anywhere;
+`;
+const Counts = styled.span`
+  grid-column: 2 / -1;
+  grid-row: 2;
+  color: var(--dw-text-secondary);
+  font: 500 0.75rem/1.35 var(--dw-font-ui);
+`;
+const BoxLink = styled.a`
+  grid-column: 3;
+  grid-row: 1;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 0.35rem;
+  color: var(--dw-cyan);
+  font: 600 0.75rem/1.25 var(--dw-font-ui);
+  text-decoration: none;
+  white-space: nowrap;
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
+  &:hover { text-decoration: underline; }
+`;
+const UnitBody = styled.div`
+  display: grid;
+  gap: 0.42rem;
+  padding: 0.38rem 0 0.1rem;
+  min-width: 0;
+`;

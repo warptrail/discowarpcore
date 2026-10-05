@@ -1,5 +1,6 @@
+import { controlStyles } from '../../styles/primitives';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components';
 import { API_BASE } from '../../api/API_BASE';
 import { MOBILE_BREAKPOINT } from '../../styles/tokens';
 import { getBoxTheme, getBoxThemeCssVars } from '../../util/inventoryColorTheme';
@@ -26,8 +27,13 @@ const Wrap = styled.div`
   max-width: 900px;
   margin: 0 auto;
   padding: 0.35rem 0 2rem;
+  background: var(--dw-surface);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
+    max-width: none;
+    padding: 0 0 2rem;
+    background: var(--dw-surface);
+
     input,
     textarea,
     select {
@@ -42,33 +48,9 @@ const Workspace = styled.main`
   min-width: 0;
   width: 100%;
   position: relative;
-
-  &::before {
-    content: '';
-    position: absolute;
-    z-index: -1;
-    inset: -0.4rem -0.5rem -0.9rem;
-    pointer-events: none;
-    background:
-      radial-gradient(
-        circle at 14% 0%,
-        rgba(var(--box-primary-rgb), 0.1),
-        transparent 38%
-      ),
-      radial-gradient(
-        circle at 88% 12%,
-        rgba(var(--box-secondary-rgb), 0.055),
-        transparent 34%
-      );
-    opacity: 0.82;
-    transition: background 220ms ease;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    &::before {
-      transition: none;
-    }
-  }
+  border-top: 1px solid var(--dw-border);
+  border-bottom: 1px solid var(--dw-border);
+  background: var(--dw-surface);
 `;
 
 const WorkspacePanel = styled.section`
@@ -76,6 +58,10 @@ const WorkspacePanel = styled.section`
   gap: 0.58rem;
   min-width: 0;
   width: 100%;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: ${({ $flush }) => $flush ? '0.35rem 0 0' : '0.35rem 0.58rem 0'};
+  }
 `;
 
 const StateText = styled.div`
@@ -84,18 +70,15 @@ const StateText = styled.div`
   line-height: 1.4;
 `;
 
-const routeSigilOrbit = keyframes`
-  to { transform: rotate(360deg); }
-`;
 
 const RouteNoneSelectButton = styled.button`
   min-width: 172px;
   min-height: 42px;
-  border: 1px solid rgba(76, 198, 193, 0.64);
-  border-radius: 5px;
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
   padding: 0.35rem 0.58rem;
-  background: rgba(7, 18, 26, 0.94);
-  color: #d9fffa;
+  background: var(--dw-surface);
+  color: var(--dw-text);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -104,26 +87,26 @@ const RouteNoneSelectButton = styled.button`
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.055em;
-  text-transform: uppercase;
+  text-transform: none;
   cursor: pointer;
 
   svg {
     width: 24px;
     height: 24px;
-    color: #7fd7ff;
-    filter: drop-shadow(0 0 4px rgba(127, 215, 255, 0.65));
+    color: var(--dw-cyan);
+    filter: none;
   }
 
   .route-sigil-orbit {
     transform-origin: 12px 12px;
-    animation: ${routeSigilOrbit} 8s linear infinite;
+    animation: none;
   }
 
   &:hover,
   &:focus-visible {
     border-color: rgba(167, 139, 250, 0.9);
-    background: rgba(20, 28, 42, 0.98);
-    box-shadow: 0 0 14px rgba(127, 215, 255, 0.2);
+    background: var(--dw-surface-raised);
+    box-shadow: none;
   }
 
   &:focus-visible {
@@ -134,6 +117,8 @@ const RouteNoneSelectButton = styled.button`
   @media (prefers-reduced-motion: reduce) {
     .route-sigil-orbit { animation: none; }
   }
+
+  ${controlStyles}
 `;
 
 function RouteSigilGlyph() {
@@ -786,7 +771,7 @@ export default function IntakePage({ boxes = [] }) {
   const handleCreateBox = useCallback(() => {
     setSelectorOpen(false);
     setMoveSeedItemId('');
-    setActiveAction('create-box');
+    setActiveAction((current) => current === 'create-box' ? '' : 'create-box');
   }, []);
 
   const handleBoxCreated = useCallback((createdBox) => {
@@ -1149,8 +1134,12 @@ export default function IntakePage({ boxes = [] }) {
               currentBoxInsight={currentBoxInsight}
               selectedBoxId={selectedBoxId}
               selectorOpen={selectorOpen}
+              createOpen={activeAction === 'create-box'}
               onSelectBox={handleSelectBox}
-              onToggleSelector={() => setSelectorOpen((prev) => !prev)}
+              onToggleSelector={() => {
+                setActiveAction('');
+                setSelectorOpen((prev) => !prev);
+              }}
               onCreateBox={handleCreateBox}
               onAddItem={() => setActiveWorkspaceView('new')}
               onEditBox={() => setActiveWorkspaceView('edit')}
@@ -1186,7 +1175,7 @@ export default function IntakePage({ boxes = [] }) {
         ) : null}
 
         {activeWorkspaceView === 'organize' ? (
-          <WorkspacePanel id="intake-workspace-panel-organize" aria-label="Organize Intake">
+          <WorkspacePanel $flush id="intake-workspace-panel-organize" aria-label="Organize Intake">
             <IntakeRecentActivity
               items={filteredOrganizeItems}
               boxLookup={boxesById}

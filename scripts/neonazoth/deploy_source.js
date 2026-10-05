@@ -112,7 +112,7 @@ function remoteProbeScript() {
     printf 'hostname=%s\\n' "$(hostname 2>/dev/null || true)"
     printf 'primary_ip=%s\\n' "$(${LAN_IP_SCRIPT})"
     printf 'all_ips=%s\\n' "$(hostname -I 2>/dev/null | xargs 2>/dev/null || true)"
-    HEALTH_CODE="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 4 http://127.0.0.1:${REMOTE_PORT}/api/health 2>/dev/null || true)"
+    HEALTH_CODE="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 4 http://127.0.0.1:${REMOTE_PORT}/api/health/ready 2>/dev/null || true)"
     printf 'health_code=%s\\n' "$HEALTH_CODE"
   `;
 }
@@ -187,7 +187,7 @@ async function verifyLanUrl(state) {
   if (!state.primaryIp) return { code: null, skipped: true };
   return runCommand(
     'curl',
-    ['--noproxy', '*', '--silent', '--show-error', '--output', '/dev/null', '--write-out', '%{http_code}', '--max-time', '5', lanUrl(state.primaryIp) + '/api/health'],
+    ['--noproxy', '*', '--silent', '--show-error', '--output', '/dev/null', '--write-out', '%{http_code}', '--max-time', '5', lanUrl(state.primaryIp) + '/api/health/ready'],
     { capture: true, timeoutMs: 8_000 }
   );
 }

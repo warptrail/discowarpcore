@@ -29,6 +29,13 @@ Priorities:
 - Use styled-components only
 - Keep React component structure developer-friendly and easy to navigate
 
+## Visual Design Source
+
+- Read `DESIGN_SYSTEM.md` before changing frontend visuals.
+- Treat it as the shared visual source of truth across routes and components.
+- Keep visual changes consistent with its tokens and update the document when the official direction changes.
+- The current LCARS // Cyberpunk // Minimal direction in `DESIGN_SYSTEM.md` is authoritative; retain readable typography, compact controls and restrained effects.
+
 ## Toast Definition
 
 In this project, a “Toast” is not a standard temporary popup.

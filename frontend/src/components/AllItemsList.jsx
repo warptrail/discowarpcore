@@ -27,16 +27,11 @@ import useAllItemsDeclutterDeck from './AllItemsList/useAllItemsDeclutterDeck.js
 import useAllItemsItemSelection from './AllItemsList/useAllItemsItemSelection.jsx';
 import usePaginatedAllItems from './AllItemsList/usePaginatedAllItems';
 import { getBoxTheme, getItemTheme } from '../util/inventoryColorTheme';
-import AllItemsInsightsModal from './AllItemsList/AllItemsInsightsModal';
 import {
   clearAllItemsReturn,
   consumeAllItemsReturn,
 } from './AllItemsList/allItemsReturnState';
-import {
-  ALL_ITEMS_INSIGHTS_OPEN_EVENT,
-  ALL_ITEMS_INSIGHTS_STATE_EVENT,
-  ALL_ITEMS_DETAIL_OPEN_EVENT,
-} from '../constants/inventoryFinderEvents';
+import { ALL_ITEMS_DETAIL_OPEN_EVENT } from '../constants/inventoryFinderEvents';
 
 const ALL_ITEMS_SCROLL_STORAGE_PREFIX = 'all-items:scroll:';
 const SCROLL_RESTORE_MAX_FRAMES = 240;
@@ -133,7 +128,6 @@ export default function AllItemsList() {
   const [batchModeEnabled, setBatchModeEnabled] = useState(false);
   const [itemSelectionModeEnabled, setItemSelectionModeEnabled] = useState(false);
   const [lightboxImage, setLightboxImage] = useState(null);
-  const [insightsOpen, setInsightsOpen] = useState(false);
   const [mobileDetailItem, setMobileDetailItem] = useState(null);
   const pendingAllItemsReturnRef = useRef();
   const pendingScrollRestoreRef = useRef();
@@ -572,20 +566,6 @@ export default function AllItemsList() {
   }, [loading, visibleItems.length]);
 
   useEffect(() => {
-    const handleInsightsOpen = () => setInsightsOpen(true);
-    window.addEventListener(ALL_ITEMS_INSIGHTS_OPEN_EVENT, handleInsightsOpen);
-    return () => window.removeEventListener(ALL_ITEMS_INSIGHTS_OPEN_EVENT, handleInsightsOpen);
-  }, []);
-
-  useEffect(() => {
-    window.dispatchEvent(
-      new CustomEvent(ALL_ITEMS_INSIGHTS_STATE_EVENT, {
-        detail: { ...counts, visible: visibleItems.length, loading },
-      }),
-    );
-  }, [counts, loading, visibleItems.length]);
-
-  useEffect(() => {
     const handleDetailOpen = (event) => {
       const itemId = String(event.detail?.itemId || '').trim();
       const item = preparedItems.find((entry) => String(entry?._id || '') === itemId);
@@ -774,13 +754,6 @@ export default function AllItemsList() {
         presentation={lightboxImage?.presentation || 'default'}
         onClose={handleCloseImagePreview}
       />
-      {insightsOpen ? (
-        <AllItemsInsightsModal
-          counts={counts}
-          visibleCount={visibleItems.length}
-          onClose={() => setInsightsOpen(false)}
-        />
-      ) : null}
     </S.PageShell>
   );
 }

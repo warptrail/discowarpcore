@@ -1,6 +1,7 @@
 // AddItemForm.jsx
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
+import { controlStyles, inputStyles } from '../styles/primitives';
 import { API_BASE } from '../api/API_BASE';
 import {
   DEFAULT_ITEM_CATEGORY,
@@ -63,6 +64,7 @@ export default function AddItemForm({
         <Input
           type="text"
           placeholder="Item name"
+          aria-label="Item name"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
@@ -90,7 +92,7 @@ export default function AddItemForm({
           disabled={!isValid || busy}
           $variant="primary"
         >
-          ➕ Add
+          {busy ? 'Adding…' : 'Add item'}
         </Button>
       </Row>
       {msg && <Msg>{msg}</Msg>}
@@ -139,68 +141,40 @@ const Row = styled.div`
   gap: 0.5rem;
 
   @media (min-width: 700px) {
-    grid-template-columns: 1fr 100px 190px 120px;
+    grid-template-columns: minmax(0, 1fr) 80px minmax(120px, 190px) 120px;
   }
 `;
 
 const AddItemHeading = styled.h4`
   font-size: 1.1rem;
   font-weight: 600;
-  color: #f0f0f0;
+  color: var(--dw-text);
   margin: 0 0 0.5rem 0;
 `;
 
 const Input = styled.input`
-  background: rgba(0, 0, 0, 0.35);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  padding: 0.55rem 0.6rem;
-  font-size: 0.95rem;
-  &:focus {
-    outline: none;
-    border-color: rgba(120, 170, 255, 0.7);
-  }
+  ${inputStyles}
+  width: 100%;
 `;
 
-const NumberInput = styled(Input).attrs({ inputMode: 'numeric' })``;
+const NumberInput = styled(Input).attrs({ inputMode: 'numeric' })`
+  font-family: var(--dw-font-data);
+`;
 
 const Select = styled.select`
-  background: rgba(0, 0, 0, 0.35);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  padding: 0.55rem 0.6rem;
-  font-size: 0.95rem;
-  &:focus {
-    outline: none;
-    border-color: rgba(120, 170, 255, 0.7);
-  }
+  ${inputStyles}
+  width: 100%;
 `;
 
 const Button = styled.button`
+  ${controlStyles}
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: ${({ $variant }) =>
-    $variant === 'primary' ? 'rgba(60,120,255,.18)' : 'rgba(255,255,255,.06)'};
-  color: #fff;
-  padding: 0.55rem 0.6rem;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: transform 120ms ease, border-color 120ms ease;
-  &:hover {
-    transform: translateY(-1px);
-    border-color: rgba(255, 255, 255, 0.28);
-  }
-  &:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-  }
+  color: var(--dw-cyan);
+  border-color: var(--dw-cyan);
 `;
 
 const Msg = styled.div`
   font-size: 0.9rem;
-  color: #cfe2ff;
+  color: var(--dw-text-secondary);
   opacity: 0.9;
 `;

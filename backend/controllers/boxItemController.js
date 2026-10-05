@@ -51,7 +51,7 @@ async function patchAttachExistingItem(req, res) {
     const { itemId } = req.body || {};
     if (!itemId) return res.status(400).json({ message: 'itemId is required' });
 
-    const box = await addItemToBox(boxId, itemId);
+    const box = await addItemToBox(boxId, itemId, req.body?.compartmentKey);
     return res.status(200).json({ ok: true, boxId: box?._id });
   } catch (err) {
     return res
@@ -76,7 +76,7 @@ async function patchAddItems(req, res) {
     }
 
     // New service returns { attached, box }
-    const result = await addItemsToBox(boxId, itemIds);
+    const result = await addItemsToBox(boxId, itemIds, req.body?.compartmentKey);
 
     return res.status(200).json({
       ok: true,
@@ -127,7 +127,7 @@ async function patchMoveItem(req, res) {
         .json({ message: 'itemId and destBoxId are required' });
     }
 
-    const dest = await moveItemBetweenBoxes(undefined, destBoxId, itemId);
+    const dest = await moveItemBetweenBoxes(undefined, destBoxId, itemId, req.body?.compartmentKey);
     return res.status(200).json({ ok: true, destBoxId: dest?._id });
   } catch (err) {
     return res

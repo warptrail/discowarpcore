@@ -1,5 +1,6 @@
 import styled, { css, keyframes } from 'styled-components';
 import { Link } from 'react-router-dom';
+import { controlStyles, inputStyles, panelStyles } from '../../styles/primitives';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_FONT_SM,
@@ -8,20 +9,20 @@ import {
 } from '../../styles/tokens';
 
 const LCARS = {
-  bg: '#0b0f13',
-  panel: '#14191e',
-  panelAlt: '#10161c',
-  line: 'rgba(255,255,255,0.1)',
-  lineStrong: 'rgba(127,215,255,0.28)',
-  text: '#e6edf3',
-  textDim: 'rgba(230,237,243,0.72)',
-  textMuted: 'rgba(230,237,243,0.54)',
-  root: '#7fd7ff',
-  teal: '#4cc6c1',
-  amber: '#e8b15c',
-  coral: '#f08a7b',
-  lilac: '#a7b6ff',
-  green: '#64bc97',
+  bg: 'var(--dw-background)',
+  panel: 'var(--dw-surface)',
+  panelAlt: 'var(--dw-surface-raised)',
+  line: 'var(--dw-border)',
+  lineStrong: 'var(--dw-border)',
+  text: 'var(--dw-text)',
+  textDim: 'var(--dw-text-secondary)',
+  textMuted: 'var(--dw-text-muted)',
+  root: 'var(--dw-cyan)',
+  teal: 'var(--dw-teal)',
+  amber: 'var(--dw-amber)',
+  coral: 'var(--dw-coral)',
+  lilac: 'var(--dw-violet)',
+  green: 'var(--dw-teal)',
 };
 
 const decisionTone = (tone = 'pending') => {
@@ -40,59 +41,41 @@ const sheetReveal = keyframes`
 `;
 
 const panelBase = css`
-  border: 1px solid ${LCARS.line};
-  border-radius: 10px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)),
-    ${LCARS.panel};
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.02),
-    0 8px 24px rgba(0, 0, 0, 0.24);
+  ${panelStyles};
 `;
 
 const controlField = css`
+  ${inputStyles};
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 4px;
-  background: rgba(9, 14, 20, 0.96);
-  color: ${LCARS.text};
-  min-height: 34px;
-  padding: 0.42rem 0.52rem;
-  font-size: 0.82rem;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-  outline: none;
-
-  &:focus {
-    border-color: rgba(127, 215, 255, 0.74);
-    box-shadow: 0 0 0 1px rgba(127, 215, 255, 0.34);
-  }
 `;
 
 export const PageShell = styled.section`
   display: grid;
   gap: 0.88rem;
   color: ${LCARS.text};
+  min-width: 0;
+  font-family: var(--dw-font-ui);
+  gap: 0.65rem;
 `;
 
 export const DeclutterSurface = styled(PageShell)`
-  --declutter-accent: ${({ $player }) => ($player === 'laserfox' ? '#b875ff' : '#38c9ff')};
-  --declutter-accent-rgb: ${({ $player }) => ($player === 'laserfox' ? '184, 117, 255' : '56, 201, 255')};
+  --declutter-accent: ${({ $player }) => ($player === 'laserfox' ? 'var(--dw-violet)' : 'var(--dw-cyan)')};
+  --declutter-accent-rgb: ${({ $player }) => ($player === 'laserfox' ? '167, 182, 255' : '127, 215, 255')};
   min-height: 100%;
   padding: 0.58rem;
   border: 1px solid rgba(var(--declutter-accent-rgb), 0.28);
-  border-radius: 12px;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(var(--declutter-accent-rgb), 0.13), transparent 42%),
-    linear-gradient(180deg, rgba(var(--declutter-accent-rgb), 0.045), rgba(8, 12, 17, 0.12));
-  box-shadow: inset 0 0 34px rgba(var(--declutter-accent-rgb), 0.035);
+  border-radius: var(--dw-radius);
+  background: var(--dw-background);
+  box-shadow: none;
   transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 0.38rem;
-    border-radius: 9px;
+    border-radius: var(--dw-radius);
   }
+  border: 0;
+  padding: 0;
+  @media (max-width: 640px) { padding: 0; }
 `;
 
 export const PlayerDock = styled.div`
@@ -111,6 +94,7 @@ export const PageHeader = styled.header`
     padding: 0.66rem;
     border-radius: ${MOBILE_PANEL_RADIUS};
   }
+  border-left: 4px solid var(--dw-amber);
 `;
 
 export const HeaderTop = styled.div`
@@ -123,13 +107,16 @@ export const HeaderTop = styled.div`
 
 export const Eyebrow = styled.div`
   color: ${LCARS.root};
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 850;
-  letter-spacing: 0.14em;
+  letter-spacing: 0;
+  text-transform: none;
+  font-family: var(--dw-font-ui);
+  font-family: var(--dw-font-data);
+  color: var(--dw-amber);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
 `;
 
 export const Title = styled.h1`
@@ -160,65 +147,74 @@ export const HeaderActions = styled.div`
 
 export const PlayerPicker = styled.div`
   display: grid;
-  width: min(100%, 430px);
+  flex: 0 0 auto;
+  width: max-content;
+  max-width: calc(100vw - 3rem);
 `;
 
 export const PlayerChoices = styled.div`
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
   justify-content: center;
-  gap: 0.28rem;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  gap: 0.3rem;
 `;
 
 export const PlayerButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   display: inline-flex;
   align-items: center;
-  gap: 0.24rem;
+  gap: 0.25rem;
+  min-width: max-content;
   min-height: 44px;
   border: 1px solid ${({ $active, $player }) => {
     if (!$active) return 'rgba(102, 167, 212, 0.34)';
     return $player === 'laserfox' ? 'rgba(184, 117, 255, 0.95)' : 'rgba(56, 201, 255, 0.95)';
   }};
-  border-radius: 7px;
-  background: ${({ $active, $player }) => {
-    if (!$active) return 'rgba(14, 24, 34, 0.82)';
-    return $player === 'laserfox'
-      ? 'linear-gradient(135deg, rgba(70, 31, 90, 0.96), rgba(30, 18, 47, 0.96))'
-      : 'linear-gradient(135deg, rgba(12, 75, 77, 0.96), rgba(10, 38, 48, 0.96))';
-  }};
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface-raised);
   color: ${LCARS.text};
-  padding: 0.34rem 0.5rem;
+  padding: 0.34rem 0.4rem;
   cursor: pointer;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: 100%;
   }
+  background: ${({ $active }) => $active ? "var(--dw-surface-raised)" : "var(--dw-surface)"};
+  border-radius: var(--dw-radius-sm);
 `;
 
 export const PlayerIcon = styled.span`
-  font-size: 1.35rem;
+  flex: 0 0 auto;
+  font-size: 1.1rem;
   line-height: 1;
 `;
 
 export const PlayerIdentity = styled.span`
   display: grid;
-  min-width: 70px;
+  flex: 0 0 auto;
+  min-width: max-content;
   text-align: left;
 `;
 
 export const PlayerName = styled.span`
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
+
+  /* The header's idle message truncates nested last-child spans by default. */
+  && {
+    min-width: max-content;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
+  }
 `;
 
 export const PlayerNotification = styled.span`
   display: inline-grid;
+  flex: 0 0 auto;
   min-width: 1.28rem;
   height: 1.28rem;
   place-items: center;
@@ -231,85 +227,33 @@ export const PlayerNotification = styled.span`
     $player === 'laserfox' ? 'rgba(184, 117, 255, 0.18)' : 'rgba(76, 198, 193, 0.18)'
   )};
   color: ${({ $player }) => ($player === 'laserfox' ? '#e3c5ff' : '#a5fff7')};
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 850;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  box-shadow: 0 0 8px ${({ $player }) => (
-    $player === 'laserfox' ? 'rgba(184, 117, 255, 0.22)' : 'rgba(76, 198, 193, 0.22)'
-  )};
+  box-shadow: none;
 `;
 
 export const OnlineDot = styled.span`
+  flex: 0 0 7px;
   width: 7px;
   height: 7px;
   margin-left: auto;
   border-radius: 50%;
   background: ${({ $player }) => ($player === 'laserfox' ? '#b875ff' : LCARS.teal)};
-  box-shadow: ${({ $player }) =>
-    $player === 'laserfox' ? '0 0 8px rgba(184, 117, 255, 0.82)' : '0 0 8px rgba(76, 198, 193, 0.8)'};
+  box-shadow: none;
 `;
 
 export const Button = styled.button`
-  min-height: 34px;
-  border-radius: 4px;
-  border: 1px solid
-    ${({ $tone = 'default' }) =>
-      $tone === 'primary'
-        ? 'rgba(100, 188, 151, 0.82)'
-        : $tone === 'danger'
-          ? 'rgba(240, 138, 123, 0.76)'
-          : $tone === 'warning'
-            ? 'rgba(232, 177, 92, 0.72)'
-            : 'rgba(102, 167, 212, 0.56)'};
-  background:
-    ${({ $tone = 'default' }) =>
-      $tone === 'primary'
-        ? 'linear-gradient(180deg, rgba(23, 75, 60, 0.96), rgba(16, 51, 42, 0.96))'
-        : $tone === 'danger'
-          ? 'linear-gradient(180deg, rgba(78, 30, 31, 0.96), rgba(48, 20, 24, 0.96))'
-          : $tone === 'warning'
-            ? 'linear-gradient(180deg, rgba(84, 55, 14, 0.96), rgba(57, 39, 13, 0.96))'
-            : 'rgba(14, 24, 34, 0.95)'};
-  color: ${({ $tone = 'default' }) => ($tone === 'default' ? '#cfefff' : '#e8fff5')};
-  font-size: 0.68rem;
-  font-weight: 850;
-  text-transform: uppercase;
-  letter-spacing: 0.085em;
-  padding: 0 0.66rem;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-  cursor: pointer;
-
-  &:disabled {
-    opacity: 0.54;
-    cursor: not-allowed;
-  }
-
-  &:focus-visible {
-    outline: 2px solid rgba(127, 215, 255, 0.52);
-    outline-offset: 1px;
-  }
+  ${controlStyles};
+  border-left: 3px solid ${({ $tone }) => $tone === 'danger' ? LCARS.coral : $tone === 'primary' || $tone === 'warning' ? LCARS.amber : LCARS.line};
 `;
 
 export const LinkButton = styled(Link)`
-  min-height: 34px;
+  ${controlStyles};
   display: inline-flex;
   align-items: center;
-  border-radius: 4px;
-  border: 1px solid rgba(102, 167, 212, 0.56);
-  background: rgba(14, 24, 34, 0.95);
-  color: #cfefff;
-  font-size: 0.68rem;
-  font-weight: 850;
-  text-transform: uppercase;
-  letter-spacing: 0.085em;
-  padding: 0 0.66rem;
   text-decoration: none;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
 `;
 
 export const FormPanel = styled.form`
@@ -333,13 +277,11 @@ export const Field = styled.label`
 
 export const FieldLabel = styled.span`
   color: ${LCARS.textMuted};
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 820;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  letter-spacing: 0;
+  text-transform: none;
+  font-family: var(--dw-font-ui);
 `;
 
 export const Input = styled.input`
@@ -371,7 +313,7 @@ export const ErrorState = styled(StatusPanel)`
 
 export const SessionGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
   gap: 0.78rem;
 `;
 
@@ -382,6 +324,7 @@ export const SessionCard = styled.article`
   padding: 0.78rem;
   border-left: 4px solid
     ${({ $status }) => ($status === 'archived' ? LCARS.textMuted : LCARS.teal)};
+  border-left-color: ${({ $status }) => $status === "archived" ? LCARS.textMuted : LCARS.amber};
 `;
 
 export const SessionCardTop = styled.div`
@@ -417,9 +360,9 @@ export const CountGrid = styled.div`
 
 export const CountCell = styled.div`
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
+  border-radius: var(--dw-radius);
   padding: 0.34rem 0.42rem;
-  background: rgba(5, 10, 16, 0.34);
+  background: var(--dw-surface);
 `;
 
 export const CountValue = styled.div`
@@ -431,9 +374,9 @@ export const CountValue = styled.div`
 
 export const CountLabel = styled.div`
   color: ${LCARS.textMuted};
-  font-size: 0.58rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 export const CardActions = styled.div`
@@ -464,10 +407,7 @@ export const ModeGroup = styled.div`
 export const ModeButton = styled(Button)`
   border-color: ${({ $active }) =>
     $active ? 'rgba(var(--declutter-accent-rgb), 0.92)' : 'rgba(102, 167, 212, 0.42)'};
-  background: ${({ $active }) =>
-    $active
-      ? 'linear-gradient(180deg, rgba(var(--declutter-accent-rgb), 0.25), rgba(var(--declutter-accent-rgb), 0.1))'
-      : 'rgba(14, 24, 34, 0.82)'};
+  background: var(--dw-surface-raised);
 `;
 
 export const ModeCount = styled.span`
@@ -491,9 +431,7 @@ export const ProgressText = styled.div`
     return LCARS.textDim;
   }};
   font-size: 0.78rem;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: var(--dw-font-ui);
 
   &::before {
     display: ${({ $health }) => ($health ? 'block' : 'none')};
@@ -502,11 +440,7 @@ export const ProgressText = styled.div`
     flex: 0 0 auto;
     border-radius: 50%;
     background: ${({ $health }) => ($health === 'error' ? '#ff6f66' : '#64d49d')};
-    box-shadow: ${({ $health }) => (
-      $health === 'error'
-        ? '0 0 8px rgba(255, 111, 102, 0.68)'
-        : '0 0 8px rgba(100, 212, 157, 0.58)'
-    )};
+    box-shadow: none;
     content: '';
   }
 `;
@@ -515,18 +449,16 @@ export const DecisionPill = styled.span`
   display: inline-flex;
   align-items: center;
   width: max-content;
-  border-radius: 999px;
-  border: 1px solid ${({ $tone = 'pending' }) => `${decisionTone($tone)}80`};
-  background: ${({ $tone = 'pending' }) => `${decisionTone($tone)}22`};
+  border-radius: var(--dw-radius);
+  border: 1px solid ${({ $tone = 'pending' }) => `color-mix(in srgb, ${decisionTone($tone)} 50%, transparent)`};
+  background: ${({ $tone = 'pending' }) => `color-mix(in srgb, ${decisionTone($tone)} 13%, transparent)`};
   color: ${({ $tone = 'pending' }) => decisionTone($tone)};
   padding: 0.16rem 0.5rem;
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 850;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  letter-spacing: 0;
+  text-transform: none;
+  font-family: var(--dw-font-ui);
 `;
 
 export const QueueGrid = styled.div`
@@ -553,7 +485,7 @@ export const QueueItem = styled.article`
     > div:nth-child(2) {
       min-width: 0;
       overflow: hidden;
-      font-size: 0.74rem;
+      font-size: 0.75rem;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
@@ -579,15 +511,19 @@ export const QueueItem = styled.article`
     )};
     align-items: start;
   }
+  @media (max-width: 420px) {
+    grid-template-columns: 40px minmax(0, 1fr);
+    > :nth-child(n + 3) { grid-column: 1 / -1; min-width: 0; }
+  }
 `;
 
 export const ThumbFrame = styled.div`
   width: ${({ $compact, $cardView }) => ($compact ? '30px' : $cardView ? '54px' : '64px')};
   aspect-ratio: 1;
-  border-radius: 8px;
+  border-radius: var(--dw-radius);
   overflow: hidden;
   border: 1px solid rgba(127, 215, 255, 0.22);
-  background: rgba(7, 12, 18, 0.92);
+  background: var(--dw-surface);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -597,6 +533,7 @@ export const ThumbFrame = styled.div`
     height: 54px;
     align-self: center;
   `}
+  @media (max-width: 420px) { width: 40px; height: 40px; }
 `;
 
 export const ThumbImage = styled.img`
@@ -668,10 +605,9 @@ export const CandidateMetaGroup = styled.div`
 
 export const CandidateMetaLabel = styled.span`
   color: rgba(156, 191, 205, 0.5);
-  font: 780 0.5rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font: 780 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 export const CandidateMetaValue = styled.span`
@@ -679,7 +615,7 @@ export const CandidateMetaValue = styled.span`
   color: ${({ $tone }) => (
     $tone === 'location' ? '#f0c77b' : $tone === 'gone' ? '#f08a7b' : LCARS.textDim
   )};
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   line-height: 1.25;
   overflow-wrap: anywhere;
 
@@ -697,7 +633,7 @@ export const CandidateBoxLink = styled(Link)`
   min-width: 0;
   width: fit-content;
   color: #cceeed;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   line-height: 1.2;
   text-decoration: none;
 
@@ -723,9 +659,8 @@ export const CandidateBoxLink = styled(Link)`
 
 export const CandidateBoxId = styled.span`
   color: var(--declutter-accent, ${LCARS.root});
-  font: 820 0.68rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  letter-spacing: 0.04em;
+  font: 820 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
   white-space: nowrap;
 `;
 
@@ -750,15 +685,14 @@ export const HistoryWorkflowHeader = styled.header`
 
   > span {
     color: var(--declutter-accent, ${LCARS.root});
-    font: 850 0.58rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-      'Liberation Mono', 'Courier New', monospace;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
+    font: 850 0.75rem/1 var(--dw-font-ui);
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   small {
     color: ${LCARS.textMuted};
-    font-size: 0.66rem;
+    font-size: 0.75rem;
   }
 
   @media (max-width: 560px) {
@@ -781,10 +715,9 @@ const historyWorkflowButton = css`
   min-height: 36px;
   border-radius: 3px;
   padding: 0.32rem 0.56rem;
-  font: 820 0.6rem/1.15 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  letter-spacing: 0.065em;
-  text-transform: uppercase;
+  font: 820 0.75rem/1.15 var(--dw-font-ui);
+  letter-spacing: 0;
+  text-transform: none;
   cursor: pointer;
 
   &:disabled {
@@ -794,6 +727,8 @@ const historyWorkflowButton = css`
 `;
 
 export const HistoryStageButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   ${historyWorkflowButton};
   border: 1px solid rgba(108, 223, 197, 0.68);
   color: #cffff3;
@@ -801,14 +736,17 @@ export const HistoryStageButton = styled.button`
 
   &:hover:not(:disabled),
   &:focus-visible {
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
     border-color: #72e4c9;
     background: rgba(28, 101, 85, 0.34);
-    box-shadow: 0 0 12px rgba(108, 223, 197, 0.18);
+    box-shadow: none;
   }
 `;
 
 export const HistoryCompleteToggle = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   ${historyWorkflowButton};
   border: 1px solid rgba(240, 138, 123, 0.7);
   color: #ffe1da;
@@ -817,8 +755,9 @@ export const HistoryCompleteToggle = styled.button`
   &:hover:not(:disabled),
   &:focus-visible,
   &[aria-expanded='true'] {
-    outline: none;
-    border-color: #f08a7b;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
+    border-color: var(--dw-coral);
     background: rgba(116, 35, 41, 0.5);
   }
 `;
@@ -831,7 +770,7 @@ export const HistoryWorkflowNotice = styled.div`
   border-left: 2px solid ${({ $tone }) => ($tone === 'staged' ? '#72e4c9' : 'rgba(240, 199, 123, 0.62)')};
   color: ${({ $tone }) => ($tone === 'staged' ? '#cffff3' : '#e8cf9f')};
   background: ${({ $tone }) => ($tone === 'staged' ? 'rgba(28, 101, 85, 0.15)' : 'rgba(113, 82, 32, 0.12)')};
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   line-height: 1.3;
 `;
 
@@ -839,7 +778,7 @@ export const HistoryVerificationPanel = styled.div`
   padding: 0.58rem;
   border: 1px solid rgba(240, 138, 123, 0.36);
   border-radius: 3px;
-  background: rgba(28, 11, 15, 0.72);
+  background: var(--dw-surface-raised);
 `;
 
 export const TagRow = styled.div`
@@ -850,12 +789,12 @@ export const TagRow = styled.div`
 `;
 
 export const TagChip = styled.span`
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(76, 198, 193, 0.4);
   background: rgba(76, 198, 193, 0.13);
   color: #c9f2ee;
   padding: 0.12rem 0.42rem;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
 `;
 
 export const QueueContext = styled.div`
@@ -883,6 +822,8 @@ export const QueueActions = styled.div`
 `;
 
 export const SystemCollectionButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   ${panelBase};
   display: grid;
   gap: 0.7rem;
@@ -892,14 +833,13 @@ export const SystemCollectionButton = styled.button`
   border-color: rgba(240, 138, 123, 0.62);
   color: ${LCARS.text};
   background:
-    linear-gradient(120deg, rgba(240, 138, 123, 0.14), rgba(8, 14, 20, 0.9) 52%),
-    ${LCARS.panel};
+    var(--dw-surface-raised);
   text-align: left;
   cursor: pointer;
 
   &:hover {
     border-color: ${LCARS.coral};
-    box-shadow: 0 0 22px rgba(240, 138, 123, 0.15);
+    box-shadow: none;
   }
 
   &:focus-visible {
@@ -920,7 +860,7 @@ export const SystemCollectionTitle = styled.strong`
   margin: 0.1rem 0 0.2rem;
   color: #ffd2cc;
   font-size: clamp(1rem, 3vw, 1.3rem);
-  letter-spacing: 0.025em;
+  letter-spacing: 0;
 `;
 
 export const SystemCollectionTotal = styled.span`
@@ -929,10 +869,10 @@ export const SystemCollectionTotal = styled.span`
   min-width: 2.4rem;
   min-height: 2.4rem;
   border: 1px solid ${LCARS.coral};
-  border-radius: 7px;
+  border-radius: var(--dw-radius);
   color: ${LCARS.coral};
   background: rgba(240, 138, 123, 0.12);
-  font: 700 1rem/1 ui-monospace, monospace;
+  font: 700 1rem/1 var(--dw-font-ui);
 `;
 
 export const SystemCollectionRoutes = styled.div`
@@ -946,10 +886,10 @@ export const SystemCollectionRoutes = styled.div`
     gap: 0.35rem;
     padding: 0.25rem 0.42rem;
     border: 1px solid rgba(240, 138, 123, 0.28);
-    border-radius: 5px;
+    border-radius: var(--dw-radius);
     color: ${LCARS.textDim};
-    background: rgba(6, 12, 18, 0.5);
-    font-size: 0.72rem;
+    background: var(--dw-surface);
+    font-size: 0.75rem;
   }
 
   i { font-style: normal; }
@@ -959,15 +899,15 @@ export const SystemCollectionRoutes = styled.div`
 export const SystemCollectionOpen = styled.span`
   justify-self: end;
   color: ${LCARS.coral};
-  font: 700 0.68rem/1 ui-monospace, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 700 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 export const ActionConsole = styled.section`
   ${panelBase};
   overflow: hidden;
-  border-radius: 6px;
+  border-radius: var(--dw-radius);
   border-color: rgba(240, 138, 123, 0.5);
 `;
 
@@ -977,7 +917,7 @@ export const ActionConsoleHeading = styled.header`
   justify-content: space-between;
   gap: 1rem;
   padding: 0.85rem;
-  background: linear-gradient(100deg, rgba(240, 138, 123, 0.15), transparent 70%);
+  background: var(--dw-surface-raised);
 
   h2 {
     margin: 0.08rem 0 0.2rem;
@@ -992,7 +932,7 @@ export const ActionConsoleHeading = styled.header`
     border-radius: 3px;
     color: ${LCARS.coral};
     text-align: center;
-    font-family: ui-monospace, monospace;
+    font-family: var(--dw-font-ui);
   }
 `;
 
@@ -1004,10 +944,10 @@ export const ActionTableHeader = styled.div`
   border-top: 1px solid ${LCARS.line};
   border-bottom: 1px solid ${LCARS.line};
   color: ${LCARS.textMuted};
-  background: rgba(4, 9, 14, 0.55);
-  font: 700 0.62rem/1 ui-monospace, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  background: var(--dw-surface);
+  font: 700 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
+  text-transform: none;
 
   @media (max-width: 820px) { display: none; }
 `;
@@ -1023,7 +963,7 @@ export const ActionTableRow = styled.article`
   gap: 0.42rem 0.7rem;
   padding: 0.78rem;
   border-bottom: 1px solid ${LCARS.line};
-  background: rgba(8, 13, 18, 0.22);
+  background: var(--dw-surface);
 
   &:last-child { border-bottom: 0; }
 
@@ -1038,7 +978,7 @@ export const ActionItemCell = styled.div`
   gap: 0.2rem;
   min-width: 0;
 
-  small { color: ${LCARS.textMuted}; font-size: 0.65rem; }
+  small { color: ${LCARS.textMuted}; font-size: 0.75rem; }
 
   @media (max-width: 820px) { grid-column: 1; }
 `;
@@ -1054,14 +994,13 @@ export const ActionRouteChip = styled.span`
   min-height: 24px;
   width: max-content;
   padding: 0.12rem 0.42rem;
-  border: 1px solid ${({ $tone = 'pending' }) => `${decisionTone($tone)}80`};
+  border: 1px solid ${({ $tone = 'pending' }) => `color-mix(in srgb, ${decisionTone($tone)} 50%, transparent)`};
   border-radius: 3px;
   color: ${({ $tone = 'pending' }) => decisionTone($tone)};
-  background: ${({ $tone = 'pending' }) => `${decisionTone($tone)}16`};
-  font: 850 0.6rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  background: ${({ $tone = 'pending' }) => `color-mix(in srgb, ${decisionTone($tone)} 9%, transparent)`};
+  font: 850 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 export const ActionLocationCell = styled.div`
@@ -1083,6 +1022,8 @@ export const ActionPrimaryCell = styled.div`
 `;
 
 export const ActionCompleteButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   min-height: 46px;
   min-width: 0;
   border: 1px solid rgba(255, 107, 98, 0.88);
@@ -1090,11 +1031,10 @@ export const ActionCompleteButton = styled.button`
   padding: 0 1rem;
   color: #ffe6e2;
   background: rgba(91, 29, 34, 0.92);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055);
-  font: 900 0.76rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
+  box-shadow: none;
+  font: 900 0.76rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
+  text-transform: none;
   cursor: pointer;
   transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
 
@@ -1102,9 +1042,7 @@ export const ActionCompleteButton = styled.button`
   &:focus-visible {
     border-color: #ff8a80;
     background: rgba(116, 35, 41, 0.98);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.07),
-      0 0 0 2px rgba(240, 138, 123, 0.15);
+    box-shadow: none;
   }
 
   &:focus-visible {
@@ -1119,14 +1057,16 @@ export const ActionCompleteButton = styled.button`
 `;
 
 export const ActionOptionsToggle = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   min-width: 42px;
   min-height: 46px;
   border: 1px solid rgba(127, 215, 255, 0.34);
   border-radius: 3px;
   color: rgba(214, 232, 239, 0.7);
-  background: rgba(7, 13, 19, 0.86);
-  font: 800 0.68rem/1 ui-monospace, monospace;
-  letter-spacing: 0.08em;
+  background: var(--dw-surface);
+  font: 800 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
   cursor: pointer;
 
   &:hover:not(:disabled),
@@ -1155,8 +1095,8 @@ export const ActionOptionsPanel = styled.div`
   padding: 0.68rem;
   border: 1px solid rgba(127, 215, 255, 0.2);
   border-radius: 4px;
-  background: rgba(6, 11, 16, 0.96);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  background: var(--dw-surface);
+  box-shadow: none;
 `;
 
 export const ActionOptionsHeader = styled.div`
@@ -1169,14 +1109,14 @@ export const ActionOptionsHeader = styled.div`
 
   > span {
     color: #d8edf2;
-    font: 850 0.66rem/1 ui-monospace, monospace;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    font: 850 0.75rem/1 var(--dw-font-ui);
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   > small {
     color: ${LCARS.textMuted};
-    font-size: 0.66rem;
+    font-size: 0.75rem;
     text-align: right;
   }
 `;
@@ -1198,21 +1138,23 @@ export const ActionOptionsField = styled.div`
 
   > span {
     color: ${LCARS.textMuted};
-    font: 750 0.59rem/1 ui-monospace, monospace;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
+    font: 750 0.75rem/1 var(--dw-font-ui);
+    letter-spacing: 0;
+    text-transform: none;
   }
 `;
 
 export const ActionOptionsApply = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   min-height: 40px;
   border: 1px solid rgba(76, 198, 193, 0.45);
   border-radius: 3px;
   color: #d8fffb;
   background: rgba(22, 69, 68, 0.46);
-  font: 850 0.65rem/1 ui-monospace, monospace;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font: 850 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
+  text-transform: none;
   cursor: pointer;
 
   &:disabled {
@@ -1235,14 +1177,16 @@ export const ActionOptionsSecondary = styled.div`
 `;
 
 export const ActionSecondaryButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   min-height: 40px;
   border: 1px solid rgba(102, 167, 212, 0.42);
   border-radius: 3px;
   color: #cfefff;
-  background: rgba(10, 19, 27, 0.94);
-  font: 820 0.62rem/1 ui-monospace, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  background: var(--dw-surface);
+  font: 820 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
+  text-transform: none;
   cursor: pointer;
 
   &:hover:not(:disabled),
@@ -1270,9 +1214,9 @@ export const ActionTodoCell = styled.div`
     min-width: 0;
     padding: 0.35rem;
     border: 1px solid ${LCARS.lineStrong};
-    border-radius: 5px;
+    border-radius: var(--dw-radius);
     color: ${LCARS.text};
-    background: #09111a;
+    background: var(--dw-surface);
   }
 
   @media (max-width: 820px) {
@@ -1319,15 +1263,13 @@ export const FinalFate = styled.div`
   display: flex;
   align-items: center;
   gap: 0.46rem;
-  border: 1px solid ${({ $tone }) => `${decisionTone($tone)}dd`};
-  border-radius: 6px;
+  border: 1px solid ${({ $tone }) => `color-mix(in srgb, ${decisionTone($tone)} 87%, transparent)`};
+  border-radius: var(--dw-radius);
   padding: 0.4rem 0.46rem;
   color: ${({ $tone }) => decisionTone($tone)};
-  background: ${({ $tone }) => `${decisionTone($tone)}20`};
+  background: ${({ $tone }) => `color-mix(in srgb, ${decisionTone($tone)} 13%, transparent)`};
   box-shadow:
-    0 0 0 1px ${({ $tone }) => `${decisionTone($tone)}44`},
-    0 0 18px ${({ $tone }) => `${decisionTone($tone)}66`},
-    inset 0 0 18px ${({ $tone }) => `${decisionTone($tone)}1f`};
+    none;
 
   ${({ $compact }) => $compact && css`
     gap: 0.2rem;
@@ -1336,7 +1278,7 @@ export const FinalFate = styled.div`
     border-radius: 4px;
 
     && > span {
-      font-size: 0.68rem;
+      font-size: 0.75rem;
     }
 
     && small {
@@ -1344,7 +1286,7 @@ export const FinalFate = styled.div`
     }
 
     && strong {
-      font-size: 0.52rem;
+      font-size: 0.75rem;
       line-height: 1;
     }
   `}
@@ -1367,16 +1309,16 @@ export const FinalFate = styled.div`
 
   small {
     color: ${LCARS.textMuted};
-    font: 750 0.5rem/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font: 750 0.75rem/1.2 var(--dw-font-ui);
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   strong {
     color: inherit;
-    font-size: 0.72rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   @media (max-width: 820px) {
@@ -1391,13 +1333,11 @@ export const PlayerVote = styled.div`
   min-width: 0;
   position: relative;
   border: 1px solid ${({ $tone, $winner }) => `${decisionTone($tone)}${$winner ? 'dd' : '55'}`};
-  border-radius: 6px;
-  background: ${({ $tone }) => `${decisionTone($tone)}12`};
+  border-radius: var(--dw-radius);
+  background: ${({ $tone }) => `color-mix(in srgb, ${decisionTone($tone)} 7%, transparent)`};
   color: ${({ $tone }) => decisionTone($tone)};
   padding: 0.36rem 0.44rem;
-  box-shadow: ${({ $tone, $winner }) => ($winner
-    ? `0 0 0 1px ${decisionTone($tone)}44, 0 0 16px ${decisionTone($tone)}55, inset 0 0 16px ${decisionTone($tone)}18`
-    : 'none')};
+  box-shadow: none;
 
   ${({ $compact }) => $compact && css`
     min-height: 20px;
@@ -1406,7 +1346,7 @@ export const PlayerVote = styled.div`
     border-radius: 4px;
 
     && > span {
-      font-size: 0.7rem;
+      font-size: 0.75rem;
     }
 
     strong,
@@ -1416,7 +1356,7 @@ export const PlayerVote = styled.div`
 
     && small {
       overflow: hidden;
-      font-size: 0.52rem;
+      font-size: 0.75rem;
       line-height: 1;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -1424,21 +1364,21 @@ export const PlayerVote = styled.div`
   `}
 
   ${({ $cardView }) => $cardView && css`
-    min-height: 34px;
+    min-height: 44px;
     gap: 0.3rem;
     padding: 0.24rem 0.34rem;
-    border-radius: 5px;
+    border-radius: var(--dw-radius);
 
     > span {
       font-size: 0.9rem;
     }
 
     strong {
-      font-size: 0.54rem;
+      font-size: 0.75rem;
     }
 
     small {
-      font-size: 0.62rem;
+      font-size: 0.75rem;
     }
   `}
 
@@ -1453,14 +1393,14 @@ export const PlayerVote = styled.div`
 
   strong {
     color: ${LCARS.text};
-    font-size: 0.66rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    font-size: 0.75rem;
+    text-transform: none;
+    letter-spacing: 0;
   }
 
   small {
     color: ${({ $tone }) => decisionTone($tone)};
-    font-size: 0.68rem;
+    font-size: 0.75rem;
   }
 `;
 
@@ -1470,10 +1410,9 @@ export const RouteWinnerFlag = styled.em`
   padding: 0.12rem 0.24rem;
   border-left: 1px solid currentColor;
   color: inherit;
-  font: 850 0.46rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 850 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
+  text-transform: none;
   opacity: 0.8;
 `;
 
@@ -1489,15 +1428,15 @@ export const QueueProgressTop = styled.div`
   display: flex;
   justify-content: space-between;
   color: var(--declutter-accent, ${LCARS.root});
-  font-size: 0.66rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0;
+  text-transform: none;
+  font-family: var(--dw-font-ui);
 `;
 
 export const QueueProgressButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   border: 0;
   border-bottom: 1px dotted var(--declutter-accent, ${LCARS.root});
   padding: 0;
@@ -1519,7 +1458,7 @@ export const QueueOverlay = styled.div`
   display: grid;
   place-items: start center;
   padding: 7.5rem 1rem 1rem;
-  background: rgba(3, 7, 11, 0.62);
+  background: var(--dw-surface);
 `;
 
 export const QueuePopover = styled.div`
@@ -1527,9 +1466,9 @@ export const QueuePopover = styled.div`
   max-height: min(62vh, 520px);
   overflow: auto;
   border: 1px solid rgba(127, 215, 255, 0.58);
-  border-radius: 8px;
+  border-radius: var(--dw-radius);
   background: ${LCARS.panelAlt};
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.58), 0 0 24px rgba(76, 198, 193, 0.12);
+  box-shadow: none;
 `;
 
 export const QueuePopoverHeader = styled.div`
@@ -1549,12 +1488,14 @@ export const QueuePopoverTitle = styled.strong`
 `;
 
 export const IconButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   width: 30px;
   height: 30px;
   border: 1px solid ${LCARS.lineStrong};
-  border-radius: 5px;
+  border-radius: var(--dw-radius);
   color: ${LCARS.root};
-  background: rgba(12, 22, 30, 0.9);
+  background: var(--dw-surface-raised);
   font-size: 1.15rem;
   line-height: 1;
   cursor: pointer;
@@ -1593,21 +1534,15 @@ export const QueueLink = styled(Link)`
     color: ${LCARS.textMuted};
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 0.64rem;
+    font-size: 0.75rem;
   }
 `;
 
 export const QueueTrack = styled.div`
   height: 6px;
   overflow: hidden;
-  border-radius: 99px;
-  background: repeating-linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.1) 0,
-    rgba(255, 255, 255, 0.1) 18px,
-    transparent 18px,
-    transparent 22px
-  );
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface-raised);
 `;
 
 export const QueueFill = styled.div`
@@ -1615,7 +1550,7 @@ export const QueueFill = styled.div`
   height: 100%;
   border-radius: inherit;
   background: var(--declutter-accent, ${LCARS.teal});
-  box-shadow: 0 0 10px rgba(var(--declutter-accent-rgb), 0.55);
+  box-shadow: none;
   transition: width 220ms ease;
 `;
 
@@ -1637,14 +1572,14 @@ export const QueuePlayerLabel = styled.div`
   gap: 0.25rem;
   min-height: 7px;
   color: ${({ $player }) => ($player === 'laserfox' ? '#c184ff' : '#52d5ff')};
-  font-size: 0.56rem;
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
   line-height: 1;
-  text-transform: uppercase;
+  text-transform: none;
 
   > span {
-    font-size: 0.72rem;
+    font-size: 0.75rem;
   }
 `;
 
@@ -1662,12 +1597,7 @@ export const QueueSegment = styled.span`
     if (!$decided) return 'rgba(230, 237, 243, 0.16)';
     return $player === 'laserfox' ? '#b875ff' : '#38c9ff';
   }};
-  box-shadow: ${({ $decided, $player }) => {
-    if (!$decided) return 'none';
-    return $player === 'laserfox'
-      ? '0 0 7px rgba(184, 117, 255, 0.58)'
-      : '0 0 7px rgba(56, 201, 255, 0.58)';
-  }};
+  box-shadow: none;
   transition: background 160ms ease, box-shadow 160ms ease;
 `;
 
@@ -1705,9 +1635,9 @@ export const ReviewCard = styled.article`
 
 export const ReviewImageFrame = styled.div`
   min-height: 320px;
-  border-radius: 8px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(127, 215, 255, 0.24);
-  background: #081018;
+  background: var(--dw-surface);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -1749,7 +1679,7 @@ export const ReviewTitle = styled.h2`
 export const ItemLocationLine = styled.div`
   margin-top: 0.26rem;
   color: ${LCARS.textDim};
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   line-height: 1.35;
 `;
 
@@ -1762,19 +1692,17 @@ export const FactGrid = styled.div`
 
 export const Fact = styled.div`
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
+  border-radius: var(--dw-radius);
   padding: 0.38rem 0.46rem;
-  background: rgba(5, 10, 16, 0.32);
+  background: var(--dw-surface);
 `;
 
 export const FactLabel = styled.div`
   color: ${LCARS.textMuted};
-  font-size: 0.58rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0;
+  text-transform: none;
+  font-family: var(--dw-font-ui);
 `;
 
 export const FactValue = styled.div`
@@ -1807,12 +1735,10 @@ export const DecisionButton = styled(Button)`
   align-items: center;
   gap: 0.34rem;
   color: ${({ $tone }) => decisionTone($tone)};
-  border-color: ${({ $tone }) => `${decisionTone($tone)}88`};
+  border-color: ${({ $tone }) => `color-mix(in srgb, ${decisionTone($tone)} 53%, transparent)`};
   background:
-    linear-gradient(180deg, ${({ $tone }) => `${decisionTone($tone)}24`}, rgba(10, 18, 26, 0.9));
-  box-shadow: ${({ $primary, $tone }) => (
-    $primary ? `inset 0 0 14px ${decisionTone($tone)}12` : 'none'
-  )};
+    var(--dw-surface-raised);
+  box-shadow: none;
 
   > span {
     font-size: ${({ $primary }) => ($primary ? '1.1rem' : '0.9rem')};
@@ -1832,13 +1758,13 @@ export const QueueHeading = styled.div`
   align-items: baseline;
   gap: 0.48rem;
   color: ${LCARS.root};
-  font-size: 0.66rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0;
+  text-transform: none;
 
   strong {
     color: ${LCARS.textDim};
-    font-size: 0.68rem;
+    font-size: 0.75rem;
     letter-spacing: 0;
     text-transform: none;
   }
@@ -1850,8 +1776,8 @@ export const PartnerWaiting = styled.div`
   align-items: center;
   gap: 0.54rem;
   border: 1px solid rgba(181, 100, 255, 0.62);
-  border-radius: 7px;
-  background: linear-gradient(90deg, rgba(62, 24, 82, 0.72), rgba(21, 15, 34, 0.8));
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface-raised);
   padding: 0.5rem 0.62rem;
 
   > div {
@@ -1861,14 +1787,14 @@ export const PartnerWaiting = styled.div`
 
   strong {
     color: #d8a6ff;
-    font-size: 0.68rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   span {
     color: ${LCARS.textDim};
-    font-size: 0.72rem;
+    font-size: 0.75rem;
   }
 `;
 
@@ -1885,8 +1811,8 @@ export const DecisionPrompt = styled.div`
   color: ${LCARS.text};
   font-size: 0.76rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 export const NoteDisclosure = styled.details`
@@ -1895,7 +1821,7 @@ export const NoteDisclosure = styled.details`
 
   summary {
     color: ${LCARS.textMuted};
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     cursor: pointer;
     user-select: none;
   }
@@ -1930,10 +1856,9 @@ export const ProgressDashboard = styled.section`
   gap: 0;
   overflow: hidden;
   border-color: rgba(var(--declutter-accent-rgb), 0.26);
-  border-radius: 8px;
+  border-radius: var(--dw-radius);
   background:
-    linear-gradient(135deg, rgba(28, 104, 112, 0.08), transparent 36%),
-    rgba(9, 14, 21, 0.9);
+    var(--dw-surface-raised);
 `;
 
 export const ProgressHeader = styled.header`
@@ -1954,14 +1879,14 @@ export const ProgressHeader = styled.header`
 
   span {
     color: var(--declutter-accent, ${LCARS.root});
-    font: 820 0.66rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
+    font: 820 0.75rem/1 var(--dw-font-ui);
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   small {
     color: ${LCARS.textMuted};
-    font-size: 0.68rem;
+    font-size: 0.75rem;
     white-space: nowrap;
   }
 `;
@@ -1972,10 +1897,10 @@ export const ProgressLedgerLink = styled(Link)`
   gap: 0.26rem;
   min-height: 32px;
   color: rgba(184, 229, 235, 0.74);
-  font: 760 0.6rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.055em;
+  font: 760 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
   text-decoration: none;
-  text-transform: uppercase;
+  text-transform: none;
 
   span {
     color: var(--declutter-accent, ${LCARS.root});
@@ -2014,9 +1939,9 @@ export const ProgressStat = styled.div`
 
   span {
     color: ${({ $tone }) => decisionTone($tone)};
-    font-size: 0.62rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   strong {
@@ -2037,9 +1962,9 @@ export const ProgressStatLink = styled(Link)`
 
   span {
     color: ${({ $tone }) => decisionTone($tone)};
-    font-size: 0.62rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   strong {
@@ -2050,10 +1975,10 @@ export const ProgressStatLink = styled(Link)`
 
   &:hover,
   &:focus-visible {
-    background: ${({ $tone }) => `${decisionTone($tone)}0c`};
+    background: ${({ $tone }) => `color-mix(in srgb, ${decisionTone($tone)} 5%, transparent)`};
   }
 
-  &:focus-visible { outline: 1px solid ${({ $tone }) => `${decisionTone($tone)}99`}; outline-offset: -2px; }
+  &:focus-visible { outline: 1px solid ${({ $tone }) => `color-mix(in srgb, ${decisionTone($tone)} 60%, transparent)`}; outline-offset: -2px; }
 `;
 
 export const DashboardPanel = styled.section`
@@ -2067,13 +1992,13 @@ export const PanelHeading = styled.div`
   gap: 0.5rem;
   margin-bottom: 0.38rem;
   color: var(--declutter-accent, ${LCARS.root});
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0;
+  text-transform: none;
 
   small {
     color: ${LCARS.textMuted};
-    font-size: 0.64rem;
+    font-size: 0.75rem;
     letter-spacing: 0;
     text-transform: none;
   }
@@ -2090,7 +2015,7 @@ export const SummaryRow = styled.div`
   align-items: center;
   gap: 0.42rem;
   color: ${LCARS.text};
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 
   > strong,
   > small {
@@ -2112,7 +2037,7 @@ export const SummaryLink = styled(Link)`
   padding: 0.1rem 0.2rem;
   border-radius: 4px;
   color: ${LCARS.text};
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   text-decoration: none;
 
   > strong,
@@ -2152,9 +2077,9 @@ export const ProgressLedgerColumn = styled.section`
   > h3 {
     margin: 0 0 0.2rem;
     color: ${({ $tone }) => ($tone === 'toss' ? '#f08a7b' : '#64bc97')};
-    font: 820 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font: 820 0.75rem/1 var(--dw-font-ui);
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -2171,7 +2096,7 @@ export const DepartureToastContent = styled.div`
 
 export const DepartureToastBreadcrumb = styled.small`
   color: rgba(255, 240, 210, 0.78);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--dw-font-ui);
 `;
 
 export const DepartureToastLink = styled(Link)`
@@ -2202,18 +2127,18 @@ export const HistoryHeader = styled.header`
 
 export const HistoryBackLink = styled(Link)`
   width: fit-content;
-  min-height: 34px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   border: 1px solid rgba(var(--declutter-accent-rgb), 0.58);
-  border-radius: 5px;
+  border-radius: var(--dw-radius);
   padding: 0 0.68rem;
   background: rgba(var(--declutter-accent-rgb), 0.1);
   color: var(--declutter-accent);
-  font: 850 0.68rem ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.08em;
+  font: 850 0.75rem var(--dw-font-ui);
+  letter-spacing: 0;
   text-decoration: none;
-  text-transform: uppercase;
+  text-transform: none;
 
   &:hover,
   &:focus-visible {
@@ -2228,15 +2153,15 @@ export const HistoryBackLink = styled(Link)`
 
 export const HistoryLedgerColumn = styled.section`
   border: 1px solid ${({ $tone }) => ($tone === 'toss' ? 'rgba(240, 138, 123, 0.34)' : 'rgba(100, 188, 151, 0.34)')};
-  border-radius: 7px;
+  border-radius: var(--dw-radius);
   padding: 0.55rem;
 
   > h3 {
     margin: 0 0 0.45rem;
     color: ${({ $tone }) => ($tone === 'toss' ? '#f08a7b' : '#64bc97')};
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+    text-transform: none;
+    letter-spacing: 0;
   }
 `;
 
@@ -2273,9 +2198,9 @@ export const HistoryRouteFilters = styled.nav`
   > span:first-child {
     margin-right: 0.12rem;
     color: ${LCARS.textMuted};
-    font: 800 0.56rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font: 800 0.75rem/1 var(--dw-font-ui);
+    letter-spacing: 0;
+    text-transform: none;
   }
 `;
 
@@ -2285,20 +2210,18 @@ export const HistoryRouteLink = styled(Link)`
   align-items: center;
   gap: 0.2rem;
   border: 1px solid ${({ $active, $tone }) => (
-    $active ? `${decisionTone($tone)}cc` : 'rgba(255, 255, 255, 0.14)'
+    $active ? `color-mix(in srgb, ${decisionTone($tone)} 80%, transparent)` : 'rgba(255, 255, 255, 0.14)'
   )};
-  border-radius: 5px;
+  border-radius: var(--dw-radius);
   padding: 0 0.48rem;
   color: ${({ $active, $tone }) => ($active ? decisionTone($tone) : LCARS.textDim)};
   background: ${({ $active, $tone }) => (
-    $active ? `${decisionTone($tone)}1f` : 'rgba(255, 255, 255, 0.025)'
+    $active ? `color-mix(in srgb, ${decisionTone($tone)} 12%, transparent)` : 'rgba(255, 255, 255, 0.025)'
   )};
-  box-shadow: ${({ $active, $tone }) => (
-    $active ? `0 0 10px ${decisionTone($tone)}33` : 'none'
-  )};
-  font: 800 0.6rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  box-shadow: none;
+  font: 800 0.75rem/1 var(--dw-font-ui);
   text-decoration: none;
-  text-transform: uppercase;
+  text-transform: none;
 `;
 
 export const HistoryViewBar = styled.div`
@@ -2317,9 +2240,9 @@ export const HistoryViewBar = styled.div`
 
 export const HistoryViewLabel = styled.span`
   color: ${LCARS.textMuted};
-  font: 800 0.58rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 800 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
+  text-transform: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     display: none;
@@ -2332,19 +2255,21 @@ export const HistoryViewChoices = styled.div`
 `;
 
 export const HistoryViewButton = styled.button`
-  min-height: 32px;
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
+  min-height: 40px;
   border: 1px solid ${({ $active }) => (
     $active ? 'rgba(var(--declutter-accent-rgb), 0.76)' : 'rgba(255, 255, 255, 0.16)'
   )};
-  border-radius: 5px;
+  border-radius: var(--dw-radius);
   padding: 0 0.52rem;
   color: ${({ $active }) => ($active ? 'var(--declutter-accent)' : LCARS.textDim)};
   background: ${({ $active }) => (
     $active ? 'rgba(var(--declutter-accent-rgb), 0.18)' : 'rgba(255, 255, 255, 0.035)'
   )};
-  font: 800 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font: 800 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
+  text-transform: none;
   cursor: pointer;
 
   &:focus-visible {
@@ -2355,7 +2280,7 @@ export const HistoryViewButton = styled.button`
 
 export const HistoryPageSummary = styled.span`
   color: ${LCARS.textMuted};
-  font: 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font: 0.75rem/1 var(--dw-font-ui);
   white-space: nowrap;
 `;
 
@@ -2370,7 +2295,7 @@ export const HistoryPagination = styled.nav`
 
   > span {
     color: ${LCARS.textMuted};
-    font: 0.62rem/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font: 0.75rem/1.2 var(--dw-font-ui);
     text-align: center;
   }
 `;
@@ -2380,25 +2305,25 @@ export const HistoryPageLink = styled(Link)`
   display: inline-flex;
   align-items: center;
   border: 1px solid rgba(var(--declutter-accent-rgb), 0.46);
-  border-radius: 5px;
+  border-radius: var(--dw-radius);
   padding: 0 0.54rem;
   color: var(--declutter-accent);
   background: rgba(var(--declutter-accent-rgb), 0.1);
-  font: 850 0.6rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.04em;
+  font: 850 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
   text-decoration: none;
-  text-transform: uppercase;
+  text-transform: none;
   opacity: ${({ $disabled }) => ($disabled ? 0.34 : 1)};
   pointer-events: ${({ $disabled }) => ($disabled ? 'none' : 'auto')};
 `;
 
 export const HistoryFilterLink = styled(Link)`
   border: 1px solid ${({ $active }) => ($active ? 'rgba(var(--declutter-accent-rgb), 0.76)' : 'rgba(255, 255, 255, 0.16)')};
-  border-radius: 5px;
+  border-radius: var(--dw-radius);
   padding: 0.34rem 0.54rem;
   color: ${({ $active }) => ($active ? 'var(--declutter-accent)' : LCARS.textDim)};
   background: ${({ $active }) => ($active ? 'rgba(var(--declutter-accent-rgb), 0.18)' : 'rgba(255, 255, 255, 0.035)')};
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   text-decoration: none;
 `;
 
@@ -2412,7 +2337,7 @@ export const SummaryLabel = styled.div`
 export const SummaryTrack = styled.div`
   height: 6px;
   overflow: hidden;
-  border-radius: 99px;
+  border-radius: var(--dw-radius);
   background: rgba(255, 255, 255, 0.08);
 `;
 
@@ -2420,7 +2345,7 @@ export const SummaryFill = styled.div`
   width: ${({ $percent = 0 }) => `${Math.max(0, Math.min(100, $percent))}%`};
   height: 100%;
   background: ${({ $tone }) => decisionTone($tone)};
-  box-shadow: 0 0 7px ${({ $tone }) => `${decisionTone($tone)}88`};
+  box-shadow: none;
 `;
 
 export const PartnerStatsTable = styled.table`
@@ -2428,9 +2353,9 @@ export const PartnerStatsTable = styled.table`
   border-collapse: collapse;
   overflow: hidden;
   border: 1px solid ${LCARS.line};
-  border-radius: 7px;
+  border-radius: var(--dw-radius);
   color: ${LCARS.text};
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
 
   th,
@@ -2441,9 +2366,9 @@ export const PartnerStatsTable = styled.table`
 
   thead th {
     background: rgba(255, 255, 255, 0.035);
-    font-size: 0.64rem;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   th:first-child {
@@ -2489,9 +2414,9 @@ export const WorkflowCard = styled.article`
   gap: 0.7rem;
   min-width: 0;
   border: 1px solid ${({ theme }) => theme?.declutterAccent || 'rgba(106, 223, 255, 0.45)'};
-  border-radius: 9px;
+  border-radius: var(--dw-radius);
   padding: 0.85rem;
-  background: rgba(5, 12, 18, 0.72);
+  background: var(--dw-surface);
 `;
 
 export const WorkflowCardTop = styled.div`
@@ -2526,8 +2451,8 @@ export const WorkflowLaneTitle = styled.h2`
   margin: 0 0 0.45rem;
   color: ${({ theme }) => theme?.declutterAccent || '#73fff4'};
   font-size: 0.82rem;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
 
   > span:first-child {
     grid-area: title;
@@ -2567,8 +2492,8 @@ export const DiscussionScrim = styled.div`
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: rgba(2, 5, 9, 0.78);
-  backdrop-filter: blur(7px);
+  background: var(--dw-surface);
+  backdrop-filter: none;
 
   @media (max-width: 520px) { padding: 0; }
 `;
@@ -2578,11 +2503,10 @@ export const DiscussionSheet = styled.section`
   max-height: min(820px, calc(100dvh - 2rem));
   overflow: auto;
   border: 1px solid rgba(139, 226, 218, 0.38);
-  border-radius: 8px;
+  border-radius: var(--dw-radius);
   background:
-    linear-gradient(115deg, rgba(71, 205, 193, 0.055), transparent 38%, rgba(172, 112, 238, 0.06)),
-    #0a0e14;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.055), 0 24px 70px rgba(0, 0, 0, 0.62);
+    var(--dw-surface-raised);
+  box-shadow: none;
   animation: ${sheetReveal} 220ms ease-out;
 
   @media (max-width: 520px) {
@@ -2606,11 +2530,13 @@ export const DiscussionHeader = styled.header`
   min-height: 74px;
   padding: 0.68rem 0.8rem 0.68rem 0.35rem;
   border-bottom: 1px solid rgba(139, 226, 218, 0.18);
-  background: rgba(8, 12, 18, 0.97);
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+  background: var(--dw-surface);
+  box-shadow: none;
 `;
 
 export const DiscussionClose = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   width: 40px;
   height: 40px;
   border: 0;
@@ -2625,9 +2551,9 @@ export const DiscussionClose = styled.button`
 
 export const DiscussionKicker = styled.div`
   color: #84dcd5;
-  font: 800 0.58rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
+  font: 800 0.75rem/1.2 var(--dw-font-ui);
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 export const DiscussionTitle = styled.h2`
@@ -2640,7 +2566,7 @@ export const DiscussionTitle = styled.h2`
 export const DiscussionContext = styled.div`
   margin-top: 0.2rem;
   color: ${LCARS.textMuted};
-  font: 0.67rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font: 0.75rem/1.2 var(--dw-font-ui);
 `;
 
 export const DiscussionBody = styled.div`
@@ -2663,10 +2589,10 @@ export const DiscussionThumb = styled.div`
   place-items: center;
   overflow: hidden;
   border: 1px solid rgba(115, 255, 244, 0.22);
-  border-radius: 5px;
+  border-radius: var(--dw-radius);
   color: ${LCARS.textMuted};
-  background: #060b10;
-  font-size: 0.62rem;
+  background: var(--dw-background);
+  font-size: 0.75rem;
 
   img { width: 100%; height: 100%; object-fit: cover; }
 `;
@@ -2682,15 +2608,15 @@ export const DiscussionVote = styled.div`
   align-items: center;
   gap: 0.42rem;
   min-width: 0;
-  border: 1px solid ${({ $tone }) => `${decisionTone($tone)}55`};
+  border: 1px solid ${({ $tone }) => `color-mix(in srgb, ${decisionTone($tone)} 33%, transparent)`};
   padding: 0.48rem;
   color: ${({ $tone }) => decisionTone($tone)};
-  background: ${({ $tone }) => `${decisionTone($tone)}0d`};
+  background: ${({ $tone }) => `color-mix(in srgb, ${decisionTone($tone)} 5%, transparent)`};
 
   > span { font-size: 1.12rem; }
   > div { display: grid; min-width: 0; }
-  small { color: ${LCARS.textMuted}; font: 750 0.52rem/1.2 ui-monospace, monospace; text-transform: uppercase; }
-  strong { overflow: hidden; font-size: 0.76rem; text-overflow: ellipsis; text-transform: uppercase; }
+  small { color: ${LCARS.textMuted}; font: 750 0.75rem/1.2 var(--dw-font-ui); text-transform: none; }
+  strong { overflow: hidden; font-size: 0.76rem; text-overflow: ellipsis; text-transform: none; }
 `;
 
 export const DiscussionRecommendation = styled.div`
@@ -2700,16 +2626,16 @@ export const DiscussionRecommendation = styled.div`
   padding: 0.54rem 0.65rem;
   background: rgba(255, 255, 255, 0.025);
 
-  small { color: ${LCARS.textMuted}; font: 800 0.54rem/1.2 ui-monospace, monospace; text-transform: uppercase; }
+  small { color: ${LCARS.textMuted}; font: 800 0.75rem/1.2 var(--dw-font-ui); text-transform: none; }
   strong { color: ${({ $hasRecommendation }) => ($hasRecommendation ? '#91ead8' : '#d5b6f5')}; }
-  span { color: ${LCARS.textDim}; font-size: 0.72rem; line-height: 1.35; }
+  span { color: ${LCARS.textDim}; font-size: 0.75rem; line-height: 1.35; }
 `;
 
 export const DiscussionSectionLabel = styled.div`
   color: ${LCARS.textDim};
-  font: 820 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  font: 820 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
+  text-transform: none;
 `;
 
 export const DiscussionChoiceGrid = styled.div`
@@ -2719,23 +2645,25 @@ export const DiscussionChoiceGrid = styled.div`
 `;
 
 export const DiscussionChoice = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   min-height: 58px;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   border: 1px solid ${({ $tone, $selected }) => `${decisionTone($tone)}${$selected ? 'cc' : '44'}`};
-  border-radius: 5px;
+  border-radius: var(--dw-radius);
   padding: 0.48rem 0.55rem;
   color: ${({ $tone }) => decisionTone($tone)};
   background: ${({ $tone, $selected }) => `${decisionTone($tone)}${$selected ? '20' : '08'}`};
-  box-shadow: ${({ $tone, $selected }) => ($selected ? `inset 0 0 18px ${decisionTone($tone)}18` : 'none')};
+  box-shadow: none;
   text-align: left;
   cursor: pointer;
 
   > span { font-size: 1rem; }
   > div { display: grid; gap: 0.1rem; }
-  strong { font-size: 0.72rem; text-transform: uppercase; }
-  small { color: ${LCARS.textMuted}; font-size: 0.62rem; line-height: 1.25; }
+  strong { font-size: 0.75rem; text-transform: none; }
+  small { color: ${LCARS.textMuted}; font-size: 0.75rem; line-height: 1.25; }
   &:focus-visible { outline: 2px solid ${({ $tone }) => decisionTone($tone)}; outline-offset: 2px; }
 `;
 
@@ -2743,8 +2671,8 @@ export const DiscussionNotes = styled.label`
   display: grid;
   gap: 0.32rem;
   color: ${LCARS.textDim};
-  font: 760 0.62rem/1.2 ui-monospace, monospace;
-  text-transform: uppercase;
+  font: 760 0.75rem/1.2 var(--dw-font-ui);
+  text-transform: none;
 
   small { color: ${LCARS.textMuted}; font-weight: 500; }
   textarea {
@@ -2754,7 +2682,7 @@ export const DiscussionNotes = styled.label`
     border-radius: 4px;
     padding: 0.56rem;
     color: ${LCARS.text};
-    background: #070c12;
+    background: var(--dw-background);
     font: inherit;
     font-size: 0.78rem;
     line-height: 1.35;
@@ -2763,14 +2691,16 @@ export const DiscussionNotes = styled.label`
 `;
 
 export const DiscussionCommit = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   min-height: 46px;
-  border: 1px solid ${({ $tone }) => `${decisionTone($tone)}bb`};
-  border-radius: 5px;
+  border: 1px solid ${({ $tone }) => `color-mix(in srgb, ${decisionTone($tone)} 73%, transparent)`};
+  border-radius: var(--dw-radius);
   color: ${({ $tone }) => decisionTone($tone)};
-  background: ${({ $tone }) => `${decisionTone($tone)}20`};
-  font: 850 0.72rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  background: ${({ $tone }) => `color-mix(in srgb, ${decisionTone($tone)} 13%, transparent)`};
+  font: 850 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
+  text-transform: none;
   cursor: pointer;
   &:disabled { cursor: not-allowed; opacity: 0.42; }
 `;
@@ -2786,25 +2716,27 @@ export const DiscussionError = styled.div`
   background: rgba(240, 138, 123, 0.09);
 
   strong {
-    font: 850 0.64rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    font: 850 0.75rem/1.2 var(--dw-font-ui);
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   span {
     color: ${LCARS.textDim};
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     line-height: 1.35;
     overflow-wrap: anywhere;
   }
 `;
 
 export const DiscussionReopen = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   min-height: 40px;
   border: 0;
   color: ${LCARS.textMuted};
   background: transparent;
-  font: 760 0.62rem/1 ui-monospace, monospace;
+  font: 760 0.75rem/1 var(--dw-font-ui);
   text-decoration: underline;
   text-underline-offset: 0.22rem;
   cursor: pointer;
@@ -2818,37 +2750,42 @@ export const ActionControls = styled.div`
   select {
     min-height: 38px;
     border: 1px solid rgba(130, 210, 255, 0.36);
-    border-radius: 5px;
+    border-radius: var(--dw-radius);
     padding: 0 0.55rem;
     color: ${LCARS.text};
-    background: #09131b;
+    background: var(--dw-surface);
   }
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
 `;
 
 export const HoldButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   position: relative;
   overflow: hidden;
   min-height: 62px;
   border: 1px solid #ff5b53;
-  border-radius: 7px;
+  border-radius: var(--dw-radius);
   color: #fff;
   background:
     linear-gradient(90deg, rgba(255, 35, 25, 0.85) 0 0) left / ${({ $holding }) => ($holding ? '100%' : '0%')} 100% no-repeat,
     rgba(100, 10, 10, 0.42);
   font-weight: 900;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   transition: background-size 1200ms linear;
   touch-action: none;
 `;
 
 export const CompactHoldButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   justify-self: center;
   box-sizing: border-box;
   width: 188px;
   max-width: min(44vw, 188px);
-  min-height: 34px;
+  min-height: 44px;
   border: 1px solid #ff9b78;
-  border-radius: 5px;
+  border-radius: var(--dw-radius);
   padding: 0.42rem 0.7rem;
   color: ${({ $holding }) => ($holding ? '#fff' : '#ffd0c1')};
   background:
@@ -2856,10 +2793,10 @@ export const CompactHoldButton = styled.button`
       ${({ $holding }) => ($holding ? '100%' : '0%')} 100% no-repeat,
     rgba(91, 31, 27, 0.28);
   font: inherit;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   white-space: nowrap;
   transition:
     background-size ${({ $holding, $holdMs }) => ($holding ? `${$holdMs}ms` : '100ms')} linear,
@@ -2871,4 +2808,7 @@ export const CompactHoldButton = styled.button`
     cursor: not-allowed;
     opacity: 0.5;
   }
+  width: auto;
+  max-width: 100%;
+  white-space: normal;
 `;

@@ -1,5 +1,7 @@
+import { inputStyles } from '../styles/primitives';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
+import { getCompartments } from '../util/boxCompartments';
 import BoxIdPrefixInput from './BoxIdPrefixInput';
 import { fetchItemMoveLogs } from '../api/logs';
 import {
@@ -29,24 +31,25 @@ const FilterPanel = styled.div`
 `;
 
 const FilterLabel = styled.label`
-  font-size: 0.58rem;
+  font-size: 0.75rem;
   font-weight: 780;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(151, 216, 255, 0.82);
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--dw-cyan);
 `;
 
 const FilterInput = styled.input`
+  ${inputStyles}
   width: 100%;
-  border: 1px solid rgba(93, 165, 212, 0.62);
-  border-radius: 6px;
-  background: rgba(5, 12, 19, 0.94);
-  color: #e6f2ff;
-  min-height: 40px;
+  border: 1px solid rgba(230, 237, 243, 0.18);
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface-raised);
+  color: var(--dw-text);
+  min-height: 44px;
   padding: 0.38rem 0.54rem;
   font-size: 0.78rem;
-  outline: none;
-  box-shadow: inset 0 0 0 1px rgba(125, 185, 220, 0.08);
+  outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
   transition:
     border-color 130ms ease,
     box-shadow 130ms ease,
@@ -54,20 +57,18 @@ const FilterInput = styled.input`
 
   &:focus {
     border-color: rgba(122, 208, 255, 0.9);
-    box-shadow:
-      0 0 0 2px rgba(122, 208, 255, 0.22),
-      0 0 14px rgba(122, 208, 255, 0.24);
-    background: rgba(12, 24, 36, 0.98);
+    box-shadow: 0 0 0 2px rgba(127, 215, 255, 0.16);
+    background: var(--dw-surface-raised);
   }
 `;
 
 const SectionHeading = styled.h4`
   margin: 0.42rem 0 0.2rem;
   padding-left: 0.08rem;
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: rgba(167, 182, 255, 0.82);
 `;
 
@@ -87,8 +88,8 @@ const BoxItem = styled.li`
   min-height: 42px;
   padding: 0.28rem 0.44rem;
   border: 1px solid rgba(127, 215, 255, 0.2);
-  border-radius: 5px;
-  background: rgba(17, 24, 34, 0.84);
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface);
   cursor: pointer;
   transition:
     background 0.15s ease,
@@ -96,25 +97,24 @@ const BoxItem = styled.li`
     box-shadow 0.15s ease;
 
   &:hover {
-    background: rgba(25, 39, 53, 0.94);
+    background: var(--dw-surface-raised);
     border-color: rgba(127, 215, 255, 0.62);
-    box-shadow: 0 0 0 1px rgba(127, 215, 255, 0.12);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 0.3rem;
-    min-height: 40px;
+    min-height: 44px;
     padding: 0.24rem 0.34rem;
   }
 `;
 
 const OrphanItem = styled(BoxItem)`
   border-color: rgba(225, 160, 100, 0.66);
-  background: rgba(51, 38, 29, 0.72);
+  background: var(--dw-surface);
 
   &:hover {
-    background: rgba(72, 50, 31, 0.86);
+    background: var(--dw-surface);
     border-color: rgba(235, 185, 120, 0.84);
     box-shadow: 0 0 0 1px rgba(235, 185, 120, 0.24);
   }
@@ -140,30 +140,20 @@ const BoxIdChip = styled.span`
   align-items: center;
   min-height: 23px;
   padding: 0 0.42rem;
-  border-radius: 5px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(116, 212, 255, 0.6);
-  background: linear-gradient(
-    180deg,
-    rgba(116, 212, 255, 0.2) 0%,
-    rgba(116, 212, 255, 0.1) 100%
-  );
+  background: var(--dw-surface-raised);
   color: #8ce2ff;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: var(--dw-font-data);
   font-size: 0.76rem;
-  font-weight: 800;
-  letter-spacing: 0.03em;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   white-space: nowrap;
 `;
 
 const OrphanIdChip = styled(BoxIdChip)`
   border-color: rgba(238, 184, 120, 0.65);
-  background: linear-gradient(
-    180deg,
-    rgba(238, 184, 120, 0.26) 0%,
-    rgba(238, 184, 120, 0.12) 100%
-  );
+  background: var(--dw-surface-raised);
   color: #ffd8a5;
 `;
 
@@ -201,12 +191,12 @@ const MetaPill = styled.span`
   align-items: center;
   min-height: 20px;
   padding: 0 0.34rem;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   border: 1px solid #394646;
   background: #1a2122;
   color: #d8e7e7;
-  font-size: 0.72rem;
-  letter-spacing: 0.02em;
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
   white-space: nowrap;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -219,7 +209,7 @@ const MetaPill = styled.span`
 const StatusHint = styled(MetaPill)`
   margin-top: 0.44rem;
   width: fit-content;
-  border-radius: 2px;
+  border-radius: var(--dw-radius-sm);
 `;
 
 const LevelPill = styled(MetaPill)`
@@ -234,27 +224,27 @@ const LevelPill = styled(MetaPill)`
 
 const OrphanPill = styled(MetaPill)`
   border-color: rgba(238, 184, 120, 0.52);
-  background: rgba(65, 48, 30, 0.82);
+  background: var(--dw-surface);
   color: #ffd8a5;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 const RecentPill = styled(MetaPill)`
   border-color: rgba(170, 136, 255, 0.62);
-  background: rgba(42, 36, 70, 0.86);
+  background: var(--dw-surface);
   color: #d9ceff;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 const SuggestedPill = styled(MetaPill)`
-  border-radius: 2px;
+  border-radius: var(--dw-radius-sm);
   border-color: rgba(255, 184, 84, 0.62);
   background: rgba(255, 160, 42, 0.11);
   color: #ffd493;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 export default function MoveItemToOtherBox({
@@ -293,9 +283,7 @@ export default function MoveItemToOtherBox({
       try {
         setLoading(true);
 
-        const url = currentBoxId
-          ? `/api/boxes/exclude/${encodeURIComponent(String(currentBoxId))}`
-          : '/api/boxes';
+        const url = '/api/boxes';
         const res = await fetch(url);
 
         const contentType = res.headers.get('content-type') || '';
@@ -412,11 +400,12 @@ export default function MoveItemToOtherBox({
     };
   }, [currentBoxId, normalizedItemIds, shouldLoadRecentDestinations]);
 
-  const handleSelect = (box) => {
+  const handleSelect = (box, compartmentKey) => {
     onBoxSelected?.({
       destBoxId: box._id,
+      compartmentKey,
       destLabel: box.label,
-      destShortId: box.box_id,
+      destShortId: `${box.box_id}${compartmentKey || ''}`,
       isOrphanedDestination: false,
       toState: 'boxed',
     });
@@ -463,6 +452,7 @@ export default function MoveItemToOtherBox({
     };
 
     return list
+      .filter((box) => String(box._id) !== String(currentBoxId) || box.isComplexBox)
       .map((box) => ({
         ...box,
         _itemCount: Array.isArray(box?.items) ? box.items.length : 0,
@@ -473,7 +463,7 @@ export default function MoveItemToOtherBox({
         if (numericDiff !== 0) return numericDiff;
         return String(a?.label || '').localeCompare(String(b?.label || ''));
       });
-  }, [otherBoxes]);
+  }, [otherBoxes, currentBoxId]);
 
   const filteredBoxes = useMemo(() => {
     return normalizedBoxes.filter((box) =>
@@ -525,6 +515,7 @@ export default function MoveItemToOtherBox({
     || remainingBoxes.length > 0;
 
   const renderBoxItem = (box, { isRecent = false, isSuggested = false } = {}) => (
+    <React.Fragment key={box._id}>
     <BoxItem
       key={box._id || `${box.box_id}-${box.label}`}
       role="button"
@@ -553,6 +544,12 @@ export default function MoveItemToOtherBox({
         <LevelPill>L{box._depth}</LevelPill>
       </MetaLane>
     </BoxItem>
+    {getCompartments(box).map((row) => <BoxItem as="li" key={row.key} style={{ marginLeft: '1rem' }}>
+      <button type="button" disabled={disabled} onClick={() => handleSelect(box, row.key)} style={{ background: 'transparent', color: 'inherit', border: 0, minHeight: 44, textAlign: 'left', cursor: 'pointer', width: '100%' }}>
+        #{box.box_id}{row.key} · {row.label || `Compartment ${row.key}`}
+      </button>
+    </BoxItem>)}
+    </React.Fragment>
   );
 
   const handleFilterChange = (event) => {

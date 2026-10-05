@@ -1,3 +1,4 @@
+import { panelStyles } from '../../styles/primitives';
 import { useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
@@ -10,21 +11,24 @@ const Wrap = styled.div`
 `;
 
 const Hero = styled.section`
-  border: 1px solid rgba(92, 158, 181, 0.44);
-  border-radius: 10px;
-  background: rgba(9, 17, 25, 0.92);
-  box-shadow: inset 0 1px 0 rgba(180, 224, 235, 0.07);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
+  box-shadow: none;
   padding: clamp(1rem, 2.4vw, 1.5rem);
   display: grid;
   gap: 0.64rem;
+
+  ${panelStyles}
+  border-left: 3px solid var(--dw-amber);
 `;
 
 const Eyebrow = styled.div`
-  color: #8fd2d0;
-  font-size: 0.68rem;
+  color: var(--dw-teal);
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 const Title = styled.h1`
@@ -33,13 +37,13 @@ const Title = styled.h1`
   font-size: clamp(1.45rem, 4vw, 2.35rem);
   line-height: 1.02;
   letter-spacing: -0.035em;
-  color: #ecf8ff;
+  color: var(--dw-text);
 `;
 
 const IntroText = styled.p`
   margin: 0;
   max-width: 72ch;
-  color: #abc3d2;
+  color: var(--dw-text-secondary);
   font-size: 0.88rem;
   line-height: 1.45;
 `;
@@ -59,9 +63,9 @@ const RouteCard = styled.a`
   gap: 0.34rem;
   min-height: 9.2rem;
   padding: 0.78rem;
-  border: 1px solid ${({ $recommended }) => ($recommended ? 'rgba(101, 202, 171, 0.62)' : 'rgba(99, 151, 182, 0.36)')};
-  border-radius: 9px;
-  background: ${({ $recommended }) => ($recommended ? 'rgba(14, 44, 38, 0.78)' : 'rgba(12, 24, 34, 0.78)')};
+  border: 1px solid ${({ $recommended }) => ($recommended ? 'var(--dw-teal)' : 'var(--dw-border)')};
+  border-radius: var(--dw-radius-sm);
+  background: ${({ $recommended }) => ($recommended ? 'var(--dw-surface-raised)' : 'var(--dw-surface)')};
   color: inherit;
   text-decoration: none;
   transition: border-color 180ms ease, transform 180ms ease, background 180ms ease;
@@ -69,7 +73,7 @@ const RouteCard = styled.a`
   &:hover,
   &:focus-visible {
     border-color: rgba(151, 220, 226, 0.82);
-    background: rgba(18, 40, 52, 0.94);
+    background: var(--dw-surface-raised);
     transform: translateY(-1px);
   }
 
@@ -80,32 +84,32 @@ const RouteCard = styled.a`
 `;
 
 const RouteKicker = styled.div`
-  color: ${({ $recommended }) => ($recommended ? '#9ff0cf' : '#9dbbd0')};
-  font-size: 0.66rem;
+  color: ${({ $recommended }) => ($recommended ? 'var(--dw-teal)' : 'var(--dw-text-secondary)')};
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 const RouteTitle = styled.h2`
   margin: 0;
-  color: #e8f4fb;
+  color: var(--dw-text);
   font-size: 0.95rem;
 `;
 
 const RouteText = styled.p`
   margin: 0;
-  color: #a6bfce;
+  color: var(--dw-text-secondary);
   font-size: 0.76rem;
   line-height: 1.4;
 `;
 
 const RouteAction = styled.span`
   align-self: end;
-  color: #bfe6e6;
+  color: var(--dw-teal);
   font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.01em;
 `;
 
 const Guide = styled.section`
@@ -113,9 +117,9 @@ const Guide = styled.section`
   gap: 0.55rem;
   min-width: 0;
   padding: 0.82rem;
-  border: 1px solid rgba(104, 150, 174, 0.3);
-  border-radius: 10px;
-  background: rgba(8, 16, 24, 0.72);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
 `;
 
 const GuideHeader = styled.div`
@@ -129,21 +133,21 @@ const GuideHeader = styled.div`
 
 const GuideTitle = styled.h2`
   margin: 0;
-  color: #dceefa;
+  color: var(--dw-text);
   font-size: 0.9rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 const GuideHint = styled.span`
-  color: #8faabd;
+  color: var(--dw-text-muted);
   font-size: 0.72rem;
 `;
 
 const GuideDetails = styled.details`
   min-width: 0;
   max-width: 100%;
-  border-top: 1px solid rgba(104, 150, 174, 0.2);
+  border-top: 1px solid var(--dw-border);
   padding-top: 0.55rem;
 
   summary {
@@ -153,7 +157,7 @@ const GuideDetails = styled.details`
     display: flex;
     align-items: center;
     cursor: pointer;
-    color: #cfe5f1;
+    color: var(--dw-text-secondary);
     font-size: 0.82rem;
     font-weight: 700;
     overflow-wrap: anywhere;
@@ -167,7 +171,7 @@ const GuideDetails = styled.details`
 
   p,
   li {
-    color: #9db7c8;
+    color: var(--dw-text-secondary);
     font-size: 0.78rem;
     line-height: 1.52;
     overflow-wrap: anywhere;
@@ -176,7 +180,7 @@ const GuideDetails = styled.details`
   code,
   pre {
     color: #c9f1dd;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-family: var(--dw-font-ui);
     overflow-wrap: anywhere;
   }
 
@@ -186,9 +190,9 @@ const GuideDetails = styled.details`
     overflow-x: auto;
     margin: 0.5rem 0 0;
     padding: 0.68rem;
-    border: 1px solid rgba(96, 152, 189, 0.28);
-    border-radius: 7px;
-    background: rgba(3, 8, 13, 0.72);
+    border: 1px solid var(--dw-border);
+    border-radius: var(--dw-radius-sm);
+    background: var(--dw-surface);
     font-size: 0.72rem;
     line-height: 1.45;
   }
@@ -211,7 +215,7 @@ const GuideColumns = styled.div`
 
 const Note = styled.p`
   margin: 0.54rem 0 0;
-  color: #9db7c8;
+  color: var(--dw-text-secondary);
   font-size: 0.78rem;
   line-height: 1.5;
 `;

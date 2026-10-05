@@ -1,3 +1,4 @@
+import { controlStyles } from '../../styles/primitives';
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { keyframes } from 'styled-components';
@@ -5,7 +6,6 @@ import ImageSourcePicker from '../ImageSourcePicker';
 import RetrievalImageLightbox from '../Retrieval/RetrievalImageLightbox';
 import {
   MOBILE_BREAKPOINT,
-  MOBILE_CONTROL_MIN_HEIGHT,
   MOBILE_FONT_SM,
   MOBILE_FONT_XS,
 } from '../../styles/tokens';
@@ -16,16 +16,13 @@ import {
 import RenderTokenControls from '../Processing/RenderTokenControls';
 
 const Field = styled.section`
-  border: 1px solid rgba(97, 151, 158, 0.46);
-  border-radius: 7px;
-  background:
-    linear-gradient(120deg, rgba(37, 88, 84, 0.11), transparent 36%),
-    rgba(7, 14, 19, 0.94);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   padding: ${({ $compact }) => ($compact ? '0.5rem' : '0.64rem')};
   display: grid;
   gap: ${({ $compact }) => ($compact ? '0.42rem' : '0.52rem')};
   min-width: 0;
-  box-shadow: inset 0 1px 0 rgba(220, 255, 251, 0.045);
 `;
 
 const HeaderRow = styled.div`
@@ -38,11 +35,11 @@ const HeaderRow = styled.div`
 
 const Title = styled.h4`
   margin: 0;
-  color: #b9d4d3;
-  font-size: 0.64rem;
+  color: var(--dw-teal);
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
@@ -50,13 +47,12 @@ const Title = styled.h4`
 `;
 
 const VariantBadge = styled.span`
-  color: #87afaf;
-  font-family: 'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace,
-    Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
-  font-size: 0.58rem;
+  color: var(--dw-text-muted);
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   white-space: nowrap;
 `;
 
@@ -92,12 +88,11 @@ const previewSurfaceStyles = `
   max-height: ${({ $compact }) => ($compact ? '138px' : '188px')};
   aspect-ratio: ${({ $compact }) => ($compact ? '1 / 1' : '4 / 3')};
   border-radius: 6px;
-  border: 1px solid rgba(97, 151, 158, 0.48);
+  border: 1px solid rgba(230, 237, 243, 0.14);
   overflow: hidden;
-  background: rgba(5, 11, 16, 0.96);
+  background: var(--dw-background);
   display: grid;
   place-items: center;
-  box-shadow: inset 0 0 0 1px rgba(225, 255, 252, 0.03);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: ${({ $compact, $mobileHeaderPreview }) =>
@@ -120,46 +115,47 @@ const PreviewButton = styled.button`
 
   &:hover {
     border-color: rgba(120, 196, 226, 0.8);
-    box-shadow: 0 0 0 1px rgba(120, 196, 226, 0.16);
+    box-shadow: none;
   }
 
   &:focus-visible {
     outline: none;
     border-color: rgba(120, 196, 226, 0.92);
-    box-shadow: 0 0 0 2px rgba(120, 196, 226, 0.22);
+    box-shadow: none;
   }
 
   &:active {
     transform: scale(0.99);
   }
+
+  ${controlStyles}
 `;
 
 const EmptyImageRail = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: ${({ $compact }) => ($compact ? '36px' : '40px')};
+  min-height: 44px;
   gap: 0.5rem;
   padding: 0.42rem 0.5rem;
-  border: 1px solid rgba(97, 151, 158, 0.38);
-  border-radius: 5px;
-  background: rgba(6, 12, 16, 0.68);
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface-raised);
 `;
 
 const EmptyImageLabel = styled.span`
-  color: #bed4d3;
-  font-size: 0.68rem;
+  color: var(--dw-text-secondary);
+  font-size: 0.75rem;
   font-weight: 720;
 `;
 
 const EmptyImageHint = styled.span`
-  color: #718e90;
-  font-family: 'Berkeley Mono', 'JetBrains Mono', 'SFMono-Regular', ui-monospace,
-    Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
-  font-size: 0.56rem;
-  letter-spacing: 0.05em;
+  color: var(--dw-text-muted);
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
   text-align: right;
-  text-transform: uppercase;
+  text-transform: none;
 `;
 
 const PreviewImage = styled.img`
@@ -168,7 +164,7 @@ const PreviewImage = styled.img`
   display: block;
   object-fit: contain;
   object-position: center;
-  background: rgba(5, 10, 16, 0.96);
+  background: var(--dw-surface-raised);
 `;
 
 const ActionStack = styled.div`
@@ -187,28 +183,28 @@ const ActionGrid = styled.div`
 `;
 
 const ActionButton = styled.button`
-  min-height: ${({ $compact }) => ($compact ? '36px' : '40px')};
-  border-radius: 5px;
+  min-height: 44px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $tone }) => {
-    if ($tone === 'primary') return 'rgba(95, 179, 144, 0.64)';
-    if ($tone === 'danger') return 'rgba(203, 133, 133, 0.66)';
-    return 'rgba(100, 151, 179, 0.62)';
+    if ($tone === 'primary') return 'rgba(76, 198, 193, 0.42)';
+    if ($tone === 'danger') return 'rgba(240, 138, 123, 0.42)';
+    return 'rgba(230, 237, 243, 0.16)';
   }};
   background: ${({ $tone }) => {
-    if ($tone === 'primary') return 'rgba(16, 43, 35, 0.95)';
-    if ($tone === 'danger') return 'rgba(62, 27, 27, 0.94)';
-    return 'rgba(13, 31, 40, 0.94)';
+    if ($tone === 'primary') return 'rgba(76, 198, 193, 0.12)';
+    if ($tone === 'danger') return 'rgba(240, 138, 123, 0.12)';
+    return 'var(--dw-surface-raised)';
   }};
   color: ${({ $tone }) => {
-    if ($tone === 'primary') return '#e2faef';
-    if ($tone === 'danger') return '#ffdede';
-    return '#d9ecf6';
+    if ($tone === 'primary') return 'var(--dw-teal)';
+    if ($tone === 'danger') return 'var(--dw-coral)';
+    return 'var(--dw-text-secondary)';
   }};
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   padding: 0.28rem 0.48rem;
   cursor: pointer;
 
@@ -223,9 +219,13 @@ const ActionButton = styled.button`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
+    min-height: 44px;
     font-size: ${MOBILE_FONT_SM};
   }
+
+  ${controlStyles}
+
+  color: ${({ $tone, $primary, $secondary }) => $tone === 'danger' ? 'var(--dw-coral)' : ($tone === 'primary' || $primary) ? 'var(--dw-cyan)' : $secondary ? 'var(--dw-violet)' : 'var(--dw-text)'};
 `;
 
 const StatusLine = styled.div`
@@ -235,7 +235,7 @@ const StatusLine = styled.div`
     if ($tone === 'success') return '#9fd8bf';
     return '#95b0c2';
   }};
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   line-height: 1.3;
 `;
 
@@ -259,9 +259,10 @@ const ActivityLine = styled(StatusLine)`
 const ActivitySpinner = styled.span`
   width: 0.82rem;
   height: 0.82rem;
-  border-radius: 999px;
-  border: 2px solid rgba(151, 189, 210, 0.25);
+  border-radius: var(--dw-radius-sm);
+  border: 2px solid var(--dw-border);
   border-top-color: rgba(224, 244, 255, 0.96);
+  border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;
   flex: 0 0 auto;
 `;
@@ -271,7 +272,7 @@ const ActivityBadge = styled.span`
   align-items: center;
   min-height: 18px;
   padding: 0.08rem 0.34rem;
-  border-radius: 999px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $tone }) => {
     if ($tone === 'error') return 'rgba(221, 146, 146, 0.58)';
@@ -288,10 +289,10 @@ const ActivityBadge = styled.span`
     if ($tone === 'success') return '#c8f6e5';
     return '#c5dfed';
   }};
-  font-size: 0.56rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 const ActivityText = styled.span`

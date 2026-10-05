@@ -1,3 +1,4 @@
+import { controlStyles } from '../../styles/primitives';
 import React from 'react';
 import styled from 'styled-components';
 import ImageSourcePicker from '../ImageSourcePicker';
@@ -16,7 +17,7 @@ const Row = styled.div`
 
 const SourceButton = styled.button`
   min-height: ${({ $compact }) => ($compact ? '34px' : '42px')};
-  border-radius: 8px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $tone }) =>
       $tone === 'camera'
@@ -30,11 +31,11 @@ const SourceButton = styled.button`
       : $tone === 'photos'
         ? 'rgba(16, 36, 62, 0.95)'
         : 'rgba(55, 40, 18, 0.95)'};
-  color: #eaf2ff;
+  color: var(--dw-text);
   font-size: 0.76rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   padding: 0 0.62rem;
   cursor: pointer;
 
@@ -47,6 +48,10 @@ const SourceButton = styled.button`
     min-height: ${({ $compact }) => ($compact ? MOBILE_CONTROL_MIN_HEIGHT : `calc(${MOBILE_CONTROL_MIN_HEIGHT} + 4px)`)};
     font-size: ${({ $compact }) => ($compact ? MOBILE_FONT_XS : MOBILE_FONT_SM)};
   }
+
+  ${controlStyles}
+
+  color: ${({ $tone, $primary, $secondary }) => $tone === 'danger' ? 'var(--dw-coral)' : ($tone === 'primary' || $primary) ? 'var(--dw-cyan)' : $secondary ? 'var(--dw-violet)' : 'var(--dw-text)'};
 `;
 
 const SOURCE_CONFIGS = [

@@ -1,3 +1,4 @@
+import { controlStyles, inputStyles } from '../../styles/primitives';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
@@ -14,18 +15,11 @@ const Surface = styled.section`
   display: grid;
   gap: 12px;
   padding: 16px;
-  border: 1px solid rgba(102, 226, 218, 0.42);
-  border-radius: 16px;
-  color: #edf3f7;
-  background:
-    radial-gradient(circle at 8% 0%, rgba(76, 198, 193, 0.15), transparent 34%),
-    radial-gradient(circle at 92% 8%, rgba(167, 139, 250, 0.14), transparent 31%),
-    rgba(8, 13, 19, 0.94);
-  box-shadow:
-    inset 0 1px rgba(255, 255, 255, 0.08),
-    0 22px 55px rgba(0, 0, 0, 0.48),
-    0 0 30px rgba(76, 198, 193, 0.08);
-  backdrop-filter: blur(18px) saturate(125%);
+  border: 1px solid rgba(230, 237, 243, 0.16);
+  border-radius: var(--dw-radius);
+  color: var(--dw-text);
+  background: var(--dw-surface);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.32);
   animation: finder-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
 
   @keyframes finder-in {
@@ -36,7 +30,7 @@ const Surface = styled.section`
   @media (max-width: 520px) {
     gap: 10px;
     padding: 12px;
-    border-radius: 13px;
+    border-radius: var(--dw-radius);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -52,29 +46,31 @@ const Heading = styled.div`
 `;
 const Eyebrow = styled.span`
   display: block;
-  color: rgba(121, 222, 216, 0.82);
-  font: 700 0.68rem/1.2 ui-monospace, monospace;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  color: var(--dw-teal);
+  font: 700 0.75rem/1.2 var(--dw-font-ui);
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 const Count = styled.span`
-  color: rgba(226, 234, 242, 0.7);
-  font: 700 0.78rem/1.2 ui-monospace, monospace;
+  color: var(--dw-text-secondary);
+  font: 700 0.78rem/1.2 var(--dw-font-ui);
   white-space: nowrap;
 `;
 const Input = styled.input`
+  ${inputStyles}
   width: 100%;
   min-width: 0;
   min-height: 50px;
   padding: 0 14px;
-  border: 1px solid rgba(127, 215, 255, 0.38);
-  border-radius: 12px;
-  background: rgba(3, 8, 13, 0.78);
-  color: #f4f7fa;
+  border: 1px solid rgba(230, 237, 243, 0.2);
+  border-radius: var(--dw-radius);
+  background: var(--dw-background);
+  color: var(--dw-text);
   font-size: clamp(1rem, 2.5vw, 1.18rem);
-  outline: none;
+  outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
   box-sizing: border-box;
-  &:focus { border-color: rgba(112, 236, 226, 0.86); box-shadow: 0 0 0 3px rgba(76, 198, 193, 0.12); }
+  &:focus { border-color: var(--dw-cyan); box-shadow: 0 0 0 2px rgba(127, 215, 255, 0.18); }
 `;
 const Tools = styled.div`
   display: grid;
@@ -83,22 +79,22 @@ const Tools = styled.div`
   @media (max-width: 520px) { grid-template-columns: 1fr; }
 `;
 const DirectionToggle = styled.button`
+  ${controlStyles}
   min-width: 48px;
   min-height: 44px;
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: rgba(220, 234, 240, 0.88);
-  font: 900 1.55rem/1 ui-monospace, monospace;
-  text-shadow: 0 0 9px rgba(76, 198, 193, 0.18);
+  color: var(--dw-text-secondary);
+  font: 700 1.55rem/1 var(--dw-font-ui);
   cursor: pointer;
-  transition: color 140ms ease, text-shadow 140ms ease, transform 140ms ease;
+  transition: color 140ms ease, transform 140ms ease;
 
   &:hover,
   &:focus-visible {
-    color: #fff;
-    text-shadow: 0 0 12px rgba(127, 215, 255, 0.72);
-    outline: none;
+    color: var(--dw-cyan);
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
     transform: scale(1.08);
   }
 
@@ -109,18 +105,19 @@ const DirectionToggle = styled.button`
   }
 `;
 const Clear = styled.button`
+  ${controlStyles}
   min-width: 72px;
-  min-height: 40px;
+  min-height: 44px;
   border: 0;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.055);
-  color: rgba(232, 238, 244, 0.74);
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface-raised);
+  color: var(--dw-text-secondary);
   cursor: pointer;
-  &:hover, &:focus-visible { color: white; background: rgba(167, 139, 250, 0.13); outline: 1px solid rgba(167, 182, 255, 0.42); }
+  &:hover, &:focus-visible { color: var(--dw-cyan); background: var(--dw-surface-raised); outline: 2px solid var(--dw-cyan); }
 `;
 const Empty = styled.p`
   margin: 0;
-  color: rgba(222, 229, 237, 0.72);
+  color: var(--dw-text-secondary);
   font-size: 0.84rem;
 `;
 

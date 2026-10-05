@@ -1,7 +1,6 @@
 import styled from 'styled-components';
 
 const noteTone = 'var(--box-primary-rgb, 90, 205, 219)';
-const noteSecondary = 'var(--box-secondary-rgb, 167, 182, 255)';
 
 export const Backdrop = styled.div`
   position: fixed;
@@ -21,17 +20,12 @@ export const Reader = styled.section`
   width: min(42rem, 100%);
   max-height: calc(100dvh - clamp(1.3rem, 6vw, 3rem));
   overflow: hidden;
-  color: rgba(232, 239, 246, 0.96);
-  background:
-    linear-gradient(135deg, rgba(${noteTone}, 0.1), transparent 42%),
-    linear-gradient(315deg, rgba(${noteSecondary}, 0.055), transparent 48%),
-    rgba(7, 11, 16, 0.99);
-  border: 1px solid rgba(${noteTone}, 0.58);
-  border-radius: 3px 9px 3px 3px;
-  box-shadow:
-    inset 0 1px rgba(255, 255, 255, 0.05),
-    0 20px 70px rgba(0, 0, 0, 0.76),
-    0 0 28px rgba(${noteTone}, 0.1);
+  color: var(--dw-text);
+  background: var(--dw-surface);
+  border: 1px solid var(--dw-border);
+  border-top: 2px solid var(--dw-violet);
+  border-radius: var(--dw-radius);
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.5);
 `;
 
 export const Header = styled.header`
@@ -45,15 +39,15 @@ export const Eyebrow = styled.span`
   margin-bottom: 0.18rem;
   color: rgba(${noteTone}, 0.96);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.61rem;
-  font-weight: 900;
+  font-size: 0.75rem;
+  font-weight: 600;
   letter-spacing: 0.13em;
   text-transform: uppercase;
 `;
 
 export const Title = styled.h2`
   margin: 0;
-  color: rgba(238, 243, 249, 0.97);
+  color: var(--dw-text);
   font-size: clamp(1rem, 4vw, 1.24rem);
   line-height: 1.25;
   overflow-wrap: anywhere;

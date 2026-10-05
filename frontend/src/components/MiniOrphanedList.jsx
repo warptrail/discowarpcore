@@ -55,6 +55,7 @@ function mergeUniqueById(existing, incoming) {
 
 export default function MiniOrphanedList({
   boxMongoId,
+  compartmentKey,
   onItemAssigned,
   orphanedItems,
   fetchOrphanedItems,
@@ -125,6 +126,7 @@ export default function MiniOrphanedList({
     setCurrentPage(1);
   }, [
     boxMongoId,
+  compartmentKey,
     categoryFilter,
     isPagedMode,
     locationQuery,
@@ -203,6 +205,7 @@ export default function MiniOrphanedList({
     fetchLocalOrphanedItems({ offset, append: false });
   }, [
     boxMongoId,
+  compartmentKey,
     currentPage,
     fetchLocalOrphanedItems,
     isPagedMode,
@@ -234,7 +237,7 @@ export default function MiniOrphanedList({
       const res = await fetch(`${API_BASE}/api/boxed-items/${boxMongoId}/addItem`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId }),
+        body: JSON.stringify({ itemId, compartmentKey }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {

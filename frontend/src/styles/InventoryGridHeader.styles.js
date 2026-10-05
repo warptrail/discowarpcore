@@ -1,30 +1,25 @@
 import styled, { css, keyframes } from 'styled-components';
+import { controlStyles, inputStyles, panelStyles } from './primitives';
 import { Link } from 'react-router-dom';
+import { APP_VISUAL_THEME } from './tokens';
 
 const LCARS = {
-  bg: '#090d13',
-  panel: '#101821',
-  panelAlt: '#162330',
-  text: '#e6edf3',
-  textDim: 'rgba(230,237,243,0.72)',
-  line: 'rgba(104, 154, 186, 0.34)',
-  teal: '#4CC6C1',
-  lilac: '#A7B6FF',
-  amber: '#E8B15C',
-  lime: '#9BE564',
-  root: '#7FD7FF',
+  bg: APP_VISUAL_THEME.background,
+  panel: APP_VISUAL_THEME.surface,
+  panelAlt: APP_VISUAL_THEME.surfaceRaised,
+  text: APP_VISUAL_THEME.text,
+  textDim: APP_VISUAL_THEME.textSecondary,
+  line: APP_VISUAL_THEME.border,
+  teal: APP_VISUAL_THEME.teal,
+  lilac: APP_VISUAL_THEME.violet,
+  amber: APP_VISUAL_THEME.amber,
+  lime: APP_VISUAL_THEME.teal,
+  root: APP_VISUAL_THEME.cyan,
 };
 
 const toneAlpha = (hex, alpha = 'ff') => `${hex}${alpha}`;
 
-const panelBase = css`
-  border: 1px solid ${LCARS.line};
-  border-radius: 14px;
-  box-shadow:
-    inset 0 0 0 1px rgba(127, 215, 255, 0.08),
-    0 12px 30px rgba(2, 9, 16, 0.55),
-    0 0 16px rgba(76, 198, 193, 0.08);
-`;
+const panelBase = css`${panelStyles}`;
 
 export const HeaderShell = styled.section`
   position: relative;
@@ -33,6 +28,16 @@ export const HeaderShell = styled.section`
   gap: 0.38rem;
   min-width: 0;
   margin-bottom: -0.4rem;
+
+  @media (max-width: 700px) {
+    margin-top: -0.55rem;
+    margin-bottom: 0;
+    margin-inline: 0;
+    width: 100%;
+    gap: 0;
+  }
+  font-family: var(--dw-font-ui);
+  & :is(button, a, input, select):focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
 `;
 
 export const ControlConsole = styled.div`
@@ -40,35 +45,44 @@ export const ControlConsole = styled.div`
   display: grid;
   grid-template-areas:
     'utility utility'
-    'map telemetry';
+    'telemetry telemetry';
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.24rem 0.5rem;
+  gap: 0.12rem 0.5rem;
   width: 100%;
   min-width: 0;
   margin: 0;
-  padding: 0.42rem 0.24rem 0.32rem clamp(0.42rem, 1.1vw, 0.7rem);
+  padding: 0.28rem 0.55rem 0.25rem 0.75rem;
   overflow: visible;
-  border: 2px solid rgba(127, 215, 255, 0.48);
-  border-radius: 14px 5px 14px 5px;
-  background:
-    linear-gradient(90deg, rgba(76, 198, 193, 0.08), transparent 28%),
-    rgba(7, 13, 19, 0.88);
-  box-shadow:
-    inset 5px 0 0 rgba(76, 198, 193, 0.68),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 8px 18px rgba(2, 8, 13, 0.16);
+  border: 1px solid rgba(104, 154, 186, 0.32);
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface-raised);
+  box-shadow: none;
 
   @media (min-width: 660px) {
     display: grid;
     grid-template-areas:
-      'map utility spacer'
-      'telemetry telemetry telemetry';
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    grid-template-rows: minmax(40px, auto) auto;
+      'utility utility'
+      'telemetry telemetry';
+    grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     gap: 0.18rem 0.36rem;
-    padding: 0.28rem 0.42rem 0.34rem clamp(0.42rem, 1.1vw, 0.7rem);
+    padding: 0.3rem 0.55rem 0.28rem 0.75rem;
   }
+
+  @media (max-width: 560px) {
+    gap: 0.12rem 0.3rem;
+    padding: 0.25rem 0 0.24rem;
+  }
+
+  @media (max-width: 700px) {
+    border-inline: 0;
+    border-bottom: 0;
+    border-radius: 0;
+    background: var(--dw-surface);
+    box-shadow: none;
+  }
+  border-left: 4px solid var(--dw-amber);
+  @media (max-width: 700px) { border-left: 4px solid var(--dw-amber); padding-left: 0.4rem; }
 `;
 
 const finderCollapse = keyframes`
@@ -117,10 +131,8 @@ export const TitleActions = styled.div`
   padding: 0.3rem;
   border: 1px solid ${toneAlpha(LCARS.line, 'c8')};
   border-radius: 5px;
-  background: rgba(7, 13, 19, 0.985);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.045),
-    0 16px 30px rgba(0, 0, 0, 0.58);
+  background: var(--dw-surface-raised);
+  box-shadow: none;
   opacity: ${({ $mobileOpen }) => ($mobileOpen ? 1 : 0)};
   visibility: ${({ $mobileOpen }) => ($mobileOpen ? 'visible' : 'hidden')};
   pointer-events: ${({ $mobileOpen }) => ($mobileOpen ? 'auto' : 'none')};
@@ -148,8 +160,8 @@ export const TitleActions = styled.div`
     overflow: hidden;
     border-color: ${toneAlpha(LCARS.line, 'b0')};
     border-radius: 3px;
-    background: rgba(4, 10, 15, 0.66);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+    background: var(--dw-surface-raised);
+    box-shadow: none;
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
@@ -158,25 +170,28 @@ export const TitleActions = styled.div`
 
     > button {
       width: auto;
-      min-height: 38px;
+      min-height: var(--dw-control-height);
       justify-content: center;
       padding-inline: 0.32rem;
-      font-size: 0.49rem;
-      letter-spacing: 0.035em;
+      font-size: 0.75rem;
+      letter-spacing: normal;
     }
   }
 
   @media (min-width: 800px) {
     > button {
       padding-inline: 0.42rem;
-      font-size: 0.52rem;
-      letter-spacing: 0.04em;
+      font-size: 0.75rem;
+      letter-spacing: normal;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
+  background: var(--dw-surface-raised);
+  box-shadow: var(--dw-shadow);
+  @media (min-width: 660px) { flex-wrap: wrap; overflow: visible; box-shadow: none; }
 `;
 
 export const TitleOrphanActions = styled.div`
@@ -191,8 +206,8 @@ export const TitleOrphanActions = styled.div`
     justify-content: flex-start;
     padding-inline: 0.62rem;
     border-radius: 3px;
-    font-size: 0.56rem;
-    letter-spacing: 0.055em;
+    font-size: 0.75rem;
+    letter-spacing: normal;
     white-space: nowrap;
   }
 
@@ -203,21 +218,23 @@ export const TitleOrphanActions = styled.div`
 
     button {
       width: auto;
-      min-height: 38px;
+      min-height: var(--dw-control-height);
       justify-content: center;
       padding-inline: 0.28rem;
-      font-size: 0.48rem;
-      letter-spacing: 0.025em;
+      font-size: 0.75rem;
+      letter-spacing: normal;
     }
   }
 
   @media (min-width: 800px) {
     button {
       padding-inline: 0.36rem;
-      font-size: 0.52rem;
-      letter-spacing: 0.04em;
+      font-size: 0.75rem;
+      letter-spacing: normal;
     }
   }
+  min-width: 0;
+  @media (min-width: 660px) { flex-wrap: wrap; }
 `;
 
 export const TitleIdentity = styled.div`
@@ -230,29 +247,26 @@ export const TitleIdentity = styled.div`
 export const MinimizedBar = styled.div`
   display: flex;
   align-items: center;
-  min-height: 28px;
+  min-height: var(--dw-control-height);
 `;
 
 export const MinimizedChip = styled.button`
+  ${controlStyles}
   display: inline-flex;
   align-items: center;
   gap: 0.42rem;
-  min-height: 28px;
+  min-height: var(--dw-control-height);
   max-width: 100%;
   border: 1px solid ${toneAlpha(LCARS.teal, '72')};
   border-radius: 8px;
   padding: 0.18rem 0.48rem 0.18rem 0.34rem;
   color: ${toneAlpha(LCARS.text, 'e8')};
-  background:
-    linear-gradient(180deg, rgba(17, 48, 58, 0.92), rgba(8, 27, 35, 0.96)),
-    ${LCARS.bg};
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-  font-size: 0.66rem;
-  font-weight: 820;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  background: var(--dw-surface);
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
   cursor: pointer;
   transition:
     border-color 140ms ease,
@@ -263,8 +277,9 @@ export const MinimizedChip = styled.button`
   &:focus-visible {
     border-color: ${toneAlpha(LCARS.root, 'd0')};
     color: ${toneAlpha(LCARS.root, 'ff')};
-    box-shadow: 0 0 14px ${toneAlpha(LCARS.root, '22')};
+    box-shadow: none;
   }
+  @media (pointer: coarse) { min-height: 44px; }
 `;
 
 export const MinimizedIcon = styled.span`
@@ -276,7 +291,7 @@ export const MinimizedIcon = styled.span`
   border: 1px solid ${toneAlpha(LCARS.root, '80')};
   border-radius: 5px;
   color: ${toneAlpha(LCARS.root, 'f2')};
-  background: rgba(9, 24, 38, 0.92);
+  background: var(--dw-surface-raised);
   font-size: 0.86rem;
   line-height: 1;
 `;
@@ -287,11 +302,11 @@ export const MinimizedCount = styled.span`
   justify-content: center;
   min-width: 18px;
   height: 18px;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   color: ${LCARS.bg};
   background: ${LCARS.amber};
-  font-size: 0.62rem;
-  font-weight: 900;
+  font-size: 0.75rem;
+  font-weight: 650;
   letter-spacing: 0;
 `;
 
@@ -300,17 +315,16 @@ export const TitlePip = styled.span`
   height: 26px;
   border-radius: 8px;
   background: ${LCARS.teal};
-  box-shadow: 0 0 0 2px ${toneAlpha(LCARS.teal, '2f')} inset;
+  box-shadow: none;
+  background: var(--dw-amber);
 `;
 
 export const Title = styled.h2`
   margin: 0;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: var(--dw-font-ui);
   font-size: clamp(1.02rem, 2.3vw, 1.22rem);
-  font-weight: 900;
-  letter-spacing: 0.08em;
+  font-weight: 650;
+  letter-spacing: normal;
   color: ${toneAlpha(LCARS.text, 'f2')};
 `;
 
@@ -328,40 +342,70 @@ export const TelemetryRow = styled.div`
   border: 0;
   background: transparent;
   color: ${LCARS.textDim};
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-  font-size: 0.56rem;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  opacity: 0.72;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: normal;
+  opacity: 0.82;
   pointer-events: none;
   white-space: nowrap;
-  text-transform: uppercase;
-  text-shadow: 0 0 10px rgba(127, 215, 255, 0.18);
+  text-transform: none;
+  text-shadow: none;
 
   @media (min-width: 660px) {
     grid-area: telemetry;
     justify-self: stretch;
     flex: 0 0 auto;
     flex-wrap: nowrap;
-    min-height: 20px;
+    min-height: 14px;
     gap: 0.12rem;
     width: 100%;
-    padding: 0.1rem 0.48rem 0.12rem;
-    border-top: 1px solid rgba(104, 154, 186, 0.34);
+    padding: 0.06rem 0.08rem;
+    border-top: 0;
     border-left: 0;
-    background: linear-gradient(90deg, transparent, rgba(20, 32, 40, 0.58));
-    opacity: 0.58;
-    font-size: clamp(0.68rem, 1.35vw, 0.96rem);
-    letter-spacing: 0.055em;
+    background: transparent;
+    opacity: 0.82;
+    font-size: 0.75rem;
+    letter-spacing: normal;
+  }
+
+  @media (max-width: 560px) {
+    display: none;
   }
 
   @media (min-width: 800px) {
     gap: 0.16rem 0.34rem;
     padding-right: 0.48rem;
-    letter-spacing: 0.065em;
+    letter-spacing: normal;
   }
+  opacity: 1;
+  color: var(--dw-text-secondary);
+  @media (min-width: 660px) { opacity: 1; flex-wrap: wrap; }
+`;
+
+export const MobileTelemetryValue = styled.span`
+  display: none;
+  overflow: hidden;
+  color: rgba(211, 232, 244, 0.82);
+  font: 800 0.75rem/1.1 var(--dw-font-ui);
+  letter-spacing: normal;
+  text-align: right;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+
+  @media (max-width: 560px) {
+    display: block;
+  }
+  animation: mobileTelemetryFade 420ms ease both;
+
+  @keyframes mobileTelemetryFade {
+    from { opacity: 0; transform: translateX(8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  color: var(--dw-text-secondary);
+  font-weight: 600;
+  @media (prefers-reduced-motion: reduce) { animation: none; }
 `;
 
 export const TelemetryLine = styled.span`
@@ -432,14 +476,19 @@ export const UtilityRow = styled.div`
   align-items: stretch;
   gap: 0.36rem;
   width: 100%;
-  min-height: 40px;
+  min-height: var(--dw-control-height);
   margin: 0;
 
   @media (min-width: 660px) {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: stretch;
     gap: 0.38rem;
-    width: auto;
+    width: 100%;
+  }
+
+  @media (max-width: 560px) {
+    min-height: var(--dw-control-height);
   }
 `;
 
@@ -447,54 +496,50 @@ export const MapStatus = styled.span`
   grid-area: map;
   align-self: center;
   min-width: 0;
-  padding-left: 0.18rem;
-  color: rgba(167, 182, 255, 0.5);
-  font: 850 0.5rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  padding-left: 0.1rem;
+  color: rgba(167, 182, 255, 0.72);
+  font: 850 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: normal;
+  text-transform: none;
   white-space: nowrap;
 
   @media (min-width: 660px) {
     flex: 0 0 auto;
-    padding: 0 0.28rem 0 0;
-    border-right: 1px solid ${toneAlpha(LCARS.line, '72')};
-    font-size: 0.45rem;
-    letter-spacing: 0.055em;
+    padding: 0 0.28rem 0 0.1rem;
+    font-size: 0.75rem;
+    letter-spacing: normal;
   }
 
   @media (min-width: 800px) {
     padding-right: 0.42rem;
-    font-size: 0.5rem;
-    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+    letter-spacing: normal;
   }
 `;
 
 export const MobileActionsButton = styled.button`
+  ${controlStyles}
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.34rem;
   min-width: 5.35rem;
-  min-height: 40px;
+  min-height: var(--dw-control-height);
   padding: 0 0.58rem;
   border: 1px solid ${toneAlpha(LCARS.root, '62')};
-  border-radius: 4px 10px 3px 3px;
+  border-radius: 7px;
   color: ${({ $active }) =>
     $active ? toneAlpha(LCARS.text, 'ff') : 'rgba(230, 237, 243, 0.58)'};
   background: ${({ $active }) =>
     $active
-      ? 'linear-gradient(180deg, rgba(76, 198, 193, 0.32), rgba(24, 63, 78, 0.72))'
+      ? 'var(--dw-surface-raised)'
       : 'rgba(4, 9, 14, 0.82)'};
-  box-shadow: ${({ $active }) =>
-    $active
-      ? `inset 4px 0 0 ${LCARS.teal}, inset 0 1px 0 rgba(255, 255, 255, 0.14)`
-      : 'inset 0 1px 0 rgba(255, 255, 255, 0.045), inset 0 -6px 14px rgba(0, 0, 0, 0.2)'};
-  font: 900 0.58rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-shadow: ${({ $active }) =>
-    $active ? '0 0 9px rgba(127, 215, 255, 0.28)' : 'none'};
+  box-shadow: none;
+  font: 900 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: normal;
+  text-transform: none;
+  text-shadow: none;
   cursor: pointer;
   transition:
     color 140ms ease,
@@ -506,7 +551,7 @@ export const MobileActionsButton = styled.button`
   span {
     color: ${({ $active }) =>
       $active ? toneAlpha(LCARS.text, 'f0') : toneAlpha(LCARS.teal, 'c8')};
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     line-height: 1;
   }
 
@@ -523,6 +568,9 @@ export const MobileActionsButton = styled.button`
   @media (min-width: 660px) {
     display: none;
   }
+  border-left: 3px solid ${({ $active }) => $active ? 'var(--dw-cyan)' : 'transparent'};
+  color: var(--dw-text);
+  @media (pointer: coarse) { min-height: 44px; }
 `;
 
 export const ViewModeToggle = styled.div`
@@ -531,14 +579,12 @@ export const ViewModeToggle = styled.div`
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
   width: 100%;
-  margin: 0.04rem 0 0.12rem;
+  margin: 0;
   padding: 0;
   border: 1px solid ${toneAlpha(LCARS.root, '62')};
-  border-radius: 4px 10px 3px 3px;
-  background: rgba(4, 9, 14, 0.82);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.045),
-    inset 0 -6px 14px rgba(0, 0, 0, 0.2);
+  border-radius: 7px;
+  background: var(--dw-surface-raised);
+  box-shadow: none;
   overflow: hidden;
 
   &::before {
@@ -554,10 +600,7 @@ export const ViewModeToggle = styled.div`
   @media (max-width: 560px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     border-color: ${toneAlpha(LCARS.root, '46')};
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.035),
-      inset 0 -5px 12px rgba(0, 0, 0, 0.28),
-      0 0 10px ${toneAlpha(LCARS.root, '0c')};
+    box-shadow: none;
 
     &::before {
       display: none;
@@ -567,22 +610,26 @@ export const ViewModeToggle = styled.div`
   @media (min-width: 660px) {
     align-self: center;
     box-sizing: border-box;
-    height: 36px;
-    width: 6.45rem;
+    height: 34px;
+    width: 15rem;
   }
 
   @media (min-width: 800px) {
-    width: 7rem;
+    width: 16rem;
   }
+  height: auto;
+  min-height: var(--dw-control-height);
+  @media (min-width: 660px) { height: auto; }
 `;
 
 export const ViewModeButton = styled.button`
+  ${controlStyles}
   position: relative;
   z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 32px;
+  min-height: var(--dw-control-height);
   min-width: 70px;
   border: 0;
   border-right: 1px solid rgba(127, 215, 255, 0.26);
@@ -592,19 +639,15 @@ export const ViewModeButton = styled.button`
     $active ? toneAlpha(LCARS.text, 'ff') : 'rgba(230, 237, 243, 0.58)'};
   background: ${({ $active }) =>
     $active
-      ? 'linear-gradient(180deg, rgba(76, 198, 193, 0.32), rgba(24, 63, 78, 0.72))'
+      ? 'var(--dw-surface-raised)'
       : 'transparent'};
-  box-shadow: ${({ $active }) =>
-    $active
-      ? `inset 4px 0 0 ${LCARS.teal}, inset 0 1px 0 rgba(255, 255, 255, 0.14)`
-      : 'none'};
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.58rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-shadow: ${({ $active }) =>
-    $active ? '0 0 9px rgba(127, 215, 255, 0.28)' : 'none'};
+  box-shadow: none;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
+  text-shadow: none;
   cursor: pointer;
   transition:
     color 140ms ease,
@@ -627,23 +670,27 @@ export const ViewModeButton = styled.button`
 
   @media (max-width: 560px) {
     min-width: 0;
-    min-height: 32px;
+    min-height: var(--dw-control-height);
     padding-inline: 0.28rem;
-    font-size: 0.54rem;
-    letter-spacing: 0.055em;
+    font-size: 0.75rem;
+    letter-spacing: normal;
   }
 
   @media (min-width: 660px) {
     min-width: clamp(3.25rem, 5.4vw, 4.2rem);
-    min-height: 32px;
+    min-height: var(--dw-control-height);
     padding-inline: 0.28rem;
-    font-size: 0.54rem;
-    letter-spacing: 0.055em;
+    font-size: 0.75rem;
+    letter-spacing: normal;
   }
+  border-left: 3px solid ${({ $active }) => $active ? 'var(--dw-cyan)' : 'transparent'};
+  color: var(--dw-text);
+  @media (pointer: coarse) { min-height: 44px; }
 `;
 
 
 export const OrphanToggleButton = styled.button`
+  ${controlStyles}
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -651,12 +698,12 @@ export const OrphanToggleButton = styled.button`
     ${({ $active }) =>
       $active ? toneAlpha(LCARS.teal, '9e') : toneAlpha(LCARS.root, '6e')};
   border-radius: 5px;
-  min-height: 36px;
+  min-height: var(--dw-control-height);
   padding: 0 0.72rem;
-  font-size: 0.68rem;
-  font-weight: 760;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
   color: ${({ $active }) => ($active ? '#d9fffa' : '#d7e4f1')};
   background: ${({ $active }) =>
     $active ? 'rgba(76, 198, 193, 0.08)' : 'transparent'};
@@ -673,26 +720,22 @@ export const OrphanToggleButton = styled.button`
     border-color: ${({ $active }) =>
       $active ? toneAlpha(LCARS.lime, '88') : toneAlpha(LCARS.root, '9a')};
     color: ${({ $active }) => ($active ? '#edffd5' : '#eef5fc')};
-    box-shadow:
-      inset 0 0 0 1px
-        ${({ $active }) =>
-          $active ? toneAlpha(LCARS.lime, '2d') : toneAlpha(LCARS.root, '28')},
-      0 0 12px
-        ${({ $active }) =>
-          $active ? toneAlpha(LCARS.lime, '1e') : toneAlpha(LCARS.root, '1b')};
+    box-shadow: none;
   }
 
   &:active {
     transform: translateY(1px);
   }
+  @media (pointer: coarse) { min-height: 44px; }
 `;
 
 export const FilterToggleButton = styled.button`
+  ${controlStyles}
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
-  min-height: 32px;
+  min-height: var(--dw-control-height);
   border: 1px solid
     ${({ $active }) =>
       $active ? toneAlpha(LCARS.teal, 'aa') : toneAlpha(LCARS.root, '72')};
@@ -702,12 +745,12 @@ export const FilterToggleButton = styled.button`
     $active ? toneAlpha(LCARS.teal, 'f2') : toneAlpha(LCARS.root, 'e2')};
   background: ${({ $active }) =>
     $active
-      ? 'linear-gradient(180deg, rgba(18, 58, 62, 0.92), rgba(10, 36, 42, 0.96))'
-      : 'linear-gradient(180deg, rgba(11, 24, 37, 0.94), rgba(8, 17, 28, 0.96))'};
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+      ? 'var(--dw-surface-raised)'
+      : 'var(--dw-surface-raised)'};
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
   cursor: pointer;
   transition:
     border-color 130ms ease,
@@ -718,12 +761,13 @@ export const FilterToggleButton = styled.button`
   &:hover {
     border-color: ${toneAlpha(LCARS.teal, 'c2')};
     color: ${toneAlpha(LCARS.text, 'f4')};
-    box-shadow: 0 0 14px ${toneAlpha(LCARS.teal, '24')};
+    box-shadow: none;
   }
 
   &:active {
     transform: translateY(1px);
   }
+  @media (pointer: coarse) { min-height: 44px; }
 `;
 
 export const FilterCount = styled.span`
@@ -732,11 +776,11 @@ export const FilterCount = styled.span`
   min-width: 1.15rem;
   height: 1.15rem;
   padding: 0 0.22rem;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   color: ${LCARS.bg};
   background: ${LCARS.lime};
-  font-size: 0.65rem;
-  font-weight: 900;
+  font-size: 0.75rem;
+  font-weight: 650;
   letter-spacing: 0;
 `;
 
@@ -750,7 +794,7 @@ export const FilterPanel = styled.div`
   border-top: 1px solid ${toneAlpha(LCARS.teal, '32')};
   border-radius: 0;
   background: transparent;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.018);
+  box-shadow: none;
   overflow-y: ${({ $scrollable }) => ($scrollable ? 'auto' : 'visible')};
   overscroll-behavior: contain;
   opacity: ${({ $hidden }) => ($hidden ? 0 : 1)};
@@ -768,7 +812,8 @@ export const FinderModeRow = styled.div`
 `;
 
 export const FinderModeButton = styled.button`
-  min-height: 38px;
+  ${controlStyles}
+  min-height: var(--dw-control-height);
   border: 1px solid
     ${({ $active }) =>
       $active ? toneAlpha(LCARS.root, 'ac') : toneAlpha(LCARS.root, '42')};
@@ -777,29 +822,31 @@ export const FinderModeButton = styled.button`
     $active ? toneAlpha(LCARS.root, 'f4') : '#b8cad8'};
   background: ${({ $active }) =>
     $active
-      ? 'linear-gradient(180deg, rgba(21, 62, 86, 0.9), rgba(10, 34, 52, 0.94))'
+      ? 'var(--dw-surface-raised)'
       : 'rgba(7, 17, 27, 0.72)'};
-  font-size: 0.66rem;
-  font-weight: 820;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
   cursor: pointer;
-  text-shadow: 0 0 6px rgba(127, 215, 255, 0.12);
+  text-shadow: none;
 
   &:hover {
     border-color: ${toneAlpha(LCARS.root, '9e')};
     color: ${toneAlpha(LCARS.text, 'f2')};
   }
+  @media (pointer: coarse) { min-height: 44px; }
 `;
 
 export const AdvancedFiltersToggle = styled.button`
+  ${controlStyles}
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 38px;
   min-width: 38px;
-  min-height: 38px;
+  min-height: var(--dw-control-height);
   flex: 0 0 38px;
   padding: 0;
   border: 1px solid ${({ $active }) =>
@@ -809,14 +856,14 @@ export const AdvancedFiltersToggle = styled.button`
     $active ? toneAlpha(LCARS.teal, 'f0') : toneAlpha(LCARS.textDim, 'cc')};
   background: ${({ $active }) =>
     $active
-      ? 'linear-gradient(180deg, rgba(25, 78, 78, 0.58), rgba(8, 33, 39, 0.72))'
+      ? 'var(--dw-surface-raised)'
       : 'rgba(4, 10, 16, 0.52)'};
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
-  font-size: 0.54rem;
-  font-weight: 780;
-  letter-spacing: 0.07em;
+  box-shadow: none;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: normal;
   text-align: center;
-  text-transform: uppercase;
+  text-transform: none;
   cursor: pointer;
   transition: border-color 160ms ease, background 160ms ease, color 160ms ease, box-shadow 160ms ease;
 
@@ -824,11 +871,10 @@ export const AdvancedFiltersToggle = styled.button`
   &:focus-visible {
     border-color: ${toneAlpha(LCARS.teal, 'bc')};
     color: ${toneAlpha(LCARS.text, 'f2')};
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.06),
-      0 0 10px ${toneAlpha(LCARS.teal, '18')};
+    box-shadow: none;
     outline: none;
   }
+  @media (pointer: coarse) { min-height: 44px; }
 `;
 
 export const AdvancedFiltersIcon = styled.span`
@@ -840,7 +886,7 @@ export const AdvancedFiltersIcon = styled.span`
   border-radius: 0;
   color: ${toneAlpha(LCARS.teal, 'ec')};
   font-size: 0.9rem;
-  font-weight: 760;
+  font-weight: 650;
   line-height: 1;
 `;
 
@@ -859,12 +905,13 @@ export const SortControlRow = styled.div`
 `;
 
 export const SortDirectionButton = styled.button`
+  ${controlStyles}
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 38px;
   min-width: 38px;
-  min-height: 34px;
+  min-height: var(--dw-control-height);
   align-self: end;
   border: 1px solid
     ${({ $descending }) =>
@@ -876,9 +923,9 @@ export const SortDirectionButton = styled.button`
     $descending ? 'rgba(232, 177, 92, 0.08)' : 'rgba(127, 215, 255, 0.05)'};
   box-shadow: none;
   font-size: 1.18rem;
-  font-weight: 900;
+  font-weight: 650;
   line-height: 1;
-  text-shadow: 0 0 10px currentColor;
+  text-shadow: none;
   cursor: pointer;
   transition:
     border-color 130ms ease,
@@ -892,18 +939,13 @@ export const SortDirectionButton = styled.button`
     border-color: ${({ $descending }) =>
       $descending ? toneAlpha(LCARS.amber, 'e0') : toneAlpha(LCARS.root, 'd0')};
     color: ${toneAlpha(LCARS.text, 'f2')};
-    box-shadow:
-      0 0 0 2px
-        ${({ $descending }) =>
-          $descending ? toneAlpha(LCARS.amber, '24') : toneAlpha(LCARS.root, '2f')},
-      0 0 14px
-        ${({ $descending }) =>
-          $descending ? toneAlpha(LCARS.amber, '2e') : toneAlpha(LCARS.root, '30')};
+    box-shadow: none;
   }
 
   &:active {
     transform: translateY(1px);
   }
+  @media (pointer: coarse) { min-height: 44px; }
 `;
 
 export const ControlGroup = styled.label`
@@ -926,13 +968,13 @@ export const ControlGroup = styled.label`
   button[aria-haspopup='listbox'] {
     display: flex;
     width: 100%;
-    min-height: 36px;
+    min-height: var(--dw-control-height);
     min-width: 0;
     gap: 0.3rem;
     border-radius: 5px;
     padding-inline: 0.48rem 0.38rem;
-    background: rgba(4, 10, 16, 0.52);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+    background: var(--dw-surface-raised);
+    box-shadow: none;
 
     > span:first-child {
       min-width: 0;
@@ -949,42 +991,26 @@ export const ControlGroup = styled.label`
 `;
 
 export const ControlLabel = styled.span`
-  font-size: 0.64rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
   color: ${toneAlpha(LCARS.root, 'cc')};
 `;
 
 const controlField = css`
+  ${inputStyles}
   width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  border: 1px solid rgba(108, 156, 188, 0.5);
-  border-radius: 9px;
-  background: linear-gradient(180deg, rgba(6, 12, 19, 0.98), rgba(8, 15, 23, 0.98));
-  color: ${toneAlpha(LCARS.text, 'f3')};
-  min-height: 34px;
-  padding: 0.46rem 0.62rem;
-  font-size: 0.86rem;
-  outline: none;
-  box-shadow: inset 0 0 0 1px rgba(125, 185, 220, 0.08);
-  transition:
-    border-color 130ms ease,
-    box-shadow 130ms ease,
-    background 130ms ease;
-
-  &:focus {
-    border-color: ${toneAlpha(LCARS.root, 'd0')};
-    box-shadow:
-      0 0 0 2px ${toneAlpha(LCARS.root, '2f')},
-      0 0 14px ${toneAlpha(LCARS.root, '30')};
-    background: ${LCARS.panelAlt};
-  }
 `;
 
 export const SearchInput = styled.input`
   ${controlField};
+
+  &::placeholder {
+    color: rgba(230, 237, 243, 0.56);
+    font-size: 0.94em;
+    letter-spacing: normal;
+  }
 `;
 
 export const BoxLocatorScope = styled.div`
@@ -999,44 +1025,45 @@ export const BoxLocatorScope = styled.div`
     ${({ $active }) =>
       $active ? toneAlpha(LCARS.lime, 'a8') : toneAlpha(LCARS.line, '82')};
   border-radius: 9px;
-  background:
-    linear-gradient(
-      92deg,
-      ${({ $active }) =>
-        $active ? toneAlpha(LCARS.lime, '20') : toneAlpha(LCARS.root, '10')},
-      transparent 58%
-    ),
-    ${LCARS.panel};
-  box-shadow: ${({ $active }) =>
-    $active
-      ? `inset 0 0 0 1px ${toneAlpha(LCARS.lime, '24')}, 0 0 16px ${toneAlpha(LCARS.lime, '18')}`
-      : `inset 0 0 0 1px ${toneAlpha(LCARS.root, '16')}`};
+  background: var(--dw-surface);
+  box-shadow: none;
 
-  ${({ $compact, $active }) => $compact && css`
+  ${({ $compact }) => $compact && css`
     grid-template-columns: auto 28px;
     gap: 0.12rem;
-    min-height: 38px;
+    min-height: var(--dw-control-height);
     padding: 0;
     border: 0;
     border-radius: 0;
     align-items: center;
-    background: ${$active
-      ? `linear-gradient(90deg, ${toneAlpha(LCARS.lime, '12')}, transparent 82%)`
-      : 'transparent'};
-    box-shadow: ${$active ? `0 0 12px ${toneAlpha(LCARS.lime, '12')}` : 'none'};
+    background: var(--dw-surface-raised);
+    box-shadow: none;
   `}
 
   @media (max-width: 560px) {
     ${({ $compact }) => $compact
       ? css`
           grid-template-columns: auto 28px;
-          min-height: 38px;
+          min-height: var(--dw-control-height);
         `
       : css`
           grid-template-columns: auto minmax(0, 1fr) 34px;
           min-height: 52px;
         `}
+
+    ${({ $compact }) => $compact && css`
+      grid-template-columns: 1fr;
+      min-height: var(--dw-control-height);
+      gap: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    `}
   }
+  grid-template-columns: ${({ $compact }) => $compact ? 'auto auto' : 'auto minmax(0, 1fr) auto'};
+  @media (max-width: 560px) { grid-template-columns: ${({ $compact }) => $compact ? 'minmax(0, 1fr) auto' : 'auto minmax(0, 1fr) auto'}; }
 `;
 
 export const BoxLocatorInputGroup = styled.label`
@@ -1060,31 +1087,47 @@ export const BoxLocatorInputGroup = styled.label`
 export const BoxLocatorInput = styled.input`
   ${controlField};
   width: 4.7rem;
-  min-height: 32px;
+  min-height: var(--dw-control-height);
   padding: 0.34rem 0.46rem;
   text-align: center;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: var(--dw-font-ui);
   font-size: 1.02rem;
-  font-weight: 760;
-  letter-spacing: 0.18em;
+  font-weight: 650;
+  letter-spacing: normal;
   font-variant-numeric: tabular-nums;
 
   ${({ $compact }) => $compact && css`
-    min-height: 38px;
+    min-height: var(--dw-control-height);
     border-color: ${toneAlpha(LCARS.line, '64')};
     border-radius: 5px;
-    background: rgba(4, 10, 16, 0.52);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+    background: var(--dw-surface-raised);
+    box-shadow: none;
 
     &:focus {
       border-color: ${toneAlpha(LCARS.lime, 'b8')};
-      box-shadow:
-        0 0 0 1px ${toneAlpha(LCARS.lime, '28')},
-        0 0 12px ${toneAlpha(LCARS.lime, '1d')};
+      box-shadow: none;
     }
   `}
+
+  @media (max-width: 560px) {
+    ${({ $compact }) => $compact && css`
+      width: 4rem;
+      max-width: 4rem;
+      min-height: var(--dw-control-height);
+      padding-block: 0.22rem;
+      border: 0;
+      border-bottom: 1px solid ${toneAlpha(LCARS.line, '88')};
+      border-radius: 0;
+      background: var(--dw-surface-raised);
+      box-shadow: none;
+
+      &:focus {
+        border-bottom-color: ${toneAlpha(LCARS.lime, 'd0')};
+        box-shadow: none;
+      }
+    `}
+  }
+  font-family: var(--dw-font-data);
 `;
 
 export const BoxLocatorReadout = styled.div`
@@ -1096,13 +1139,11 @@ export const BoxLocatorReadout = styled.div`
   gap: 0.08rem;
   padding: 0.1rem 0 0.22rem;
   color: ${toneAlpha(LCARS.text, 'dc')};
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-  font-size: 0.72rem;
-  font-weight: 760;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
   overflow: hidden;
 
   ${({ $compact }) => $compact && css`
@@ -1123,12 +1164,13 @@ export const BoxLocatorReadout = styled.div`
 
   small {
     color: ${toneAlpha(LCARS.textDim, 'b0')};
-    font-size: 0.56rem;
-    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+    letter-spacing: normal;
   }
 `;
 
 export const BoxLocatorClear = styled.button`
+  ${controlStyles}
   align-self: end;
   width: 34px;
   min-width: 34px;
@@ -1146,6 +1188,10 @@ export const BoxLocatorClear = styled.button`
     background: ${toneAlpha(LCARS.lime, '15')};
     outline: 1px solid ${toneAlpha(LCARS.lime, '70')};
   }
+  flex: 0 0 auto;
+  width: 40px; min-width: 40px; height: 40px; padding: 0;
+  @media (pointer: coarse) { width: 44px; min-width: 44px; height: 44px; }
+  @media (pointer: coarse) { min-height: 44px; }
 `;
 
 export const PrimaryFinderRow = styled.div`
@@ -1159,33 +1205,57 @@ export const PrimaryFinderRow = styled.div`
     grid-template-columns: minmax(6.5rem, 1fr) auto 40px;
     gap: 0.26rem;
   }
+
+  @media (max-width: 560px) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.42rem;
+  }
 `;
 
 export const UnifiedFinderWorkspace = styled.div`
   display: grid;
-  gap: 0.38rem;
+  gap: 0.18rem;
   min-width: 0;
   width: 100%;
+
+  @media (max-width: 560px) {
+    gap: 0;
+  }
 `;
 
 export const PrimarySearchGroup = styled.label`
   display: flex;
   align-items: center;
   min-width: 0;
-  min-height: 38px;
+  min-height: var(--dw-control-height);
 
   ${SearchInput} {
-    min-height: 38px;
+    min-height: var(--dw-control-height);
     border-color: ${toneAlpha(LCARS.line, '64')};
-    border-radius: 5px;
-    background: rgba(4, 10, 16, 0.52);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+    border-radius: 0;
+    background: var(--dw-surface-raised);
+    box-shadow: none;
 
     &:focus {
       border-color: ${toneAlpha(LCARS.root, 'b8')};
-      box-shadow:
-        0 0 0 1px ${toneAlpha(LCARS.root, '28')},
-        0 0 12px ${toneAlpha(LCARS.root, '1d')};
+      box-shadow: none;
+    }
+  }
+
+  @media (max-width: 560px) {
+    ${SearchInput} {
+      min-height: var(--dw-control-height);
+      border: 0;
+      border-left: 3px solid ${toneAlpha(LCARS.teal, 'c0')};
+      border-bottom: 1px solid ${toneAlpha(LCARS.line, '88')};
+      border-radius: 0;
+      background: var(--dw-surface-raised);
+      box-shadow: none;
+
+      &:focus {
+        border-bottom-color: ${toneAlpha(LCARS.root, 'd0')};
+        box-shadow: none;
+      }
     }
   }
 `;
@@ -1200,12 +1270,13 @@ export const FinderActionLabel = styled.span`
 `;
 
 export const QuickCreateLaunchButton = styled.button`
+  ${controlStyles}
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.28rem;
   min-width: 40px;
-  min-height: 38px;
+  min-height: var(--dw-control-height);
   border: 1px solid ${({ $active, $tone }) =>
     $active
       ? toneAlpha($tone === 'teal' ? LCARS.teal : LCARS.amber, 'b0')
@@ -1216,9 +1287,9 @@ export const QuickCreateLaunchButton = styled.button`
   background: ${({ $active, $tone }) => $active
     ? ($tone === 'teal' ? 'rgba(76, 198, 193, 0.14)' : 'rgba(93, 60, 17, 0.32)')
     : 'rgba(20, 18, 13, 0.38)'};
-  font: 820 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 820 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: normal;
+  text-transform: none;
   white-space: nowrap;
   cursor: pointer;
   transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
@@ -1227,28 +1298,29 @@ export const QuickCreateLaunchButton = styled.button`
     content: ${({ $symbol = '+' }) => JSON.stringify($symbol)};
     display: inline-block;
     font-size: 1.08em;
-    font-weight: 950;
+    font-weight: 650;
     line-height: 1;
   }
 
   &:hover,
   &:focus-visible {
     border-color: ${({ $tone }) => $tone === 'teal' ? LCARS.root : LCARS.amber};
-    box-shadow: ${({ $tone }) => `0 0 12px ${toneAlpha($tone === 'teal' ? LCARS.root : LCARS.amber, '20')}`};
+    box-shadow: none;
     outline: none;
   }
 
   @media (max-width: 420px) {
     padding-inline: 0.52rem;
-    font-size: 0.58rem;
+    font-size: 0.75rem;
   }
 
   @media (min-width: 660px) {
-    min-height: 38px;
+    min-height: var(--dw-control-height);
     padding-inline: 0.42rem;
-    font-size: 0.54rem;
-    letter-spacing: 0.055em;
+    font-size: 0.75rem;
+    letter-spacing: normal;
   }
+  @media (pointer: coarse) { min-height: 44px; }
 `;
 
 export const CompactFilterCount = styled.span`
@@ -1260,12 +1332,12 @@ export const CompactFilterCount = styled.span`
   min-width: 1rem;
   height: 1rem;
   padding: 0 0.18rem;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   color: ${LCARS.bg};
   background: ${LCARS.lime};
-  font: 900 0.56rem/1 ui-monospace, monospace;
+  font: 900 0.75rem/1 var(--dw-font-ui);
   letter-spacing: 0;
-  box-shadow: 0 0 8px ${toneAlpha(LCARS.lime, '32')};
+  box-shadow: none;
 `;
 
 export const AdvancedUtilityRow = styled.div`
@@ -1286,17 +1358,18 @@ export const LocatorDropdown = styled.div`
   display: grid;
   gap: 0.2rem;
   padding: 0.36rem;
-  border-radius: 11px;
+  border-radius: var(--dw-radius);
   border: 1px solid ${toneAlpha(LCARS.lime, '7a')};
-  background: linear-gradient(180deg, rgba(9, 16, 24, 0.99), rgba(8, 14, 20, 0.99));
-  box-shadow:
-    0 18px 30px rgba(2, 9, 16, 0.7),
-    0 0 0 1px ${toneAlpha(LCARS.lime, '1f')} inset;
+  background: var(--dw-surface);
+  box-shadow: none;
   overflow-y: auto;
   overscroll-behavior: contain;
+  background: var(--dw-surface-raised);
+  box-shadow: var(--dw-shadow);
 `;
 
 export const LocatorOption = styled.button`
+  ${controlStyles}
   width: 100%;
   border: 1px solid
     ${({ $active }) =>
@@ -1304,8 +1377,8 @@ export const LocatorOption = styled.button`
   border-radius: 9px;
   background: ${({ $active }) =>
     $active
-      ? 'linear-gradient(180deg, rgba(88, 132, 44, 0.24), rgba(57, 91, 27, 0.2))'
-      : 'linear-gradient(180deg, rgba(15, 30, 45, 0.94), rgba(9, 18, 29, 0.96))'};
+      ? 'var(--dw-surface-raised)'
+      : 'var(--dw-surface-raised)'};
   color: ${toneAlpha(LCARS.text, 'f0')};
   display: grid;
   gap: 0.12rem;
@@ -1318,26 +1391,21 @@ export const LocatorOption = styled.button`
 
   &:hover {
     border-color: ${toneAlpha(LCARS.lime, '92')};
-    background: linear-gradient(
-      180deg,
-      rgba(106, 157, 54, 0.24),
-      rgba(65, 102, 34, 0.22)
-    );
-    box-shadow:
-      0 0 0 1px ${toneAlpha(LCARS.lime, '2f')} inset,
-      0 0 14px ${toneAlpha(LCARS.lime, '24')};
+    background: var(--dw-surface);
+    box-shadow: none;
   }
+  @media (pointer: coarse) { min-height: 44px; }
 `;
 
 export const LocatorOptionMain = styled.span`
   font-size: 0.8rem;
-  font-weight: 760;
-  letter-spacing: 0.02em;
+  font-weight: 650;
+  letter-spacing: normal;
   color: ${toneAlpha(LCARS.text, 'ec')};
 `;
 
 export const LocatorOptionMeta = styled.span`
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: ${toneAlpha(LCARS.textDim, 'd0')};
 `;
 
@@ -1352,17 +1420,9 @@ export const LocatorEmpty = styled.div`
 export const LocatorInspector = styled.section`
   margin-top: 0;
   border: 1px solid ${toneAlpha(LCARS.lime, '72')};
-  border-radius: 11px;
-  background:
-    linear-gradient(
-      100deg,
-      ${toneAlpha(LCARS.lime, '17')} 0%,
-      transparent 52%
-    ),
-    linear-gradient(180deg, rgba(8, 16, 23, 0.98), rgba(8, 14, 21, 0.98));
-  box-shadow:
-    inset 0 0 0 1px ${toneAlpha(LCARS.lime, '1f')},
-    0 12px 22px rgba(2, 9, 16, 0.6);
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface);
+  box-shadow: none;
   overflow: hidden;
 `;
 
@@ -1382,8 +1442,8 @@ export const LocatorInspectorTitle = styled.div`
 export const LocatorInspectorTitleLink = styled(Link)`
   color: ${toneAlpha(LCARS.lime, 'ef')};
   font-size: 0.8rem;
-  font-weight: 780;
-  letter-spacing: 0.02em;
+  font-weight: 650;
+  letter-spacing: normal;
   text-decoration: none;
 
   &:hover {
@@ -1393,26 +1453,29 @@ export const LocatorInspectorTitleLink = styled(Link)`
 `;
 
 export const LocatorInspectorClear = styled.button`
+  ${controlStyles}
   border: 1px solid ${toneAlpha(LCARS.root, '72')};
   border-radius: 8px;
-  min-height: 24px;
+  min-height: var(--dw-control-height);
   padding: 0.16rem 0.42rem;
-  font-size: 0.66rem;
-  font-weight: 740;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
   color: ${toneAlpha(LCARS.root, 'd8')};
-  background: linear-gradient(180deg, rgba(11, 25, 37, 0.95), rgba(8, 17, 27, 0.95));
-  box-shadow: inset 0 0 0 1px ${toneAlpha(LCARS.root, '22')};
+  background: var(--dw-surface);
+  box-shadow: none;
   cursor: pointer;
 
   &:hover {
     border-color: ${toneAlpha(LCARS.lime, '7a')};
     color: ${toneAlpha(LCARS.lime, 'e8')};
-    box-shadow:
-      inset 0 0 0 1px ${toneAlpha(LCARS.lime, '26')},
-      0 0 12px ${toneAlpha(LCARS.lime, '28')};
+    box-shadow: none;
   }
+  flex: 0 0 auto;
+  width: auto;
+  justify-self: start;
+  @media (pointer: coarse) { min-height: 44px; }
 `;
 
 export const LocatorBreadcrumb = styled.div`
@@ -1422,7 +1485,7 @@ export const LocatorBreadcrumb = styled.div`
   align-items: center;
   padding: 0.32rem 0.55rem 0.4rem;
   border-bottom: 1px dashed ${toneAlpha(LCARS.line, 'b8')};
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 `;
 
 export const LocatorBreadcrumbLink = styled(Link)`
@@ -1437,7 +1500,7 @@ export const LocatorBreadcrumbLink = styled(Link)`
 
 export const LocatorBreadcrumbCurrent = styled.span`
   color: ${toneAlpha(LCARS.lime, 'e8')};
-  font-weight: 720;
+  font-weight: 650;
 `;
 
 export const LocatorBreadcrumbSep = styled.span`
@@ -1459,9 +1522,9 @@ export const LocatorSection = styled.section`
 
 export const LocatorSectionTitle = styled.h4`
   margin: 0;
-  font-size: 0.64rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: normal;
+  text-transform: none;
   color: ${toneAlpha(LCARS.textDim, 'd3')};
 `;
 
@@ -1479,8 +1542,8 @@ export const LocatorRow = styled.div`
   border-radius: 8px;
   background: ${({ $kind = 'item' }) =>
     $kind === 'box'
-      ? 'linear-gradient(180deg, rgba(16, 33, 48, 0.92), rgba(10, 19, 27, 0.92))'
-      : 'linear-gradient(180deg, rgba(15, 30, 17, 0.92), rgba(10, 19, 12, 0.92))'};
+      ? 'var(--dw-surface-raised)'
+      : 'var(--dw-surface-raised)'};
 `;
 
 export const LocatorRowLink = styled(Link)`
@@ -1493,13 +1556,13 @@ export const LocatorRowLink = styled(Link)`
 export const LocatorRowTitle = styled.span`
   color: ${toneAlpha(LCARS.text, 'ef')};
   font-size: 0.78rem;
-  font-weight: 710;
+  font-weight: 650;
   line-height: 1.2;
 `;
 
 export const LocatorRowMeta = styled.span`
   color: ${toneAlpha(LCARS.textDim, 'cd')};
-  font-size: 0.67rem;
+  font-size: 0.75rem;
   line-height: 1.2;
 `;
 
@@ -1507,22 +1570,22 @@ export const LocatorEmptyBlock = styled.div`
   border: 1px dashed ${toneAlpha(LCARS.line, 'c6')};
   border-radius: 8px;
   color: ${toneAlpha(LCARS.textDim, 'd2')};
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   padding: 0.38rem 0.45rem;
 `;
 
 export const LocatorStatusText = styled.div`
   color: ${toneAlpha(LCARS.textDim, 'dc')};
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   padding: 0.24rem 0.1rem;
 `;
 
 export const LocatorNotes = styled.div`
   border: 1px solid ${toneAlpha(LCARS.line, 'cc')};
   border-radius: 8px;
-  background: linear-gradient(180deg, rgba(12, 25, 34, 0.94), rgba(8, 18, 24, 0.94));
+  background: var(--dw-surface);
   color: ${toneAlpha(LCARS.text, 'e8')};
-  font-size: 0.73rem;
+  font-size: 0.75rem;
   line-height: 1.45;
   padding: 0.36rem 0.45rem;
   white-space: pre-wrap;
@@ -1534,9 +1597,9 @@ export const LocatorNotes = styled.div`
 export const ControlHint = styled.span`
   color: ${({ $active }) =>
     $active ? toneAlpha(LCARS.lime, 'ed') : toneAlpha(LCARS.textDim, 'cf')};
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: ${({ $active }) => ($active ? 760 : 650)};
-  letter-spacing: 0.03em;
+  letter-spacing: normal;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
@@ -1555,6 +1618,7 @@ export const QuickActionsRow = styled.div`
 `;
 
 export const QuickActionButton = styled.button`
+  ${controlStyles}
   min-width: 0;
   min-height: 40px;
   border-radius: 5px;
@@ -1566,9 +1630,9 @@ export const QuickActionButton = styled.button`
   color: ${({ $active }) =>
     $active ? toneAlpha(LCARS.teal, 'f2') : toneAlpha(LCARS.root, 'da')};
   font-size: 0.78rem;
-  font-weight: 780;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
   cursor: pointer;
   transition:
     border-color 130ms ease,
@@ -1577,18 +1641,17 @@ export const QuickActionButton = styled.button`
 
   &:hover {
     border-color: ${toneAlpha(LCARS.teal, 'aa')};
-    box-shadow: 0 0 12px ${toneAlpha(LCARS.teal, '2e')};
+    box-shadow: none;
     transform: translateY(-1px);
   }
+  @media (pointer: coarse) { min-height: 44px; }
 `;
 
 export const QuickActionPanel = styled.div`
   ${panelBase};
   padding: 0.52rem;
   border-color: ${toneAlpha(LCARS.root, '58')};
-  background:
-    radial-gradient(circle at 95% 8%, ${toneAlpha(LCARS.lilac, '22')} 0%, transparent 44%),
-    linear-gradient(180deg, #0f1822 0%, #0a121a 100%);
+  background: var(--dw-surface);
   min-width: 0;
 `;
 
@@ -1598,7 +1661,7 @@ export const QuickOrphanInlinePanel = styled.div`
   margin-top: 0.16rem;
   border-top: 1px solid ${toneAlpha(LCARS.amber, '64')};
   padding: 0.48rem 0.08rem 0.08rem;
-  background: linear-gradient(90deg, rgba(232, 177, 92, 0.08), transparent 58%);
+  background: var(--dw-surface);
 `;
 
 export const QuickCaptureComposer = styled.section`
@@ -1624,10 +1687,10 @@ export const QuickCaptureField = styled.label`
   gap: 0.18rem;
   min-width: 0;
   color: ${toneAlpha(LCARS.textDim, 'd4')};
-  font-size: 0.56rem;
-  font-weight: 780;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
 
   &:first-child { grid-column: 1; }
 
@@ -1644,12 +1707,12 @@ export const QuickCaptureInput = styled.input`
   border-radius: 3px 8px 3px 3px;
   padding: 0 0.58rem;
   color: ${toneAlpha(LCARS.text, 'f2')};
-  background: rgba(4, 10, 15, 0.88);
-  font: 700 0.82rem ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background: var(--dw-surface-raised);
+  font: 700 0.82rem var(--dw-font-ui);
   outline: none;
 
   &::placeholder { color: ${toneAlpha(LCARS.textDim, 'a0')}; }
-  &:focus { border-color: ${toneAlpha(LCARS.teal, 'e8')}; box-shadow: 0 0 0 2px ${toneAlpha(LCARS.teal, '24')}; }
+  &:focus { border-color: ${toneAlpha(LCARS.teal, 'e8')}; box-shadow: none; }
   &:disabled { opacity: 0.58; cursor: not-allowed; }
 `;
 
@@ -1667,6 +1730,7 @@ export const QuickCaptureActions = styled.div`
 `;
 
 export const QuickCaptureButton = styled.button`
+  ${controlStyles}
   min-height: 40px;
   border: 1px solid ${({ $primary }) => ($primary ? toneAlpha(LCARS.amber, 'd8') : 'rgba(104, 154, 186, 0.69)')};
   border-radius: ${({ $primary }) => ($primary ? '3px 9px 3px 3px' : '3px')};
@@ -1674,9 +1738,9 @@ export const QuickCaptureButton = styled.button`
   color: ${({ $primary }) => ($primary ? toneAlpha(LCARS.amber, 'f2') : LCARS.text)};
   background: ${({ $primary }) => ($primary ? 'rgba(104, 63, 14, 0.28)' : 'rgba(18, 30, 42, 0.96)')};
   cursor: pointer;
-  font: 800 0.6rem ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 800 0.75rem var(--dw-font-ui);
+  letter-spacing: normal;
+  text-transform: none;
 
   &:hover:not(:disabled) {
     border-color: ${({ $primary }) => ($primary ? toneAlpha(LCARS.amber, 'f2') : toneAlpha(LCARS.teal, 'e0'))};
@@ -1684,10 +1748,11 @@ export const QuickCaptureButton = styled.button`
   }
   &:focus-visible { outline: 2px solid ${toneAlpha(LCARS.lilac, 'ee')}; outline-offset: 2px; }
   &:disabled { opacity: 0.48; cursor: not-allowed; }
+  @media (pointer: coarse) { min-height: 44px; }
 `;
 
 export const QuickCaptureError = styled.div`
   color: #ffb2a7;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   line-height: 1.3;
 `;

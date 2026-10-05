@@ -31,13 +31,11 @@ const DEFAULT_BOX_SORT_OPTIONS = [
 const EMPTY_FILTER_OPTIONS = {
   categories: [],
   tags: [],
-  groups: [],
   locations: [],
   owners: [],
   keepPriorities: [],
   categoryLabelByKey: new Map(),
   tagLabelByKey: new Map(),
-  groupLabelByKey: new Map(),
   locationLabelByKey: new Map(),
   ownerLabelByKey: new Map(),
   keepPriorityLabelByKey: new Map(),
@@ -222,9 +220,6 @@ export default function RetrievalBoxCentricView({
   const [boxIdPrefix, setBoxIdPrefix] = useState(() =>
     normalizeBoxId(initialPersistedState?.boxIdPrefix).slice(0, 3),
   );
-  const [selectedGroup, setSelectedGroup] = useState(() =>
-    String(initialPersistedState?.selectedGroup || ''),
-  );
   const [selectedLocation, setSelectedLocation] = useState(() =>
     String(initialPersistedState?.selectedLocation || ''),
   );
@@ -256,7 +251,6 @@ export default function RetrievalBoxCentricView({
     () => ({
       q: debouncedSearchValue,
       boxIdPrefix: debouncedBoxIdPrefix,
-      groups: selectedGroup ? [selectedGroup] : [],
       locations: selectedLocation ? [selectedLocation] : [],
       tags: selectedTags,
       tagOperator,
@@ -265,7 +259,6 @@ export default function RetrievalBoxCentricView({
     [
       debouncedBoxIdPrefix,
       debouncedSearchValue,
-      selectedGroup,
       selectedLocation,
       selectedSort,
       selectedTags,
@@ -297,7 +290,6 @@ export default function RetrievalBoxCentricView({
     onStateSnapshotChange?.({
       searchValue,
       boxIdPrefix,
-      selectedGroup,
       selectedLocation,
       selectedTags,
       tagOperator,
@@ -311,7 +303,6 @@ export default function RetrievalBoxCentricView({
     onStateSnapshotChange,
     searchValue,
     selectedBoxId,
-    selectedGroup,
     selectedLocation,
     selectedSort,
     selectedTags,
@@ -346,17 +337,6 @@ export default function RetrievalBoxCentricView({
     [],
   );
 
-  useEffect(() => {
-    if (!selectedGroup) return;
-
-    const hasOption = filterOptions.groups.some(
-      (option) => String(option?.key || '') === String(selectedGroup),
-    );
-
-    if (!hasOption) {
-      setSelectedGroup('');
-    }
-  }, [filterOptions.groups, selectedGroup]);
 
   useEffect(() => {
     if (!selectedLocation) return;
@@ -669,14 +649,12 @@ export default function RetrievalBoxCentricView({
         searchValue={searchValue}
         onSearchChange={setSearchValue}
         searchLabel="Find Boxes"
-        searchPlaceholder="Search box name, group, location, or item tag"
+        searchPlaceholder="Search box name, location, or item tag"
         boxIdPrefix={boxIdPrefix}
         onBoxIdPrefixChange={setBoxIdPrefix}
         filterOptions={filterOptions}
-        selectedBoxGroup={selectedGroup}
         selectedBoxLocation={selectedLocation}
         selectedBoxTags={selectedTags}
-        onBoxGroupChange={setSelectedGroup}
         onBoxLocationChange={setSelectedLocation}
         onBoxTagAdd={addSelectedTag}
         onBoxTagRemove={removeSelectedTag}
@@ -706,8 +684,8 @@ export default function RetrievalBoxCentricView({
           <S.BoxCentricLayout>
             <S.BoxMapPanel>
               {groupedBoxes.map((group) => (
-                <S.BoxGroup key={group.location}>
-                  <S.BoxGroupLabel>{group.location}</S.BoxGroupLabel>
+                <S.LocationSection key={group.location}>
+                  <S.LocationSectionLabel>{group.location}</S.LocationSectionLabel>
                   <S.BoxList>
                     {group.boxes.map((box) => {
                       const normalizedId = normalizeBoxId(box?.boxId);
@@ -730,7 +708,7 @@ export default function RetrievalBoxCentricView({
                                 #{box.boxId || '—'}
                               </S.BoxRowId>
                               <S.BoxRowLabel $boxMutedRgb={rowTones.mutedRgb}>
-                                {box.boxLabel}
+                                {box.boxLabel}{box.isComplexBox ? ' · Complex box' : ''}
                               </S.BoxRowLabel>
                             </S.BoxRowMain>
                             <S.BoxRowContext>
@@ -738,14 +716,6 @@ export default function RetrievalBoxCentricView({
                                 <span>Location</span>
                                 <strong>{box.locationLabel || 'Unknown'}</strong>
                               </S.BoxRowLocation>
-                            {box.groupLabel ? (
-                              <S.BoxRowGroup
-                                title={box.groupLabel}
-                                $boxMutedRgb={rowTones.mutedRgb}
-                              >
-                                Group: {box.groupLabel}
-                              </S.BoxRowGroup>
-                            ) : null}
                             </S.BoxRowContext>
                             {box.tags.length ? (
                               <S.BoxRowTags
@@ -782,7 +752,7 @@ export default function RetrievalBoxCentricView({
                       );
                     })}
                   </S.BoxList>
-                </S.BoxGroup>
+                </S.LocationSection>
               ))}
             </S.BoxMapPanel>
 

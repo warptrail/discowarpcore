@@ -51,7 +51,7 @@ export default function RetrievalResultRow({
   const imageUrl = String(item?.imageUrl || '').trim();
   const previewImageUrl = String(item?.previewImageUrl || imageUrl).trim();
   const boxName = String(item?.boxName || '').trim();
-  const boxNumber = String(item?.boxNumber || '').trim();
+  const boxNumber = String(item?.placementLabel || item?.boxNumber || '').trim();
   const locationLabel = String(item?.locationLabel || '').trim();
   const hasKnownLocation =
     Boolean(locationLabel) && !/^unknown/i.test(locationLabel);

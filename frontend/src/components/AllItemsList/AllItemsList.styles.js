@@ -1,6 +1,8 @@
 import styled, { css } from 'styled-components';
+import { panelStyles, inputStyles } from '../../styles/primitives';
 import { Link } from 'react-router-dom';
 import {
+  APP_VISUAL_THEME,
   MOBILE_BREAKPOINT,
   MOBILE_FONT_SM,
   MOBILE_FONT_XS,
@@ -10,19 +12,19 @@ import {
 const TABLE_STACK_BREAKPOINT = '900px';
 
 const LCARS = {
-  bg: '#0c0f11',
-  panel: '#14181b',
-  panelAlt: '#1a1f24',
-  line: 'rgba(255,255,255,0.08)',
-  lineStrong: 'rgba(255,255,255,0.13)',
-  text: '#e6edf3',
-  textDim: 'rgba(230,237,243,0.72)',
-  textMuted: 'rgba(230,237,243,0.56)',
-  root: '#7fd7ff',
-  teal: '#4cc6c1',
-  amber: '#e8b15c',
-  coral: '#f08a7b',
-  lilac: '#a7b6ff',
+  bg: APP_VISUAL_THEME.background,
+  panel: APP_VISUAL_THEME.surface,
+  panelAlt: APP_VISUAL_THEME.surfaceRaised,
+  line: APP_VISUAL_THEME.borderSoft,
+  lineStrong: APP_VISUAL_THEME.border,
+  text: APP_VISUAL_THEME.text,
+  textDim: APP_VISUAL_THEME.textSecondary,
+  textMuted: APP_VISUAL_THEME.textMuted,
+  root: APP_VISUAL_THEME.cyan,
+  teal: APP_VISUAL_THEME.teal,
+  amber: APP_VISUAL_THEME.amber,
+  coral: APP_VISUAL_THEME.coral,
+  lilac: APP_VISUAL_THEME.violet,
   decommissioned: '#e56f67',
 };
 
@@ -59,73 +61,44 @@ const withAlpha = (hex, alpha = 'ff') => {
   return 'rgba(127, 215, 255, 0.24)';
 };
 
-const panelBase = css`
-  border: 1px solid ${LCARS.line};
-  border-radius: 14px;
-  box-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.25),
-    0 8px 24px rgba(0, 0, 0, 0.24);
-`;
+const panelBase = css`${panelStyles}`;
 
 const controlField = css`
+  ${inputStyles}
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 4px;
-  background: rgba(9, 14, 20, 0.96);
-  color: ${LCARS.text};
-  min-height: 30px;
-  padding: 0.32rem 0.48rem;
-  font-size: 0.78rem;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-  letter-spacing: 0.02em;
-  outline: none;
-  transition:
-    border-color 130ms ease,
-    box-shadow 130ms ease,
-    background 130ms ease;
-
-  &:focus {
-    border-color: rgba(127, 215, 255, 0.76);
-    box-shadow: 0 0 0 1px rgba(127, 215, 255, 0.34);
-    background: rgba(12, 20, 28, 0.98);
-  }
 `;
 
 export const PageShell = styled.section`
   display: grid;
-  gap: 0.78rem;
+  gap: 0.62rem;
   color: ${LCARS.text};
+  min-width: 0;
+  font-family: var(--dw-font-ui);
+  & :is(button, a, input, select, textarea):focus-visible {
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
+  }
 `;
 
 export const HeaderPanel = styled.header`
-  ${panelBase};
   display: grid;
-  gap: 0.42rem;
-  padding: 0.66rem 0.72rem 0.72rem;
-  border-radius: 10px;
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.02),
-    0 1px 0 rgba(0, 0, 0, 0.36),
-    0 6px 16px rgba(0, 0, 0, 0.24);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.01) 24%, transparent 62%),
-    linear-gradient(180deg, #10151a 0%, #0d1216 100%);
+  gap: 0.52rem;
+  padding: 0.14rem 0 0.54rem;
+  border: 0;
+  border-bottom: 1px solid rgba(230, 237, 243, 0.11);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    position: sticky;
-    top: 116px;
-    z-index: 120;
-    gap: 0.34rem;
-    padding: 0.5rem;
-    border-radius: ${MOBILE_PANEL_RADIUS};
+    gap: 0.42rem;
+    padding: 0.08rem 0 0.46rem;
   }
 `;
 
 export const TitleRow = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.44rem;
 `;
@@ -134,24 +107,22 @@ export const TitlePip = styled.span`
   width: 7px;
   height: 20px;
   border-radius: 2px;
-  background: ${LCARS.teal};
-  box-shadow: 0 0 0 1px rgba(76, 198, 193, 0.36) inset;
+  background: var(--dw-amber);
+  box-shadow: none;
 `;
 
 export const Title = styled.h2`
   margin: 0;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: inherit;
   font-size: clamp(0.94rem, 2vw, 1.06rem);
-  font-weight: 900;
-  letter-spacing: 0.11em;
+  font-weight: 650;
+  letter-spacing: -0.015em;
   color: rgba(230, 237, 243, 0.96);
-  text-transform: uppercase;
+  text-transform: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 0.9rem;
-    letter-spacing: 0.065em;
+    letter-spacing: -0.01em;
   }
 `;
 
@@ -163,11 +134,9 @@ export const TelemetryRow = styled.div`
   padding: 0.26rem 0.02rem 0.3rem;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-  font-size: 0.72rem;
-  letter-spacing: 0.055em;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
+  letter-spacing: normal;
   color: ${LCARS.textDim};
 `;
 
@@ -196,18 +165,16 @@ export const ControlsRow = styled.div`
     minmax(170px, 1fr)
     minmax(170px, 1fr)
     minmax(150px, 0.9fr);
-  gap: 0;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 6px;
-  overflow: hidden;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
-    rgba(12, 17, 23, 0.92);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  gap: 0.56rem;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
 
   @media (max-width: 760px) {
     grid-template-columns: 1fr;
-    gap: 0;
+    gap: 0.42rem;
   }
 `;
 
@@ -218,15 +185,17 @@ export const ControlsToggleRow = styled.div`
 `;
 
 export const PageActionBar = styled.div`
-  display: grid;
-  grid-template-columns: minmax(120px, 1fr) auto auto;
+  display: flex;
   align-items: center;
-  gap: 0.36rem;
-  padding-top: 0.42rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  gap: 0.3rem;
+  margin-left: auto;
 
-  @media (max-width: 520px) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  > button {
+    width: auto;
+    white-space: nowrap;
+    min-height: 44px;
+    padding-inline: 0.6rem;
+    font-size: 0.75rem;
   }
 `;
 
@@ -249,11 +218,9 @@ export const BulkMeta = styled.div`
   flex-wrap: wrap;
   align-items: center;
   gap: 0.28rem;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-  font-size: 0.68rem;
-  letter-spacing: 0.04em;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
+  letter-spacing: normal;
   color: ${LCARS.textDim};
 `;
 
@@ -283,10 +250,10 @@ export const BulkPill = styled.span`
         : $tone === 'selected'
           ? '#d6f2ff'
           : '#f5d49d'};
-  text-transform: uppercase;
-  font-size: 0.64rem;
+  text-transform: none;
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.08em;
+  letter-spacing: normal;
 `;
 
 export const BulkActions = styled.div`
@@ -297,40 +264,40 @@ export const BulkActions = styled.div`
 `;
 
 export const ToolbarButton = styled.button`
-  min-height: 29px;
-  border-radius: 4px;
+  flex: 0 0 auto;
+  min-height: 40px;
+  border-radius: 6px;
   border: 1px solid
     ${({ $tone = 'default' }) =>
       $tone === 'primary'
-        ? 'rgba(100, 188, 151, 0.82)'
+        ? 'rgba(76, 198, 193, 0.66)'
         : $tone === 'ghost'
-          ? 'rgba(102, 167, 212, 0.46)'
+          ? 'rgba(230, 237, 243, 0.17)'
         : $tone === 'warning'
-          ? 'rgba(201, 163, 97, 0.7)'
-          : 'rgba(102, 167, 212, 0.75)'};
+          ? 'rgba(76, 198, 193, 0.58)'
+          : 'rgba(127, 215, 255, 0.38)'};
   background:
     ${({ $tone = 'default' }) =>
       $tone === 'primary'
-        ? 'linear-gradient(180deg, rgba(20, 67, 54, 0.98) 0%, rgba(14, 44, 37, 0.98) 100%)'
+        ? 'rgba(76, 198, 193, 0.14)'
         : $tone === 'ghost'
-          ? 'rgba(14, 24, 34, 0.95)'
+          ? 'rgba(9, 17, 25, 0.56)'
         : $tone === 'warning'
-          ? 'linear-gradient(180deg, rgba(84, 55, 14, 0.96) 0%, rgba(57, 39, 13, 0.96) 100%)'
-          : 'linear-gradient(180deg, rgba(26, 60, 83, 0.96) 0%, rgba(17, 43, 62, 0.96) 100%)'};
-  color: ${({ $tone = 'default' }) => ($tone === 'ghost' ? '#cfefff' : '#e8fff5')};
-  font-size: 0.64rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.085em;
+          ? 'rgba(76, 198, 193, 0.12)'
+          : 'rgba(9, 17, 25, 0.82)'};
+  color: ${({ $tone = 'default' }) => ($tone === 'ghost' ? 'rgba(230, 237, 243, 0.82)' : '#d9f3ef')};
+  font-size: 0.8rem;
+  font-weight: 620;
+  text-transform: none;
+  letter-spacing: normal;
   padding: 0 0.52rem;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: inherit;
   cursor: pointer;
   transition: border-color 120ms ease, background 120ms ease;
 
   &:hover {
-    border-color: rgba(127, 215, 255, 0.72);
+    border-color: rgba(76, 198, 193, 0.64);
+    background: rgba(76, 198, 193, 0.1);
   }
 
   &:focus-visible {
@@ -345,7 +312,19 @@ export const ToolbarButton = styled.button`
 `;
 
 export const HeaderModeButton = styled(ToolbarButton)`
+  min-height: 44px;
+  border: 0;
+  border-radius: 2px;
+  background: ${({ $tone }) =>
+    $tone === 'warning' ? 'rgba(18, 49, 48, 0.96)' : 'rgba(17, 27, 37, 0.96)'};
+  box-shadow: none;
+  color: ${({ $tone }) => ($tone === 'warning' ? '#d9f3ef' : 'rgba(230, 237, 243, 0.82)')};
   min-width: 102px;
+
+  &:hover {
+    background: ${({ $tone }) =>
+      $tone === 'warning' ? 'rgba(22, 59, 57, 0.98)' : 'rgba(26, 39, 50, 0.98)'};
+  }
 
   @media (max-width: 520px) {
     min-width: 0;
@@ -356,26 +335,31 @@ export const HeaderModeButton = styled(ToolbarButton)`
 
 export const ControlsToggleButton = styled(ToolbarButton)`
   justify-self: start;
-  min-height: 30px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 2px;
+  background: var(--dw-surface-raised);
+  box-shadow: none;
+  color: rgba(230, 237, 243, 0.82);
+
+  &[aria-expanded='true'] {
+    background: var(--dw-surface-raised);
+    box-shadow: none;
+    color: #d9f3ef;
+  }
+
+  &:hover {
+    background: var(--dw-surface-raised);
+  }
+
+  &[aria-expanded='true']:hover {
+    background: var(--dw-surface-raised);
+  }
 
   @media (max-width: 520px) {
     justify-self: stretch;
     width: 100%;
     padding-inline: 0.28rem;
-  }
-`;
-
-export const PulseButton = styled(ToolbarButton)`
-  margin-left: auto;
-  border-color: rgba(232, 177, 92, 0.62);
-  background:
-    linear-gradient(180deg, rgba(91, 59, 14, 0.92), rgba(54, 38, 14, 0.94));
-  color: #f6d58f;
-
-  &:hover,
-  &:focus-visible {
-    border-color: rgba(246, 213, 143, 0.9);
-    color: #fff1c7;
   }
 `;
 
@@ -387,13 +371,7 @@ export const ControlGroup = styled.label`
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   min-width: 0;
   overflow: hidden;
-  background:
-    linear-gradient(
-      96deg,
-      ${({ $tone = LCARS.root }) => `${$tone}16`} 0%,
-      transparent 36%
-    ),
-    rgba(0, 0, 0, 0);
+  background: var(--dw-surface);
 
   &:last-child {
     border-right: 0;
@@ -411,15 +389,15 @@ export const ControlGroup = styled.label`
 `;
 
 export const ControlLabel = styled.span`
-  font-size: 0.58rem;
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
   color: rgba(230, 237, 243, 0.64);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
-    letter-spacing: 0.08em;
+    letter-spacing: normal;
   }
 `;
 
@@ -438,7 +416,7 @@ export const Select = styled.select`
   border-color: rgba(255, 255, 255, 0.18);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 31px;
+    min-height: var(--dw-control-height);
     font-size: ${MOBILE_FONT_SM};
     padding: 0.28rem 1.6rem 0.28rem 0.44rem;
   }
@@ -453,10 +431,11 @@ export const SearchInput = styled.input`
 `;
 
 export const ContentPanel = styled.section`
-  ${panelBase};
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 40%),
-    ${LCARS.panel};
-  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
 `;
 
 export const BatchSelectionPanel = styled.section`
@@ -467,9 +446,7 @@ export const BatchSelectionPanel = styled.section`
   justify-content: space-between;
   gap: 0.72rem;
   padding: 0.72rem 0.88rem;
-  background:
-    radial-gradient(circle at 8% 20%, rgba(127, 215, 255, 0.12) 0%, transparent 34%),
-    linear-gradient(180deg, rgba(19, 25, 30, 0.96) 0%, rgba(14, 19, 24, 0.98) 100%);
+  background: var(--dw-surface);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 0.58rem 0.62rem;
@@ -486,8 +463,8 @@ export const BatchSelectionTitle = styled.h3`
   margin: 0;
   font-size: 0.78rem;
   font-weight: 860;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
   color: ${LCARS.root};
 `;
 
@@ -540,10 +517,10 @@ export const SelectionSelectLabel = styled.label`
   min-width: 0;
 
   > span {
-    font-size: 0.58rem;
+    font-size: 0.75rem;
     font-weight: 800;
-    letter-spacing: 0.13em;
-    text-transform: uppercase;
+    letter-spacing: normal;
+    text-transform: none;
     color: rgba(230, 237, 243, 0.64);
   }
 `;
@@ -578,7 +555,7 @@ export const SelectionBoxPicker = styled.div`
   padding: 0.42rem;
   border: 1px solid rgba(127, 215, 255, 0.18);
   border-radius: 8px;
-  background: rgba(8, 13, 19, 0.72);
+  background: var(--dw-surface-raised);
 `;
 
 export const SelectionDeclutterPanel = styled.div`
@@ -587,9 +564,7 @@ export const SelectionDeclutterPanel = styled.div`
   padding: 0.56rem;
   border: 1px solid rgba(167, 182, 255, 0.24);
   border-radius: 8px;
-  background:
-    linear-gradient(90deg, rgba(167, 182, 255, 0.12), transparent 44%),
-    rgba(8, 13, 19, 0.62);
+  background: var(--dw-surface);
 `;
 
 export const SelectionDeclutterHeader = styled.div`
@@ -600,13 +575,11 @@ export const SelectionDeclutterHeader = styled.div`
 export const SelectionDeclutterTitle = styled.h4`
   margin: 0;
   color: ${LCARS.lilac};
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 860;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  letter-spacing: normal;
+  text-transform: none;
+  font-family: var(--dw-font-ui);
 `;
 
 export const SelectionDeclutterText = styled.div`
@@ -622,8 +595,8 @@ export const SelectionDeclutterError = styled.div`
 `;
 
 export const BatchActionButton = styled.button`
-  min-height: 34px;
-  border-radius: 10px;
+  min-height: var(--dw-control-height);
+  border-radius: var(--dw-radius);
   border: 1px solid
     ${({ $tone = 'primary' }) =>
       $tone === 'ghost'
@@ -633,12 +606,12 @@ export const BatchActionButton = styled.button`
     ${({ $tone = 'primary' }) =>
       $tone === 'ghost'
         ? 'rgba(15, 24, 33, 0.94)'
-        : 'linear-gradient(180deg, rgba(23, 75, 60, 0.96) 0%, rgba(16, 51, 42, 0.96) 100%)'};
+        : 'var(--dw-surface-raised)'};
   color: ${({ $tone = 'primary' }) => ($tone === 'ghost' ? '#cfefff' : '#e8fff5')};
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  text-transform: none;
+  letter-spacing: normal;
   padding: 0 0.76rem;
   cursor: pointer;
 
@@ -680,9 +653,9 @@ export const ProgressiveLoadRegion = styled.div`
 
 export const ProgressiveLoadText = styled.span`
   color: ${LCARS.textMuted};
-  font: 700 0.68rem/1.3 "SFMono-Regular", Consolas, monospace;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font: 700 0.75rem/1.3 "SFMono-Regular", Consolas, var(--dw-font-ui);
+  letter-spacing: normal;
+  text-transform: none;
 `;
 
 export const TableScroll = styled.div`
@@ -732,15 +705,13 @@ export const BatchIndexToggle = styled.button`
   min-height: 54px;
   padding: 0.42rem 0.64rem 0.42rem 0.48rem;
   border: 0;
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--batch-accent) 11%, transparent), transparent 42%);
+  background: var(--dw-surface);
   color: ${LCARS.text};
   text-align: left;
   cursor: pointer;
 
   &:hover {
-    background:
-      linear-gradient(90deg, color-mix(in srgb, var(--batch-accent) 18%, transparent), transparent 58%);
+    background: var(--dw-surface);
   }
 
   &:focus-visible {
@@ -758,7 +729,7 @@ export const BatchIndexToggle = styled.button`
 
 export const BatchIndexChevron = styled.span`
   color: var(--batch-accent);
-  font: 900 0.9rem/1 "SFMono-Regular", Consolas, monospace;
+  font: 900 0.9rem/1 "SFMono-Regular", Consolas, var(--dw-font-ui);
 `;
 
 export const BatchIndexIdentity = styled.span`
@@ -784,8 +755,8 @@ export const BatchIndexName = styled.span`
 export const BatchIndexDestination = styled.span`
   overflow: hidden;
   color: #8de3a9;
-  font: 720 0.67rem/1.2 "SFMono-Regular", Consolas, monospace;
-  letter-spacing: 0.025em;
+  font: 720 0.75rem/1.2 "SFMono-Regular", Consolas, var(--dw-font-ui);
+  letter-spacing: normal;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
@@ -799,21 +770,21 @@ export const BatchIndexFacts = styled.span`
 
 export const BatchIndexDate = styled.span`
   color: ${LCARS.textDim};
-  font: 730 0.7rem/1.2 "SFMono-Regular", Consolas, monospace;
+  font: 730 0.7rem/1.2 "SFMono-Regular", Consolas, var(--dw-font-ui);
 
   @media (max-width: ${TABLE_STACK_BREAKPOINT}) {
-    font-size: 0.61rem;
+    font-size: 0.75rem;
   }
 `;
 
 export const BatchIndexCount = styled.span`
   color: var(--batch-accent);
-  font: 820 0.67rem/1.2 "SFMono-Regular", Consolas, monospace;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font: 820 0.75rem/1.2 "SFMono-Regular", Consolas, var(--dw-font-ui);
+  letter-spacing: normal;
+  text-transform: none;
 
   @media (max-width: ${TABLE_STACK_BREAKPOINT}) {
-    font-size: 0.61rem;
+    font-size: 0.75rem;
   }
 `;
 
@@ -824,9 +795,9 @@ export const BatchIndexSelect = styled.button`
   border-left: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(127, 215, 255, 0.07);
   color: ${LCARS.root};
-  font: 800 0.62rem/1.1 "SFMono-Regular", Consolas, monospace;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  font: 800 0.75rem/1.1 "SFMono-Regular", Consolas, var(--dw-font-ui);
+  letter-spacing: normal;
+  text-transform: none;
   cursor: pointer;
 
   &:hover,
@@ -837,7 +808,7 @@ export const BatchIndexSelect = styled.button`
   @media (max-width: ${TABLE_STACK_BREAKPOINT}) {
     min-width: 66px;
     padding: 0 0.32rem;
-    font-size: 0.56rem;
+    font-size: 0.75rem;
   }
 `;
 
@@ -846,7 +817,7 @@ export const BatchIndexItems = styled.ul`
   margin: 0;
   padding: 0 0 0 1.58rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(5, 10, 14, 0.52);
+  background: var(--dw-surface-raised);
 
   @media (max-width: ${TABLE_STACK_BREAKPOINT}) {
     padding-left: 1.12rem;
@@ -855,7 +826,7 @@ export const BatchIndexItems = styled.ul`
 
 export const BatchIndexItem = styled.li`
   min-width: 0;
-  min-height: 38px;
+  min-height: var(--dw-control-height);
   display: grid;
   grid-template-columns:
     ${({ $showDestination }) => ($showDestination
@@ -872,7 +843,7 @@ export const BatchIndexItem = styled.li`
 
   @media (max-width: ${TABLE_STACK_BREAKPOINT}) {
     grid-template-columns: 0.55rem minmax(0, 1fr) auto;
-    min-height: 36px;
+    min-height: var(--dw-control-height);
     gap: 0.32rem;
     padding-right: 0.48rem;
   }
@@ -880,7 +851,7 @@ export const BatchIndexItem = styled.li`
 
 export const BatchIndexItemMarker = styled.span`
   color: var(--batch-accent);
-  font: 900 1rem/1 "SFMono-Regular", Consolas, monospace;
+  font: 900 1rem/1 "SFMono-Regular", Consolas, var(--dw-font-ui);
 `;
 
 export const BatchIndexItemLink = styled(Link)`
@@ -916,7 +887,7 @@ export const BatchIndexItemBox = styled.span`
   min-width: 0;
   overflow: hidden;
   color: #8de3a9;
-  font: 680 0.65rem/1.2 "SFMono-Regular", Consolas, monospace;
+  font: 680 0.75rem/1.2 "SFMono-Regular", Consolas, var(--dw-font-ui);
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -930,7 +901,7 @@ export const BatchIndexItemBox = styled.span`
 
 export const BatchIndexItemQuantity = styled.span`
   color: ${LCARS.textDim};
-  font: 760 0.67rem/1 "SFMono-Regular", Consolas, monospace;
+  font: 760 0.75rem/1 "SFMono-Regular", Consolas, var(--dw-font-ui);
 
   @media (max-width: ${TABLE_STACK_BREAKPOINT}) {
     grid-column: 3;
@@ -941,22 +912,15 @@ export const BatchIndexItemQuantity = styled.span`
 export const BatchIndexEmpty = styled.div`
   padding: 1rem;
   color: ${LCARS.textMuted};
-  font: 700 0.75rem/1.4 "SFMono-Regular", Consolas, monospace;
+  font: 700 0.75rem/1.4 "SFMono-Regular", Consolas, var(--dw-font-ui);
 `;
 
 export const BatchTableSection = styled.section`
   ${panelBase};
   overflow: hidden;
   border-color: ${({ $tone = 'root' }) => `${batchToneAccent($tone)}46`};
-  box-shadow:
-    inset 3px 0 0 ${({ $tone = 'root' }) => batchToneAccent($tone)},
-    ${({ $selected, $tone = 'root' }) =>
-      $selected
-        ? `0 0 0 1px ${batchToneAccent($tone)}55, 0 8px 24px rgba(0, 0, 0, 0.24)`
-        : '0 1px 0 rgba(0, 0, 0, 0.25), 0 8px 24px rgba(0, 0, 0, 0.24)'};
-  background:
-    linear-gradient(90deg, ${({ $tone = 'root' }) => `${batchToneAccent($tone)}12`} 0%, transparent 28%),
-    ${LCARS.panel};
+  box-shadow: none;
+  background: var(--dw-surface);
 `;
 
 export const BatchGroupHeader = styled.div`
@@ -964,7 +928,7 @@ export const BatchGroupHeader = styled.div`
   gap: 0.4rem;
   padding: 0.76rem 0.86rem 0.72rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0));
+  background: var(--dw-surface);
 `;
 
 export const BatchGroupTitleRow = styled.div`
@@ -978,23 +942,23 @@ export const BatchGroupTitle = styled.h3`
   margin: 0;
   font-size: 0.84rem;
   font-weight: 860;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
   color: ${LCARS.text};
 `;
 
 export const BatchGroupCount = styled.span`
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   padding: 0.14rem 0.46rem;
   border: 1px solid rgba(127, 215, 255, 0.28);
   background: rgba(127, 215, 255, 0.1);
   color: ${LCARS.textDim};
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
 `;
 
 export const BatchGroupMeta = styled.div`
@@ -1004,7 +968,7 @@ export const BatchGroupMeta = styled.div`
 
 export const BatchGroupMetaLine = styled.div`
   color: ${LCARS.textMuted};
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   line-height: 1.3;
 `;
 
@@ -1019,16 +983,16 @@ export const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
   color: ${LCARS.text};
-  min-width: 900px;
+  min-width: 0;
 `;
 
 export const TH = styled.th`
   text-align: left;
   padding: 0.66rem 0.7rem;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 820;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
   color: ${LCARS.textDim};
   border-bottom: 1px solid ${LCARS.lineStrong};
   white-space: nowrap;
@@ -1044,6 +1008,7 @@ export const SelectionTH = styled(TH)`
 `;
 
 export const TR = styled.tr`
+  border-left: 3px solid ${({ $selected }) => $selected ? 'var(--dw-cyan)' : 'transparent'};
   cursor: ${({ $interactive = true }) => ($interactive ? 'pointer' : 'default')};
   transition:
     background 120ms ease,
@@ -1051,27 +1016,21 @@ export const TR = styled.tr`
   background:
     ${({ $selected, $batchFocused, $batchTone, $accentActive, $accentColor }) =>
       $selected
-        ? `linear-gradient(90deg, ${withAlpha($accentColor || LCARS.teal, '22')} 0%, rgba(12, 15, 17, 0) 44%)`
+        ? 'var(--dw-surface-raised)'
         : $accentActive && $accentColor
-          ? `linear-gradient(90deg, ${withAlpha($accentColor, '10')} 0%, transparent 26%)`
+          ? 'var(--dw-surface-raised)'
         : $batchFocused && $batchTone
-          ? `linear-gradient(90deg, ${batchToneAccent($batchTone)}20 0%, rgba(12, 15, 17, 0) 38%)`
+          ? 'var(--dw-surface-raised)'
           : 'transparent'};
-  box-shadow:
-    ${({ $selected, $batchFocused, $batchTone, $accentColor }) =>
-      $selected
-        ? `inset 0 0 0 1px ${withAlpha($accentColor || LCARS.teal, '70')}`
-        : $batchFocused && $batchTone
-          ? `inset 0 1px 0 ${batchToneAccent($batchTone)}22`
-          : 'none'};
+  box-shadow: none;
 
   &:hover {
     background:
-      ${({ $selected, $batchFocused, $batchTone, $accentColor }) =>
+      ${({ $selected, $batchFocused, $batchTone }) =>
         $selected
-          ? `linear-gradient(90deg, ${withAlpha($accentColor || LCARS.teal, '2c')} 0%, rgba(12, 15, 17, 0.04) 52%)`
+          ? 'var(--dw-surface-raised)'
           : $batchFocused && $batchTone
-            ? `linear-gradient(90deg, ${batchToneAccent($batchTone)}2b 0%, rgba(127, 215, 255, 0.05) 44%)`
+            ? 'var(--dw-surface-raised)'
             : 'rgba(127, 215, 255, 0.08)'};
   }
 
@@ -1102,39 +1061,29 @@ export const TD = styled.td`
   color: ${({ $muted }) => ($muted ? LCARS.textDim : LCARS.text)};
 
   &:first-child {
-    box-shadow:
-      ${({ $accentActive, $accentColor, $batchFocused, $batchTone }) =>
-        $accentActive && $accentColor
-          ? `inset 2px 0 0 ${withAlpha($accentColor, 'cf')}`
-          : $batchFocused && $batchTone
-            ? `inset 3px 0 0 ${batchToneAccent($batchTone)}`
-            : 'none'};
+    box-shadow: none;
   }
 `;
 
 export const OperatorRowGrid = styled.div`
   display: grid;
   grid-template-columns:
-    minmax(72px, 84px)
-    minmax(190px, 2.3fr)
-    minmax(54px, 0.58fr)
-    minmax(180px, 1.4fr)
-    minmax(180px, 1.35fr)
-    minmax(180px, 1.45fr);
+    minmax(48px, 56px)
+    minmax(170px, 1.2fr)
+    minmax(40px, 48px)
+    minmax(250px, 2fr);
   align-items: center;
-  gap: 0.54rem;
-  min-width: 980px;
+  gap: 0.48rem;
+  min-width: 0;
 `;
 
 export const OperatorHeaderCell = styled.div`
-  font-size: 0.63rem;
-  font-weight: 780;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
   color: ${LCARS.textDim};
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: inherit;
 `;
 
 export const OperatorThumbCell = styled.div`
@@ -1148,15 +1097,13 @@ export const ThumbPlaceholder = styled.div`
   height: 38px;
   border-radius: 8px;
   border: 1px solid rgba(127, 215, 255, 0.2);
-  background: rgba(11, 18, 24, 0.92);
+  background: var(--dw-surface-raised);
   color: ${LCARS.textMuted};
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.72rem;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-size: 0.75rem;
+  font-family: inherit;
 `;
 
 export const OperatorItemCell = styled.div`
@@ -1185,15 +1132,19 @@ export const OperatorQtyCell = styled.div`
   font-weight: 760;
   color: ${LCARS.text};
   font-variant-numeric: tabular-nums;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: var(--dw-font-ui);
 `;
 
 export const OperatorMetaCell = styled.div`
   min-width: 0;
   display: grid;
-  gap: 0.14rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 0.72rem;
+  row-gap: 0.12rem;
+
+  @media (max-width: 1080px) {
+    column-gap: 0.44rem;
+  }
 `;
 
 export const CompactMetaEntry = styled.div`
@@ -1206,12 +1157,10 @@ export const CompactMetaEntry = styled.div`
 export const CompactLabel = styled.span`
   flex: 0 0 auto;
   color: ${LCARS.textMuted};
-  font-size: 0.66rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-size: 0.75rem;
+  letter-spacing: normal;
+  text-transform: capitalize;
+  font-family: inherit;
 `;
 
 export const CompactValue = styled.span`
@@ -1227,7 +1176,7 @@ export const CompactValue = styled.span`
 export const CompactSubValue = styled.span`
   min-width: 0;
   color: ${LCARS.textMuted};
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   line-height: 1.24;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1291,7 +1240,7 @@ export const ItemSelectionToggle = styled.button`
   width: 24px;
   height: 24px;
   margin-top: 0.08rem;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   border: 1px solid
     ${({ $selected, $accentActive, $accentColor }) =>
       $accentActive && $accentColor
@@ -1302,9 +1251,9 @@ export const ItemSelectionToggle = styled.button`
   background:
     ${({ $selected, $accentActive, $accentColor }) =>
       $accentActive && $accentColor && !$selected
-        ? `linear-gradient(180deg, ${withAlpha($accentColor, '1a')} 0%, rgba(10, 18, 26, 0.9) 100%)`
+        ? 'var(--dw-surface-raised)'
         : $selected
-          ? 'linear-gradient(180deg, rgba(23, 75, 60, 0.96) 0%, rgba(16, 51, 42, 0.96) 100%)'
+          ? 'var(--dw-surface-raised)'
           : 'rgba(10, 18, 26, 0.9)'};
   color: #e8fff5;
   display: inline-flex;
@@ -1323,7 +1272,7 @@ export const ItemSelectionToggle = styled.button`
   &:hover {
     border-color: ${({ $selected }) =>
       $selected ? 'rgba(100, 188, 151, 0.92)' : 'rgba(127, 215, 255, 0.72)'};
-    box-shadow: 0 0 0 2px rgba(127, 215, 255, 0.12);
+    box-shadow: none;
   }
 
   &:focus-visible {
@@ -1352,10 +1301,8 @@ export const ItemThumbFrame = styled.div`
   border: 1px solid
     ${({ $accentActive, $accentColor }) =>
       $accentActive && $accentColor ? withAlpha($accentColor, '64') : 'rgba(127, 215, 255, 0.2)'};
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
-    rgba(8, 13, 19, 0.9);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  background: var(--dw-surface);
+  box-shadow: none;
 `;
 
 export const ItemThumbButton = styled.button`
@@ -1423,9 +1370,9 @@ export const ItemOpenButton = styled.button`
   height: 22px;
   flex: 0 0 auto;
   margin-top: -0.08rem;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   border: 1px solid rgba(127, 215, 255, 0.42);
-  background: rgba(14, 24, 35, 0.94);
+  background: var(--dw-surface-raised);
   color: #cfefff;
   display: inline-flex;
   align-items: center;
@@ -1441,7 +1388,7 @@ export const ItemOpenButton = styled.button`
 
   &:hover {
     border-color: rgba(127, 215, 255, 0.74);
-    box-shadow: 0 0 0 2px rgba(127, 215, 255, 0.12);
+    box-shadow: none;
     transform: translateY(-1px);
   }
 
@@ -1453,7 +1400,7 @@ export const ItemOpenButton = styled.button`
 
 export const NameMeta = styled.div`
   margin-top: 0.18rem;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: ${LCARS.textMuted};
   line-height: 1.2;
 `;
@@ -1468,43 +1415,43 @@ export const MetaBadgeRow = styled.div`
 export const KeepPriorityBadge = styled.span`
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   padding: 0.12rem 0.48rem;
   border: 1px solid ${({ $tone }) => `${toneColor($tone)}88`};
   background: ${({ $tone }) => `${toneColor($tone)}2a`};
   color: ${({ $tone }) => toneColor($tone)};
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
 `;
 
 export const SourceBatchBadge = styled.span`
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   padding: 0.12rem 0.48rem;
   border: 1px solid ${({ $archived }) => ($archived ? 'rgba(232, 177, 92, 0.52)' : 'rgba(127, 215, 255, 0.52)')};
   background: ${({ $archived }) => ($archived ? 'rgba(232, 177, 92, 0.16)' : 'rgba(127, 215, 255, 0.16)')};
   color: ${({ $archived }) => ($archived ? '#f5d49d' : '#cfefff')};
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
 `;
 
 export const SourceBatchLink = styled(Link)`
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
+  border-radius: 5px;
   padding: 0.12rem 0.48rem;
   border: 1px solid ${({ $archived }) => ($archived ? 'rgba(232, 177, 92, 0.52)' : 'rgba(127, 215, 255, 0.52)')};
   background: ${({ $archived }) => ($archived ? 'rgba(232, 177, 92, 0.16)' : 'rgba(127, 215, 255, 0.16)')};
   color: ${({ $archived }) => ($archived ? '#f5d49d' : '#cfefff')};
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
   text-decoration: none;
 
   &:hover {
@@ -1517,15 +1464,15 @@ export const SourceBatchLink = styled(Link)`
 export const BatchFocusChip = styled.button`
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
+  border-radius: 5px;
   padding: 0.12rem 0.48rem;
   border: 1px solid ${({ $archived }) => ($archived ? 'rgba(232, 177, 92, 0.52)' : 'rgba(127, 215, 255, 0.52)')};
   background: ${({ $archived }) => ($archived ? 'rgba(232, 177, 92, 0.16)' : 'rgba(127, 215, 255, 0.16)')};
   color: ${({ $archived }) => ($archived ? '#f5d49d' : '#cfefff')};
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
   cursor: pointer;
   transition:
     border-color 120ms ease,
@@ -1558,21 +1505,21 @@ export const BatchInlineActions = styled.div`
 `;
 
 export const BatchSelectButton = styled.button`
-  min-height: 28px;
-  border-radius: 999px;
+  min-height: var(--dw-control-height);
+  border-radius: 5px;
   border: 1px solid
     ${({ $selected }) =>
-      $selected ? 'rgba(100, 188, 151, 0.82)' : 'rgba(102, 167, 212, 0.56)'};
+      $selected ? 'rgba(76, 198, 193, 0.62)' : 'rgba(230, 237, 243, 0.16)'};
   background:
     ${({ $selected }) =>
       $selected
-        ? 'linear-gradient(180deg, rgba(23, 75, 60, 0.96) 0%, rgba(16, 51, 42, 0.96) 100%)'
-        : 'rgba(13, 24, 34, 0.92)'};
-  color: ${({ $selected }) => ($selected ? '#e8fff5' : '#cfefff')};
-  font-size: 0.66rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+        ? 'rgba(76, 198, 193, 0.13)'
+        : 'rgba(9, 17, 25, 0.72)'};
+  color: ${({ $selected }) => ($selected ? '#d9f3ef' : 'rgba(230, 237, 243, 0.82)')};
+  font-size: 0.75rem;
+  font-weight: 650;
+  text-transform: none;
+  letter-spacing: normal;
   padding: 0 0.62rem;
   cursor: pointer;
   transition:
@@ -1581,7 +1528,7 @@ export const BatchSelectButton = styled.button`
     background 120ms ease;
 
   &:hover {
-    box-shadow: 0 0 0 2px rgba(127, 215, 255, 0.12);
+    box-shadow: none;
   }
 
   &:disabled {
@@ -1626,12 +1573,12 @@ export const TagRow = styled.div`
 export const TagChip = styled.span`
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   padding: 0.16rem 0.48rem;
   border: 1px solid rgba(76, 198, 193, 0.42);
   background: rgba(76, 198, 193, 0.16);
   color: #c9f2ee;
-  font-size: 0.71rem;
+  font-size: 0.75rem;
   line-height: 1;
 `;
 
@@ -1651,15 +1598,15 @@ export const PillRow = styled.div`
 export const Pill = styled.span`
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   padding: 0.17rem 0.52rem;
   border: 1px solid ${({ $tone }) => `${toneColor($tone)}70`};
   background: ${({ $tone }) => `${toneColor($tone)}20`};
   color: ${({ $tone }) => toneColor($tone)};
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 760;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
 `;
 
 export const LifecycleText = styled.div`
@@ -1679,15 +1626,15 @@ export const NotesPreview = styled.div`
 export const NotesFlag = styled.span`
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   padding: 0.1rem 0.42rem;
   border: 1px solid rgba(232, 177, 92, 0.46);
   background: rgba(232, 177, 92, 0.16);
   color: #f8d7a0;
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 720;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
 `;
 
 export const BoxLink = styled(Link)`
@@ -1711,7 +1658,7 @@ export const BoxLabel = styled.span`
 export const ContextLine = styled.div`
   margin-top: 0.25rem;
   color: ${LCARS.textMuted};
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   line-height: 1.3;
 `;
 
@@ -1752,15 +1699,8 @@ export const MobileBatchSection = styled.section`
   ${panelBase};
   overflow: hidden;
   border-color: ${({ $tone = 'root' }) => `${batchToneAccent($tone)}46`};
-  box-shadow:
-    inset 3px 0 0 ${({ $tone = 'root' }) => batchToneAccent($tone)},
-    ${({ $selected, $tone = 'root' }) =>
-      $selected
-        ? `0 0 0 1px ${batchToneAccent($tone)}55, 0 8px 24px rgba(0, 0, 0, 0.24)`
-        : '0 1px 0 rgba(0, 0, 0, 0.25), 0 8px 24px rgba(0, 0, 0, 0.24)'};
-  background:
-    linear-gradient(90deg, ${({ $tone = 'root' }) => `${batchToneAccent($tone)}14`} 0%, transparent 44%),
-    ${LCARS.panel};
+  box-shadow: none;
+  background: var(--dw-surface);
 `;
 
 export const MobileBatchSectionHeader = styled.div`
@@ -1768,34 +1708,25 @@ export const MobileBatchSectionHeader = styled.div`
   gap: 0.34rem;
   padding: 0.62rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+  background: var(--dw-surface);
 `;
 
 export const MobileCard = styled.li`
+  border-left: 3px solid ${({ $selected }) => $selected ? 'var(--dw-cyan)' : 'transparent'};
   position: relative;
   z-index: ${({ $detailOpen }) => ($detailOpen ? 30 : 1)};
   transform: ${({ $detailOpen }) => ($detailOpen ? 'translateY(-4px)' : 'none')};
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   background:
-    ${({ $selected, $batchFocused, $batchTone, $unavailable, $accentColor }) =>
+    ${({ $selected, $batchFocused, $batchTone, $unavailable }) =>
       $selected
-        ? `linear-gradient(90deg, ${withAlpha($accentColor || LCARS.teal, '20')} 0%, transparent 58%)`
+        ? 'var(--dw-surface-raised)'
         : $unavailable
-          ? 'linear-gradient(180deg, rgba(80, 48, 52, 0.42) 0%, rgba(42, 35, 39, 0.5) 100%)'
+          ? 'var(--dw-surface-raised)'
         : $batchFocused && $batchTone
-          ? `linear-gradient(90deg, ${batchToneAccent($batchTone)}22 0%, transparent 54%)`
+          ? 'var(--dw-surface-raised)'
           : 'transparent'};
-  box-shadow:
-    ${({ $selected, $batchFocused, $batchTone, $accentActive, $accentColor, $unavailable }) =>
-      $selected
-        ? `inset 0 0 0 1px ${withAlpha($accentColor || LCARS.teal, '68')}`
-        : $unavailable
-          ? 'inset 2px 0 0 rgba(171, 109, 116, 0.82)'
-        : $accentActive && $accentColor
-          ? `inset 2px 0 0 ${withAlpha($accentColor, 'b8')}`
-        : $batchFocused && $batchTone
-          ? `inset 3px 0 0 ${batchToneAccent($batchTone)}`
-          : 'none'};
+  box-shadow: none;
 
   &:last-child {
     border-bottom: none;
@@ -1804,10 +1735,8 @@ export const MobileCard = styled.li`
   ${({ $detailOpen }) =>
     $detailOpen
       ? `
-    background: linear-gradient(90deg, rgba(76, 198, 193, 0.16), rgba(20, 24, 27, 0.98) 52%);
-    box-shadow:
-      0 10px 24px rgba(0, 0, 0, 0.62),
-      inset 0 0 0 1px rgba(76, 198, 193, 0.44);
+    background: var(--dw-surface);
+    box-shadow: none;
   `
       : ''}
 
@@ -1869,7 +1798,7 @@ export const MobileTop = styled.div`
 export const MobileSelectionToggle = styled.button`
   width: 24px;
   height: 24px;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   border: 1px solid
     ${({ $selected, $accentActive, $accentColor, disabled }) =>
       disabled
@@ -1883,12 +1812,12 @@ export const MobileSelectionToggle = styled.button`
   background:
     ${({ $selected, $accentActive, $accentColor, disabled }) =>
       disabled
-        ? 'linear-gradient(180deg, rgba(73, 47, 51, 0.96) 0%, rgba(49, 37, 40, 0.96) 100%)'
+        ? 'var(--dw-surface-raised)'
       :
       $accentActive && $accentColor && !$selected
-        ? `linear-gradient(180deg, ${withAlpha($accentColor, '1a')} 0%, rgba(15, 28, 40, 0.9) 100%)`
+        ? 'var(--dw-surface-raised)'
         : $selected
-          ? 'linear-gradient(180deg, rgba(23, 75, 60, 0.96) 0%, rgba(16, 51, 42, 0.96) 100%)'
+          ? 'var(--dw-surface-raised)'
           : 'rgba(15, 28, 40, 0.9)'};
   color: ${({ $selected, disabled }) => (disabled ? 'rgba(241, 215, 218, 0.86)' : $selected ? '#e8fff5' : '#cfefff')};
   font-size: 0.82rem;
@@ -1902,7 +1831,7 @@ export const MobileSelectionToggle = styled.button`
     background 120ms ease;
 
   &:hover {
-    box-shadow: 0 0 0 2px rgba(127, 215, 255, 0.12);
+    box-shadow: none;
   }
 
   &:focus-visible {
@@ -1973,10 +1902,8 @@ export const MobileThumbFrame = styled.div`
   border: 1px solid
     ${({ $accentActive, $accentColor }) =>
       $accentActive && $accentColor ? withAlpha($accentColor, '72') : 'rgba(127, 215, 255, 0.22)'};
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
-    rgba(8, 13, 19, 0.9);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  background: var(--dw-surface);
+  box-shadow: none;
 `;
 
 export const MobileThumbButton = styled.button`
@@ -2010,10 +1937,8 @@ export const MobileThumbPlaceholder = styled.div`
   align-items: center;
   justify-content: center;
   color: ${LCARS.textMuted};
-  font-size: 0.72rem;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-size: 0.75rem;
+  font-family: var(--dw-font-ui);
 `;
 
 export const MobileCondensedRow = styled.div`
@@ -2068,8 +1993,10 @@ export const MobileSummaryLine = styled.div`
   align-self: center;
   overflow: hidden;
   color: ${LCARS.textMuted};
-  font: 0.68rem/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.015em;
+  font-family: inherit;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  letter-spacing: normal;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
@@ -2083,9 +2010,7 @@ export const MobileQty = styled.span`
   font-size: 0.88rem;
   font-weight: 720;
   font-variant-numeric: tabular-nums;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family: var(--dw-font-ui);
 `;
 
 export const MobileFacts = styled.div`
@@ -2097,10 +2022,9 @@ export const MobileBatchBlock = styled.div`
   display: grid;
   gap: 0.22rem;
   padding: 0.44rem 0.52rem;
-  border-radius: 10px;
+  border-radius: var(--dw-radius);
   border: 1px solid ${({ $tone }) => `${batchToneAccent($tone)}52`};
-  background: ${({ $tone }) => `${batchToneAccent($tone)}14`};
-`;
+  background: ${({ $tone }) => `${batchToneAccent($tone)}14`};`;
 
 export const MobileBatchLine = styled.div`
   display: flex;
@@ -2139,12 +2063,10 @@ export const MobileMetaLine = styled.div`
 export const MobileMetaLabel = styled.span`
   flex: 0 0 auto;
   color: ${LCARS.textMuted};
-  font-size: 0.66rem;
-  letter-spacing: 0.05em;
-  text-transform: lowercase;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-size: 0.75rem;
+  letter-spacing: normal;
+  text-transform: capitalize;
+  font-family: inherit;
 `;
 
 export const MobileMetaValue = styled.span`
@@ -2158,7 +2080,7 @@ export const MobileMetaValue = styled.span`
 export const MobileMetaSubValue = styled.span`
   min-width: 0;
   color: ${LCARS.textMuted};
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   line-height: 1.24;
   overflow-wrap: anywhere;
 `;

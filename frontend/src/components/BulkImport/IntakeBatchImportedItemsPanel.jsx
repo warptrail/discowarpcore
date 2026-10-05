@@ -1,3 +1,4 @@
+import { controlStyles, inputStyles } from '../../styles/primitives';
 import { useMemo } from 'react';
 import styled from 'styled-components';
 import {
@@ -19,22 +20,22 @@ const Header = styled.div`
 const Title = styled.h4`
   margin: 0;
   font-size: 0.76rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: #d8e9fa;
 `;
 
 const Text = styled.p`
   margin: 0;
-  color: #8faac1;
+  color: var(--dw-text-muted);
   font-size: 0.74rem;
   line-height: 1.35;
 `;
 
 const SummaryCard = styled.div`
-  border-radius: 12px;
-  border: 1px solid rgba(88, 143, 184, 0.42);
-  background: rgba(12, 23, 34, 0.84);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface-raised);
   padding: 0.72rem;
   display: grid;
   gap: 0.56rem;
@@ -47,7 +48,7 @@ const ChipRow = styled.div`
 `;
 
 const Chip = styled.div`
-  border-radius: 999px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $tone }) =>
       $tone === 'success'
@@ -56,7 +57,7 @@ const Chip = styled.div`
           ? 'rgba(201, 163, 97, 0.5)'
           : $tone === 'error'
             ? 'rgba(206, 114, 114, 0.54)'
-            : 'rgba(88, 143, 184, 0.42)'};
+            : 'var(--dw-border)'};
   background: ${({ $tone }) =>
     $tone === 'success'
       ? 'rgba(16, 40, 31, 0.85)'
@@ -74,14 +75,14 @@ const Chip = styled.div`
           ? '#f2c8c8'
           : '#c2d8ec'};
   padding: 0.18rem 0.44rem;
-  font-size: 0.69rem;
-  letter-spacing: 0.04em;
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
 `;
 
 const ControlCard = styled.div`
-  border-radius: 12px;
-  border: 1px solid rgba(88, 143, 184, 0.34);
-  background: rgba(9, 17, 25, 0.86);
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface);
   padding: 0.72rem;
   display: grid;
   gap: 0.56rem;
@@ -97,35 +98,41 @@ const ControlRow = styled.div`
 
 const ToggleButton = styled.button`
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-  border-radius: 10px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $active }) =>
       $active ? 'rgba(100, 188, 151, 0.82)' : 'rgba(102, 167, 212, 0.75)'};
   background: ${({ $active }) =>
     $active
-      ? 'linear-gradient(180deg, rgba(23, 75, 60, 0.96) 0%, rgba(16, 51, 42, 0.96) 100%)'
-      : 'linear-gradient(180deg, rgba(26, 60, 83, 0.96) 0%, rgba(17, 43, 62, 0.96) 100%)'};
+      ? 'var(--dw-surface-raised)'
+      : 'var(--dw-surface-raised)'};
   color: #e8fff5;
   font-size: 0.79rem;
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  text-transform: none;
+  letter-spacing: 0.01em;
   padding: 0 0.8rem;
   cursor: pointer;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_SM};
   }
+
+  ${controlStyles}
+  border-left-color: ${({ $active, $selected, $recommended }) => ($active || $selected || $recommended) ? 'var(--dw-amber)' : 'var(--dw-border)'};
+  border-left-width: 3px;
 `;
 
 const Select = styled.select`
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
-  border-radius: 10px;
-  border: 1px solid rgba(108, 152, 188, 0.5);
-  background: rgba(7, 11, 18, 0.9);
-  color: #d7e9fc;
+  border-radius: var(--dw-radius-sm);
+  border: 1px solid var(--dw-border);
+  background: var(--dw-surface);
+  color: var(--dw-text);
   padding: 0 0.62rem;
   font-size: 0.76rem;
+
+  ${inputStyles}
 `;
 
 const Ledger = styled.div`
@@ -134,14 +141,14 @@ const Ledger = styled.div`
 `;
 
 const ItemCard = styled.label`
-  border-radius: 12px;
+  border-radius: var(--dw-radius-sm);
   border: 1px solid
     ${({ $selected }) =>
-      $selected ? 'rgba(122, 194, 149, 0.6)' : 'rgba(88, 143, 184, 0.32)'};
+      $selected ? 'rgba(122, 194, 149, 0.6)' : 'var(--dw-border)'};
   background: ${({ $selected }) =>
     $selected
-      ? 'linear-gradient(180deg, rgba(17, 43, 34, 0.9) 0%, rgba(11, 28, 23, 0.94) 100%)'
-      : 'linear-gradient(180deg, rgba(10, 19, 29, 0.92) 0%, rgba(8, 15, 23, 0.96) 100%)'};
+      ? 'var(--dw-surface-raised)'
+      : 'var(--dw-surface-raised)'};
   padding: 0.72rem;
   display: grid;
   gap: 0.44rem;
@@ -180,9 +187,9 @@ const MetaLine = styled.div`
 `;
 
 const Empty = styled.div`
-  border-radius: 10px;
-  border: 1px dashed rgba(104, 155, 191, 0.46);
-  background: rgba(8, 15, 23, 0.78);
+  border-radius: var(--dw-radius-sm);
+  border: 1px dashed var(--dw-border);
+  background: var(--dw-surface);
   color: #9fb8cf;
   font-size: 0.8rem;
   padding: 0.8rem;

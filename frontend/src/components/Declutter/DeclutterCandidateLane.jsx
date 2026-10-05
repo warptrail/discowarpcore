@@ -154,7 +154,8 @@ export default function DeclutterCandidateLane({
                   </S.CandidateMetaGroup>
                 ) : null}
               </S.CandidateMetaGrid>
-              {!compact && !cardView && candidate.notes ? <S.SmallText>{candidate.notes}</S.SmallText> : null}
+              {!compact && !cardView && candidate.notes ? <S.SmallText>Your private note: {candidate.notes}</S.SmallText> : null}
+              {!compact && !cardView && candidate.sharedNotes ? <S.SmallText>Shared note: {candidate.sharedNotes}</S.SmallText> : null}
             </div>
             <S.VoteComparison $compact={compact} $cardView={cardView}>
               {finalFate ? (

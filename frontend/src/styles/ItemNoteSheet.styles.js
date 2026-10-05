@@ -1,3 +1,4 @@
+import { controlStyles } from './primitives';
 import styled from 'styled-components';
 
 export const SheetBackdrop = styled.div`
@@ -7,8 +8,8 @@ export const SheetBackdrop = styled.div`
   display: grid;
   place-items: center;
   padding: clamp(0.7rem, 4vw, 2rem);
-  background: rgba(1, 4, 8, 0.86);
-  backdrop-filter: blur(9px) saturate(0.74);
+  background: var(--dw-surface);
+  backdrop-filter: none;
   animation: note-sheet-fade 180ms ease both;
 
   @keyframes note-sheet-fade {
@@ -31,14 +32,11 @@ export const Sheet = styled.section`
   width: min(100%, 40rem);
   max-height: min(88dvh, 46rem);
   overflow: hidden;
-  border: 1px solid rgba(127, 215, 255, 0.42);
-  border-radius: 8px 4px 8px 4px;
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(16, 29, 41, 0.98), rgba(5, 12, 19, 0.99));
-  background-size: 100% 2rem, 100% 100%;
+  border: 1px solid rgba(230, 237, 243, 0.14);
+  border-radius: var(--dw-radius);
+  background: var(--dw-surface);
   box-shadow: 0 20px 55px rgba(0, 0, 0, 0.64), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  color: #d8e6f1;
+  color: var(--dw-text);
   animation: note-sheet-lift 240ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
 
   @keyframes note-sheet-lift {
@@ -67,7 +65,7 @@ export const SheetHeader = styled.header`
   gap: 1rem;
   padding: 0.9rem 1rem 0.72rem;
   border-bottom: 1px solid rgba(127, 215, 255, 0.22);
-  background: rgba(5, 12, 19, 0.97);
+  background: var(--dw-surface);
 
   @media (max-width: 560px) {
     padding: max(0.75rem, env(safe-area-inset-top)) 0.8rem 0.7rem;
@@ -75,19 +73,20 @@ export const SheetHeader = styled.header`
 `;
 
 export const SheetEyebrow = styled.div`
-  color: #7fd7ff;
-  font: 800 0.58rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.16em;
+  color: var(--dw-cyan);
+  font: 700 0.75rem/1.2 var(--dw-font-ui);
+  letter-spacing: 0.01em;
 `;
 
 export const SheetTitle = styled.h2`
   margin: 0.3rem 0 0;
-  color: #edf6ff;
+  color: var(--dw-text);
   font-size: clamp(1rem, 3vw, 1.3rem);
   line-height: 1.2;
 `;
 
 export const SheetClose = styled.button`
+  ${controlStyles}
   width: 44px;
   height: 44px;
   margin: -0.28rem -0.35rem 0 0;
@@ -101,7 +100,8 @@ export const SheetClose = styled.button`
   &:hover,
   &:focus-visible {
     color: #d8fffa;
-    outline: none;
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
     text-shadow: 0 0 10px rgba(127, 215, 255, 0.6);
   }
 `;
@@ -116,13 +116,11 @@ export const NotePaper = styled.div`
   scrollbar-color: rgba(127, 215, 255, 0.42) transparent;
   -webkit-overflow-scrolling: touch;
   padding: 1.2rem 1rem 1.4rem;
-  color: #d8e6f1;
+  color: var(--dw-text);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font: 500 1rem/1.7 ui-monospace, SFMono-Regular, Menlo, monospace;
-  background:
-    linear-gradient(90deg, transparent 0 1rem, rgba(255, 125, 189, 0.13) 1rem 1.08rem, transparent 1.08rem),
-    repeating-linear-gradient(180deg, transparent 0 1.7rem, rgba(127, 215, 255, 0.11) 1.7rem 1.76rem);
+  font: 500 1rem/1.7 var(--dw-font-ui);
+  background: var(--dw-surface-raised);
   padding-left: 2rem;
 
   &:focus-visible {

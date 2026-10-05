@@ -10,16 +10,16 @@ const TIMESTAMP_FORMATTER = new Intl.DateTimeFormat(undefined, {
 const EXPORT_PAGE_LIMIT = 100;
 const LOG_STREAMS = Object.freeze({
   system: {
-    label: 'SYS.ACTIVITY',
+    label: 'Activity',
     title: 'System activity',
-    subtitle: 'Newest first // append-only event stream',
+    subtitle: 'Inventory activity, newest first',
     eventType: '',
     exportPrefix: 'system-logs',
   },
   disposition: {
-    label: 'ITEMS.JETTISONED',
-    title: 'Items jettisoned',
-    subtitle: 'Disposition ledger // inventory we no longer have',
+    label: 'Removed items',
+    title: 'Removed items',
+    subtitle: 'Where removed items went',
     eventType: 'item_marked_gone',
     exportPrefix: 'items-jettisoned',
   },
@@ -589,9 +589,9 @@ export default function LogsPage() {
               )}
               {activeStream === 'disposition' ? (
                 <S.DispositionMeta>
-                  <span>OUTCOME={disposition || 'UNKNOWN'}</span>
-                  <span>FROM={priorLocation || 'UNKNOWN'}</span>
-                  {dispositionNotes ? <span>NOTE={dispositionNotes}</span> : null}
+                  <span>Outcome: {disposition || 'Unknown'}</span>
+                  <span>From: {priorLocation || 'Unknown'}</span>
+                  {dispositionNotes ? <span>Note: {dispositionNotes}</span> : null}
                 </S.DispositionMeta>
               ) : (
                 <S.SecondaryText>{bulkSecondary || entry.summary}</S.SecondaryText>
@@ -610,13 +610,13 @@ export default function LogsPage() {
         <S.HeadingRow>
           <S.HeadingGroup>
             <S.TitleRow>
-              <S.TitlePip aria-hidden="true">&gt;_</S.TitlePip>
+              <S.TitlePip aria-hidden="true" />
               <S.Title>{streamConfig.title}</S.Title>
             </S.TitleRow>
             <S.Subtitle>{streamConfig.subtitle}</S.Subtitle>
           </S.HeadingGroup>
           <S.HeaderActions>
-            <S.CountReadout>COUNT={String(total).padStart(4, '0')}</S.CountReadout>
+            <S.CountReadout>{total.toLocaleString()} records</S.CountReadout>
             <S.ExportButton
               type="button"
               onClick={handleExportJson}
@@ -645,7 +645,7 @@ export default function LogsPage() {
             aria-pressed={activeStream === key}
             onClick={() => setActiveStream(key)}
           >
-            {activeStream === key ? '[*]' : '[ ]'} {config.label}
+            {config.label}
           </S.StreamButton>
         ))}
       </S.StreamNav>

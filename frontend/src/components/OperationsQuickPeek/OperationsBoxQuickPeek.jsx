@@ -27,6 +27,13 @@ import {
 const HORIZONTAL_SWIPE_THRESHOLD = 54;
 const VERTICAL_DETENT_THRESHOLD = 42;
 
+const ITEM_SORT_OPTIONS = [
+  { value: 'name', label: 'Name', symbol: 'A↕' },
+  { value: 'boxAdded', label: 'Added to box', symbol: '▣↕' },
+  { value: 'inventoryAdded', label: 'Added to inventory', symbol: '◈↕' },
+  { value: 'tags', label: 'Tags', symbol: '#↕' },
+];
+
 function normalizeItemSearchText(value) {
   return String(value || '')
     .normalize('NFKD')
@@ -46,6 +53,7 @@ function getBoxDisplayImageUrl(box) {
 
 export default function OperationsBoxQuickPeek({
   box,
+  matchingItems = [],
   position,
   total,
   expanded,
@@ -62,6 +70,7 @@ export default function OperationsBoxQuickPeek({
   onClose,
   onDismiss,
   onOpenFullBox,
+  onItemSaved,
 }) {
   const gestureRef = useRef(null);
   const suppressDetentClickRef = useRef(false);
@@ -72,13 +81,15 @@ export default function OperationsBoxQuickPeek({
   const [headerBottom, setHeaderBottom] = useState(140);
   const [quickSearchOpen, setQuickSearchOpen] = useState(false);
   const [itemQuery, setItemQuery] = useState('');
+  const [itemSortMode, setItemSortMode] = useState('inventoryAdded');
   const [noteReaderOpen, setNoteReaderOpen] = useState(false);
   const [itemNoteReaderOpen, setItemNoteReaderOpen] = useState(false);
   const [declutterDeckOverrides, setDeclutterDeckOverrides] = useState({});
   const [itemOverrides, setItemOverrides] = useState({});
   const { showToast, hideToast } = useContext(ToastContext) || {};
   const boxId = box?.box_id;
-  const boxThemeStyle = getBoxThemeCssVars(getBoxTheme(boxId));
+  const isAdrift = box?.systemType === 'orphaned';
+  const boxThemeStyle = getBoxThemeCssVars(getBoxTheme(boxId, { kind: isAdrift ? 'orphaned' : undefined }));
   const title = String(box?.label || box?.name || 'Untitled box').trim();
   const imageUrl = getBoxImageUrl(box);
   const displayImageUrl = getBoxDisplayImageUrl(box);
@@ -229,6 +240,7 @@ export default function OperationsBoxQuickPeek({
 
   useEffect(() => {
     setItemQuery('');
+    setItemSortMode('inventoryAdded');
     setNoteReaderOpen(false);
     setDeclutterDeckOverrides({});
   }, [boxId]);
@@ -373,7 +385,9 @@ export default function OperationsBoxQuickPeek({
     ) {
       return;
     }
-    const interactiveTarget = event.target.closest('button, a');
+    const interactiveTarget = event.target.closest(
+      'button, a, input, textarea, select, [role="button"], [role="combobox"], [contenteditable="true"]',
+    );
     const isDragHandle = interactiveTarget?.hasAttribute(
       'data-quick-peek-drag-handle',
     );
@@ -450,7 +464,7 @@ export default function OperationsBoxQuickPeek({
       ref={sheetRef}
       id="operations-box-quick-peek"
       role="complementary"
-      aria-label={`Quick peek at box ${title}`}
+      aria-label={isAdrift ? 'Quick peek at Items Adrift' : `Quick peek at box ${title}`}
       tabIndex={-1}
       $expanded={expanded}
       $closing={closing}
@@ -474,6 +488,9 @@ export default function OperationsBoxQuickPeek({
         ) : null}
         itemActionPanel={selectedQuickPeekItem ? (
           <QuickPeekItemActionPanel
+            key={selectedQuickPeekItemId}
+            box={box}
+            onMoved={() => { backToItemList(); onItemSaved?.(); }}
             item={selectedQuickPeekItemWithDeckState}
             position={itemSelection.selectedIndex + 1}
             total={itemSelection.totalItems}
@@ -541,6 +558,10 @@ export default function OperationsBoxQuickPeek({
           <QuickPeekItemCarousel
             key={String(itemSelection.selectedItem?._id || itemSelection.selectedItem?.id || '')}
             item={selectedQuickPeekItemWithDeckState}
+            onItemUpdated={(updated) => {
+              setItemOverrides((current) => ({ ...current, [String(updated._id || updated.id)]: updated }));
+              onItemSaved?.();
+            }}
             position={itemSelection.selectedIndex + 1}
             total={itemSelection.totalItems}
             transitionDirection={itemSelection.transitionDirection}
@@ -556,21 +577,36 @@ export default function OperationsBoxQuickPeek({
         ) : (
           <>
             <S.ItemsHeader>
-              <span>Direct items</span>
-              <S.ItemsCount>
-                {visibleItems.length}{' '}
-                {hasItemQuery
-                  ? visibleItems.length === 1
-                    ? 'match'
-                    : 'matches'
-                  : visibleItems.length === 1
-                    ? 'item'
-                    : 'items'}
-              </S.ItemsCount>
+              <span>{isAdrift ? 'Unboxed items' : 'Direct items'}</span>
+              <S.ItemsHeaderMeta>
+                <S.ItemsCount>
+                  {visibleItems.length}{' '}
+                  {hasItemQuery
+                    ? visibleItems.length === 1
+                      ? 'match'
+                      : 'matches'
+                    : visibleItems.length === 1
+                      ? 'item'
+                      : 'items'}
+                </S.ItemsCount>
+                <S.ItemSortButton
+                  type="button"
+                  aria-label={`Sort items by ${ITEM_SORT_OPTIONS.find((option) => option.value === itemSortMode)?.label}`}
+                  title="Cycle item sort"
+                  onClick={() => {
+                    const currentIndex = ITEM_SORT_OPTIONS.findIndex((option) => option.value === itemSortMode);
+                    setItemSortMode(ITEM_SORT_OPTIONS[(currentIndex + 1) % ITEM_SORT_OPTIONS.length].value);
+                  }}
+                >
+                  {ITEM_SORT_OPTIONS.find((option) => option.value === itemSortMode)?.symbol}
+                </S.ItemSortButton>
+              </S.ItemsHeaderMeta>
             </S.ItemsHeader>
 
             <QuickPeekItemList
               items={visibleItems}
+              matchingItems={hasItemQuery ? visibleItems : matchingItems}
+              sortMode={itemSortMode}
               emptyMessage={
                 hasItemQuery
                   ? 'No direct items match that signal.'
@@ -605,7 +641,7 @@ export default function OperationsBoxQuickPeek({
       {!itemSelection.selectedItem ? (
         <S.BoxFooterActions $expanded={expanded} $withNotes={Boolean(notes)}>
           <S.OpenFullBoxButton type="button" onClick={onOpenFullBox}>
-            Open full box
+            {isAdrift ? 'Open all Items Adrift' : 'Open full box'}
             <S.OpenFullBoxIcon
               aria-hidden="true"
               viewBox="0 0 20 20"

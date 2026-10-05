@@ -4,6 +4,8 @@ const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
 const connectDB = require('./config/db');
+const { getDatabaseReadiness } = connectDB;
+const { requireDatabaseReady } = require('./middleware/databaseReady');
 const {
   MEDIA_ROOT,
   MEDIA_URL_BASE,
@@ -43,7 +45,25 @@ app.use(MEDIA_URL_BASE, express.static(MEDIA_ROOT, {
 }));
 app.use('/api', backendRequestLogger);
 
+app.get('/api/health', (_req, res) => {
+  res.json({ ok: true });
+});
+
+app.get('/api/health/ready', async (_req, res) => {
+  const readiness = await getDatabaseReadiness();
+  if (!readiness.ok) {
+    return res.status(503).json({
+      ok: false,
+      database: 'unavailable',
+      code: 'DATABASE_UNAVAILABLE',
+    });
+  }
+
+  return res.json({ ok: true, database: 'ready' });
+});
+
 // Connect to Mongo
+app.use('/api', requireDatabaseReady);
 app.use('/api/boxes', boxRoutes);
 app.use('/api/boxed-items', boxItemRoutes);
 app.use('/api/items', itemRoutes);
@@ -54,10 +74,6 @@ app.use('/api/logs', logRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/intake-batches', intakeBatchRoutes);
 app.use('/api/declutter-deck', declutterDeckRoutes);
-
-app.get('/api/health', (_req, res) => {
-  res.json({ ok: true });
-});
 
 app.use('/assets', express.static(path.join(FRONTEND_DIST, 'assets'), {
   maxAge: '1y',

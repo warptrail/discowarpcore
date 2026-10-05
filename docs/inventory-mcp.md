@@ -19,9 +19,19 @@ The MCP server currently exposes these read-only tools:
 - `get_inventory_box`
 - `list_inventory_locations`
 
+`inventory_health` checks the API readiness endpoint, which includes a MongoDB
+ping. A passing liveness check at `/api/health` alone is not proof that
+inventory reads will work; database-backed routes return HTTP 503 while the
+database is unavailable.
+
 It deliberately has no write tools yet. All future mutations should continue
 through the existing Express API, with a proposal/diff and explicit approval
 before applying changes.
+
+For single-item JSON inputs, valid field values, production versus development
+targeting, and the required `orphanedAt` timestamp for Items Adrift, see
+[Item JSON inputs, MCP, and production drift items](../Readme.md#item-json-inputs-mcp-and-production-drift-items).
+That example is an assistant/API input format, not a callable MCP write schema.
 
 ## Local smoke test
 

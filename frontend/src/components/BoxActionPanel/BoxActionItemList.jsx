@@ -66,6 +66,7 @@ export default function BoxActionItemList({
     item,
     {
       destBoxId,
+      compartmentKey,
       destLabel,
       destShortId,
       isOrphanedDestination = false,
@@ -92,6 +93,7 @@ export default function BoxActionItemList({
       sourceBoxShortId: routeShortId,
       sourceBoxId: boxMongoId,
       destBoxId,
+      compartmentKey,
       destLabel,
       destShortId,
     });

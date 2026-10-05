@@ -1,33 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import RetrievalImageLightbox from '../Retrieval/RetrievalImageLightbox';
 import ItemNoteSheet from '../ItemNoteSheet';
 import * as S from '../../styles/BoxMetaPanel.styles';
 
-function getPlaceholderStyle(box) {
-  const source = `${box?.box_id || ''}:${box?.label || box?.name || ''}`;
-  let hash = 2166136261;
-
-  for (let index = 0; index < source.length; index += 1) {
-    hash ^= source.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-
-  const seed = hash >>> 0;
-  return {
-    '--placeholder-primary-x': `${20 + (seed % 55)}%`,
-    '--placeholder-primary-y': `${18 + ((seed >>> 6) % 56)}%`,
-    '--placeholder-secondary-x': `${18 + ((seed >>> 12) % 60)}%`,
-    '--placeholder-secondary-y': `${16 + ((seed >>> 18) % 62)}%`,
-    '--placeholder-wash-angle': `${42 + ((seed >>> 24) % 112)}deg`,
-  };
-}
-
 export default function BoxPresentationHero({
   box,
   boxId,
   title,
-  group,
   location,
   description,
   tags,
@@ -38,7 +18,6 @@ export default function BoxPresentationHero({
   const [source, setSource] = useState(imageUrl);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [noteSheetOpen, setNoteSheetOpen] = useState(false);
-  const placeholderStyle = useMemo(() => getPlaceholderStyle(box), [box]);
 
   useEffect(() => {
     setSource(imageUrl);
@@ -68,7 +47,6 @@ export default function BoxPresentationHero({
             </>
           ) : (
             <S.HeroImagePlaceholder
-              style={placeholderStyle}
               role="img"
               aria-label={`No image available for ${title}`}
             />
@@ -83,14 +61,8 @@ export default function BoxPresentationHero({
           >
             <S.CurrentBoxId>{boxId}</S.CurrentBoxId>
             <S.CurrentBoxMain>
-              <S.CurrentBoxTitle>{title}</S.CurrentBoxTitle>
+              <S.CurrentBoxTitle>{title}{box?.isComplexBox ? ' · Complex box' : ''}</S.CurrentBoxTitle>
               <S.CurrentBoxInfoRow>
-                {group ? (
-                  <S.CurrentBoxLocationChip $variant="group">
-                    <S.CurrentBoxLocationLabel $variant="group">Group</S.CurrentBoxLocationLabel>
-                    <S.CurrentBoxLocationValue>{group}</S.CurrentBoxLocationValue>
-                  </S.CurrentBoxLocationChip>
-                ) : null}
                 <S.CurrentBoxLocationChip $variant="location" $empty={!location}>
                   <S.CurrentBoxLocationLabel $variant="location" $empty={!location}>
                     Location

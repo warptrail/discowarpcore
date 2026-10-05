@@ -9,8 +9,7 @@
   "scripts": {
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js",
-    "tarot": "node scripts/tarot-dock.mjs",
-    "tarot:agent": "node scripts/tarot-agent.mjs",
+    "tarot": "./scripts/tarot",
     "taro": "npm run tarot",
     "install:all": "npm install && cd frontend && npm install",
     "seed": "node backend/scripts/seed.js",
@@ -62,11 +61,8 @@
     "neonazoth:tui": "node scripts/neonazoth/control_station.js",
     "restart:neonazoth": "node scripts/neonazoth/control_station.js --restart",
     "merge:staged-db": "node backend/scripts/merge-staged-db.js",
-    "tarot:update": "node scripts/tarot-update.mjs",
-    "tarot:storm": "python3 scripts/tarot-terminal-storm.py",
-    "tarot:install": "node scripts/tarot-install.mjs . --reconfigure",
-    "tarot:doctor": "node scripts/tarot-dock.mjs doctor",
-    "tarot:report": "node scripts/tarot-dock.mjs report",
+    "tarot:doctor": "./scripts/tarot --json status",
+    "tarot:report": "./scripts/tarot --json status",
     "mcp:inventory": "node mcp/inventoryServer.mjs",
     "mcp:inventory:ssh": "scripts/inventory-mcp-ssh.sh",
     "test:mcp": "node --test test/mcp/*.test.mjs"

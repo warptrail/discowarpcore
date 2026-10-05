@@ -1,5 +1,6 @@
 const Item = require('../models/Item');
 const Box = require('../models/Box');
+const { itemPlacement, getCompartments } = require('../utils/boxCompartments');
 const MediaState = require('../models/MediaState');
 const path = require('path');
 const { MEDIA_ROOT, toMediaUrl } = require('../config/media');
@@ -340,22 +341,21 @@ function getBoxContext(item, maps, itemToLeafBoxId) {
     isOrphaned ? ORPHANED_BOX_NAME : '',
     UNKNOWN_BOX_NAME
   );
-  const leafGroup = firstNonEmpty(leafBox?.group);
-  let resolvedGroup = '';
-  let groupCursor = firstNonEmpty(leafId);
-  while (groupCursor) {
-    const node = maps.byId.get(groupCursor);
+  let resolvedLocation = '';
+  let locationCursor = firstNonEmpty(leafId);
+  while (locationCursor) {
+    const node = maps.byId.get(locationCursor);
     if (!node) break;
-    const groupValue = firstNonEmpty(node?.group);
-    if (groupValue) {
-      resolvedGroup = groupValue;
+    const locationValue = firstNonEmpty(node?.location);
+    if (locationValue) {
+      resolvedLocation = locationValue;
       break;
     }
-    groupCursor = firstNonEmpty(maps.parentOf.get(groupCursor));
+    locationCursor = firstNonEmpty(maps.parentOf.get(locationCursor));
   }
-  const groupLabel = firstNonEmpty(leafGroup, resolvedGroup);
   const locationLabel = firstNonEmpty(
     leafBox?.location,
+    resolvedLocation,
     item?.location,
     UNKNOWN_LOCATION_LABEL
   );
@@ -372,10 +372,10 @@ function getBoxContext(item, maps, itemToLeafBoxId) {
   return {
     boxId,
     boxNumber,
+    ...itemPlacement(leafBox, item._id),
     boxName,
     boxPath,
     boxKey,
-    groupLabel,
     locationLabel,
     locationPath,
     locationKey: normalizeFacetKey(locationLabel || UNKNOWN_LOCATION_LABEL),
@@ -490,7 +490,7 @@ function buildRetrievalItems(itemDocs, boxDocs) {
       tags.join(' '),
       boxContext.boxName,
       boxContext.boxNumber,
-      boxContext.groupLabel,
+      boxContext.placementLabel,
       boxContext.locationLabel,
       boxContext.locationPath,
       boxContext.boxPath,
@@ -511,10 +511,11 @@ function buildRetrievalItems(itemDocs, boxDocs) {
       tagKeys,
       boxId: boxContext.boxId,
       boxNumber: boxContext.boxNumber,
+      compartmentKey: boxContext.compartmentKey,
+      placementLabel: boxContext.placementLabel,
       boxName: boxContext.boxName,
       boxPath: boxContext.boxPath,
       boxKey: boxContext.boxKey,
-      groupLabel: boxContext.groupLabel,
       locationLabel: boxContext.locationLabel,
       locationPath: boxContext.locationPath,
       locationKey: boxContext.locationKey,
@@ -693,9 +694,10 @@ function toClientItem(item) {
     tags: item.tags,
     boxId: item.boxId,
     boxNumber: item.boxNumber,
+    compartmentKey: item.compartmentKey,
+    placementLabel: item.placementLabel,
     boxName: item.boxName,
     boxPath: item.boxPath,
-    groupLabel: item.groupLabel,
     locationLabel: item.locationLabel,
     locationPath: item.locationPath,
     primaryOwnerName: item.primaryOwnerName,
@@ -729,19 +731,15 @@ function buildRetrievalBoxes(boxDocs = [], itemDocs = []) {
     childCountByParentId.set(parentId, current + 1);
   }
 
-  const resolveEffectiveGroupLabel = (leafBoxId) => {
+  const resolveEffectiveLocationLabel = (leafBoxId) => {
     let cursor = firstNonEmpty(leafBoxId);
-
     while (cursor) {
       const node = maps.byId.get(cursor);
       if (!node) break;
-
-      const groupValue = firstNonEmpty(node?.group);
-      if (groupValue) return groupValue;
-
+      const locationValue = firstNonEmpty(node?.location);
+      if (locationValue) return locationValue;
       cursor = firstNonEmpty(maps.parentOf.get(cursor));
     }
-
     return '';
   };
 
@@ -759,12 +757,11 @@ function buildRetrievalBoxes(boxDocs = [], itemDocs = []) {
       );
       const description = firstNonEmpty(box?.description);
       const notes = firstNonEmpty(box?.notes);
-      const groupLabel = firstNonEmpty(
-        box?.group,
-        resolveEffectiveGroupLabel(mongoId)
+      const locationLabel = firstNonEmpty(
+        box?.location,
+        resolveEffectiveLocationLabel(mongoId),
+        UNKNOWN_LOCATION_LABEL
       );
-      const groupKey = normalizeFacetKey(groupLabel);
-      const locationLabel = firstNonEmpty(box?.location, UNKNOWN_LOCATION_LABEL);
       const locationKey = normalizeFacetKey(locationLabel);
       const breadcrumbData = makeBreadcrumb(mongoId, maps);
       const pathLabels = Array.isArray(breadcrumbData?.breadcrumb)
@@ -787,7 +784,6 @@ function buildRetrievalBoxes(boxDocs = [], itemDocs = []) {
         boxLabel,
         description,
         notes,
-        groupLabel,
         locationLabel,
         boxPath,
         itemTags.join(' '),
@@ -798,10 +794,10 @@ function buildRetrievalBoxes(boxDocs = [], itemDocs = []) {
         id: mongoId,
         boxId,
         boxLabel,
+        isComplexBox: Boolean(box.isComplexBox),
+        compartments: getCompartments(box),
         description,
         notes,
-        groupLabel,
-        groupKey,
         locationLabel,
         locationKey,
         boxPath,
@@ -826,17 +822,10 @@ function buildRetrievalBoxes(boxDocs = [], itemDocs = []) {
 }
 
 function collectBoxFilterOptions(boxes) {
-  const groupLabelByKey = new Map();
   const locationLabelByKey = new Map();
   const tagLabelByKey = new Map();
 
   for (const box of boxes) {
-    if (box.groupKey && box.groupLabel) {
-      if (!groupLabelByKey.has(box.groupKey)) {
-        groupLabelByKey.set(box.groupKey, box.groupLabel);
-      }
-    }
-
     if (box.locationKey && !locationLabelByKey.has(box.locationKey)) {
       locationLabelByKey.set(box.locationKey, firstNonEmpty(box.locationLabel, UNKNOWN_LOCATION_LABEL));
     }
@@ -848,7 +837,6 @@ function collectBoxFilterOptions(boxes) {
   }
 
   return {
-    groups: mapToSortedOptions(groupLabelByKey),
     locations: mapToSortedOptions(locationLabelByKey),
     tags: mapToSortedOptions(tagLabelByKey),
   };
@@ -864,7 +852,6 @@ function filterRetrievalBoxes(
     query,
     boxIdPrefix = '',
     locationFilters = [],
-    groupFilters = [],
     tagFilters = [],
     tagOperator = 'or',
   }
@@ -875,10 +862,6 @@ function filterRetrievalBoxes(
   const normalizedBoxIdPrefix = normalizeBoxIdPrefix(boxIdPrefix);
 
   return items.filter((item) => {
-    if (groupFilters.length && !groupFilters.includes(item.groupKey)) {
-      return false;
-    }
-
     if (locationFilters.length && !locationFilters.includes(item.locationKey)) {
       return false;
     }
@@ -940,9 +923,10 @@ function toClientBox(item) {
     id: item.id,
     boxId: item.boxId,
     boxLabel: item.boxLabel,
+    isComplexBox: Boolean(item.isComplexBox),
+    compartments: item.compartments || [],
     description: item.description,
     notes: item.notes,
-    groupLabel: item.groupLabel,
     locationLabel: item.locationLabel,
     boxPath: item.boxPath,
     tags: item.tags,
@@ -971,7 +955,7 @@ async function getRetrievalItemsPage(params = {}) {
         '_id name description notes maintenanceNotes category tags location image imagePath primaryOwnerName keepPriority orphanedAt isConsumable usageHistory checkHistory maintenanceHistory'
       )
       .lean(),
-    Box.find().select('_id box_id label group description notes location parentBox items').lean(),
+    Box.find().select('_id box_id label isComplexBox compartments itemCompartments description notes location parentBox items').lean(),
   ]);
   const itemDocs = await attachMediaStateSummariesForRetrieval(rawItemDocs);
 
@@ -1005,7 +989,6 @@ async function getRetrievalItemsPage(params = {}) {
 async function getRetrievalBoxesPage(params = {}) {
   const query = toTrimmed(params.q);
   const boxIdPrefix = normalizeBoxIdPrefix(params.boxPrefix);
-  const groupFilters = normalizeFilterValues(params.group);
   const locationFilters = normalizeFilterValues(params.location);
   const tagFilters = normalizeFilterValues(params.tag);
   const tagOperator = String(params.tagOperator || '').trim().toLowerCase() === 'and'
@@ -1017,7 +1000,7 @@ async function getRetrievalBoxesPage(params = {}) {
 
   const [boxDocs, itemDocs] = await Promise.all([
     Box.find()
-      .select('_id box_id label name group description notes tags location parentBox items')
+      .select('_id box_id label isComplexBox compartments itemCompartments name isComplexBox description notes tags location parentBox items')
       .lean(),
     Item.find(ACTIVE_ITEM_FILTER)
       .select('_id quantity notes maintenanceNotes valueCents tags')
@@ -1028,7 +1011,6 @@ async function getRetrievalBoxesPage(params = {}) {
   const filteredBoxes = filterRetrievalBoxes(retrievalBoxes, {
     query,
     boxIdPrefix,
-    groupFilters,
     locationFilters,
     tagFilters,
     tagOperator,

@@ -13,13 +13,13 @@ const SearchRow = styled.div`
   grid-template-columns: minmax(0, 1fr) auto;
   min-height: 38px;
   border: 1px solid rgba(119, 213, 255, 0.38);
-  border-radius: 2px 6px 2px 2px;
-  background: rgba(7, 13, 20, 0.92);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
   overflow: hidden;
 
   &:focus-within {
     border-color: rgba(119, 213, 255, 0.82);
-    box-shadow: 0 0 0 2px rgba(119, 213, 255, 0.2);
+    box-shadow: none;
   }
 
   @media (max-width: 640px) {
@@ -47,6 +47,8 @@ const Input = styled.input`
 `;
 
 const OperatorButton = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   min-width: 3.2rem;
   padding: 0 0.48rem;
   border: 0;
@@ -55,9 +57,8 @@ const OperatorButton = styled.button`
   background: ${({ $all }) => (
     $all ? 'rgba(157, 112, 255, 0.18)' : 'rgba(52, 166, 218, 0.12)'
   )};
-  font: 850 0.58rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    monospace;
-  letter-spacing: 0.07em;
+  font: 850 0.75rem/1 var(--dw-font-ui);
+  letter-spacing: 0;
   cursor: pointer;
 `;
 
@@ -71,14 +72,15 @@ const SelectionRail = styled.div`
 `;
 
 const SelectedTag = styled.button`
+  font-family: var(--dw-font-ui);
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   flex: 0 0 auto;
   padding: 0.25rem 0.36rem;
   border: 1px solid rgba(76, 198, 193, 0.4);
   border-radius: 2px;
   color: #c9fff7;
   background: rgba(76, 198, 193, 0.1);
-  font: 760 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    monospace;
+  font: 760 0.75rem/1 var(--dw-font-ui);
   cursor: pointer;
   white-space: nowrap;
 
@@ -86,6 +88,7 @@ const SelectedTag = styled.button`
     margin-left: 0.25rem;
     color: rgba(226, 239, 245, 0.58);
   }
+  min-height: var(--dw-control-height);
 `;
 
 const Results = styled.ul`
@@ -99,9 +102,9 @@ const Results = styled.ul`
   overflow-y: auto;
   list-style: none;
   border: 1px solid rgba(119, 213, 255, 0.54);
-  border-radius: 2px 7px 2px 2px;
-  background: linear-gradient(155deg, rgba(16, 30, 44, 0.99), rgba(7, 13, 20, 0.99));
-  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.54);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface);
+  box-shadow: none;
 `;
 
 const Result = styled.li`
@@ -120,15 +123,14 @@ const Result = styled.li`
 
   small {
     color: rgba(119, 213, 255, 0.55);
-    font: 700 0.52rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-      monospace;
+    font: 700 0.75rem/1 var(--dw-font-ui);
   }
 `;
 
 const Empty = styled.li`
   padding: 0.62rem;
   color: rgba(214, 226, 234, 0.55);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 `;
 
 function normalize(value) {

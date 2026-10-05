@@ -1,3 +1,4 @@
+import { controlStyles } from '../../styles/primitives';
 import React, { useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { MOBILE_BREAKPOINT } from '../../styles/tokens';
@@ -21,9 +22,11 @@ const Scrim = styled.div`
   position: absolute;
   inset: 0;
   border: 0;
-  background: rgba(0, 0, 0, 0.54);
+  background: var(--dw-surface-raised);
   cursor: default;
   pointer-events: auto;
+
+  background: rgba(3, 8, 14, 0.72);
 `;
 
 const Sheet = styled.section`
@@ -35,11 +38,11 @@ const Sheet = styled.section`
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
-  border: 1px solid rgba(102, 218, 211, 0.42);
+  border: 1px solid var(--dw-border);
   border-bottom: 0;
   border-radius: 9px 9px 0 0;
-  background: #080e14;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 -18px 45px rgba(0, 0, 0, 0.42);
+  background: var(--dw-background);
+  box-shadow: none;
   pointer-events: auto;
   animation: ${sheetEnter} 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
 
@@ -60,8 +63,8 @@ const SheetHeader = styled.header`
   align-items: center;
   gap: 0.6rem;
   padding: 0.62rem 0.78rem;
-  border-bottom: 1px solid rgba(94, 145, 162, 0.35);
-  background: linear-gradient(100deg, rgba(72, 203, 198, 0.08), transparent 48%, rgba(167, 139, 250, 0.06));
+  border-bottom: 1px solid var(--dw-border);
+  background: var(--dw-surface);
 `;
 
 const SheetHeading = styled.div`
@@ -72,8 +75,8 @@ const SheetTitle = styled.h2`
   margin: 0;
   color: #e2f3f0;
   font-size: 0.82rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 `;
 
 const SheetSummary = styled.p`
@@ -108,6 +111,8 @@ const HeaderButton = styled.button`
     outline: 2px solid #a78bfa;
     outline-offset: -2px;
   }
+
+  ${controlStyles}
 `;
 
 const SheetBody = styled.div`
@@ -124,7 +129,7 @@ const ToggleRow = styled.button`
   min-height: 44px;
   padding: 0.42rem 0;
   border: 0;
-  border-bottom: 1px solid rgba(87, 129, 145, 0.34);
+  border-bottom: 1px solid var(--dw-border);
   background: transparent;
   color: ${({ $active }) => ($active ? '#d9fffa' : '#b8d1d2')};
   display: flex;
@@ -141,21 +146,25 @@ const ToggleRow = styled.button`
     outline: 2px solid #a78bfa;
     outline-offset: 2px;
   }
+
+  ${controlStyles}
+  border-left-color: ${({ $active, $selected, $recommended }) => ($active || $selected || $recommended) ? 'var(--dw-amber)' : 'var(--dw-border)'};
+  border-left-width: 3px;
 `;
 
 const ToggleState = styled.span`
   color: ${({ $active }) => ($active ? '#7be4db' : '#78949b')};
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.68rem;
+  font-family: var(--dw-font-ui);
+  font-size: 0.75rem;
   white-space: nowrap;
 `;
 
 const SectionTitle = styled.div`
   color: #9dbcbf;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 820;
   letter-spacing: 0.075em;
-  text-transform: uppercase;
+  text-transform: none;
 `;
 
 const BatchGrid = styled.div`
@@ -170,7 +179,7 @@ const BatchChip = styled.button`
   padding: 0.35rem 0.52rem;
   border: 1px solid ${({ $active, $accentRgb }) =>
     $active ? `rgba(${$accentRgb}, 0.82)` : 'rgba(84, 122, 144, 0.5)'};
-  border-radius: 7px;
+  border-radius: var(--dw-radius-sm);
   background: ${({ $active, $accentRgb }) =>
     $active ? `rgba(${$accentRgb}, 0.16)` : 'rgba(10, 18, 27, 0.8)'};
   color: ${({ $active, $accentRgb }) => ($active ? `rgb(${$accentRgb})` : '#b4c9dc')};
@@ -186,6 +195,10 @@ const BatchChip = styled.button`
     outline: 2px solid #a78bfa;
     outline-offset: 2px;
   }
+
+  ${controlStyles}
+  border-left-color: ${({ $active, $selected, $recommended }) => ($active || $selected || $recommended) ? 'var(--dw-amber)' : 'var(--dw-border)'};
+  border-left-width: 3px;
 `;
 
 const BatchLabel = styled.span`
@@ -195,7 +208,7 @@ const BatchLabel = styled.span`
 
 const BatchCount = styled.span`
   color: #87a0b8;
-  font-size: 0.63rem;
+  font-size: 0.75rem;
   white-space: nowrap;
 `;
 

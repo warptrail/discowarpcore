@@ -1,3 +1,4 @@
+import { controlStyles } from '../../styles/primitives';
 import styled, { css } from 'styled-components';
 import {
   MOBILE_BREAKPOINT,
@@ -8,12 +9,9 @@ import {
 } from '../../styles/tokens';
 
 export const NestPanel = styled.div`
-  background:
-    linear-gradient(105deg, rgba(var(--box-primary-rgb, 127, 215, 255), 0.1), transparent 42%),
-    #0b1118;
-  border-radius: 8px;
-  border: 1px solid rgba(var(--box-primary-rgb, 127, 215, 255), 0.42);
-  box-shadow: inset 0 1px 0 rgba(var(--box-neon-rgb, 127, 215, 255), 0.2);
+  background: var(--dw-surface);
+  border-radius: var(--dw-radius);
+  border: 1px solid rgba(230, 237, 243, 0.12);
   margin-top: 0;
   display: none;
 
@@ -50,7 +48,7 @@ export const SectionHeader = styled.div`
   gap: 8px;
   margin-bottom: 10px;
   padding-bottom: 10px;
-  border-bottom: 1px solid rgba(var(--box-primary-rgb, 127, 215, 255), 0.24);
+  border-bottom: 1px solid rgba(230, 237, 243, 0.12);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     align-items: flex-start;
@@ -62,7 +60,7 @@ export const SectionHeader = styled.div`
 export const Title = styled.h4`
   margin: 0;
   font-size: 15px;
-  color: #e8f2f6;
+  color: var(--dw-text);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_SM};
@@ -72,7 +70,7 @@ export const Title = styled.h4`
 
 export const Note = styled.div`
   font-size: 12px;
-  color: rgba(211, 232, 241, 0.68);
+  color: var(--dw-text-secondary);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
@@ -80,10 +78,10 @@ export const Note = styled.div`
 `;
 
 export const ContextCard = styled.div`
-  background: rgba(7, 14, 22, 0.58);
-  border: 1px solid rgba(var(--box-primary-rgb, 127, 215, 255), 0.28);
-  border-left: 3px solid var(--box-neon, #7fd7ff);
-  border-radius: 6px;
+  background: var(--dw-surface-raised);
+  border: 1px solid rgba(230, 237, 243, 0.1);
+  border-left: 3px solid var(--box-neon, var(--dw-cyan));
+  border-radius: var(--dw-radius);
   padding: 11px 12px;
   margin-bottom: 12px;
 
@@ -99,9 +97,9 @@ export const ContextTitle = styled.div`
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  font-weight: 800;
+  font-weight: 700;
   font-size: 15px;
-  color: #eaeaea;
+  color: var(--dw-text);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_SM};
@@ -112,14 +110,14 @@ export const Pill = styled.span`
   display: inline-flex;
   align-items: center;
   padding: 3px 7px;
-  border-radius: 3px;
-  font-weight: 800;
+  border-radius: var(--dw-radius-sm);
+  font-weight: 700;
   font-size: 12px;
-  background: rgba(var(--box-primary-rgb, 127, 215, 255), 0.12);
-  border: 1px solid rgba(var(--box-neon-rgb, 127, 215, 255), 0.42);
-  color: var(--box-neon, #c9f4ff);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.04em;
+  background: var(--dw-surface);
+  border: 1px solid rgba(230, 237, 243, 0.14);
+  color: var(--dw-text-secondary);
+  font-family: var(--dw-font-ui);
+  letter-spacing: 0.01em;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
@@ -149,16 +147,16 @@ export const Crumb = styled.span`
 `;
 
 export const Sep = styled.span`
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--dw-text-secondary);
 `;
 
 export const SubLabel = styled.div`
   margin-top: 10px;
   font-size: 12px;
-  font-weight: 800;
-  color: var(--box-neon, #c9f4ff);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--dw-cyan);
+  letter-spacing: 0.01em;
+  text-transform: none;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
@@ -168,7 +166,7 @@ export const SubLabel = styled.div`
 export const Hint = styled.div`
   margin-top: 6px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--dw-text-secondary);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
@@ -188,20 +186,21 @@ export const ActionRow = styled.div`
 `;
 
 export const SmallBtn = styled.button`
+  ${controlStyles}
   appearance: none;
-  border: 1px solid rgba(var(--box-primary-rgb, 127, 215, 255), 0.34);
-  background: rgba(var(--box-primary-rgb, 127, 215, 255), 0.07);
-  color: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(230, 237, 243, 0.16);
+  background: var(--dw-surface-raised);
+  color: var(--dw-text);
   padding: 8px 10px;
-  border-radius: 10px;
-  font-weight: 800;
+  border-radius: var(--dw-radius);
+  font-weight: 700;
   font-size: 12px;
   cursor: pointer;
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
 
   &:hover {
-    border-color: var(--box-neon, #c9f4ff);
-    background: rgba(var(--box-primary-rgb, 127, 215, 255), 0.14);
+    border-color: var(--dw-cyan);
+    background: var(--dw-surface-raised);
   }
 
   &:disabled {
@@ -210,7 +209,7 @@ export const SmallBtn = styled.button`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 34px;
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     font-size: ${MOBILE_FONT_XS};
     padding: 6px 8px;
   }
@@ -239,21 +238,21 @@ export const Grid = styled.div`
 `;
 
 export const BoxBtn = styled.button`
+  ${controlStyles}
   width: 100%;
   text-align: left;
   padding: 10px 12px;
-  border-radius: 5px;
+  border-radius: var(--dw-radius);
   border: 1px solid
     ${({ $disabled, $selected }) =>
       $selected
-        ? 'var(--box-neon, #7fd7ff)'
+        ? 'var(--dw-cyan)'
         : $disabled
           ? 'rgba(255, 255, 255, 0.12)'
-          : 'rgba(var(--box-primary-rgb, 127, 215, 255), 0.34)'};
-  background:
-    linear-gradient(100deg, rgba(var(--box-primary-rgb, 127, 215, 255), ${({ $selected }) => ($selected ? '0.2' : '0.08')}), transparent 70%),
-    rgba(8, 15, 23, 0.72);
-  color: #eaeaea;
+          : 'rgba(230, 237, 243, 0.16)'};
+  background: ${({ $selected }) => ($selected ? 'var(--dw-surface-raised)' : 'var(--dw-surface)')};
+  color: var(--dw-text);
+  min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
   cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
   opacity: ${({ $disabled }) => ($disabled ? 0.65 : 1)};
   transition:
@@ -262,7 +261,7 @@ export const BoxBtn = styled.button`
     transform 0.08s ease;
 
   &:hover {
-    border-color: ${({ $disabled }) => ($disabled ? 'rgba(255, 255, 255, 0.12)' : 'var(--box-neon, #7fd7ff)')};
+    border-color: ${({ $disabled }) => ($disabled ? 'rgba(255, 255, 255, 0.12)' : 'var(--dw-cyan)')};
   }
   &:active {
     transform: translateY(1px);
@@ -275,9 +274,9 @@ export const BoxBtn = styled.button`
 
 export const Meta = styled.div`
   font-size: 12px;
-  color: var(--box-neon, #b7d3df);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.03em;
+  color: var(--dw-text-muted);
+  font-family: var(--dw-font-ui);
+  letter-spacing: 0.01em;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: ${MOBILE_FONT_XS};
@@ -295,26 +294,27 @@ export const DepthStrip = styled.div`
 export const DepthSeg = styled.div`
   flex: 1 1 0;
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--dw-radius);
   background: ${({ $level }) =>
-    `rgba(78, 199, 123, ${Math.min(0.15 + $level * 0.12, 0.9)})`};
+    `rgba(76, 198, 193, ${Math.min(0.15 + $level * 0.12, 0.9)})`};
 `;
 
 export const GhostBtn = styled.button`
+  ${controlStyles}
   padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid #2f2f2f;
-  background: #141414;
-  color: #eaeaea;
+  border-radius: var(--dw-radius);
+  border: 1px solid rgba(230, 237, 243, 0.16);
+  background: var(--dw-surface-raised);
+  color: var(--dw-text);
   cursor: pointer;
   min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
 
   &:hover {
-    border-color: #4ec77b;
+    border-color: var(--dw-cyan);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 34px;
+    min-height: ${MOBILE_CONTROL_MIN_HEIGHT};
     padding: 6px 9px;
     font-size: ${MOBILE_FONT_XS};
   }

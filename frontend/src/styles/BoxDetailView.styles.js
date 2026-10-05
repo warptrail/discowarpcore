@@ -6,15 +6,12 @@ import {
   MOBILE_PANEL_RADIUS,
 } from './tokens';
 
-/* LCARS-ish palette (fixed) */
 const LCARS = {
-  bg: '#0E0F12',
-  panel: '#151921',
-  line: 'rgba(255,255,255,0.08)',
-  text: '#E7ECF3',
-  errorBg: '#2B0000',
-  errorText: '#FF6B6B',
-  accent: '#E88C1F',
+  bg: 'var(--dw-background)',
+  text: 'var(--dw-text)',
+  errorBg: 'var(--dw-surface)',
+  errorText: 'var(--dw-coral)',
+  accent: 'var(--dw-cyan)',
 };
 
 /* Mobile-first wrapper: prevents horizontal scroll, allows content to shrink */
@@ -31,18 +28,7 @@ export const Wrap = styled.div`
   min-height: 100dvh;
 
   /* cosmetics */
-  background:
-    radial-gradient(
-      circle at 12% 0%,
-      rgba(var(--box-primary-rgb, 127, 215, 255), 0.1),
-      transparent 34%
-    ),
-    linear-gradient(
-      var(--box-wash-angle, 118deg),
-      rgba(var(--box-secondary-rgb, 103, 217, 211), 0.045),
-      transparent 42%
-    ),
-    ${LCARS.bg};
+  background: ${LCARS.bg};
   color: ${LCARS.text};
 
   /* IMPORTANT for wrapping children correctly */
@@ -71,7 +57,7 @@ export const TabViewport = styled.div`
   position: relative;
   min-width: 0;
   overflow-x: clip;
-  border-top: 1px solid rgba(var(--box-primary-rgb, 127, 215, 255), 0.1);
+  border-top: 1px solid rgba(230, 237, 243, 0.1);
 `;
 
 /* Spinner */
@@ -84,19 +70,20 @@ export const Spinner = styled.div`
   width: 36px;
   height: 36px;
   border: 3px solid rgba(255, 255, 255, 0.18);
-  border-top: 3px solid var(--box-primary, ${LCARS.accent});
+  border-top: 3px solid ${LCARS.accent};
   border-radius: 50%;
   animation: ${spin} 1s linear infinite;
   margin: 24px auto;
+  @media (prefers-reduced-motion: reduce) { animation: none; }
 `;
 
 /* Error banner */
 export const ErrorBanner = styled.div`
   background: ${LCARS.errorBg};
   color: ${LCARS.errorText};
-  border: 1px solid ${LCARS.errorText};
+  border: 1px solid rgba(240, 138, 123, 0.35);
   padding: 12px 16px;
-  border-radius: 8px;
+  border-radius: var(--dw-radius);
   text-align: center;
   font-size: 0.95rem;
   max-width: 680px;
