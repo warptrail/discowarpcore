@@ -27,6 +27,10 @@ node_modules/
 # Logs and local diagnostics
 logs/
 *.log
+*.pid
+*.sock
+*.backup*
+*.bak-*
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -56,6 +60,7 @@ coverage/
 
 # Local database / backup artifacts
 dump/
+/.tarot/
 *.tar.gz
 *.tgz
 *.sqlite
@@ -68,20 +73,13 @@ repo_context.txt
 v2_repo_context.txt
 
 # Uploaded/generated media files
-backend/media/items/original/*
-backend/media/items/display/*
-backend/media/items/thumb/*
-backend/media/items/processed/*
-backend/media/boxes/original/*
-backend/media/boxes/display/*
-backend/media/boxes/thumb/*
-backend/media/boxes/processed/*
+/backend/media/
 
-# Runtime intake staging workspace
-/var/intake/_uploads/*
-!/var/intake/_uploads/.gitkeep
-/var/intake/batches/*
-!/var/intake/batches/.gitkeep
+# Local runtime state, logs, and ownership markers
+/.runtime/
+
+# Local staging and scratch data
+/var/
 
 # Local frontend scratch space
 /frontend/temp/
