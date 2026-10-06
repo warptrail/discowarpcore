@@ -34,10 +34,7 @@ export default function OrphanedAttentionPanel({ count = 0, items = [], searchQu
           $density="compact"
         >
           <S.BoxBodyRow $density="compact">
-            <S.OrphanedSignal aria-hidden="true" $density="compact">
-              <span>Unboxed</span>
-              <strong>◇</strong>
-            </S.OrphanedSignal>
+            <S.OrphanedSignal aria-hidden="true" $density="compact" />
             <S.OrphanedAttentionCopy>
               <S.OrphanedAttentionKicker>
                 Ready to place

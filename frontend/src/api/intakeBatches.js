@@ -742,6 +742,6 @@ export async function recreateIntakeBatchLocalFolder(batchId, { signal } = {}) {
 
 export function getImportBatchHref(batchId) {
   const normalizedBatchId = toTrimmed(batchId);
-  if (!normalizedBatchId) return '/import';
-  return `/import?batch=${encodeURIComponent(normalizedBatchId)}`;
+  if (!normalizedBatchId) return '/configuration';
+  return `/configuration?batch=${encodeURIComponent(normalizedBatchId)}`;
 }

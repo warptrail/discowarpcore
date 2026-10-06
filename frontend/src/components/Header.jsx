@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import styled, { css, keyframes } from 'styled-components';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Toast from './Toast/Toast';
+import InventoryQuickAnswer from './InventoryQuickAnswer/InventoryQuickAnswer';
+import ConsoleMessageSlot from './Toast/ConsoleMessageSlot';
 import { ToastContext } from './Toast';
 import HomeCommandIcon from './HomeCommandIcon';
 import operationsNavIcon from '../assets/nav-icon-concepts-v1/logoist/operations.svg';
@@ -79,7 +81,6 @@ const HeaderShell = styled.header`
   isolation: isolate;
   background: var(--dw-surface);
   border: 1px solid var(--dw-border);
-  border-left: 5px solid var(--dw-amber);
   border-radius: 0;
   box-shadow: var(--dw-shadow);
   overflow: visible;
@@ -87,7 +88,7 @@ const HeaderShell = styled.header`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     border-top: 0;
     border-right: 0;
-    border-left-width: 4px;
+    border-left: 0;
     border-radius: 0;
   }
 `;
@@ -205,22 +206,6 @@ color: var(--dw-text);
   letter-spacing: -0.035em;
   line-height: 1.2;
   @media (max-width: ${MOBILE_BREAKPOINT}) { font-size: 1rem; }
-`;
-
-const LcarsPips = styled.div`
-display: flex;
-  align-items: center;
-  gap: 4px;
-  @media (max-width: ${MOBILE_BREAKPOINT}) { display: none; }
-`;
-
-const Pip = styled.span`
-display: block;
-  width: 20px;
-  height: 5px;
-  border-radius: 1px;
-  background: ${({ $c }) => $c};
-  &:first-child { width: 38px; }
 `;
 
 const MobileMenuToggle = styled.button`
@@ -402,6 +387,7 @@ height: 1px;
 `;
 
 const ToastRow = styled.div`
+  position: relative;
 min-width: 0;
   padding: 0.2rem 0.85rem 0.45rem;
   background: var(--dw-surface);
@@ -797,9 +783,10 @@ export default function Header() {
   const isAllItemsPage = /^\/all-items\/?$/.test(location.pathname);
   const isItemPage = /^\/items\/[^/]+\/?$/.test(location.pathname);
   const isIntakePage = /^\/intake\/?$/.test(location.pathname);
-  const isImportPage = /^\/import\/?$/.test(location.pathname);
+  const isImportPage = /^\/(?:import|configuration)\/?$/.test(location.pathname);
   const isDeclutterPage = /^\/declutter(?:\/|$)/.test(location.pathname);
-  const isLogsPage = /^\/logs\/?$/.test(location.pathname);
+  const isLocationPage = /^\/location\/?$/.test(location.pathname);
+  const isLogsPage = isImportPage && new URLSearchParams(location.search).get('tab') === 'logs';
 
   const showNavTooltip = (event) => {
     if (typeof window === 'undefined' || window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT})`).matches) {
@@ -834,6 +821,7 @@ export default function Header() {
 
   const toastCtx = useContext(ToastContext);
   const toast = toastCtx?.toast ?? null;
+  const consoleMessage = toastCtx?.consoleMessage ?? null;
   const hideToast = toastCtx?.hideToast;
   const activeRetrievalItem = toastCtx?.activeRetrievalItem ?? null;
   const intakeDraftName = String(toastCtx?.intakeDraftName || '').trim();
@@ -1265,10 +1253,10 @@ export default function Header() {
                 <img src={declutterNavIcon} alt="" />
               </RetrievalMiniNavLink>
               <RetrievalMiniNavLink
-                to="/import"
+                to="/configuration"
                 aria-current={isImportPage ? 'page' : undefined}
-                aria-label="Import"
-                data-nav-tooltip="Import"
+                aria-label="Configuration"
+                data-nav-tooltip="Configuration"
                 onClick={handleNavSelection}
               >
                 <img src={allItemsNavIcon} alt="" />
@@ -1292,10 +1280,10 @@ export default function Header() {
                 <img src={intakeNavIcon} alt="" />
               </RetrievalMiniNavLink>
               <RetrievalMiniNavLink
-                to="/logs"
-                aria-current={isLogsPage ? 'page' : undefined}
-                aria-label="Logs"
-                data-nav-tooltip="Logs"
+                to="/location"
+                aria-current={isLocationPage ? 'page' : undefined}
+                aria-label="Location"
+                data-nav-tooltip="Location"
                 onClick={handleNavSelection}
               >
                 <img src={retrievalNavIcon} alt="" />
@@ -1312,13 +1300,6 @@ export default function Header() {
           ) : null}
 
           <TopRowControls>
-            <LcarsPips aria-hidden="true">
-              <Pip $c="var(--dw-amber)" />
-              <Pip $c="var(--dw-cyan)" />
-              <Pip $c="var(--dw-violet)" />
-              <Pip $c="var(--dw-teal)" />
-            </LcarsPips>
-
             <MobileTelemetryMount id="mobile-telemetry-mount" aria-live="polite" />
 
             <MobileMenuToggle
@@ -1389,16 +1370,16 @@ export default function Header() {
               <NavLabel data-nav-label>Intake</NavLabel>
             </NavButton>
             <NavButton
-              to="/import"
+              to="/configuration"
                 aria-current={isImportPage ? 'page' : undefined}
-              aria-label="Import"
-              data-nav-tooltip="Import"
+              aria-label="Configuration"
+              data-nav-tooltip="Configuration"
               onClick={handleNavSelection}
             >
               <NavIcon aria-hidden="true">
                 <NavIconImage src={allItemsNavIcon} alt="" />
               </NavIcon>
-              <NavLabel data-nav-label>Import</NavLabel>
+              <NavLabel data-nav-label>Configuration</NavLabel>
             </NavButton>
             <NavButton
               to="/all-items"
@@ -1425,16 +1406,16 @@ export default function Header() {
               <NavLabel data-nav-label>Declutter</NavLabel>
             </NavButton>
             <NavButton
-              to="/logs"
-                aria-current={isLogsPage ? 'page' : undefined}
-              aria-label="Logs"
-              data-nav-tooltip="Logs"
+              to="/location"
+                aria-current={isLocationPage ? 'page' : undefined}
+              aria-label="Location"
+              data-nav-tooltip="Location"
               onClick={handleNavSelection}
             >
               <NavIcon aria-hidden="true">
                 <NavIconImage src={retrievalNavIcon} alt="" />
               </NavIcon>
-              <NavLabel data-nav-label>Logs</NavLabel>
+              <NavLabel data-nav-label>Location</NavLabel>
             </NavButton>
             <NavActionButton
               type="button"
@@ -1451,6 +1432,7 @@ export default function Header() {
         </MobileNavPanel>
       </Inner>
 
+      <InventoryQuickAnswer enabled={isOperationsPage} />
       <Divider />
 
       {(!isImportPage || toast) ? <ToastRow
@@ -1682,6 +1664,7 @@ export default function Header() {
           compactProgress={isBoxDetailPage ? 1.35 : effectiveHeaderProgress}
         />
         )}
+        {isOperationsPage && <ConsoleMessageSlot message={toast ? null : consoleMessage} />}
       </ToastRow> : null}
       {navTooltip && typeof document !== 'undefined'
         ? createPortal(

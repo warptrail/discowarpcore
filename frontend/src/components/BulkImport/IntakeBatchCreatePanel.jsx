@@ -152,6 +152,7 @@ const Button = styled.button`
 `;
 
 export default function IntakeBatchCreatePanel({
+  mode = 'all',
   packageFile,
   packageInputRef,
   onPackageFileChange,
@@ -168,37 +169,38 @@ export default function IntakeBatchCreatePanel({
     <Panel>
       <Header>
         <HeaderText>
-          <Title>AI Intake Package</Title>
+          <Title>{mode === 'json' ? 'JSON' : 'AI intake package'}</Title>
           <Text>
-            Stage either a generated package zip with `batch_manifest.json` and images,
-            or a single no-image JSON item for quick manual imports.
+            {mode === 'json'
+              ? 'Stage a JSON file without images, then review and validate it in Existing batches.'
+              : 'Stage a generated ZIP with batch_manifest.json and images, then review and validate it in Existing batches.'}
           </Text>
         </HeaderText>
 
         <InlineActions>
-          <Button
+          {mode !== 'json' && (<Button
             type="button"
             $tone="primary"
             onClick={onUploadPackage}
             disabled={busyAction === 'upload-package' || !packageFile}
           >
             {busyAction === 'upload-package' ? 'Staging…' : 'Stage Package'}
-          </Button>
-          <Button
+          </Button>)}
+          {mode !== 'package' && (<Button
             type="button"
             $tone="primary"
             onClick={onUploadSimpleJson}
             disabled={busyAction === 'upload-simple-json' || !simpleJsonFile}
           >
             {busyAction === 'upload-simple-json' ? 'Staging…' : 'Stage JSON'}
-          </Button>
+          </Button>)}
           <Button type="button" onClick={onRefresh} disabled={loading}>
             {loading ? 'Refreshing…' : 'Refresh'}
           </Button>
         </InlineActions>
       </Header>
 
-      <Section>
+      {mode !== 'json' && (<Section>
         <Label htmlFor="intake-package-file">Batch Package Zip</Label>
         <FileInput
           id="intake-package-file"
@@ -210,9 +212,9 @@ export default function IntakeBatchCreatePanel({
         <StatusLine>
           {packageFile?.name || 'Select one .zip package from the AI-assisted intake workflow.'}
         </StatusLine>
-      </Section>
+      </Section>)}
 
-      <Section>
+      {mode !== 'package' && (<Section>
         <Label htmlFor="simple-intake-json-file">Simple Item JSON</Label>
         <FileInput
           id="simple-intake-json-file"
@@ -224,12 +226,12 @@ export default function IntakeBatchCreatePanel({
         <StatusLine>
           {simpleJsonFile?.name || 'Select one unzipped .json file with item fields and no images.'}
         </StatusLine>
-      </Section>
+      </Section>)}
 
       <FactList>
-        <Fact>Package zip mode requires `batch_manifest.json` plus referenced files in `images/`.</Fact>
-        <Fact>Simple JSON mode accepts one item object, an item array, or {'{ items: [...] }'} with no images.</Fact>
-        <Fact>Simple item JSON should include `name`, `description`, `category`, `tags`, `quantity`, and optional `location` or `box`.</Fact>
+        {mode !== 'json' && <Fact>Package ZIPs require batch_manifest.json plus referenced files in images/.</Fact>}
+        {mode !== 'package' && <Fact>Simple JSON mode accepts one item object, an item array, or {'{ items: [...] }'} with no images.</Fact>}
+        {mode !== 'package' && <Fact>Simple item JSON should include `name`, `description`, `category`, `tags`, `quantity`, and optional `location` or `box`.</Fact>}
       </FactList>
     </Panel>
   );

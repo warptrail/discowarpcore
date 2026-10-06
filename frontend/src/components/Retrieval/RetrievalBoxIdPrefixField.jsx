@@ -4,13 +4,6 @@ import * as S from './Retrieval.styles';
 
 const MAX_BOX_PREFIX_LENGTH = 3;
 
-function getBoxPrefixScope(value) {
-  if (!value) return 'BOX';
-  if (value.length === 1) return `${value}XX`;
-  if (value.length === 2) return `${value}X`;
-  return `#${value}`;
-}
-
 export default function RetrievalBoxIdPrefixField({ value = '', onChange }) {
   const normalizedValue = normalizeBoxId(value).slice(0, MAX_BOX_PREFIX_LENGTH);
   const updateValue = (nextValue) => {
@@ -27,7 +20,7 @@ export default function RetrievalBoxIdPrefixField({ value = '', onChange }) {
         namePrefix="retrieval_box_prefix"
         value={normalizedValue}
         maxLength={MAX_BOX_PREFIX_LENGTH}
-        placeholder="000"
+        placeholder=""
         ariaLabel="Filter boxes by three-digit box number prefix"
         title="Box number: 1 shows 1XX, 10 shows 10X, and 105 shows box 105"
         onChange={(event) => updateValue(event.target.value)}
@@ -41,9 +34,7 @@ export default function RetrievalBoxIdPrefixField({ value = '', onChange }) {
           updateValue('');
         }}
       />
-      <S.BoxPrefixScope aria-live="polite">
-        {getBoxPrefixScope(normalizedValue)}
-      </S.BoxPrefixScope>
+      {!normalizedValue ? <S.BoxPrefixClockHint aria-hidden="true">000</S.BoxPrefixClockHint> : null}
     </S.BoxPrefixWrap>
   );
 }

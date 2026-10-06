@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 
 import GlobalStyles from './styles/globalStyles';
@@ -13,11 +13,11 @@ const BoxDetailView = lazy(() => import('./components/BoxDetailView'));
 const BoxCreate = lazy(() => import('./components/BoxCreate'));
 const ItemPage = lazy(() => import('./components/ItemPage'));
 const IntakeRoutePage = lazy(() => import('./components/Intake/IntakeRoutePage'));
-const BulkImportPage = lazy(() => import('./components/BulkImport/BulkImportPage'));
+const ConfigurationPage = lazy(() => import('./components/Configuration/ConfigurationPage'));
 const RetrievalPage = lazy(() => import('./components/Retrieval/RetrievalPage'));
 const DeclutterDeckPage = lazy(() => import('./components/Declutter/DeclutterDeckPage'));
 const DeclutterHistoryPage = lazy(() => import('./components/Declutter/DeclutterHistoryPage'));
-const LogsPage = lazy(() => import('./components/SystemLogsPage'));
+const LocationPage = lazy(() => import('./components/Location/LocationPage'));
 
 // ! STYLES
 const AppContainer = styled.div`
@@ -102,11 +102,13 @@ function getRouteTitle(pathname) {
     '/operations': 'Operations',
     '/create-box': 'Create a box',
     '/intake': 'Intake',
-    '/import': 'Bulk import',
+    '/import': 'Configuration',
+    '/configuration': 'Configuration',
     '/all-items': 'All items',
     '/declutter': 'Declutter',
     '/declutter/history': 'Declutter history',
-    '/logs': 'System logs',
+    '/logs': 'Configuration',
+    '/location': 'Location',
     '/retrieval': 'Retrieval',
   };
   return titles[pathname.replace(/\/$/, '') || '/'] || 'Inventory';
@@ -170,6 +172,13 @@ function disableAutofillWithin(root) {
   }
 }
 
+function LegacyLogsRedirect() {
+  const { search, hash } = useLocation();
+  const params = new URLSearchParams(search);
+  params.set('tab', 'logs');
+  return <Navigate replace to={`/configuration?${params}${hash}`} />;
+}
+
 function App() {
   const location = useLocation();
   const isRetrievalPage = /^\/(?:retrieval|tags\/[^/]+)\/?$/.test(
@@ -177,7 +186,7 @@ function App() {
   );
   const isItemPage = /^\/items\/[^/]+\/?$/.test(location.pathname);
   const isIntakePage = /^\/intake\/?$/.test(location.pathname);
-  const isImportPage = /^\/import\/?$/.test(location.pathname);
+  const isImportPage = /^\/(?:import|configuration)\/?$/.test(location.pathname);
   const routeTitle = getRouteTitle(location.pathname);
   useEffect(() => {
     disableAutofillWithin(document.body);
@@ -230,11 +239,13 @@ function App() {
             <Route path="/boxes/:shortId" element={<BoxDetailView />} />
             <Route path="/create-box" element={<BoxCreate />} />
             <Route path="/intake" element={<IntakeRoutePage />} />
-            <Route path="/import" element={<BulkImportPage />} />
+            <Route path="/configuration" element={<ConfigurationPage />} />
+            <Route path="/import" element={<ConfigurationPage />} />
             <Route path="/all-items" element={<AllItemsList />} />
             <Route path="/declutter" element={<DeclutterDeckPage />} />
             <Route path="/declutter/history" element={<DeclutterHistoryPage />} />
-            <Route path="/logs" element={<LogsPage />} />
+            <Route path="/logs" element={<LegacyLogsRedirect />} />
+            <Route path="/location" element={<LocationPage />} />
             <Route path="/retrieval" element={retrievalPage} />
             <Route path="/tags/:tag" element={retrievalPage} />
             <Route path="/items/:itemId" element={<ItemPage />} />

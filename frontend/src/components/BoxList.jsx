@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigationType, useSearchParams } from 'react-router-dom';
 import { styledComponents as S } from '../styles/BoxList.styles';
 import InventoryGridHeader from './InventoryGridHeader';
 import OrphanedAttentionPanel from './OrphanedAttentionPanel';
@@ -28,11 +28,14 @@ import useOperationsQuickPeek, {
 } from './OperationsQuickPeek/useOperationsQuickPeek';
 import TerminalItemTable from './OperationsTerminal/TerminalItemTable';
 import OperationsArchivedItemsLane from './OperationsArchivedItems/OperationsArchivedItemsLane';
+import RetrievalBoxThumbnail from './Retrieval/RetrievalBoxThumbnail';
 import { API_BASE } from '../api/API_BASE';
 import { normalizeKeepPriority } from '../util/keepPriority';
-import { OPERATIONS_QUICK_PEEK_CLOSE_EVENT } from '../constants/inventoryFinderEvents';
+import { INVENTORY_QUICK_ANSWER_EVENT, OPERATIONS_QUICK_PEEK_CLOSE_EVENT } from '../constants/inventoryFinderEvents';
 import { getBoxThumbnailUrl } from '../util/itemImage';
 import { OPERATIONS_SCROLL_RESTORE_STATE } from '../util/operationsReturnPosition';
+
+import { buildQuickAnswers, getMatchingInventoryItems } from './InventoryQuickAnswer/quickAnswerModel';
 
 const ORPHANED_CONTAINER_ROUTE = '/all-items?filter=orphaned';
 
@@ -45,6 +48,8 @@ const ORPHANED_CONTAINER_ROUTE = '/all-items?filter=orphaned';
  */
 export default function BoxList({
   boxes = [],
+  dataLoading = false,
+  dataError = '',
   orphanedCount = 0,
   orphanedItems = [],
   locations = [],
@@ -55,11 +60,24 @@ export default function BoxList({
   onOrphanedItemCreated,
 }) {
   const location = useLocation();
+  const navigationType = useNavigationType();
   const [searchParams, setSearchParams] = useSearchParams();
   const [quickCreatedBoxes, setQuickCreatedBoxes] = useState([]);
   const [viewMode, setViewMode] = useState('cards');
   const [expandedTerminalBoxId, setExpandedTerminalBoxId] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQueryValue] = useState(() => searchParams.get('q') || '');
+  const setSearchQuery = useCallback((value) => {
+    setSearchQueryValue(value);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (value) next.set('q', value);
+      else next.delete('q');
+      return next;
+    }, { replace: true, state: location.state });
+  }, [location.state, setSearchParams]);
+  useEffect(() => {
+    if (navigationType === 'POP') setSearchQueryValue(searchParams.get('q') || '');
+  }, [navigationType, searchParams]);
   const [searchScope, setSearchScope] = useState('all');
   const density = 'compact';
   const [boxLocatorQuery, setBoxLocatorQuery] = useState(() =>
@@ -158,6 +176,21 @@ export default function BoxList({
       keepPriorityFilter,
     ],
   );
+
+  const quickAnswers = useMemo(() => buildQuickAnswers({
+    boxes: controlledBoxes, orphanedItems: visibleOrphanedItems, locations, query: searchQuery,
+  }), [controlledBoxes, visibleOrphanedItems, locations, searchQuery]);
+  useEffect(() => {
+    const query = boxLocatorActive || showingArchivedItems || searchScope === 'boxes' ? '' : searchQuery.trim();
+    window.dispatchEvent(new CustomEvent(INVENTORY_QUICK_ANSWER_EVENT, {
+      detail: { query, answers: quickAnswers, loading: dataLoading, error: dataError },
+    }));
+  }, [boxLocatorActive, showingArchivedItems, searchScope, searchQuery, quickAnswers, dataLoading, dataError]);
+  useEffect(() => () => {
+    window.dispatchEvent(new CustomEvent(INVENTORY_QUICK_ANSWER_EVENT, {
+      detail: { query: '', answers: [] },
+    }));
+  }, []);
 
   const archivedItemsWithContext = useMemo(
     () => attachArchivedBoxContext(archivedItems, mergedBoxes),
@@ -740,6 +773,7 @@ function CompactBranch({
       {getMatchingItems(node, searchQuery, searchScope).length > 0 ? (
         <InventorySearchMatches
           items={getMatchingItems(node, searchQuery, searchScope)}
+          boxId={node.systemType === 'orphaned' ? 'adrift' : node.box_id}
           query={searchQuery}
           label={`Matching items in box ${node.box_id}`}
           nested
@@ -810,7 +844,6 @@ function Branch({
       : undefined,
   });
   const boxThemeStyle = getBoxThemeCssVars(boxTheme);
-  const noImagePlaceholderStyle = getBoxImagePlaceholderStyle(node);
 
   const itemQtyTotal = getNodeItemCount(node);
   const matchingItems = getMatchingItems(node, searchQuery, searchScope);
@@ -914,11 +947,7 @@ function Branch({
               </S.BoxImageTrigger>
             ) : (
               <S.BoxImageFrame $density={density}>
-                <S.BoxImagePlaceholder
-                  role="img"
-                  aria-label="No box image available"
-                  style={noImagePlaceholderStyle}
-                />
+                <RetrievalBoxThumbnail box={node} />
               </S.BoxImageFrame>
             )}
 
@@ -1024,6 +1053,7 @@ function Branch({
         {matchingItems.length > 0 ? (
           <InventorySearchMatches
             items={matchingItems}
+            boxId={node.systemType === 'orphaned' ? 'adrift' : node.box_id}
             query={searchQuery}
             label={`Matching items in box ${node.box_id}`}
             nested
@@ -1274,29 +1304,7 @@ function matchesQuery(node, query, searchScope = 'all') {
   return haystack.includes(query);
 }
 
-function getMatchingItems(node, query, searchScope = 'all') {
-  if (!normalize(query) || searchScope === 'boxes') return [];
-  const normalizedQuery = normalize(query);
-  const items = Array.isArray(node?.items) ? node.items : [];
-
-  return items
-    .filter((item) => {
-      const haystack = normalize(
-        [
-          item?.name,
-          item?.label,
-          item?.description,
-          item?.notes,
-          item?.category,
-          item?.primaryOwnerName,
-          ...(Array.isArray(item?.tags) ? item.tags : []),
-        ]
-          .filter(Boolean)
-          .join(' '),
-      );
-      return haystack.includes(normalizedQuery);
-    });
-}
+const getMatchingItems = getMatchingInventoryItems;
 
 function getMatchingNoteLabels(node, query, searchScope = 'all') {
   if (!query) return [];
@@ -1372,25 +1380,6 @@ function compareNodeBoxId(a, b) {
 
 function normalize(value) {
   return String(value || '').trim().toLowerCase();
-}
-
-function getBoxImagePlaceholderStyle(box) {
-  const source = `${box?.box_id || ''}:${box?.label || box?.name || ''}`;
-  let hash = 2166136261;
-
-  for (let index = 0; index < source.length; index += 1) {
-    hash ^= source.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-
-  const seed = hash >>> 0;
-  return {
-    '--placeholder-primary-x': `${20 + (seed % 55)}%`,
-    '--placeholder-primary-y': `${18 + ((seed >>> 6) % 56)}%`,
-    '--placeholder-secondary-x': `${18 + ((seed >>> 12) % 60)}%`,
-    '--placeholder-secondary-y': `${16 + ((seed >>> 18) % 62)}%`,
-    '--placeholder-wash-angle': `${42 + ((seed >>> 24) % 112)}deg`,
-  };
 }
 
 function getBoxImageUrl(box) {

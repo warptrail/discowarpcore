@@ -10,11 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "dayjs": "^1.11.18",
+    "mermaid": "^11.17.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.3",
     "react-tag-input": "^6.10.6",
-    "dayjs": "^1.11.18",
     "styled-components": "^6.1.19"
   },
   "devDependencies": {

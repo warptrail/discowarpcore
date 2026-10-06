@@ -16,6 +16,9 @@ async function findByStructure(structure) {
     room: { $regex: new RegExp(`^${escapeRegExp(normalized.room)}$`, 'i') },
     vicinity: { $regex: new RegExp(`^${escapeRegExp(normalized.vicinity)}$`, 'i') },
     specifics: { $regex: new RegExp(`^${escapeRegExp(normalized.specifics)}$`, 'i') },
+    ...(normalized.exactSpot
+      ? { exactSpot: { $regex: new RegExp(`^${escapeRegExp(normalized.exactSpot)}$`, 'i') } }
+      : { $or: [{ exactSpot: '' }, { exactSpot: { $exists: false } }] }),
   });
 }
 
@@ -29,7 +32,7 @@ function makeHttpError(status, code, message, extra = {}) {
 
 async function listLocations() {
   return Location.find()
-    .sort({ room: 1, vicinity: 1, specifics: 1 })
+    .sort({ room: 1, vicinity: 1, specifics: 1, exactSpot: 1 })
     .collation({ locale: 'en', strength: 2 });
 }
 
@@ -42,6 +45,9 @@ function normalizeLocationInput(input = {}) {
   if (structure.specifics && !structure.vicinity) {
     throw makeHttpError(400, 'INVALID_LOCATION_HIERARCHY', 'Specifics requires a vicinity');
   }
+  if (structure.exactSpot && !structure.specifics) {
+    throw makeHttpError(400, 'INVALID_LOCATION_HIERARCHY', 'Exact Spot requires specifics');
+  }
   return structure;
 }
 
@@ -52,7 +58,12 @@ async function createLocation(input) {
     throw makeHttpError(409, 'LOCATION_EXISTS', 'Location already exists');
   }
 
-  return Location.create(normalized);
+  try {
+    return await Location.create(normalized);
+  } catch (error) {
+    if (error.code === 11000) throw makeHttpError(409, 'LOCATION_EXISTS', 'Location already exists');
+    throw error;
+  }
 }
 
 async function renameLocation(id, input) {
@@ -73,7 +84,12 @@ async function renameLocation(id, input) {
   }
 
   existing.set(normalized);
-  await existing.save();
+  try {
+    await existing.save();
+  } catch (error) {
+    if (error.code === 11000) throw makeHttpError(409, 'LOCATION_EXISTS', 'Location already exists');
+    throw error;
+  }
 
   return existing;
 }

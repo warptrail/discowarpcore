@@ -100,7 +100,7 @@ export default function RetrievalResultRow({
           <S.AsciiBranch aria-hidden="true">{isExpanded ? '└─' : '├─'}</S.AsciiBranch>
           <S.AsciiItemName>{item.name}</S.AsciiItemName>
           <S.AsciiPlacement aria-hidden="true">
-            {' // '}{hasKnownBox ? boxSummary : 'NO BOX'}{' @ '}{locationSummary}
+            {' · '}{hasKnownBox ? boxSummary : 'NO BOX'}{' @ '}{locationSummary}
           </S.AsciiPlacement>
           <S.AsciiDisclosure aria-hidden="true">{isExpanded ? '−' : '+'}</S.AsciiDisclosure>
         </S.AsciiResultButton>
@@ -153,43 +153,18 @@ export default function RetrievalResultRow({
 
               {!isExpanded ? (
                 <S.CollapsedPlacementTable>
-                  <S.CollapsedPlacementRow>
-                    <S.CollapsedPlacementLabel>Box</S.CollapsedPlacementLabel>
-                    <S.CollapsedPlacementValue $stack>
-                      <S.CollapsedBoxTelemetry
-                        title={`Box: ${boxSummary}`}
-                        $orphaned={!hasKnownBox}
-                      >
-                        {hasKnownBox ? (
-                          <>
-                            {boxNumber ? (
-                              <S.CollapsedBoxId>{boxNumber}</S.CollapsedBoxId>
-                            ) : null}
-                            {boxName ? (
-                              <S.CollapsedBoxName>{boxName}</S.CollapsedBoxName>
-                            ) : null}
-                          </>
-                        ) : (
-                          <S.CollapsedBoxName>Orphaned</S.CollapsedBoxName>
-                        )}
-                      </S.CollapsedBoxTelemetry>
-                    </S.CollapsedPlacementValue>
-                  </S.CollapsedPlacementRow>
-
-                  <S.CollapsedPlacementRow>
-                    <S.CollapsedPlacementLabel>Loc</S.CollapsedPlacementLabel>
-                    <S.CollapsedPlacementValue
-                      $stack
-                      title={`Location: ${locationSummary}`}
-                    >
-                      <S.CollapsedLocationValue $unknown={!hasKnownLocation}>
-                        {locationSummary}
-                      </S.CollapsedLocationValue>
-                    </S.CollapsedPlacementValue>
-                  </S.CollapsedPlacementRow>
+                  <S.CollapsedBoxName title={boxSummary}>{boxName || (hasKnownBox ? 'Box' : 'Items Adrift')}</S.CollapsedBoxName>
+                  <S.CollapsedLocationValue $unknown={!hasKnownLocation} title={`Location: ${locationSummary}`}>
+                    {locationSummary}
+                  </S.CollapsedLocationValue>
                 </S.CollapsedPlacementTable>
               ) : null}
             </S.BadgeStack>
+            {!isExpanded ? (
+              <S.RowBoxNumber aria-label={boxNumber ? `Box ${boxNumber}` : 'No box assigned'} title={boxSummary}>
+                {boxNumber || '—'}
+              </S.RowBoxNumber>
+            ) : null}
           </S.RowMain>
 
         </S.SummaryTop>

@@ -8,6 +8,7 @@ import FilterCombobox from './FilterCombobox';
 import ActiveFilterChips from './ActiveFilterChips';
 import RetrievalSortRail from './RetrievalSortRail';
 import RetrievalTagNebula from './RetrievalTagNebula';
+import RetrievalRoomCarousel from './RetrievalRoomCarousel';
 
 const Form = styled.section`
   display: grid;
@@ -59,7 +60,6 @@ const PrimaryRow = styled.div`
       grid-column: 1 / -1;
     }
   }
-  @media (max-width: 360px) { grid-template-columns: minmax(0, 1fr); }
 `;
 
 const FacetGrid = styled.div`
@@ -71,8 +71,7 @@ const FacetGrid = styled.div`
     grid-template-columns: repeat(${({ $boxMode }) => ($boxMode ? 2 : 3)}, minmax(0, 1fr));
 
     ${({ $boxMode }) => $boxMode && `
-      > :nth-child(3),
-      > :nth-child(4) {
+      > * {
         grid-column: 1 / -1;
       }
     `}
@@ -182,9 +181,9 @@ export default function RetrievalSearchForm({
   sortOptions = [],
   selectedSort = '',
   onSortChange,
-  selectedBoxLocation = '',
+  selectedBoxRooms = [],
   selectedBoxTags = [],
-  onBoxLocationChange,
+  onBoxRoomsChange,
   onBoxTagAdd,
   onBoxTagRemove,
   finderMinimized = true,
@@ -302,17 +301,12 @@ export default function RetrievalSearchForm({
         />
       </PrimaryRow>
 
-      <FacetGrid $count={isBoxMode ? 4 : 6} $boxMode={isBoxMode}>
+      {isBoxMode && (
+        <RetrievalRoomCarousel options={filterOptions.rooms} selectedKeys={selectedBoxRooms} onChange={onBoxRoomsChange} />
+      )}
+      <FacetGrid $count={isBoxMode ? 2 : 6} $boxMode={isBoxMode}>
         {isBoxMode ? (
           <>
-            <SelectField
-              id="retrieval-box-location"
-              label="Location"
-              placeholder="All locations"
-              options={filterOptions.locations}
-              selectedKey={selectedBoxLocation}
-              onChange={onBoxLocationChange}
-            />
             <Facet>
               <FacetLabelRow>
                 <FacetLabel>Tags</FacetLabel>

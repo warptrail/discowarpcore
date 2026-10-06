@@ -114,7 +114,7 @@ async function loadBoxLineage(Box, leafBox, maxDepth = 64) {
 
     const parent = await Box.findById(cursorId)
       .select('_id box_id label isComplexBox compartments itemCompartments parentBox location locationId')
-      .populate('locationId', 'room vicinity specifics')
+      .populate('locationId', 'room vicinity specifics exactSpot')
       .lean();
     if (!parent) break;
 
@@ -411,7 +411,7 @@ itemSchema.statics.findItemById = async function (id, { select, perf = false } =
       ? null
       : await Box.findOne({ items: item._id })
           .select('_id box_id label isComplexBox compartments itemCompartments description parentBox location locationId')
-          .populate('locationId', 'room vicinity specifics')
+          .populate('locationId', 'room vicinity specifics exactSpot')
           .lean();
     perfData.containingBoxLookupMs = elapsedMs(containingBoxLookupStartNs);
 
@@ -472,6 +472,7 @@ itemSchema.statics.findItemById = async function (id, { select, perf = false } =
                 room: leaf.locationId.room,
                 vicinity: leaf.locationId.vicinity,
                 specifics: leaf.locationId.specifics,
+                exactSpot: leaf.locationId.exactSpot || '',
               }
             : null,
       },

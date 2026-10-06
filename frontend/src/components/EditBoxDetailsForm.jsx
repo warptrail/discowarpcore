@@ -160,6 +160,7 @@ export default function EditBoxDetailsForm({
       room: String(location?.room || '').trim().replace(/\s+/g, ' '),
       vicinity: String(location?.vicinity || '').trim().replace(/\s+/g, ' '),
       specifics: String(location?.specifics || '').trim().replace(/\s+/g, ' '),
+      exactSpot: String(location?.exactSpot || '').trim().replace(/\s+/g, ' '),
     };
     if (!normalized.room) {
       setLocationError('Room is required');

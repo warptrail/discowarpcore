@@ -1,5 +1,7 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { getOperationsItemPeekNavigation } from '../util/operationsItemNavigation';
+import { controlStyles } from '../styles/primitives';
 import styled from 'styled-components';
 import { getItemHomeHref } from '../api/itemDetails';
 import { getItemMicroThumbnailUrl } from '../util/itemImage';
@@ -33,6 +35,11 @@ const Results = styled.ul`
     outline: 2px solid var(--dw-cyan);
     outline-offset: 2px;
   }
+`;
+const ItemPageLink = styled(Link)`
+  ${controlStyles}
+  display: inline-flex; align-items: center; justify-self: end;
+  text-decoration: none; font-size: 0.75rem; margin: 0.25rem 0;
 `;
 const ItemLink = styled(Link)`
   display: grid;
@@ -138,7 +145,8 @@ function excerpt(text, terms) {
   return `${start ? '…' : ''}${value.slice(start, end)}${end < value.length ? '…' : ''}`;
 }
 
-export default function InventorySearchMatches({ items, query, label = 'Matching Items Adrift', nested = false }) {
+export default function InventorySearchMatches({ items, query, label = 'Matching Items Adrift', nested = false, boxId = 'adrift' }) {
+  const location = useLocation();
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
   const matches = (text) => terms.some((term) => String(text || '').toLowerCase().includes(term));
   return (
@@ -152,7 +160,8 @@ export default function InventorySearchMatches({ items, query, label = 'Matching
         ].filter(([, value]) => matches(value));
         return (
           <li key={item._id}>
-            <ItemLink to={getItemHomeHref(item._id)}>
+            <ItemLink {...getOperationsItemPeekNavigation({ search: location.search, state: location.state, boxId, itemId: item._id })}
+              aria-label={`Quick peek at ${item.name || 'Untitled item'}`} aria-controls="operations-box-quick-peek">
               <ItemHeading>
                 <ItemThumbnail item={item} />
                 <strong>{highlight(item.name || 'Untitled item', terms)}</strong>
@@ -161,6 +170,7 @@ export default function InventorySearchMatches({ items, query, label = 'Matching
                 <Excerpt key={label} $isTags={label === 'Tags'}><MatchLabel $color={FIELD_COLORS[label]}>Matched in {label.toLowerCase()}</MatchLabel> {highlight(excerpt(value, terms), terms)}</Excerpt>
               ))}
             </ItemLink>
+            <ItemPageLink to={getItemHomeHref(item._id)} aria-label={`Open item page for ${item.name || 'Untitled item'}`}>Open item page</ItemPageLink>
           </li>
         );
       })}

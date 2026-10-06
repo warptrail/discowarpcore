@@ -6,6 +6,7 @@ export function ToastProvider({ children }) {
   const location = useLocation();
   const routeToastHandoff = location.state?.toastHandoff ?? null;
   const [toast, setToast] = useState(null);
+  const [consoleMessage, setConsoleMessage] = useState(null);
   const [activeRetrievalItem, setActiveRetrievalItem] = useState(null);
   const [intakeDraftName, setIntakeDraftName] = useState('');
   const [intakeContext, setIntakeContext] = useState(null);
@@ -83,6 +84,7 @@ export function ToastProvider({ children }) {
   useEffect(() => {
     // Clear route-scoped console/toast state on path navigation.
     hideToast();
+    setConsoleMessage(null);
     if (routeToastHandoff) {
       showToast(routeToastHandoff);
     }
@@ -99,6 +101,8 @@ export function ToastProvider({ children }) {
     <ToastContext.Provider
       value={{
         toast,
+        consoleMessage,
+        setConsoleMessage,
         showToast,
         hideToast,
         activeRetrievalItem,

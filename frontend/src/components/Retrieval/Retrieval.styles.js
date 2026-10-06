@@ -413,7 +413,8 @@ export const BoxPrefixWrap = styled.label`
 export const BoxPrefixInput = styled.input`
   ${controlField};
   min-height: 40px;
-  padding-right: 2.85rem;
+  padding-inline: 0.6rem;
+  text-align: center;
   border-left: 4px solid ${({ $active }) => (
     $active ? 'rgba(167, 182, 255, 0.94)' : 'rgba(167, 182, 255, 0.62)'
   )};
@@ -438,23 +439,23 @@ export const BoxPrefixInput = styled.input`
   font-family: var(--dw-font-data);
 `;
 
-export const BoxPrefixScope = styled.span`
-  position: absolute;
-  top: 50%;
-  right: 0.48rem;
-  max-width: 2.5rem;
-  overflow: hidden;
-  color: rgba(167, 182, 255, 0.76);
-  font: 800 0.75rem/1 var(--dw-font-ui);
-  letter-spacing: 0;
-  pointer-events: none;
-  text-overflow: ellipsis;
-  transform: translateY(-50%);
-  white-space: nowrap;
+const boxPrefixClockBlink = keyframes`
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 0.28; }
+`;
 
-  ${BoxPrefixWrap}:focus-within & {
-    color: #dce3ff;
-  }
+export const BoxPrefixClockHint = styled.span`
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--dw-text-secondary);
+  font: 850 0.92rem/1 var(--dw-font-data);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  animation: ${boxPrefixClockBlink} 2s steps(2, end) infinite;
+  @media (max-width: ${MOBILE_BREAKPOINT}) { font-size: 0.94rem; }
+  @media (prefers-reduced-motion: reduce) { animation: none; opacity: 0.85; }
 `;
 
 export const SearchHint = styled.p`
@@ -1306,6 +1307,34 @@ export const InlineSortSelect = styled.div`
   flex: 1 1 auto;
 `;
 
+export const SortFieldButtons = styled.div`
+  display: grid;
+  grid-template-columns: repeat(${({ $count }) => Math.max(1, $count)}, minmax(0, 1fr));
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 2px;
+  gap: 2px;
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: var(--dw-surface-raised);
+`;
+
+export const SortFieldButton = styled.button`
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 0.25rem;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--dw-text-secondary);
+  font: 600 0.75rem/1.1 var(--dw-font-ui);
+  cursor: pointer;
+  &[aria-pressed='true'] { background: rgba(113, 210, 255, 0.12); color: var(--dw-cyan); }
+  &:hover { background-color: rgba(113, 210, 255, 0.07); color: var(--dw-text); }
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: -2px; }
+  @media (pointer: coarse) { min-height: 40px; }
+`;
+
 export const InlineSortDirectionButton = styled.button`
   font-family: var(--dw-font-ui);
   &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
@@ -1514,33 +1543,36 @@ export const BoxListItem = styled.div`
 `;
 
 export const BoxListRow = styled.button`
-  font-family: var(--dw-font-ui);
-  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   width: 100%;
-  border: 1px solid
-    ${({ $active, $boxColorRgb }) =>
-      $active
-        ? `rgba(${$boxColorRgb || '119, 213, 255'}, 0.56)`
-        : `rgba(${$boxColorRgb || '160, 170, 190'}, 0.26)`};
-  border-radius: var(--dw-radius-sm);
-  background: var(--dw-surface-raised);
-  color: ${RETRIEVAL.text};
-  text-align: left;
-  padding: 0.34rem 0.42rem;
+  min-width: 0;
+  min-height: 100px;
   display: grid;
-  gap: 0.18rem;
+  grid-template-columns: 84px minmax(0, 1fr) auto;
+  @media (max-width: 640px) { grid-template-columns: 68px minmax(0, 1fr) auto; }
+  align-items: stretch;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(var(--box-primary-rgb, 138, 129, 117), ${({ $active }) => $active ? 0.65 : 0.24});
+  border-left: 3px solid var(--box-primary, #8A8175);
+  border-radius: var(--dw-radius-sm);
+  color: var(--dw-text);
+  background: var(--dw-surface-raised);
+  text-align: left;
+  font-family: var(--dw-font-ui);
   cursor: pointer;
-  box-shadow: none;
-  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+  box-shadow: ${({ $active }) => $active ? 'inset 0 0 24px rgba(var(--box-primary-rgb, 138, 129, 117), 0.1)' : 'none'};
+  transition: border-color 140ms ease, box-shadow 160ms ease;
+  &:hover { border-color: rgba(var(--box-primary-rgb, 138, 129, 117), 0.54); }
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { transition: none; }
+`;
 
-  &:hover {
-    border-color: ${({ $boxColorRgb }) =>
-      `rgba(${$boxColorRgb || '119, 213, 255'}, 0.44)`};
-    background: var(--dw-surface-raised);
-    box-shadow: none;
-  }
-  background: ${({ $active }) => $active ? "var(--dw-surface-raised)" : "var(--dw-surface)"};
-  border-left: 3px solid ${({ $boxColorRgb }) => `rgb(${$boxColorRgb || '138, 129, 117'})`};
+export const BoxRowCopy = styled.div`
+  display: grid;
+  align-content: center;
+  gap: 0.2rem;
+  min-width: 0;
+  padding: 0.6rem 0.65rem;
 `;
 
 export const MobileInlineInspectPanel = styled.section`
@@ -1576,13 +1608,14 @@ export const BoxRowId = styled.span`
 
 export const BoxRowLabel = styled.span`
   min-width: 0;
-  color: ${({ $boxMutedRgb }) => `rgba(${$boxMutedRgb || '235, 243, 251'}, 0.94)`};
-  font-size: 0.8rem;
-  font-weight: 700;
+  color: var(--dw-text);
+  font-size: 0.94rem;
+  font-weight: 780;
   line-height: 1.2;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
 `;
 
 export const BoxRowContext = styled.span`
@@ -1627,8 +1660,8 @@ export const BoxRowTags = styled.span`
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
-  color: ${({ $boxNeonRgb }) => `rgba(${$boxNeonRgb || '119, 213, 255'}, 0.76)`};
-  font: 700 0.75rem/1.25 var(--dw-font-ui);
+  color: var(--dw-text-secondary);
+  font: 500 0.75rem/1.25 var(--dw-font-ui);
   letter-spacing: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1941,7 +1974,7 @@ export const SummaryButton = styled.div`
   text-align: left;
   cursor: pointer;
   padding: ${({ $expanded }) =>
-    $expanded ? '0.42rem 0.58rem 0.42rem 0.82rem' : '0.48rem 0.58rem 0.48rem 0.82rem'};
+    $expanded ? '0.42rem 0.58rem 0.42rem 0.82rem' : '0'};
   display: grid;
   gap: 0.2rem;
   transition:
@@ -1964,7 +1997,7 @@ export const SummaryButton = styled.div`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: ${({ $expanded }) =>
-      $expanded ? '0.42rem 0.46rem 0.42rem 0.72rem' : '0.44rem 0.46rem 0.44rem 0.72rem'};
+      $expanded ? '0.42rem 0.46rem 0.42rem 0.72rem' : '0'};
   }
 `;
 
@@ -1983,16 +2016,16 @@ export const SummaryTop = styled.div`
 export const RowMain = styled.div`
   display: grid;
   grid-template-columns: ${({ $expanded }) =>
-    $expanded ? '5px minmax(0, 1fr)' : '52px minmax(0, 1fr)'};
-  align-items: ${({ $expanded }) => ($expanded ? 'center' : 'start')};
-  gap: 0.62rem;
+    $expanded ? '5px minmax(0, 1fr)' : '84px minmax(0, 1fr) auto'};
+  align-items: stretch;
+  gap: 0;
   min-width: 0;
   flex: 1 1 auto;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     grid-template-columns: ${({ $expanded }) =>
-      $expanded ? '4px minmax(0, 1fr)' : '50px minmax(0, 1fr)'};
-    gap: 0.46rem;
+      $expanded ? '4px minmax(0, 1fr)' : '76px minmax(0, 1fr) auto'};
+    gap: 0;
   }
 `;
 
@@ -2005,20 +2038,17 @@ export const ExpandedRowMarker = styled.span`
 `;
 
 const thumbFrameBase = css`
-  width: 52px;
-  aspect-ratio: 1 / 1;
-  border-radius: var(--dw-radius-sm);
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 100px;
+  align-self: stretch;
+  border-radius: 0;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background:
-    var(--dw-surface);
+  border: 0;
+  background: var(--dw-surface);
   display: grid;
   place-items: center;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    width: 50px;
-    border-radius: var(--dw-radius-sm);
-  }
 `;
 
 export const ThumbFrame = styled.div`
@@ -2048,6 +2078,10 @@ export const ThumbPreviewButton = styled.button`
 `;
 
 export const ThumbImage = styled.img`
+  position: absolute;
+  inset: 0;
+  object-position: center;
+  transform: scale(1.14);
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -2062,6 +2096,8 @@ export const ThumbPlaceholder = styled.span`
 `;
 
 export const BadgeStack = styled.div`
+  padding: ${({ $expanded }) => $expanded ? 0 : '0.6rem 0.55rem'};
+  align-content: center;
   display: grid;
   gap: ${({ $expanded }) => ($expanded ? '0' : '0.16rem')};
   min-width: 0;
@@ -2198,11 +2234,6 @@ export const CollapsedPlacementLabel = styled.span`
   text-transform: none;
   line-height: 1.15;
 
-  &::after {
-    content: '//';
-    color: rgba(var(--box-secondary-rgb, 103, 217, 211), 0.72);
-    letter-spacing: -0.08em;
-  }
 `;
 
 export const CollapsedPlacementValue = styled.span`
@@ -2266,12 +2297,6 @@ export const CollapsedLocationValue = styled.span`
   align-items: center;
   width: fit-content;
   min-height: 1.1rem;
-  border-left: 2px solid
-    ${({ $unknown }) =>
-      $unknown
-        ? 'rgba(176, 166, 148, 0.52)'
-        : 'rgba(var(--box-location-rgb, 127, 215, 255), 0.72)'};
-  padding: 0.04rem 0 0.04rem 0.38rem;
   max-width: 100%;
   color: ${({ $unknown }) =>
     $unknown ? 'rgba(205, 198, 188, 0.76)' : 'var(--box-location, #7fd7ff)'};
@@ -4277,4 +4302,18 @@ export const LightboxCaption = styled.p`
   font-size: 0.79rem;
   letter-spacing: 0;
   text-align: center;
+`;
+
+export const RowBoxNumber = styled.span`
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  min-width: 3.1ch;
+  padding: 0.5rem 0.6rem;
+  color: var(--box-primary, #8A8175);
+  background: linear-gradient(90deg, transparent, rgba(var(--box-primary-rgb, 138, 129, 117), 0.1));
+  font: 750 clamp(1.4rem, 4.5vw, 2rem)/1 var(--dw-font-data);
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+  @media (max-width: 360px) { padding-inline: 0.4rem; font-size: 1.35rem; }
 `;

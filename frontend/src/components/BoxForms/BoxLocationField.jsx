@@ -1,12 +1,14 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useId } from 'react';
+import { EMPTY_LOCATION, locationSuggestions, updateLocationDraft } from '../../util/locationStructure';
 import * as S from './BoxEditForm.styles';
 
-const emptyLocation = { room: '', vicinity: '', specifics: '' };
+const emptyLocation = EMPTY_LOCATION;
 
 const toLocationStructure = (location) => ({
   room: String(location?.room || '').trim(),
   vicinity: String(location?.vicinity || '').trim(),
   specifics: String(location?.specifics || '').trim(),
+  exactSpot: String(location?.exactSpot || '').trim(),
 });
 
 export default function BoxLocationField({
@@ -23,6 +25,7 @@ export default function BoxLocationField({
   onLocationDraftChange,
   showHierarchyHint = true,
 }) {
+  const suggestionsId = useId();
   const [draft, setDraft] = useState(emptyLocation);
   const selectedLocation = useMemo(
     () => (Array.isArray(locationOptions) ? locationOptions : []).find(
@@ -40,16 +43,7 @@ export default function BoxLocationField({
   }, [draft, onLocationDraftChange]);
 
   const updateDraft = (key, value) => {
-    setDraft((current) => ({
-      ...current,
-      [key]: value,
-      ...(key === 'room' && !String(value || '').trim()
-        ? { vicinity: '', specifics: '' }
-        : {}),
-      ...(key === 'vicinity' && !String(value || '').trim()
-        ? { specifics: '' }
-        : {}),
-    }));
+    setDraft((current) => updateLocationDraft(current, key, value));
   };
 
   const handleAssignStructure = async () => {
@@ -66,12 +60,14 @@ export default function BoxLocationField({
     const room = String(draft.room || '').trim();
     const vicinity = String(draft.vicinity || '').trim();
     const specifics = String(draft.specifics || '').trim();
+    const exactSpot = String(draft.exactSpot || '').trim();
     const matchesAssignedLocation = selectedLocation &&
       room === String(selectedLocation.room || '').trim() &&
       vicinity === String(selectedLocation.vicinity || '').trim() &&
-      specifics === String(selectedLocation.specifics || '').trim();
+      specifics === String(selectedLocation.specifics || '').trim() &&
+      exactSpot === String(selectedLocation.exactSpot || '').trim();
 
-    if (!room || (specifics && !vicinity) || matchesAssignedLocation || createBusy) return;
+    if (!room || (specifics && !vicinity) || (exactSpot && !specifics) || matchesAssignedLocation || createBusy) return;
     void handleAssignStructure().catch(() => {});
   };
 
@@ -126,15 +122,29 @@ export default function BoxLocationField({
               $compact={compact}
             />
           </S.LocationLevelField>
+          <S.LocationLevelField>
+            Exact Spot
+            <S.LocationInput
+              value={draft.exactSpot}
+              onChange={(event) => updateDraft('exactSpot', event.target.value)}
+              placeholder="Behind the blue bin"
+              list={suggestionsId}
+              disabled={createBusy || !String(draft.specifics || '').trim()}
+              $compact={compact}
+            />
+            <datalist id={suggestionsId}>
+              {locationSuggestions(locationOptions, draft, 'exactSpot').map((value) => <option key={value} value={value} />)}
+            </datalist>
+          </S.LocationLevelField>
         </S.LocationStructureGrid>
-        {showHierarchyHint ? <S.Hint $compact={compact}>Room → vicinity → specifics.</S.Hint> : null}
+        {showHierarchyHint ? <S.Hint $compact={compact}>Room → vicinity → specifics → exact spot.</S.Hint> : null}
       </S.LocationSubform>
       {!autoAssign && !hideAssignAction ? (
         <S.LocationActionRow>
           <S.LocationAction
             type="button"
             onClick={handleAssignStructure}
-            disabled={createBusy || !String(draft.room || '').trim() || Boolean(draft.specifics && !draft.vicinity)}
+            disabled={createBusy || !String(draft.room || '').trim() || Boolean(draft.specifics && !draft.vicinity) || Boolean(draft.exactSpot && !draft.specifics)}
           >
             {createBusy ? 'Saving location…' : 'Assign location'}
           </S.LocationAction>

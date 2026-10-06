@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { createLocation, listLocations } from '../api/locations';
+import { createLocation, listLocations, renameLocation, deleteLocation } from '../api/locations';
 
 const subscribers = new Set();
 let cache = [];
@@ -16,11 +16,12 @@ const normalizeLocationStructure = (value) => ({
   room: normalizeLocationPart(value?.room),
   vicinity: normalizeLocationPart(value?.vicinity),
   specifics: normalizeLocationPart(value?.specifics),
+  exactSpot: normalizeLocationPart(value?.exactSpot),
 });
 
 const locationStructureKey = (value) => {
-  const { room, vicinity, specifics } = normalizeLocationStructure(value);
-  return [room, vicinity, specifics].map((part) => part.toLowerCase()).join('\u001f');
+  const { room, vicinity, specifics, exactSpot } = normalizeLocationStructure(value);
+  return [room, vicinity, specifics, exactSpot].map((part) => part.toLowerCase()).join('\u001f');
 };
 
 const sortByName = (locations) =>
@@ -125,11 +126,27 @@ export default function useLocationRegistry() {
     }
   }, []);
 
+  const renameLocationInline = useCallback(async (id, location) => {
+    const updated = await renameLocation(id, normalizeLocationStructure(location));
+    if (!updated?._id) throw new Error('Location update did not return a saved location');
+    cache = sortByName(cache.map((entry) => entry._id === id ? updated : entry));
+    publish();
+    return updated;
+  }, []);
+
+  const deleteLocationInline = useCallback(async (id) => {
+    await deleteLocation(id);
+    cache = cache.filter((entry) => entry._id !== id);
+    publish();
+  }, []);
+
   return {
     locations,
     loading,
     error,
     refreshLocations,
     createLocationInline,
+    renameLocationInline,
+    deleteLocationInline,
   };
 }

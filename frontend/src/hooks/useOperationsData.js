@@ -19,6 +19,8 @@ function inheritBoxLocations(nodes, ancestorLocation = '') {
 }
 
 export default function useOperationsData({ includeSupportingData = true } = {}) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [boxes, setBoxes] = useState([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -45,6 +47,8 @@ export default function useOperationsData({ includeSupportingData = true } = {})
     });
 
     const load = async () => {
+      setLoading(true);
+      setError('');
       try {
         const boxesRequest = fetch(`${API_BASE}/api/boxes/tree?${buildBoxesQuery(1)}`, {
           signal: controller.signal,
@@ -63,6 +67,7 @@ export default function useOperationsData({ includeSupportingData = true } = {})
           locationsRequest,
         ]);
         if (!boxesResponse.ok) throw new Error(`Failed to fetch boxes (${boxesResponse.status})`);
+        if (orphanedResponse && !orphanedResponse.ok) throw new Error(`Failed to fetch unboxed items (${orphanedResponse.status})`);
 
         const boxesBody = await boxesResponse.json();
         const firstPage = Array.isArray(boxesBody?.items)
@@ -82,6 +87,7 @@ export default function useOperationsData({ includeSupportingData = true } = {})
                 `${API_BASE}/api/boxes/tree?${buildBoxesQuery(index + 2)}`,
                 { signal: controller.signal },
               );
+              if (!response.ok) throw new Error(`Failed to fetch boxes (${response.status})`);
               const body = await response.json();
               return Array.isArray(body?.items) ? body.items : Array.isArray(body) ? body : [];
             }),
@@ -107,6 +113,9 @@ export default function useOperationsData({ includeSupportingData = true } = {})
       } catch (error) {
         if (error?.name === 'AbortError') return;
         console.error('Error fetching operations data:', error);
+        setError(error?.message || 'Could not load inventory.');
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
@@ -115,6 +124,8 @@ export default function useOperationsData({ includeSupportingData = true } = {})
   }, [includeSupportingData, refreshTick]);
 
   return {
+    loading,
+    error,
     boxes,
     page,
     setPage,

@@ -5,7 +5,6 @@ export default function QuickPeekBoxHeader({
   box,
   imageUrl,
   description,
-  notePanel,
   itemActionPanel,
   position,
   total,
@@ -173,11 +172,11 @@ export default function QuickPeekBoxHeader({
           disabled={!canSelectPrevious}
           onClick={onPrevious}
         >
-          ‹
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6" /></svg>
         </S.CapIconButton>
 
         <S.CapIdentityStack>
-          <S.BoxIdentity $expanded={expanded} aria-hidden={!expanded}>
+          <S.BoxIdentity>
             <S.BoxTitleLine>
               <S.BoxId>{isAdrift ? '◇' : `#${boxId}`}</S.BoxId>
               <S.BoxName>{label}</S.BoxName>
@@ -204,11 +203,9 @@ export default function QuickPeekBoxHeader({
           disabled={!canSelectNext}
           onClick={onNext}
         >
-          ›
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6" /></svg>
         </S.CapIconButton>
       </S.CapNavigation>
-
-      {notePanel}
 
       <S.CollapseEdgeButton
         type="button"

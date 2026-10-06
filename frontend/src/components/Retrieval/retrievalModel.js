@@ -610,6 +610,7 @@ export function normalizeRetrievalFilterOptions(rawFilters) {
   return {
     categories,
     tags,
+    rooms: normalizeOptionRows(rawFilters?.rooms),
     locations,
     owners,
     keepPriorities,
@@ -722,6 +723,8 @@ export function normalizeRetrievalBoxesPage(rawBoxes) {
         id,
         boxId,
         boxLabel,
+        image: rawBox.image,
+        imagePath: rawBox.imagePath,
         isComplexBox: Boolean(rawBox?.isComplexBox),
         description,
         notes,

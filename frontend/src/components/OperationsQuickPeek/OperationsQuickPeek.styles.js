@@ -99,17 +99,27 @@ export const Deck = styled.aside`
   width: 100%;
   height: var(--quick-peek-expanded-height);
   min-height: 0;
+  box-sizing: border-box;
+  padding-bottom: ${({ $expanded }) => $expanded ? '0' : 'var(--quick-peek-collapsed-shift)'};
   overflow: visible;
   color: ${COLORS.text};
-  background: var(--dw-surface);
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(${COLORS.accentRgb}, 0.16), transparent 65%),
+    linear-gradient(145deg, rgba(30, 47, 65, 0.88), rgba(12, 21, 32, 0.96));
+  backdrop-filter: blur(22px) saturate(1.25);
+  -webkit-backdrop-filter: blur(22px) saturate(1.25);
   border: 1px solid ${COLORS.line};
   border-bottom: 0;
   border-radius: var(--dw-radius);
-  box-shadow: none;
+  box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(226, 245, 255, 0.22);
+  &, & * {
+    scrollbar-width: none !important;
+    &::-webkit-scrollbar { display: none; width: 0; height: 0; }
+  }
   transform: translateY(
     ${({ $expanded }) => ($expanded ? '0' : 'var(--quick-peek-collapsed-shift)')}
   );
-  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), padding-bottom 260ms cubic-bezier(0.22, 1, 0.36, 1);
   animation: ${({ $closing }) =>
     $closing
       ? css`${undockAndDescend} ${QUICK_PEEK_EXIT_DURATION_MS}ms cubic-bezier(0.58, 0.02, 0.82, 0.42) both`
@@ -122,6 +132,7 @@ export const Deck = styled.aside`
   }
 
   @media (min-width: 768px) {
+    grid-template-rows: ${({ $itemFocused }) => $itemFocused ? 'auto minmax(0, 1fr)' : 'auto auto minmax(0, 1fr)'};
     --quick-peek-expanded-height: auto;
     --quick-peek-collapsed-height: auto;
     --quick-peek-collapsed-shift: 0px;
@@ -131,9 +142,15 @@ export const Deck = styled.aside`
     left: auto;
     width: min(420px, 38vw);
     height: auto;
+    padding-bottom: 0;
     min-height: 0;
     border-bottom: 1px solid ${COLORS.line};
     border-radius: var(--dw-radius);
+    box-shadow:
+      -18px 12px 48px rgba(0, 0, 0, 0.55),
+      0 24px 64px rgba(0, 0, 0, 0.46),
+      inset 0 1px 0 rgba(226, 245, 255, 0.25),
+      inset 1px 0 0 rgba(226, 245, 255, 0.12);
     transform: none;
     animation: ${settle} 240ms cubic-bezier(0.22, 1, 0.36, 1);
     pointer-events: auto;
@@ -152,7 +169,7 @@ export const Deck = styled.aside`
 `;
 
 export const DeckCap = styled.header`
-  border-left: 4px solid ${COLORS.accent};
+  order: 0;
   position: relative;
   isolation: isolate;
   z-index: 8;
@@ -160,7 +177,9 @@ export const DeckCap = styled.header`
   padding: ${({ $expanded }) =>
     $expanded ? '0.55rem 0.18rem 0.42rem' : '0 0.18rem'};
   border-bottom: 1px solid ${COLORS.line};
-  background: var(--dw-surface);
+  border-radius: var(--dw-radius) var(--dw-radius) 0 0;
+  background: linear-gradient(180deg, rgba(223, 243, 255, 0.08), rgba(12, 21, 32, 0.48));
+  box-shadow: inset 0 1px 0 rgba(226, 245, 255, 0.16), 0 5px 12px rgba(0, 0, 0, 0.16);
   touch-action: none;
   user-select: none;
 
@@ -366,62 +385,35 @@ export const CollapseEdgeHandle = styled.span`
 `;
 
 export const CapIconButton = styled.button`
-  position: relative;
-  isolation: isolate;
   display: grid;
   place-items: center;
   width: 40px;
   height: 44px;
   padding: 0;
-  overflow: hidden;
-  border: 1px solid rgba(${COLORS.accentRgb}, 0.42);
-  border-radius: var(--dw-radius);
-  color: ${COLORS.accent};
-  background: var(--dw-surface);
-  font-size: 1.9rem;
-  font-weight: 800;
-  line-height: 1;
+  border: 1px solid transparent;
+  border-radius: var(--dw-radius-sm);
+  color: ${COLORS.dim};
+  background: transparent;
   cursor: pointer;
-  opacity: 0.78;
-  box-shadow: none;
-  text-shadow: none;
-  transition:
-    color 160ms ease,
-    background 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
+  transition: color 160ms ease, background 160ms ease;
 
-  &::after {
-    position: absolute;
-    z-index: -1;
-    inset: 1px;
-    content: '';
-    border-radius: 8px;
-    background: var(--dw-surface);
-    pointer-events: none;
+  svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
-
-  &:hover,
-  &:focus-visible {
+  &:hover:not(:disabled) {
     color: ${COLORS.text};
-    border-color: rgba(${COLORS.accentRgb}, 0.92);
-    background: var(--dw-surface);
-    outline: none;
-    box-shadow: none;
-    transform: translateY(-1px);
+    background: rgba(223, 243, 255, 0.06);
   }
-
-  &:disabled {
-    opacity: 0.18;
-    cursor: default;
-    box-shadow: none;
-    text-shadow: none;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
+  &:active:not(:disabled) { background: rgba(0, 0, 0, 0.16); }
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 1px; }
+  &:disabled { opacity: 0.25; cursor: default; }
+  @media (prefers-reduced-motion: reduce) { transition: none; }
 `;
 
 export const CapIdentityStack = styled.div`
@@ -440,14 +432,6 @@ export const BoxIdentity = styled.div`
   transition:
     opacity 180ms ease,
     transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
-
-  @media (max-width: 767px) {
-    display: ${({ $expanded }) => ($expanded ? 'grid' : 'none')};
-    visibility: ${({ $expanded }) => ($expanded ? 'visible' : 'hidden')};
-    opacity: ${({ $expanded }) => ($expanded ? 1 : 0)};
-    transform: translateY(${({ $expanded }) => ($expanded ? '0' : '-4px')});
-    pointer-events: ${({ $expanded }) => ($expanded ? 'auto' : 'none')};
-  }
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
@@ -566,6 +550,7 @@ export const PositionReadout = styled.span`
 `;
 
 export const DeckContent = styled.div`
+  order: 2;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: ${({ $expanded, $itemFocused, $photoFocused }) =>
@@ -575,12 +560,8 @@ export const DeckContent = styled.div`
         ? 'hidden'
         : 'auto'};
   overscroll-behavior: contain;
-  padding: ${({ $itemFocused, $photoFocused, $expanded }) =>
-    $photoFocused
-      ? `0.45rem 0.6rem ${$expanded ? '4.65rem' : '4.25rem'}`
-      : $itemFocused
-      ? '0.45rem 0.72rem 0.25rem'
-      : `0.55rem 0.78rem ${$expanded ? '5.2rem' : 'calc(5.2rem + var(--quick-peek-collapsed-shift))'}`};
+  padding: ${({ $itemFocused, $photoFocused }) =>
+    $photoFocused ? '0.45rem 0.6rem 0.4rem' : $itemFocused ? '0.45rem 0.72rem 0.25rem' : '0.55rem 0.78rem 0.4rem'};
   ${({ $itemFocused, $photoFocused }) =>
     ($itemFocused || $photoFocused) &&
     css`
@@ -1916,81 +1897,6 @@ export const NestedBoxList = styled.ul`
   }
 `;
 
-export const BoxFooterActions = styled.div`
-  position: absolute;
-  right: 0.72rem;
-  bottom: max(0.52rem, env(safe-area-inset-bottom));
-  left: 0.6rem;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) ${({ $withNotes }) => ($withNotes ? '36px' : '1fr')};
-  gap: 0.28rem;
-  transform: translateY(
-    ${({ $expanded }) =>
-      $expanded ? '0' : 'calc(-1 * var(--quick-peek-collapsed-shift))'}
-  );
-  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
-
-  @media (min-width: 768px) {
-    transform: none;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-`;
-
-export const OpenFullBoxButton = styled.button`
-  position: relative;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: var(--dw-control-height);
-  padding: 0 0.72rem;
-  border: 1px solid rgba(${COLORS.secondaryRgb}, 0.58);
-  border-radius: 7px;
-  color: ${COLORS.text};
-  background: var(--dw-surface);
-  font-size: 0.75rem;
-  font-weight: 900;
-  letter-spacing: normal;
-  text-transform: none;
-  cursor: pointer;
-  box-shadow: none;
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease;
-
-  &:hover,
-  &:focus-visible {
-    border-color: ${COLORS.accent};
-    outline: none;
-    box-shadow: none;
-  }
-`;
-
-export const BoxNotesFooterButton = styled.button`
-  display: grid;
-  place-items: center;
-  width: 36px;
-  min-height: var(--dw-control-height);
-  padding: 0;
-  border: 1px solid rgba(${COLORS.accentRgb}, 0.62);
-  border-radius: 7px;
-  color: ${COLORS.text};
-  background: var(--dw-surface);
-  font: 900 0.75rem/1 var(--dw-font-ui);
-  cursor: pointer;
-  box-shadow: none;
-
-  &:hover,
-  &:focus-visible {
-    border-color: ${COLORS.accent};
-    outline: none;
-    box-shadow: none;
-  }
-`;
-
 export const OpenFullBoxIcon = styled.svg`
   width: 15px;
   height: 15px;
@@ -2022,4 +1928,24 @@ export const ActionGroupButtons = styled.div`
     &:focus-visible { outline: 1px solid ${COLORS.accent}; outline-offset: -1px; }
   }
   @media (pointer: coarse) { button { min-height: 40px; } }
+`;
+
+export const ControlCenterNotes = styled.section`
+  padding: 0.6rem 0.2rem 1rem;
+  min-width: 0;
+`;
+export const NotesEyebrow = styled.div`
+  color: var(--box-primary, var(--dw-cyan));
+  font: 600 0.75rem/1.4 var(--dw-font-ui);
+`;
+export const NotesTitle = styled.h3`
+  margin: 0.35rem 0 1rem;
+  color: var(--dw-text);
+  font: 650 1rem/1.3 var(--dw-font-ui);
+`;
+export const NotesText = styled.div`
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--dw-text-secondary);
+  font: 400 0.85rem/1.65 var(--dw-font-ui);
 `;

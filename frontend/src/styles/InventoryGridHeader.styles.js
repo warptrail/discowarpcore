@@ -40,6 +40,22 @@ export const HeaderShell = styled.section`
   & :is(button, a, input, select):focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
 `;
 
+// One coordinated color family per page load; rerenders keep the artwork stable.
+const railBaseHue = Math.floor(Math.random() * 360);
+const railColor = (offset, saturation = 78, lightness = 68) =>
+  `hsl(${(railBaseHue + offset) % 360} ${saturation}% ${lightness}%)`;
+const railGradients = [
+  `linear-gradient(105deg, ${railColor(0)}, ${railColor(55, 85, 65)} 32%, ${railColor(135)} 68%, ${railColor(210)})`,
+  `linear-gradient(115deg, ${railColor(150)}, ${railColor(230, 85, 66)} 55%, ${railColor(290)})`,
+  `linear-gradient(125deg, ${railColor(285)}, ${railColor(335, 85, 70)} 50%, ${railColor(35)})`,
+];
+
+const consoleRailHue = keyframes`
+  0%, 100% { filter: hue-rotate(0deg); }
+  33% { filter: hue-rotate(18deg); }
+  66% { filter: hue-rotate(-12deg); }
+`;
+
 export const ControlConsole = styled.div`
   position: relative;
   display: grid;
@@ -51,11 +67,11 @@ export const ControlConsole = styled.div`
   width: 100%;
   min-width: 0;
   margin: 0;
-  padding: 0.28rem 0.55rem 0.25rem 0.75rem;
+  padding: 0.28rem 0.55rem 0.65rem 0.55rem;
   overflow: visible;
   border: 1px solid rgba(104, 154, 186, 0.32);
   border-radius: var(--dw-radius);
-  background: var(--dw-surface-raised);
+  background: color-mix(in srgb, var(--dw-surface-raised) 92%, var(--dw-amber) 8%);
   box-shadow: none;
 
   @media (min-width: 660px) {
@@ -66,23 +82,37 @@ export const ControlConsole = styled.div`
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     gap: 0.18rem 0.36rem;
-    padding: 0.3rem 0.55rem 0.28rem 0.75rem;
+    padding: 0.3rem 0.55rem 0.68rem 0.55rem;
   }
 
   @media (max-width: 560px) {
     gap: 0.12rem 0.3rem;
-    padding: 0.25rem 0 0.24rem;
+    padding: 0.25rem 0.55rem 0.64rem;
   }
 
   @media (max-width: 700px) {
     border-inline: 0;
     border-bottom: 0;
     border-radius: 0;
-    background: var(--dw-surface);
     box-shadow: none;
   }
-  border-left: 4px solid var(--dw-amber);
-  @media (max-width: 700px) { border-left: 4px solid var(--dw-amber); padding-left: 0.4rem; }
+  border-left: 0;
+  &::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0;
+    height: 6px;
+    border-bottom-left-radius: 10px;
+    animation: ${consoleRailHue} 28s ease-in-out infinite;
+    background-image: ${railGradients.join(', ')};
+    background-size: calc(100% - 88px) 100%, 52px 100%, 24px 100%;
+    background-position: left center, right 30px center, right center;
+    background-repeat: no-repeat;
+    pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &::after { animation: none; filter: none; }
+  }
 `;
 
 const finderCollapse = keyframes`
@@ -152,6 +182,7 @@ export const TitleActions = styled.div`
 
   @media (min-width: 660px) {
     position: static;
+    justify-self: end;
     display: flex;
     align-items: stretch;
     gap: 0.18rem;
@@ -472,7 +503,7 @@ export const UtilityRow = styled.div`
   z-index: 20;
   grid-area: utility;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: stretch;
   gap: 0.36rem;
   width: 100%;
@@ -481,7 +512,7 @@ export const UtilityRow = styled.div`
 
   @media (min-width: 660px) {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr);
     align-items: stretch;
     gap: 0.38rem;
     width: 100%;
@@ -517,177 +548,75 @@ export const MapStatus = styled.span`
   }
 `;
 
-export const MobileActionsButton = styled.button`
+const consoleControlSurface = css`
+  border: 1px solid var(--dw-border);
+  border-radius: var(--dw-radius-sm);
+  background: linear-gradient(180deg, rgba(223, 243, 255, 0.035), transparent), var(--dw-surface-raised);
+  box-shadow: inset 0 1px 0 rgba(223, 243, 255, 0.04);
+`;
+
+const consoleControl = css`
   ${controlStyles}
-  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.34rem;
-  min-width: 5.35rem;
   min-height: var(--dw-control-height);
-  padding: 0 0.58rem;
-  border: 1px solid ${toneAlpha(LCARS.root, '62')};
-  border-radius: 7px;
-  color: ${({ $active }) =>
-    $active ? toneAlpha(LCARS.text, 'ff') : 'rgba(230, 237, 243, 0.58)'};
-  background: ${({ $active }) =>
-    $active
-      ? 'var(--dw-surface-raised)'
-      : 'rgba(4, 9, 14, 0.82)'};
-  box-shadow: none;
-  font: 900 0.75rem/1 var(--dw-font-ui);
-  letter-spacing: normal;
-  text-transform: none;
-  text-shadow: none;
+  padding: 0 0.55rem;
+  color: ${({ $active }) => $active ? 'var(--dw-text)' : 'var(--dw-text-secondary)'};
+  background: ${({ $active }) => $active ? 'rgba(113, 210, 255, 0.1)' : 'transparent'};
+  font: 650 0.75rem/1 var(--dw-font-ui);
   cursor: pointer;
-  transition:
-    color 140ms ease,
-    background 140ms ease,
-    box-shadow 140ms ease,
-    text-shadow 140ms ease,
-    transform 120ms ease;
-
-  span {
-    color: ${({ $active }) =>
-      $active ? toneAlpha(LCARS.text, 'f0') : toneAlpha(LCARS.teal, 'c8')};
-    font-size: 0.75rem;
-    line-height: 1;
-  }
-
-  &:hover {
-    color: ${toneAlpha(LCARS.text, 'f4')};
-    background: rgba(76, 198, 193, 0.12);
-  }
-
-  &:focus-visible {
-    outline: 2px solid ${toneAlpha(LCARS.root, 'b0')};
-    outline-offset: -3px;
-  }
-
-  @media (min-width: 660px) {
-    display: none;
-  }
-  border-left: 3px solid ${({ $active }) => $active ? 'var(--dw-cyan)' : 'transparent'};
-  color: var(--dw-text);
+  transition: background 160ms ease, color 160ms ease;
+  &:hover { color: var(--dw-text); background-color: rgba(113, 210, 255, 0.08); }
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: -3px; }
   @media (pointer: coarse) { min-height: 44px; }
+  @media (prefers-reduced-motion: reduce) { transition: none; }
+`;
+
+export const MobileActionsButton = styled.button`
+  ${consoleControlSurface}
+  ${consoleControl}
+  gap: 0.35rem;
+  min-width: 5.1rem;
+  justify-self: end;
+  background: ${({ $active }) => $active
+    ? 'linear-gradient(180deg, rgba(113, 210, 255, 0.1), rgba(113, 210, 255, 0.05)), var(--dw-surface-raised)'
+    : 'linear-gradient(180deg, rgba(223, 243, 255, 0.035), transparent), var(--dw-surface-raised)'};
+  span { color: var(--dw-text-secondary); font-weight: 500; }
+  @media (min-width: 660px) { display: none; }
 `;
 
 export const ViewModeToggle = styled.div`
-  position: relative;
+  ${consoleControlSurface}
   display: inline-grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0;
-  width: 100%;
+  min-width: 0;
+  width: auto;
   margin: 0;
   padding: 0;
-  border: 1px solid ${toneAlpha(LCARS.root, '62')};
-  border-radius: 7px;
-  background: var(--dw-surface-raised);
-  box-shadow: none;
   overflow: hidden;
 
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 3px;
-    z-index: 2;
-    background: rgba(76, 198, 193, 0.72);
-    pointer-events: none;
-  }
-
-  @media (max-width: 560px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    border-color: ${toneAlpha(LCARS.root, '46')};
-    box-shadow: none;
-
-    &::before {
-      display: none;
-    }
-  }
-
-  @media (min-width: 660px) {
-    align-self: center;
-    box-sizing: border-box;
-    height: 34px;
-    width: 15rem;
-  }
-
-  @media (min-width: 800px) {
-    width: 16rem;
-  }
-  height: auto;
-  min-height: var(--dw-control-height);
-  @media (min-width: 660px) { height: auto; }
 `;
 
 export const ViewModeButton = styled.button`
-  ${controlStyles}
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--dw-control-height);
-  min-width: 70px;
+  ${consoleControl}
+  width: 42px;
+  min-width: 42px;
+  padding: 0;
   border: 0;
-  border-right: 1px solid rgba(127, 215, 255, 0.26);
   border-radius: 0;
-  padding: 0 0.42rem;
-  color: ${({ $active }) =>
-    $active ? toneAlpha(LCARS.text, 'ff') : 'rgba(230, 237, 243, 0.58)'};
-  background: ${({ $active }) =>
-    $active
-      ? 'var(--dw-surface-raised)'
-      : 'transparent'};
-  box-shadow: none;
-  font-family: var(--dw-font-ui);
-  font-size: 0.75rem;
-  font-weight: 650;
-  letter-spacing: normal;
-  text-transform: none;
-  text-shadow: none;
-  cursor: pointer;
-  transition:
-    color 140ms ease,
-    text-shadow 140ms ease,
-    transform 120ms ease;
-
-  &:hover {
-    color: ${toneAlpha(LCARS.text, 'f2')};
-    background: rgba(76, 198, 193, 0.12);
+  svg {
+    width: 19px;
+    height: 19px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
-
-  &:last-child {
-    border-right: 0;
-  }
-
-  &:focus-visible {
-    outline: 2px solid ${toneAlpha(LCARS.root, 'b0')};
-    outline-offset: -3px;
-  }
-
-  @media (max-width: 560px) {
-    min-width: 0;
-    min-height: var(--dw-control-height);
-    padding-inline: 0.28rem;
-    font-size: 0.75rem;
-    letter-spacing: normal;
-  }
-
-  @media (min-width: 660px) {
-    min-width: clamp(3.25rem, 5.4vw, 4.2rem);
-    min-height: var(--dw-control-height);
-    padding-inline: 0.28rem;
-    font-size: 0.75rem;
-    letter-spacing: normal;
-  }
-  border-left: 3px solid ${({ $active }) => $active ? 'var(--dw-cyan)' : 'transparent'};
-  color: var(--dw-text);
-  @media (pointer: coarse) { min-height: 44px; }
+  &:first-child { border-right: 1px solid var(--dw-border); }
+  @media (pointer: coarse) { width: 44px; min-width: 44px; }
 `;
-
 
 export const OrphanToggleButton = styled.button`
   ${controlStyles}

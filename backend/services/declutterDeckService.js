@@ -315,7 +315,7 @@ async function hydrateCandidates(candidates, player) {
           .lean(),
         Box.find({ items: { $in: itemIds } })
           .select('_id box_id label isComplexBox compartments itemCompartments location locationId items')
-          .populate('locationId', 'room vicinity specifics')
+          .populate('locationId', 'room vicinity specifics exactSpot')
           .lean(),
       ])
     : [[], []];

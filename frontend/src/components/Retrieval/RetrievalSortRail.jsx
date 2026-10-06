@@ -59,6 +59,22 @@ export default function RetrievalSortRail({
 
   return (
     <S.InlineSortRail role="group" aria-label="Sort retrieval results">
+      {baseOptions.length <= 4 ? (
+        <S.SortFieldButtons role="group" aria-label="Sort field" $count={baseOptions.length}>
+          {baseOptions.map((option) => (
+            <S.SortFieldButton
+              key={option.key}
+              type="button"
+              aria-pressed={selectedBaseKey === option.key}
+              aria-label={`Sort by ${option.label}`}
+              title={option.label}
+              onClick={() => selectBaseSort(option.key)}
+            >
+              {{ location: 'Location', box: 'Box ID', name: 'Name', tag: 'Tags' }[option.key] || option.label}
+            </S.SortFieldButton>
+          ))}
+        </S.SortFieldButtons>
+      ) : (
       <S.InlineSortSelect>
         <FilterCombobox
           id={id}
@@ -73,6 +89,7 @@ export default function RetrievalSortRail({
           variant="sort"
         />
       </S.InlineSortSelect>
+      )}
 
       <S.InlineSortDirectionButton
         type="button"

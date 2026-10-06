@@ -930,7 +930,7 @@ async function buildBoxJsonExport(
   }
 
   const root = await Box.findById(boxMongoId)
-    .populate('locationId', 'room vicinity specifics')
+    .populate('locationId', 'room vicinity specifics exactSpot')
     .select('_id box_id label name isComplexBox compartments itemCompartments description notes location locationId tags parentBox items')
     .lean();
 
@@ -939,7 +939,7 @@ async function buildBoxJsonExport(
   }
 
   const directChildBoxesDocs = await Box.find({ parentBox: root._id })
-    .populate('locationId', 'room vicinity specifics')
+    .populate('locationId', 'room vicinity specifics exactSpot')
     .select('_id box_id label name isComplexBox compartments itemCompartments description notes location locationId tags')
     .sort({ box_id: 1, _id: 1 })
     .lean();

@@ -395,14 +395,14 @@ export const LocationStructureGrid = styled.div`
   gap: 6px;
   margin-top: 8px;
 
-  & > :first-child {
+  & > :first-child, & > :last-child {
     grid-column: 1 / -1;
   }
 
   @media (max-width: 600px) {
     grid-template-columns: 1fr;
 
-    & > :first-child {
+    & > :first-child, & > :last-child {
       grid-column: auto;
     }
   }

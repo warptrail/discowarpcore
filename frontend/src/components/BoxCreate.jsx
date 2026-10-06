@@ -242,7 +242,7 @@ function BoxCreate({
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
   const [locationId, setLocationId] = useState('');
-  const [locationDraft, setLocationDraft] = useState({ room: '', vicinity: '', specifics: '' });
+  const [locationDraft, setLocationDraft] = useState({ room: '', vicinity: '', specifics: '', exactSpot: '' });
   const [tags, setTags] = useState([]);
   const [declutterPurpose, setDeclutterPurpose] = useState('standard');
   const [declutterIsDefault, setDeclutterIsDefault] = useState(false);
@@ -274,6 +274,7 @@ function BoxCreate({
       room: String(location?.room || '').trim().replace(/\s+/g, ' '),
       vicinity: String(location?.vicinity || '').trim().replace(/\s+/g, ' '),
       specifics: String(location?.specifics || '').trim().replace(/\s+/g, ' '),
+      exactSpot: String(location?.exactSpot || '').trim().replace(/\s+/g, ' '),
     };
     if (!normalized.room) {
       setLocationError('Room is required');

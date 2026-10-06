@@ -318,7 +318,7 @@ async function buildDeclutterItemSummaries(rawItems = []) {
 
   const boxes = await Box.find()
     .select('_id box_id label isComplexBox compartments itemCompartments description items parentBox location locationId')
-    .populate('locationId', 'room vicinity specifics')
+    .populate('locationId', 'room vicinity specifics exactSpot')
     .lean();
   const maps = buildBoxMaps(boxes);
   const itemToLeafBoxId = buildItemToLeafBoxId(boxes);

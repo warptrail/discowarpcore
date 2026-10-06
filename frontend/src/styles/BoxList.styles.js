@@ -170,6 +170,11 @@ const RailFront = styled.div`
   z-index: 1;
 `;
 
+const selectedBoxWisp = keyframes`
+  0%, 100% { transform: translate(-6%, 3%) rotate(-12deg) scale(0.95); }
+  50% { transform: translate(6%, -3%) rotate(12deg) scale(1.08); }
+`;
+
 const BoxCard = styled.button`
   ${panelBase};
   position: relative;
@@ -187,7 +192,9 @@ const BoxCard = styled.button`
   animation: ${breatheIn} 140ms ease both;
   border-color: ${boxToneAlpha(0.25)};
   border-radius: var(--dw-radius-sm);
-  background: var(--dw-surface);
+  background-color: var(--dw-surface);
+  background-image:
+    linear-gradient(110deg, ${boxToneAlpha(0.19)}, ${boxToneAlpha(0.04)} 65%, rgba(var(--box-secondary-rgb, 103, 217, 211), 0.12));
   transition:
     transform 130ms ease,
     border-color 160ms ease,
@@ -230,10 +237,13 @@ const BoxCard = styled.button`
     content: '';
     position: absolute;
     z-index: 0;
-    inset: -115% -30%;
+    inset: -80% -15%;
     pointer-events: none;
-    background: var(--dw-surface);
-    filter: blur(18px);
+    background:
+      radial-gradient(ellipse at 25% 40%, ${boxToneAlpha(0.5)}, transparent 48%),
+      radial-gradient(ellipse at 75% 60%, rgba(var(--box-secondary-rgb, 103, 217, 211), 0.38), transparent 50%);
+    filter: blur(22px);
+    transition: opacity 220ms ease;
     opacity: 0;
     transform-origin: center;
   }
@@ -241,7 +251,7 @@ const BoxCard = styled.button`
   &:hover {
     transform: translateY(-1px);
     border-color: ${boxToneAlpha(0.48)};
-    background: var(--dw-surface);
+    background-color: var(--dw-surface);
 
     ${({ $isSystem }) =>
       $isSystem &&
@@ -260,8 +270,9 @@ const BoxCard = styled.button`
     $selected &&
     css`
       border-color: ${boxTone};
-      background: ${LCARS.panelAlt};
-      box-shadow: none;
+      background-color: ${LCARS.panelAlt};
+      background-image: linear-gradient(110deg, ${boxToneAlpha(0.3)}, ${boxToneAlpha(0.1)} 65%, rgba(var(--box-secondary-rgb, 103, 217, 211), 0.22));
+      box-shadow: inset 0 0 18px ${boxToneAlpha(0.12)}, 0 0 12px ${boxToneAlpha(0.18)};
 
       &::before {
         background: ${boxTone};
@@ -269,9 +280,15 @@ const BoxCard = styled.button`
       }
 
       &::after {
-        display: none;
+        opacity: 0.65;
+        animation: ${selectedBoxWisp} 18s ease-in-out infinite;
       }
     `}
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transition: none;
+    &::after { animation: none; transition: none; }
+  }
 `;
 
 const BoxHeader = styled.div`
@@ -1051,32 +1068,41 @@ const OrphanedAttentionLink = styled(Link)`
   }
 `;
 
+const adriftWispOrbit = keyframes`
+  0% { transform: translate(-4%, 3%) rotate(0deg) scale(0.92); }
+  50% { transform: translate(5%, -5%) rotate(180deg) scale(1.08); }
+  100% { transform: translate(-4%, 3%) rotate(360deg) scale(0.92); }
+`;
+
 const OrphanedSignal = styled(BoxImageFrame)`
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: 0.24rem;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   border-right: 1px solid rgba(113, 210, 255, 0.15);
   background: var(--dw-surface);
 
-  span {
-    color: rgba(164, 209, 255, 0.66);
-    font: 600 0.75rem/1 var(--dw-font-ui);
-    letter-spacing: normal;
+  &::before, &::after {
+    content: '';
+    position: absolute;
+    inset: 12%;
+    border-radius: 42% 58% 64% 36%;
+    background:
+      radial-gradient(ellipse at 28% 35%, rgba(113, 210, 255, 0.75), transparent 55%),
+      radial-gradient(ellipse at 70% 62%, rgba(167, 150, 255, 0.65), transparent 58%),
+      radial-gradient(ellipse at 40% 75%, rgba(103, 217, 211, 0.5), transparent 50%);
+    filter: blur(9px);
+    animation: ${adriftWispOrbit} 24s linear infinite;
+    pointer-events: none;
   }
-
-  strong {
-    color: #d8faff;
-    font-size: 1.32rem;
-    line-height: 1;
-    text-shadow: none;
-    animation: none;
+  &::after {
+    inset: 23% 15%;
+    opacity: 0.65;
+    filter: blur(5px);
+    animation-duration: 32s;
+    animation-direction: reverse;
   }
-
   @media (prefers-reduced-motion: reduce) {
-    strong {
-      animation: none;
-    }
+    &::before, &::after { animation: none; }
   }
 `;
 

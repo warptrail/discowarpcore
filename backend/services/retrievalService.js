@@ -1,5 +1,7 @@
 const Item = require('../models/Item');
 const Box = require('../models/Box');
+const Location = require('../models/Location');
+const { formatLocationName } = require('../utils/locationName');
 const { itemPlacement, getCompartments } = require('../utils/boxCompartments');
 const MediaState = require('../models/MediaState');
 const path = require('path');
@@ -346,7 +348,7 @@ function getBoxContext(item, maps, itemToLeafBoxId) {
   while (locationCursor) {
     const node = maps.byId.get(locationCursor);
     if (!node) break;
-    const locationValue = firstNonEmpty(node?.location);
+    const locationValue = firstNonEmpty(formatLocationName(node?.locationId), node?.location);
     if (locationValue) {
       resolvedLocation = locationValue;
       break;
@@ -354,6 +356,7 @@ function getBoxContext(item, maps, itemToLeafBoxId) {
     locationCursor = firstNonEmpty(maps.parentOf.get(locationCursor));
   }
   const locationLabel = firstNonEmpty(
+    formatLocationName(leafBox?.locationId),
     leafBox?.location,
     resolvedLocation,
     item?.location,
@@ -731,16 +734,19 @@ function buildRetrievalBoxes(boxDocs = [], itemDocs = []) {
     childCountByParentId.set(parentId, current + 1);
   }
 
-  const resolveEffectiveLocationLabel = (leafBoxId) => {
+  const resolveEffectiveLocation = (leafBoxId) => {
     let cursor = firstNonEmpty(leafBoxId);
-    while (cursor) {
+    const visited = new Set();
+    let legacyLabel = '';
+    while (cursor && !visited.has(cursor)) {
+      visited.add(cursor);
       const node = maps.byId.get(cursor);
       if (!node) break;
-      const locationValue = firstNonEmpty(node?.location);
-      if (locationValue) return locationValue;
+      if (node.locationId?.room) return node.locationId;
+      legacyLabel = legacyLabel || firstNonEmpty(node.location);
       cursor = firstNonEmpty(maps.parentOf.get(cursor));
     }
-    return '';
+    return legacyLabel ? { legacyLabel } : null;
   };
 
   return safeBoxes
@@ -757,9 +763,13 @@ function buildRetrievalBoxes(boxDocs = [], itemDocs = []) {
       );
       const description = firstNonEmpty(box?.description);
       const notes = firstNonEmpty(box?.notes);
+      const location = resolveEffectiveLocation(mongoId);
+      const roomLabel = firstNonEmpty(location?.room);
+      const roomKey = normalizeFacetKey(roomLabel);
       const locationLabel = firstNonEmpty(
+        location && formatLocationName(location),
+        location?.legacyLabel,
         box?.location,
-        resolveEffectiveLocationLabel(mongoId),
         UNKNOWN_LOCATION_LABEL
       );
       const locationKey = normalizeFacetKey(locationLabel);
@@ -794,12 +804,16 @@ function buildRetrievalBoxes(boxDocs = [], itemDocs = []) {
         id: mongoId,
         boxId,
         boxLabel,
+        image: box.image,
+        imagePath: box.imagePath,
         isComplexBox: Boolean(box.isComplexBox),
         compartments: getCompartments(box),
         description,
         notes,
         locationLabel,
         locationKey,
+        roomKey,
+        roomLabel,
         boxPath,
         tags,
         itemTags,
@@ -821,11 +835,13 @@ function buildRetrievalBoxes(boxDocs = [], itemDocs = []) {
     });
 }
 
-function collectBoxFilterOptions(boxes) {
+function collectBoxFilterOptions(boxes, locations = []) {
   const locationLabelByKey = new Map();
+  const roomLabelByKey = new Map(locations.filter((location) => location?.room).map((location) => [normalizeFacetKey(location.room), location.room]));
   const tagLabelByKey = new Map();
 
   for (const box of boxes) {
+    if (box.roomKey) roomLabelByKey.set(box.roomKey, box.roomLabel);
     if (box.locationKey && !locationLabelByKey.has(box.locationKey)) {
       locationLabelByKey.set(box.locationKey, firstNonEmpty(box.locationLabel, UNKNOWN_LOCATION_LABEL));
     }
@@ -837,6 +853,7 @@ function collectBoxFilterOptions(boxes) {
   }
 
   return {
+    rooms: mapToSortedOptions(roomLabelByKey),
     locations: mapToSortedOptions(locationLabelByKey),
     tags: mapToSortedOptions(tagLabelByKey),
   };
@@ -852,6 +869,7 @@ function filterRetrievalBoxes(
     query,
     boxIdPrefix = '',
     locationFilters = [],
+    roomFilters = [],
     tagFilters = [],
     tagOperator = 'or',
   }
@@ -862,6 +880,7 @@ function filterRetrievalBoxes(
   const normalizedBoxIdPrefix = normalizeBoxIdPrefix(boxIdPrefix);
 
   return items.filter((item) => {
+    if (roomFilters.length && !roomFilters.includes(item.roomKey)) return false;
     if (locationFilters.length && !locationFilters.includes(item.locationKey)) {
       return false;
     }
@@ -923,6 +942,8 @@ function toClientBox(item) {
     id: item.id,
     boxId: item.boxId,
     boxLabel: item.boxLabel,
+    image: item.image,
+    imagePath: item.imagePath,
     isComplexBox: Boolean(item.isComplexBox),
     compartments: item.compartments || [],
     description: item.description,
@@ -955,7 +976,8 @@ async function getRetrievalItemsPage(params = {}) {
         '_id name description notes maintenanceNotes category tags location image imagePath primaryOwnerName keepPriority orphanedAt isConsumable usageHistory checkHistory maintenanceHistory'
       )
       .lean(),
-    Box.find().select('_id box_id label isComplexBox compartments itemCompartments description notes location parentBox items').lean(),
+    Box.find().select('_id box_id label isComplexBox compartments itemCompartments description notes location locationId parentBox items')
+      .populate('locationId', 'room vicinity specifics exactSpot').lean(),
   ]);
   const itemDocs = await attachMediaStateSummariesForRetrieval(rawItemDocs);
 
@@ -989,6 +1011,7 @@ async function getRetrievalItemsPage(params = {}) {
 async function getRetrievalBoxesPage(params = {}) {
   const query = toTrimmed(params.q);
   const boxIdPrefix = normalizeBoxIdPrefix(params.boxPrefix);
+  const roomFilters = normalizeFilterValues(params.room);
   const locationFilters = normalizeFilterValues(params.location);
   const tagFilters = normalizeFilterValues(params.tag);
   const tagOperator = String(params.tagOperator || '').trim().toLowerCase() === 'and'
@@ -998,13 +1021,15 @@ async function getRetrievalBoxesPage(params = {}) {
   const limit = parseLimit(params.limit);
   const offset = parseOffset(params.offset);
 
-  const [boxDocs, itemDocs] = await Promise.all([
+  const [boxDocs, itemDocs, locationDocs] = await Promise.all([
     Box.find()
-      .select('_id box_id label isComplexBox compartments itemCompartments name isComplexBox description notes tags location parentBox items')
+      .select('_id box_id label isComplexBox compartments itemCompartments name isComplexBox description notes tags image imagePath location locationId parentBox items')
+      .populate('locationId', 'room vicinity specifics exactSpot')
       .lean(),
     Item.find(ACTIVE_ITEM_FILTER)
       .select('_id quantity notes maintenanceNotes valueCents tags')
       .lean(),
+    Location.find().select('room').lean(),
   ]);
 
   const retrievalBoxes = buildRetrievalBoxes(boxDocs, itemDocs);
@@ -1012,6 +1037,7 @@ async function getRetrievalBoxesPage(params = {}) {
     query,
     boxIdPrefix,
     locationFilters,
+    roomFilters,
     tagFilters,
     tagOperator,
   });
@@ -1034,7 +1060,7 @@ async function getRetrievalBoxesPage(params = {}) {
     sort,
     sortOptions: RETRIEVAL_BOX_SORT_OPTIONS,
     hasMore: offset + pagedBoxes.length < total,
-    filters: collectBoxFilterOptions(retrievalBoxes),
+    filters: collectBoxFilterOptions(retrievalBoxes, locationDocs),
   };
 }
 

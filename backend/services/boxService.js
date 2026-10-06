@@ -159,7 +159,7 @@ async function buildLocationNameMap(nodes = []) {
   const ids = collectLocationIds(nodes);
   if (!ids.length) return new Map();
   const locations = await Location.find({ _id: { $in: ids } })
-    .select('_id room vicinity specifics')
+    .select('_id room vicinity specifics exactSpot')
     .lean();
   return new Map(locations.map((loc) => [String(loc._id), formatLocationName(loc)]));
 }
@@ -181,7 +181,7 @@ async function findNearestAncestorLocation(box) {
   while (parentId) {
     const parent = await Box.findById(parentId)
       .select('_id parentBox location locationId')
-      .populate('locationId', 'room vicinity specifics')
+      .populate('locationId', 'room vicinity specifics exactSpot')
       .lean();
     if (!parent) break;
     const location = formatLocationName(parent?.locationId) || '';
@@ -341,7 +341,7 @@ function filterBoxTreeNode(node, { normalizedQuery = '' } = {}) {
 }
 
 async function getBoxByMongoId(id) {
-  const box = await Box.findById(id).populate('locationId', 'room vicinity specifics').lean();
+  const box = await Box.findById(id).populate('locationId', 'room vicinity specifics exactSpot').lean();
   if (!box) return null;
   return {
     ...box,
@@ -362,11 +362,11 @@ async function getBoxByShortId(shortId) {
   const box =
     (await Box.findOne({ box_id: raw })
       .populate({ path: 'items', match: ACTIVE_ITEM_FILTER })
-      .populate('locationId', 'room vicinity specifics')
+      .populate('locationId', 'room vicinity specifics exactSpot')
       .lean()) ||
     (await Box.findOne({ box_id: normalized })
       .populate({ path: 'items', match: ACTIVE_ITEM_FILTER })
-      .populate('locationId', 'room vicinity specifics')
+      .populate('locationId', 'room vicinity specifics exactSpot')
       .lean());
 
   if (!box) return null;
@@ -390,11 +390,11 @@ async function resolveBoxByShortId(shortId) {
   const box =
     (await Box.findOne({ box_id: raw })
       .select('_id box_id label name isComplexBox compartments itemCompartments description notes location locationId imagePath image')
-      .populate('locationId', 'room vicinity specifics')
+      .populate('locationId', 'room vicinity specifics exactSpot')
       .lean()) ||
     (await Box.findOne({ box_id: normalized })
       .select('_id box_id label name isComplexBox compartments itemCompartments description notes location locationId imagePath image')
-      .populate('locationId', 'room vicinity specifics')
+      .populate('locationId', 'room vicinity specifics exactSpot')
       .lean());
 
   if (!box) return null;
@@ -660,7 +660,7 @@ async function getAllBoxes({ q = '', sortBy = '' } = {}) {
       path: 'parentBox',
       select: '_id box_id description', // 👈 Only these fields
     })
-    .populate('locationId', 'room vicinity specifics')
+    .populate('locationId', 'room vicinity specifics exactSpot')
     .populate({ path: 'items', match: ACTIVE_ITEM_FILTER })
     .lean();
   const filtered = boxes
@@ -811,7 +811,7 @@ async function getBoxesByParent(parentId) {
   console.log(filter);
   const boxes = await Box.find(filter)
     .populate('parentBox')
-    .populate('locationId', 'room vicinity specifics')
+    .populate('locationId', 'room vicinity specifics exactSpot')
     .lean();
   return boxes.map((box) => ({
     ...box,

@@ -50,7 +50,7 @@ const KEEP_PRIORITY_FILTER_OPTIONS = [
 ];
 
 const formatLocation = (location) =>
-  [location?.room, location?.vicinity, location?.specifics]
+  [location?.room, location?.vicinity, location?.specifics, location?.exactSpot]
     .map((part) => String(part || '').trim())
     .filter(Boolean)
     .join(' · ');
@@ -442,18 +442,29 @@ export default function InventoryGridHeader({
             <S.ViewModeButton
               type="button"
               $active={viewMode === 'cards'}
+              aria-label="Cards view"
+              title="Cards view"
               aria-pressed={viewMode === 'cards'}
               onClick={() => onViewModeChange?.('cards')}
             >
-              Cards
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <rect x="3.5" y="4" width="7" height="16" rx="1.5" />
+                <rect x="13.5" y="4" width="7" height="16" rx="1.5" />
+                <path d="M3.5 10h7m3 0h7" />
+              </svg>
             </S.ViewModeButton>
             <S.ViewModeButton
               type="button"
               $active={viewMode === 'terminal'}
+              aria-label="Terminal view"
+              title="Terminal view"
               aria-pressed={viewMode === 'terminal'}
               onClick={() => onViewModeChange?.('terminal')}
             >
-              Terminal
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <path d="m7 9 3 3-3 3m6 0h4" />
+              </svg>
             </S.ViewModeButton>
           </S.ViewModeToggle>
 

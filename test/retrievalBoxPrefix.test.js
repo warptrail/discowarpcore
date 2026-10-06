@@ -127,3 +127,17 @@ test('box and item results can sort alphabetically by their first tag', () => {
     ['Tent', 'Mittens'],
   );
 });
+
+test('room filters use structured rooms across vicinity/specifics and inherited boxes', () => {
+  const built = buildRetrievalBoxes([
+    { _id: 'parent', box_id: '001', location: 'stale office', locationId: { room: 'Garage', vicinity: 'North Shelf', specifics: 'Top' } },
+    { _id: 'child', box_id: '002', parentBox: 'parent' },
+    { _id: 'other', box_id: '003', locationId: { room: 'Garage', vicinity: 'Dark Corner' } },
+    { _id: 'office', box_id: '004', locationId: { room: 'Office' } },
+    { _id: 'legacy', box_id: '005', location: 'Garage - unknown legacy detail' },
+  ]);
+  assert.equal(built.find((box) => box.boxId === '002').locationLabel, 'Garage · North Shelf · Top');
+  assert.deepEqual(filterRetrievalBoxes(built, { roomFilters: ['garage'] }).map((box) => box.boxId).sort(), ['001', '002', '003']);
+  assert.deepEqual(filterRetrievalBoxes(built, { roomFilters: ['garage', 'office'], boxIdPrefix: '00' }).map((box) => box.boxId).sort(), ['001', '002', '003', '004']);
+  assert.equal(filterRetrievalBoxes(built, { roomFilters: [] }).length, 5);
+});

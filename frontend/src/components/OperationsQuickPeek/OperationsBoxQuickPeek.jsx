@@ -10,7 +10,7 @@ import QuickPeekItemCarousel from './QuickPeekItemCarousel';
 import QuickPeekItemActionPanel from './QuickPeekItemActionPanel';
 import QuickPeekItemNoteModal from './QuickPeekItemNoteModal';
 import QuickPeekItemList from './QuickPeekItemList';
-import QuickPeekNoteModal from './QuickPeekNoteModal';
+import QuickPeekControlCenter from './QuickPeekControlCenter';
 import useOperationsQuickPeekItemSelection from './useOperationsQuickPeekItemSelection';
 import useItemDeclutterDeck from '../../hooks/useItemDeclutterDeck';
 import { ToastContext } from '../Toast';
@@ -77,7 +77,6 @@ export default function OperationsBoxQuickPeek({
   const suppressDetentResetTimerRef = useRef(0);
   const sheetRef = useRef(null);
   const contentRef = useRef(null);
-  const notePreviewButtonRef = useRef(null);
   const [headerBottom, setHeaderBottom] = useState(140);
   const [quickSearchOpen, setQuickSearchOpen] = useState(false);
   const [itemQuery, setItemQuery] = useState('');
@@ -193,13 +192,6 @@ export default function OperationsBoxQuickPeek({
     setItemQuery('');
   }, []);
 
-  const closeNoteReader = useCallback(() => {
-    setNoteReaderOpen(false);
-    window.requestAnimationFrame(() => {
-      notePreviewButtonRef.current?.focus({ preventScroll: true });
-    });
-  }, []);
-
   useEffect(() => {
     const handleQuickSearchToggle = () => {
       setQuickSearchOpen((current) => {
@@ -246,6 +238,7 @@ export default function OperationsBoxQuickPeek({
   }, [boxId]);
 
   useEffect(() => {
+    if (quickSearchOpen) setNoteReaderOpen(false);
     if (!quickSearchOpen || !selectedQuickPeekItem) return;
     backToItemList();
   }, [backToItemList, quickSearchOpen, selectedQuickPeekItem]);
@@ -479,13 +472,6 @@ export default function OperationsBoxQuickPeek({
         box={box}
         imageUrl={imageUrl}
         description={description}
-        notePanel={noteReaderOpen ? (
-          <QuickPeekNoteModal
-            box={box}
-            notes={notes}
-            onClose={closeNoteReader}
-          />
-        ) : null}
         itemActionPanel={selectedQuickPeekItem ? (
           <QuickPeekItemActionPanel
             key={selectedQuickPeekItemId}
@@ -540,14 +526,21 @@ export default function OperationsBoxQuickPeek({
 
       <S.DeckContent
         ref={contentRef}
+        id="quick-peek-view"
         key={box.box_id}
         $expanded={expanded}
         $itemFocused={Boolean(selectedQuickPeekItem)}
-        $photoFocused={photoFocused}
+        $photoFocused={photoFocused && !noteReaderOpen}
         $direction={itemSelection.selectedItem ? 0 : transitionDirection}
         data-quick-peek-scroll-region
       >
-        {photoFocused ? (
+        {noteReaderOpen && !selectedQuickPeekItem ? (
+          <S.ControlCenterNotes aria-label="Box notes">
+            <S.NotesEyebrow>Notes · {isAdrift ? 'Items Adrift' : `#${boxId}`}</S.NotesEyebrow>
+            <S.NotesTitle>{title}</S.NotesTitle>
+            <S.NotesText>{notes || 'No notes for this box yet.'}</S.NotesText>
+          </S.ControlCenterNotes>
+        ) : photoFocused ? (
           <QuickPeekBoxPhotoView
             box={box}
             imageUrl={displayImageUrl}
@@ -589,17 +582,7 @@ export default function OperationsBoxQuickPeek({
                       ? 'item'
                       : 'items'}
                 </S.ItemsCount>
-                <S.ItemSortButton
-                  type="button"
-                  aria-label={`Sort items by ${ITEM_SORT_OPTIONS.find((option) => option.value === itemSortMode)?.label}`}
-                  title="Cycle item sort"
-                  onClick={() => {
-                    const currentIndex = ITEM_SORT_OPTIONS.findIndex((option) => option.value === itemSortMode);
-                    setItemSortMode(ITEM_SORT_OPTIONS[(currentIndex + 1) % ITEM_SORT_OPTIONS.length].value);
-                  }}
-                >
-                  {ITEM_SORT_OPTIONS.find((option) => option.value === itemSortMode)?.symbol}
-                </S.ItemSortButton>
+
               </S.ItemsHeaderMeta>
             </S.ItemsHeader>
 
@@ -639,32 +622,24 @@ export default function OperationsBoxQuickPeek({
       </S.DeckContent>
 
       {!itemSelection.selectedItem ? (
-        <S.BoxFooterActions $expanded={expanded} $withNotes={Boolean(notes)}>
-          <S.OpenFullBoxButton type="button" onClick={onOpenFullBox}>
-            {isAdrift ? 'Open all Items Adrift' : 'Open full box'}
-            <S.OpenFullBoxIcon
-              aria-hidden="true"
-              viewBox="0 0 20 20"
-              focusable="false"
-            >
-              <path d="M6 14 14 6" />
-              <path d="M8 6h6v6" />
-            </S.OpenFullBoxIcon>
-          </S.OpenFullBoxButton>
-          {notes ? (
-            <S.BoxNotesFooterButton
-              ref={notePreviewButtonRef}
-              type="button"
-              aria-haspopup="dialog"
-              aria-expanded={noteReaderOpen}
-              aria-label="Open box notes"
-              title="Box notes"
-              onClick={() => setNoteReaderOpen(true)}
-            >
-              N
-            </S.BoxNotesFooterButton>
-          ) : null}
-        </S.BoxFooterActions>
+        <QuickPeekControlCenter
+          notesOpen={noteReaderOpen}
+          count={visibleItems.length}
+          isAdrift={isAdrift}
+          onViewChange={(showNotes) => {
+            setNoteReaderOpen(showNotes);
+            closeQuickSearch();
+            if (!showNotes && photoFocused) onShowItems?.();
+            contentRef.current?.scrollTo({ top: 0 });
+          }}
+          sortLabel={ITEM_SORT_OPTIONS.find((option) => option.value === itemSortMode)?.label}
+          sortSymbol={ITEM_SORT_OPTIONS.find((option) => option.value === itemSortMode)?.symbol}
+          onSort={() => {
+            const index = ITEM_SORT_OPTIONS.findIndex((option) => option.value === itemSortMode);
+            setItemSortMode(ITEM_SORT_OPTIONS[(index + 1) % ITEM_SORT_OPTIONS.length].value);
+          }}
+          onOpenFullBox={onOpenFullBox}
+        />
       ) : null}
     </S.Deck>,
     document.body,

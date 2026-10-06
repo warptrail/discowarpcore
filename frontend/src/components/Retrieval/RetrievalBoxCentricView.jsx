@@ -8,13 +8,14 @@ import { compareNumericBoxIds, normalizeBoxId } from '../../util/boxLocator';
 import { getItemMicroThumbnailUrl } from '../../util/itemImage';
 import { MOBILE_BREAKPOINT } from '../../styles/tokens';
 import * as S from './Retrieval.styles';
-import { getBoxTheme } from '../../util/inventoryColorTheme';
+import { getBoxTheme, getBoxThemeCssVars } from '../../util/inventoryColorTheme';
 import {
   normalizeRetrievalBoxesPage,
   normalizeRetrievalFilterOptions,
   normalizeRetrievalSortOptions,
 } from './retrievalModel';
 import RetrievalSearchForm from './RetrievalSearchForm';
+import RetrievalBoxThumbnail from './RetrievalBoxThumbnail';
 import { BOX_RECORD_UPDATED_EVENT } from '../../constants/inventoryFinderEvents';
 
 const DEFAULT_BOX_SORT_OPTIONS = [
@@ -220,8 +221,8 @@ export default function RetrievalBoxCentricView({
   const [boxIdPrefix, setBoxIdPrefix] = useState(() =>
     normalizeBoxId(initialPersistedState?.boxIdPrefix).slice(0, 3),
   );
-  const [selectedLocation, setSelectedLocation] = useState(() =>
-    String(initialPersistedState?.selectedLocation || ''),
+  const [selectedRooms, setSelectedRooms] = useState(() =>
+    normalizeTagSelection(initialPersistedState?.selectedRooms),
   );
   const [selectedTags, setSelectedTags] = useState(() =>
     normalizeTagSelection(initialPersistedState?.selectedTags || initialPersistedState?.selectedTag),
@@ -251,7 +252,7 @@ export default function RetrievalBoxCentricView({
     () => ({
       q: debouncedSearchValue,
       boxIdPrefix: debouncedBoxIdPrefix,
-      locations: selectedLocation ? [selectedLocation] : [],
+      rooms: selectedRooms,
       tags: selectedTags,
       tagOperator,
       sort: selectedSort,
@@ -259,7 +260,7 @@ export default function RetrievalBoxCentricView({
     [
       debouncedBoxIdPrefix,
       debouncedSearchValue,
-      selectedLocation,
+      selectedRooms,
       selectedSort,
       selectedTags,
       tagOperator,
@@ -290,7 +291,7 @@ export default function RetrievalBoxCentricView({
     onStateSnapshotChange?.({
       searchValue,
       boxIdPrefix,
-      selectedLocation,
+      selectedRooms,
       selectedTags,
       tagOperator,
       selectedSort,
@@ -303,7 +304,7 @@ export default function RetrievalBoxCentricView({
     onStateSnapshotChange,
     searchValue,
     selectedBoxId,
-    selectedLocation,
+    selectedRooms,
     selectedSort,
     selectedTags,
     tagOperator,
@@ -337,18 +338,6 @@ export default function RetrievalBoxCentricView({
     [],
   );
 
-
-  useEffect(() => {
-    if (!selectedLocation) return;
-
-    const hasOption = filterOptions.locations.some(
-      (option) => String(option?.key || '') === String(selectedLocation),
-    );
-
-    if (!hasOption) {
-      setSelectedLocation('');
-    }
-  }, [filterOptions.locations, selectedLocation]);
 
   useEffect(() => {
     if (!selectedTags.length || !filterOptions.tags.length) return;
@@ -653,9 +642,9 @@ export default function RetrievalBoxCentricView({
         boxIdPrefix={boxIdPrefix}
         onBoxIdPrefixChange={setBoxIdPrefix}
         filterOptions={filterOptions}
-        selectedBoxLocation={selectedLocation}
+        selectedBoxRooms={selectedRooms}
         selectedBoxTags={selectedTags}
-        onBoxLocationChange={setSelectedLocation}
+        onBoxRoomsChange={setSelectedRooms}
         onBoxTagAdd={addSelectedTag}
         onBoxTagRemove={removeSelectedTag}
         tagOperator={tagOperator}
@@ -698,41 +687,31 @@ export default function RetrievalBoxCentricView({
                             type="button"
                             onClick={() => handleSelectBox(normalizedId)}
                             $active={isActive}
+                            style={getBoxThemeCssVars(rowTones)}
                             $boxColorRgb={rowTones.baseRgb}
                             $boxMutedRgb={rowTones.mutedRgb}
                             aria-expanded={isMobile ? isActive : undefined}
                             aria-controls={isMobile ? inlinePanelId : undefined}
                           >
-                            <S.BoxRowMain>
-                              <S.BoxRowId $boxNeonRgb={rowTones.neonRgb}>
-                                #{box.boxId || '—'}
-                              </S.BoxRowId>
-                              <S.BoxRowLabel $boxMutedRgb={rowTones.mutedRgb}>
-                                {box.boxLabel}{box.isComplexBox ? ' · Complex box' : ''}
-                              </S.BoxRowLabel>
-                            </S.BoxRowMain>
-                            <S.BoxRowContext>
+                            <RetrievalBoxThumbnail box={box} />
+                            <S.BoxRowCopy>
+                              <S.BoxRowLabel>{box.boxLabel}{box.isComplexBox ? ' · Complex box' : ''}</S.BoxRowLabel>
                               <S.BoxRowLocation $boxLocationRgb={rowTones.locationRgb}>
-                                <span>Location</span>
                                 <strong>{box.locationLabel || 'Unknown'}</strong>
                               </S.BoxRowLocation>
-                            </S.BoxRowContext>
-                            {box.tags.length ? (
-                              <S.BoxRowTags
-                                title={box.tags.map((tag) => `#${tag}`).join(' ')}
-                                $boxNeonRgb={rowTones.neonRgb}
-                              >
-                                {box.tags.map((tag) => `#${tag}`).join(' ')}
-                              </S.BoxRowTags>
-                            ) : null}
-                            <S.BoxRowMeta>
-                              <S.BoxMetaPill $boxMutedRgb={rowTones.mutedRgb}>
-                                {formatCount(box.directItemCount, 'item', 'items')}
-                              </S.BoxMetaPill>
-                              <S.BoxMetaPill $boxMutedRgb={rowTones.mutedRgb}>
-                                {formatCount(box.childBoxCount, 'child box', 'child boxes')}
-                              </S.BoxMetaPill>
-                            </S.BoxRowMeta>
+                              {box.tags.length ? (
+                                <S.BoxRowTags title={box.tags.map((tag) => `#${tag}`).join(' ')}>
+                                  {box.tags.map((tag) => `#${tag}`).join(' ')}
+                                </S.BoxRowTags>
+                              ) : null}
+                              <S.BoxRowMeta>
+                                <span>{formatCount(box.directItemCount, 'item', 'items')}</span>
+                                {box.childBoxCount > 0 ? <span>· {formatCount(box.childBoxCount, 'child box', 'child boxes')}</span> : null}
+                              </S.BoxRowMeta>
+                            </S.BoxRowCopy>
+                            <S.RowBoxNumber aria-label={`Box ${box.boxId}`}>
+                              {box.boxId || '—'}
+                            </S.RowBoxNumber>
                           </S.BoxListRow>
 
                           {isMobile && isActive ? (

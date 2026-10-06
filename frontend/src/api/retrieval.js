@@ -61,6 +61,7 @@ export async function fetchRetrievalBoxesPage(
     tags = [],
     tagOperator = 'or',
     locations = [],
+    rooms = [],
     sort = '',
     limit = DEFAULT_RETRIEVAL_LIMIT,
     offset = 0,
@@ -76,6 +77,7 @@ export async function fetchRetrievalBoxesPage(
   appendCsvParam(params, 'tag', tags);
   if (tags.length > 1 && tagOperator === 'and') params.set('tagOperator', 'and');
   appendCsvParam(params, 'location', locations);
+  appendCsvParam(params, 'room', rooms);
   if (String(sort || '').trim()) params.set('sort', String(sort).trim());
   params.set('limit', String(limit));
   params.set('offset', String(offset));

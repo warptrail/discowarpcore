@@ -8,7 +8,7 @@ const {
 } = require('../backend/utils/locationName');
 const { normalizeLocationInput } = require('../backend/services/locationService');
 
-test('location structure keeps its three cartographic levels and creates a display label', () => {
+test('location structure keeps its four cartographic levels and creates a display label', () => {
   const location = normalizeLocationStructure({
     room: ' Garage ',
     vicinity: ' North   Shelf ',
@@ -19,11 +19,12 @@ test('location structure keeps its three cartographic levels and creates a displ
     room: 'Garage',
     vicinity: 'North Shelf',
     specifics: 'Rack B3',
+    exactSpot: '',
   });
   assert.equal(formatLocationName(location), 'Garage · North Shelf · Rack B3');
 });
 
-test('location identity compares all three levels without case or whitespace differences', () => {
+test('location identity compares all four levels without case or whitespace differences', () => {
   const first = { room: 'Garage', vicinity: 'North Shelf', specifics: 'Rack B3' };
   const same = { room: ' garage ', vicinity: 'north  shelf', specifics: 'rack b3' };
   const differentSpecifics = { room: 'Garage', vicinity: 'North Shelf', specifics: 'Rack B4' };
@@ -39,6 +40,7 @@ test('location API only accepts structured input and enforces hierarchy', () => 
       room: 'Garage',
       vicinity: 'North Shelf',
       specifics: 'Rack B3',
+      exactSpot: '',
     },
   );
   assert.throws(

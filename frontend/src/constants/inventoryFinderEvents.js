@@ -47,3 +47,6 @@ export const RETRIEVAL_FINDER_TOGGLE_EVENT =
 
 export const ALL_ITEMS_DETAIL_OPEN_EVENT =
   'disco-warp-core:all-items-detail-open';
+
+export const INVENTORY_QUICK_ANSWER_EVENT =
+  'disco-warp-core:inventory-quick-answer';

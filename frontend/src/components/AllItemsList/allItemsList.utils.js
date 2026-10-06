@@ -569,7 +569,7 @@ export function prepareItemForList(item) {
       boxDescription,
       boxHref: boxId ? `/boxes/${encodeURIComponent(boxId)}` : '',
       sourceBatchHref: sourceBatch?.batchId || sourceBatchId
-        ? `/import?batch=${encodeURIComponent(sourceBatch?.batchId || sourceBatchId)}`
+        ? `/configuration?batch=${encodeURIComponent(sourceBatch?.batchId || sourceBatchId)}`
         : '',
       hasHistoricalBox: Boolean(!isBoxed && (boxId || boxLabel || boxDescription)),
       locationLabel: ownership.inheritedLocation || String(item?.location || '').trim(),

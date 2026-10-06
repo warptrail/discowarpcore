@@ -38,6 +38,7 @@ async function getRetrievalBoxesApi(req, res) {
       tag: req.query.tag,
       tagOperator: req.query.tagOperator,
       location: req.query.location,
+      room: req.query.room,
       sort: req.query.sort,
       limit: req.query.limit,
       offset: req.query.offset,

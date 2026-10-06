@@ -6,6 +6,8 @@ export default function OperationsPage() {
   return (
     <BoxList
       boxes={data.boxes}
+      dataLoading={data.loading}
+      dataError={data.error}
       orphanedCount={data.orphanedCount}
       orphanedItems={data.orphanedItems}
       locations={data.locations}

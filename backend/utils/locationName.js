@@ -10,6 +10,7 @@ function normalizeLocationStructure(value = {}) {
       room: normalizeLocationPart(value),
       vicinity: '',
       specifics: '',
+      exactSpot: '',
     };
   }
 
@@ -17,17 +18,18 @@ function normalizeLocationStructure(value = {}) {
     room: normalizeLocationPart(value?.room),
     vicinity: normalizeLocationPart(value?.vicinity),
     specifics: normalizeLocationPart(value?.specifics),
+    exactSpot: normalizeLocationPart(value?.exactSpot),
   };
 }
 
 function formatLocationName(value) {
-  const { room, vicinity, specifics } = normalizeLocationStructure(value);
-  return [room, vicinity, specifics].filter(Boolean).join(' · ');
+  const { room, vicinity, specifics, exactSpot } = normalizeLocationStructure(value);
+  return [room, vicinity, specifics, exactSpot].filter(Boolean).join(' · ');
 }
 
 function locationStructureKey(value) {
-  const { room, vicinity, specifics } = normalizeLocationStructure(value);
-  return [room, vicinity, specifics].map((part) => part.toLowerCase()).join('\u001f');
+  const { room, vicinity, specifics, exactSpot } = normalizeLocationStructure(value);
+  return [room, vicinity, specifics, exactSpot].map((part) => part.toLowerCase()).join('\u001f');
 }
 
 module.exports = {

@@ -16,7 +16,7 @@ export default function OperationsQuickBoxCreate({ onCreated, onCancel, eyebrow 
   const [isComplexBox, setIsComplexBox] = useState(false);
   const [label, setLabel] = useState('');
   const [locationId, setLocationId] = useState('');
-  const [locationDraft, setLocationDraft] = useState({ room: '', vicinity: '', specifics: '' });
+  const [locationDraft, setLocationDraft] = useState({ room: '', vicinity: '', specifics: '', exactSpot: '' });
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
   const [tagDraft, setTagDraft] = useState('');
@@ -46,6 +46,7 @@ export default function OperationsQuickBoxCreate({ onCreated, onCancel, eyebrow 
         room: String(location?.room || '').trim(),
         vicinity: String(location?.vicinity || '').trim(),
         specifics: String(location?.specifics || '').trim(),
+        exactSpot: String(location?.exactSpot || '').trim(),
       });
       if (!created?._id) throw new Error('Location could not be created');
       setLocationId(String(created._id));
