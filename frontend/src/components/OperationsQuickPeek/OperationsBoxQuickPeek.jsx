@@ -1,5 +1,9 @@
+import useTagReturnSnapshot from '../../hooks/useTagReturnSnapshot';
+import QuickPeekBoxEditor from './QuickPeekBoxEditor';
+import useOperationsDockGeometry from '../OperationsInventory/useOperationsDockGeometry';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import useIsMobile from '../../hooks/useIsMobile';
 import {
   getBoxTheme,
   getBoxThemeCssVars,
@@ -11,6 +15,8 @@ import QuickPeekItemActionPanel from './QuickPeekItemActionPanel';
 import QuickPeekItemNoteModal from './QuickPeekItemNoteModal';
 import QuickPeekItemList from './QuickPeekItemList';
 import QuickPeekControlCenter from './QuickPeekControlCenter';
+import QuickPeekHeaderControls from './QuickPeekHeaderControls';
+import QuickPeekAddItems from './QuickPeekAddItems';
 import useOperationsQuickPeekItemSelection from './useOperationsQuickPeekItemSelection';
 import useItemDeclutterDeck from '../../hooks/useItemDeclutterDeck';
 import { ToastContext } from '../Toast';
@@ -19,6 +25,7 @@ import {
   OPERATIONS_QUICK_PEEK_SEARCH_TOGGLE_EVENT,
 } from '../../constants/inventoryFinderEvents';
 import * as S from './OperationsQuickPeek.styles';
+import { applyQuickPeekVerticalSwipe, getQuickPeekGestureCaptureTarget } from './OperationsQuickPeek.gestures';
 import {
   getBoxPreviewImageUrl,
   getBoxThumbnailUrl,
@@ -53,9 +60,10 @@ function getBoxDisplayImageUrl(box) {
 
 export default function OperationsBoxQuickPeek({
   box,
+  locations,
+  presentation = 'sheet',
+  portalTarget = null,
   matchingItems = [],
-  position,
-  total,
   expanded,
   closing,
   transitionDirection,
@@ -71,8 +79,16 @@ export default function OperationsBoxQuickPeek({
   onDismiss,
   onOpenFullBox,
   onItemSaved,
+  boxFieldEdit, onCloseBoxField, onBoxSaved,
 }) {
+  const source = useTagReturnSnapshot();
+  const restoredScrollRef = useRef(source?.scrollY);
+  const mobile = useIsMobile(767);
+  const desktop = !useIsMobile(1099);
+  const docked = desktop && presentation === 'dock';
+  const { top: dockTop, left: dockLeft } = useOperationsDockGeometry(portalTarget, docked);
   const gestureRef = useRef(null);
+  const suppressHeaderClickRef = useRef(false);
   const suppressDetentClickRef = useRef(false);
   const suppressDetentResetTimerRef = useRef(0);
   const sheetRef = useRef(null);
@@ -255,6 +271,7 @@ export default function OperationsBoxQuickPeek({
     onSetExpanded?.(false);
   }, [expanded, onSetExpanded, quickSearchOpen]);
 
+
   useEffect(() => {
     if (!photoFocused) return;
     if (selectedQuickPeekItem) backToItemList();
@@ -271,12 +288,13 @@ export default function OperationsBoxQuickPeek({
       !boxId ||
       !expanded ||
       typeof document === 'undefined' ||
-      !window.matchMedia('(max-width: 767px)').matches
+      !mobile
     ) {
       return undefined;
     }
 
-    const scrollY = window.scrollY;
+    const scrollY = restoredScrollRef.current ?? window.scrollY;
+    restoredScrollRef.current = undefined;
     const body = document.body;
     const root = document.documentElement;
     const previousBodyStyles = {
@@ -302,10 +320,10 @@ export default function OperationsBoxQuickPeek({
       root.style.overscrollBehavior = previousRootOverscroll;
       window.scrollTo(0, scrollY);
     };
-  }, [boxId, expanded]);
+  }, [boxId, expanded, mobile]);
 
   useEffect(() => {
-    if (!box) return undefined;
+    if (!box || docked) return undefined;
 
     const handleOutsideClick = (event) => {
       const target = event.target;
@@ -321,7 +339,7 @@ export default function OperationsBoxQuickPeek({
     document.addEventListener('click', handleOutsideClick, true);
     return () =>
       document.removeEventListener('click', handleOutsideClick, true);
-  }, [box, onClose]);
+  }, [box, docked, onClose]);
 
   useEffect(() => {
     if (!box) return undefined;
@@ -378,19 +396,16 @@ export default function OperationsBoxQuickPeek({
     ) {
       return;
     }
-    const interactiveTarget = event.target.closest(
-      'button, a, input, textarea, select, [role="button"], [role="combobox"], [contenteditable="true"]',
-    );
-    const isDragHandle = interactiveTarget?.hasAttribute(
-      'data-quick-peek-drag-handle',
-    );
-    if (event.button !== 0 || (interactiveTarget && !isDragHandle)) return;
+    const captureTarget = getQuickPeekGestureCaptureTarget(event);
+    if (!captureTarget) return;
+    suppressHeaderClickRef.current = false;
     gestureRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
+      fromHeader: event.currentTarget.tagName === 'HEADER',
     };
-    event.currentTarget.setPointerCapture?.(event.pointerId);
+    captureTarget.setPointerCapture?.(event.pointerId);
   };
 
   const finishGesture = (event) => {
@@ -404,6 +419,7 @@ export default function OperationsBoxQuickPeek({
     const vertical = Math.abs(deltaY) > Math.abs(deltaX) * 1.2;
 
     if (horizontal && Math.abs(deltaX) >= HORIZONTAL_SWIPE_THRESHOLD) {
+      suppressHeaderClickRef.current = gesture.fromHeader;
       suppressDetentClickRef.current = true;
       window.clearTimeout(suppressDetentResetTimerRef.current);
       suppressDetentResetTimerRef.current = window.setTimeout(() => {
@@ -415,26 +431,34 @@ export default function OperationsBoxQuickPeek({
     }
 
     if (vertical && Math.abs(deltaY) >= VERTICAL_DETENT_THRESHOLD) {
+      suppressHeaderClickRef.current = gesture.fromHeader;
       suppressDetentClickRef.current = true;
       window.clearTimeout(suppressDetentResetTimerRef.current);
       suppressDetentResetTimerRef.current = window.setTimeout(() => {
         suppressDetentClickRef.current = false;
       }, 0);
-      if (deltaY < 0) {
-        if (
-          quickSearchOpen &&
-          window.matchMedia('(max-width: 767px)').matches
-        ) {
-          return;
-        }
-        onSetExpanded?.(true);
+      if (
+        deltaY < 0 &&
+        quickSearchOpen &&
+        window.matchMedia('(max-width: 767px)').matches
+      ) {
+        return;
       }
-      else onDismiss?.();
+      applyQuickPeekVerticalSwipe({ deltaY, expanded, onSetExpanded, onDismiss });
     }
   };
 
   const cancelGesture = () => {
     gestureRef.current = null;
+  };
+
+  const handleHeaderClickCapture = (event) => {
+    if (!suppressHeaderClickRef.current) return;
+    suppressHeaderClickRef.current = false;
+    // Keyboard activation is still a normal click, even after a pointer drag.
+    if (event.detail === 0) return;
+    event.preventDefault();
+    event.stopPropagation();
   };
 
   const handleDetentClick = () => {
@@ -454,11 +478,13 @@ export default function OperationsBoxQuickPeek({
 
   return createPortal(
     <S.Deck
+      data-peek-expanded={expanded}
       ref={sheetRef}
       id="operations-box-quick-peek"
       role="complementary"
       aria-label={isAdrift ? 'Quick peek at Items Adrift' : `Quick peek at box ${title}`}
       tabIndex={-1}
+      $presentation={presentation}
       $expanded={expanded}
       $closing={closing}
       $itemFocused={Boolean(selectedQuickPeekItem)}
@@ -466,21 +492,23 @@ export default function OperationsBoxQuickPeek({
       style={{
         ...boxThemeStyle,
         '--operations-quick-peek-top': `${headerBottom}px`,
+        '--operations-dock-top': `${dockTop}px`,
+        '--operations-dock-left': `${dockLeft}px`,
       }}
     >
       <QuickPeekBoxHeader
+        docked={docked}
         box={box}
+        locations={locations}
         imageUrl={imageUrl}
         description={description}
         itemActionPanel={selectedQuickPeekItem ? (
           <QuickPeekItemActionPanel
+            embedded
             key={selectedQuickPeekItemId}
             box={box}
             onMoved={() => { backToItemList(); onItemSaved?.(); }}
             item={selectedQuickPeekItemWithDeckState}
-            position={itemSelection.selectedIndex + 1}
-            total={itemSelection.totalItems}
-            onBack={backToItemList}
             onItemUpdated={(updatedItem) => {
               const updatedItemId = String(updatedItem?._id || updatedItem?.id || selectedQuickPeekItemId);
               if (!updatedItemId) return;
@@ -493,30 +521,26 @@ export default function OperationsBoxQuickPeek({
             inDeclutterDeck={inDeclutterDeck}
             onToggleDeclutterDeck={toggleDeclutterDeck}
             onOpenFullItem={itemSelection.openFullItem}
-            notePanel={itemNoteReaderOpen ? (
-              <QuickPeekItemNoteModal
-                item={selectedQuickPeekItemWithDeckState}
-                notes={String(selectedQuickPeekItemWithDeckState?.notes || '').trim()}
-                onClose={() => setItemNoteReaderOpen(false)}
-              />
-            ) : null}
-            includeDeck={false}
+            onOpenNotes={() => setItemNoteReaderOpen((current) => !current)}
+            notesOpen={itemNoteReaderOpen}
           />
         ) : null}
-        position={position}
-        total={total}
+        itemPosition={itemSelection.selectedIndex + 1}
+        itemTotal={itemSelection.totalItems}
         expanded={expanded}
         canSelectPrevious={canSelectPrevious}
         canSelectNext={canSelectNext}
         onPrevious={onPrevious}
         onNext={onNext}
-        onClose={onClose}
+        onClose={onDismiss || onClose}
         itemFocused={Boolean(selectedQuickPeekItem)}
         onReturnToItems={backToItemList}
         onToggleExpanded={handleDetentClick}
         onPointerDown={handlePointerDown}
         onPointerUp={finishGesture}
         onPointerCancel={cancelGesture}
+        onGestureStartCapture={() => { suppressHeaderClickRef.current = false; }}
+        onGestureClickCapture={handleHeaderClickCapture}
         searchOpen={quickSearchOpen}
         searchQuery={itemQuery}
         onSearchChange={setItemQuery}
@@ -532,6 +556,7 @@ export default function OperationsBoxQuickPeek({
         $itemFocused={Boolean(selectedQuickPeekItem)}
         $photoFocused={photoFocused && !noteReaderOpen}
         $direction={itemSelection.selectedItem ? 0 : transitionDirection}
+        data-tag-scroll-key="operations-peek-content"
         data-quick-peek-scroll-region
       >
         {noteReaderOpen && !selectedQuickPeekItem ? (
@@ -555,6 +580,17 @@ export default function OperationsBoxQuickPeek({
               setItemOverrides((current) => ({ ...current, [String(updated._id || updated.id)]: updated }));
               onItemSaved?.();
             }}
+            notePanel={itemNoteReaderOpen ? (
+              <QuickPeekItemNoteModal
+                item={selectedQuickPeekItemWithDeckState}
+                notes={String(selectedQuickPeekItemWithDeckState?.notes || '').trim()}
+                onSaved={(updated) => {
+                  setItemOverrides((current) => ({ ...current, [String(updated._id || updated.id)]: updated }));
+                  onItemSaved?.();
+                }}
+                onClose={() => setItemNoteReaderOpen(false)}
+              />
+            ) : null}
             position={itemSelection.selectedIndex + 1}
             total={itemSelection.totalItems}
             transitionDirection={itemSelection.transitionDirection}
@@ -562,10 +598,6 @@ export default function OperationsBoxQuickPeek({
             canSelectNext={itemSelection.canSelectNext}
             onPrevious={itemSelection.selectPrevious}
             onNext={itemSelection.selectNext}
-            inDeclutterDeck={inDeclutterDeck}
-            declutterPending={declutterPending}
-            onToggleDeclutterDeck={toggleDeclutterDeck}
-            onOpenNotes={() => setItemNoteReaderOpen(true)}
           />
         ) : (
           <>
@@ -620,9 +652,19 @@ export default function OperationsBoxQuickPeek({
           </>
         )}
       </S.DeckContent>
+      {boxFieldEdit && boxFieldEdit.boxMongoId === String(box._id) ? (
+        <QuickPeekBoxEditor key={`${box._id}-${boxFieldEdit.field}`} box={box}
+          field={boxFieldEdit.field} onClose={onCloseBoxField} onSaved={onBoxSaved} />
+      ) : null}
 
       {!itemSelection.selectedItem ? (
         <QuickPeekControlCenter
+          addItemsControl={<QuickPeekAddItems key={boxId} box={box} expanded={expanded} onItemsChanged={onItemSaved} />}
+          navigationControls={
+            <QuickPeekHeaderControls embedded expanded={expanded} docked={docked}
+              onToggleExpanded={handleDetentClick} onClose={onDismiss || onClose}
+              onPointerDown={handlePointerDown} onPointerUp={finishGesture} onPointerCancel={cancelGesture} />
+          }
           notesOpen={noteReaderOpen}
           count={visibleItems.length}
           isAdrift={isAdrift}
@@ -642,6 +684,6 @@ export default function OperationsBoxQuickPeek({
         />
       ) : null}
     </S.Deck>,
-    document.body,
+    portalTarget || document.body,
   );
 }

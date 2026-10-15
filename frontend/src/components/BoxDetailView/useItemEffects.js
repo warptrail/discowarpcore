@@ -4,8 +4,8 @@ export const ITEM_FLASH_MS = 1000;
 export const ITEM_FLASH_VARIANTS = ['blue', 'yellow', 'red'];
 const FLASH_VARIANT_SET = new Set(ITEM_FLASH_VARIANTS);
 
-export default function useItemEffects() {
-  const [openItemId, setOpenItemId] = useState(null);
+export default function useItemEffects(initialOpenItemId = null) {
+  const [openItemId, setOpenItemId] = useState(initialOpenItemId);
   const [pulsing, setPulsing] = useState([]);
   const [effectsById, setEffectsById] = useState({});
   const accent = 'blue';

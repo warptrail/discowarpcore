@@ -1,3 +1,4 @@
+import MissingStatus from './MissingItems/MissingStatus';
 import React, {
   useState,
   useRef,
@@ -8,8 +9,9 @@ import React, {
 } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import * as S from '../styles/ItemRow.styles';
-import { getItemThumbnailUrl } from '../util/itemImage';
+import { getItemThumbnailCandidates } from '../util/itemImage';
 import ItemDetails from './ItemDetails';
+import ItemRowThumbnail from './ItemRowThumbnail';
 import EditItemDetailsForm from './EditItemDetailsForm';
 import MoveItemToOtherBox from './MoveItemToOtherBox';
 import { moveBoxedItem, orphanBoxedItem } from '../api/boxedItems';
@@ -20,9 +22,9 @@ import { getItemOwnershipContext } from '../util/itemOwnership';
 import useItemTimestampActions from '../hooks/useItemTimestampActions';
 import useItemImageProcessing from '../hooks/useItemImageProcessing';
 import {
-  nominateDeclutterCandidates,
   removeDeclutterCandidateByItem,
 } from '../api/declutterDeck';
+import useDeclutterNomination, { PROFILE_REQUIRED } from '../hooks/useDeclutterNomination';
 import ImageProcessingToastContent from './Processing/ImageProcessingToastContent';
 import ObsidianPrismSheet from './Sheets/ObsidianPrismSheet';
 import {
@@ -56,6 +58,7 @@ export default function ItemRow({
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
   const hideToast = toastCtx?.hideToast;
+  const nominate = useDeclutterNomination({ showToast, hideToast });
   const {
     _id,
     name,
@@ -105,7 +108,7 @@ export default function ItemRow({
   const [localIsConsumable, setLocalIsConsumable] = useState(Boolean(item?.isConsumable));
   const [consumablePending, setConsumablePending] = useState(false);
   const lastImageLifecycleStatusRef = useRef('');
-  const collapsedThumbUrl = getItemThumbnailUrl({
+  const collapsedThumbSources = getItemThumbnailCandidates({
     ...item,
     image: localImage,
     imagePath: localImagePath,
@@ -605,11 +608,11 @@ export default function ItemRow({
         return null;
       }
 
-      const [result] = await nominateDeclutterCandidates([_id]);
+      const [result] = await nominate([_id]);
       setIsInDeclutterDeck(true);
       return result || null;
     },
-    [_id]
+    [_id, nominate]
   );
 
   const showDeclutterSuccess = useCallback(
@@ -642,6 +645,7 @@ export default function ItemRow({
                   timeoutMs: 3200,
                 });
               } catch (err) {
+                if (err?.code === PROFILE_REQUIRED) return;
                 showToast?.({
                   variant: 'danger',
                   title: 'Undo failed',
@@ -670,6 +674,7 @@ export default function ItemRow({
         const result = await runDeclutterChange(nextInDeck);
         showDeclutterSuccess(nextInDeck, result);
       } catch (err) {
+        if (err?.code === PROFILE_REQUIRED) return;
         showToast?.({
           variant: 'danger',
           title: nextInDeck ? 'Declutter add failed' : 'Declutter removal failed',
@@ -716,20 +721,15 @@ export default function ItemRow({
             {selectionMode ? <S.RowSelectionState aria-hidden="true" $selected={selected}>{selected ? '✓' : ''}</S.RowSelectionState> : null}
             <S.RowMain $showThumb={!presentationOpen}>
               {!presentationOpen && (
-                <S.RowThumb>
-                  {collapsedThumbUrl ? (
-                    <S.RowThumbImage src={collapsedThumbUrl} alt={`${name || 'Item'} thumbnail`} />
-                  ) : (
-                    <S.RowThumbPlaceholder aria-hidden="true" />
-                  )}
-                  {quantityLabel ? <S.ThumbnailQuantity>{quantityLabel}</S.ThumbnailQuantity> : null}
-                </S.RowThumb>
+                <ItemRowThumbnail sources={collapsedThumbSources} name={name} itemId={_id || item?.id || name}
+                  boxId={ownership.boxId} quantityLabel={quantityLabel} />
               )}
 
               <S.TitleGroup $mobileCollapsed={!presentationOpen}>
                 <S.Title $mobileCollapsed={!presentationOpen} $expanded={presentationOpen}>
                   {name}
                 </S.Title>
+                <MissingStatus item={item} home />
                 {showBoxContext && !presentationOpen ? (
                   <S.RowBoxContext>#{ownership?.placementLabel || ownership?.boxId || '???'} {ownership?.boxLabel || 'Box'}</S.RowBoxContext>
                 ) : null}

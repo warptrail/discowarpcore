@@ -20,11 +20,13 @@ export const BOX_SEARCH_SORT_OPTIONS = [
   { value: 'valueDesc', label: 'Value high–low' },
 ];
 
-export default function useBoxWorkspaceSearch({ shortId, items }) {
-  const [mode, setMode] = useState('closed');
-  const [query, setQuery] = useState('');
-  const [sortMode, setSortMode] = useState('treeOrder');
-  const [sortDirection, setSortDirection] = useState('asc');
+export default function useBoxWorkspaceSearch({ shortId, items, initialState }) {
+  const [mode, setMode] = useState(initialState?.mode || 'closed');
+  const [query, setQuery] = useState(initialState?.query || '');
+  const [sortMode, setSortMode] = useState(initialState?.sortMode || 'treeOrder');
+  const [sortDirection, setSortDirection] = useState(initialState?.sortDirection || 'asc');
+  const initialShortIdRef = useRef(shortId);
+  const restorePendingRef = useRef(Boolean(initialState));
   const openScrollYRef = useRef(0);
   const normalizedQuery = normalizeItemQuery(query);
 
@@ -75,6 +77,7 @@ export default function useBoxWorkspaceSearch({ shortId, items }) {
   }, []);
 
   useEffect(() => {
+    if (restorePendingRef.current && initialShortIdRef.current === shortId) { restorePendingRef.current = false; return; }
     setMode('closed');
     setQuery('');
     setSortMode('treeOrder');

@@ -1,16 +1,19 @@
-import { Fragment, memo, useState } from 'react';
+import CompactTagRow from './Tags/CompactTagRow';
+import { memo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import ItemFieldEditor from './ItemFieldEditor/ItemFieldEditor';
+import ItemDropdownRowControl from './ItemFieldEditor/ItemDropdownRowControl';
+import ItemQuantityRowControl from './ItemFieldEditor/ItemQuantityRowControl';
+import ItemTableFieldEditor from './ItemFieldEditor/ItemTableFieldEditor';
 import { getItemFieldDescriptor } from './ItemFieldEditor/itemFieldRegistry';
 import { getItemOwnershipContext } from '../util/itemOwnership';
 import { formatItemCategory, normalizeItemCategory } from '../util/itemCategories';
-import { formatKeepPriorityLabel } from '../util/keepPriority';
+import { formatKeepPriorityLabel, getItemKeepPriority } from '../util/keepPriority';
 import { formatPrimaryOwner } from '../util/itemOwners';
 import { getImportBatchHref } from '../api/intakeBatches';
-import { getRetrievalTagHref } from './Retrieval/retrievalModel';
 import * as S from '../styles/ItemPageConsoleView.styles';
 import ItemNoteSheet from './ItemNoteSheet';
+import { ITEM_DROPDOWN_EDITORS } from '../util/itemFieldSelection';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const date = (value) => (value ? new Date(value).toLocaleDateString() : '—');
@@ -36,8 +39,13 @@ function DisplayValue({ value }) {
   return value;
 }
 
+function FieldEditIcon({ active = false }) {
+  return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d={active ? 'm5 12 4 4 10-10' : 'm5 15 10-10 4 4-10 10-5 1 1-5Zm8-8 4 4'} />
+  </svg>;
+}
+
 const TableRow = memo(function TableRow({
-  domain,
   fieldEditor,
   fieldKey,
   first = false,
@@ -48,6 +56,8 @@ const TableRow = memo(function TableRow({
   onRequestEdit,
   onOpenNote,
   onSave,
+  onRowFieldSaved,
+  savedFieldKey,
   value,
 }) {
   const descriptor = fieldKey
@@ -58,13 +68,15 @@ const TableRow = memo(function TableRow({
     descriptor && fieldEditor?.descriptor?.key === descriptor.key,
   );
   const fieldModeActive = locatorActive || Boolean(fieldEditor?.descriptor);
-  const tagValue = fieldKey === 'tags' && !isActive;
+  const valueRef = useRef(null);
+  const tagValue = fieldKey === 'tags';
+  const dropdown = descriptor && ITEM_DROPDOWN_EDITORS.has(descriptor.editor);
   const hasNotePreview = fieldKey === 'notes'
     && String(value ?? '').trim()
     && String(value).trim() !== '—';
 
   return (
-    <Fragment>
+    <>
       <S.ConsoleRow
         $active={isActive}
         $dimmed={fieldModeActive && !isActive && !locatorActive}
@@ -72,18 +84,25 @@ const TableRow = memo(function TableRow({
         $locator={locatorActive && isEditable}
         $sectionStart={first}
       >
-        <S.DomainCell $first={first}>{first ? domain : ''}</S.DomainCell>
-        <S.AttributeCell>{label}</S.AttributeCell>
-        <S.ValueCell>
-          {isEditable && tagValue ? (
+        <S.AttributeCell $singleLine={Boolean(dropdown)} title={dropdown ? label : undefined}>{label}</S.AttributeCell>
+        <S.ValueCell ref={valueRef}>
+          <S.FieldDisplay>
+          {fieldKey === 'quantity' ? (
+            <ItemQuantityRowControl item={item} editor={isActive ? fieldEditor : null}
+              disabled={Boolean(fieldEditor) && !isActive} onSaved={onRowFieldSaved} onClose={onRequestDiscard} />
+          ) : dropdown ? (
+            <ItemDropdownRowControl item={item} descriptor={descriptor} editor={isActive ? fieldEditor : null}
+              disabled={Boolean(fieldEditor) && !isActive} onSaved={onRowFieldSaved} onClose={onRequestDiscard} />
+          ) : isEditable && tagValue ? (
             <S.TagValueEditorRow>
               <S.TagLinks>{value}</S.TagLinks>
               <S.EditableTagButton
                 type="button"
                 aria-label={`Edit ${descriptor.label}`}
+                data-item-field={descriptor.key}
                 onClick={() => onRequestEdit?.(descriptor.key)}
               >
-                EDIT
+                <S.EditableSignal aria-hidden="true"><FieldEditIcon /></S.EditableSignal>
               </S.EditableTagButton>
             </S.TagValueEditorRow>
           ) : hasNotePreview ? (
@@ -98,9 +117,10 @@ const TableRow = memo(function TableRow({
               <S.NoteEditButton
                 type="button"
                 aria-label={`Edit ${descriptor.label}`}
+                data-item-field={descriptor.key}
                 onClick={() => onRequestEdit?.(descriptor.key)}
               >
-                EDIT
+                <S.EditableSignal aria-hidden="true"><FieldEditIcon /></S.EditableSignal>
               </S.NoteEditButton>
             </S.NotePreviewRow>
           ) : isEditable ? (
@@ -114,37 +134,24 @@ const TableRow = memo(function TableRow({
               data-item-field={descriptor.key}
               onClick={() => onRequestEdit?.(descriptor.key)}
             >
-              <S.EditableValueCopy>
+              <S.EditableValueCopy $singleLine={ITEM_DROPDOWN_EDITORS.has(descriptor.editor)}>
                 <DisplayValue value={value} />
               </S.EditableValueCopy>
               <S.EditableSignal aria-hidden="true">
-                {isActive ? 'ACTIVE' : 'EDIT'}
+                <FieldEditIcon active={isActive || savedFieldKey === fieldKey} />
               </S.EditableSignal>
             </S.EditableValueButton>
           ) : (
             <DisplayValue value={value} />
           )}
+          </S.FieldDisplay>
+          {!dropdown && savedFieldKey === fieldKey ? <S.FieldSavedStatus role="status">Saved</S.FieldSavedStatus> : null}
+          {isActive && fieldKey !== 'quantity' && !dropdown && valueRef.current ? <ItemTableFieldEditor anchor={valueRef.current} editor={fieldEditor}
+            onSave={onSave} onClose={onRequestDiscard} /> : null}
         </S.ValueCell>
       </S.ConsoleRow>
-      {isActive ? (
-        <S.FieldEditorRow>
-          <S.FieldEditorCell colSpan="3">
-            <div id={`item-field-editor-${descriptor.key}`}>
-              <ItemFieldEditor
-                descriptor={fieldEditor.descriptor}
-                draft={fieldEditor.draft}
-                error={fieldEditor.error}
-                isDirty={fieldEditor.isDirty}
-                saving={fieldEditor.saving}
-                onChange={fieldEditor.setDraft}
-                onSave={onSave}
-                onRequestDiscard={onRequestDiscard}
-              />
-            </div>
-          </S.FieldEditorCell>
-        </S.FieldEditorRow>
-      ) : null}
-    </Fragment>
+
+    </>
   );
 });
 
@@ -156,6 +163,8 @@ function AllDataView({
   onRequestDiscard,
   onRequestEdit,
   onSave,
+  onRowFieldSaved,
+  savedFieldKey,
 }) {
   const [noteSheetOpen, setNoteSheetOpen] = useState(false);
   const [hideEmpty, setHideEmpty] = useState(false);
@@ -183,18 +192,7 @@ function AllDataView({
           label: 'Tags',
           value: tags.length ? (
             <S.TagLinks aria-label="Item tags">
-              {tags.map((tag, index) => {
-                const label = String(tag).trim();
-                return (
-                  <S.TagLink
-                    key={`${label}-${index}`}
-                    to={getRetrievalTagHref(label)}
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    {label}
-                  </S.TagLink>
-                );
-              })}
+              <CompactTagRow returnKey={`item:${item._id || item.id}:fields`} tags={tags} name={item.name} boxId={ownership.placementLabel || ownership.boxId || ''} />
             </S.TagLinks>
           ) : '—',
         },
@@ -262,7 +260,7 @@ function AllDataView({
       label: 'RETENTION',
       tone: 'rose',
       rows: [
-        { fieldKey: 'keep-priority', label: 'Keep priority', value: formatKeepPriorityLabel(item?.keepPriority) || '—' },
+        { fieldKey: 'keep-priority', label: 'Keep priority', value: formatKeepPriorityLabel(getItemKeepPriority(item)) || '—' },
         { fieldKey: 'primary-owner', label: 'Primary owner', value: formatPrimaryOwner(item?.primaryOwnerName) || '—' },
         { fieldKey: 'condition', label: 'Condition', value: text(item?.condition) },
         { fieldKey: 'acquisition-type', label: 'Acquisition type', value: text(item?.acquisitionType) },
@@ -364,9 +362,11 @@ function AllDataView({
           {hideEmpty ? 'Show empty fields' : 'Hide empty fields'}
         </S.EmptyFieldsToggle>
       </S.TableToolbar>
-      <S.ConsoleTable>
-        <thead><tr><th>Domain</th><th>Attribute</th><th>Value</th></tr></thead>
+      <S.FieldSections>
         {visibleDomains.map((domain) => (
+          <S.FieldSection key={domain.key} $tone={domain.tone}>
+          <S.FieldSectionTitle>{domain.label}</S.FieldSectionTitle>
+          <S.ConsoleTable aria-label={`${domain.label} fields`}>
           <S.DomainGroup
             key={domain.key}
             $tone={domain.tone}
@@ -379,7 +379,6 @@ function AllDataView({
               <TableRow
                 key={`${domain.key}-${row.fieldKey || row.label}`}
                 {...row}
-                domain={domain.label}
                 fieldEditor={fieldEditor}
                 first={index === 0}
                 item={item}
@@ -388,11 +387,15 @@ function AllDataView({
                 onRequestEdit={onRequestEdit}
                 onOpenNote={() => setNoteSheetOpen(true)}
                 onSave={onSave}
+                savedFieldKey={savedFieldKey}
+                onRowFieldSaved={onRowFieldSaved}
               />
             ))}
           </S.DomainGroup>
+          </S.ConsoleTable>
+          </S.FieldSection>
         ))}
-      </S.ConsoleTable>
+      </S.FieldSections>
       </S.ConsoleFrame>
       {noteSheetOpen && note ? (
         <ItemNoteSheet
@@ -442,6 +445,8 @@ export default function ItemPageConsoleView({
   onRequestDiscard,
   onRequestEdit,
   onSave,
+  onRowFieldSaved,
+  savedFieldKey,
   viewMode = 'all',
 }) {
   return viewMode === 'hierarchy'
@@ -455,6 +460,8 @@ export default function ItemPageConsoleView({
         onRequestDiscard={onRequestDiscard}
         onRequestEdit={onRequestEdit}
         onSave={onSave}
+        onRowFieldSaved={onRowFieldSaved}
+        savedFieldKey={savedFieldKey}
       />
     );
 }

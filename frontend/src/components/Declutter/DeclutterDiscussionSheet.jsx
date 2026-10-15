@@ -1,22 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import * as S from './Declutter.styles';
+import * as D from './DeclutterDiscussion.styles';
+import DeclutterGlyph from './DeclutterGlyph';
+import DeclutterSharedVotes from './DeclutterSharedVotes';
+import useDialogFocus from '../../hooks/useDialogFocus';
+import { getDeclutterItemTheme } from './declutterItemTheme';
 import {
   getItemBoxLabel,
   getItemLocationLabel,
   getItemName,
-  getItemPreviewImageUrl,
   getSessionItemItem,
   getVotePresentationChoice,
-  getVotePresentationMeta,
 } from './declutterUtils';
 
 const FINAL_CHOICES = [
-  { value: 'keep', label: 'Keep', icon: '🛡', detail: 'Keep it in the household.' },
-  { value: 'toss', label: 'Toss', icon: '🗑', detail: 'Mark it for destruction.' },
-  { value: 'donate', label: 'Donate', icon: '💙', detail: 'Approve it; choose placement in Actions.' },
-  { value: 'sell', label: 'Sell', icon: '🏷', detail: 'Approve it; choose placement in Actions.' },
-  { value: 'gift', label: 'Gift', icon: '🎁', detail: 'Keep it active until it is given.' },
+  { value: 'keep', label: 'Keep', detail: 'Keep it in the household.' },
+  { value: 'toss', label: 'Toss', detail: 'Approve a trash exit; confirm departure in Actions.' },
+  { value: 'donate', label: 'Donate', detail: 'Approve it; choose placement in Actions.' },
+  { value: 'sell', label: 'Sell', detail: 'Approve it; choose placement in Actions.' },
+  { value: 'gift', label: 'Gift', detail: 'Keep it active until it is given.' },
 ];
 
 function inferRecommendation(candidate) {
@@ -34,16 +36,6 @@ function inferRecommendation(candidate) {
   return '';
 }
 
-function SharedVote({ player, icon, vote }) {
-  const meta = getVotePresentationMeta(vote);
-  return (
-    <S.DiscussionVote $tone={meta.tone}>
-      <span aria-hidden="true">{icon}</span>
-      <div><small>{player}</small><strong>{meta.label}</strong></div>
-    </S.DiscussionVote>
-  );
-}
-
 export default function DeclutterDiscussionSheet({
   candidate,
   saving = false,
@@ -55,149 +47,70 @@ export default function DeclutterDiscussionSheet({
   const recommendation = useMemo(() => inferRecommendation(candidate), [candidate]);
   const [choice, setChoice] = useState(recommendation);
   const [notes, setNotes] = useState('');
-  const closeButtonRef = useRef(null);
   const sheetRef = useRef(null);
   const item = getSessionItemItem(candidate);
-  const imageUrl = getItemPreviewImageUrl(item);
 
   useEffect(() => {
     setChoice(recommendation);
     setNotes('');
   }, [candidate?.id, recommendation]);
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    closeButtonRef.current?.focus();
-    const onKeyDown = (event) => {
-      if (event.key === 'Escape' && !saving) onClose?.();
-      if (event.key !== 'Tab') return;
-      const focusable = [...(sheetRef.current?.querySelectorAll(
-        'button:not(:disabled), textarea:not(:disabled), a[href]'
-      ) || [])];
-      if (!focusable.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [onClose, saving]);
+  useDialogFocus(sheetRef, () => { if (!saving) onClose?.(); }, Boolean(candidate),
+    'nav[aria-label="Declutter workspaces"] button[aria-pressed="true"]');
 
   if (!candidate) return null;
   const selected = FINAL_CHOICES.find((entry) => entry.value === choice);
   const recommendationMeta = FINAL_CHOICES.find((entry) => entry.value === recommendation);
 
   return (
-    <S.DiscussionScrim onMouseDown={(event) => {
+    <D.Scrim style={getDeclutterItemTheme(item)} onMouseDown={(event) => {
       if (event.target === event.currentTarget && !saving) onClose?.();
     }}>
-      <S.DiscussionSheet ref={sheetRef} role="dialog" aria-modal="true" aria-labelledby="discussion-sheet-title">
-        <S.DiscussionHeader>
-          <S.DiscussionClose
-            ref={closeButtonRef}
-            type="button"
-            onClick={onClose}
-            aria-label="Close shared decision"
-            disabled={saving}
-          >
-            ×
-          </S.DiscussionClose>
+      <D.Sheet ref={sheetRef} role="dialog" tabIndex={-1} aria-modal="true" aria-labelledby="discussion-sheet-title">
+        <D.SheetHeader>
           <div>
-            <S.DiscussionKicker>🐟 Discofish + 🦊 Laserfox · both present</S.DiscussionKicker>
-            <S.DiscussionTitle id="discussion-sheet-title">{getItemName(item)}</S.DiscussionTitle>
-            <S.DiscussionContext>{getItemBoxLabel(item)} · {getItemLocationLabel(item) || 'Location not set'}</S.DiscussionContext>
+            <D.Kicker>SHARED DECISION · BOTH PRESENT</D.Kicker>
+            <h2 id="discussion-sheet-title">{getItemName(item)}</h2>
+            <p>{getItemBoxLabel(item)} · {getItemLocationLabel(item) || 'Location not set'}</p>
           </div>
-        </S.DiscussionHeader>
-
-        <S.DiscussionBody>
-          <S.DiscussionItemRail>
-            <S.DiscussionThumb>
-              {imageUrl ? <img src={imageUrl} alt="" /> : <span>No image</span>}
-            </S.DiscussionThumb>
-            <S.DiscussionVotes aria-label="Original individual votes">
-              <SharedVote player="Discofish" icon="🐟" vote={candidate?.votes?.discofish} />
-              <SharedVote player="Laserfox" icon="🦊" vote={candidate?.votes?.laserfox} />
-            </S.DiscussionVotes>
-          </S.DiscussionItemRail>
-
-          <S.DiscussionRecommendation $hasRecommendation={Boolean(recommendationMeta)}>
+          <D.Close type="button" onClick={onClose} aria-label="Close shared decision" disabled={saving}>×</D.Close>
+        </D.SheetHeader>
+        <D.Body>
+          <D.Section><span>Original votes</span><DeclutterSharedVotes votes={candidate.votes} /></D.Section>
+          <D.Recommendation>
             <small>Suggested outcome</small>
-            <strong>
-              {recommendationMeta
-                ? `${recommendationMeta.icon} ${recommendationMeta.label}`
-                : 'No automatic winner'}
-            </strong>
-            <span>
-              {recommendationMeta
-                ? 'Based on your original votes. You can overwrite it together below.'
-                : 'Your choices genuinely conflict. Make the final household call together.'}
-            </span>
-          </S.DiscussionRecommendation>
-
-          <S.DiscussionSectionLabel>What is the final call?</S.DiscussionSectionLabel>
-          <S.DiscussionChoiceGrid>
-            {FINAL_CHOICES.map((entry) => (
-              <S.DiscussionChoice
-                key={entry.value}
-                type="button"
-                $tone={entry.value}
-                $selected={choice === entry.value}
-                aria-pressed={choice === entry.value}
-                onClick={() => setChoice(entry.value)}
-                disabled={saving}
-              >
-                <span aria-hidden="true">{entry.icon}</span>
-                <div><strong>{entry.label}</strong><small>{entry.detail}</small></div>
-              </S.DiscussionChoice>
-            ))}
-          </S.DiscussionChoiceGrid>
-
-          <S.DiscussionNotes>
+            <strong>{recommendationMeta ? recommendationMeta.label : 'No automatic winner'}</strong>
+            <span>{recommendationMeta
+              ? 'Based on your original votes. Choose a different outcome together if needed.'
+              : 'Choose the final household outcome together.'}</span>
+          </D.Recommendation>
+          <D.Section>
+            <span id="final-call-label">Final call</span>
+            <D.Choices role="group" aria-labelledby="final-call-label">
+              {FINAL_CHOICES.map((entry) => (
+                <D.Choice key={entry.value} type="button" $tone={entry.value}
+                  aria-pressed={choice === entry.value} onClick={() => setChoice(entry.value)} disabled={saving}>
+                  <DeclutterGlyph name={entry.value} /><span>{entry.label}</span>
+                </D.Choice>
+              ))}
+            </D.Choices>
+            <p>{selected?.detail || 'Select an outcome, then confirm it below.'}</p>
+          </D.Section>
+          <D.Notes>
             <span>Joint note <small>optional</small></span>
-            <textarea
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              maxLength={1000}
-              placeholder="What changed your minds?"
-              disabled={saving}
-            />
-          </S.DiscussionNotes>
-
-          {error ? (
-            <S.DiscussionError role="alert">
-              <strong>Final call was not saved</strong>
-              <span>{error}</span>
-            </S.DiscussionError>
-          ) : null}
-
-          <S.DiscussionCommit
-            type="button"
-            $tone={choice || 'pending'}
-            disabled={!choice || saving}
-            onClick={() => onResolve?.({ choice, notes })}
-          >
+            <textarea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={1000}
+              placeholder="What changed your minds?" disabled={saving} />
+          </D.Notes>
+          {error ? <D.Error role="alert"><strong>Final call was not saved</strong><span>{error}</span></D.Error> : null}
+        </D.Body>
+        <D.Footer>
+          <D.Confirm type="button" $tone={choice || 'pending'} disabled={!choice || saving}
+            onClick={() => onResolve?.({ choice, notes })}>
             {saving ? 'Saving final call…' : selected ? `Confirm ${selected.label}` : 'Choose a final call'}
-          </S.DiscussionCommit>
-
-          <S.DiscussionReopen
-            type="button"
-            disabled={saving}
-            onClick={onReopen}
-          >
-            Vote separately again
-          </S.DiscussionReopen>
-        </S.DiscussionBody>
-      </S.DiscussionSheet>
-    </S.DiscussionScrim>
+          </D.Confirm>
+          <D.Reopen type="button" disabled={saving} onClick={onReopen}>Vote separately again</D.Reopen>
+        </D.Footer>
+      </D.Sheet>
+    </D.Scrim>
   );
 }

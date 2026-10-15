@@ -9,7 +9,9 @@ import NewItemPhotoControl from './NewItemPhotoControl';
 import NewItemPostSaveDetails from './NewItemPostSaveDetails';
 import NewItemQuantityControl from './NewItemQuantityControl';
 import IntakeOptionalDetails from './IntakeOptionalDetails';
-import * as GridStyles from '../../styles/InventoryGridHeader.styles';
+import QuickItemCaptureForm from './QuickItemCaptureForm';
+import CaptureGlyph from './CaptureGlyph';
+import { readQuickCaptureDraft } from './quickCaptureDraft';
 import {
   Composer,
   CaptureRow,
@@ -24,10 +26,12 @@ import {
   DestinationStatusRow,
   DestinationMeta,
   DestinationRail,
-  Field,
   Form,
   InlineMessage,
-  Input,
+  NameField,
+  NameLabel,
+  NameInput,
+  CompartmentField,
   ItemTitle,
   Label,
   PrimaryButton,
@@ -99,8 +103,11 @@ export default function IntakeQuickItemMaker({
   onChangeTargetBox,
   onDraftNameChange,
   compact = false,
+  captureVariant,
   onItemError,
   onCancel,
+  initialDraft = null,
+  onBusyChange,
 }) {
   const normalizedMode = mode === 'inBox' ? 'inBox' : 'orphan';
   const isInBoxMode = normalizedMode === 'inBox';
@@ -113,13 +120,14 @@ export default function IntakeQuickItemMaker({
   const hasSelectedBox = isInBoxMode && !!targetBoxId;
   const nameRef = useRef(null);
 
-  const [name, setName] = useState('');
-  const [quantity, setQuantity] = useState(1);
-  const [description, setDescription] = useState('');
-  const [notes, setNotes] = useState('');
-  const [category, setCategory] = useState(DEFAULT_ITEM_CATEGORY);
+  const draft = useMemo(() => readQuickCaptureDraft(initialDraft), [initialDraft]);
+  const [name, setName] = useState(() => draft?.name || '');
+  const [quantity, setQuantity] = useState(() => draft?.quantity || 1);
+  const [description, setDescription] = useState(() => draft?.description || '');
+  const [notes, setNotes] = useState(() => draft?.notes || '');
+  const [category, setCategory] = useState(() => draft?.category || DEFAULT_ITEM_CATEGORY);
   const [condition, setCondition] = useState('unknown');
-  const [tags, setTags] = useState([]);
+  const [tags, setTags] = useState(() => draft?.tags || []);
   const [tagDraft, setTagDraft] = useState('');
   const [photoFile, setPhotoFile] = useState(null);
   const [photoSource, setPhotoSource] = useState('');
@@ -225,6 +233,7 @@ export default function IntakeQuickItemMaker({
     if (!canSubmit) return;
 
     setBusy(true);
+    onBusyChange?.(true);
     setError('');
     setPhotoError('');
 
@@ -299,6 +308,7 @@ export default function IntakeQuickItemMaker({
       onItemError?.(submitError);
     } finally {
       setBusy(false);
+      onBusyChange?.(false);
     }
   };
 
@@ -373,48 +383,18 @@ export default function IntakeQuickItemMaker({
   }
 
   if (compact) {
-    return (
-      <GridStyles.QuickCaptureComposer>
-        <GridStyles.QuickCaptureForm onSubmit={handleSubmit}>
-          <GridStyles.QuickCaptureField>
-            Item name
-            <GridStyles.QuickCaptureInput
-              id="quick-orphan-name"
-              ref={nameRef}
-              type="text"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="What do you need to remember?"
-              disabled={busy}
-              autoFocus
-              required
-            />
-          </GridStyles.QuickCaptureField>
-          <GridStyles.QuickCaptureField>
-            Description
-            <GridStyles.QuickCaptureInput
-              id="quick-orphan-description"
-              type="text"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              placeholder="A little identifying detail"
-              disabled={busy}
-            />
-          </GridStyles.QuickCaptureField>
-          <GridStyles.QuickCaptureActions>
-            {onCancel ? (
-              <GridStyles.QuickCaptureButton type="button" onClick={onCancel} disabled={busy}>
-                Cancel
-              </GridStyles.QuickCaptureButton>
-            ) : null}
-            <GridStyles.QuickCaptureButton type="submit" $primary disabled={!canSubmit}>
-              {busy ? 'Saving…' : 'Capture'}
-            </GridStyles.QuickCaptureButton>
-          </GridStyles.QuickCaptureActions>
-        </GridStyles.QuickCaptureForm>
-        {error ? <GridStyles.QuickCaptureError role="alert">{error}</GridStyles.QuickCaptureError> : null}
-      </GridStyles.QuickCaptureComposer>
-    );
+    return <>
+    {isInBoxMode && !targetBox?.compartmentKey ? <BoxCompartmentSelect box={targetBox} value={chosenCompartment} onChange={setChosenCompartment} disabled={busy} /> : null}
+    <QuickItemCaptureForm
+      variant={captureVariant}
+      name={name} onNameChange={setName} nameRef={nameRef}
+      description={description} onDescriptionChange={setDescription}
+      notes={notes} onNotesChange={setNotes} tags={tags} onTagsChange={setTags}
+      tagDraft={tagDraft} onTagDraftChange={setTagDraft} onStageTag={stageTag}
+      category={category} onCategoryChange={setCategory}
+      busy={busy} canSubmit={canSubmit} error={error} onSubmit={handleSubmit} onCancel={onCancel}
+      mode={normalizedMode} targetBoxId={targetBoxId} quantity={quantity}
+    /></>;
   }
 
   return (
@@ -426,8 +406,8 @@ export default function IntakeQuickItemMaker({
         </div>
       ) : null}
       <WizardIntro $inBox={hasSelectedBox}>
-        <WizardTitle $inBox={hasSelectedBox}>A new item enters the inventory.</WizardTitle>
-        <WizardPrompt>Where should it go?</WizardPrompt>
+        <WizardTitle $inBox={hasSelectedBox}>Item capture</WizardTitle>
+        <WizardPrompt>Choose a destination, then add the essentials.</WizardPrompt>
       </WizardIntro>
       <DestinationRail $inBox={hasSelectedBox}>
         <DestinationIcon $inBox={hasSelectedBox} aria-hidden="true">
@@ -445,19 +425,22 @@ export default function IntakeQuickItemMaker({
             </DestinationLabel>
             {onChangeTargetBox ? (
               <QuietButton $destination type="button" onClick={onChangeTargetBox} disabled={busy}>
-                Change
+                <CaptureGlyph kind="change" /> Change
               </QuietButton>
             ) : null}
           </DestinationStatusRow>
           <DestinationHint>{hasSelectedBox ? 'Current box' : 'Temporary holding area'}</DestinationHint>
         </DestinationCopy>
       </DestinationRail>
-      {isInBoxMode && !targetBox?.compartmentKey ? <BoxCompartmentSelect box={targetBox} value={chosenCompartment} onChange={setChosenCompartment} disabled={busy} /> : null}
+      {isInBoxMode && !targetBox?.compartmentKey ? (
+        <CompartmentField><BoxCompartmentSelect box={targetBox} value={chosenCompartment} onChange={setChosenCompartment} disabled={busy} /></CompartmentField>
+      ) : null}
 
       <Form onSubmit={handleSubmit}>
-        <Field>
-          <Label htmlFor="new-item-name">Item name</Label>
-          <Input
+        <NameField>
+          <NameLabel htmlFor="new-item-name">Item name</NameLabel>
+          <CaptureGlyph kind="item" />
+          <NameInput
             id="new-item-name"
             ref={nameRef}
             type="text"
@@ -465,11 +448,11 @@ export default function IntakeQuickItemMaker({
             autoCorrect="on"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="Whatchya got there??"
+            placeholder="Item name"
             disabled={busy}
             required
           />
-        </Field>
+        </NameField>
 
         <CaptureRow>
           <PhotoModule>
@@ -478,15 +461,13 @@ export default function IntakeQuickItemMaker({
               type="button"
               aria-expanded={photoOpen}
               aria-controls="new-item-photo-controls"
+              disabled={busy}
               onClick={() => setPhotoOpen((value) => !value)}
             >
               {photoPreviewUrl ? (
                 <PhotoMiniPreview src={photoPreviewUrl} alt="" />
               ) : (
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                  <path d="M4 7h4l1.5-2h5L16 7h4v12H4z" />
-                  <circle cx="12" cy="13" r="3.2" />
-                </svg>
+                <CaptureGlyph kind="photo" />
               )}
               <PhotoActionCopy>
                 <PhotoAction>{photoFile ? 'Photo ready' : 'Add photo'}</PhotoAction>
@@ -546,9 +527,9 @@ export default function IntakeQuickItemMaker({
           disabled={busy}
         />
 
-        {error ? <InlineMessage $error>{error}</InlineMessage> : null}
+        {error ? <InlineMessage $error role="alert">{error}</InlineMessage> : null}
         <PrimaryButton type="submit" disabled={!canSubmit}>
-          {busy ? 'Adding…' : resolvedSubmitLabel}
+          <span>{busy ? 'Adding…' : resolvedSubmitLabel}</span><CaptureGlyph kind="capture" />
         </PrimaryButton>
       </Form>
     </Composer>

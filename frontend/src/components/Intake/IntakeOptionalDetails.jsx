@@ -7,11 +7,12 @@ import {
   TagStageButton,
 } from './NewItemComposer.styles';
 import * as S from './IntakeOptionalDetails.styles';
+import CaptureGlyph from './CaptureGlyph';
 
 const DETAIL_FIELDS = [
-  { id: 'description', label: 'Description', symbol: '≡' },
-  { id: 'tags', label: 'Tags', symbol: '#' },
-  { id: 'notes', label: 'Notes', symbol: '✎' },
+  { id: 'description', label: 'Description' },
+  { id: 'tags', label: 'Tags' },
+  { id: 'notes', label: 'Notes' },
 ];
 
 const CONDITION_OPTIONS = [
@@ -49,7 +50,7 @@ export default function IntakeOptionalDetails({
   return (
     <S.Section aria-label="Optional item details">
       <S.Switches>
-        {DETAIL_FIELDS.map(({ id, label, symbol }) => (
+        {DETAIL_FIELDS.map(({ id, label }) => (
           <S.Switch
             key={id}
             type="button"
@@ -57,9 +58,11 @@ export default function IntakeOptionalDetails({
             $active={isOpen(id)}
             aria-expanded={isOpen(id)}
             aria-controls={`new-item-${id}-panel`}
+            data-filled={id === 'tags' ? tags.length > 0 : Boolean((id === 'notes' ? notes : description)?.trim())}
+            disabled={disabled}
             onClick={() => toggleField(id)}
           >
-            <span aria-hidden="true">{symbol}</span>{label}
+            <CaptureGlyph kind={id} /><span>{label}</span>
           </S.Switch>
         ))}
       </S.Switches>
@@ -139,9 +142,10 @@ export default function IntakeOptionalDetails({
         type="button"
         aria-expanded={finerOpen}
         aria-controls="new-item-finer-details"
+        disabled={disabled}
         onClick={() => setFinerOpen((current) => !current)}
       >
-        <span>Finer details</span><span aria-hidden="true">{finerOpen ? '−' : '+'}</span>
+        <CaptureGlyph kind="category" /><span>Finer details</span><span aria-hidden="true">{finerOpen ? '−' : '+'}</span>
       </S.FinerButton>
       {finerOpen ? (
         <S.FinerGrid id="new-item-finer-details">

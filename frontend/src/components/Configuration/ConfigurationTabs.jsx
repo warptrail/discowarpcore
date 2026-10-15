@@ -9,6 +9,7 @@ const Stack = styled.div`
   gap: 1rem;
   min-width: 0;
   @media (max-width: 700px) { grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 1100px) { grid-template-columns: 200px minmax(0, 1fr); }
 `;
 const Rail = styled.div`
   display: grid;

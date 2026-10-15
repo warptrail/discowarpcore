@@ -104,6 +104,10 @@ const Wrap = styled.div`
     box-shadow: none;
   `}
 
+  ${({ $consoleLog }) => $consoleLog && css`
+    && { min-height: 32px; margin: 0; padding: .25rem 2.5rem .25rem .1rem; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+  `}
+
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.5rem;
     margin: 6px 0;
@@ -143,6 +147,18 @@ const Wrap = styled.div`
       box-shadow: none;
     `}
   }
+
+  ${({ $operationsDock, $idle }) => $operationsDock && $idle && css`
+    && {
+      margin: 0;
+      min-height: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: var(--dw-surface);
+      box-shadow: none;
+    }
+  `}
 
   ${({ $itemPageRail }) =>
     $itemPageRail &&
@@ -188,6 +204,17 @@ const Wrap = styled.div`
         border-radius: 8px;
       }
     `}
+
+  ${({ $headerMounted, $idle, $variant }) => $headerMounted && css`
+    && {
+      border: 0;
+      border-left: ${!$idle && ['danger', 'warning', 'success'].includes($variant) ? '2px solid currentColor' : '0'};
+      border-radius: 0;
+      margin-inline: 0;
+      box-shadow: none;
+      background: transparent;
+    }
+  `}
 
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
     flex-direction: column;
@@ -397,6 +424,14 @@ const IdleAddon = styled.div`
   align-items: center;
   min-width: 0;
   margin-left: auto;
+
+  ${({ $operations }) => $operations && css`
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'finder actions' 'filters filters';
+    align-items: start;
+    gap: 0.18rem 0.35rem;
+  `}
 
   ${({ $centered }) => $centered && css`
     position: absolute;
@@ -878,10 +913,12 @@ export default function Toast({
   themeStyle = null,
   allowOverflow = false,
   operationsDock = false,
+  headerMounted = false,
   quietIdle = false,
 }) {
   const isFieldCommandRail = presentation === 'item-field';
   const isBatchConsole = presentation === 'batch-console';
+  const isConsoleLog = presentation === 'console-log';
   const isItemPageRail = presentation === 'item-page' || isFieldCommandRail;
   const resolvedCompactProgress = Number.isFinite(Number(compactProgress))
     ? Math.min(1, Math.max(0, Number(compactProgress)))
@@ -910,6 +947,7 @@ export default function Toast({
 
   return (
     <Wrap
+      $headerMounted={headerMounted}
       $variant={variant}
       $idle={isIdle}
       $themedIdle={isIdle && themedIdle}
@@ -923,6 +961,7 @@ export default function Toast({
       $operationsDock={operationsDock}
       $batchConsole={isBatchConsole}
       $quietIdle={quietIdle && isIdle}
+      $consoleLog={isConsoleLog}
       style={{
         ...retrievalThemeStyle,
         ...(themeStyle || {}),
@@ -993,10 +1032,10 @@ export default function Toast({
                   {idleText}
                 </IdlePromptButton>
               ) : (
-                isValidElement(idleText) ? idleText : <span>{idleText}</span>
+                isValidElement(idleText) ? idleText : operationsDock && !idleText ? null : <span>{idleText}</span>
               )}
               {idleAddon ? (
-                <IdleAddon $centered={idleAddonCentered}>{idleAddon}</IdleAddon>
+                <IdleAddon $centered={idleAddonCentered} $operations={operationsDock}>{idleAddon}</IdleAddon>
               ) : null}
             </Idle>
           ) : null

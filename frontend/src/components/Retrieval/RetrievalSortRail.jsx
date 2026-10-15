@@ -1,5 +1,8 @@
 import { useMemo } from 'react';
-import FilterCombobox from './FilterCombobox';
+import SortFieldPanel from './SortFieldPanel';
+import SortDirectionToggle from '../InventoryFilters/SortDirectionToggle';
+import SortSymbol from '../InventoryFilters/SortSymbol';
+import { sortAfterFieldClick } from './retrievalBrowseSort';
 import * as S from './Retrieval.styles';
 
 function getSortBaseKey(value) {
@@ -27,23 +30,31 @@ function getBaseSortOptions(options) {
 }
 
 export default function RetrievalSortRail({
-  id = 'retrieval-sort',
   sortOptions = [],
   selectedSort = '',
   onSortChange,
+  secondary = false,
+  backdropLabel = null,
 }) {
   const selectedBaseKey = getSortBaseKey(selectedSort);
   const descending = isDescendingSort(selectedSort);
   const baseOptions = useMemo(
-    () => getBaseSortOptions(sortOptions),
-    [sortOptions],
+    () => getBaseSortOptions(sortOptions)
+      .filter(({ key }) => key !== 'random')
+      .filter(({ key }) => secondary !== ['location', 'box', 'name', 'tag'].includes(key))
+      .map((option) => ({ ...option, icon: <SortSymbol field={option.key} /> })),
+    [sortOptions, secondary],
   );
   const hasDescendingVariant = sortOptions.some(
     (option) => String(option?.key || '') === `${selectedBaseKey}_desc`,
   );
 
   const selectBaseSort = (nextBaseKey) => {
-    const directionKey = `${nextBaseKey}${descending ? '_desc' : ''}`;
+    const directionKey = sortAfterFieldClick(selectedSort, nextBaseKey);
+    if (directionKey === 'random') {
+      onSortChange?.('random');
+      return;
+    }
     const nextKey = sortOptions.some(
       (option) => String(option?.key || '') === directionKey,
     )
@@ -57,52 +68,12 @@ export default function RetrievalSortRail({
     onSortChange?.(`${selectedBaseKey}${descending ? '' : '_desc'}`);
   };
 
+  if (!baseOptions.length) return null;
   return (
     <S.InlineSortRail role="group" aria-label="Sort retrieval results">
-      {baseOptions.length <= 4 ? (
-        <S.SortFieldButtons role="group" aria-label="Sort field" $count={baseOptions.length}>
-          {baseOptions.map((option) => (
-            <S.SortFieldButton
-              key={option.key}
-              type="button"
-              aria-pressed={selectedBaseKey === option.key}
-              aria-label={`Sort by ${option.label}`}
-              title={option.label}
-              onClick={() => selectBaseSort(option.key)}
-            >
-              {{ location: 'Location', box: 'Box ID', name: 'Name', tag: 'Tags' }[option.key] || option.label}
-            </S.SortFieldButton>
-          ))}
-        </S.SortFieldButtons>
-      ) : (
-      <S.InlineSortSelect>
-        <FilterCombobox
-          id={id}
-          name={id.replace(/-/g, '_')}
-          ariaLabel="Sort field"
-          placeholder="Sort by"
-          options={baseOptions}
-          selectedKey={selectedBaseKey}
-          onSelectedKeyChange={selectBaseSort}
-          emptyMessage="No sort fields match"
-          readOnlySelect
-          variant="sort"
-        />
-      </S.InlineSortSelect>
-      )}
-
-      <S.InlineSortDirectionButton
-        type="button"
-        onClick={toggleDirection}
-        disabled={!hasDescendingVariant}
-        aria-pressed={descending}
-        aria-label={`Sort ${descending ? 'descending' : 'ascending'}. Activate to reverse direction.`}
-        title={`Sort ${descending ? 'descending' : 'ascending'} — reverse direction`}
-        $descending={descending}
-      >
-        <span aria-hidden="true">↑</span>
-        <span aria-hidden="true">↓</span>
-      </S.InlineSortDirectionButton>
+      <SortFieldPanel options={baseOptions} value={selectedBaseKey} onChange={selectBaseSort} iconOnly backdropLabel={backdropLabel}
+        endControl={secondary ? null : <SortDirectionToggle descending={descending}
+          disabled={!hasDescendingVariant} onClick={toggleDirection} />} />
     </S.InlineSortRail>
   );
 }

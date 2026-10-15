@@ -1,3 +1,4 @@
+import CompactTagRow from './Tags/CompactTagRow';
 import { controlStyles } from '../styles/primitives';
 // src/components/ItemCentricViewPanel.jsx
 import React, { useState, useMemo, useEffect } from 'react';
@@ -105,9 +106,7 @@ export default function ItemCentricViewPanel({
         <Section>
           <SectionTitle>Tags</SectionTitle>
           <TagRow>
-            {tags.map((t) => (
-              <Tag key={t}>{t}</Tag>
-            ))}
+            <CompactTagRow returnKey={`box-item:${item._id || item.id}:preview`} tags={tags} name={item?.name || 'item'} />
           </TagRow>
         </Section>
       )}
@@ -252,14 +251,7 @@ const TagRow = styled.div`
   gap: 8px;
 `;
 
-const Tag = styled.span`
-  padding: 4px 10px;
-  border-radius: var(--dw-radius);
-  border: 1px dashed ${({ theme }) => theme?.colors?.accent || '#4debd4'};
-  background: rgba(77, 235, 212, 0.06);
-  color: ${({ theme }) => theme?.colors?.accentText || '#bff6ef'};
-  font-size: 0.85rem;
-`;
+
 
 const EmptyState = styled.div`
   padding: 32px;

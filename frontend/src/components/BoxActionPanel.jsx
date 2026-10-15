@@ -41,6 +41,7 @@ export default function BoxActionPanel({
   activePanelState = null,
   onActivePanelStateChange,
   onImageStateChanged,
+  paginatedDetails = false,
 }) {
   const controller = useBoxActionPanelController({
     boxTree,
@@ -447,10 +448,10 @@ export default function BoxActionPanel({
   }, [activePanel, onActivePanelStateChange]);
 
   return (
-    <PanelContainer>
+    <PanelContainer $paged={paginatedDetails && activePanel === 'edit'}>
       {isFocusedWorkspace ? (
         <WorkspaceRail>
-          <BackButton type="button" onClick={handleBackToManage} disabled={isDestroyBusy} aria-label="Back to manage">
+          <BackButton $paged={paginatedDetails && activePanel === 'edit'} type="button" onClick={handleBackToManage} disabled={isDestroyBusy} aria-label="Back to manage">
             ‹
           </BackButton>
         </WorkspaceRail>
@@ -477,12 +478,13 @@ export default function BoxActionPanel({
         onDidReleaseChildren={handleDidReleaseChildren}
       />
 
-      <DetailsPanel $open={!isDestroyConfirmMode && activePanel === 'edit'} $maxHeight={760}>
+      <DetailsPanel $open={!isDestroyConfirmMode && activePanel === 'edit'} $paged={paginatedDetails} $maxHeight={760}>
         {!isDestroyConfirmMode && activePanel === 'edit' && (
           <EditBoxDetailsForm
             compact
             flat
             autoSave
+            paginated={paginatedDetails}
             boxMongoId={boxMongoId}
             initial={boxTree}
             onAutoSaved={handleAutoSaved}

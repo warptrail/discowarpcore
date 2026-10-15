@@ -1,6 +1,6 @@
 import { controlStyles } from '../../styles/primitives';
-import React, { useMemo } from 'react';
-import styled from 'styled-components';
+import React, { useMemo, useState } from 'react';
+import styled, { css } from 'styled-components';
 import { formatTokenLabel } from '../../constants/renderTokens';
 import tokenColorsCsv from '../../assets/token-colors.csv?raw';
 import {
@@ -62,6 +62,7 @@ const BackButton = styled.button`
 
   ${controlStyles}
   flex: 0 0 auto;
+  min-width: 40px;
   color: var(--dw-violet);
 `;
 
@@ -73,6 +74,11 @@ const OptionGrid = styled.div`
   @media (max-width: 820px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  ${({ $paged }) => $paged && css`
+    @media (max-width: 560px) and (max-height: 640px) {
+      && { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+  `}
 `;
 
 const OptionTile = styled.button`
@@ -103,6 +109,15 @@ const OptionTile = styled.button`
   box-shadow: none;
   min-width: 0;
   overflow-wrap: anywhere;
+  ${({ $paged }) => $paged && 'min-height: 52px;'}
+`;
+const Pagination = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--dw-text-secondary);
+  font: 500 .75rem/1.3 var(--dw-font-data);
 `;
 
 const OptionName = styled.span`
@@ -117,6 +132,9 @@ const OptionMeta = styled.span`
   text-transform: none;
   color: ${({ $textColor }) => $textColor};
   opacity: 0.78;
+  ${({ $paged }) => $paged && css`
+    @media (max-width: 560px) and (max-height: 640px) { display: none; }
+  `}
 `;
 
 export default function RenderTokenOptionPicker({
@@ -127,13 +145,18 @@ export default function RenderTokenOptionPicker({
   disabled = false,
   onSelect = null,
   onBack = null,
+  pageSize = 0,
 }) {
   ensureTokenColorMapLoaded(tokenColorsCsv);
+  const [page, setPage] = useState(() => pageSize > 0 ? Math.max(0, Math.floor(options.findIndex((option) => option.id === currentValue) / pageSize)) : 0);
 
   const safeOptions = useMemo(
     () => (Array.isArray(options) ? options : []).filter((option) => option?.id),
     [options],
   );
+  const pageCount = pageSize > 0 ? Math.max(1, Math.ceil(safeOptions.length / pageSize)) : 1;
+  const safePage = Math.min(page, pageCount - 1);
+  const visibleOptions = pageSize > 0 ? safeOptions.slice(safePage * pageSize, (safePage + 1) * pageSize) : safeOptions;
 
   return (
     <PickerShell>
@@ -147,8 +170,8 @@ export default function RenderTokenOptionPicker({
         </BackButton>
       </PickerHeader>
 
-      <OptionGrid>
-        {safeOptions.map((option) => {
+      <OptionGrid $paged={pageSize > 0}>
+        {visibleOptions.map((option) => {
           const optionId = String(option.id || '').trim();
           const selected = optionId === currentValue;
           const surfaceColors = getTokenSurfaceColors(optionId, fieldKey);
@@ -158,6 +181,7 @@ export default function RenderTokenOptionPicker({
               key={optionId}
               type="button"
               $selected={selected}
+              $paged={pageSize > 0}
               aria-pressed={selected}
               $borderColor={surfaceColors.borderColor}
               $gradientStart={surfaceColors.gradientStart}
@@ -167,13 +191,18 @@ export default function RenderTokenOptionPicker({
               onClick={() => onSelect?.(optionId)}
             >
               <OptionName>{option.label || formatTokenLabel(optionId)}</OptionName>
-              <OptionMeta $textColor={surfaceColors.textColor}>
+              <OptionMeta $paged={pageSize > 0} $textColor={surfaceColors.textColor}>
                 {selected ? 'Selected' : fieldLabel}
               </OptionMeta>
             </OptionTile>
           );
         })}
       </OptionGrid>
+      {pageCount > 1 ? <Pagination aria-label="Render token pages">
+        <BackButton type="button" disabled={disabled || safePage === 0} onClick={() => setPage(safePage - 1)} aria-label="Previous render tokens">‹</BackButton>
+        <span role="status">{safePage + 1} / {pageCount}</span>
+        <BackButton type="button" disabled={disabled || safePage === pageCount - 1} onClick={() => setPage(safePage + 1)} aria-label="Next render tokens">›</BackButton>
+      </Pagination> : null}
     </PickerShell>
   );
 }

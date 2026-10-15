@@ -311,7 +311,7 @@ async function hydrateCandidates(candidates, player) {
   const [items, boxes] = itemIds.length
     ? await Promise.all([
         Item.find({ _id: { $in: itemIds } })
-          .select('_id name quantity description notes tags image imagePath category keepPriority primaryOwnerName item_status disposition disposition_at disposition_notes declutterReadiness declutterExitState isIntendedGift location orphanedAt')
+          .select('_id name quantity missing description notes tags image imagePath category keepPriority primaryOwnerName item_status disposition disposition_at disposition_notes saleDetails giftDetails departureDetailsHistory declutterReadiness declutterExitState isIntendedGift location orphanedAt')
           .lean(),
         Box.find({ items: { $in: itemIds } })
           .select('_id box_id label isComplexBox compartments itemCompartments location locationId items')

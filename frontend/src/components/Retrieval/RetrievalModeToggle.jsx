@@ -1,28 +1,33 @@
 import * as S from './Retrieval.styles';
+import { ControlToggleGroup, ControlToggleButton } from './RetrievalControlToggle.styles';
 
-export default function RetrievalModeToggle({ mode = 'items', onChange }) {
+export default function RetrievalModeToggle({ mode = 'items', onChange, compact = false, desktop = false }) {
+  const Group = desktop ? ControlToggleGroup : S.ModeToggleGroup;
+  const Button = desktop ? ControlToggleButton : S.ModeToggleButton;
   return (
     <S.ModeToggleRow>
-      <S.ModeToggleGroup role="tablist" aria-label="Retrieval mode">
-        <S.ModeToggleButton
+      <Group role="tablist" aria-label="Retrieval mode" $compact={compact}>
+        <Button
           type="button"
           role="tab"
           aria-selected={mode === 'items'}
           $active={mode === 'items'}
+          $compact={compact}
           onClick={() => onChange?.('items')}
         >
           Items
-        </S.ModeToggleButton>
-        <S.ModeToggleButton
+        </Button>
+        <Button
           type="button"
           role="tab"
           aria-selected={mode === 'boxes'}
           $active={mode === 'boxes'}
+          $compact={compact}
           onClick={() => onChange?.('boxes')}
         >
           Boxes
-        </S.ModeToggleButton>
-      </S.ModeToggleGroup>
+        </Button>
+      </Group>
     </S.ModeToggleRow>
   );
 }

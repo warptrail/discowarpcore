@@ -1,3 +1,4 @@
+import useTagSourceRestoration from './hooks/useTagSourceRestoration';
 import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
@@ -5,10 +6,10 @@ import styled from 'styled-components';
 import GlobalStyles from './styles/globalStyles';
 
 import Header from './components/Header';
-import { MOBILE_BREAKPOINT } from './styles/tokens';
+import DesktopShell from './components/DesktopWorkspace/DesktopShell';
 
 const OperationsPage = lazy(() => import('./components/OperationsPage'));
-const AllItemsList = lazy(() => import('./components/AllItemsList'));
+const AllItemsPlaceholder = lazy(() => import('./components/AllItemsPlaceholder'));
 const BoxDetailView = lazy(() => import('./components/BoxDetailView'));
 const BoxCreate = lazy(() => import('./components/BoxCreate'));
 const ItemPage = lazy(() => import('./components/ItemPage'));
@@ -18,39 +19,9 @@ const RetrievalPage = lazy(() => import('./components/Retrieval/RetrievalPage'))
 const DeclutterDeckPage = lazy(() => import('./components/Declutter/DeclutterDeckPage'));
 const DeclutterHistoryPage = lazy(() => import('./components/Declutter/DeclutterHistoryPage'));
 const LocationPage = lazy(() => import('./components/Location/LocationPage'));
+const LoadoutsPage = lazy(() => import('./components/Loadouts/LoadoutsPage'));
 
 // ! STYLES
-const AppContainer = styled.div`
-  max-width: ${({ $retrievalPage, $itemPage }) => (
-    $retrievalPage ? '1280px' : $itemPage ? '1440px' : '1024px'
-  )};
-  margin: 0 auto;
-  padding: ${({ $retrievalPage }) =>
-    $retrievalPage ? 'clamp(0.75rem, 2vw, 1.25rem)' : 'clamp(0.75rem, 2vw, 1.5rem)'};
-  font-family: var(--dw-font-ui);
-  min-height: 100dvh;
-  min-width: 0;
-
-  @media (min-width: 980px) {
-    ${({ $retrievalPage }) => $retrievalPage && `
-      display: grid;
-      grid-template-rows: auto minmax(0, 1fr);
-      gap: 0.38rem;
-      height: 100dvh;
-      overflow: hidden;
-      padding-block: 0.38rem 0.5rem;
-    `}
-  }
-
-  @media (min-width: calc(${MOBILE_BREAKPOINT} + 1px)) and (max-width: 899px) {
-    padding: 0.75rem;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    max-width: 100%;
-    padding: 0;
-  }
-`;
 
 const SkipLink = styled.a`
   position: fixed;
@@ -96,7 +67,7 @@ const RouteHeading = styled.h1`
 function getRouteTitle(pathname) {
   if (/^\/boxes\//.test(pathname)) return 'Box inventory';
   if (/^\/items\//.test(pathname)) return 'Item details';
-  if (/^\/tags\//.test(pathname)) return 'Inventory by tag';
+  if (/^\/tags?\//.test(pathname)) return 'Inventory by tag';
   const titles = {
     '/': 'Operations',
     '/operations': 'Operations',
@@ -110,6 +81,7 @@ function getRouteTitle(pathname) {
     '/logs': 'Configuration',
     '/location': 'Location',
     '/retrieval': 'Retrieval',
+    '/loadouts': 'Loadouts',
   };
   return titles[pathname.replace(/\/$/, '') || '/'] || 'Inventory';
 }
@@ -180,12 +152,14 @@ function LegacyLogsRedirect() {
 }
 
 function App() {
+  useTagSourceRestoration();
   const location = useLocation();
-  const isRetrievalPage = /^\/(?:retrieval|tags\/[^/]+)\/?$/.test(
+  const isRetrievalPage = /^\/(?:retrieval|tags?\/[^/]+)\/?$/.test(
     location.pathname,
   );
   const isItemPage = /^\/items\/[^/]+\/?$/.test(location.pathname);
   const isIntakePage = /^\/intake\/?$/.test(location.pathname);
+  const isLoadoutsPage = /^\/loadouts\/?$/.test(location.pathname);
   const isImportPage = /^\/(?:import|configuration)\/?$/.test(location.pathname);
   const routeTitle = getRouteTitle(location.pathname);
   useEffect(() => {
@@ -211,7 +185,7 @@ function App() {
   const retrievalPage = <RetrievalPage key={location.pathname} />;
 
   return (
-    <AppContainer $retrievalPage={isRetrievalPage} $itemPage={isItemPage}>
+    <DesktopShell $retrievalPage={isRetrievalPage} $itemPage={isItemPage}>
       <GlobalStyles />
       <SkipLink
         href="#route-content"
@@ -231,7 +205,7 @@ function App() {
         aria-label={isIntakePage ? undefined : routeTitle}
         $retrievalPage={isRetrievalPage}
       >
-        {!isImportPage && <RouteHeading>{routeTitle}</RouteHeading>}
+        {!isImportPage && !isLoadoutsPage && <RouteHeading>{routeTitle}</RouteHeading>}
         <Suspense fallback={<RouteLoading role="status">Loading inventory…</RouteLoading>}>
           <Routes>
             <Route path="/" element={<OperationsPage />} />
@@ -241,18 +215,20 @@ function App() {
             <Route path="/intake" element={<IntakeRoutePage />} />
             <Route path="/configuration" element={<ConfigurationPage />} />
             <Route path="/import" element={<ConfigurationPage />} />
-            <Route path="/all-items" element={<AllItemsList />} />
+            <Route path="/all-items" element={<AllItemsPlaceholder />} />
             <Route path="/declutter" element={<DeclutterDeckPage />} />
             <Route path="/declutter/history" element={<DeclutterHistoryPage />} />
             <Route path="/logs" element={<LegacyLogsRedirect />} />
             <Route path="/location" element={<LocationPage />} />
+            <Route path="/loadouts" element={<LoadoutsPage />} />
             <Route path="/retrieval" element={retrievalPage} />
             <Route path="/tags/:tag" element={retrievalPage} />
+            <Route path="/tag/:tag" element={retrievalPage} />
             <Route path="/items/:itemId" element={<ItemPage />} />
           </Routes>
         </Suspense>
       </RouteContent>
-    </AppContainer>
+    </DesktopShell>
   );
 }
 

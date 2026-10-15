@@ -27,11 +27,11 @@ const uiFont = 'var(--dw-font-ui)';
 export const Page = styled.section`
   display: grid;
   gap: 0.8rem;
-  padding: 0.2rem 0;
+  padding: 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.58rem;
-    padding: 0.05rem 0;
+    padding: 0;
   }
 `;
 
@@ -80,6 +80,7 @@ export const PageMainGrid = styled.div`
     min-height: 0;
     gap: clamp(1rem, 2vw, 1.6rem);
   }
+  @media (min-width: 1100px) { grid-template-columns: minmax(300px, 420px) minmax(0, 1fr); }
 `;
 
 const terminalScrollbar = css`

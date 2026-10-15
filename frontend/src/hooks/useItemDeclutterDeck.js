@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  nominateDeclutterCandidates,
   removeDeclutterCandidateByItem,
 } from '../api/declutterDeck';
+import { useHouseholdProfile } from '../components/HouseholdProfile/HouseholdProfileContext';
+import useDeclutterNomination, { PROFILE_REQUIRED } from './useDeclutterNomination';
 
 export default function useItemDeclutterDeck({
   item,
@@ -12,6 +13,8 @@ export default function useItemDeclutterDeck({
   successTimeoutMs = 0,
   onSuccessTimeout,
 }) {
+  const { getProfileId } = useHouseholdProfile();
+  const nominate = useDeclutterNomination({ showToast, hideToast });
   const itemId = item?._id ? String(item._id) : '';
   const itemName = item?.name || 'item';
   const isGone = String(item?.item_status || '').trim().toLowerCase() === 'gone';
@@ -27,6 +30,7 @@ export default function useItemDeclutterDeck({
 
   const runDeclutterChange = useCallback(async (nextInDeck) => {
     if (!itemId) return null;
+    if (!getProfileId()) throw Object.assign(new Error('Choose a household profile to use Declutter.'), {code:PROFILE_REQUIRED});
     if (nextInDeck && isGone) {
       throw new Error('This item is gone away forever and cannot be added to the Declutter Deck.');
     }
@@ -38,11 +42,11 @@ export default function useItemDeclutterDeck({
       return null;
     }
 
-    const [result] = await nominateDeclutterCandidates([itemId]);
+    const [result] = await nominate([itemId]);
     setInDeclutterDeck(true);
     onStateChange?.(true);
     return result || null;
-  }, [isGone, itemId, onStateChange]);
+  }, [isGone, itemId, onStateChange, nominate, getProfileId]);
 
   const showDeclutterSuccess = useCallback((nextInDeck, result) => {
     const undoTarget = !nextInDeck;
@@ -87,6 +91,7 @@ export default function useItemDeclutterDeck({
                 timeoutMs: 3200,
               });
             } catch (error) {
+              if (error?.code === PROFILE_REQUIRED) return;
               showToast?.({
                 variant: 'danger',
                 title: 'Undo failed',
@@ -127,6 +132,7 @@ export default function useItemDeclutterDeck({
       const result = await runDeclutterChange(nextInDeck);
       showDeclutterSuccess(nextInDeck, result);
     } catch (error) {
+      if (error?.code === PROFILE_REQUIRED) return;
       showToast?.({
         variant: 'danger',
         title: nextInDeck ? 'Declutter add failed' : 'Declutter removal failed',

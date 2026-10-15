@@ -351,7 +351,11 @@ export const RowThumbPlaceholder = styled.div`
   height: 100%;
   border-radius: 0;
   border: 0;
-  background: var(--dw-surface-raised);
+  background:
+    radial-gradient(ellipse at var(--item-gradient-origin, 25% 25%), rgba(var(--item-accent-rgb), .76), transparent 75%),
+    radial-gradient(ellipse at 75% 85%, rgba(var(--item-secondary-rgb), .6), transparent 70%),
+    linear-gradient(var(--item-gradient-angle, 145deg), rgba(var(--item-accent-rgb), .36), rgba(var(--item-secondary-rgb), .18)),
+    var(--dw-background);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: 100%;

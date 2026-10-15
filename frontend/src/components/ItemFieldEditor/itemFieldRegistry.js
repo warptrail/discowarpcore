@@ -6,7 +6,7 @@ import {
 } from '../../util/itemHistory';
 import { normalizeLinksForForm, sanitizeLinksForSave } from '../../util/itemLinks';
 import { getItemOwnershipContext } from '../../util/itemOwnership';
-import { normalizeKeepPriority } from '../../util/keepPriority';
+import { normalizeKeepPriority, isKeepPriorityLocked } from '../../util/keepPriority';
 import { normalizeTags } from '../../util/normalizeTags';
 import { normalizePrimaryOwner } from '../../util/itemOwners';
 import {
@@ -188,6 +188,7 @@ const FIELD_DESCRIPTORS = [
     label: 'Keep priority',
     domain: 'RETENTION',
     editor: 'keep-priority',
+    canEdit: (item) => !isKeepPriorityLocked(item),
     getDraft: (item) => normalizeKeepPriority(item?.keepPriority),
     buildPayload: (draft) => ({
       keepPriority: normalizeKeepPriority(draft) || null,

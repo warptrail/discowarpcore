@@ -38,7 +38,10 @@ export default function AllItemsWorkspace({ box, items, searchQuery, openItemId,
       onManageBox={onManageBox}
       hideInlineActions={selectionMode}
       headerAction={!selectionMode ? (
-        <S.SectionActionButton type="button" aria-label="Move items" onClick={() => setSelectionMode(true)}>
+        <S.SectionActionButton type="button" aria-label="Move items" title="Select items to move" onClick={() => setSelectionMode(true)}>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="m3 6 6-3 6 3-6 3-6-3v9l6 3V9m0 9 3-1.5M16 11l5 5-5 5m-3-5h8" />
+          </svg>
           <S.SectionActionFull>Move items</S.SectionActionFull>
           <S.SectionActionCompact aria-hidden="true">Move</S.SectionActionCompact>
         </S.SectionActionButton>

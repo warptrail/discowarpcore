@@ -1,5 +1,8 @@
+const { withItemMutationLock } = require('../utils/itemMutationLock');
+const { missingCount, buildMissingUpdate } = require('../utils/itemMissing');
 // services/itemService.js
 const Item = require('../models/Item');
+const {buildDepartureDetailsUpdate} = require('../utils/itemDepartureDetails');
 const mongoose = require('mongoose');
 const Box = require('../models/Box');
 const { itemPlacement } = require('../utils/boxCompartments');
@@ -25,6 +28,7 @@ const {
 } = require('../utils/itemDisposition');
 const {
   KEEP_PRIORITY_VALUES,
+  applyKeepPriorityLifecycle,
   isValidKeepPriority,
   normalizeKeepPriorityValue,
 } = require('../utils/keepPriority');
@@ -364,6 +368,8 @@ function toItemListSummary(item = {}) {
     _id: item?._id,
     name: item?.name,
     quantity: item?.quantity,
+    missing: item?.missing || { quantity: 0, revision: 0 },
+    isMissing: missingCount(item) > 0,
     description: item?.description,
     notes: item?.notes,
     tags: item?.tags,
@@ -390,12 +396,15 @@ function toItemListSummary(item = {}) {
     disposition: item?.disposition,
     disposition_at: item?.disposition_at,
     disposition_notes: item?.disposition_notes,
+    saleDetails:item?.saleDetails,
+    giftDetails:item?.giftDetails,
+    departureDetailsHistory:item?.departureDetailsHistory,
     declutterReadiness: item?.declutterReadiness || 'not_considered',
     last_active_box: item?.last_active_box,
     dateAcquired: item?.dateAcquired,
     dateLastUsed: item?.dateLastUsed,
     valueCents: item?.valueCents,
-    keepPriority: item?.keepPriority,
+    keepPriority: item?.item_status === 'gone' ? 'decommissioned' : item?.keepPriority,
     primaryOwnerName: item?.primaryOwnerName,
     condition: item?.condition,
     category: item?.category,
@@ -537,9 +546,9 @@ function buildPagedSort(sort = 'alpha', direction = 'asc', randomSeed = '') {
 }
 
 const ITEM_LIST_SELECT = [
-  '_id', 'name', 'quantity', 'description', 'notes', 'tags', 'links',
+  '_id', 'name', 'quantity', 'missing', 'description', 'notes', 'tags', 'links',
   'imagePath', 'image', 'location', 'sourceBatchId', 'orphanedAt',
-  'item_status', 'disposition', 'disposition_at', 'disposition_notes',
+  'item_status', 'disposition', 'disposition_at', 'disposition_notes', 'saleDetails', 'giftDetails', 'departureDetailsHistory',
   'declutterReadiness', 'last_active_box', 'dateAcquired', 'dateLastUsed',
   'valueCents', 'keepPriority', 'primaryOwnerName', 'condition', 'category',
   'isConsumable', 'lastCheckedAt', 'acquisitionType', 'purchasePriceCents',
@@ -811,6 +820,7 @@ async function getItemById(id, { select, perf = false } = {}) {
   const item = await Item.findItemById(id, { select, perf: perfEnabled });
   const [itemWithSourceBatch] = await attachSourceBatchSummaries(item ? [item] : []);
   const detail = withNormalizedItemCategory(itemWithSourceBatch || item);
+  if (detail?.item_status === 'gone') detail.keepPriority = 'decommissioned';
   if (detail?._id) {
     const candidate = await DeclutterCandidate.findOne({ itemId: detail._id })
       .select('_id deckState resolution stagingRoute confirmedAt')
@@ -1016,8 +1026,14 @@ async function getRandomActiveItem() {
  * CRUD operations
  */
 async function createItem(data) {
+  if (Object.keys(data).some(key => /^(missing|missingHistory|mutationLease|isMissing)(\.|$)/.test(key))) {
+    throw Object.assign(new Error('Create the inventory record first, then use Missing Items to report it missing.'), { status: 400 });
+  }
+  applyKeepPriorityLifecycle(data);
   assertValidCentsPayload(data);
-  const created = await Item.create(data);
+  const details = buildDepartureDetailsUpdate({},data,{disposition:data.item_status==='gone' ? data.disposition : undefined});
+  const created = await Item.create({...data,...details.set,
+    ...(details.revisions.length ? {departureDetailsHistory:details.revisions} : {})});
   const createdPlain = toPlain(created);
   const itemRef = toItemRef(createdPlain);
 
@@ -1262,6 +1278,12 @@ async function bulkCreateItems({
 }
 
 async function updateItem(id, data) {
+  if (Object.keys(data).some(key => key.startsWith('$') || /^(missing|missingHistory|mutationLease|isMissing)(\.|$)/.test(key))) {
+    throw Object.assign(new Error('Use the Missing Items workflow to update missing state.'), { status: 400 });
+  }
+  return withItemMutationLock(id, () => updateItemUnlocked(id, data));
+}
+async function updateItemUnlocked(id, data) {
   const patch = { ...data };
   if (Object.prototype.hasOwnProperty.call(patch, 'isIntendedGift')) {
     patch.isIntendedGift = patch.isIntendedGift === true;
@@ -1269,8 +1291,19 @@ async function updateItem(id, data) {
   const existing = await Item.findById(id).lean();
   if (!existing) return null;
 
+  if ('quantity' in patch && missingCount(existing) > 0 && (!Number.isSafeInteger(patch.quantity) || patch.quantity < missingCount(existing))) {
+    throw Object.assign(new Error('Quantity cannot be less than the missing count. Resolve or correct the report first.'), { status: 400 });
+  }
+  if (patch.item_status === 'gone' && missingCount(existing) > 0) {
+    throw Object.assign(new Error('Use the departure action to close the missing report and mark this item gone.'), { status: 400 });
+  }
+  applyKeepPriorityLifecycle(patch, existing);
   assertValidCentsPayload(patch);
-  const updated = await Item.findByIdAndUpdate(id, patch, {
+  const details = buildDepartureDetailsUpdate(existing,patch);
+  for (const field of ['saleDetails','giftDetails']) delete patch[field];
+  Object.assign(patch,details.set);
+  const update = details.revisions.length ? {$set:patch,$push:{departureDetailsHistory:{$each:details.revisions}}} : patch;
+  const updated = await Item.findByIdAndUpdate(id, update, {
     new: true,
     runValidators: true,
   });
@@ -1320,6 +1353,9 @@ async function updateItem(id, data) {
 }
 
 async function markItemGone(id, payload = {}) {
+  return withItemMutationLock(id, () => markItemGoneUnlocked(id, payload));
+}
+async function markItemGoneUnlocked(id, payload = {}) {
   const disposition = normalizeDisposition(
     payload.disposition ?? payload.reason ?? payload.dispositionReason
   );
@@ -1337,20 +1373,30 @@ async function markItemGone(id, payload = {}) {
   const dispositionNotes = normalizeLifecycleNotes(
     payload.disposition_notes ?? payload.dispositionNotes
   );
-  const existingItem = await Item.findById(id).select('_id name').lean();
+  const existingItem = await Item.findById(id).lean();
   if (!existingItem) return null;
+  const detailUpdate = buildDepartureDetailsUpdate(existingItem,payload,{disposition,actor:payload.player});
 
   const previousBox = await Box.findOne({ items: id })
     .select('_id box_id label')
     .lean();
 
+  const missingPlacement = missingCount(existingItem)
+    ? require('./itemMissingService').placementSnapshot(await Item.findItemById(id)) : null;
   await Box.updateMany({ items: id }, { $pull: { items: id }, $unset: { [`itemCompartments.${id}`]: 1 } });
 
+  const closure = missingCount(existingItem) ? buildMissingUpdate(existingItem, {
+    quantity: 0, action: 'departed', profile: payload.player || payload.profile || '', note: dispositionNotes,
+    placement: missingPlacement,
+  }) : null;
   const updated = await Item.findByIdAndUpdate(
     id,
     {
       $set: {
+        ...(closure?.$set || {}),
+        ...detailUpdate.set,
         item_status: 'gone',
+        keepPriority: 'decommissioned',
         disposition,
         disposition_at: dispositionAt || new Date(),
         disposition_notes: dispositionNotes,
@@ -1359,11 +1405,13 @@ async function markItemGone(id, payload = {}) {
         last_active_box: previousBox?._id || payload.lastActiveBoxId || null,
         declutterReadiness: 'not_considered',
       },
+      ...((closure || detailUpdate.revisions.length) ? {$push:{ ...(closure?.$push || {}), ...(detailUpdate.revisions.length ? {departureDetailsHistory:{$each:detailUpdate.revisions}} : {}) }} : {}),
     },
     { new: true, runValidators: true }
   );
   if (!updated) return null;
 
+  if (closure) await require('./itemMissingService').mirrorHistory(updated, closure.$push.missingHistory);
   const updatedPlain = toPlain(updated);
   const itemRef = toItemRef(updatedPlain);
   const fromBoxRef = toBoxRef(previousBox, ORPHANED_LABEL);
@@ -1381,6 +1429,7 @@ async function markItemGone(id, payload = {}) {
         disposition: updatedPlain.disposition,
         disposition_at: updatedPlain.disposition_at,
         disposition_notes: updatedPlain.disposition_notes,
+        departure_details_changes:detailUpdate.revisions,
       },
     },
     { label: `item_marked_gone:${itemRef.id}` }
@@ -1412,6 +1461,7 @@ async function restoreItemToActive(id) {
 
   const lifecycleUpdate = {
     item_status: 'active',
+    keepPriority: null,
     disposition: null,
     disposition_at: null,
     disposition_notes: '',
@@ -1654,6 +1704,7 @@ function assertValidCentsPayload(data = {}) {
   normalizeStringField(data, 'maintenanceNotes');
   normalizeLinksField(data);
   normalizeKeepPriority(data);
+  if (data.item_status) applyKeepPriorityLifecycle(data);
   normalizeItemCategoryField(data);
   normalizeItemStatusField(data);
   normalizeDispositionField(data);

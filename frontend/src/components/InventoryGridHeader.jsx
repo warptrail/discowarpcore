@@ -1,14 +1,13 @@
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import * as S from '../styles/InventoryGridHeader.styles';
-import { ITEM_CATEGORIES, formatItemCategory } from '../util/itemCategories';
-import {
-  KEEP_PRIORITY_SCALE_OPTIONS,
-} from '../util/keepPriority';
+import OperationsControlPanel from './OperationsFilters/OperationsControlPanel';
+import OperationsFinderPresence from './OperationsFilters/OperationsFinderPresence';
+import RetrievalSearchBar from './Retrieval/RetrievalSearchBar';
 import OperationsQuickBoxCreate from './OperationsQuickBoxCreate/OperationsQuickBoxCreate';
 import IntakeQuickItemMaker from './Intake/IntakeQuickItemMaker';
 import BoxLocatorControl from './BoxLocatorControl';
-import CustomSelect from './CustomSelect';
+import OperationsControlConsole from './OperationsInventory/OperationsControlConsole';
 import { ToastContext } from './Toast';
 import {
   INVENTORY_FINDER_CLOSE_EVENT,
@@ -16,13 +15,6 @@ import {
   INVENTORY_FINDER_COMMIT_EVENT,
   INVENTORY_FINDER_STATE_EVENT,
 } from '../constants/inventoryFinderEvents';
-
-const SORT_OPTIONS = [
-  { value: 'boxId', label: 'Box ID' },
-  { value: 'name', label: 'Name' },
-  { value: 'location', label: 'Location' },
-  { value: 'itemCount', label: 'Item Count' },
-];
 
 function MobileTelemetry({ values }) {
   const [index, setIndex] = useState(0);
@@ -37,39 +29,8 @@ function MobileTelemetry({ values }) {
   return <S.MobileTelemetryValue key={index}>{values[index]}</S.MobileTelemetryValue>;
 }
 
-const FILTER_OPTIONS = [
-  { value: 'all', label: 'All Boxes' },
-  { value: 'withItems', label: 'Boxes With Items' },
-  { value: 'empty', label: 'Empty Boxes' },
-];
-
-const KEEP_PRIORITY_FILTER_OPTIONS = [
-  { value: 'all', label: 'All priorities' },
-  ...KEEP_PRIORITY_SCALE_OPTIONS,
-  { value: 'gone', label: 'No longer have' },
-];
-
-const formatLocation = (location) =>
-  [location?.room, location?.vicinity, location?.specifics, location?.exactSpot]
-    .map((part) => String(part || '').trim())
-    .filter(Boolean)
-    .join(' · ');
-
 const plural = (count, singular, pluralWord) =>
   `${count} ${count === 1 ? singular : pluralWord}`;
-
-const SORT_DIRECTION_LABELS = {
-  asc: 'Ascending',
-  desc: 'Descending',
-};
-
-function LcarsActionButton({ label, ...props }) {
-  return (
-    <S.QuickCreateLaunchButton {...props}>
-      {label}
-    </S.QuickCreateLaunchButton>
-  );
-}
 
 export default function InventoryGridHeader({
   totalBoxes = 0,
@@ -89,8 +50,6 @@ export default function InventoryGridHeader({
   onSortChange,
   sortDirection = 'asc',
   onSortDirectionChange,
-  filterBy = 'all',
-  onFilterChange,
   categoryFilter = 'all',
   onCategoryFilterChange,
   locationFilter = 'all',
@@ -98,7 +57,6 @@ export default function InventoryGridHeader({
   locations = [],
   ownerFilter = 'all',
   onOwnerFilterChange,
-  owners = [],
   keepPriorityFilter = 'all',
   onKeepPriorityFilterChange,
   viewMode = 'cards',
@@ -113,14 +71,11 @@ export default function InventoryGridHeader({
   const [finderMinimized, setFinderMinimized] = useState(true);
   const [finderCollapsing, setFinderCollapsing] = useState(false);
   const [consoleFinderMount, setConsoleFinderMount] = useState(null);
+  const [finderActionsMount, setFinderActionsMount] = useState(null);
   const [mobileTelemetryMount, setMobileTelemetryMount] = useState(null);
-  const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
-  const mobileActionsButtonRef = useRef(null);
-  const mobileActionsMenuRef = useRef(null);
   const filtersActive = Boolean(
     String(searchQuery || '').trim() ||
       String(boxLocatorQuery || '').trim() ||
-      filterBy !== 'all' ||
       categoryFilter !== 'all' ||
       locationFilter !== 'all' ||
       ownerFilter !== 'all' ||
@@ -132,6 +87,7 @@ export default function InventoryGridHeader({
       setConsoleFinderMount(
         document.getElementById('operations-console-finder-mount'),
       );
+      setFinderActionsMount(document.getElementById('operations-finder-actions-mount'));
     };
 
     syncMount();
@@ -174,48 +130,6 @@ export default function InventoryGridHeader({
     if (searchScope !== 'all') onSearchScopeChange?.('all');
   }, [onSearchScopeChange, searchScope]);
 
-  useEffect(() => {
-    const media = window.matchMedia('(min-width: 660px)');
-    const handleBreakpointChange = (event) => {
-      if (event.matches) setMobileActionsOpen(false);
-    };
-
-    media.addEventListener?.('change', handleBreakpointChange);
-    return () => media.removeEventListener?.('change', handleBreakpointChange);
-  }, []);
-
-  useEffect(() => {
-    if (!mobileActionsOpen) return undefined;
-
-    const closeAndRestoreFocus = () => {
-      setMobileActionsOpen(false);
-      window.requestAnimationFrame(() => mobileActionsButtonRef.current?.focus());
-    };
-
-    const handlePointerDown = (event) => {
-      if (
-        mobileActionsMenuRef.current?.contains(event.target) ||
-        mobileActionsButtonRef.current?.contains(event.target)
-      ) {
-        return;
-      }
-      closeAndRestoreFocus();
-    };
-
-    const handleKeyDown = (event) => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      closeAndRestoreFocus();
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [mobileActionsOpen]);
-
   const toggleQuickPanel = (panel) => {
     setQuickPanel((prev) => (prev === panel ? '' : panel));
   };
@@ -226,15 +140,6 @@ export default function InventoryGridHeader({
     if (opening) {
       setFinderCollapsing(false);
       setFinderMinimized(false);
-    }
-  };
-
-  const runRailAction = (action) => {
-    const wasMobileMenuOpen = mobileActionsOpen;
-    setMobileActionsOpen(false);
-    action?.();
-    if (wasMobileMenuOpen) {
-      window.requestAnimationFrame(() => mobileActionsButtonRef.current?.focus());
     }
   };
 
@@ -284,105 +189,23 @@ export default function InventoryGridHeader({
       onCreated={handleQuickBoxCreated}
       onCancel={() => setQuickPanel('')}
     />
-  ) : !finderMinimized ? (
+  ) : (
     <S.AdvancedFilters id="inventory-grid-advanced-filters">
-      <S.FilterRow>
-        <S.ControlGroup $tone="#E8B15C">
-          <S.ControlLabel>Sort</S.ControlLabel>
-          <S.SortControlRow>
-            <CustomSelect
-              value={sortBy}
-              options={SORT_OPTIONS}
-              onChange={onSortChange}
-              ariaLabel="Sort boxes"
-              tone="#E8B15C"
-            />
-            <S.SortDirectionButton
-              type="button"
-              onClick={() =>
-                onSortDirectionChange?.(
-                  sortDirection === 'desc' ? 'asc' : 'desc',
-                )
-              }
-              aria-label={`Sort direction: ${SORT_DIRECTION_LABELS[sortDirection] || 'Ascending'}`}
-              title={`Sort direction: ${SORT_DIRECTION_LABELS[sortDirection] || 'Ascending'}`}
-              $descending={sortDirection === 'desc'}
-            >
-              <span aria-hidden="true">
-                {sortDirection === 'desc' ? '⬇' : '⬆'}
-              </span>
-            </S.SortDirectionButton>
-          </S.SortControlRow>
-        </S.ControlGroup>
-
-        <S.ControlGroup $tone="#A7B6FF">
-          <S.ControlLabel>Contents</S.ControlLabel>
-          <CustomSelect
-            value={filterBy}
-            options={FILTER_OPTIONS}
-            onChange={onFilterChange}
-            ariaLabel="Filter boxes"
-            tone="#A7B6FF"
-          />
-        </S.ControlGroup>
-
-        <S.ControlGroup $tone="#5BC0EB">
-          <S.ControlLabel>Category</S.ControlLabel>
-          <CustomSelect
-            value={categoryFilter}
-            options={[
-              { value: 'all', label: 'All Categories' },
-              ...ITEM_CATEGORIES.map((category) => ({
-                value: category,
-                label: formatItemCategory(category),
-              })),
-            ]}
-            onChange={onCategoryFilterChange}
-            ariaLabel="Filter by item category"
-            tone="#5BC0EB"
-          />
-        </S.ControlGroup>
-
-        <S.ControlGroup $tone="#4CC6C1">
-          <S.ControlLabel>Location</S.ControlLabel>
-          <CustomSelect
-            value={locationFilter}
-            options={[
-              { value: 'all', label: 'All Locations' },
-              ...locations.map((loc) => ({ value: loc._id, label: formatLocation(loc) })),
-            ]}
-            onChange={onLocationFilterChange}
-            ariaLabel="Filter by location"
-            tone="#4CC6C1"
-          />
-        </S.ControlGroup>
-
-
-        <S.ControlGroup $tone="#8ED0A8">
-          <S.ControlLabel>Owner</S.ControlLabel>
-          <CustomSelect
-            value={ownerFilter}
-            options={[{ value: 'all', label: 'All Owners' }, ...owners]}
-            onChange={onOwnerFilterChange}
-            ariaLabel="Filter by owner"
-            tone="#8ED0A8"
-          />
-        </S.ControlGroup>
-
-        <S.ControlGroup $tone="#F08A7B" $active={keepPriorityFilter !== 'all'}>
-          <S.ControlLabel>Keep priority</S.ControlLabel>
-          <CustomSelect
-            value={keepPriorityFilter}
-            options={KEEP_PRIORITY_FILTER_OPTIONS}
-            onChange={onKeepPriorityFilterChange}
-            ariaLabel="Filter by keep priority or no longer have status"
-            tone="#F08A7B"
-          />
-        </S.ControlGroup>
-      </S.FilterRow>
-
+      <OperationsControlPanel
+        actionsTarget={finderActionsMount}
+        actionsVisible={!finderMinimized}
+        sortBy={sortBy} onSortChange={onSortChange} sortDirection={sortDirection} onSortDirectionChange={onSortDirectionChange}
+        locations={locations} locationFilter={locationFilter} onLocationFilterChange={onLocationFilterChange}
+        categoryFilter={categoryFilter} onCategoryFilterChange={onCategoryFilterChange}
+        ownerFilter={ownerFilter} onOwnerFilterChange={onOwnerFilterChange}
+        keepPriorityFilter={keepPriorityFilter} onKeepPriorityFilterChange={onKeepPriorityFilterChange}
+        filtersActive={filtersActive} onReset={() => {
+          onSearchChange?.(''); onBoxLocatorQueryChange?.(''); onCategoryFilterChange?.('all');
+          onLocationFilterChange?.('all'); onOwnerFilterChange?.('all'); onKeepPriorityFilterChange?.('all');
+        }}
+      />
     </S.AdvancedFilters>
-  ) : null;
+  );
 
   const primaryFinderControls = (
     <S.UnifiedFinderWorkspace>
@@ -393,16 +216,16 @@ export default function InventoryGridHeader({
         }
       }}
     >
-      <S.PrimarySearchGroup>
-        <S.SearchInput
-          type="search"
+      <S.PrimarySearchGroup as="div">
+        <RetrievalSearchBar
+          id="operations-main-search"
+          label="Search inventory"
+          hint=""
           value={searchQuery}
-          onChange={(event) => onSearchChange?.(event.target.value)}
+          onChange={onSearchChange}
           onKeyDown={(event) => {
             if (event.key === 'Enter') commitSearchToConsole();
           }}
-          placeholder="Whatchya' looking for??"
-          aria-label="Search inventory"
         />
       </S.PrimarySearchGroup>
 
@@ -418,119 +241,23 @@ export default function InventoryGridHeader({
 
     </S.PrimaryFinderRow>
 
-    {!finderMinimized && secondaryFinderControls ? (
+    <OperationsFinderPresence visible={!finderMinimized}>
       <S.FilterPanel
-        id="inventory-grid-filters"
-        aria-label="Find and filter inventory"
         $scrollable={quickPanel === 'box' || quickPanel === 'orphan'}
       >
         {secondaryFinderControls}
       </S.FilterPanel>
-    ) : null}
+    </OperationsFinderPresence>
     </S.UnifiedFinderWorkspace>
   );
 
   return (
     <S.HeaderShell>
-      <S.ControlConsole role="group" aria-label="Operations control console">
-        <S.UtilityRow>
-          <S.ViewModeToggle
-            role="group"
-            aria-label="Box list view mode"
-            $mode={viewMode}
-          >
-            <S.ViewModeButton
-              type="button"
-              $active={viewMode === 'cards'}
-              aria-label="Cards view"
-              title="Cards view"
-              aria-pressed={viewMode === 'cards'}
-              onClick={() => onViewModeChange?.('cards')}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <rect x="3.5" y="4" width="7" height="16" rx="1.5" />
-                <rect x="13.5" y="4" width="7" height="16" rx="1.5" />
-                <path d="M3.5 10h7m3 0h7" />
-              </svg>
-            </S.ViewModeButton>
-            <S.ViewModeButton
-              type="button"
-              $active={viewMode === 'terminal'}
-              aria-label="Terminal view"
-              title="Terminal view"
-              aria-pressed={viewMode === 'terminal'}
-              onClick={() => onViewModeChange?.('terminal')}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <rect x="3" y="4" width="18" height="16" rx="2" />
-                <path d="m7 9 3 3-3 3m6 0h4" />
-              </svg>
-            </S.ViewModeButton>
-          </S.ViewModeToggle>
-
-          <S.MobileActionsButton
-            ref={mobileActionsButtonRef}
-            type="button"
-            $active={mobileActionsOpen || Boolean(quickPanel)}
-            aria-expanded={mobileActionsOpen}
-            aria-controls="operations-mobile-actions"
-            onClick={() => setMobileActionsOpen((open) => !open)}
-          >
-            Actions
-            <span aria-hidden="true">{mobileActionsOpen ? '−' : '+'}</span>
-          </S.MobileActionsButton>
-
-          <S.TitleActions
-            ref={mobileActionsMenuRef}
-            id="operations-mobile-actions"
-            role="group"
-            aria-label="Inventory actions"
-            $mobileOpen={mobileActionsOpen}
-          >
-            <LcarsActionButton
-              type="button"
-              $tone="amber"
-              $symbol={quickPanel === 'box' ? '×' : '+'}
-              $active={quickPanel === 'box'}
-              aria-label={quickPanel === 'box' ? 'Close new box form' : 'Create a new box'}
-              aria-expanded={quickPanel === 'box'}
-              aria-controls="inventory-grid-filters"
-              title={quickPanel === 'box' ? 'Close new box form' : 'New box'}
-              onClick={() => runRailAction(toggleQuickBoxPanel)}
-              label={quickPanel === 'box' ? 'Close' : 'New box'}
-            />
-            <S.TitleOrphanActions>
-              <LcarsActionButton
-                type="button"
-                $tone="teal"
-                $symbol="+"
-                $active={quickPanel === 'orphan'}
-                aria-label={quickPanel === 'orphan' ? 'Close new item form' : 'Create a new item'}
-                aria-expanded={quickPanel === 'orphan'}
-                onClick={() => runRailAction(() => toggleQuickPanel('orphan'))}
-                label={quickPanel === 'orphan' ? 'Close' : 'New item'}
-              />
-            </S.TitleOrphanActions>
-          </S.TitleActions>
-        </S.UtilityRow>
-
-        <S.TelemetryRow aria-live="polite">
-          <S.TelemetryLine>
-            <S.TelemetryValue $tone="boxes">
-              {plural(totalBoxes, 'box', 'boxes')}
-            </S.TelemetryValue>
-            <S.Sep>//</S.Sep>
-            <S.TelemetryValue $tone="items">
-              {plural(totalItems, 'item', 'items')}
-            </S.TelemetryValue>
-          </S.TelemetryLine>
-          <S.Sep aria-hidden="true">//</S.Sep>
-          <S.TelemetryLine>
-            <S.TelemetryValue $tone="orphaned">
-              {plural(orphanedCount, 'item adrift', 'items adrift')}
-            </S.TelemetryValue>
-          </S.TelemetryLine>
-        </S.TelemetryRow>
+      <OperationsControlConsole
+        totalBoxes={totalBoxes} totalItems={totalItems} orphanedCount={orphanedCount}
+        viewMode={viewMode} onViewModeChange={onViewModeChange} quickPanel={quickPanel}
+        onToggleBox={toggleQuickBoxPanel} onToggleItem={() => toggleQuickPanel('orphan')}
+      >
 
         {quickPanel === 'orphan' ? (
           <S.QuickOrphanInlinePanel>
@@ -543,7 +270,7 @@ export default function InventoryGridHeader({
             />
           </S.QuickOrphanInlinePanel>
         ) : null}
-      </S.ControlConsole>
+      </OperationsControlConsole>
 
       {consoleFinderMount
         ? createPortal(primaryFinderControls, consoleFinderMount)

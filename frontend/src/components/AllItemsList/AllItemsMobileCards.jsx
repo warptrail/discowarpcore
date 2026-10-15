@@ -1,3 +1,5 @@
+import TagLinks from '../TagLinks';
+import MissingStatus from '../MissingItems/MissingStatus';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getItemHomeHref } from '../../api/itemDetails';
@@ -180,7 +182,7 @@ function MobileItemCard({
             </S.MobileThumbFrame>
             <S.MobileCondensedText>
               <S.MobileCondensedPrimary>
-                <S.MobileNameText>{name}</S.MobileNameText>
+                <><S.MobileNameText>{name}</S.MobileNameText><MissingStatus item={item} home /></>
                 <S.MobileQty>{meta?.quantityLabel || '—'}</S.MobileQty>
               </S.MobileCondensedPrimary>
               <S.MobileSummaryLine>
@@ -269,7 +271,7 @@ function MobileItemCard({
                   {name}
                 </S.MobileNameLink>
               ) : (
-                <S.MobileNameText>{name}</S.MobileNameText>
+                <><S.MobileNameText>{name}</S.MobileNameText><MissingStatus item={item} home /></>
               )}
               {batchFocused && itemHref && !compactBatchMode ? (
                 <S.ItemOpenButton
@@ -342,7 +344,7 @@ function MobileItemCard({
 
           <S.MobileMetaLine>
             <S.MobileMetaLabel>tags:</S.MobileMetaLabel>
-            <S.MobileMetaValue>{tagsValue}</S.MobileMetaValue>
+            <S.MobileMetaValue title={tagsValue}><TagLinks tags={meta?.tags} /></S.MobileMetaValue>
           </S.MobileMetaLine>
 
           <S.MobileMetaLine>

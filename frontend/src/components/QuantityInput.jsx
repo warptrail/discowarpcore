@@ -13,6 +13,7 @@ export default function QuantityInput({
   ariaLabel = 'Quantity',
   fullWidth = false,
   compact = false,
+  onStep,
 }) {
   const generatedId = useId();
   const inputId = id || `quantity-input-${generatedId}`;
@@ -22,11 +23,11 @@ export default function QuantityInput({
   const normalize = (num) => clamp(Math.round(num / step) * step);
 
   const handleDecrement = () => {
-    onChange(normalize(safeValue - step));
+    (onStep || onChange)(normalize(safeValue - step));
   };
 
   const handleIncrement = () => {
-    onChange(normalize(safeValue + step));
+    (onStep || onChange)(normalize(safeValue + step));
   };
 
   const handleDirectInput = (event) => {

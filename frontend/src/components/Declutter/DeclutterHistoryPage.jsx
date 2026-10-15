@@ -47,11 +47,11 @@ export default function DeclutterHistoryPage() {
 
   useEffect(() => {
     const syncPlayer = (event) => {
-      if (event.detail?.playerId && event.detail.playerId !== activePlayerRef.current) {
-        activePlayerRef.current = event.detail.playerId;
+      if ((event.detail?.playerId || '') !== activePlayerRef.current) {
+        activePlayerRef.current = event.detail?.playerId || '';
         historyRequestRef.current += 1;
         setHistory({ candidates: [], total: 0, page: 1, totalPages: 1 });
-        setPlayer(event.detail.playerId);
+        setPlayer(event.detail?.playerId || '');
       }
     };
     window.addEventListener(DECLUTTER_PLAYER_CHANGE_EVENT, syncPlayer);
@@ -81,6 +81,7 @@ export default function DeclutterHistoryPage() {
     : [];
 
   const loadHistory = useCallback(async () => {
+    if (!player) { setLoading(false); return; }
     if (activePlayerRef.current !== player) return;
     const request = ++historyRequestRef.current;
     const isCurrent = () => request === historyRequestRef.current && activePlayerRef.current === player;
@@ -105,6 +106,7 @@ export default function DeclutterHistoryPage() {
   useEffect(() => { void loadHistory(); }, [loadHistory]);
 
   useEffect(() => {
+    if (!player) return undefined;
     let isAlive = true;
     fetchDeclutterActionResources()
       .then((resources) => {
@@ -114,9 +116,10 @@ export default function DeclutterHistoryPage() {
         if (isAlive) setStagingBoxes([]);
       });
     return () => { isAlive = false; };
-  }, []);
+  }, [player]);
 
   const handleStage = useCallback(async (candidate, { boxId, boxLabel, route }) => {
+    if (!activePlayerRef.current) return false;
     if (!candidate?.id || !boxId || busyCandidateId) return false;
     try {
       setBusyCandidateId(candidate.id);
@@ -140,6 +143,7 @@ export default function DeclutterHistoryPage() {
   }, [busyCandidateId, loadHistory, player, showToast]);
 
   const handleComplete = useCallback(async (candidate, payload) => {
+    if (!activePlayerRef.current) return false;
     if (!candidate?.id || busyCandidateId) return false;
     try {
       setBusyCandidateId(candidate.id);
@@ -162,6 +166,7 @@ export default function DeclutterHistoryPage() {
     }
   }, [busyCandidateId, loadHistory, showToast]);
 
+  if (!player) return <S.PageShell><S.StatusPanel role="status">Choose Discofish or Laserfox in navigation to use Declutter.</S.StatusPanel></S.PageShell>;
   return (
     <S.DeclutterSurface $player={player}>
       <S.HistoryHeader>

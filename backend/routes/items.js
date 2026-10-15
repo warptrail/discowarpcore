@@ -27,6 +27,11 @@ const {
   patchItemActiveVariantApi,
 } = require('../controllers/entityMediaController');
 
+const { getMissingItemsApi, getMissingSummaryApi, patchMissingApi, patchFoundApi } = require('../controllers/itemMissingController');
+router.get('/missing/summary', getMissingSummaryApi);
+router.get('/missing', getMissingItemsApi);
+router.patch('/:id/missing', validateObjectIdParam('id'), patchMissingApi);
+router.patch('/:id/found', validateObjectIdParam('id'), patchFoundApi);
 router.get('/', getAllItemsApi);
 router.get('/orphaned', getOrphanedItemsApi);
 router.get('/random', getRandomItemApi);

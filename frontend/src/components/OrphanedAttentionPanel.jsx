@@ -1,8 +1,9 @@
 import React from 'react';
 import { styledComponents as S } from '../styles/BoxList.styles';
 import InventorySearchMatches from './InventorySearchMatches';
+import { DesktopItemCount } from './OperationsInventory/OperationsCardLayout.styles';
 
-export default function OrphanedAttentionPanel({ count = 0, items = [], searchQuery = '', ambientQuiet = false, onOpen, selected = false }) {
+export default function OrphanedAttentionPanel({ count = 0, items = [], searchQuery = '', ambientQuiet = false, onOpen, selected = false, desktop = false }) {
   const query = searchQuery.trim();
   const resolvedCount = Math.max(0, Number(count) || 0);
 
@@ -22,12 +23,20 @@ export default function OrphanedAttentionPanel({ count = 0, items = [], searchQu
       <S.OrphanedRailBack aria-hidden="true" $isRoot $depth={0} />
       <S.RailFront $isRoot $depth={0}>
         <S.OrphanedAttentionLink
-          as="button"
-          type="button"
+          as={desktop ? 'div' : 'button'}
+          type={desktop ? undefined : 'button'}
+          role={desktop ? 'button' : undefined}
+          tabIndex={desktop ? 0 : undefined}
           data-operations-box-preview-trigger
+          data-has-search-matches={Boolean(desktop && query && items.length) || undefined}
           aria-controls="operations-box-quick-peek"
           aria-expanded={selected}
-          onClick={(event) => onOpen?.(event.currentTarget)}
+          onClick={(event) => { if (!event.target.closest('a')) onOpen?.(event.currentTarget); }}
+          onKeyDown={desktop ? (event) => {
+            if (event.target === event.currentTarget && ['Enter', ' '].includes(event.key)) {
+              event.preventDefault(); onOpen?.(event.currentTarget);
+            }
+          } : undefined}
           aria-label={`Open ${resolvedCount} Items Adrift ${resolvedCount === 1 ? 'item' : 'items'}`}
           $isRoot
           $depth={0}
@@ -39,10 +48,12 @@ export default function OrphanedAttentionPanel({ count = 0, items = [], searchQu
               <S.OrphanedAttentionKicker>
                 Ready to place
               </S.OrphanedAttentionKicker>
+              <DesktopItemCount>{resolvedCount} {resolvedCount === 1 ? 'item' : 'items'}</DesktopItemCount>
               <S.OrphanedAttentionTitle>Items Adrift</S.OrphanedAttentionTitle>
               <S.OrphanedAttentionMeta>
-                {query ? `${resolvedCount} matching items · found below` : 'In transit or intentionally kept outside a box'}
+                {query ? `${resolvedCount} matching items` : 'In transit or intentionally kept outside a box'}
               </S.OrphanedAttentionMeta>
+              {desktop && query && items.length > 0 ? <InventorySearchMatches compact items={items} query={query} /> : null}
             </S.OrphanedAttentionCopy>
           </S.BoxBodyRow>
           <S.CardManifest aria-hidden="true" $isRoot $depth={0}>
@@ -51,9 +62,8 @@ export default function OrphanedAttentionPanel({ count = 0, items = [], searchQu
             </span>
           </S.CardManifest>
         </S.OrphanedAttentionLink>
-        {query && items.length > 0 ? <InventorySearchMatches items={items} query={query} /> : null}
+        {!desktop && query && items.length > 0 ? <InventorySearchMatches items={items} query={query} /> : null}
       </S.RailFront>
     </S.NodeSection>
   );
 }
-

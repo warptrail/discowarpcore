@@ -74,6 +74,13 @@ const Container = styled.div`
   border-radius: var(--dw-radius);
   background: var(--dw-surface);
 
+  @media (min-width: 1100px) {
+    max-width: none;
+    margin: 0;
+    padding: 12px 0 24px;
+    background: transparent;
+  }
+
   @media (max-width: 767px) {
     max-width: none;
     padding-inline: clamp(6px, 1.5vw, 10px);
@@ -538,21 +545,25 @@ const LocationMeta = styled.span`
 
 const LocationMetaLabel = styled.span`
   flex: 0 0 auto;
-  color: ${toneAlpha(LCARS.cyan, 'bf')};
+  color: var(--dw-text-secondary);
+  opacity: 0.6;
   font-size: 0.75rem;
-  font-weight: 650;
+  font-weight: 400;
   letter-spacing: normal;
   text-transform: none;
 `;
 
 const LocationMetaValue = styled.span`
-  color: ${({ $missing }) => ($missing ? '#ff777f' : 'inherit')};
+  color: ${({ $missing }) => ($missing ? 'var(--dw-text-secondary)' : 'inherit')};
+  font-size: ${({ $missing }) => ($missing ? '0.7rem' : 'inherit')};
+  font-weight: ${({ $missing }) => ($missing ? 400 : 'inherit')};
+  opacity: ${({ $missing }) => ($missing ? 0.78 : 1)};
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   text-shadow: none;
-  text-transform: ${({ $missing }) => ($missing ? 'uppercase' : 'none')};
+  text-transform: ${({ $missing }) => ($missing ? 'lowercase' : 'none')};
 `;
 
 const SecondaryMeta = styled.span`
@@ -747,11 +758,12 @@ const TagBubble = styled.span`
   height: 24px;
   padding: 0;
   border-radius: 0;
-  font-size: 0.75rem;
-  font-weight: 650;
+  font-size: 0.7rem;
+  font-weight: 400;
   letter-spacing: normal;
   user-select: none;
   color: var(--dw-text-secondary);
+  opacity: 0.78;
   background: transparent;
   border: 0;
   text-shadow: none;
@@ -764,7 +776,7 @@ const TagBubble = styled.span`
 
   @media (max-width: ${MOBILE_BREAKPOINT_NARROW}) {
     height: 18px;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     max-width: 4.4rem;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -808,8 +820,10 @@ const CardManifest = styled.div`
   background: var(--dw-surface-raised);
   color: var(--dw-text);
   font: 600 0.75rem/1.25 var(--dw-font-ui);
-  pointer-events: none;
+  pointer-events: ${({ $interactive }) => $interactive ? 'auto' : 'none'};
   white-space: nowrap;
+  > span:last-child { font-weight: 400; opacity: 0.65; }
+
   @media (max-width: 560px) {
     max-width: 48%;
     right: 0.4rem;
@@ -1077,20 +1091,20 @@ const adriftWispOrbit = keyframes`
 const OrphanedSignal = styled(BoxImageFrame)`
   position: relative;
   isolation: isolate;
-  overflow: hidden;
-  border-right: 1px solid rgba(113, 210, 255, 0.15);
-  background: var(--dw-surface);
+  overflow: visible;
+  border: 0;
+  background: transparent;
 
   &::before, &::after {
     content: '';
     position: absolute;
-    inset: 12%;
+    inset: 4%;
     border-radius: 42% 58% 64% 36%;
     background:
-      radial-gradient(ellipse at 28% 35%, rgba(113, 210, 255, 0.75), transparent 55%),
-      radial-gradient(ellipse at 70% 62%, rgba(167, 150, 255, 0.65), transparent 58%),
-      radial-gradient(ellipse at 40% 75%, rgba(103, 217, 211, 0.5), transparent 50%);
-    filter: blur(9px);
+      radial-gradient(ellipse at 38% 40%, rgba(113, 210, 255, 0.65), transparent 62%),
+      radial-gradient(ellipse at 62% 58%, rgba(167, 150, 255, 0.55), transparent 65%),
+      radial-gradient(ellipse at 44% 65%, rgba(103, 217, 211, 0.4), transparent 60%);
+    filter: blur(12px);
     animation: ${adriftWispOrbit} 24s linear infinite;
     pointer-events: none;
   }

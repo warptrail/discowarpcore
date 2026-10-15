@@ -4,7 +4,7 @@ const openDialogs = [];
 let savedBodyOverflow = '';
 
 // A shared stack keeps nested sheets from closing together or unlocking the page.
-export default function useDialogFocus(dialogRef, onClose, enabled = true) {
+export default function useDialogFocus(dialogRef, onClose, enabled = true, returnFocusSelector) {
   const closeRef = useRef(onClose);
   useEffect(() => { closeRef.current = onClose; }, [onClose]);
 
@@ -55,9 +55,17 @@ export default function useDialogFocus(dialogRef, onClose, enabled = true) {
       const index = openDialogs.indexOf(dialog);
       if (index >= 0) openDialogs.splice(index, 1);
       if (!openDialogs.length) document.body.style.overflow = savedBodyOverflow;
-      if (wasTop && previousFocus instanceof HTMLElement && previousFocus.isConnected) {
+      if (wasTop && returnFocusSelector) {
+        // A search result may disappear while its editor is open. Restore to a stable control after the closing commit.
+        window.requestAnimationFrame(() => {
+          const target = previousFocus instanceof HTMLElement && previousFocus !== document.body && previousFocus.isConnected && !previousFocus.matches(':disabled')
+            ? previousFocus : document.querySelector(returnFocusSelector);
+          const activeDialog = openDialogs.at(-1);
+          if (target && (!activeDialog || activeDialog.contains(target))) target.focus({ preventScroll: true });
+        });
+      } else if (wasTop && previousFocus instanceof HTMLElement && previousFocus.isConnected) {
         previousFocus.focus({ preventScroll: true });
       }
     };
-  }, [dialogRef, enabled]);
+  }, [dialogRef, enabled, returnFocusSelector]);
 }

@@ -1,20 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { getQuickPeekDismissState } from '../frontend/src/components/OperationsQuickPeek/OperationsQuickPeek.history.js';
 
-const {
-  getQuickPeekDismissHistorySteps,
-} = await import('../frontend/src/components/OperationsQuickPeek/OperationsQuickPeek.history.js');
-
-test('a downward Quick Peek dismissal skips the item and box history entries', () => {
-  assert.equal(getQuickPeekDismissHistorySteps({
-    operationsQuickPeekEntry: true,
-    operationsQuickPeekItemEntry: true,
-  }), 2);
+test('dismissal clears box and item history markers without mutating unrelated route state', () => {
+  const original = { operationsQuickPeekEntry: true, operationsQuickPeekItemEntry: true, finder: 'camping' };
+  assert.deepEqual(getQuickPeekDismissState(original), { finder: 'camping' });
+  assert.equal(original.operationsQuickPeekItemEntry, true);
 });
 
-test('a downward Quick Peek dismissal skips only its box history entry', () => {
-  assert.equal(getQuickPeekDismissHistorySteps({
-    operationsQuickPeekEntry: true,
-  }), 1);
-  assert.equal(getQuickPeekDismissHistorySteps({}), 0);
+test('direct links and box-only views also reset without needing history entries', () => {
+  assert.deepEqual(getQuickPeekDismissState(null), {});
+  assert.deepEqual(getQuickPeekDismissState({ operationsQuickPeekEntry: true }), {});
 });

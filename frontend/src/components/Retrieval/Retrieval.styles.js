@@ -7,6 +7,7 @@ import {
   MOBILE_FONT_SM,
   MOBILE_FONT_XS,
   MOBILE_PANEL_RADIUS,
+  RETRIEVAL_MODE_COLORS,
 } from '../../styles/tokens';
 
 const RETRIEVAL_WIDE_BREAKPOINT = '900px';
@@ -51,6 +52,7 @@ const controlField = css`
 `;
 
 export const PageShell = styled.section`
+  --retrieval-mode-accent: ${({ $mode }) => RETRIEVAL_MODE_COLORS[$mode] || RETRIEVAL_MODE_COLORS.items};
   display: grid;
   gap: 0.5rem;
   color: ${RETRIEVAL.text};
@@ -80,7 +82,7 @@ export const ControlsPanel = styled.section`
     gap: 0.52rem;
     backdrop-filter: none;
   }
-  border-left: 4px solid var(--dw-amber);
+  border-left: 4px solid var(--retrieval-mode-accent, var(--dw-violet));
   @media (max-width: 640px) { position: static; }
 `;
 
@@ -117,14 +119,16 @@ export const ModeToggleGroup = styled.div`
   box-shadow:
     none;
   border-color: var(--dw-border);
-  border-left-color: var(--dw-amber);
+  border-left-color: var(--retrieval-mode-accent, var(--dw-violet));
+  ${({ $compact }) => $compact && css`padding: 0; border-left-width: 1px;`}
 `;
 
 export const ModeToggleButton = styled.button`
   ${controlStyles};
-  border-color: ${({ $active }) => $active ? 'var(--dw-amber)' : 'transparent'};
+  border-color: ${({ $active }) => $active ? 'var(--retrieval-mode-accent, var(--dw-violet))' : 'transparent'};
   background: ${({ $active }) => $active ? 'var(--dw-surface-raised)' : 'var(--dw-surface)'};
-  color: ${({ $active }) => $active ? 'var(--dw-amber)' : 'var(--dw-text-secondary)'};
+  color: ${({ $active }) => $active ? 'var(--retrieval-mode-accent, var(--dw-violet))' : 'var(--dw-text-secondary)'};
+  ${({ $compact }) => $compact && css`min-width: 44px; width: 44px; min-height: 44px; padding: 0; font-size: .6875rem;`}
 `;
 
 export const HeadingRow = styled.div`
@@ -317,7 +321,7 @@ export const TitlePip = styled.span`
   border-radius: var(--dw-radius);
   background: ${RETRIEVAL.mint};
   box-shadow: none;
-  background: var(--dw-amber);
+  background: var(--retrieval-mode-accent, var(--dw-violet));
   border-radius: var(--dw-radius-sm);
 `;
 
@@ -386,6 +390,24 @@ export const SearchLabel = styled.span`
   border: 0;
 `;
 
+// Animate only the edge colors: text, the opaque face and mode rail stay steady.
+const searchBorderHueShift = keyframes`
+  0%, 100% {
+    border-top-color: color-mix(in srgb, var(--dw-cyan) 62%, transparent);
+    border-right-color: color-mix(in srgb, var(--dw-cyan) 62%, transparent);
+    border-bottom-color: color-mix(in srgb, var(--dw-cyan) 62%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--dw-cyan) 16%, transparent),
+      0 0 8px color-mix(in srgb, var(--dw-cyan) 18%, transparent);
+  }
+  50% {
+    border-top-color: color-mix(in srgb, var(--dw-violet) 66%, transparent);
+    border-right-color: color-mix(in srgb, var(--dw-violet) 66%, transparent);
+    border-bottom-color: color-mix(in srgb, var(--dw-violet) 66%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--dw-violet) 16%, transparent),
+      0 0 8px color-mix(in srgb, var(--dw-violet) 18%, transparent);
+  }
+`;
+
 export const SearchInput = styled.input`
   ${controlField};
   min-height: 40px;
@@ -400,8 +422,30 @@ export const SearchInput = styled.input`
     font-size: 0.94rem;
     border-radius: var(--dw-radius-sm);
   }
-  border-left-color: var(--dw-amber);
+  border-left-color: var(--retrieval-mode-accent, var(--dw-violet));
   background: var(--dw-background);
+  border-top-color: color-mix(in srgb, var(--dw-cyan) 62%, transparent);
+  border-right-color: color-mix(in srgb, var(--dw-cyan) 62%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--dw-cyan) 62%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--dw-cyan) 16%, transparent),
+    0 0 8px color-mix(in srgb, var(--dw-cyan) 18%, transparent);
+  animation: ${searchBorderHueShift} 16s ease-in-out infinite;
+  appearance: none;
+  caret-color: var(--dw-cyan);
+  &:focus, &:focus-visible { outline: none; }
+  &:focus::placeholder { opacity: 0; }
+
+  &:focus {
+    animation: none;
+    border-top-color: var(--dw-cyan);
+    border-right-color: var(--dw-cyan);
+    border-bottom-color: var(--dw-cyan);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--dw-cyan) 26%, transparent),
+      0 0 8px color-mix(in srgb, var(--dw-cyan) 24%, transparent);
+  }
+  &:disabled { animation: none; box-shadow: none; }
+  &[aria-invalid='true'] { animation: none; border-color: var(--dw-coral); box-shadow: none; }
+  @media (prefers-reduced-motion: reduce) { animation: none; }
 `;
 
 export const BoxPrefixWrap = styled.label`
@@ -1004,7 +1048,7 @@ export const ResultsPanel = styled.section`
 
   @media (min-width: 980px) {
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-rows: ${({ $headerless }) => $headerless ? 'minmax(0, 1fr) auto' : 'auto minmax(0, 1fr) auto'};
     min-height: 0;
   }
 `;
@@ -1020,7 +1064,7 @@ export const ResultsHeader = styled.div`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 0.5rem 0.54rem;
   }
-  border-left-color: var(--dw-amber);
+  border-left-color: var(--retrieval-mode-accent, var(--dw-violet));
   background: var(--dw-surface);
 `;
 
@@ -1259,34 +1303,6 @@ export const ResultsHeaderActions = styled.div`
   gap: 3px;
 `;
 
-export const ExplorerViewTrigger = styled.button`
-  font-family: var(--dw-font-ui);
-  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
-  display: inline-flex;
-  align-items: center;
-  gap: 0.28rem;
-  min-height: 40px;
-  padding: 0.18rem 0.42rem;
-  border: 1px solid rgba(76, 198, 193, 0.38);
-  border-radius: 2px;
-  background: ${({ $active }) =>
-    $active ? 'rgba(76, 198, 193, 0.14)' : 'var(--dw-surface)'};
-  color: rgba(220, 238, 240, 0.76);
-  font: 750 0.75rem/1 var(--dw-font-ui);
-  letter-spacing: 0;
-  cursor: pointer;
-
-  strong {
-    color: #bff8ed;
-    font-size: 0.75rem;
-  }
-
-  &:focus-visible {
-    outline: 1px solid rgba(127, 215, 255, 0.82);
-    outline-offset: 2px;
-  }
-`;
-
 export const ResultsCount = styled.span`
   font-family: var(--dw-font-ui);
   font-size: 0.75rem;
@@ -1302,14 +1318,15 @@ export const InlineSortRail = styled.div`
   min-width: 0;
 `;
 
-export const InlineSortSelect = styled.div`
-  min-width: 0;
-  flex: 1 1 auto;
-`;
 
 export const SortFieldButtons = styled.div`
+  ${({ $hasBackdrop }) => $hasBackdrop && css`
+    position: relative;
+    isolation: isolate;
+    > button { position: relative; z-index: 1; }
+  `}
   display: grid;
-  grid-template-columns: repeat(${({ $count }) => Math.max(1, $count)}, minmax(0, 1fr));
+  grid-template-columns: repeat(${({ $count }) => Math.max(1, $count)}, minmax(0, 1fr)) ${({ $hasEndControl }) => $hasEndControl ? 'auto' : ''};
   flex: 1 1 auto;
   min-width: 0;
   padding: 2px;
@@ -1335,64 +1352,6 @@ export const SortFieldButton = styled.button`
   @media (pointer: coarse) { min-height: 40px; }
 `;
 
-export const InlineSortDirectionButton = styled.button`
-  font-family: var(--dw-font-ui);
-  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
-  display: inline-grid;
-  grid-template-columns: repeat(2, auto);
-  place-content: center;
-  gap: 0.14rem;
-  flex: 0 0 48px;
-  width: 48px;
-  min-height: 40px;
-  padding: 0;
-  border: 1px solid rgba(167, 182, 255, 0.48);
-  border-radius: 2px;
-  background: rgba(167, 182, 255, 0.1);
-  color: #dfe4ff;
-  font: 900 0.92rem/1 var(--dw-font-ui);
-  cursor: pointer;
-  transition: border-color 120ms ease, background 120ms ease;
-
-  span {
-    opacity: 0.32;
-    transform: translateY(0);
-    transition: opacity 120ms ease, transform 120ms ease;
-  }
-
-  span:first-child {
-    opacity: ${({ $descending }) => ($descending ? 0.32 : 1)};
-    transform: ${({ $descending }) => ($descending ? 'translateY(0)' : 'translateY(-1px)')};
-  }
-
-  span:last-child {
-    opacity: ${({ $descending }) => ($descending ? 1 : 0.32)};
-    transform: ${({ $descending }) => ($descending ? 'translateY(1px)' : 'translateY(0)')};
-  }
-
-  &:hover:not(:disabled) {
-    border-color: rgba(167, 182, 255, 0.78);
-    background: rgba(167, 182, 255, 0.17);
-  }
-
-  &:focus-visible {
-    outline: 1px solid rgba(167, 182, 255, 0.86);
-    outline-offset: 2px;
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.42;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-
-    span {
-      transition: none;
-    }
-  }
-`;
 
 export const ResultsList = styled.div`
   display: grid;
@@ -1415,6 +1374,11 @@ export const ResultsList = styled.div`
       $compact ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))'};
     gap: ${({ $compact }) => ($compact ? '0' : '0.62rem')};
     padding: ${({ $compact }) => ($compact ? '3px' : '0.62rem')};
+  }
+  @media (min-width: 1100px) {
+    grid-template-columns: ${({ $compact, $smallCards }) => $compact ? 'minmax(0, 1fr)' : `repeat(auto-fill, minmax(min(100%, ${$smallCards ? 220 : 300}px), 1fr))`};
+    gap: ${({ $compact, $smallCards }) => $compact ? '0' : $smallCards ? '8px' : '12px'};
+    min-width: 0;
   }
 `;
 
@@ -1496,6 +1460,7 @@ export const BoxCentricLayout = styled.div`
     padding: 0.52rem 0.54rem 0.56rem;
     gap: 0.5rem;
   }
+  @media (min-width: 1100px) { grid-template-columns: minmax(0, 1fr) 384px; gap: 16px; }
 `;
 
 export const BoxMapPanel = styled.section`
@@ -1535,6 +1500,10 @@ export const LocationSectionLabel = styled.p`
 export const BoxList = styled.div`
   display: grid;
   gap: 0.22rem;
+  @media (min-width: 1100px) {
+    grid-template-columns: ${({ $presentation }) => $presentation === 'ascii' ? 'minmax(0, 1fr)' : `repeat(auto-fill, minmax(min(100%, ${$presentation === 'compact' ? 220 : 300}px), 1fr))`};
+    gap: ${({ $presentation }) => $presentation === 'ascii' ? '0' : $presentation === 'compact' ? '8px' : '12px'};
+  }
 `;
 
 export const BoxListItem = styled.div`
@@ -1545,9 +1514,9 @@ export const BoxListItem = styled.div`
 export const BoxListRow = styled.button`
   width: 100%;
   min-width: 0;
-  min-height: 100px;
+  min-height: ${({ $smallCard }) => $smallCard ? '54px' : '100px'};
   display: grid;
-  grid-template-columns: 84px minmax(0, 1fr) auto;
+  grid-template-columns: ${({ $smallCard }) => $smallCard ? 'minmax(0, 1fr)' : '84px minmax(0, 1fr) auto'};
   @media (max-width: 640px) { grid-template-columns: 68px minmax(0, 1fr) auto; }
   align-items: stretch;
   padding: 0;
@@ -1961,7 +1930,7 @@ export const ResultCard = styled.article`
   }
 
   @media (min-width: ${RETRIEVAL_WIDE_BREAKPOINT}) {
-    grid-column: ${({ $expanded }) => ($expanded ? '1 / -1' : 'auto')};
+    grid-column: ${({ $expanded, $docked }) => ($expanded && !$docked ? '1 / -1' : 'auto')};
   }
   &::before { width: 3px; background: var(--box-primary, #8A8175); }
   &::after { display: none; }
@@ -2014,6 +1983,7 @@ export const SummaryTop = styled.div`
 `;
 
 export const RowMain = styled.div`
+  min-height: 132px;
   display: grid;
   grid-template-columns: ${({ $expanded }) =>
     $expanded ? '5px minmax(0, 1fr)' : '84px minmax(0, 1fr) auto'};
@@ -2096,7 +2066,7 @@ export const ThumbPlaceholder = styled.span`
 `;
 
 export const BadgeStack = styled.div`
-  padding: ${({ $expanded }) => $expanded ? 0 : '0.6rem 0.55rem'};
+  padding: ${({ $expanded, $hasTags }) => $expanded ? 0 : $hasTags ? '0.35rem 0.55rem' : '0.6rem 0.55rem'};
   align-content: center;
   display: grid;
   gap: ${({ $expanded }) => ($expanded ? '0' : '0.16rem')};
@@ -2145,6 +2115,7 @@ export const ItemLine = styled.span`
     white-space: normal;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
+    min-height: 2.4em;
   }
 `;
 
@@ -2211,6 +2182,18 @@ export const CollapsedPlacementTable = styled.div`
   display: grid;
   gap: 0.08rem;
   min-width: 0;
+`;
+
+export const CollapsedTagPreview = styled.span`
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  color: rgba(188, 211, 226, 0.52);
+  font: 400 0.625rem/1.1 var(--dw-font-ui);
+  letter-spacing: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 `;
 
 export const CollapsedPlacementRow = styled.div`

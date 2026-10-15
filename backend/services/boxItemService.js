@@ -1,3 +1,4 @@
+const { withItemMutationLock } = require('../utils/itemMutationLock');
 // services/boxItemService.js
 const Box = require('../models/Box');
 const { resolveCompartment, getItemCompartment } = require('../utils/boxCompartments');
@@ -86,7 +87,10 @@ async function logItemMovedEvent({
  * - Add to destination box (idempotent via $addToSet)
  * - Clear orphaning flags + location (box owns location)
  */
-async function attachItemToBox({ itemId, boxId, compartmentKey, suppressMoveLog = false }) {
+async function attachItemToBox(options) {
+  return withItemMutationLock(options.itemId, () => attachItemToBoxUnlocked(options), options.mutationToken);
+}
+async function attachItemToBoxUnlocked({ itemId, boxId, compartmentKey, suppressMoveLog = false }) {
   const [item, destinationBox, sourceBox] = await Promise.all([
     Item.findById(itemId).select('_id name item_status isIntendedGift').lean(),
     Box.findById(boxId).select('_id box_id label isGiftBox isComplexBox compartments itemCompartments').lean(),
@@ -189,6 +193,9 @@ async function attachItemToBox({ itemId, boxId, compartmentKey, suppressMoveLog 
  * - If the item is no longer in ANY box, mark as orphaned and wipe location
  */
 async function removeItemFromBox(boxId, itemId) {
+  return withItemMutationLock(itemId, () => removeItemFromBoxUnlocked(boxId, itemId));
+}
+async function removeItemFromBoxUnlocked(boxId, itemId, reason = 'remove_item_from_box') {
   const [item, sourceBox] = await Promise.all([
     Item.findById(itemId).select('_id name item_status').lean(),
     Box.findOne({ _id: boxId, items: itemId }).select('_id box_id label').lean(),
@@ -209,7 +216,7 @@ async function removeItemFromBox(boxId, itemId) {
       item,
       fromBox: sourceBox,
       toBox: destinationBox,
-      reason: 'remove_item_from_box',
+      reason,
     });
   }
 
@@ -291,6 +298,9 @@ async function moveItemBetweenBoxes(sourceBoxId, destBoxId, itemId, compartmentK
  * Ensure the item is detached from ALL boxes and marked orphaned (location wiped).
  */
 async function detachItem({ itemId }) {
+  return withItemMutationLock(itemId, () => detachItemUnlocked({ itemId }));
+}
+async function detachItemUnlocked({ itemId }) {
   const [item, sourceBoxes] = await Promise.all([
     Item.findById(itemId).select('_id name item_status').lean(),
     Box.find({ items: itemId }).select('_id box_id label').lean(),
@@ -344,30 +354,17 @@ async function emptyBoxItems(boxId) {
   if (!box) throw new Error('Box not found');
 
   const itemIds = box.items || [];
-  let itemDocs = [];
-  if (itemIds.length) {
-    itemDocs = await Item.find({ _id: { $in: itemIds } })
-      .select('_id name item_status')
-      .lean();
-
-    await Item.updateMany(
-      { ...ACTIVE_ITEM_FILTER, _id: { $in: itemIds } },
-      { $set: { orphanedAt: new Date(), location: '' } }
-    );
-  }
-
-  await Box.updateOne({ _id: boxId }, { $set: { items: [], itemCompartments: {} } });
-
-  if (itemDocs.length) {
-    for (const item of itemDocs) {
-      if (item.item_status === 'gone') continue;
-      await logItemMovedEvent({
-        item,
-        fromBox: box,
-        toBox: null,
-        reason: 'empty_box_items',
-      });
+  // Serialize each removal with recovery/placement and avoid clearing later attachments.
+  for (const itemId of itemIds) {
+    if (!await Item.exists({ _id: itemId })) {
+      await Box.updateOne({ _id: boxId }, { $pull: { items: itemId }, $unset: { [`itemCompartments.${itemId}`]: 1 } });
+      continue;
     }
+    await withItemMutationLock(itemId, async () => {
+      const source = await Box.findOne({ _id: boxId, items: itemId }).lean();
+      if (!source) return;
+      await removeItemFromBoxUnlocked(boxId, itemId, 'empty_box_items');
+    });
   }
 
   return { boxId, removedCount: itemIds.length };

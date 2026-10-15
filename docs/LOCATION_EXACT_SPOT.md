@@ -2,6 +2,8 @@
 
 Locations now use Room → Vicinity → Specifics → Exact Spot. `exactSpot` is optional free text (for example, "Behind the blue bin") and requires Specifics. Existing location IDs, box references and item-string/import contracts remain intact.
 
+For the separate, explicit legacy box/item label migration, see [Legacy location migration](LEGACY_LOCATION_MIGRATION.md). It reuses this schema without changing the item-string contract or running a production migration implicitly.
+
 ## Local database transition
 
 The migration refuses non-loopback MongoDB hosts, databases without a development/test suffix, and production environment/NeonAzoth signals. It defaults to a read-only dry run:
@@ -32,3 +34,13 @@ npm --prefix frontend run build
 ```
 
 The integration test creates and removes only its uniquely named local test database. Browser verification should use disposable locations/boxes and mock GET `/api/declutter-deck`, which can reconcile inventory candidates. NeonAzoth requires a separate rollout; this migration is deliberately development-only.
+
+## NeonAzoth production
+
+Production uses the dedicated `backend/scripts/migrate-location-exact-spot-production.js` entry point. It pins Linux host `neonazoth`, account `warptrail`, canonical working directory `/home/warptrail/discowarpcore`, loopback MongoDB, and an explicitly supplied database name matching production's `.env`.
+
+```sh
+node backend/scripts/migrate-location-exact-spot-production.js --expected-database=discowarpcore --dry-run
+```
+
+For apply, build and verify a frozen release first. Hold the existing `/home/warptrail/.local/share/deckone-production/control.lock` throughout stop, backup/migration, source activation and start. Use the installed production adapter's worker under that lock; inspect each worker job result because workers record failures rather than returning a failed exit status. Apply refuses a listening API on 5002, creates a full `mongodump` archive plus the location/index/assignment snapshot, and verifies inventory counts. Secrets, media and runtime directories must remain on the live host. Retain the prior source/dist and database archives for rollback; do not deploy the development `.env` or copy development records into production.

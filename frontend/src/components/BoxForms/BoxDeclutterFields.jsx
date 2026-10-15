@@ -1,5 +1,5 @@
-import { panelStyles, controlStyles } from '../../styles/primitives';
-import styled from 'styled-components';
+import { panelStyles, controlStyles, inputStyles } from '../../styles/primitives';
+import styled, { css } from 'styled-components';
 
 const Panel = styled.div`
   display: grid;
@@ -16,6 +16,11 @@ const Panel = styled.div`
   border-left: 3px solid var(--dw-amber);
 
   padding: 0.65rem;
+  ${({ $dense }) => $dense && css`
+    padding: 8px;
+    gap: 6px;
+    border-left-width: 1px;
+  `}
 `;
 
 const Label = styled.div`
@@ -38,6 +43,15 @@ const FlagGrid = styled.div`
   }
 
   @media (max-width: 360px) { grid-template-columns: 1fr; }
+  ${({ $dense }) => $dense && css`
+    && { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    @media (max-width: 560px) and (max-height: 640px) { display: none; }
+  `}
+`;
+const ShortViewportSelect = styled.select`
+  ${inputStyles}
+  display: none;
+  @media (max-width: 560px) and (max-height: 640px) { display: block; width: 100%; }
 `;
 
 const Flag = styled.button`
@@ -65,6 +79,7 @@ const Flag = styled.button`
   border-left-width: 3px;
 
   color: ${({ $tone, $primary, $secondary }) => $tone === 'danger' ? 'var(--dw-coral)' : ($tone === 'primary' || $primary) ? 'var(--dw-cyan)' : $secondary ? 'var(--dw-violet)' : 'var(--dw-text)'};
+  ${({ $dense }) => $dense && css`min-height: 44px;`}
 `;
 
 const FlagLight = styled.span`
@@ -92,6 +107,7 @@ const FlagHint = styled.span`
   font: 600 0.75rem/1.2 var(--dw-font-ui);
   letter-spacing: 0.02em;
   text-transform: none;
+  ${({ $dense }) => $dense && css`display: none;`}
 `;
 
 const Check = styled.label`
@@ -100,10 +116,12 @@ const Check = styled.label`
   gap: 0.5rem;
   color: var(--dw-text-secondary);
   font-size: 0.76rem;
+  ${({ $dense }) => $dense && css`min-height: 44px; cursor: pointer;`}
 `;
 
 export default function BoxDeclutterFields({
   compact = false,
+  dense = false,
   purpose,
   setPurpose,
   isDefault,
@@ -120,10 +138,16 @@ export default function BoxDeclutterFields({
     { value: 'discard_staging', title: 'Trash staging', hint: 'Route to discard', tone: '#f08a7b' },
   ];
   return (
-    <Panel $compact={compact}>
+    <Panel $compact={compact} $dense={dense}>
       <Label>
         Declutter purpose
-        <FlagGrid role="radiogroup" aria-label="Declutter purpose">
+        {dense ? <ShortViewportSelect aria-label="Declutter purpose" value={purpose} onChange={(event) => {
+          setPurpose(event.target.value);
+          if (event.target.value === 'standard') setIsDefault(false);
+        }}>
+          {flags.map((flag) => <option key={flag.value} value={flag.value}>{flag.title}</option>)}
+        </ShortViewportSelect> : null}
+        <FlagGrid $dense={dense} role="radiogroup" aria-label="Declutter purpose">
           {flags.map((flag) => {
             const active = purpose === flag.value;
             return (
@@ -132,8 +156,10 @@ export default function BoxDeclutterFields({
                 type="button"
                 role="radio"
                 aria-checked={active}
+                title={`${flag.title} · ${flag.hint}`}
                 $active={active}
                 $tone={flag.tone}
+                $dense={dense}
                 onClick={() => {
                   setPurpose(flag.value);
                   if (flag.value === 'standard') setIsDefault(false);
@@ -142,14 +168,14 @@ export default function BoxDeclutterFields({
                 <FlagLight aria-hidden="true" $active={active} $tone={flag.tone} />
                 <FlagText>
                   <FlagTitle>{flag.title}</FlagTitle>
-                  <FlagHint>{flag.hint}</FlagHint>
+                  <FlagHint $dense={dense}>{flag.hint}</FlagHint>
                 </FlagText>
               </Flag>
             );
           })}
         </FlagGrid>
       </Label>
-      <Check>
+      <Check $dense={dense}>
         <input
           type="checkbox"
           checked={Boolean(isDefault && canBeDefault)}
@@ -158,7 +184,7 @@ export default function BoxDeclutterFields({
         />
         Default destination for this staging purpose
       </Check>
-      <Check>
+      <Check $dense={dense}>
         <input
           type="checkbox"
           checked={Boolean(isGiftBox)}

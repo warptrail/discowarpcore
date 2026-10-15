@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 import * as S from './Declutter.styles';
+import * as W from './DeclutterWaitingOverlay.styles';
+import useDialogFocus from '../../hooks/useDialogFocus';
 import {
   getItemBoxLabel,
   getItemCategoryLabel,
@@ -12,17 +14,12 @@ import {
 } from './declutterUtils';
 
 export default function DeclutterWaitingOverlay({ candidates = [], onRequestClose }) {
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') onRequestClose?.();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onRequestClose]);
+  const dialogRef = useRef(null);
+  useDialogFocus(dialogRef, onRequestClose);
 
   return (
-    <S.QueueOverlay role="presentation" onMouseDown={onRequestClose}>
-      <S.QueuePopover
+    <W.Backdrop role="presentation" onMouseDown={onRequestClose}>
+      <W.Dialog ref={dialogRef} tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="declutter-waiting-title"
@@ -55,7 +52,7 @@ export default function DeclutterWaitingOverlay({ candidates = [], onRequestClos
             );
           })}
         </S.QueueLinkList>
-      </S.QueuePopover>
-    </S.QueueOverlay>
+      </W.Dialog>
+    </W.Backdrop>
   );
 }

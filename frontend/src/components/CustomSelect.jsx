@@ -1,4 +1,6 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import useFloatingSelectMenu from '../hooks/useFloatingSelectMenu';
 import * as S from '../styles/CustomSelect.styles';
 
 export default function CustomSelect({
@@ -11,10 +13,17 @@ export default function CustomSelect({
   variant = 'default',
   optionAccent = false,
   ownerStyle = false,
+  hideScrollbar = false,
+  initialOpen = false,
+  onDismiss,
 }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(initialOpen);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const wrapperRef = useRef(null);
+  const buttonRef = useRef(null);
+  const menuRef = useRef(null);
+  const floating = variant === 'floating';
+  const menuStyle = useFloatingSelectMenu(buttonRef, isOpen && floating);
   const listboxId = useId();
 
   const safeOptions = useMemo(
@@ -27,20 +36,30 @@ export default function CustomSelect({
   const selectedOption = safeOptions[selectedIndex] || safeOptions[0];
 
   useEffect(() => {
+    if (initialOpen) buttonRef.current?.focus({ preventScroll: true });
+  }, [initialOpen]);
+
+  useEffect(() => {
     const handlePointerDown = (event) => {
-      if (!wrapperRef.current?.contains(event.target)) {
+      if (!wrapperRef.current?.contains(event.target) && !menuRef.current?.contains(event.target)) {
         setIsOpen(false);
+        onDismiss?.('outside');
       }
     };
 
     document.addEventListener('pointerdown', handlePointerDown);
     return () => document.removeEventListener('pointerdown', handlePointerDown);
-  }, []);
+  }, [onDismiss]);
 
   useEffect(() => {
     if (!isOpen) return;
     setHighlightedIndex(selectedIndex >= 0 ? selectedIndex : 0);
   }, [isOpen, selectedIndex]);
+
+  useEffect(() => {
+    if (!floating || !isOpen || !menuStyle || highlightedIndex < 0) return;
+    document.getElementById(`${listboxId}-${highlightedIndex}`)?.scrollIntoView({ block: 'nearest' });
+  }, [floating, isOpen, menuStyle, highlightedIndex, listboxId]);
 
   const selectOption = (option) => {
     if (!option || disabled) return;
@@ -55,6 +74,7 @@ export default function CustomSelect({
       event.preventDefault();
       event.stopPropagation();
       setIsOpen(false);
+      onDismiss?.('escape');
       return;
     }
 
@@ -82,6 +102,7 @@ export default function CustomSelect({
 
     if (event.key === 'Tab') {
       setIsOpen(false);
+      onDismiss?.('tab');
       return;
     }
 
@@ -92,9 +113,26 @@ export default function CustomSelect({
     }
   };
 
+  const menu = isOpen ? (
+    <S.SelectMenu ref={menuRef} id={listboxId} role="listbox" aria-label={ariaLabel} $variant={variant} $hideScrollbar={hideScrollbar}
+      style={floating ? { ...menuStyle, visibility: menuStyle ? 'visible' : 'hidden' } : undefined}
+      onMouseDown={floating ? (event) => event.preventDefault() : undefined}>
+      {safeOptions.map((option, index) => (
+        <S.SelectOption
+          key={String(option.value)} type="button" id={`${listboxId}-${index}`} tabIndex={-1} role="option"
+          aria-selected={index === selectedIndex} $active={index === highlightedIndex} $selected={index === selectedIndex}
+          $accent={optionAccent ? option.accent : ''} $variant={variant} $ownerStyle={ownerStyle}
+          onMouseEnter={() => setHighlightedIndex(index)} onClick={() => selectOption(option)}>
+          {option.label}
+        </S.SelectOption>
+      ))}
+    </S.SelectMenu>
+  ) : null;
+
   return (
     <S.SelectWrap ref={wrapperRef} $tone={tone} $disabled={disabled} $open={isOpen} $variant={variant}>
       <S.SelectButton
+        ref={buttonRef}
         type="button"
         $tone={tone}
         $variant={variant}
@@ -113,29 +151,7 @@ export default function CustomSelect({
         <S.SelectChevron aria-hidden="true">⌄</S.SelectChevron>
       </S.SelectButton>
 
-      {isOpen ? (
-        <S.SelectMenu id={listboxId} role="listbox" aria-label={ariaLabel} $variant={variant}>
-          {safeOptions.map((option, index) => (
-            <S.SelectOption
-              key={String(option.value)}
-              type="button"
-              id={`${listboxId}-${index}`}
-              tabIndex={-1}
-              role="option"
-              aria-selected={index === selectedIndex}
-              $active={index === highlightedIndex}
-              $selected={index === selectedIndex}
-              $accent={optionAccent ? option.accent : ''}
-              $variant={variant}
-              $ownerStyle={ownerStyle}
-              onMouseEnter={() => setHighlightedIndex(index)}
-              onClick={() => selectOption(option)}
-            >
-              {option.label}
-            </S.SelectOption>
-          ))}
-        </S.SelectMenu>
-      ) : null}
+      {floating && menu && typeof document !== 'undefined' ? createPortal(menu, document.body) : menu}
     </S.SelectWrap>
   );
 }

@@ -1,3 +1,4 @@
+import useMissingInventoryRefresh from '../MissingItems/useMissingInventoryRefresh';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { API_BASE } from '../../api/API_BASE.js';
 
@@ -207,6 +208,8 @@ export default function usePaginatedAllItems({
       }
     }
   }, [requestPage]);
+
+  useMissingInventoryRefresh(refresh);
 
   return {
     items,

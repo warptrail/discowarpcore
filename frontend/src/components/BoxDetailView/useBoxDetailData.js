@@ -1,3 +1,4 @@
+import useMissingInventoryRefresh from '../MissingItems/useMissingInventoryRefresh';
 import { useCallback, useEffect, useState } from 'react';
 import { fetchBoxTreeByShortId } from '../../api/boxes';
 import flattenBoxes from '../../util/flattenBoxes';
@@ -54,6 +55,8 @@ export default function useBoxDetailData(shortId) {
     async () => loadBoxData({ silent: true }),
     [loadBoxData],
   );
+
+  useMissingInventoryRefresh(refreshBox);
 
   const applyBoxUpdate = useCallback((updated) => {
     if (!updated?._id) return;

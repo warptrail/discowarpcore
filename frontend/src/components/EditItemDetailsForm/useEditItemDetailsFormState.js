@@ -37,7 +37,8 @@ const buildFormState = (item) => ({
     item?.maintenanceHistory,
     item?.lastMaintainedAt
   ),
-  keepPriority: normalizeKeepPriority(item?.keepPriority),
+  item_status: item?.item_status || 'active',
+  keepPriority: item?.item_status === 'gone' ? 'decommissioned' : normalizeKeepPriority(item?.keepPriority),
   primaryOwnerName: normalizePrimaryOwner(item?.primaryOwnerName),
   condition: item?.condition || 'unknown',
   category: normalizeItemCategory(item?.category),

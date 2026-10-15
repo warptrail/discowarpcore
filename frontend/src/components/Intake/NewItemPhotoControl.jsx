@@ -1,13 +1,10 @@
-import React from 'react';
+import { useRef } from 'react';
 import ImageSourcePicker from '../ImageSourcePicker';
 import RenderTokenControls from '../Processing/RenderTokenControls';
 import { RENDER_TOKEN_OPTIONS } from '../../constants/renderTokens';
 import {
   PhotoControlPanel,
-  PhotoButton,
-  PhotoButtonLabel,
   PhotoCopy,
-  PhotoGlyph,
   PhotoPreview,
   PhotoStage,
   QuietButton,
@@ -26,55 +23,45 @@ export default function NewItemPhotoControl({
   renderTokens,
   onRenderTokenChange,
 }) {
-  const renderSourceAction = ({ label, onClick, disabled: actionDisabled }) => (
-    <QuietButton type="button" onClick={onClick} disabled={actionDisabled}>
+  const choosePhotoRef = useRef(null);
+  const renderSourceAction = ({ label, onClick, disabled: actionDisabled, title }) => (
+    <QuietButton type="button" ref={label === 'Choose photo' ? choosePhotoRef : undefined}
+      onClick={onClick} disabled={actionDisabled} title={title}>
       {label}
     </QuietButton>
   );
 
   return (
     <PhotoControlPanel>
-      <PhotoStage>
-      {previewUrl ? (
-        <PhotoPreview src={previewUrl} alt="New item preview" />
-      ) : (
-        <ImageSourcePicker
-          disabled={disabled}
-          label="Add photo"
-          onFileSelected={onFileSelected}
-          renderAction={({ onClick, disabled: actionDisabled }) => (
-            <PhotoButton type="button" onClick={onClick} disabled={actionDisabled}>
-              <PhotoGlyph aria-hidden="true">⌑</PhotoGlyph>
-              <PhotoButtonLabel>Add photo</PhotoButtonLabel>
-            </PhotoButton>
-          )}
-        />
-      )}
-
-      <PhotoCopy>
-        <SourceActions>
-          <ImageSourcePicker
-            disabled={disabled}
-            label={photoFile ? 'Change photo' : 'Take photo'}
-            capture="environment"
-            source="camera"
-            onFileSelected={onFileSelected}
-            renderAction={renderSourceAction}
-          />
-          <ImageSourcePicker
-            disabled={disabled}
-            label={photoFile ? 'Choose another' : 'Choose photo'}
-            source="library"
-            onFileSelected={onFileSelected}
-            renderAction={renderSourceAction}
-          />
+      <PhotoStage $hasPreview={Boolean(previewUrl)}>
+        {previewUrl ? <PhotoPreview src={previewUrl} alt="New item preview" /> : null}
+        <PhotoCopy>
+          <SourceActions role="group" aria-label="Item photo sources">
+            <ImageSourcePicker
+              disabled={disabled}
+              label="Take photo"
+              capture="environment"
+              source="camera"
+              onFileSelected={onFileSelected}
+              renderAction={renderSourceAction}
+            />
+            <ImageSourcePicker
+              disabled={disabled}
+              label="Choose photo"
+              source="library"
+              onFileSelected={onFileSelected}
+              renderAction={renderSourceAction}
+            />
+          </SourceActions>
           {photoFile ? (
-            <QuietButton type="button" onClick={onRemove} disabled={disabled}>
-              Remove
+            <QuietButton type="button" onClick={() => {
+              onRemove?.();
+              choosePhotoRef.current?.focus();
+            }} disabled={disabled}>
+              Remove photo
             </QuietButton>
           ) : null}
-        </SourceActions>
-      </PhotoCopy>
+        </PhotoCopy>
       </PhotoStage>
       {photoFile ? (
         <GlowAddon>

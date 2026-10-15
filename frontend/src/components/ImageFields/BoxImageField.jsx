@@ -78,6 +78,7 @@ export default function BoxImageField({
   hintWhenImage = '',
   hintWhenEmpty = '',
   mobileHeaderPreview = false,
+  workspacePage = '',
 }) {
   const resolvedBoxId = toTrimmed(boxId || box?._id);
   const [previewUrl, setPreviewUrl] = useState(() => pickEntityImageUrl(box));
@@ -468,6 +469,7 @@ export default function BoxImageField({
       renderTokensDisabled={mutationBusy}
       hint={hint}
       mobileHeaderPreview={mobileHeaderPreview}
+      workspacePage={workspacePage}
     />
   );
 }

@@ -1,7 +1,7 @@
+import useTagReturnSnapshot from '../../hooks/useTagReturnSnapshot';
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -11,12 +11,13 @@ import {
   useNavigate,
   useSearchParams,
 } from 'react-router-dom';
-import { QUICK_PEEK_EXIT_DURATION_MS } from './OperationsQuickPeek.motion';
+import { getQuickPeekExitDuration } from './OperationsQuickPeek.motion';
+import useIsMobile from '../../hooks/useIsMobile';
 import {
   QUICK_PEEK_ITEM_PARAM,
 } from './useOperationsQuickPeekItemSelection';
 import {
-  getQuickPeekDismissHistorySteps,
+  getQuickPeekDismissState,
   PEEK_HISTORY_STATE,
   QUICK_PEEK_ITEM_HISTORY_STATE,
 } from './OperationsQuickPeek.history';
@@ -38,16 +39,17 @@ export function getOperationsBoxAnchorId(boxId) {
 }
 
 export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}) {
+  const mobile = useIsMobile(767);
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const [expanded, setExpanded] = useState(false);
+  const source = useTagReturnSnapshot();
+  const [expanded, setExpanded] = useState(() => source?.peekExpanded || false);
   const [closing, setClosing] = useState(false);
   const [transitionDirection, setTransitionDirection] = useState(0);
   const closeTimerRef = useRef(0);
   const triggerRef = useRef(null);
   const previousSelectedIdRef = useRef('');
-  const closeViewportRef = useRef(null);
 
   const previewBoxes = useMemo(
     () =>
@@ -100,81 +102,20 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
     setClosing(false);
     setTransitionDirection(0);
 
-    if (location.state?.[PEEK_HISTORY_STATE]) {
-      closeViewportRef.current = {
-        left: window.scrollX,
-        top: window.scrollY,
-        scrollRestoration: window.history.scrollRestoration,
-      };
-      window.history.scrollRestoration = 'manual';
-      navigate(-1);
-      return;
-    }
-
-    const nextState = { ...(location.state || {}) };
-    delete nextState[PEEK_HISTORY_STATE];
+    const nextState = getQuickPeekDismissState(location.state);
+    // Panel dismissal clears the current selection; browsing history is not
+    // a reliable representation of the panel's local state.
     writePeekParam('', { replace: true, state: nextState });
-  }, [location.state, navigate, writePeekParam]);
+  }, [location.state, writePeekParam]);
 
-  const commitDismiss = useCallback(() => {
-    setExpanded(false);
-    setClosing(false);
-    setTransitionDirection(0);
-
-    const historySteps = getQuickPeekDismissHistorySteps(location.state);
-
-    if (historySteps) {
-      closeViewportRef.current = {
-        left: window.scrollX,
-        top: window.scrollY,
-        scrollRestoration: window.history.scrollRestoration,
-      };
-      window.history.scrollRestoration = 'manual';
-      // Opening a box and then an item creates two intentional history
-      // entries. A downward dismissal bypasses both, so it cannot reopen the
-      // box list after the item view disappears.
-      navigate(-historySteps);
-      return;
-    }
-
-    const nextState = { ...(location.state || {}) };
-    delete nextState[PEEK_HISTORY_STATE];
-    delete nextState[QUICK_PEEK_ITEM_HISTORY_STATE];
-    writePeekParam('', { replace: true, state: nextState });
-  }, [location.state, navigate, writePeekParam]);
-
-  useLayoutEffect(() => {
-    const viewport = closeViewportRef.current;
-    if (selectedBoxId || !viewport || typeof window === 'undefined') return;
-
-    window.scrollTo({
-      left: viewport.left,
-      top: viewport.top,
-      behavior: 'auto',
-    });
-
-    const frameId = window.requestAnimationFrame(() => {
-      window.scrollTo({
-        left: viewport.left,
-        top: viewport.top,
-        behavior: 'auto',
-      });
-      window.history.scrollRestoration = viewport.scrollRestoration;
-      closeViewportRef.current = null;
-    });
-
-    return () => window.cancelAnimationFrame(frameId);
-  }, [selectedBoxId]);
+  const commitDismiss = commitClose;
 
   const close = useCallback(() => {
     if (!selectedBox || closing) return;
 
-    const shouldAnimate =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(max-width: 767px)').matches &&
-      !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const exitDuration = typeof window === 'undefined' ? 0 : getQuickPeekExitDuration(window);
 
-    if (!shouldAnimate) {
+    if (!exitDuration) {
       commitClose();
       return;
     }
@@ -184,19 +125,16 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
     window.clearTimeout(closeTimerRef.current);
     closeTimerRef.current = window.setTimeout(
       commitClose,
-      QUICK_PEEK_EXIT_DURATION_MS,
+      exitDuration,
     );
   }, [closing, commitClose, selectedBox]);
 
   const dismiss = useCallback(() => {
     if (!selectedBox || closing) return;
 
-    const shouldAnimate =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(max-width: 767px)').matches &&
-      !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const exitDuration = typeof window === 'undefined' ? 0 : getQuickPeekExitDuration(window);
 
-    if (!shouldAnimate) {
+    if (!exitDuration) {
       commitDismiss();
       return;
     }
@@ -206,7 +144,7 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
     window.clearTimeout(closeTimerRef.current);
     closeTimerRef.current = window.setTimeout(
       commitDismiss,
-      QUICK_PEEK_EXIT_DURATION_MS,
+      exitDuration,
     );
   }, [closing, commitDismiss, selectedBox]);
 
@@ -261,10 +199,6 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
   useEffect(
     () => () => {
       window.clearTimeout(closeTimerRef.current);
-      if (closeViewportRef.current) {
-        window.history.scrollRestoration =
-          closeViewportRef.current.scrollRestoration;
-      }
     },
     [],
   );
@@ -288,8 +222,8 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
   );
 
   const openFullBox = useCallback(() => {
-    if (!selectedBoxId) return;
-    navigate(selectedBoxId === 'adrift' ? '/all-items?filter=orphaned' : `/boxes/${selectedBoxId}`);
+    if (!selectedBoxId || selectedBoxId === 'adrift') return;
+    navigate(`/boxes/${selectedBoxId}`);
   }, [navigate, selectedBoxId]);
 
   useEffect(() => {
@@ -317,8 +251,8 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
     if (!selectedBoxReady || !selectedBoxId || typeof window === 'undefined') {
       return undefined;
     }
-    const mobileViewport = window.matchMedia('(max-width: 767px)').matches;
-    if (mobileViewport && expanded) return undefined;
+    const mobileViewport = mobile;
+    if (source || (mobileViewport && expanded)) return undefined;
 
     let frameId = 0;
     let settleTimerId = 0;
@@ -332,6 +266,7 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
       const anchorRect = anchor.getBoundingClientRect();
       const appHeaderBottom =
         document.querySelector('#root header')?.getBoundingClientRect().bottom || 0;
+      if (window.innerWidth >= 1100 && anchorRect.top >= appHeaderBottom && anchorRect.bottom <= window.innerHeight) return;
       const scrollDelta = mobileViewport
         ? anchorRect.bottom - Math.max(
             appHeaderBottom + anchorRect.height + PEEK_LABEL_GAP_PX,
@@ -360,13 +295,13 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
       window.cancelAnimationFrame(frameId);
       window.clearTimeout(settleTimerId);
     };
-  }, [expanded, selectedBoxId, selectedBoxReady]);
+  }, [expanded, mobile, selectedBoxId, selectedBoxReady, source]);
 
   useEffect(() => {
     if (!selectedBox || expanded || typeof window === 'undefined') {
       return undefined;
     }
-    if (!window.matchMedia('(max-width: 767px)').matches) return undefined;
+    if (!mobile) return undefined;
 
     const preventBackgroundScroll = (event) => {
       const target = event.target;
@@ -406,7 +341,7 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
       document.removeEventListener('wheel', preventBackgroundScroll);
       document.removeEventListener('touchmove', preventBackgroundScroll);
     };
-  }, [expanded, selectedBox]);
+  }, [expanded, mobile, selectedBox]);
 
   useEffect(() => {
     const previousId = previousSelectedIdRef.current;
@@ -420,16 +355,17 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
     if (!selectedBox) return undefined;
 
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !event.defaultPrevented) {
         if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
         event.preventDefault();
-        close();
+        if (window.innerWidth >= 1100) dismiss();
+        else close();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [close, selectedBox]);
+  }, [close, dismiss, selectedBox]);
 
   return {
     selectedBox,

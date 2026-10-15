@@ -1,10 +1,10 @@
 import { locationSuggestions } from '../../util/locationStructure';
 import * as S from './Location.styles';
 
-export default function LocationEditor({ locations, draft, editingId, busy, onChange, onSave, onCancel }) {
+export default function LocationEditor({ locations, draft, editingId, busy, onChange, onSave, onCancel, embedded = false }) {
   return (
     <S.Panel>
-      <S.PanelHeader><h2>{editingId ? 'Edit location' : 'Add location'}</h2></S.PanelHeader>
+      {!embedded ? <S.PanelHeader><h2>{editingId ? 'Edit location' : 'Add location'}</h2></S.PanelHeader> : null}
       <S.Text>Room is required. Add a vicinity for an area within the room, then specifics for a section and Exact Spot for precise placement.</S.Text>
       <S.Form onSubmit={onSave}>
         {[
@@ -15,7 +15,7 @@ export default function LocationEditor({ locations, draft, editingId, busy, onCh
         ].map(([name, label, placeholder, help]) => (
           <S.Label key={name} htmlFor={`location-${name}`}>
             {label}
-            <S.Input id={`location-${name}`} value={draft[name]} required={name === 'room'} disabled={busy || (name === 'exactSpot' && !draft.specifics.trim())}
+            <S.Input id={`location-${name}`} aria-label={label} value={draft[name]} required={name === 'room'} disabled={busy || (name === 'exactSpot' && !draft.specifics.trim())}
               placeholder={placeholder} list={`location-${name}-options`} aria-describedby={`location-${name}-help`}
               onChange={(event) => onChange(name, event.target.value)} />
             <small id={`location-${name}-help`}>{help}</small>

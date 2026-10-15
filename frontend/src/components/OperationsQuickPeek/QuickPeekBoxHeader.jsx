@@ -1,14 +1,18 @@
 import React, { useEffect, useRef } from 'react';
 import * as S from './OperationsQuickPeek.styles';
+import QuickPeekHeaderControls from './QuickPeekHeaderControls';
+import QuickPeekHeaderLocation from './QuickPeekHeaderLocation';
 
 export default function QuickPeekBoxHeader({
   box,
+  locations,
   imageUrl,
   description,
   itemActionPanel,
-  position,
-  total,
+  itemPosition,
+  itemTotal,
   expanded,
+  docked = false,
   canSelectPrevious,
   canSelectNext,
   onPrevious,
@@ -20,6 +24,8 @@ export default function QuickPeekBoxHeader({
   onPointerDown,
   onPointerUp,
   onPointerCancel,
+  onGestureStartCapture,
+  onGestureClickCapture,
   searchOpen,
   searchQuery,
   onSearchChange,
@@ -31,19 +37,6 @@ export default function QuickPeekBoxHeader({
   const boxId = String(box?.box_id || '').trim();
   const isAdrift = box?.systemType === 'orphaned';
   const label = String(box?.label || box?.name || 'Untitled box').trim();
-  const location = String(box?.location || '').trim();
-  const handleGrabberPointerDown = (event) => {
-    event.stopPropagation();
-    onPointerDown?.(event);
-  };
-  const handleGrabberPointerUp = (event) => {
-    event.stopPropagation();
-    onPointerUp?.(event);
-  };
-  const handleGrabberPointerCancel = (event) => {
-    event.stopPropagation();
-    onPointerCancel?.(event);
-  };
 
   useEffect(() => {
     if (!searchOpen) return;
@@ -85,31 +78,14 @@ export default function QuickPeekBoxHeader({
     onSearchScroll?.(event.deltaY);
   };
 
-  const handleCloseEdgeClick = (event) => {
-    event.stopPropagation();
-    if (itemFocused) {
-      onReturnToItems?.();
-      return;
-    }
-    if (expanded) {
-      onToggleExpanded?.();
-      return;
-    }
-    onClose?.();
-  };
-
-  const closeEdgeLabel = itemFocused
-    ? 'Return to box item list'
-    : expanded
-      ? 'Collapse box quick peek to short view'
-      : 'Close box quick peek from navigation edge';
-
   return (
     <S.DeckCap
       $expanded={expanded}
       onPointerDown={onPointerDown}
+      onPointerDownCapture={onGestureStartCapture}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
+      onClickCapture={onGestureClickCapture}
     >
       {imageUrl ? (
         <S.DeckCapArtwork
@@ -150,75 +126,57 @@ export default function QuickPeekBoxHeader({
             ×
           </S.QuickPeekSearchClose>
         </S.QuickPeekSearchDock>
-      ) : (
-        <S.DetentButton
-          type="button"
-          data-quick-peek-drag-handle
-          aria-label={expanded ? 'Collapse box quick peek' : 'Expand box quick peek'}
-          aria-expanded={expanded}
-          onClick={onToggleExpanded}
-          onPointerDown={handleGrabberPointerDown}
-          onPointerUp={handleGrabberPointerUp}
-          onPointerCancel={handleGrabberPointerCancel}
-        >
-          <S.DetentHandle aria-hidden="true" />
-        </S.DetentButton>
-      )}
+      ) : null}
 
-      <S.CapNavigation $expanded={expanded}>
-        <S.CapIconButton
-          type="button"
-          aria-label="Previous box"
-          disabled={!canSelectPrevious}
-          onClick={onPrevious}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6" /></svg>
-        </S.CapIconButton>
+      <S.CapIdentityStack data-quick-peek-header-drag-surface>
+        {itemFocused && onReturnToItems ? (
+          <S.CapReturnToItemsButton
+            type="button"
+            aria-label={isAdrift ? 'Return to unboxed item list from header' : 'Return to box item list from header'}
+            title={isAdrift ? 'Back to unboxed items' : 'Back to box items'}
+            data-quick-peek-return-to-items
+            onClick={(event) => { event.stopPropagation(); onReturnToItems(); }}
+          />
+        ) : null}
+        <S.CapNavigation>
+          <S.CapIconButton
+            type="button"
+            aria-label="Previous box"
+            disabled={!canSelectPrevious}
+            onClick={onPrevious}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6" /></svg>
+          </S.CapIconButton>
 
-        <S.CapIdentityStack>
           <S.BoxIdentity>
             <S.BoxTitleLine>
               <S.BoxId>{isAdrift ? '◇' : `#${boxId}`}</S.BoxId>
-              <S.BoxName>{label}</S.BoxName>
+              <S.BoxName title={label}>{label}</S.BoxName>
+              {itemFocused && itemTotal > 0 ? <S.PositionReadout role="status" aria-label={`Item ${itemPosition} of ${itemTotal}`}
+                title={`Item ${itemPosition} of ${itemTotal}`}>
+                {itemPosition} / {itemTotal}
+              </S.PositionReadout> : null}
             </S.BoxTitleLine>
-            <S.BoxContextLine>
-              <S.BoxLocation>{isAdrift ? 'No box assigned' : location || 'Location not recorded'}</S.BoxLocation>
-              <S.PositionReadout>
-                {position} / {total}
-              </S.PositionReadout>
-            </S.BoxContextLine>
           </S.BoxIdentity>
-          {itemFocused && itemActionPanel ? (
-            itemActionPanel
-          ) : description ? (
-            <S.CapDescriptionRow>
-              <S.CapDescription title={description}>{description}</S.CapDescription>
-            </S.CapDescriptionRow>
-          ) : null}
-        </S.CapIdentityStack>
 
-        <S.CapIconButton
-          type="button"
-          aria-label="Next box"
-          disabled={!canSelectNext}
-          onClick={onNext}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6" /></svg>
-        </S.CapIconButton>
-      </S.CapNavigation>
-
-      <S.CollapseEdgeButton
-        type="button"
-        $itemFocused={itemFocused}
-        aria-label={closeEdgeLabel}
-        data-quick-peek-close-edge
-        onClick={handleCloseEdgeClick}
-        onPointerDown={(event) => event.stopPropagation()}
-        onPointerUp={(event) => event.stopPropagation()}
-        onPointerCancel={(event) => event.stopPropagation()}
-      >
-        <S.CollapseEdgeHandle aria-hidden="true" />
-      </S.CollapseEdgeButton>
+          <S.CapIconButton
+            type="button"
+            aria-label="Next box"
+            disabled={!canSelectNext}
+            onClick={onNext}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6" /></svg>
+          </S.CapIconButton>
+        </S.CapNavigation>
+        <QuickPeekHeaderLocation box={box} locations={locations} />
+        {!itemFocused && description ? <S.CapDescriptionRow>
+          <S.CapDescription title={description}>{description}</S.CapDescription>
+        </S.CapDescriptionRow> : null}
+      </S.CapIdentityStack>
+      {itemFocused ? <QuickPeekHeaderControls itemControls={itemActionPanel}
+        itemFocused={itemFocused} isAdrift={isAdrift} expanded={expanded} docked={docked}
+        onReturnToItems={onReturnToItems} onToggleExpanded={onToggleExpanded} onClose={onClose}
+        onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel} /> : null}
     </S.DeckCap>
   );
 }

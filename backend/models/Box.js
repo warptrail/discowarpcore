@@ -20,7 +20,7 @@ const boxSchema = new mongoose.Schema({
   },
   description: { type: String, trim: true, set: normalizeOptionalString },
   notes: { type: String, trim: true, set: normalizeOptionalString },
-  tags: [String],
+  tags: [{ type: String, lowercase: true }],
   declutterPurpose: {
     type: String,
     enum: DECLUTTER_BOX_PURPOSES,

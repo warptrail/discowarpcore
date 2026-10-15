@@ -44,7 +44,7 @@ export const SelectChevron = styled.span`
 
 export const SelectMenu = styled.div`
   ${panelStyles}
-  position: ${({ $variant }) => ($variant === 'prism' ? 'static' : 'absolute')};
+  position: ${({ $variant }) => ($variant === 'floating' ? 'fixed' : $variant === 'prism' ? 'static' : 'absolute')};
   top: calc(100% + 0.35rem);
   left: 0;
   right: 0;
@@ -52,11 +52,19 @@ export const SelectMenu = styled.div`
   gap: 0.2rem;
   max-height: min(280px, 42vh);
   overflow-y: auto;
+  ${({ $hideScrollbar }) => $hideScrollbar && `
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+  `}
   overscroll-behavior: contain;
   margin-top: ${({ $variant }) => ($variant === 'prism' ? '0.3rem' : '0')};
   padding: 0.3rem;
   border-color: var(--dw-border);
   box-shadow: var(--dw-shadow);
+  ${({ $variant }) => $variant === 'floating' && `
+    z-index: 620; box-sizing: border-box; border-radius: 8px;
+    border-color: rgba(var(--box-primary-rgb, 113, 210, 255), .45);
+  `}
 `;
 
 export const SelectOption = styled.button`
@@ -73,4 +81,7 @@ export const SelectOption = styled.button`
   overflow-wrap: anywhere;
 
   &:hover:not(:disabled) { border-color: var(--dw-cyan); }
+  ${({ $variant, $active, $selected }) => $variant === 'floating' && `
+    border-left-color: ${$active || $selected ? 'var(--box-primary, var(--dw-cyan))' : 'transparent'};
+  `}
 `;

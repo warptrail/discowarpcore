@@ -1,8 +1,8 @@
-import { controlStyles } from '../../styles/primitives';
+import IntakeDestinationContext from './IntakeDestinationContext';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import styled from 'styled-components';
+import { useLocation } from 'react-router-dom';
 import { API_BASE } from '../../api/API_BASE';
-import { MOBILE_BREAKPOINT } from '../../styles/tokens';
+import { Wrap, Workspace, WorkspacePanel, StateText, RouteNoneSelectButton } from './IntakePage.styles';
 import { getBoxTheme, getBoxThemeCssVars } from '../../util/inventoryColorTheme';
 import { ToastContext } from '../Toast';
 import IntakeCurrentBoxPanel from './IntakeCurrentBoxPanel';
@@ -11,115 +11,15 @@ import IntakeCurrentBoxItemsPanel from './IntakeCurrentBoxItemsPanel';
 import IntakeRapidActions from './IntakeRapidActions';
 import IntakeRecentActivity from './IntakeRecentActivity';
 import IntakeQuickItemMaker from './IntakeQuickItemMaker';
+import { QUICK_CAPTURE_DRAFT_STATE_KEY, readQuickCaptureDraft } from './quickCaptureDraft';
 import IntakeWorkspaceTabs from './IntakeWorkspaceTabs';
 import OperationsQuickBoxCreate from '../OperationsQuickBoxCreate/OperationsQuickBoxCreate';
+import { BoxCreatorWorkspace } from './IntakeBoxCreator.styles';
 
 const CURRENT_BOX_STORAGE_KEY = 'intake.currentBoxId';
 const BATCH_FILTER_STORAGE_KEY = 'intake.selectedBatchIds';
 const ORPHAN_FILTER_STORAGE_KEY = 'intake.onlyOrphanedItems';
 const ORGANIZE_CONSOLE_TOAST_ID = 'intake-organize-console';
-
-const Wrap = styled.div`
-  display: grid;
-  gap: 0.8rem;
-  min-width: 0;
-  width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 0.35rem 0 2rem;
-  background: var(--dw-surface);
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    max-width: none;
-    padding: 0 0 2rem;
-    background: var(--dw-surface);
-
-    input,
-    textarea,
-    select {
-      font-size: 16px !important;
-    }
-  }
-`;
-
-const Workspace = styled.main`
-  display: grid;
-  gap: 0.58rem;
-  min-width: 0;
-  width: 100%;
-  position: relative;
-  border-top: 1px solid var(--dw-border);
-  border-bottom: 1px solid var(--dw-border);
-  background: var(--dw-surface);
-`;
-
-const WorkspacePanel = styled.section`
-  display: grid;
-  gap: 0.58rem;
-  min-width: 0;
-  width: 100%;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: ${({ $flush }) => $flush ? '0.35rem 0 0' : '0.35rem 0.58rem 0'};
-  }
-`;
-
-const StateText = styled.div`
-  color: ${({ $error }) => ($error ? '#ffc5c5' : '#a6d7d0')};
-  font-size: 0.8rem;
-  line-height: 1.4;
-`;
-
-
-const RouteNoneSelectButton = styled.button`
-  min-width: 172px;
-  min-height: 42px;
-  border: 1px solid var(--dw-border);
-  border-radius: var(--dw-radius-sm);
-  padding: 0.35rem 0.58rem;
-  background: var(--dw-surface);
-  color: var(--dw-text);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.58rem;
-  font: inherit;
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.055em;
-  text-transform: none;
-  cursor: pointer;
-
-  svg {
-    width: 24px;
-    height: 24px;
-    color: var(--dw-cyan);
-    filter: none;
-  }
-
-  .route-sigil-orbit {
-    transform-origin: 12px 12px;
-    animation: none;
-  }
-
-  &:hover,
-  &:focus-visible {
-    border-color: rgba(167, 139, 250, 0.9);
-    background: var(--dw-surface-raised);
-    box-shadow: none;
-  }
-
-  &:focus-visible {
-    outline: 2px solid #a78bfa;
-    outline-offset: 2px;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .route-sigil-orbit { animation: none; }
-  }
-
-  ${controlStyles}
-`;
 
 function RouteSigilGlyph() {
   return (
@@ -353,13 +253,16 @@ async function parseMutationError(response, fallbackMessage) {
 }
 
 export default function IntakePage({ boxes = [] }) {
+  const location = useLocation();
+  const [quickCaptureDraft] = useState(() => readQuickCaptureDraft(location.state?.[QUICK_CAPTURE_DRAFT_STATE_KEY]));
   const toastCtx = useContext(ToastContext);
   const showToast = toastCtx?.showToast;
   const hideToast = toastCtx?.hideToast;
   const setIntakeDraftName = toastCtx?.setIntakeDraftName;
   const setIntakeContext = toastCtx?.setIntakeContext;
 
-  const [selectedBoxId, setSelectedBoxId] = useState(() => readStoredCurrentBoxId());
+  const [selectedBoxId, setSelectedBoxId] = useState(() => quickCaptureDraft
+    ? quickCaptureDraft.targetBoxId : readStoredCurrentBoxId());
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [activeAction, setActiveAction] = useState('');
   const [activeWorkspaceView, setActiveWorkspaceView] = useState('new');
@@ -1113,6 +1016,7 @@ export default function IntakePage({ boxes = [] }) {
         {activeWorkspaceView === 'new' ? (
           <WorkspacePanel id="intake-workspace-panel-new" aria-label="New item">
             <IntakeQuickItemMaker
+              initialDraft={quickCaptureDraft}
               mode={currentBox ? 'inBox' : 'orphan'}
               targetBox={currentBox}
               showTitle={false}
@@ -1146,11 +1050,13 @@ export default function IntakePage({ boxes = [] }) {
               onCurrentBoxPhotoUpdated={handleBoxPhotoMutation}
             />
             {activeAction === 'create-box' ? (
-              <OperationsQuickBoxCreate
-                eyebrow="Intake · current box"
-                onCreated={handleBoxCreated}
-                onCancel={() => setActiveAction('')}
-              />
+              <BoxCreatorWorkspace>
+                <OperationsQuickBoxCreate
+                  eyebrow="Intake · current box"
+                  onCreated={handleBoxCreated}
+                  onCancel={() => setActiveAction('')}
+                />
+              </BoxCreatorWorkspace>
             ) : null}
             {currentBox ? (
               <IntakeCurrentBoxItemsPanel
@@ -1203,6 +1109,7 @@ export default function IntakePage({ boxes = [] }) {
           </div>
         ) : null}
       </Workspace>
+      <IntakeDestinationContext box={currentBox} onChange={openCurrentBoxSelection} />
     </Wrap>
   );
 }

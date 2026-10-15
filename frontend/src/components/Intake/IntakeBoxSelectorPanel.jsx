@@ -1,24 +1,20 @@
-import { panelStyles, controlStyles, inputStyles } from '../../styles/primitives';
+import { quietSectionStyles, consoleControlStyles, consoleFieldStyles } from './IntakeConsole.styles';
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { ToastContext } from '../Toast';
 import {
   MOBILE_BREAKPOINT,
-  MOBILE_FONT_SM,
   MOBILE_FONT_XS,
 } from '../../styles/tokens';
 import { getBoxTheme, getBoxThemeCssVars } from '../../util/inventoryColorTheme';
 import { getBoxThumbnailUrl } from '../../util/itemImage';
 
 const Panel = styled.section`
-  border-top: 1px solid var(--dw-border);
-  background: var(--dw-surface);
-  padding-top: 0.3rem;
+  ${quietSectionStyles}
   display: grid;
-  gap: 0.4rem;
-
-  ${panelStyles}
-  border-left: 3px solid var(--dw-amber);
+  gap: 12px;
+  padding-top: 12px;
+  min-width: 0;
 `;
 
 const Header = styled.header`
@@ -42,70 +38,23 @@ const Title = styled.h3`
 `;
 
 const CloseButton = styled.button`
-  min-height: 40px;
-  border-radius: 4px;
-  border: 0;
-  background: transparent;
-  color: #cdbdff;
-  font-size: 0.72rem;
-  text-transform: none;
-  letter-spacing: 0.01em;
-  padding: 0 0.6rem;
-  cursor: pointer;
-
-  &:disabled {
-    opacity: 0.52;
-    cursor: not-allowed;
-  }
-
-  ${controlStyles}
+  ${consoleControlStyles}
+  font-size: .75rem;
 `;
 
 const OrphanedDestinationButton = styled.button`
+  ${consoleControlStyles}
   width: 100%;
-  min-height: 38px;
-  border: 1px solid ${({ $active }) => $active ? 'rgba(159, 132, 255, 0.72)' : 'rgba(122, 153, 193, 0.34)'};
-  border-left: 4px solid ${({ $active }) => $active ? '#a977ff' : 'rgba(122, 153, 193, 0.55)'};
-  border-radius: var(--dw-radius-sm);
-  background:
-    linear-gradient(
-      90deg,
-      rgba(112, 75, 209, ${({ $active }) => ($active ? '0.2' : '0.06')}) 0%,
-      rgba(9, 17, 23, 0) 70%
-    ),
-    rgba(9, 17, 30, 0.78);
-  color: #d5e8ef;
-  padding: 0.28rem 0.55rem;
-  text-align: left;
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  cursor: pointer;
-  box-shadow: ${({ $active }) => $active ? '0 0 0 1px rgba(159, 132, 255, 0.1)' : 'none'};
-
-  &:hover {
-    border-color: rgba(177, 157, 255, 0.78);
-    background:
-      var(--dw-surface);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--box-neon);
-    outline-offset: 2px;
-  }
-
-  ${controlStyles}
-  border-left-color: var(--box-primary, #8A8175);
-  border-left-width: 3px;
+  text-align: left;
+  border-bottom: 1px solid var(--dw-border);
+  padding-inline: 12px;
+  ${({ $active }) => $active && 'color: var(--dw-violet); box-shadow: inset 0 -1px var(--dw-violet);'}
 `;
 
 const OrphanedDestinationLabel = styled.span`
-  color: ${({ $active }) => ($active ? '#e1d5ff' : '#bfd2db')};
-  font-size: 0.8rem;
-  font-weight: 760;
-  letter-spacing: 0.01em;
-  text-transform: none;
+  font-size: .8rem;
+  font-weight: 500;
 `;
 
 const OrphanedDestinationHint = styled.span`
@@ -117,15 +66,13 @@ const OrphanedDestinationHint = styled.span`
 const SelectionCard = styled.div`
   display: grid;
   grid-template-columns: 2rem minmax(0, 1fr) auto;
+  gap: 12px;
   align-items: center;
-  gap: 0.55rem;
-  min-height: 38px;
-  padding: 0.28rem 0.55rem;
-  border: 1px solid var(--dw-border);
-  border-left: 4px solid var(--box-primary);
-  border-radius: var(--dw-radius-sm);
-  background: var(--dw-surface);
-  color: var(--box-neon);
+  min-height: 44px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--box-primary);
+  background: var(--dw-surface-raised);
+  color: var(--dw-text);
 `;
 
 const SelectionName = styled.strong`
@@ -167,52 +114,13 @@ const Label = styled.label`
 `;
 
 const Input = styled.input`
-  width: 100%;
-  min-height: 44px;
-  border-radius: var(--dw-radius-sm);
-  border: 1px solid var(--dw-border);
-  border-left: 3px solid #5ad7f5;
-  background: var(--dw-surface);
-  color: #e8f1f6;
-  font-size: 0.9rem;
-  padding: 0 0.7rem;
-
-  &:focus {
-    outline: none;
-    border-color: rgba(131, 208, 235, 0.92);
-    box-shadow: none;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 40px;
-    font-size: ${MOBILE_FONT_SM};
-  }
-
-  ${inputStyles}
+  ${consoleFieldStyles}
+  min-width: 0;
 `;
 
 const Select = styled.select`
-  width: 100%;
-  min-height: 44px;
-  border-radius: var(--dw-radius-sm);
-  border: 1px solid var(--dw-border);
-  background: var(--dw-surface);
-  color: #e8f1f6;
-  font-size: 0.9rem;
-  padding: 0 0.7rem;
-
-  &:focus {
-    outline: none;
-    border-color: rgba(131, 208, 185, 0.92);
-    box-shadow: none;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 40px;
-    font-size: ${MOBILE_FONT_SM};
-  }
-
-  ${inputStyles}
+  ${consoleFieldStyles}
+  min-width: 0;
 `;
 
 const Results = styled.div`
@@ -253,71 +161,22 @@ const PageActions = styled.div`
 `;
 
 const PageButton = styled.button`
-  min-height: 40px;
-  border-radius: 4px;
-  border: 1px solid var(--dw-border);
-  background: transparent;
-  color: #d3e8f1;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: none;
-  letter-spacing: 0.01em;
-  padding: 0 0.55rem;
-  cursor: pointer;
-
-  &:disabled {
-    opacity: 0.48;
-    cursor: not-allowed;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 40px;
-    flex: 1;
-  }
-
-  ${controlStyles}
+  ${consoleControlStyles}
+  font-size: .75rem;
+  flex: 1;
 `;
 
 const ResultButton = styled.button`
-  width: 100%;
-  min-height: 48px;
-  border: 1px solid var(--dw-border);
-  border-left: 4px solid var(--box-primary);
-  border-radius: var(--dw-radius-sm);
-  background:
-    linear-gradient(
-      90deg,
-      rgba(var(--box-primary-rgb), ${({ $active }) => ($active ? '0.2' : '0.1')}) 0%,
-      rgba(9, 17, 23, 0.9) 65%
-    );
-  color: #e5f2f6;
-  padding: 0.24rem 0.45rem;
-  text-align: left;
+  ${consoleControlStyles}
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 1rem;
-  gap: 0.5rem;
-  align-items: center;
-  cursor: pointer;
-  box-shadow: ${({ $active }) =>
-    $active ? 'inset 0 0 0 1px rgba(var(--box-neon-rgb), 0.42)' : '0 4px 12px rgba(0, 0, 0, 0.12)'};
-
-  &:hover {
-    background:
-      var(--dw-surface);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--box-neon);
-    outline-offset: -2px;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-height: 48px;
-  }
-
-  ${controlStyles}
-  border-left-color: var(--box-primary, #8A8175);
-  border-left-width: 3px;
+  grid-template-columns: 34px minmax(0, 1fr) 20px;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--dw-border-soft);
+  border-radius: 0;
+  ${({ $active }) => $active && 'background: rgba(var(--box-primary-rgb), .08); box-shadow: inset 0 -1px var(--box-primary);'}
 `;
 
 const Thumb = styled.div`
@@ -364,24 +223,16 @@ const Identity = styled.div`
 `;
 
 const Name = styled.div`
-  font-size: 0.9rem;
-  color: #e7ecff;
-  font-weight: 700;
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: .85rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--dw-text);
   overflow-wrap: anywhere;
 `;
 
 const ShortId = styled.div`
-  color: var(--box-neon);
-  font-family: var(--dw-font-ui);
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  line-height: 1.15;
-  text-shadow: none;
+  color: var(--box-primary);
+  font: 500 .75rem/1.3 var(--dw-font-data);
 `;
 
 const EmptyState = styled.div`

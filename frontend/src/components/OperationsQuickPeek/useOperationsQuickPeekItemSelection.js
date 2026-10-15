@@ -133,6 +133,9 @@ export default function useOperationsQuickPeekItemSelection(
       if (isTypingTarget) return;
 
       if (event.key === 'Escape') {
+        // Desktop Escape belongs to the dock controller. Let nested dialogs
+        // handle it first; smaller-screen sheets retain their item Back step.
+        if (window.innerWidth >= 1100) return;
         event.preventDefault();
         event.stopImmediatePropagation();
         backToItems();

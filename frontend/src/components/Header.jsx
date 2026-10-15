@@ -1,10 +1,20 @@
+import MissingAlertLink from './MissingItems/MissingAlertLink';
 import { Fragment, useContext, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { css, keyframes } from 'styled-components';
+import { joinedWorkspaceHeader } from '../styles/workspaceBoundaries';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Toast from './Toast/Toast';
+import DesktopNavigation from './DesktopWorkspace/DesktopNavigation';
+import HouseholdProfileSwitcher from './HouseholdProfile/HouseholdProfileSwitcher';
+import RetrievalHeaderConsole from './Retrieval/RetrievalHeaderConsole';
+import RetrievalFinderToggle from './Retrieval/RetrievalFinderToggle';
+import JumpToTopButton from './JumpToTopButton';
 import InventoryQuickAnswer from './InventoryQuickAnswer/InventoryQuickAnswer';
 import ConsoleMessageSlot from './Toast/ConsoleMessageSlot';
+import DeclutterConsoleLog from './Declutter/DeclutterConsoleLog';
+import OperationsConsoleLog from './OperationsFilters/OperationsConsoleLog';
+import LocationConsoleHost from './Location/LocationConsoleHost';
 import { ToastContext } from './Toast';
 import HomeCommandIcon from './HomeCommandIcon';
 import operationsNavIcon from '../assets/nav-icon-concepts-v1/logoist/operations.svg';
@@ -14,16 +24,10 @@ import importNavIcon from '../assets/nav-icon-concepts-v1/logoist/import.svg';
 import allItemsNavIcon from '../assets/nav-icon-concepts-v1/logoist/all-items.svg';
 import declutterNavIcon from '../assets/nav-icon-concepts-v1/logoist/declutter.svg';
 import logsNavIcon from '../assets/nav-icon-concepts-v1/logoist/logs.svg';
-import randomNavIcon from '../assets/nav-icon-concepts-v1/logoist/random.svg';
+import loadoutsNavIcon from '../assets/nav-icon-concepts-v1/logoist/loadouts.svg';
 import useIsMobile from '../hooks/useIsMobile';
-import useRandomItemFlow from '../hooks/useRandomItemFlow';
 import RotatingDataAnnouncement from './RotatingDataAnnouncement';
-import DeclutterPlayerPicker from './Declutter/DeclutterPlayerPicker';
-import {
-  DECLUTTER_PENDING_COUNTS_EVENT,
-  DECLUTTER_PLAYER_CHANGE_EVENT,
-  getStoredDeclutterPlayer,
-} from './Declutter/declutterPlayers';
+
 import {
   BOX_FINDER_CLOSE_EVENT,
   BOX_FINDER_OPEN_EVENT,
@@ -69,20 +73,26 @@ const getHeaderScrollProgress = (scrollY, previousProgress) => {
   return scrollY >= HEADER_COMPACT_ENTER_Y ? 1 : 0;
 };
 
+const DesktopPageTitle = styled.span`
+  display: none;
+  @media (min-width: 1100px) { display: block; font-size: 1rem; font-weight: 700; }
+`;
+
 const HeaderShell = styled.header`
 --header-progress: 0;
   --header-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --header-duration: 180ms;
-  position: ${({ $retrievalWorkspace }) => $retrievalWorkspace ? 'relative' : 'sticky'};
+  position: sticky;
   top: 0;
   width: 100%;
   min-width: 0;
   z-index: 200;
   isolation: isolate;
   background: var(--dw-surface);
-  border: 1px solid var(--dw-border);
+  border: 0;
+  border-bottom: 1px solid var(--dw-border-soft);
   border-radius: 0;
-  box-shadow: var(--dw-shadow);
+  box-shadow: none;
   overflow: visible;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -91,6 +101,8 @@ const HeaderShell = styled.header`
     border-left: 0;
     border-radius: 0;
   }
+  @media (min-width: 1100px) { position: sticky; }
+  ${({ $joinedWorkspace }) => $joinedWorkspace && joinedWorkspaceHeader}
 `;
 
 const Inner = styled.div`
@@ -102,6 +114,8 @@ min-width: 0;
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 0.35rem 0.5rem;
   }
+  @media (min-width: 1100px) { padding: 0.35rem 0.65rem;
+    ${({ $declutterPage })=>$declutterPage && css`display:none;`} }
 `;
 
 const TopRow = styled.div`
@@ -117,6 +131,9 @@ position: relative;
     grid-template-columns: auto minmax(0, 1fr) auto;
   `}
   @media (max-width: ${MOBILE_BREAKPOINT}) { gap: 0.4rem; }
+  @media (min-width: 1100px) {
+    ${({ $operationsPage }) => $operationsPage && css`display: none;`}
+  }
 `;
 
 const TopRowControls = styled.div`
@@ -132,7 +149,7 @@ const MobileTelemetryMount = styled.span`
 display: none;
   min-width: 0;
   @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
-    display: block;
+    display: ${({ $hidden }) => $hidden ? 'none' : 'block'};
     max-width: 5.5rem;
     overflow: hidden;
   }
@@ -148,6 +165,7 @@ display: inline-flex;
   text-decoration: none;
   border-radius: var(--dw-radius-sm);
   &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 3px; }
+  @media (min-width: 1100px) { display: none; }
 `;
 
 const RetrievalMiniNav = styled.nav`
@@ -156,6 +174,7 @@ display: flex;
   gap: 0.3rem;
   min-width: 0;
   padding: 3px;
+  @media (min-width: 1100px) { display: none; }
 `;
 
 const retrievalMiniControl = css`
@@ -186,10 +205,6 @@ const RetrievalMiniNavLink = styled(Link)`
   ${retrievalMiniControl}
 `;
 
-const RetrievalMiniNavAction = styled.button`
-  ${retrievalMiniControl}
-  appearance: none;
-`;
 
 const Title = styled.div`
   display: flex;
@@ -205,6 +220,9 @@ color: var(--dw-text);
   font-weight: 700;
   letter-spacing: -0.035em;
   line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   @media (max-width: ${MOBILE_BREAKPOINT}) { font-size: 1rem; }
 `;
 
@@ -281,10 +299,11 @@ const NavRow = styled.nav`
 `;
 
 const MobileNavPanel = styled.div`
+  @media (min-width: 1100px) { display: none; }
 ${({ $retrievalWorkspace }) => $retrievalWorkspace && css`display: none;`}
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     display: ${({ $open }) => $open ? 'block' : 'none'};
-    max-height: min(50dvh, 280px);
+    max-height: min(50dvh, 380px);
     overflow-y: auto;
     overscroll-behavior: contain;
   }
@@ -357,11 +376,6 @@ const NavButton = styled(Link)`
   ${navControlStyles}
 `;
 
-const NavActionButton = styled.button`
-  ${navControlStyles}
-  appearance: none;
-  cursor: pointer;
-`;
 
 const NavTooltip = styled.div`
 position: fixed;
@@ -397,10 +411,17 @@ min-width: 0;
   `}
   ${({ $retrievalWorkspace }) => $retrievalWorkspace && css`padding: 0.2rem 0.65rem 0.45rem;`}
   @media (max-width: ${MOBILE_BREAKPOINT}) { padding: 0.1rem 0.5rem 0.35rem; border-radius: 0; }
+  ${({ $operationsFinderIdle }) => $operationsFinderIdle && css`
+    && {
+      padding: 0.25rem 0.65rem 0;
+      @media (max-width: ${MOBILE_BREAKPOINT}) { padding-inline: 0.5rem; }
+    }
+  `}
+  ${({ $locationPage }) => $locationPage && css`&& { padding: 0; border-radius: 0; }`}
 `;
 
 const OperationsConsoleFinderMount = styled.div`
-  display: ${({ $active }) => ($active ? 'block' : 'none')};
+  display: ${({ $active }) => ($active ? 'contents' : 'none')};
   flex: 1 1 auto;
   min-width: 0;
 
@@ -415,27 +436,13 @@ const OperationsConsoleFinderMount = styled.div`
   }
 `;
 
-const RetrievalConsoleFinderMount = styled.div`
-  flex: 1 1 auto;
-  width: 100%;
-  min-width: 0;
-
-  &:empty {
-    min-height: 88px;
-  }
-`;
-
-const RetrievalWorkspaceConsole = styled.div`
-display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
+const FinderActionStack = styled.div`
+  display: ${({ $operations }) => $operations ? 'flex' : 'contents'};
+  grid-area: actions;
+  align-items: center;
+  align-self: start;
   gap: 0.35rem;
-  min-width: 0;
-  border: 1px solid var(--dw-border);
-  border-left: 3px solid var(--dw-cyan);
-  border-radius: var(--dw-radius-sm);
-  background: var(--dw-surface-raised);
-  padding: 0.25rem;
+  flex-shrink: 0;
 `;
 
 const BoxConsoleMessage = styled.span`
@@ -768,16 +775,15 @@ export default function Header() {
   const [searchPulse, setSearchPulse] = useState(false);
   const [idleSignalColor, setIdleSignalColor] = useState(0);
   const [retrievalFinderState, setRetrievalFinderState] = useState({
-    minimized: true,
+    minimized: false,
     detached: false,
+    filtersActive: false,
     retrievalMode: 'items',
     boxAnalytics: null,
   });
-  const [declutterPlayer, setDeclutterPlayer] = useState(getStoredDeclutterPlayer);
-  const [declutterPendingCounts, setDeclutterPendingCounts] = useState({});
   const isBoxDetailPage = /^\/boxes\/[^/]+\/?$/.test(location.pathname);
   const isOperationsPage = /^\/(?:operations\/?|)$/.test(location.pathname);
-  const isRetrievalPage = /^\/(?:retrieval|tags\/[^/]+)\/?$/.test(
+  const isRetrievalPage = /^\/(?:retrieval|tags?\/[^/]+)\/?$/.test(
     location.pathname,
   );
   const isAllItemsPage = /^\/all-items\/?$/.test(location.pathname);
@@ -786,6 +792,7 @@ export default function Header() {
   const isImportPage = /^\/(?:import|configuration)\/?$/.test(location.pathname);
   const isDeclutterPage = /^\/declutter(?:\/|$)/.test(location.pathname);
   const isLocationPage = /^\/location\/?$/.test(location.pathname);
+  const isLoadoutsPage = /^\/loadouts\/?$/.test(location.pathname);
   const isLogsPage = isImportPage && new URLSearchParams(location.search).get('tab') === 'logs';
 
   const showNavTooltip = (event) => {
@@ -821,6 +828,7 @@ export default function Header() {
 
   const toastCtx = useContext(ToastContext);
   const toast = toastCtx?.toast ?? null;
+  const headerToast = isOperationsPage ? null : toast;
   const consoleMessage = toastCtx?.consoleMessage ?? null;
   const hideToast = toastCtx?.hideToast;
   const activeRetrievalItem = toastCtx?.activeRetrievalItem ?? null;
@@ -846,34 +854,18 @@ export default function Header() {
   const isRetrievalNarrow = useIsMobile(RETRIEVAL_WORKSPACE_MAX_WIDTH);
   const isRetrievalWorkspace = isRetrievalPage && !isRetrievalNarrow;
   const mobileControlsId = 'mobile-header-controls';
-  const { runRandomItem } = useRandomItemFlow();
   const idleSignalPalette = IDLE_SIGNAL_COLORS[idleSignalColor];
   const operationsScrollFrameRef = useRef(0);
   const cycleIdleSignalColor = () => {
     setIdleSignalColor((current) => (current + 1) % IDLE_SIGNAL_COLORS.length);
   };
 
-  useEffect(() => {
-    const syncPlayer = (event) => {
-      if (event.detail?.playerId) setDeclutterPlayer(event.detail.playerId);
-    };
-    const syncCounts = (event) => {
-      setDeclutterPendingCounts(event.detail?.pendingCounts || {});
-    };
-    window.addEventListener(DECLUTTER_PLAYER_CHANGE_EVENT, syncPlayer);
-    window.addEventListener(DECLUTTER_PENDING_COUNTS_EVENT, syncCounts);
-    return () => {
-      window.removeEventListener(DECLUTTER_PLAYER_CHANGE_EVENT, syncPlayer);
-      window.removeEventListener(DECLUTTER_PENDING_COUNTS_EVENT, syncCounts);
-    };
-  }, []);
-
   const openOperationsFinder = () => {
     if (isRetrievalPage) {
       window.dispatchEvent(new CustomEvent(
-        isOperationsFinderOpen
-          ? RETRIEVAL_FINDER_CLOSE_EVENT
-          : RETRIEVAL_FINDER_OPEN_EVENT,
+        retrievalFinderState.minimized
+          ? RETRIEVAL_FINDER_OPEN_EVENT
+          : RETRIEVAL_FINDER_CLOSE_EVENT,
       ));
       return;
     }
@@ -1024,7 +1016,9 @@ export default function Header() {
       sortMode: 'treeOrder',
     });
     setRetrievalFinderState({
-      minimized: true,
+      minimized: false,
+      detached: false,
+      filtersActive: false,
       retrievalMode: 'items',
       boxAnalytics: null,
     });
@@ -1162,19 +1156,9 @@ export default function Header() {
     }
   };
 
-  const handleRandomSelection = () => {
-    if (hasOperationsQuickPeek) {
-      window.dispatchEvent(new CustomEvent(OPERATIONS_QUICK_PEEK_CLOSE_EVENT));
-      window.setTimeout(runRandomItem, 260);
-    } else {
-      runRandomItem();
-    }
-    if (isMobile) {
-      setIsMobileMenuOpen(false);
-    }
-  };
 
-  const effectiveHeaderProgress = isBoxDetailPage || isRetrievalWorkspace
+  const isRetrievalItemSheetOpen = isRetrievalPage && isRetrievalNarrow && activeRetrievalItem?.mode === 'active';
+  const effectiveHeaderProgress = isBoxDetailPage || isRetrievalWorkspace || isRetrievalItemSheetOpen
     ? 1
     : scrollProgress;
   const headerStyle = {
@@ -1182,13 +1166,28 @@ export default function Header() {
   };
   const isHeaderCondensed = effectiveHeaderProgress >= 0.98;
   const showRetrievalConsole = isRetrievalWorkspace || (
-    isRetrievalPage && isRetrievalNarrow && !retrievalFinderState.minimized
+    isRetrievalPage && isRetrievalNarrow && retrievalFinderState.detached
   );
 
+  const desktopEntries = [
+    { path: '/operations', label: 'Operations', icon: operationsNavIcon, active: isOperationsPage },
+    { path: '/retrieval', label: 'Retrieval', icon: logsNavIcon, active: isRetrievalPage },
+    { path: '/intake', label: 'Intake', icon: declutterNavIcon, active: isIntakePage },
+    { path: '/configuration', label: 'Configuration', icon: allItemsNavIcon, active: isImportPage },
+    { path: '/all-items', label: 'All Items', icon: importNavIcon, active: isAllItemsPage },
+    { path: '/declutter', label: 'Declutter', icon: intakeNavIcon, active: isDeclutterPage },
+    { path: '/location', label: 'Location', icon: retrievalNavIcon, active: isLocationPage },
+    { path: '/loadouts', label: 'Loadouts', icon: loadoutsNavIcon, active: isLoadoutsPage },
+  ];
+
   return (
+    <>
+    <DesktopNavigation entries={desktopEntries} onNavigate={handleNavSelection}
+      onHome={(event) => { event.preventDefault(); returnToOperationsHome(); }} />
     <HeaderShell
       ref={headerRef}
       data-app-header="true"
+      $joinedWorkspace={isItemPage}
       style={headerStyle}
       $retrievalPage={isRetrievalPage}
       $retrievalWorkspace={isRetrievalWorkspace}
@@ -1198,14 +1197,18 @@ export default function Header() {
       }
     >
       <Inner
+        $declutterPage={isDeclutterPage}
         $boxPage={isBoxDetailPage}
         $retrievalPage={isRetrievalPage}
         $retrievalWorkspace={isRetrievalWorkspace}
         $operationsPage={isOperationsPage}
       >
-        <TopRow $retrievalWorkspace={isRetrievalWorkspace} $operationsPage={isOperationsPage}>
+        <TopRow $retrievalWorkspace={isRetrievalWorkspace} $operationsPage={isOperationsPage || isDeclutterPage || isItemPage}>
+          {!isItemPage ? <DesktopPageTitle>{/^\/tags?\//.test(location.pathname) ? 'Tag inventory' : desktopEntries.find((entry) => entry.active)?.label || (isBoxDetailPage ? 'Box inventory' : 'Item details')}</DesktopPageTitle> : null}
           <Brand
             to="/operations"
+            aria-label="Disco Warp Core"
+            title="Disco Warp Core"
             onClick={(event) => {
               event.preventDefault();
               returnToOperationsHome();
@@ -1288,19 +1291,23 @@ export default function Header() {
               >
                 <img src={retrievalNavIcon} alt="" />
               </RetrievalMiniNavLink>
-              <RetrievalMiniNavAction
-                type="button"
-                aria-label="Random"
-                data-nav-tooltip="Random"
-                onClick={handleRandomSelection}
+              <RetrievalMiniNavLink
+                to="/loadouts"
+                aria-current={isLoadoutsPage ? 'page' : undefined}
+                aria-label="Loadouts"
+                data-nav-tooltip="Loadouts"
+                onClick={handleNavSelection}
               >
-                <img src={randomNavIcon} alt="" />
-              </RetrievalMiniNavAction>
+                <img src={loadoutsNavIcon} alt="" />
+              </RetrievalMiniNavLink>
             </RetrievalMiniNav>
           ) : null}
 
           <TopRowControls>
-            <MobileTelemetryMount id="mobile-telemetry-mount" aria-live="polite" />
+            <MissingAlertLink />
+            <MobileTelemetryMount id="mobile-telemetry-mount" aria-live="polite"
+              $hidden={isMobile && isMobileMenuOpen} />
+            {isMobile && (isDeclutterPage || isMobileMenuOpen) ? <HouseholdProfileSwitcher compact /> : null}
 
             <MobileMenuToggle
               ref={menuToggleRef}
@@ -1323,6 +1330,7 @@ export default function Header() {
           aria-hidden={isMobile ? !isMobileMenuOpen : undefined}
           inert={isMobile && !isMobileMenuOpen ? true : undefined}
         >
+          {!isMobile ? <HouseholdProfileSwitcher /> : null}
           <NavRow
             aria-label="Primary navigation"
             $retrievalPage={isRetrievalPage}
@@ -1417,17 +1425,18 @@ export default function Header() {
               </NavIcon>
               <NavLabel data-nav-label>Location</NavLabel>
             </NavButton>
-            <NavActionButton
-              type="button"
-              aria-label="Random"
-              data-nav-tooltip="Random"
-              onClick={handleRandomSelection}
+            <NavButton
+              to="/loadouts"
+              aria-current={isLoadoutsPage ? 'page' : undefined}
+              aria-label="Loadouts"
+              data-nav-tooltip="Loadouts"
+              onClick={handleNavSelection}
             >
               <NavIcon aria-hidden="true">
-                <NavIconImage src={randomNavIcon} alt="" />
+                <NavIconImage src={loadoutsNavIcon} alt="" />
               </NavIcon>
-              <NavLabel data-nav-label>Random</NavLabel>
-            </NavActionButton>
+              <NavLabel data-nav-label>Loadouts</NavLabel>
+            </NavButton>
           </NavRow>
         </MobileNavPanel>
       </Inner>
@@ -1440,50 +1449,38 @@ export default function Header() {
         $retrievalPage={isRetrievalPage}
         $retrievalWorkspace={isRetrievalWorkspace}
         $operationsPage={isOperationsPage}
+        $operationsFinderIdle={isOperationsPage}
+        $locationPage={isLocationPage}
         $itemPageRail={
-          toast?.presentation === 'item-page' || toast?.presentation === 'item-field'
+          headerToast?.presentation === 'item-page' || headerToast?.presentation === 'item-field'
         }
-        style={toast?.themeStyle || boxConsoleStyle}
+        style={headerToast?.themeStyle || boxConsoleStyle}
       >
-        {showRetrievalConsole ? (
-          <RetrievalWorkspaceConsole>
-            <RetrievalConsoleFinderMount id="retrieval-console-finder-mount" />
-            {isRetrievalPage && isRetrievalNarrow ? (
-              <RescueConsoleTrigger
-                type="button"
-                onClick={openOperationsFinder}
-                aria-label="Dismiss retrieval search"
-                title="Dismiss retrieval search"
-                $active
-                $retrievalConsoleDismiss
-              >
-                <FinderGeometryGlyph />
-              </RescueConsoleTrigger>
-            ) : null}
-          </RetrievalWorkspaceConsole>
-        ) : (
+        {isLocationPage ? <LocationConsoleHost /> : null}
+        {!isLocationPage && !isDeclutterPage && (!isRetrievalPage || toast) ? (
         <Toast
+          headerMounted
           operationsDock={isOperationsPage}
           quietIdle={isAllItemsPage}
-          open={!!toast}
-          title={toast?.title}
-          titleDetails={toast?.titleDetails}
-          titleAlign={toast?.titleAlign}
-          titleSize={toast?.titleSize}
-          presentation={toast?.presentation}
-          themeStyle={toast?.themeStyle}
+          open={!!headerToast}
+          title={headerToast?.title}
+          titleDetails={headerToast?.titleDetails}
+          titleAlign={headerToast?.titleAlign}
+          titleSize={headerToast?.titleSize}
+          presentation={headerToast?.presentation}
+          themeStyle={headerToast?.themeStyle}
           allowOverflow={isOperationsPage && isOperationsFinderOpen}
-          message={toast?.message}
-          content={toast?.content}
-          variant={toast?.variant ?? 'info'}
-          loading={!!toast?.loading}
-          actions={toast?.actions ?? []}
+          message={headerToast?.message}
+          content={headerToast?.content}
+          variant={headerToast?.variant ?? 'info'}
+          loading={!!headerToast?.loading}
+          actions={headerToast?.actions ?? []}
           onClose={
-            toast &&
-            toast.dismissible !== false &&
-            toast.id !== 'item-page-actions' &&
-            !String(toast.id || '').startsWith('edit-item-actions:') &&
-            !String(toast.id || '').startsWith('edit-item-field:')
+            headerToast &&
+            headerToast.dismissible !== false &&
+            headerToast.id !== 'item-page-actions' &&
+            !String(headerToast.id || '').startsWith('edit-item-actions:') &&
+            !String(headerToast.id || '').startsWith('edit-item-field:')
               ? handleToastClose
               : typeof activeRetrievalItem?.onCollapse === 'function'
                 ? activeRetrievalItem.onCollapse
@@ -1589,23 +1586,21 @@ export default function Header() {
             (isIntakePage && !!intakeContext?.shortId)
           }
           idleAddon={
-            isAllItemsPage ? null : isDeclutterPage ? (
-              <DeclutterPlayerPicker
-                value={declutterPlayer}
-                pendingCounts={declutterPendingCounts}
-                onChange={setDeclutterPlayer}
-              />
-            ) : <>
+            isAllItemsPage || isDeclutterPage ? null : <>
               {isOperationsPage ? (
                 <OperationsConsoleFinderMount
                   id="operations-console-finder-mount"
                   $active={isOperationsPage}
                 />
               ) : null}
+              <FinderActionStack $operations={isOperationsPage}>
               <RescueConsoleTrigger
                 type="button"
                 onClick={isLogsPage || isIntakeIdleSignal ? cycleIdleSignalColor : openOperationsFinder}
                 data-box-finder-trigger={isBoxDetailPage ? true : undefined}
+                id={isRetrievalPage ? 'retrieval-finder-toggle' : isOperationsPage && !hasOperationsQuickPeek ? 'operations-finder-toggle' : undefined}
+                aria-controls={isRetrievalPage ? 'retrieval-controls-panel' : isOperationsPage && !hasOperationsQuickPeek ? 'inventory-grid-filters' : undefined}
+                aria-expanded={isRetrievalPage ? !retrievalFinderState.minimized : isOperationsPage && !hasOperationsQuickPeek ? isOperationsFinderOpen : undefined}
                 aria-label={
                   isBoxDetailPage
                     ? 'Toggle box quick search'
@@ -1637,7 +1632,9 @@ export default function Header() {
                     ? boxFinderState.mode === 'expanded' ||
                       !!boxFinderState.query ||
                       boxFinderState.sortMode !== 'treeOrder'
-                    : isOperationsFinderOpen || isQuickPeekSearchOpen
+                    : isRetrievalPage
+                      ? !retrievalFinderState.minimized
+                      : isOperationsFinderOpen || isQuickPeekSearchOpen
                 }
                 $pulse={searchPulse || (
                   isRetrievalPage && retrievalFinderState.detached
@@ -1656,6 +1653,8 @@ export default function Header() {
               >
                 <FinderGeometryGlyph />
               </RescueConsoleTrigger>
+              {isOperationsPage && <JumpToTopButton />}
+              </FinderActionStack>
             </>
           }
           idleAddonCentered={isDeclutterPage}
@@ -1663,8 +1662,17 @@ export default function Header() {
           compact={isHeaderCondensed}
           compactProgress={isBoxDetailPage ? 1.35 : effectiveHeaderProgress}
         />
-        )}
-        {isOperationsPage && <ConsoleMessageSlot message={toast ? null : consoleMessage} />}
+        ) : null}
+        {isRetrievalPage ? <RetrievalHeaderConsole tags={/^\/tags?\//.test(location.pathname)} mode={retrievalFinderState.retrievalMode} compact={isHeaderCondensed}
+          trigger={<RetrievalFinderToggle key={location.pathname} onClick={openOperationsFinder}
+            minimized={retrievalFinderState.minimized} filtersActive={retrievalFinderState.filtersActive}>
+            <FinderGeometryGlyph />
+          </RetrievalFinderToggle>} /> : null}
+        {isDeclutterPage ? <DeclutterConsoleLog toast={toast} consoleMessage={consoleMessage} onClose={handleToastClose} /> : null}
+        {isOperationsPage ? <>
+          <OperationsConsoleLog toast={toast} consoleMessage={consoleMessage} onClose={handleToastClose} />
+          <ConsoleMessageSlot message={toast ? null : consoleMessage} />
+        </> : null}
       </ToastRow> : null}
       {navTooltip && typeof document !== 'undefined'
         ? createPortal(
@@ -1679,5 +1687,6 @@ export default function Header() {
           )
         : null}
     </HeaderShell>
+    </>
   );
 }

@@ -46,11 +46,11 @@ export default function DynamicRouteButton() {
     to = '/';
     label = 'Back to boxes';
   } else if (location.pathname.startsWith('/boxes/') || location.pathname.startsWith('/box/')) {
-    to = '/all-items';
-    label = 'View all items';
+    to = '/retrieval';
+    label = 'Find items';
   } else if (location.pathname === '/') {
-    to = '/all-items';
-    label = 'View all items';
+    to = '/retrieval';
+    label = 'Find items';
   } else {
     to = '/';
     label = 'Operations';

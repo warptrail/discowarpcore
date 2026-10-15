@@ -1,3 +1,6 @@
+import { readTagCollection, getTagCollectionNavigation } from '../../util/tagCollection';
+import useMissingInventoryRefresh from '../MissingItems/useMissingInventoryRefresh';
+import { applyRetrievalItemUpdate } from './retrievalItemControlModel';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   useLocation,
@@ -15,7 +18,13 @@ import RetrievalResultsList from './RetrievalResultsList';
 import RetrievalImageLightbox from './RetrievalImageLightbox';
 import RetrievalBoxCentricView from './RetrievalBoxCentricView';
 import RetrievalSearchForm from './RetrievalSearchForm';
+import RetrievalConsolePortal from './RetrievalConsoleControls';
+import { hasRetrievalFinderFilters } from './retrievalFinderCue';
+import useRetrievalBrowseSort from './useRetrievalBrowseSort';
+import { EMPTY_LOCATION_BRANCH_PREFIX } from './retrievalControlModel';
 import useRetrievalItemDetails from './useRetrievalItemDetails';
+import useIsMobile from '../../hooks/useIsMobile';
+import { sanitizeRetrievalPresentation as sanitizePresentation, getVisibleRetrievalPresentation } from './retrievalPresentation';
 import { ToastContext } from '../Toast';
 import {
   RETRIEVAL_FINDER_CLOSE_EVENT,
@@ -55,8 +64,9 @@ const RETRIEVAL_STATE_STORAGE_PREFIX = 'retrieval:state:';
 const RETRIEVAL_HISTORY_STATE_KEY = '__discoWarpRetrievalState';
 const retrievalStateByNavigationEntry = new Map();
 const SCROLL_RESTORE_MAX_FRAMES = 240;
-const DEFAULT_ITEM_SORT = 'location';
+const DEFAULT_ITEM_SORT = 'name';
 const DEFAULT_SORT_OPTIONS = [
+  { key: 'random', label: 'Shuffled' },
   { key: 'location', label: 'Location (A → Z)' },
   { key: 'location_desc', label: 'Location (Z → A)' },
   { key: 'name', label: 'Item Name (A → Z)' },
@@ -176,7 +186,7 @@ function pruneFilters(current, options) {
 
   const nextCategories = current.categories.filter((value) => categoryKeys.has(value));
   const nextTags = current.tags.filter((value) => tagKeys.has(value));
-  const nextLocations = current.locations.filter((value) => locationKeys.has(value));
+  const nextLocations = current.locations.filter((value) => locationKeys.has(value) || value.startsWith(EMPTY_LOCATION_BRANCH_PREFIX));
   const nextOwners = current.owners.filter((value) => ownerKeys.has(value));
   const nextKeepPriorities = current.keepPriorities.filter((value) =>
     keepPriorityKeys.has(value),
@@ -252,6 +262,8 @@ function sanitizeBoxModeState(rawState) {
     searchValue: String(source.searchValue || ''),
     boxIdPrefix: String(source.boxIdPrefix || '').replace(/\D/g, '').slice(0, 3),
     selectedLocation: String(source.selectedLocation || ''),
+    selectedRooms: sanitizeFilterValues(source.selectedRooms),
+    selectedLocations: sanitizeFilterValues(source.selectedLocations),
     selectedTags: sanitizeFilterValues(
       source.selectedTags || (legacySelectedTag ? [legacySelectedTag] : []),
     ),
@@ -266,10 +278,6 @@ function sanitizeBoxModeState(rawState) {
 
 function sanitizeMode(rawMode) {
   return rawMode === 'boxes' ? 'boxes' : 'items';
-}
-
-function sanitizePresentation(rawPresentation) {
-  return rawPresentation === 'ascii' ? 'ascii' : 'cards';
 }
 
 function sanitizeTagOperator(rawOperator) {
@@ -390,6 +398,11 @@ export default function RetrievalPage() {
   const { tag: routeTagParam } = useParams();
   const routeTagKey = normalizeRetrievalFacetKey(routeTagParam);
   const hasTagScope = Boolean(routeTagKey);
+  const collection = useMemo(() => readTagCollection(routeTagKey, location.search), [routeTagKey, location.search]);
+  const updateCollection = useCallback((tags, operator) => {
+    const change = getTagCollectionNavigation(tags, operator, location);
+    if (change) navigate(change.to, change.options);
+  }, [location, navigate]);
   const initialSnapshotRef = useRef();
   if (initialSnapshotRef.current === undefined) {
     initialSnapshotRef.current = readPersistedRetrievalState({
@@ -404,7 +417,7 @@ export default function RetrievalPage() {
       : null;
 
   const [retrievalMode, setRetrievalMode] = useState(() =>
-    hasTagScope ? 'items' : sanitizeMode(initialSnapshot?.mode),
+    sanitizeMode(initialSnapshot?.mode),
   );
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
@@ -423,32 +436,35 @@ export default function RetrievalPage() {
   });
   const [filterOptions, setFilterOptions] = useState(EMPTY_FILTER_OPTIONS);
   const [sortOptions, setSortOptions] = useState(DEFAULT_SORT_OPTIONS);
-  const [selectedSort, setSelectedSort] = useState(() =>
-    sanitizeSort(initialItemState?.selectedSort, DEFAULT_SORT_OPTIONS),
-  );
+  const { selectedSort, setSelectedSort, shuffleSeed, reshuffle } = useRetrievalBrowseSort({
+    ...activeFilters, q: searchValue, tags: hasTagScope ? collection.tags : activeFilters.tags,
+  }, 'name');
   const [resultsPresentation, setResultsPresentation] = useState(() =>
     sanitizePresentation(initialItemState?.presentation),
   );
+  const desktop = !useIsMobile(1099);
   const [tagOperator, setTagOperator] = useState(() =>
     sanitizeTagOperator(initialItemState?.tagOperator),
   );
-  const [finderMinimized, setFinderMinimized] = useState(true);
+  const [finderMinimized, setFinderMinimized] = useState(false);
   const [finderDetached, setFinderDetached] = useState(false);
   const [activeExpandedId, setActiveExpandedId] = useState(
     () => sanitizeExpandedIds(initialItemState?.expandedIds)[0] || '',
   );
-  const [activeSectionKey, setActiveSectionKey] = useState('overview');
+  const [activeSectionKey, setActiveSectionKey] = useState(() => ['overview', 'notes', 'log', 'data', 'commands'].includes(initialItemState?.activeSectionKey) ? initialItemState.activeSectionKey : 'overview');
   const [boxModeState, setBoxModeState] = useState(() =>
     sanitizeBoxModeState(initialSnapshot?.boxes),
   );
   const [boxRestoreReady, setBoxRestoreReady] = useState(false);
   const [boxAnalytics, setBoxAnalytics] = useState(null);
   const [lightboxImage, setLightboxImage] = useState(null);
-  const isItemsMode = hasTagScope || retrievalMode === 'items';
+  const isItemsMode = retrievalMode === 'items';
+  const visiblePresentation = getVisibleRetrievalPresentation(resultsPresentation, { desktop });
   const {
     detailResource,
     merge: mergeItemDetails,
     remove: removeItemDetails,
+    refreshPlacement,
   } = useRetrievalItemDetails(activeExpandedId);
 
   const debouncedSearchValue = useDebouncedValue(searchValue, 220);
@@ -461,9 +477,13 @@ export default function RetrievalPage() {
       ? Number(initialSnapshot.scrollY)
       : null,
   );
-  const pendingExpandedScrollRef = useRef('');
   const latestSnapshotRef = useRef(null);
   const boxItemNavigationPendingRef = useRef(false);
+
+  const finderFiltersActive = hasRetrievalFinderFilters(retrievalMode === 'boxes' ? {
+    q: boxModeState.searchValue, boxIdPrefix: boxModeState.boxIdPrefix,
+    rooms: boxModeState.selectedRooms, locations: boxModeState.selectedLocations, tags: hasTagScope ? collection.tags : boxModeState.selectedTags,
+  } : { ...activeFilters, q: searchValue, tags: hasTagScope ? collection.tags : activeFilters.tags });
 
   useEffect(() => {
     window.dispatchEvent(
@@ -472,16 +492,15 @@ export default function RetrievalPage() {
           minimized: finderMinimized,
           detached: finderDetached,
           retrievalMode,
+          filtersActive: finderFiltersActive,
           boxAnalytics: retrievalMode === 'boxes' ? boxAnalytics : null,
         },
       }),
     );
-  }, [boxAnalytics, finderDetached, finderMinimized, retrievalMode]);
+  }, [boxAnalytics, finderDetached, finderMinimized, finderFiltersActive, retrievalMode]);
 
   useEffect(() => {
-    const handleOpenFinder = () => {
-      if (finderDetached) setFinderMinimized(false);
-    };
+    const handleOpenFinder = () => setFinderMinimized(false);
     const handleCloseFinder = () => setFinderMinimized(true);
 
     window.addEventListener(RETRIEVAL_FINDER_OPEN_EVENT, handleOpenFinder);
@@ -490,25 +509,26 @@ export default function RetrievalPage() {
       window.removeEventListener(RETRIEVAL_FINDER_OPEN_EVENT, handleOpenFinder);
       window.removeEventListener(RETRIEVAL_FINDER_CLOSE_EVENT, handleCloseFinder);
     };
-  }, [finderDetached]);
+  }, []);
 
   const handleFinderDetachedChange = useCallback((detached) => {
     setFinderDetached(detached);
-    if (!detached) setFinderMinimized(true);
   }, []);
 
   const queryState = useMemo(
     () => ({
       q: debouncedSearchValue,
       categories: activeFilters.categories,
-      tags: hasTagScope ? [routeTagKey] : activeFilters.tags,
-      tagOperator,
+      tags: hasTagScope ? collection.tags : activeFilters.tags,
+      exactTag: hasTagScope ? collection.tags : undefined,
+      tagOperator: hasTagScope ? collection.operator : tagOperator,
       locations: activeFilters.locations,
       owners: activeFilters.owners,
       keepPriorities: activeFilters.keepPriorities,
       sort: selectedSort,
+      shuffleSeed: selectedSort === 'random' ? shuffleSeed : '',
     }),
-    [debouncedSearchValue, activeFilters, hasTagScope, routeTagKey, selectedSort, tagOperator],
+    [debouncedSearchValue, activeFilters, hasTagScope, collection, selectedSort, shuffleSeed, tagOperator],
   );
 
   const tagScope = useMemo(() => {
@@ -516,10 +536,14 @@ export default function RetrievalPage() {
     const canonicalLabel = filterOptions.tagLabelByKey.get(routeTagKey);
     return {
       kind: 'tag',
+      tags: collection.tags,
+      operator: collection.operator,
+      options: filterOptions.tags,
+      onChange: updateCollection,
       key: routeTagKey,
       label: canonicalLabel || String(routeTagParam || routeTagKey).trim() || routeTagKey,
     };
-  }, [filterOptions.tagLabelByKey, hasTagScope, routeTagKey, routeTagParam]);
+  }, [filterOptions.tagLabelByKey, filterOptions.tags, hasTagScope, routeTagKey, routeTagParam, collection, updateCollection]);
 
   const queryKey = useMemo(() => JSON.stringify(queryState), [queryState]);
 
@@ -538,6 +562,7 @@ export default function RetrievalPage() {
         searchValue: String(searchValue || ''),
         activeFilters: sanitizeFilters(activeFilters),
         expandedIds: activeExpandedId ? [activeExpandedId] : [],
+        activeSectionKey,
         selectedSort: sanitizeSort(selectedSort),
         presentation: sanitizePresentation(resultsPresentation),
         tagOperator: sanitizeTagOperator(tagOperator),
@@ -554,6 +579,7 @@ export default function RetrievalPage() {
     });
     writeCurrentHistoryRetrievalState(snapshot);
   }, [
+    activeSectionKey,
     activeExpandedId,
     activeFilters,
     boxModeState,
@@ -752,7 +778,7 @@ export default function RetrievalPage() {
     return () => {
       controller.abort();
     };
-  }, [isItemsMode, queryKey, queryState]);
+  }, [isItemsMode, queryKey, queryState, setSelectedSort]);
 
   const activeChips = useMemo(
     () => buildActiveFilterChips(activeFilters, filterOptions),
@@ -808,12 +834,9 @@ export default function RetrievalPage() {
     [addFilter],
   );
 
-  const handleLocationFilterChange = useCallback(
-    (value) => {
-      addFilter('locations', value);
-    },
-    [addFilter],
-  );
+  const handleLocationSelectionChange = useCallback((locations) => {
+    setActiveFilters((current) => ({ ...current, locations }));
+  }, []);
 
   const handleOwnerFilterChange = useCallback(
     (value) => {
@@ -833,62 +856,53 @@ export default function RetrievalPage() {
   const toggleExpanded = useCallback((itemId) => {
     const resolvedId = String(itemId || '').trim();
     if (!resolvedId) return;
-    if (activeExpandedId !== resolvedId) {
-      pendingExpandedScrollRef.current = resolvedId;
-      setActiveSectionKey('overview');
-    } else {
-      pendingExpandedScrollRef.current = '';
-    }
+    if (activeExpandedId !== resolvedId) setActiveSectionKey('overview');
     setActiveExpandedId((current) => (current === resolvedId ? '' : resolvedId));
   }, [activeExpandedId]);
 
-  useEffect(() => {
-    const pendingId = pendingExpandedScrollRef.current;
-    if (!activeExpandedId || activeExpandedId !== pendingId) return undefined;
+  const handleItemUpdated = useCallback((updated) => {
+    const itemId = String(updated?._id || updated?.id || '').trim();
+    if (!itemId) return;
+    const summary = items.find((entry) => entry.id === itemId);
+    if (!summary) return;
+    const next = applyRetrievalItemUpdate(summary, detailResource.data, updated);
+    mergeItemDetails(itemId, next.detail);
+    setItems((current) => current.map((entry) => entry.id === itemId ? next.summary : entry));
+  }, [detailResource.data, items, mergeItemDetails]);
 
-    let settleTimerId = 0;
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const handleBoxUpdated = useCallback(async () => {
+    refreshPlacement();
+    const currentQueryKey = queryKeyRef.current;
+    try {
+      const payload = await fetchRetrievalItemsPage({ ...queryStateRef.current,
+        limit: Math.max(items.length, limit), offset: 0 });
+      if (queryKeyRef.current !== currentQueryKey) return;
+      setItems(normalizeRetrievalItemsPage(payload?.items));
+      setTotal(Number(payload?.total) || 0);
+      setHasMore(Boolean(payload?.hasMore));
+      setFilterOptions(normalizeRetrievalFilterOptions(payload?.filters));
+    } catch (failure) {
+      showToast?.({ variant: 'danger', sticky: true, title: 'Results refresh failed',
+        message: failure.message || 'The box was saved. Refresh Retrieval to reload its placement.' });
+    }
+  }, [items.length, limit, refreshPlacement, showToast]);
 
-    const alignExpandedRow = (behavior) => {
-      const row = document.getElementById(`retrieval-result-${pendingId}`);
-      if (!row) return;
-      const headerBottom =
-        document.querySelector('[data-app-header="true"]')?.getBoundingClientRect().bottom || 0;
-      const targetTop = Math.max(
-        0,
-        window.scrollY + row.getBoundingClientRect().top - headerBottom - 8,
-      );
-      window.scrollTo({ top: targetTop, left: 0, behavior });
-    };
-
-    const animationTimerId = window.setTimeout(() => {
-      alignExpandedRow(reduceMotion ? 'auto' : 'smooth');
-      settleTimerId = window.setTimeout(() => {
-        alignExpandedRow('auto');
-        if (pendingExpandedScrollRef.current === pendingId) {
-          pendingExpandedScrollRef.current = '';
-        }
-      }, reduceMotion ? 0 : 520);
-    }, reduceMotion ? 0 : 290);
-
-    return () => {
-      window.clearTimeout(animationTimerId);
-      window.clearTimeout(settleTimerId);
-    };
-  }, [activeExpandedId]);
+  useMissingInventoryRefresh(() => isItemsMode ? handleBoxUpdated() : undefined);
 
   const handleConsoleSearchChange = useCallback((nextValue) => {
     setSearchValue(String(nextValue || ''));
   }, []);
 
   useEffect(() => {
-    if (typeof setActiveRetrievalItem !== 'function') return;
     if (!isItemsMode) {
       return;
     }
 
     const activeId = String(activeExpandedId || '').trim();
     const activeItem = activeId ? items.find((entry) => entry.id === activeId) : null;
+
+    if (activeItem && !desktop) setFinderMinimized(true);
+    if (typeof setActiveRetrievalItem !== 'function') return;
 
     if (!activeItem) {
       setActiveRetrievalItem(null);
@@ -915,6 +929,7 @@ export default function RetrievalPage() {
   }, [
     activeExpandedId,
     activeSectionKey,
+    desktop,
     isItemsMode,
     items,
     getRetrievalItemNavigationState,
@@ -1325,7 +1340,7 @@ export default function RetrievalPage() {
         setLoadingMore(false);
       }
     }
-  }, [hasMore, isItemsMode, limit, loading, loadingMore, offset, queryState]);
+  }, [hasMore, isItemsMode, limit, loading, loadingMore, offset, queryState, setSelectedSort]);
 
   const handlePreviewImage = useCallback((payload) => {
     const src = String(payload?.src || '').trim();
@@ -1370,6 +1385,7 @@ export default function RetrievalPage() {
   if (!isItemsMode) {
     return (
       <RetrievalBoxCentricView
+        tagScope={tagScope}
         mode={retrievalMode}
         onModeChange={setRetrievalMode}
         persistedState={boxModeState}
@@ -1381,26 +1397,33 @@ export default function RetrievalPage() {
         setActiveRetrievalItem={setActiveRetrievalItem}
         finderMinimized={finderMinimized}
         onFinderDetachedChange={handleFinderDetachedChange}
+        presentation={visiblePresentation}
+        onPresentationChange={setResultsPresentation}
+        desktop={desktop}
       />
     );
   }
 
   return (
     <S.PageShell>
+      <RetrievalConsolePortal mode={retrievalMode} onModeChange={setRetrievalMode} shown={items.length} total={total}
+        scope={tagScope} loading={loading || loadingMore} presentation={visiblePresentation} onPresentationChange={setResultsPresentation} desktop={desktop}
+        />
       <RetrievalSearchForm
+        desktop={desktop}
         mode={retrievalMode}
         onModeChange={setRetrievalMode}
         scope={tagScope}
         searchValue={searchValue}
         onSearchChange={handleConsoleSearchChange}
         searchLabel={tagScope ? 'Search This Tag' : 'Find Items'}
-        searchPlaceholder={tagScope ? `Search within ${tagScope.label}` : undefined}
+        searchPlaceholder={tagScope ? `Search within ${tagScope.tags.map(tag => '#' + tag).join(' ' + tagScope.operator.toUpperCase() + ' ')}` : undefined}
         filterOptions={filterOptions}
         activeChips={activeChips}
         onCategoryChange={handleCategoryFilterChange}
         onTagChange={handleTagFilterChange}
         onTagRemove={(key) => removeFilter('tags', key)}
-        onLocationChange={handleLocationFilterChange}
+        onLocationSelectionChange={handleLocationSelectionChange}
         onOwnerChange={handleOwnerFilterChange}
         onKeepPriorityChange={handleKeepPriorityFilterChange}
         onRemoveChip={removeFilter}
@@ -1410,32 +1433,14 @@ export default function RetrievalPage() {
         sortOptions={sortOptions}
         selectedSort={selectedSort}
         onSortChange={setSelectedSort}
+        onReshuffle={reshuffle} shuffled={selectedSort === 'random'} loading={loading || loadingMore}
         finderMinimized={finderMinimized}
         onFinderDetachedChange={handleFinderDetachedChange}
       />
 
       {error ? <S.ErrorState role="alert">{error}</S.ErrorState> : null}
 
-      <S.ResultsPanel>
-        <S.ResultsHeader>
-          <S.ResultsHeaderTop>
-            <S.ResultsCount>
-              {items.length} shown / {total} {tagScope ? 'tagged items' : 'matches'}
-            </S.ResultsCount>
-            <S.ExplorerViewTrigger
-              type="button"
-              aria-pressed={resultsPresentation === 'ascii'}
-              $active={resultsPresentation === 'ascii'}
-              onClick={() => setResultsPresentation((current) => (
-                current === 'ascii' ? 'cards' : 'ascii'
-              ))}
-            >
-              <span>VIEW</span>
-              <strong>{resultsPresentation === 'ascii' ? 'ASCII' : 'CARDS'}</strong>
-            </S.ExplorerViewTrigger>
-          </S.ResultsHeaderTop>
-        </S.ResultsHeader>
-
+      <S.ResultsPanel $headerless>
         <RetrievalResultsList
           items={items}
           activeExpandedId={activeExpandedId}
@@ -1445,9 +1450,12 @@ export default function RetrievalPage() {
           onSectionChange={setActiveSectionKey}
           onPreviewImage={handlePreviewImage}
           onLifecycleAction={handleLifecycleAction}
+          onItemUpdated={handleItemUpdated}
+          onBoxUpdated={handleBoxUpdated}
+          query={searchValue}
           getItemNavigationState={getRetrievalItemNavigationState}
           loading={loading}
-          presentation={resultsPresentation}
+          presentation={visiblePresentation}
         />
 
         {!loading && items.length ? (

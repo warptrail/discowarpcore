@@ -12,6 +12,7 @@ import BoxComplexField from './BoxForms/BoxComplexField';
 import BoxDeclutterFields from './BoxForms/BoxDeclutterFields';
 import BoxFormActions from './BoxForms/BoxFormActions';
 import BoxImageField from './ImageFields/BoxImageField';
+import BoxEditPages from './BoxForms/BoxEditPages';
 
 export default function EditBoxDetailsForm({
   boxMongoId,
@@ -36,6 +37,7 @@ export default function EditBoxDetailsForm({
   flat = false,
   autoSave = false,
   onAutoSaved,
+  paginated = false,
 }) {
   const initialLocationId =
     initial?.locationId?._id ??
@@ -335,9 +337,28 @@ export default function EditBoxDetailsForm({
     TagInputComponent,
   };
 
+  const pagedImageProps = {
+    box: initial, boxId: boxMongoId, disabled: busy || destroyBusy,
+    title: 'Box Image', showVariantLabel: false, placeholder: 'No photo',
+    messageSubject: 'Image', clearLabel: 'Delete Photo',
+    onBoxImageUpdated: ({ image, imagePath }) => {
+      void Promise.resolve(onImageUpdated?.({ image: image || null, imagePath: imagePath || '' }));
+    },
+    onProcessImage, processImageStatus, processImageBusy, processImageError,
+    processImageProgressLabel, processImageProgressPercent, processImageJobId, processImageMediaId,
+    persistedRenderTokens, processedPreviewUrl, imageRefreshToken,
+  };
+
   return (
-    <S.Card onSubmit={onSubmit} noValidate $compact={compact} $flat={flat}>
-      {!compact ? (
+    <S.Card onSubmit={onSubmit} noValidate $compact={compact} $flat={flat} $paged={paginated}>
+      {paginated ? (
+        <BoxEditPages identity={identityFieldProps}
+          description={description} setDescription={setDescription} notes={notes} setNotes={setNotes}
+          isComplexBox={isComplexBox} setIsComplexBox={setIsComplexBox}
+          declutter={{ purpose: declutterPurpose, setPurpose: setDeclutterPurpose,
+            isDefault: declutterIsDefault, setIsDefault: setDeclutterIsDefault,
+            isGiftBox, setIsGiftBox }} image={pagedImageProps} />
+      ) : !compact ? (
         <>
           <S.ConsoleGrid>
             <S.ConsoleMain>

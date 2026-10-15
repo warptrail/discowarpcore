@@ -68,6 +68,7 @@ export const PresentationHero = styled.div`
   position: relative;
   min-width: 0;
   padding-bottom: 2px;
+  @media (min-width: 1100px) { display: grid; grid-template-columns: minmax(300px, 420px) minmax(0, 1fr); gap: 16px; align-items: start; }
 `;
 
 export const HeroMediaStage = styled.div`
@@ -148,7 +149,19 @@ export const HeroImagePlaceholder = styled.div`
   inset: 0;
   overflow: hidden;
   isolation: isolate;
-  background: var(--dw-background);
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(ellipse at 50% 55%, rgba(var(--box-primary-rgb), .18), transparent 55%),
+    radial-gradient(ellipse at 60% 45%, rgba(var(--box-secondary-rgb), .09), transparent 65%),
+    var(--dw-background);
+
+  > svg {
+    width: min(42%, 160px);
+    height: 90%;
+    filter: drop-shadow(0 0 8px rgba(var(--box-primary-rgb), .55))
+      drop-shadow(0 0 24px rgba(var(--box-primary-rgb), .24));
+  }
 
   &::after {
     content: '';
@@ -178,6 +191,7 @@ export const HeroHeaderCard = styled.div`
     margin-top: 8px;
     padding: 12px;
   }
+  @media (min-width: 1100px) { margin-top: 0; }
 `;
 
 export const HeroMetadata = styled.div`

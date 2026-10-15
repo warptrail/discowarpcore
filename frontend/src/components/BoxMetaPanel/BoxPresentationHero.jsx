@@ -1,7 +1,10 @@
+import CompactTagRow from '../Tags/CompactTagRow';
+import MissingBoxStatus from '../MissingItems/MissingBoxStatus';
 import React, { useEffect, useState } from 'react';
 
 import RetrievalImageLightbox from '../Retrieval/RetrievalImageLightbox';
 import ItemNoteSheet from '../ItemNoteSheet';
+import InventoryBoxCube from '../InventoryBoxCube';
 import * as S from '../../styles/BoxMetaPanel.styles';
 
 export default function BoxPresentationHero({
@@ -49,7 +52,9 @@ export default function BoxPresentationHero({
             <S.HeroImagePlaceholder
               role="img"
               aria-label={`No image available for ${title}`}
-            />
+            >
+              <InventoryBoxCube identity={boxId} />
+            </S.HeroImagePlaceholder>
           )}
         </S.HeroMediaStage>
 
@@ -61,7 +66,7 @@ export default function BoxPresentationHero({
           >
             <S.CurrentBoxId>{boxId}</S.CurrentBoxId>
             <S.CurrentBoxMain>
-              <S.CurrentBoxTitle>{title}{box?.isComplexBox ? ' · Complex box' : ''}</S.CurrentBoxTitle>
+              <S.CurrentBoxTitle>{title}{box?.isComplexBox ? ' · Complex box' : ''}</S.CurrentBoxTitle><MissingBoxStatus box={box} />
               <S.CurrentBoxInfoRow>
                 <S.CurrentBoxLocationChip $variant="location" $empty={!location}>
                   <S.CurrentBoxLocationLabel $variant="location" $empty={!location}>
@@ -84,7 +89,7 @@ export default function BoxPresentationHero({
               <S.MetaPreviewBlock>
                 <S.MetaPreviewLabel>Tags</S.MetaPreviewLabel>
                 <S.CurrentBoxTagsRow>
-                  {tags.map((tag) => <S.CurrentBoxTag key={tag}>{tag}</S.CurrentBoxTag>)}
+                  <CompactTagRow returnKey={`box:${boxId}:header`} tags={tags} name={title} boxId={boxId} />
                 </S.CurrentBoxTagsRow>
               </S.MetaPreviewBlock>
             ) : null}

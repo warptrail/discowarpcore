@@ -1,7 +1,7 @@
 import { controlStyles } from '../../styles/primitives';
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import useDialogFocus from '../../hooks/useDialogFocus';
 import { getBoxTheme, getBoxThemeCssVars } from '../../util/inventoryColorTheme';
 
@@ -53,6 +53,23 @@ const Sheet = styled.aside`
     border-radius: var(--dw-radius);
     box-shadow: 0 18px 48px rgba(0, 0, 0, 0.36);
   }
+
+  ${({ $paged }) => $paged && css`
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    @media (min-width: 600px) { height: min(100%, 600px); }
+  `}
+`;
+const Content = styled.div`
+  min-width: 0;
+  ${({ $paged }) => $paged && css`
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    padding-top: 8px;
+  `}
 `;
 const Head = styled.header`
   position: sticky;
@@ -61,6 +78,8 @@ const Head = styled.header`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex: 0 0 auto;
+  min-height: 56px;
   margin: 0 -16px;
   padding: 12px 48px 8px 16px;
   background: var(--dw-surface);
@@ -70,6 +89,7 @@ const Head = styled.header`
     margin-inline: -16px;
     padding-inline: 16px 52px;
   }
+  ${({ $paged }) => $paged && css`&& { padding-left: 48px; }`}
 `;
 const Title = styled.h2`
   margin: 0;
@@ -115,7 +135,7 @@ const Close = styled.button`
   }
 `;
 
-export default function BoxManagementSheet({ open, boxId, title, onClose, children }) {
+export default function BoxManagementSheet({ open, boxId, title, onClose, children, paginated = false }) {
   const sheetRef = useRef(null);
   const [headerBottom, setHeaderBottom] = useState(0);
   useDialogFocus(sheetRef, onClose, open);
@@ -149,12 +169,12 @@ export default function BoxManagementSheet({ open, boxId, title, onClose, childr
     <Backdrop $top={headerBottom} onPointerDown={(event) => {
       if (!sheetRef.current?.contains(event.target)) onClose?.();
     }}>
-      <Sheet style={getBoxThemeCssVars(getBoxTheme(boxId))} ref={sheetRef} role="dialog" aria-modal="true" tabIndex={-1} aria-label={`Manage ${title}`}>
-        <Head>
+      <Sheet $paged={paginated} style={getBoxThemeCssVars(getBoxTheme(boxId))} ref={sheetRef} role="dialog" aria-modal="true" tabIndex={-1} aria-label={`Manage ${title}`}>
+        <Head $paged={paginated}>
           <Title><TitleId>#{boxId}</TitleId><TitleLabel>{title}</TitleLabel></Title>
           <Close type="button" onClick={onClose} aria-label="Close management sheet">×</Close>
         </Head>
-        {children}
+        <Content $paged={paginated}>{children}</Content>
       </Sheet>
     </Backdrop>,
     document.body,

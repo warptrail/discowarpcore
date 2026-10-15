@@ -1,5 +1,5 @@
 import styled, { css, keyframes } from 'styled-components';
-import { QUICK_PEEK_EXIT_DURATION_MS } from './OperationsQuickPeek.motion';
+import { QUICK_PEEK_EXIT_DURATION_MS, QUICK_PEEK_DESKTOP_EXIT_DURATION_MS, QUICK_PEEK_DESKTOP_ENTER_DURATION_MS } from './OperationsQuickPeek.motion';
 import { APP_VISUAL_THEME } from '../../styles/tokens';
 
 const COLORS = {
@@ -14,6 +14,16 @@ const COLORS = {
   secondaryRgb: 'var(--box-secondary-rgb, 167, 182, 255)',
   line: 'rgba(var(--box-primary-rgb, 76, 198, 193), 0.24)',
 };
+
+const openDesktopDock = keyframes`
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+`;
+
+const closeDesktopDock = keyframes`
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(12px); }
+`;
 
 const slideForward = keyframes`
   from { opacity: 0; transform: translateX(18px); }
@@ -156,6 +166,24 @@ export const Deck = styled.aside`
     pointer-events: auto;
   }
 
+  @media (min-width: 1100px) {
+    ${({ $presentation }) => $presentation === 'dock' && css`
+      position: fixed;
+      inset: auto;
+      top: var(--operations-dock-top, 180px);
+      left: var(--operations-dock-left, 0px);
+      bottom: 24px;
+      width: 384px;
+      height: auto;
+      min-height: 0;
+      box-shadow: none;
+      animation: ${({ $closing }) => $closing
+        ? css`${closeDesktopDock} ${QUICK_PEEK_DESKTOP_EXIT_DURATION_MS}ms cubic-bezier(0.4, 0, 1, 1) both`
+        : css`${openDesktopDock} ${QUICK_PEEK_DESKTOP_ENTER_DURATION_MS}ms cubic-bezier(0.22, 1, 0.36, 1) both`};
+      pointer-events: ${({ $closing }) => $closing ? 'none' : 'auto'};
+    `}
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
     animation: none;
@@ -174,17 +202,22 @@ export const DeckCap = styled.header`
   isolation: isolate;
   z-index: 8;
   overflow: visible;
-  padding: ${({ $expanded }) =>
-    $expanded ? '0.55rem 0.18rem 0.42rem' : '0 0.18rem'};
+  display: grid;
+  gap: 4px;
+  padding: 4px 6px 6px;
   border-bottom: 1px solid ${COLORS.line};
   border-radius: var(--dw-radius) var(--dw-radius) 0 0;
-  background: linear-gradient(180deg, rgba(223, 243, 255, 0.08), rgba(12, 21, 32, 0.48));
-  box-shadow: inset 0 1px 0 rgba(226, 245, 255, 0.16), 0 5px 12px rgba(0, 0, 0, 0.16);
+  background: var(--dw-surface);
+  box-shadow: inset 0 1px 0 rgba(223, 243, 255, .08), 0 3px 8px rgba(0, 0, 0, .16);
   touch-action: none;
   user-select: none;
 
+  @media (max-width: 767px) {
+    cursor: grab;
+    &:active { cursor: grabbing; }
+  }
+
   @media (min-width: 768px) {
-    padding: 0.55rem 0.18rem 0.42rem;
     touch-action: auto;
   }
 `;
@@ -212,43 +245,13 @@ export const DeckCapArtwork = styled.span`
   }
 `;
 
-export const DetentButton = styled.button`
-  position: absolute;
-  z-index: 2;
-  top: -22px;
-  right: 3rem;
-  left: 3rem;
-  display: grid;
-  place-items: center;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  color: ${COLORS.dim};
-  background: transparent;
-  cursor: ns-resize;
-  touch-action: none;
-  user-select: none;
-`;
-
-export const DetentHandle = styled.span`
-  width: 2.8rem;
-  height: 3px;
-  border-radius: var(--dw-radius);
-  background: ${COLORS.accent};
-  opacity: 1;
-  box-shadow: none;
-`;
-
 export const QuickPeekSearchDock = styled.div`
-  position: absolute;
+  position: relative;
   z-index: 3;
-  top: -18px;
-  right: 2.7rem;
-  left: 2.7rem;
   display: grid;
-  grid-template-columns: 1.5rem minmax(0, 1fr) 1.75rem;
+  grid-template-columns: 1.5rem minmax(0, 1fr) 44px;
   align-items: center;
-  height: 36px;
+  height: 44px;
   border: 1px solid rgba(${COLORS.accentRgb}, 0.58);
   border-radius: 6px;
   color: ${COLORS.text};
@@ -299,8 +302,8 @@ export const QuickPeekSearchInput = styled.input`
 export const QuickPeekSearchClose = styled.button`
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border: 0;
   padding: 0;
   color: ${COLORS.dim};
@@ -317,77 +320,20 @@ export const QuickPeekSearchClose = styled.button`
 
 export const CapNavigation = styled.div`
   position: relative;
-  /* Keep the action popover in the DeckCap stacking context so its own
-     z-index can clear the overlapping return/collapse handle. */
-  z-index: auto;
+  pointer-events: none;
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: center;
   gap: 0.25rem;
   min-height: 44px;
 `;
 
-export const CollapseEdgeButton = styled.button`
-  position: absolute;
-  z-index: 6;
-  top: calc(100% - 1px);
-  left: 50%;
-  display: grid;
-  place-items: center;
-  width: 6.5rem;
-  height: 30px;
-  padding: 0;
-  border: 0;
-  color: ${({ $itemFocused }) => (
-    $itemFocused ? 'rgba(190, 151, 255, 0.8)' : 'rgba(238, 190, 91, 0.62)'
-  )};
-  background: transparent;
-  cursor: pointer;
-  transform: translateX(-50%);
-  transition: color 180ms ease;
-  touch-action: manipulation;
-
-  &:hover,
-  &:focus-visible {
-    color: ${({ $itemFocused }) => (
-      $itemFocused ? 'rgba(226, 205, 255, 0.98)' : 'rgba(255, 211, 116, 0.96)'
-    )};
-    outline: none;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-`;
-
-export const CollapseEdgeHandle = styled.span`
-  width: 3.4rem;
-  height: 3px;
-  border-radius: var(--dw-radius);
-  background: currentColor;
-  opacity: 0.82;
-  box-shadow: none;
-  transition:
-    width 180ms ease,
-    opacity 180ms ease,
-    box-shadow 180ms ease;
-
-  ${CollapseEdgeButton}:hover &,
-  ${CollapseEdgeButton}:focus-visible & {
-    width: 4.1rem;
-    opacity: 1;
-    box-shadow: none;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-`;
-
 export const CapIconButton = styled.button`
+  position: relative;
+  pointer-events: auto;
   display: grid;
   place-items: center;
-  width: 40px;
+  width: 44px;
   height: 44px;
   padding: 0;
   border: 1px solid transparent;
@@ -417,16 +363,36 @@ export const CapIconButton = styled.button`
 `;
 
 export const CapIdentityStack = styled.div`
+  position: relative;
   min-width: 0;
   display: grid;
-  place-items: center;
-  gap: 0.22rem;
+  gap: 2px;
+`;
+
+// A sibling hit surface, not a button wrapping navigation or item controls.
+export const CapReturnToItemsButton = styled.button`
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dw-radius-sm);
+  background: transparent;
+  cursor: pointer;
+  touch-action: none;
+  @media (max-width: 767px) {
+    cursor: grab;
+    &:active { cursor: grabbing; }
+  }
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: -2px; }
 `;
 
 export const BoxIdentity = styled.div`
   min-width: 0;
   display: grid;
   gap: 0.18rem;
+  pointer-events: none;
   opacity: 1;
   transform: translateY(0);
   transition:
@@ -450,8 +416,8 @@ export const CapDescription = styled.p`
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
-  cursor: text;
-  user-select: text;
+  cursor: inherit;
+  user-select: none;
 
   @media (max-width: 767px) {
     padding-inline: 0.25rem;
@@ -493,12 +459,12 @@ export const CapNoteButton = styled.button`
 export const BoxTitleLine = styled.div`
   display: flex;
   align-items: baseline;
-  justify-content: center;
-  gap: 0.58rem;
+  gap: 0.45rem;
   min-width: 0;
 `;
 
 export const BoxId = styled.span`
+  flex: 0 0 auto;
   color: ${COLORS.accent};
   font-family: var(--dw-font-ui);
   font-size: 1.02rem;
@@ -508,45 +474,52 @@ export const BoxId = styled.span`
 `;
 
 export const BoxName = styled.strong`
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   color: ${COLORS.text};
-  font-size: 1.08rem;
+  font-size: 1rem;
   line-height: 1.08;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
 
-export const BoxContextLine = styled.span`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  min-width: 0;
-  color: ${COLORS.dim};
-  font-size: 0.75rem;
-  line-height: 1.2;
-`;
-
-export const BoxLocation = styled.span`
-  min-width: 0;
-  overflow: hidden;
-  color: var(--box-location, rgba(${COLORS.accentRgb}, 0.92));
-  font-family: var(--dw-font-ui);
-  font-size: 0.78rem;
-  font-weight: 860;
-  letter-spacing: normal;
-  text-overflow: ellipsis;
-  text-transform: none;
-  white-space: nowrap;
-  text-shadow: none;
-`;
-
 export const PositionReadout = styled.span`
   flex: 0 0 auto;
-  color: rgba(${COLORS.secondaryRgb}, 0.82);
-  font-family: var(--dw-font-ui);
+  color: var(--dw-text-secondary);
+  font-family: var(--dw-font-data);
+  font-size: .65rem;
+  font-weight: 400;
+  white-space: nowrap;
   letter-spacing: normal;
+`;
+
+export const HeaderLocationGrid = styled.dl`
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0 8px 5px;
+  pointer-events: none;
+  @media (max-width: 360px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+`;
+
+export const HeaderLocationTier = styled.div`
+  min-width: 0;
+  padding-left: 6px;
+  border-left: 1px solid var(--dw-border);
+  &:first-child { border-left-color: ${COLORS.accent}; }
+  dt { color: var(--dw-text-muted); font-size: .6rem; line-height: 1.5; letter-spacing: .04em; }
+  dd { margin: 0; color: var(--box-location, var(--dw-cyan)); font-size: .74rem; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+  dd[data-recorded='false'] { color: var(--dw-text-muted); font-size: .65rem; font-weight: 400; }
+`;
+
+export const HeaderLocationNote = styled.p`
+  min-width: 0; margin: 0; padding: 0 8px 5px;
+  color: var(--box-location, var(--dw-cyan)); font-size: .74rem; line-height: 1.35;
+  overflow-wrap: anywhere; pointer-events: none;
+  span { margin-right: 6px; color: var(--dw-text-muted); font-size: .65rem; }
 `;
 
 export const DeckContent = styled.div`
@@ -1053,6 +1026,14 @@ export const ItemThumbnail = styled.img`
   background: var(--dw-surface);
 `;
 
+const itemPlaceholderGradient = css`
+  background:
+    radial-gradient(ellipse at var(--peek-gradient-origin), rgba(${COLORS.accentRgb}, 0.9), transparent 78%),
+    radial-gradient(ellipse at var(--peek-gradient-secondary-origin), rgba(var(--box-secondary-rgb, 103, 239, 200), 0.65), transparent 68%),
+    linear-gradient(var(--peek-gradient-angle), rgba(${COLORS.accentRgb}, 0.65), rgba(${COLORS.accentRgb}, 0.14)),
+    var(--dw-surface);
+`;
+
 export const ItemThumbnailFallback = styled.span`
   grid-column: 1;
   grid-row: 1 / span 2;
@@ -1060,7 +1041,7 @@ export const ItemThumbnailFallback = styled.span`
   height: 30px;
   border: 1px solid rgba(${COLORS.accentRgb}, 0.12);
   border-radius: 4px;
-  background: var(--dw-surface);
+  ${itemPlaceholderGradient}
 `;
 
 export const ItemName = styled.strong`
@@ -1121,7 +1102,8 @@ export const ItemCarousel = styled.section`
 export const ItemCarouselCard = styled.div`
   position: relative;
   min-width: 0;
-  height: 100%;
+  height: auto;
+  max-height: 100%;
   min-height: 0;
   overflow: hidden;
   border: 1px solid rgba(${COLORS.accentRgb}, 0.34);
@@ -1131,12 +1113,12 @@ export const ItemCarouselCard = styled.div`
 
   @media (min-width: 768px) {
     display: grid;
-    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, auto);
   }
 
   @media (max-width: 767px) {
     display: grid;
-    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, auto);
   }
 `;
 
@@ -1146,7 +1128,8 @@ export const ItemCarouselMedia = styled.div`
   display: grid;
   place-items: center;
   width: 100%;
-  height: 100%;
+  height: auto;
+  aspect-ratio: 1;
   min-height: 0;
   overflow: hidden;
   background: var(--dw-surface);
@@ -1311,40 +1294,6 @@ export const ItemCarouselActionRail = styled.div`
   gap: 0.22rem;
 `;
 
-export const ItemHeaderActionPanel = styled.div`
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(${({ $editable }) => $editable ? 4 : 3}, max-content);
-  gap: 0.22rem;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-
-  ${({ $positionOnly }) => $positionOnly && css`
-    grid-template-columns: 46px;
-  `}
-
-  ${({ $body }) => $body && css`
-    display: contents;
-    position: static;
-
-    button {
-      width: 100%;
-      min-width: 0;
-      font-size: 0.75rem;
-    }
-  `}
-
-  @media (max-width: 460px) {
-    grid-template-columns: ${({ $positionOnly, $editable }) => ($positionOnly ? '42px' : `repeat(${$editable ? 4 : 3}, max-content)`)};
-
-    button {
-      width: 42px;
-      font-size: 0.75rem;
-    }
-  }
-`;
-
 export const ItemCarouselActionButton = styled.button`
   display: inline-grid;
   width: 46px;
@@ -1413,115 +1362,55 @@ export const ItemCarouselActionButton = styled.button`
   }
 `;
 
-export const ItemActionsToggle = styled(ItemCarouselActionButton)`
-  && {
-    width: 42px;
-    transition:
-      border-color 150ms ease,
-      color 150ms ease,
-      background 150ms ease,
-      box-shadow 150ms ease,
-      filter 150ms ease;
-  }
-
-  ${({ $active }) => $active && css`
-    && {
-      border-color: rgba(var(--box-secondary-rgb, 167, 182, 255), 0.98);
-      color: #f5fbff;
-      background:
-        var(--dw-surface);
-      box-shadow: none;
-      filter: brightness(1.22) saturate(1.18);
-    }
-
-    circle {
-      fill: currentColor;
-      stroke-width: 0;
-    }
-  `}
-
-  @media (max-width: 460px) {
-    && {
-      width: 42px;
-    }
-  }
-`;
-
-export const ActionMenuIcon = styled.svg`
-  width: 15px;
-  height: 15px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.35;
-  stroke-linecap: round;
-`;
-
-export const ItemHeaderOpenFullButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  width: 42px;
-  height: 30px;
-  padding: 0 0.28rem;
-  border: 1px solid rgba(${COLORS.secondaryRgb}, 0.58);
-  border-radius: 5px;
-  color: ${COLORS.text};
-  background: var(--dw-surface);
-  font: 600 0.75rem/1.25 var(--dw-font-ui);
-  letter-spacing: normal;
-  text-transform: none;
-  cursor: pointer;
-
-  svg {
-    width: 15px;
-    height: 15px;
-  }
-
-  &:hover,
-  &:focus-visible {
-    border-color: ${COLORS.accent};
-    outline: none;
-    box-shadow: none;
-  }
-`;
-
 export const ItemActionPopover = styled.div`
   position: absolute;
   z-index: 20;
-  top: calc(100% + 0.42rem);
-  left: 50%;
+  top: calc(100% + 6px);
+  left: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  width: min(290px, calc(100vw - 48px));
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   max-height: min(440px, 48dvh);
   overflow-y: auto;
+  overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: var(--box-primary, #4cc6c1) #080e14;
-  gap: 0.24rem;
-  padding: 0.38rem;
-  border: 1px solid rgba(${COLORS.accentRgb}, 0.48);
-  border-radius: 7px;
-  background: var(--dw-surface);
-  box-shadow: none;
-  transform: translateX(-50%);
+  scrollbar-color: var(--box-primary, var(--dw-text-secondary)) #0d1620;
+  gap: 0;
+  padding: 6px;
+  border: 1px solid var(--box-primary, var(--dw-border));
+  border-radius: 12px 12px 10px 10px;
+  background: #0d1620;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06),
+    inset 0 -1px 0 rgba(0, 0, 0, .35),
+    0 10px 24px rgba(0, 0, 0, .4),
+    0 0 12px rgba(${COLORS.accentRgb}, .12);
 
-  &::before {
-    position: absolute;
-    top: -5px;
-    left: 50%;
-    width: 9px;
-    height: 9px;
-    border-top: 1px solid rgba(${COLORS.accentRgb}, 0.48);
-    border-left: 1px solid rgba(${COLORS.accentRgb}, 0.48);
-    background: var(--dw-surface);
-    content: '';
-    transform: translateX(-50%) rotate(45deg);
+  > section {
+    gap: 4px; padding: 8px 0; min-width: 0;
+    & + section { border-top: 1px solid rgba(${COLORS.accentRgb}, .22); }
   }
+  && button {
+    min-height: 44px; height: auto; min-width: 44px;
+    padding: 8px 10px; border: 0; border-radius: 8px;
+    background: transparent; box-shadow: none;
+    font: 500 .85rem/1.35 var(--dw-font-ui);
+    color: var(--dw-text); white-space: normal; overflow-wrap: anywhere;
+    &:hover:not(:disabled) { background: rgba(${COLORS.accentRgb}, .1); filter: none; }
+    &&:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: -2px; filter: none; }
+  }
+  && [data-item-settings] button, && [data-item-activity] button {
+    display: flex; justify-content: center; gap: 8px;
+    min-width: 0; border-radius: 3px; padding: 0 6px;
+    color: var(--dw-text-secondary); font-weight: 400;
+    &[aria-pressed='true'] { color: var(--dw-amber); background: rgba(239, 189, 120, .13); box-shadow: inset 0 -2px 0 var(--dw-amber); }
+    &:hover:not(:disabled) { color: var(--dw-text); background: rgba(113, 210, 255, .08); }
+  }
+  && [aria-label='Missing report options'] button { font-size: .75rem; color: var(--dw-text-secondary); }
+  > section { padding: 4px 0 0; gap: 0; }
+  > section > span { display: none; }
 
-  @media (max-width: 460px) {
-    grid-template-columns: minmax(0, 1fr);
-  }
 `;
 
 export const ItemNoteSheet = styled.section`
@@ -1595,7 +1484,7 @@ export const ItemCarouselBody = styled.div`
     min-height: 0;
     max-height: none;
     overflow-x: hidden;
-    overflow-y: hidden;
+    overflow-y: auto;
     pointer-events: auto;
     padding: 0.78rem 0.9rem 1rem;
     border-top: 1px solid rgba(${COLORS.accentRgb}, 0.22);
@@ -1608,7 +1497,7 @@ export const ItemCarouselBody = styled.div`
     position: static;
     max-height: none;
     overflow-x: hidden;
-    overflow-y: hidden;
+    overflow-y: auto;
     pointer-events: auto;
     padding: 0.62rem 0.72rem 0.28rem;
     background: var(--dw-surface);
@@ -1669,7 +1558,7 @@ export const ItemCarouselImageFallback = styled.div`
   width: 100%;
   height: 100%;
   color: rgba(230, 237, 243, 0.3);
-  background: var(--dw-surface);
+  ${itemPlaceholderGradient}
   font-family: var(--dw-font-ui);
   font-size: 0.75rem;
   letter-spacing: normal;
@@ -1679,7 +1568,7 @@ export const ItemCarouselIdentity = styled.div`
   min-width: 0;
   display: grid;
   gap: 0.3rem;
-  padding-bottom: 0.42rem;
+  padding-bottom: 10px;
   border-bottom: 1px solid ${COLORS.line};
 `;
 
@@ -1687,24 +1576,24 @@ export const ItemCarouselName = styled.h3`
   button { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
   margin: 0;
   color: ${COLORS.text};
-  font-size: clamp(1rem, 4.8vw, 1.35rem);
+  font-size: clamp(1.1rem, 4.8vw, 1.45rem);
   line-height: 1.08;
   overflow-wrap: anywhere;
 `;
 
 export const ItemCarouselMeta = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.6rem;
-  align-items: center;
-  color: ${COLORS.dim};
-  font-size: 0.75rem;
-
-  code {
-    color: ${COLORS.secondary};
-    font-size: 0.75rem;
-    letter-spacing: normal;
-  }
+  display: grid; grid-template-columns: 156px minmax(0, 1fr); gap: 8px;
+  margin-top: 10px; align-items: start;
+`;
+export const ItemFact = styled.div`
+  --domain-rgb: var(--box-primary-rgb);
+  min-width: 0; padding: 6px 8px; border-radius: 6px;
+  background: rgba(var(--box-primary-rgb), .06);
+  color: var(--dw-text); font: 500 .85rem/1.4 var(--dw-font-ui);
+  > button { min-height: 28px; }
+`;
+export const ItemFactLabel = styled.span`
+  display: block; color: var(--box-primary); font: 400 .75rem/1.3 var(--dw-font-ui); margin-bottom: 2px;
 `;
 
 export const ItemCarouselDetails = styled.div`
@@ -1721,7 +1610,7 @@ export const ItemCarouselDetail = styled.div`
     margin: 0;
     overflow: hidden;
     color: rgba(230, 237, 243, 0.8);
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     line-height: 1.32;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
@@ -1742,36 +1631,13 @@ export const ItemCarouselAnnotationLine = styled.div`
 
 export const ItemCarouselDescription = styled.p`
   margin: 0;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   line-height: 1.32;
   button { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
   cursor: text;
 
   @media (max-width: 767px) {
     -webkit-line-clamp: 2;
-  }
-`;
-
-export const ItemCarouselNoteButton = styled.button`
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: 1px solid rgba(220, 143, 255, 0.72);
-  border-radius: 4px;
-  color: #e8b5ff;
-  background: rgba(76, 37, 104, 0.76);
-  font: 900 0.75rem var(--dw-font-ui);
-  cursor: pointer;
-
-  &:hover,
-  &:focus-visible {
-    border-color: #f0caff;
-    color: ${COLORS.text};
-    outline: none;
-    box-shadow: none;
   }
 `;
 
@@ -1788,59 +1654,16 @@ export const ItemCarouselCategoryValue = styled.p`
   margin: 0;
   overflow: hidden;
   color: rgba(230, 237, 243, 0.8);
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   line-height: 1.32;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
 
-export const ItemCarouselDeckButton = styled.button`
-  flex: 0 0 auto;
-  margin-left: auto;
-  min-height: var(--dw-control-height);
-  padding: 0.1rem 0.42rem;
-  border: 1px solid ${({ $active }) => (
-    $active ? 'rgba(240, 138, 123, 0.88)' : `rgba(${COLORS.accentRgb}, 0.44)`
-  )};
-  border-radius: 4px;
-  color: ${({ $active }) => ($active ? '#ff9d91' : `rgba(${COLORS.accentRgb}, 0.92)`)};
-  background: ${({ $active }) => (
-    $active ? 'rgba(118, 39, 35, 0.76)' : 'rgba(5, 10, 15, 0.72)'
-  )};
-  font: 900 0.75rem var(--dw-font-ui);
-  letter-spacing: normal;
-  cursor: pointer;
-
-  &:hover,
-  &:focus-visible {
-    border-color: rgba(${COLORS.accentRgb}, 0.84);
-    color: ${COLORS.text};
-    outline: none;
-  }
-
-  &:disabled {
-    opacity: 0.38;
-    cursor: not-allowed;
-  }
-`;
-
 export const ItemCarouselTags = styled.div`
-  button { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.28rem 0.48rem;
-  max-height: 2.9em;
-  padding: 0.38rem 0 0;
-  overflow: hidden;
-  color: rgba(${COLORS.accentRgb}, 0.8);
-  font-family: var(--dw-font-ui);
-  font-size: 0.75rem;
-  line-height: 1.4;
-
-  @media (min-width: 768px) {
-    max-height: 2.9em;
-    padding-bottom: 0.16rem;
-  }
+  min-width: 0; padding: 8px 0 0;
+  color: var(--box-primary); font: 400 .75rem/1.4 var(--dw-font-ui);
+  > button { white-space: normal; overflow-wrap: anywhere; padding: 2px 0; }
 `;
 
 export const ItemCarouselEmpty = styled.p`

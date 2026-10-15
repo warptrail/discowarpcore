@@ -1,5 +1,6 @@
 import { controlStyles } from './primitives';
 import styled from 'styled-components';
+import { quietFieldAction } from './workspaceBoundaries';
 import { Link } from 'react-router-dom';
 import { MOBILE_BREAKPOINT } from './tokens';
 
@@ -36,7 +37,7 @@ export const WikiImageButton = styled.button`
   width: 100%;
   min-height: 190px;
   max-height: 360px;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 1;
   overflow: hidden;
   padding: 0;
   border: 0;
@@ -99,7 +100,8 @@ export const WikiImagePlaceholder = styled.div`
   display: grid;
   place-content: center;
   gap: 0.45rem;
-  min-height: 120px;
+  min-height: 0; aspect-ratio: 1;
+  background: radial-gradient(ellipse at var(--peek-gradient-origin), rgba(var(--box-primary-rgb), .85), transparent 78%), radial-gradient(ellipse at var(--peek-gradient-secondary-origin), rgba(var(--box-secondary-rgb), .55), transparent 68%), linear-gradient(var(--peek-gradient-angle), rgba(var(--box-primary-rgb), .5), rgba(var(--box-primary-rgb), .12)), var(--dw-surface);
   color: var(--dw-text-secondary);
   text-align: center;
 `;
@@ -244,15 +246,14 @@ export const MediaEditorHeader = styled.header`
 
 export const ConsoleFrame = styled.section`
   overflow: hidden;
-  border: 1px solid rgba(230, 237, 243, 0.12);
-  border-radius: var(--dw-radius);
-  background: var(--dw-surface);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   box-shadow: none;
   transition: border-color 160ms ease, box-shadow 160ms ease;
 
   ${({ $fieldMode }) => $fieldMode && `
     overflow: visible;
-    border-color: var(--dw-cyan);
     box-shadow: none;
   `}
 
@@ -299,9 +300,9 @@ export const TableToolbar = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.4rem 0.58rem;
+  padding: 0 0 12px;
   color: rgba(213, 232, 241, 0.7);
-  background: var(--dw-surface-raised);
+  background: transparent;
   font: 760 0.75rem/1.3 ${uiFont};
   text-transform: none;
 `;
@@ -310,7 +311,7 @@ export const EmptyFieldsToggle = styled.button`
   ${controlStyles}
   min-height: var(--dw-control-height);
   padding: 0.3rem 0.6rem;
-  border: 1px solid var(--item-accent, #7fd7ff);
+  border: 0;
   border-radius: var(--dw-radius-sm);
   color: var(--item-accent, #7fd7ff);
   background: rgba(var(--item-accent-rgb, 127, 215, 255), 0.08);
@@ -400,6 +401,7 @@ export const DomainCell = styled.td`
 `;
 
 export const AttributeCell = styled.td`
+  ${({ $singleLine }) => $singleLine && 'overflow: hidden; text-overflow: ellipsis; white-space: nowrap;'}
   padding: 0.4rem 0.58rem;
   color: var(--dw-text-secondary);
   font: 720 0.75rem/1.3 ${uiFont};
@@ -418,7 +420,12 @@ export const AttributeCell = styled.td`
   }
 `;
 
+export const FieldDisplay = styled.div`
+  td:has([data-inline-field-editor]) > & { visibility: hidden; }
+`;
+
 export const ValueCell = styled.td`
+  position: relative;
   padding: 0.4rem 0.58rem;
   color: rgba(241, 248, 251, 0.9);
   font-size: 0.78rem;
@@ -437,7 +444,7 @@ export const ValueCell = styled.td`
 
 export const ConsoleRow = styled.tr`
   position: relative;
-  opacity: ${({ $dimmed }) => ($dimmed ? 0.36 : 1)};
+  opacity: ${({ $dimmed }) => ($dimmed ? 0.85 : 1)};
   background: ${({ $active, $locator }) =>
     $active
       ? 'rgba(var(--domain-rgb), 0.105)'
@@ -473,7 +480,7 @@ export const ConsoleRow = styled.tr`
 export const EditableValueButton = styled.button`
   ${controlStyles}
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) var(--field-edit-icon-width, 20px);
   align-items: center;
   gap: 0.5rem;
   width: 100%;
@@ -522,16 +529,18 @@ export const EditableValueButton = styled.button`
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
+  ${quietFieldAction}
 `;
 
 export const EditableValueCopy = styled.span`
   min-width: 0;
+  ${({ $singleLine }) => $singleLine && 'overflow: hidden; text-overflow: ellipsis; white-space: nowrap;'}
   overflow-wrap: anywhere;
 `;
 
 export const NotePreviewRow = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) var(--field-edit-hit-width, 44px);
   align-items: center;
   gap: 0.45rem;
   width: 100%;
@@ -610,13 +619,19 @@ export const NoteEditButton = styled.button`
     outline: 1px solid rgba(var(--domain-rgb), 0.72);
     background: rgba(var(--domain-rgb), 0.16);
   }
+  ${quietFieldAction}
+  display: grid; place-items: center end;
+  width: var(--field-edit-hit-width, 44px); min-width: 44px; min-height: 44px;
+  padding: 0; background: transparent;
+  svg { width: 15px; height: 15px; }
 `;
 
 export const TagValueEditorRow = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) var(--field-edit-hit-width, 44px);
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
   min-height: 44px;
   margin: -0.24rem 0;
   padding: 0.32rem 0.42rem;
@@ -646,6 +661,11 @@ export const EditableTagButton = styled.button`
     outline: 1px solid rgba(var(--domain-rgb), 0.72);
     background: rgba(var(--domain-rgb), 0.16);
   }
+  ${quietFieldAction}
+  display: grid; place-items: center end;
+  width: var(--field-edit-hit-width, 44px); min-width: 44px; min-height: 44px;
+  padding: 0; background: transparent;
+  svg { width: 15px; height: 15px; }
 `;
 
 export const TagLinks = styled.span`
@@ -673,21 +693,22 @@ export const TagLink = styled(Link)`
 `;
 
 export const EditableSignal = styled.span`
-  align-self: start;
-  padding: 0.16rem 0.2rem;
-  border-left: 1px solid var(--domain-color, var(--item-accent, #7fd7ff));
+  align-self: center;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: var(--field-edit-icon-width, 20px); padding: 0;
   color: var(--domain-color, var(--item-accent, #7fd7ff));
-  background: rgba(var(--domain-rgb), 0.08);
+  background: transparent;
   font: 700 0.75rem/1 ${uiFont};
   letter-spacing: 0.01em;
+  svg { width: 15px; height: 15px; }
 `;
 
 export const FieldEditorRow = styled.tr`
   position: relative;
   z-index: 50;
   padding: 0 !important;
-  border-bottom: 1px solid rgba(var(--domain-rgb), 0.52) !important;
-  background: var(--dw-surface-raised);
+  border-bottom: 1px solid rgba(230, 237, 243, .08) !important;
+  background: transparent;
 `;
 
 export const FieldEditorCell = styled.td`
@@ -755,3 +776,42 @@ export const BoxShortId = styled.span`display: inline-flex; align-items: baselin
 export const BoxShortIdMarker = styled.span`font-size: 0.68em; opacity: 0.58;`;
 export const BoxShortIdDigits = styled.span`font-size: 1.22em;`;
 export const BoxLabel = styled.span`color: rgba(242, 248, 251, 0.92); line-height: 1.2; transition: color 180ms ease, text-shadow 180ms ease; @media (prefers-reduced-motion: reduce) { transition: none; }`;
+
+export const FieldSections = styled.div`
+  column-count: 1; column-gap: 14px;
+  @media(min-width: 980px) { column-count: 2; }
+`;
+export const FieldSectionTitle = styled.h3`
+  margin: 0; padding: 10px 12px; color: rgb(var(--section-rgb));
+  background: rgba(var(--section-rgb), .065); border-left: 2px solid rgba(var(--section-rgb), .6);
+  border-radius: 3px;
+  font: 600 .8rem/1.3 var(--dw-font-ui); letter-spacing: .04em;
+`;
+export const FieldSection = styled.section`
+  --section-rgb: ${({ $tone }) => domainRgb($tone)};
+  --field-edit-icon-width: 20px;
+  --field-edit-hit-width: 44px;
+  min-width: 0; break-inside: avoid; margin-bottom: 20px; border: 0;
+  border-radius: 0; background: transparent;
+  ${DomainGroup} { display: table-row-group; border: 0; box-shadow: none; margin: 0; }
+  ${DomainCell} { display: none !important; }
+  ${AttributeCell} { width: 38%; padding: 8px 12px; font-weight: 500; }
+  ${ValueCell} { width: 62%; padding: 0 12px; }
+  ${EditableValueButton} { min-height: 44px; padding: 4px 0; }
+  ${NotePreviewRow}, ${TagValueEditorRow} { margin: 0; padding: 0; border: 0; }
+  ${NotePreviewButton} { padding: 4px 0; border: 0; align-items: center; }
+  ${EditableSignal} { opacity: .75; }
+  ${ConsoleTable} {
+    table-layout: fixed;
+    @media(max-width: ${MOBILE_BREAKPOINT}) {
+      ${DomainGroup} { display: block; width: 100%; }
+      ${ConsoleRow} { grid-template-columns: minmax(85px, .38fr) minmax(0, .62fr); }
+      ${AttributeCell}, ${ValueCell} { width: auto; }
+    }
+  }
+`;
+
+export const FieldSavedStatus = styled.span`
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+`;

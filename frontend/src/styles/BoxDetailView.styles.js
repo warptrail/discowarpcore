@@ -39,6 +39,7 @@ export const Wrap = styled.div`
     padding: ${MOBILE_PAGE_GAP};
     min-height: auto;
   }
+  @media (min-width: 1100px) { padding: 12px 0; min-height: auto; }
 `;
 
 /* Optional inner content area if you want a max width on big screens */
@@ -51,6 +52,7 @@ export const Content = styled.div`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     max-width: 100%;
   }
+  @media (min-width: 1100px) { max-width: none; margin: 0; }
 `;
 
 export const TabViewport = styled.div`

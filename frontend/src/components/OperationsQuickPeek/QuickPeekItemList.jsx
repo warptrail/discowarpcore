@@ -1,4 +1,6 @@
+import MissingStatus from '../MissingItems/MissingStatus';
 import React, { useEffect, useState } from 'react';
+import { getItemPlaceholderGradientStyle } from '../../util/itemPlaceholderGradient';
 import {
   getItemMicroThumbnailCandidates,
 } from '../../util/itemImage';
@@ -68,7 +70,7 @@ function QuickPeekItemThumbnail({ item }) {
   }, [candidateKey]);
 
   if (!source) {
-    return <S.ItemThumbnailFallback aria-hidden="true" />;
+    return <S.ItemThumbnailFallback aria-hidden="true" style={getItemPlaceholderGradientStyle(item)} />;
   }
 
   return (
@@ -117,7 +119,7 @@ export default function QuickPeekItemList({
               onClick={() => onSelectItem?.(item)}
             >
               <QuickPeekItemThumbnail item={item} />
-              <S.ItemName>{name}</S.ItemName>
+              <S.ItemName>{name}</S.ItemName><MissingStatus item={item} />
               {category || matches.has(item) ? (
                 <S.ItemCategory>
                   {matches.has(item) ? <S.ItemMatchLabel>Keyword match</S.ItemMatchLabel> : null}

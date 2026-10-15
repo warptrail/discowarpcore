@@ -1,3 +1,4 @@
+import { getItemPlaceholderGradientStyle } from '../util/itemPlaceholderGradient';
 import { useEffect, useMemo, useState } from 'react';
 
 import RetrievalImageLightbox from './Retrieval/RetrievalImageLightbox';
@@ -70,10 +71,7 @@ export default function ItemPageImageHero({
             </S.WikiImageCaption>
           </S.WikiImageButton>
         ) : (
-          <S.WikiImagePlaceholder>
-            <S.WikiImageKicker>Visual record</S.WikiImageKicker>
-            <span>No image archived</span>
-          </S.WikiImagePlaceholder>
+          <S.WikiImagePlaceholder aria-label="No item image" style={getItemPlaceholderGradientStyle(item)} />
         )}
 
         <S.WikiFactRail aria-label="Item quick facts">

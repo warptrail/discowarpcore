@@ -1,6 +1,6 @@
 import { controlStyles } from '../../styles/primitives';
 import { useEffect, useMemo, useState } from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import tokenColorsCsv from '../../assets/token-colors.csv?raw';
 import { formatTokenLabel, normalizeRenderTokens } from '../../constants/renderTokens';
 import { ensureTokenColorMapLoaded, getTokenSurfaceColors } from '../../util/tokenColorMap';
@@ -33,6 +33,7 @@ const Panel = styled.section`
   border-top: 1px solid var(--dw-border);
   display: grid;
   gap: ${({ $compact }) => ($compact ? '0.34rem' : '0.42rem')};
+  ${({ $standalone }) => $standalone && css`border: 0; padding-top: 0;`}
 `;
 
 const ProfileToggle = styled.button`
@@ -222,6 +223,8 @@ export default function RenderTokenControls({
   compact = false,
   title = 'Render profile',
   showModeControl = true,
+  standalone = false,
+  footer = null,
 }) {
   ensureTokenColorMapLoaded(tokenColorsCsv);
 
@@ -268,8 +271,8 @@ export default function RenderTokenControls({
   if (!hasSelectors) return null;
 
   return (
-    <Panel $compact={compact}>
-      <ProfileToggle
+    <Panel $compact={compact} $standalone={standalone}>
+      {standalone ? !pickerField && <ProfileLead><Label>{title}</Label><SummaryText>{summaryLabel}</SummaryText></ProfileLead> : <ProfileToggle
         type="button"
         $compact={compact}
         aria-expanded={expanded}
@@ -284,9 +287,9 @@ export default function RenderTokenControls({
           <SummaryText>{summaryLabel}</SummaryText>
         </ProfileLead>
         <ToggleAffordance aria-hidden="true">{expanded ? '−' : '+'}</ToggleAffordance>
-      </ProfileToggle>
+      </ProfileToggle>}
 
-      {expanded ? (
+      {expanded || standalone ? (
         <ProfileContent $compact={compact}>
           {pickerField ? (
             <RenderTokenOptionPicker
@@ -300,6 +303,7 @@ export default function RenderTokenControls({
                 onRenderTokenChange?.(pickerField, value);
                 setPickerField('');
               }}
+              pageSize={standalone ? 4 : 0}
             />
           ) : (
             <>
@@ -361,6 +365,7 @@ export default function RenderTokenControls({
           )}
         </ProfileContent>
       ) : null}
+      {!pickerField ? footer : null}
     </Panel>
   );
 }

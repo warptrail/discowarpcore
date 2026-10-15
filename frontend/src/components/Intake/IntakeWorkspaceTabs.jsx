@@ -1,52 +1,27 @@
-import { controlStyles } from '../../styles/primitives';
 import styled from 'styled-components';
+import { consoleTabStyles } from './IntakeConsole.styles';
+import CaptureGlyph from './CaptureGlyph';
 
 const Rail = styled.nav`
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  align-items: center;
-  gap: 0.16rem;
+  align-items: stretch;
+  gap: 0;
   min-width: 0;
-  padding: 0.12rem 0;
-  border-bottom: 1px solid var(--dw-border);
-  background: var(--dw-surface);
-  box-shadow: none;
+  padding: 0 12px;
 `;
 
 const RailButton = styled.button`
-  min-width: 0;
-  min-height: 42px;
-  border: 0;
-  border-bottom: 2px solid ${({ $active }) => ($active ? '#70dcf2' : 'transparent')};
-  background: ${({ $active }) => ($active ? 'rgba(53, 117, 163, 0.14)' : 'transparent')};
-  color: ${({ $active }) =>
-    $active ? '#c2f3ff' : '#8ca5b9'};
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.025em;
-  padding: 0.35rem 0.3rem;
-  text-align: center;
-  white-space: nowrap;
-
-  &:hover { color: #a9e9f8; background: var(--dw-surface-raised); }
-  &:focus-visible { outline: 2px solid #70dcf2; outline-offset: -2px; }
-
-  ${controlStyles}
-  border-left-color: ${({ $active, $selected, $recommended }) => ($active || $selected || $recommended) ? 'var(--dw-amber)' : 'var(--dw-border)'};
-  border-left-width: 3px;
-
-  padding: 0.4rem 0.2rem;
-  font-size: 0.75rem;
-  white-space: normal;
+  ${consoleTabStyles}
+  width: 100%;
+  @media (max-width: 360px) { font-size: .72rem; }
 `;
 
 const WORKSPACE_TABS = [
-  { id: 'new', label: 'New item' },
-  { id: 'box', label: 'Current box' },
-  { id: 'organize', label: 'Organize' },
-  { id: 'edit', label: 'Edit box' },
+  { id: 'new', label: 'New item', icon: 'new' },
+  { id: 'box', label: 'Current box', icon: 'item' },
+  { id: 'organize', label: 'Organize', icon: 'organize' },
+  { id: 'edit', label: 'Edit box', icon: 'edit' },
 ];
 
 export default function IntakeWorkspaceTabs({ activeView, onChange }) {
@@ -61,7 +36,7 @@ export default function IntakeWorkspaceTabs({ activeView, onChange }) {
           aria-current={activeView === tab.id ? 'page' : undefined}
           onClick={() => onChange(tab.id)}
         >
-          {tab.label}
+          <CaptureGlyph kind={tab.icon} /><span>{tab.label}</span>
         </RailButton>
       ))}
     </Rail>

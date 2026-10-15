@@ -1,4 +1,5 @@
-import { controlStyles } from '../../styles/primitives';
+import { consoleControlStyles } from './IntakeConsole.styles';
+import CaptureGlyph from './CaptureGlyph';
 import React, { useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { MOBILE_BREAKPOINT } from '../../styles/tokens';
@@ -92,27 +93,8 @@ const HeaderActions = styled.div`
 `;
 
 const HeaderButton = styled.button`
-  min-width: 40px;
-  min-height: 40px;
-  padding: 0.25rem 0.42rem;
-  border: 0;
-  background: transparent;
-  color: #c4ddd9;
-  font: inherit;
-  font-size: ${({ $text }) => ($text ? '0.67rem' : '1rem')};
-  font-weight: ${({ $text }) => ($text ? 800 : 500)};
-  letter-spacing: ${({ $text }) => ($text ? '0.05em' : 'normal')};
-  text-transform: ${({ $text }) => ($text ? 'uppercase' : 'none')};
-  cursor: pointer;
-
-  &:hover { color: #e4fffb; }
-
-  &:focus-visible {
-    outline: 2px solid #a78bfa;
-    outline-offset: -2px;
-  }
-
-  ${controlStyles}
+  ${consoleControlStyles}
+  font-size: .75rem;
 `;
 
 const SheetBody = styled.div`
@@ -126,30 +108,15 @@ const SheetBody = styled.div`
 `;
 
 const ToggleRow = styled.button`
-  min-height: 44px;
-  padding: 0.42rem 0;
-  border: 0;
-  border-bottom: 1px solid var(--dw-border);
-  background: transparent;
-  color: ${({ $active }) => ($active ? '#d9fffa' : '#b8d1d2')};
-  display: flex;
-  align-items: center;
+  ${consoleControlStyles}
   justify-content: space-between;
-  gap: 0.8rem;
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 720;
+  border-bottom: 1px solid var(--dw-border-soft);
+  font-size: .8rem;
   text-align: left;
-  cursor: pointer;
-
-  &:focus-visible {
-    outline: 2px solid #a78bfa;
-    outline-offset: 2px;
+  &[aria-pressed='true'] {
+    color: var(--dw-cyan);
+    box-shadow: inset 0 -1px var(--dw-cyan);
   }
-
-  ${controlStyles}
-  border-left-color: ${({ $active, $selected, $recommended }) => ($active || $selected || $recommended) ? 'var(--dw-amber)' : 'var(--dw-border)'};
-  border-left-width: 3px;
 `;
 
 const ToggleState = styled.span`
@@ -160,11 +127,9 @@ const ToggleState = styled.span`
 `;
 
 const SectionTitle = styled.div`
-  color: #9dbcbf;
-  font-size: 0.75rem;
-  font-weight: 820;
-  letter-spacing: 0.075em;
-  text-transform: none;
+  color: var(--dw-text-muted);
+  font-size: .75rem;
+  font-weight: 400;
 `;
 
 const BatchGrid = styled.div`
@@ -174,31 +139,13 @@ const BatchGrid = styled.div`
 `;
 
 const BatchChip = styled.button`
-  min-height: 40px;
+  ${consoleControlStyles}
   max-width: 100%;
-  padding: 0.35rem 0.52rem;
-  border: 1px solid ${({ $active, $accentRgb }) =>
-    $active ? `rgba(${$accentRgb}, 0.82)` : 'rgba(84, 122, 144, 0.5)'};
-  border-radius: var(--dw-radius-sm);
-  background: ${({ $active, $accentRgb }) =>
-    $active ? `rgba(${$accentRgb}, 0.16)` : 'rgba(10, 18, 27, 0.8)'};
-  color: ${({ $active, $accentRgb }) => ($active ? `rgb(${$accentRgb})` : '#b4c9dc')};
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.32rem;
-  font-size: 0.71rem;
-  font-weight: 760;
-  text-align: left;
-  cursor: pointer;
-
-  &:focus-visible {
-    outline: 2px solid #a78bfa;
-    outline-offset: 2px;
+  font-size: .75rem;
+  color: ${({ $active, $accentRgb }) => $active ? `rgb(${$accentRgb})` : 'var(--dw-text-secondary)'};
+  &[aria-pressed='true'] {
+    box-shadow: inset 0 -1px currentColor;
   }
-
-  ${controlStyles}
-  border-left-color: ${({ $active, $selected, $recommended }) => ($active || $selected || $recommended) ? 'var(--dw-amber)' : 'var(--dw-border)'};
-  border-left-width: 3px;
 `;
 
 const BatchLabel = styled.span`
@@ -233,6 +180,7 @@ export default function IntakeActivityFiltersSheet({
   onClose,
 }) {
   const closeButtonRef = useRef(null);
+  const sheetRef = useRef(null);
   const selectedBatchSet = new Set(
     (Array.isArray(selectedBatchIds) ? selectedBatchIds : [])
       .map((batchId) => String(batchId || '').trim())
@@ -245,6 +193,17 @@ export default function IntakeActivityFiltersSheet({
 
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') onClose?.();
+      if (event.key !== 'Tab') return;
+      const controls = Array.from(sheetRef.current?.querySelectorAll('button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]') || []);
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
     };
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -262,7 +221,7 @@ export default function IntakeActivityFiltersSheet({
   return (
     <Layer>
       <Scrim aria-hidden="true" onClick={onClose} />
-      <Sheet id="intake-activity-filters" role="dialog" aria-modal="true" aria-labelledby="intake-activity-filters-title">
+      <Sheet ref={sheetRef} id="intake-activity-filters" role="dialog" aria-modal="true" aria-labelledby="intake-activity-filters-title">
         <SheetHeader>
           <SheetHeading>
             <SheetTitle id="intake-activity-filters-title">Inventory scope</SheetTitle>
@@ -272,7 +231,7 @@ export default function IntakeActivityFiltersSheet({
             {filtersActive ? (
               <HeaderButton type="button" $text onClick={onClearFilters}>Clear</HeaderButton>
             ) : null}
-            <HeaderButton ref={closeButtonRef} type="button" aria-label="Close activity filters" onClick={onClose}>×</HeaderButton>
+            <HeaderButton ref={closeButtonRef} type="button" aria-label="Close activity filters" onClick={onClose}><CaptureGlyph kind="cancel" /></HeaderButton>
           </HeaderActions>
         </SheetHeader>
 

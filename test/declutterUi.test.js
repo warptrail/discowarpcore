@@ -30,3 +30,36 @@ test('system collection includes all approved departures without calling them de
   const markup = renderToStaticMarkup(React.createElement(Card, { candidates: [{ stagingRoute: 'donate' }, { stagingRoute: 'gift' }] }));
   assert(markup.includes('Approved to Leave')); assert(markup.includes('Donate')); assert(markup.includes('Gift')); assert(!markup.includes('Destruction'));
 });
+test('review shows recorded submitter separately from item ownership', async () => {
+  const Review = await loadComponent('DeclutterReviewCard.jsx');
+  const sessionItem = { nominatedBy: 'laserfox', item: { name: 'QA synthetic item', primaryOwner: 'discofish' } };
+  const markup = renderToStaticMarkup(React.createElement(Review, { sessionItem }));
+  assert.ok(markup.includes('Added by Laserfox'));
+  const legacy = renderToStaticMarkup(React.createElement(Review, { sessionItem: { ...sessionItem, nominatedBy: '' } }));
+  assert.ok(!legacy.includes('Added by'));
+});
+
+test('exit controls expose labelled route choices and preserve the split-routing lock', async () => {
+  const Controls = await loadComponent('DeclutterExitControls.jsx');
+  const props = { candidate:{id:'synthetic'},itemName:'Synthetic item',currentRoute:'needs_routing',player:'discofish' };
+  const markup = renderToStaticMarkup(React.createElement(Controls, props));
+  for (const route of ['Trash','Donate','Sell','Gift']) assert.ok(markup.includes(`Plan ${route} for Synthetic item`));
+  assert.ok(!markup.includes('combobox'));
+  assert.ok(markup.includes('Laserfox chooses the exit route'));
+  assert.equal((markup.match(/<button[^>]*disabled=""/g)||[]).length,6);
+  const unlocked = renderToStaticMarkup(React.createElement(Controls,{...props,player:'laserfox'}));
+  assert.ok(unlocked.includes('Apply plan'));
+  assert.ok(!unlocked.includes('Laserfox chooses the exit route'));
+});
+
+test('discussion preserves original release preference, context links and private/shared notes', async () => {
+  const Lane = await loadComponent('DeclutterDiscussionLane.jsx');
+  const candidate = {id:'discuss',item:{id:'synthetic item',name:'Synthetic long item name',box:{box_id:'120',label:'Gear'}},
+    notes:'Private context',sharedNotes:'Shared context',votes:{discofish:{decision:'release',exitPreference:'sell'},laserfox:{decision:'keep'}}};
+  const markup = renderToStaticMarkup(React.createElement(MemoryRouter,null,React.createElement(Lane,{candidates:[candidate],busyCandidateId:'discuss'})));
+  assert.ok(markup.includes('Sell')); assert.ok(markup.includes('Keep'));
+  assert.ok(markup.includes('href="/items/synthetic%20item"')); assert.ok(markup.includes('href="/boxes/120"'));
+  assert.ok(markup.includes('Your private note: Private context')); assert.ok(markup.includes('Shared note: Shared context'));
+  assert.ok(markup.includes('Original individual votes')); assert.ok(markup.includes('Saving final call…'));
+  assert.equal((markup.match(/<button[^>]*disabled=""/g)||[]).length,1);
+});

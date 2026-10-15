@@ -1,5 +1,8 @@
+import { Link } from 'react-router-dom';
 import * as S from './Declutter.styles';
-import DeclutterActionOptions from './DeclutterActionOptions';
+import * as A from './DeclutterActionsPanel.styles';
+import DeclutterExitControls from './DeclutterExitControls';
+import { getDeclutterItemTheme } from './declutterItemTheme';
 import { getItemName, getSessionItemItem } from './declutterUtils';
 
 const ROUTE_LABELS = {
@@ -10,75 +13,38 @@ const ROUTE_LABELS = {
   needs_routing: 'Needs routing',
 };
 
-const COMPLETION_LABELS = {
-  discard: 'Mark trashed',
-  donate: 'Mark donated',
-  sell: 'Mark sold',
-  gift: 'Mark gifted',
-};
-
-const COMPLETION_DISPOSITIONS = {
-  discard: 'trashed',
-  donate: 'donated',
-  sell: 'sold',
-  gift: 'gifted',
-};
-
-function itemLocation(item) {
-  const box = item?.box;
-  if (box) {
-    const boxLabel = [box.box_id ? `#${box.box_id}` : '', box.label || 'Box']
-      .filter(Boolean)
-      .join(' ');
-    return box.locationName ? `${boxLabel} • ${box.locationName}` : boxLabel;
-  }
-  return item?.location || 'No box assigned';
-}
-
 function ActionRow({ candidate, player, stagingBoxes, busy, onAction }) {
   const item = getSessionItemItem(candidate);
   const currentRoute = candidate.stagingRoute || 'needs_routing';
   const itemName = getItemName(item);
-  const disposition = COMPLETION_DISPOSITIONS[currentRoute];
 
   return (
-    <S.ActionTableRow>
-      <S.ActionItemCell>
-        {item?.id ? (
-          <S.ItemNameLink to={`/items/${encodeURIComponent(item.id)}`}>
-            {itemName}
-          </S.ItemNameLink>
-        ) : <S.ItemName>{itemName}</S.ItemName>}
-        <small>{item?.isIntendedGift ? 'Gift intent retained' : 'Active inventory'}</small>
-      </S.ActionItemCell>
-
-      <S.ActionPlanCell>
-        <S.ActionRouteChip $tone={currentRoute === 'discard' ? 'toss' : currentRoute}>
+    <A.Card style={getDeclutterItemTheme(item)} data-declutter-exit-card>
+      <A.Identity>
+        <div>
+          {item?.id ? (
+            <Link to={`/items/${encodeURIComponent(item.id)}`}>
+              {itemName}
+            </Link>
+          ) : <strong>{itemName}</strong>}
+          <small>{item?.isIntendedGift ? 'Gift intent retained' : 'Active inventory'}</small>
+        </div>
+        <A.RouteBadge $route={currentRoute}>
           {ROUTE_LABELS[currentRoute] || currentRoute}
-        </S.ActionRouteChip>
-      </S.ActionPlanCell>
+        </A.RouteBadge>
+      </A.Identity>
 
-      <S.ActionLocationCell>{itemLocation(item)}</S.ActionLocationCell>
-
-      <S.ActionPrimaryCell>
-        <S.ActionCompleteButton
-          type="button"
-          disabled={busy || !disposition}
-          onClick={() => onAction(candidate, 'complete', { disposition })}
-        >
-          {busy ? 'Working…' : COMPLETION_LABELS[currentRoute] || 'Choose a route'}
-        </S.ActionCompleteButton>
-        <DeclutterActionOptions
-          candidate={candidate}
-          itemName={itemName}
-          currentRoute={currentRoute}
-          player={player}
-          stagingBoxes={stagingBoxes}
-          busy={busy}
-          onAction={onAction}
-        />
-      </S.ActionPrimaryCell>
-    </S.ActionTableRow>
+      <DeclutterExitControls
+        candidate={candidate}
+        itemName={itemName}
+        item={item}
+        currentRoute={currentRoute}
+        player={player}
+        stagingBoxes={stagingBoxes}
+        busy={busy}
+        onAction={onAction}
+      />
+    </A.Card>
   );
 }
 
@@ -94,16 +60,16 @@ export default function DeclutterActionsPanel({
   }
 
   return (
-    <S.ActionConsole>
-      <S.ActionConsoleHeading>
+    <A.Console>
+      <A.Header>
         <div>
           <S.Eyebrow>Exit todo list</S.Eyebrow>
           <h2>Approved to Leave</h2>
-          <S.SmallText>Agreed exits stay active inventory until you confirm they are actually gone.</S.SmallText>
+          <p>Agreed exits stay active inventory until you confirm they are actually gone.</p>
         </div>
-        <strong>{candidates.length}</strong>
-      </S.ActionConsoleHeading>
-      <S.ActionTable>
+        <span>{candidates.length} item{candidates.length===1 ? '' : 's'}</span>
+      </A.Header>
+      <A.Grid>
         {candidates.map((candidate) => (
           <ActionRow
             key={candidate.id}
@@ -114,7 +80,7 @@ export default function DeclutterActionsPanel({
             onAction={onAction}
           />
         ))}
-      </S.ActionTable>
-    </S.ActionConsole>
+      </A.Grid>
+    </A.Console>
   );
 }

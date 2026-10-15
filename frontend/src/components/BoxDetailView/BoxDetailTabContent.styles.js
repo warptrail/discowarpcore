@@ -34,93 +34,103 @@ export const DetailActionSection = styled.section`
 
 export const SectionHeading = styled.header`
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.7rem;
-  margin: 0.72rem 0 0.22rem;
+  align-items: stretch;
+  min-width: 0;
+  min-height: 48px;
+  margin: 4px 0 0;
+  border: 1px solid var(--dw-border-soft);
+  border-left: 2px solid var(--dw-cyan);
+  border-radius: 3px 9px 3px 3px;
+  background: linear-gradient(110deg, rgba(113, 210, 255, .055), transparent 65%), var(--dw-surface);
+`;
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    display: grid;
-    grid-template-columns: auto auto minmax(0, 1fr) auto;
-    gap: 0.42rem;
-    margin: 0.62rem 0 0.12rem;
-  }
+export const SectionIdentity = styled.div`
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: 10px;
+  padding: 0 12px;
+  @media (max-width: 390px) { gap: 8px; padding-inline: 8px; }
 `;
 
 export const SectionTitle = styled.h2`
   margin: 0;
+  min-width: 0;
   color: var(--dw-text);
-  font: 700 0.82rem/1 var(--dw-font-ui);
-  letter-spacing: 0.01em;
-  text-transform: none;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    white-space: nowrap;
-  }
+  font: 600 .85rem/1.2 var(--dw-font-ui);
+  overflow-wrap: anywhere;
 `;
 
 export const SectionCount = styled.span`
+  flex: 0 0 auto;
   color: var(--dw-text-secondary);
-  font: 700 0.75rem/1 var(--dw-font-ui);
+  font: 500 .8rem/1.2 var(--dw-font-data);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 `;
 
 export const SectionCountFull = styled.span`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 `;
 
 export const SectionCountCompact = styled.span`
   display: none;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.36rem;
-
-    &::before {
-      content: '·';
-      color: rgba(var(--box-primary-rgb, 76, 198, 193), 0.72);
-    }
-  }
+  @media (max-width: ${MOBILE_BREAKPOINT}) { display: inline; }
 `;
 
 export const SectionNote = styled.span`
-  color: var(--dw-text-secondary);
-  font: 700 0.75rem/1 var(--dw-font-ui);
-  letter-spacing: 0.01em;
-  text-transform: none;
+  min-width: 0;
+  color: var(--dw-text-muted);
+  font: 400 .75rem/1.2 var(--dw-font-ui);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  @media (max-width: 1000px) { display: none; }
+`;
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    display: none;
-  }
+export const SectionCommands = styled.div`
+  display: flex;
+  align-items: stretch;
+  flex: 0 0 auto;
+  border-left: 1px solid var(--dw-border-soft);
+  background: rgba(113, 210, 255, .035);
 `;
 
 export const SectionActionButton = styled.button`
   ${controlStyles}
-  flex: 0 0 auto; min-height: var(--dw-control-height); border: 1px solid rgba(var(--box-primary-rgb, 76, 198, 193), 0.58); border-radius: var(--dw-radius);
-  background: var(--dw-surface-raised); color: var(--dw-cyan); padding: 0.3rem 0.52rem;
-  font: 700 0.75rem/1 var(--dw-font-ui); letter-spacing: 0.01em; text-transform: none; cursor: pointer;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    justify-self: end;
-  }
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--dw-cyan);
+  font: 550 .8rem/1.2 var(--dw-font-ui);
+  svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  &:hover { background: rgba(113, 210, 255, .08); }
+  &:focus-visible { outline-offset: -3px; }
+  @media (max-width: 390px) { gap: 6px; padding-inline: 10px; }
 `;
 
 export const SectionActionFull = styled.span`
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    display: none;
-  }
+  @media (max-width: ${MOBILE_BREAKPOINT}) { display: none; }
 `;
 
 export const SectionActionCompact = styled.span`
   display: none;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    display: inline;
-  }
+  @media (max-width: ${MOBILE_BREAKPOINT}) { display: inline; }
 `;
 
 export const SelectionToolbar = styled.div`
@@ -192,54 +202,23 @@ export const SelectionButton = styled.button`
   }
 `;
 
-export const SectionRule = styled.div`
-  height: 1px;
-  flex: 1;
-  background: rgba(230, 237, 243, 0.12);
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    width: 100%;
-  }
-`;
-
 export const SectionManageButton = styled.button`
   ${controlStyles}
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  width: 34px;
-  height: 28px;
-  margin-left: auto;
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
   border: 0;
-  border-radius: var(--dw-radius);
+  border-left: 1px solid var(--dw-border-soft);
+  border-radius: 0 8px 2px 0;
   background: transparent;
   color: var(--dw-text-secondary);
-  gap: 3px;
-  cursor: pointer;
-  &:hover, &:focus-visible { color: rgba(226, 237, 242, 0.9); background: rgba(120, 170, 182, 0.08); outline: 1px solid rgba(120, 170, 182, 0.28); }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    margin-left: 0;
-  }
-`;
-
-export const ManageDot = styled.span`
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: ${({ $i }) => ['#4cc6c1', '#a78bfa', '#7fb7ff', '#70d6a7'][$i]};
-  box-shadow: none;
-  animation-delay: ${({ $i }) => `${$i * 110}ms`};
-
-  @keyframes manage-dot-wave {
-    0%, 100% { transform: translateY(2px); opacity: 0.46; }
-    50% { transform: translateY(-2px); opacity: 0.95; }
-  }
-
-  @media (prefers-reduced-motion: reduce) { animation: none; }
+  svg { width: 24px; height: 24px; fill: currentColor; }
+  &:hover { color: var(--dw-cyan); background: rgba(113, 210, 255, .08); }
+  &:focus-visible { color: var(--dw-cyan); outline-offset: -3px; }
 `;
 
 export const FlatEmpty = styled.div`

@@ -1,13 +1,13 @@
 import { inputStyles } from '../styles/primitives';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
+import { getBoxTheme, getBoxThemeCssVars } from '../util/inventoryColorTheme';
 import { getCompartments } from '../util/boxCompartments';
 import BoxIdPrefixInput from './BoxIdPrefixInput';
 import { fetchItemMoveLogs } from '../api/logs';
 import {
   MOBILE_BREAKPOINT,
   MOBILE_FONT_XS,
-  MOBILE_NARROW_BREAKPOINT,
 } from '../styles/tokens';
 import {
   compareNumericBoxIds,
@@ -26,6 +26,7 @@ const Container = styled.div`
 
 const FilterPanel = styled.div`
   display: grid;
+  grid-template-columns: ${({ $compact }) => $compact ? 'minmax(0, 1fr) auto' : '1fr'};
   gap: 0.18rem;
   margin: 0 0 0.38rem;
 `;
@@ -212,16 +213,6 @@ const StatusHint = styled(MetaPill)`
   border-radius: var(--dw-radius-sm);
 `;
 
-const LevelPill = styled(MetaPill)`
-  border-color: #405270;
-  background: #182030;
-  color: #cfdbf9;
-
-  @media (max-width: ${MOBILE_NARROW_BREAKPOINT}) {
-    display: none;
-  }
-`;
-
 const OrphanPill = styled(MetaPill)`
   border-color: rgba(238, 184, 120, 0.52);
   background: var(--dw-surface);
@@ -247,15 +238,39 @@ const SuggestedPill = styled(MetaPill)`
   text-transform: none;
 `;
 
+const PickerContainer = styled(Container)`
+  ${({ $compact }) => $compact && css`
+    ${FilterPanel} { position: sticky; top: -10px; z-index: 2; padding: 0 0 8px; background: #101923; }
+    ${FilterInput} { outline: none; border-radius: 6px; font-size: .85rem; &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: -2px; } }
+    ${SectionHeading} { color: var(--dw-text-secondary); font-weight: 500; margin: 10px 0 6px; }
+    ${BoxList} { gap: 0; }
+    ${BoxItem} {
+      min-height: 48px; border: 0; border-bottom: 1px solid rgba(var(--box-primary-rgb), .22);
+      border-left: 2px solid rgba(var(--box-primary-rgb), .6); border-radius: 0;
+      padding: 6px 8px; background: rgba(var(--box-primary-rgb), .035);
+      &:hover { background: rgba(var(--box-primary-rgb), .12); }
+      &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: -2px; }
+    }
+    ${BoxIdentityLane} { gap: 8px; }
+    ${BoxIdChip} { border: 0; padding: 0; background: transparent; color: var(--box-primary); font-size: .85rem; }
+    ${BoxName} { font-size: .85rem; white-space: normal; overflow-wrap: anywhere; color: var(--dw-text); }
+    ${MetaPill} { border: 0; padding: 0; background: transparent; color: var(--dw-text-secondary); font-size: .75rem; }
+    ${OrphanItem} { border-left-color: var(--dw-text-secondary); background: transparent; }
+  `}
+`;
+
 export default function MoveItemToOtherBox({
   itemId,
   itemIds,
   currentBoxId, // owning/source box id
   onBoxSelected, // ({ destBoxId, destLabel, destShortId, isOrphanedDestination, toState }) => void
   showOrphanOption = true,
+  orphanOptionLabel = 'Items Adrift',
   showRecentDestinations = true,
   suggestedPurpose = '',
   suggestedOnly = false,
+  compact = false,
+  filterTrailingControl = null,
   disabled = false,
 }) {
   const [otherBoxes, setOtherBoxes] = useState([]);
@@ -518,6 +533,7 @@ export default function MoveItemToOtherBox({
     <React.Fragment key={box._id}>
     <BoxItem
       key={box._id || `${box.box_id}-${box.label}`}
+      style={getBoxThemeCssVars(getBoxTheme(box.box_id))}
       role="button"
       tabIndex={disabled ? -1 : 0}
       aria-disabled={disabled}
@@ -541,10 +557,9 @@ export default function MoveItemToOtherBox({
         <MetaPill>
           {box._itemCount} {box._itemCount === 1 ? 'item' : 'items'}
         </MetaPill>
-        <LevelPill>L{box._depth}</LevelPill>
       </MetaLane>
     </BoxItem>
-    {getCompartments(box).map((row) => <BoxItem as="li" key={row.key} style={{ marginLeft: '1rem' }}>
+    {getCompartments(box).map((row) => <BoxItem as="li" key={row.key} style={{ ...getBoxThemeCssVars(getBoxTheme(box.box_id)), marginLeft: '1rem' }}>
       <button type="button" disabled={disabled} onClick={() => handleSelect(box, row.key)} style={{ background: 'transparent', color: 'inherit', border: 0, minHeight: 44, textAlign: 'left', cursor: 'pointer', width: '100%' }}>
         #{box.box_id}{row.key} · {row.label || `Compartment ${row.key}`}
       </button>
@@ -558,12 +573,12 @@ export default function MoveItemToOtherBox({
   };
 
   return (
-    <Container>
+    <PickerContainer $compact={compact}>
       {!suggestedOnly ? (
-        <FilterPanel>
-          <FilterLabel htmlFor={filterInputIdRef.current}>
+        <FilterPanel $compact={compact}>
+          {!compact ? <FilterLabel htmlFor={filterInputIdRef.current}>
             Destination Box ID
-          </FilterLabel>
+          </FilterLabel> : null}
           <BoxIdPrefixInput
             inputAs={FilterInput}
             id={filterInputIdRef.current}
@@ -571,9 +586,10 @@ export default function MoveItemToOtherBox({
             maxLength={MAX_PREFIX_LENGTH}
             value={boxIdPrefix}
             onChange={handleFilterChange}
-            placeholder="Type box ID prefix (e.g. 107)"
+            placeholder={compact ? 'Move to box #…' : 'Type box ID prefix (e.g. 107)'}
             ariaLabel="Destination box ID prefix search"
           />
+          {compact ? filterTrailingControl : null}
         </FilterPanel>
       ) : null}
 
@@ -612,7 +628,7 @@ export default function MoveItemToOtherBox({
           >
             <BoxIdentityLane $depth={0}>
               <OrphanIdChip>—</OrphanIdChip>
-              <BoxName>Items Adrift</BoxName>
+              <BoxName>{orphanOptionLabel}</BoxName>
             </BoxIdentityLane>
             <MetaLane>
               <OrphanPill>ADRIFT</OrphanPill>
@@ -654,6 +670,6 @@ export default function MoveItemToOtherBox({
       {!loading && normalizedBoxes.length > 0 && hasFilter && !hasAnyMatches ? (
         <StatusHint>No matching box IDs.</StatusHint>
       ) : null}
-    </Container>
+    </PickerContainer>
   );
 }

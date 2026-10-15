@@ -53,7 +53,7 @@ const fetchAndCacheLocations = async () => {
   return fetchPromise;
 };
 
-export default function useLocationRegistry() {
+export default function useLocationRegistry({ refreshOnMount = false } = {}) {
   const [locations, setLocations] = useState(cache);
   const [loading, setLoading] = useState(!loaded);
   const [error, setError] = useState(null);
@@ -82,9 +82,9 @@ export default function useLocationRegistry() {
   }, []);
 
   useEffect(() => {
-    if (loaded) return;
+    if (loaded && !refreshOnMount) return;
     refreshLocations().catch(() => {});
-  }, [refreshLocations]);
+  }, [refreshLocations, refreshOnMount]);
 
   const createLocationInline = useCallback(async (location) => {
     const normalized = normalizeLocationStructure(location);

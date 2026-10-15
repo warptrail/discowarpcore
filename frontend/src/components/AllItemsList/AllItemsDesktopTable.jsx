@@ -1,3 +1,4 @@
+import TagLinks from '../TagLinks';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getItemHomeHref } from '../../api/itemDetails';
@@ -320,7 +321,7 @@ function DesktopItemRow({
             </S.CompactMetaEntry>
             <S.CompactMetaEntry>
               <S.CompactLabel>tags</S.CompactLabel>
-              <S.CompactValue>{tagsValue}</S.CompactValue>
+              <S.CompactValue title={tagsValue}><TagLinks tags={meta?.tags} /></S.CompactValue>
             </S.CompactMetaEntry>
             <S.CompactMetaEntry>
               <S.CompactLabel>status</S.CompactLabel>

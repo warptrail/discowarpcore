@@ -1,6 +1,6 @@
 import { inputStyles, controlStyles } from '../../styles/primitives';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { API_BASE } from '../../api/API_BASE';
 import {
   MOBILE_BREAKPOINT,
@@ -14,6 +14,7 @@ import {
   normalizeItemCategory,
 } from '../../util/itemCategories';
 import { getItemThumbnailUrl } from '../../util/itemImage';
+import BoxCompartmentSelect from '../BoxForms/BoxCompartmentSelect';
 
 const PAGE_SIZE = 20;
 
@@ -24,6 +25,24 @@ const Wrap = styled.div`
   max-width: 100%;
   min-width: 0;
   overflow: hidden;
+  ${({ $compact }) => $compact && css`
+    ${Controls} { grid-template-columns: 1fr; }
+    ${Viewport} { max-height: min(36dvh, 300px); overscroll-behavior: contain; padding: 0; border: 0; background: transparent; scrollbar-width: thin; }
+    ${Row} { grid-template-columns: 32px minmax(0, 1fr) auto; padding: 6px 0; border: 0; border-bottom: 1px solid var(--dw-border); border-radius: 0; background: transparent; }
+    ${Thumb} { width: 32px; height: 32px; }
+    ${MoveButton} { grid-column: auto; width: auto; min-height: 44px; font-size: .75rem; }
+    ${Input}, ${Select} { min-height: 44px; }
+    ${Name} { font-size: .8rem; color: var(--dw-text); }
+    ${Meta} { color: var(--dw-text-secondary); }
+    ${TagRow} { display: none; }
+  `}
+`;
+
+const CompactFilters = styled.details`
+  min-width: 0;
+  summary { min-height: 44px; display: flex; align-items: center; color: var(--dw-text-secondary); font-size: .75rem; cursor: pointer; }
+  summary:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: -2px; }
+  &[open] { display: grid; gap: 6px; }
 `;
 
 const Controls = styled.div`
@@ -312,8 +331,12 @@ function mergeUniqueById(existing, incoming) {
 export default function IntakeMoveExistingTab({
   currentBox,
   onItemMoved,
+  compact = false,
+  onBusyChange,
 }) {
   const requestSeqRef = useRef(0);
+  const moveLockRef = useRef(false);
+  const [compartmentKey, setCompartmentKey] = useState('A');
   const [items, setItems] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -326,6 +349,7 @@ export default function IntakeMoveExistingTab({
   const [categoryFilter, setCategoryFilter] = useState('');
   const [sortBy, setSortBy] = useState('alphabetical');
   const [movingId, setMovingId] = useState('');
+  const FilterContainer = compact ? CompactFilters : React.Fragment;
 
   const loadPage = useCallback(async ({ offset = 0, append = false } = {}) => {
     const requestSeq = requestSeqRef.current + 1;
@@ -397,8 +421,10 @@ export default function IntakeMoveExistingTab({
   const handleMoveToCurrentBox = async (item) => {
     const itemId = String(item?._id || '').trim();
     const destBoxId = String(currentBox?._id || '').trim();
-    if (!itemId || !destBoxId || movingId) return;
+    if (!itemId || !destBoxId || moveLockRef.current) return;
 
+    moveLockRef.current = true;
+    onBusyChange?.(true);
     setMovingId(itemId);
     setError('');
     setStatus('');
@@ -410,6 +436,7 @@ export default function IntakeMoveExistingTab({
         body: JSON.stringify({
           itemId,
           destBoxId,
+          ...(compact && currentBox.isComplexBox ? { compartmentKey } : {}),
         }),
       });
 
@@ -446,19 +473,23 @@ export default function IntakeMoveExistingTab({
               box_id: item.box.box_id,
               label: item.box.label,
             }
-          : null,
+          : item?.boxId ? { _id: item.boxId, label: 'Previous box' } : null,
         item: movedItem,
+        sourceCompartmentKey: item.compartmentKey || item.box?.compartmentKey,
         message: movedMessage,
       });
     } catch (moveError) {
       setError(moveError?.message || 'Failed to move item.');
     } finally {
+      moveLockRef.current = false;
       setMovingId('');
+      onBusyChange?.(false);
     }
   };
 
   return (
-    <Wrap>
+    <Wrap $compact={compact}>
+      {compact ? <BoxCompartmentSelect box={currentBox} value={compartmentKey} onChange={setCompartmentKey} disabled={!!movingId} /> : null}
       <Controls>
         <Input
           type="text"
@@ -466,8 +497,11 @@ export default function IntakeMoveExistingTab({
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search by name, tags, category…"
+          disabled={!!movingId}
         />
 
+        <FilterContainer>
+        {compact ? <summary>More filters</summary> : null}
         <Select
           aria-label="Filter items by category"
           value={categoryFilter}
@@ -507,6 +541,7 @@ export default function IntakeMoveExistingTab({
           <option value="orphaned:desc">Sort: Orphaned (Newest)</option>
           <option value="orphaned:asc">Sort: Orphaned (Oldest)</option>
         </Select>
+        </FilterContainer>
       </Controls>
 
       <Viewport>
@@ -545,11 +580,12 @@ export default function IntakeMoveExistingTab({
                 </Body>
 
                 <MoveButton
+                  aria-label={compact ? `Move ${item.name || 'item'} here` : undefined}
                   type="button"
                   disabled={!currentBox?._id || !id || !!movingId || itemAlreadyInCurrent}
                   onClick={() => handleMoveToCurrentBox(item)}
                 >
-                  {movingId === id ? 'Moving…' : itemAlreadyInCurrent ? 'Already Current' : 'Move To Current Box'}
+                  {movingId === id ? 'Moving…' : itemAlreadyInCurrent ? (compact ? 'Already here' : 'Already Current') : compact ? 'Move here' : 'Move To Current Box'}
                 </MoveButton>
               </Row>
             );

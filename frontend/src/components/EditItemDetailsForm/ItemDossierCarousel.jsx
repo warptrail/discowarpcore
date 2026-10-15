@@ -9,8 +9,9 @@ import {
   normalizeItemCategory,
 } from '../../util/itemCategories';
 import {
-  KEEP_PRIORITY_REMOVAL_OPTIONS,
-  KEEP_PRIORITY_SCALE_OPTIONS,
+  getKeepPriorityOptions,
+  getItemKeepPriority,
+  isKeepPriorityLocked,
 } from '../../util/keepPriority';
 import { PRIMARY_OWNER_OPTIONS } from '../../util/itemOwners';
 import { USD_DECIMAL_PATTERN } from '../../util/usdMoney';
@@ -146,11 +147,11 @@ function KeepCluster({ formData, onMetadataChange }) {
     <S.InlineGrid>
       <S.Field>
         <S.Label>Keep Priority</S.Label>
-        <S.Select name="keepPriority" value={formData.keepPriority || ''} onChange={onMetadataChange}>
-          <option value="">Unspecified</option>
-          <optgroup label="Priority Scale">{KEEP_PRIORITY_SCALE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</optgroup>
-          <optgroup label="Removal Planning">{KEEP_PRIORITY_REMOVAL_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</optgroup>
-        </S.Select>
+        <S.Select name="keepPriority" value={getItemKeepPriority(formData)} disabled={isKeepPriorityLocked(formData)} onChange={onMetadataChange}>
+            {getKeepPriorityOptions(formData).map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </S.Select>
       </S.Field>
       <S.Field>
         <S.Label>Primary Owner</S.Label>

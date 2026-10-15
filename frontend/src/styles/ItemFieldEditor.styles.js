@@ -18,14 +18,14 @@ export const EditorShell = styled.section`
   min-width: 0;
   padding: 0.72rem 0.74rem 0.78rem 0.9rem;
   overflow: visible;
-  border: 1px solid rgba(230, 237, 243, 0.16);
-  border-radius: var(--dw-radius);
-  background: var(--dw-surface);
+  border: 0;
+  border-radius: 4px;
+  background: rgba(var(--box-primary-rgb, 113, 210, 255), .035);
   box-shadow: none;
   animation: ${reveal} 160ms ease-out both;
 
   &::before {
-    content: '';
+    content: none;
     position: absolute;
     inset: 0 auto 0 0;
     width: 3px;
@@ -33,7 +33,7 @@ export const EditorShell = styled.section`
   }
 
   &::after {
-    content: '';
+    content: none;
     position: absolute;
     top: 0;
     left: 0.9rem;

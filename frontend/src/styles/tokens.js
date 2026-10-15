@@ -26,6 +26,12 @@ export const APP_VISUAL_THEME = {
   coral: '#ff9d9d',
 };
 
+// Retrieval workflow framing only; inventory identity colors remain independent.
+export const RETRIEVAL_MODE_COLORS = {
+  items: APP_VISUAL_THEME.violet,
+  boxes: '#91d6a4',
+};
+
 export const APP_GEOMETRY = {
   radius: '8px',
   radiusSmall: '4px',

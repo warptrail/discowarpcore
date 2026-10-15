@@ -1,33 +1,9 @@
-import { useEffect, useState } from 'react';
-
 import { DECLUTTER_PLAYERS } from '../../api/declutterDeck';
-import {
-  DECLUTTER_PLAYER_CHANGE_EVENT,
-  getStoredDeclutterPlayer,
-  storeDeclutterPlayer,
-} from './declutterPlayers';
+import { useHouseholdProfile } from '../HouseholdProfile/HouseholdProfileContext';
 import * as S from './Declutter.styles';
 
-export default function DeclutterPlayerPicker({ value, pendingCounts = {}, onChange }) {
-  const [activePlayer, setActivePlayer] = useState(value || getStoredDeclutterPlayer());
-
-  useEffect(() => {
-    if (value) setActivePlayer(value);
-  }, [value]);
-
-  useEffect(() => {
-    const syncPlayer = (event) => {
-      if (event.detail?.playerId) setActivePlayer(event.detail.playerId);
-    };
-    window.addEventListener(DECLUTTER_PLAYER_CHANGE_EVENT, syncPlayer);
-    return () => window.removeEventListener(DECLUTTER_PLAYER_CHANGE_EVENT, syncPlayer);
-  }, []);
-
-  const selectPlayer = (playerId) => {
-    setActivePlayer(playerId);
-    storeDeclutterPlayer(playerId);
-    onChange?.(playerId);
-  };
+export default function DeclutterPlayerPicker({ pendingCounts = {} }) {
+  const { profileId: activePlayer, selectProfile: selectPlayer } = useHouseholdProfile();
 
   return (
     <S.PlayerPicker aria-label="Select player">

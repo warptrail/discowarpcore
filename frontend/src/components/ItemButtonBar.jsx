@@ -1,5 +1,9 @@
+import MissingStatus from './MissingItems/MissingStatus';
+import MissingHistory from './MissingItems/MissingHistory';
+import MissingActions from './MissingItems/MissingActions';
 import React, { useState } from 'react';
 import MoveItemToOtherBox from './MoveItemToOtherBox';
+import ItemCommandIcon from './ItemCommandIcon';
 import * as S from '../styles/ItemPage.styles';
 import { getItemOwnershipContext } from '../util/itemOwnership';
 import { getDeclutterBoxPurposeForRoute } from '../util/declutterBoxPurpose';
@@ -112,6 +116,7 @@ export default function ItemButtonBar({
         aria-pressed={mediaEditorOpen}
         onClick={onToggleMedia}
       >
+        <ItemCommandIcon action="image" />
         Edit image
       </S.ItemModeButton>
       ) : null}
@@ -125,6 +130,7 @@ export default function ItemButtonBar({
         aria-current={viewMode === 'all' ? 'page' : undefined}
         onClick={() => onViewModeChange('all')}
       >
+        <ItemCommandIcon action="all" />
         All Data
       </S.ViewModeButton>
       <S.ViewModeButton
@@ -133,6 +139,7 @@ export default function ItemButtonBar({
         aria-current={viewMode === 'hierarchy' ? 'page' : undefined}
         onClick={() => onViewModeChange('hierarchy')}
       >
+        <ItemCommandIcon action="hierarchy" />
         Hierarchy
       </S.ViewModeButton>
     </S.ViewModeNav>
@@ -141,6 +148,7 @@ export default function ItemButtonBar({
   return (
     <S.ItemButtonBar aria-label="Item controls">
       <S.ItemControlsPanel>
+          <MissingStatus item={item} home /><MissingActions item={item} /><MissingHistory item={item} />
           {hasDeclutterAction ? (
             <S.DeclutterControlGroup>
               <S.DeclutterControlButton
@@ -171,7 +179,7 @@ export default function ItemButtonBar({
             </S.DeclutterControlGroup>
           ) : null}
 
-          <S.ControlGroup $wide>
+          <S.ControlGroup $wide aria-label="Inventory actions">
             <S.ControlGroupLabel>Inventory</S.ControlGroupLabel>
             <S.ContainerActions $paired={ownership.isBoxed && !isGone}>
               {isGone ? (
@@ -181,6 +189,7 @@ export default function ItemButtonBar({
               ) : ownership.isBoxed ? (
                 <>
                   <S.ContainerButton type="button" disabled={pending} onClick={showPickerButton}>
+                    <ItemCommandIcon action="move" />
                     Move item
                   </S.ContainerButton>
                   <S.ContainerButton
@@ -188,11 +197,13 @@ export default function ItemButtonBar({
                     disabled={pending || !boxMongoId}
                     onClick={handleRemoveFromBox}
                   >
+                    <ItemCommandIcon action="eject" />
                     Eject
                   </S.ContainerButton>
                 </>
               ) : (
                 <S.ContainerButton type="button" disabled={pending} onClick={showPickerButton}>
+                  <ItemCommandIcon action="move" />
                   Place in box
                 </S.ContainerButton>
               )}
@@ -212,7 +223,7 @@ export default function ItemButtonBar({
                     onClick={action.onClick}
                     disabled={departurePending || pending || action.disabled}
                     >
-                    <S.TimestampLabelFull aria-hidden="true">{action.label}</S.TimestampLabelFull>
+                    <S.TimestampLabelFull aria-hidden="true"><ItemCommandIcon action={action.id} />{action.label === 'Saving…' ? action.label : { used: 'Use', checked: 'Check', maintained: 'Maint.', consumed: 'Consume' }[action.id] || action.label}</S.TimestampLabelFull>
                     <S.TimestampLabelCompact aria-hidden="true">
                       {action.tone === 'maintained'
                         ? 'Maint'

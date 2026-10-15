@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import useMissingInventoryRefresh from '../components/MissingItems/useMissingInventoryRefresh';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_BASE } from '../api/API_BASE';
 import { addCapturedOrphanedItem } from '../util/operationsAdrift';
 import { BOX_RECORD_UPDATED_EVENT } from '../constants/inventoryFinderEvents';
@@ -19,6 +20,7 @@ function inheritBoxLocations(nodes, ancestorLocation = '') {
 }
 
 export default function useOperationsData({ includeSupportingData = true } = {}) {
+  const loadedRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [boxes, setBoxes] = useState([]);
@@ -33,6 +35,7 @@ export default function useOperationsData({ includeSupportingData = true } = {})
   }, []);
   const requestRefresh = useCallback(() => setRefreshTick((current) => current + 1), []);
 
+  useMissingInventoryRefresh(requestRefresh);
   useEffect(() => {
     const handleBoxUpdated = () => requestRefresh();
     window.addEventListener(BOX_RECORD_UPDATED_EVENT, handleBoxUpdated);
@@ -47,7 +50,7 @@ export default function useOperationsData({ includeSupportingData = true } = {})
     });
 
     const load = async () => {
-      setLoading(true);
+      if (!loadedRef.current) setLoading(true);
       setError('');
       try {
         const boxesRequest = fetch(`${API_BASE}/api/boxes/tree?${buildBoxesQuery(1)}`, {
@@ -99,6 +102,7 @@ export default function useOperationsData({ includeSupportingData = true } = {})
         const locationsBody = locationsResponse?.ok ? await locationsResponse.json() : {};
         if (controller.signal.aborted) return;
 
+        loadedRef.current = true;
         setBoxes(allBoxes);
         setTotal(nextTotal);
         setTotalPages(Math.max(1, Math.ceil(nextTotal / OPERATIONS_PAGE_LIMIT)));

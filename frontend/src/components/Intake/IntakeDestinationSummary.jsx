@@ -1,6 +1,7 @@
-import { controlStyles } from '../../styles/primitives';
+import { consoleControlStyles } from './IntakeConsole.styles';
 import React from 'react';
 import styled from 'styled-components';
+import TagLinks from '../TagLinks';
 
 const Summary = styled.section`
   display: grid;
@@ -17,23 +18,15 @@ const Identity = styled.div`
 `;
 
 const BoxCode = styled.div`
-  color: var(--box-neon);
-  font-family: var(--dw-font-ui);
-  font-size: clamp(1rem, 4vw, 1.2rem);
-  font-weight: 850;
-  letter-spacing: 0.075em;
-  line-height: 1;
-  text-shadow: none;
+  color: var(--box-primary);
+  font: 500 1.1rem/1.2 var(--dw-font-data);
 `;
 
 const BoxName = styled.h2`
   min-width: 0;
   margin: 0;
-  color: rgba(var(--box-neon-rgb), 0.98);
-  font-size: clamp(1.1rem, 4.5vw, 1.45rem);
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  line-height: 1.06;
+  color: var(--dw-text);
+  font: 600 clamp(1.1rem, 4vw, 1.3rem)/1.2 var(--dw-font-ui);
   overflow-wrap: anywhere;
 `;
 
@@ -55,22 +48,17 @@ const Fact = styled.div`
 `;
 
 const FactLabel = styled.dt`
-  color: rgba(var(--box-secondary-rgb), 0.68);
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  text-transform: none;
+  color: var(--dw-text-muted);
+  font: 400 .75rem/1.3 var(--dw-font-ui);
 `;
 
 const FactValue = styled.dd`
-  overflow: hidden;
-  margin: 0.1rem 0 0;
-  color: rgba(var(--box-neon-rgb), 0.86);
-  font-size: 0.78rem;
-  font-weight: 650;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  margin: 4px 0 0;
+  color: var(--dw-text-secondary);
+  font-size: .8rem;
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 `;
 
 const DetailLine = styled.div`
@@ -80,11 +68,9 @@ const DetailLine = styled.div`
 `;
 
 const DetailLabel = styled.div`
-  color: rgba(var(--box-secondary-rgb), 0.68);
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  text-transform: none;
+  color: var(--dw-text-muted);
+  font-size: .75rem;
+  font-weight: 400;
 `;
 
 const Notes = styled.p`
@@ -107,24 +93,12 @@ const Path = styled.div`
 `;
 
 const PathButton = styled.button`
+  ${consoleControlStyles}
   min-width: 0;
-  border: 0;
-  background: transparent;
-  color: ${({ $current }) =>
-    $current ? 'var(--box-neon)' : 'rgba(var(--box-primary-rgb), 0.82)'};
-  cursor: ${({ $clickable }) => ($clickable ? 'pointer' : 'default')};
-  font: inherit;
-  font-size: 0.75rem;
-  font-weight: ${({ $current }) => ($current ? 700 : 600)};
-  overflow: hidden;
-  padding: 0;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-
-  &:hover { ${({ $clickable }) => ($clickable ? 'color: #effffc;' : '')} }
-  &:focus-visible { outline: 2px solid var(--box-neon); outline-offset: 2px; }
-
-  ${controlStyles}
+  padding: 8px;
+  font-size: .75rem;
+  overflow-wrap: anywhere;
+  color: ${({ $current }) => $current ? 'var(--box-primary)' : 'var(--dw-text-secondary)'};
 `;
 
 const PathDivider = styled.span`
@@ -239,7 +213,7 @@ export default function IntakeDestinationSummary({
         </DetailLine>
       ) : null}
 
-      {tags.length ? <TagLine>{tags.slice(0, 8).map((tag) => `#${tag}`).join(' ')}</TagLine> : null}
+      {tags.length ? <TagLine><TagLinks tags={tags} /></TagLine> : null}
     </Summary>
   );
 }

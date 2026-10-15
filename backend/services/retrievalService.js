@@ -14,6 +14,7 @@ const {
   normalizeKeepPriorityValue,
 } = require('../utils/keepPriority');
 const { calculateBoxCollectionStats } = require('../utils/inventoryAnalytics');
+const { seededRetrievalShuffle } = require('../utils/seededRetrievalShuffle');
 
 const ACTIVE_ITEM_FILTER = { item_status: { $ne: 'gone' } };
 
@@ -24,6 +25,7 @@ const UNKNOWN_LOCATION_LABEL = 'Unknown Location';
 const UNKNOWN_BOX_NAME = 'Unknown Box';
 const ORPHANED_BOX_NAME = 'ORPHANED';
 const RETRIEVAL_ITEM_SORT_OPTIONS = [
+  { key: 'random', label: 'Shuffled' },
   { key: 'location', label: 'Location (A → Z)' },
   { key: 'location_desc', label: 'Location (Z → A)' },
   { key: 'name', label: 'Item Name (A → Z)' },
@@ -43,6 +45,7 @@ const RETRIEVAL_ITEM_SORT_KEYS = new Set(
   RETRIEVAL_ITEM_SORT_OPTIONS.map((option) => option.key),
 );
 const RETRIEVAL_BOX_SORT_OPTIONS = [
+  { key: 'random', label: 'Shuffled' },
   { key: 'location', label: 'Location (A → Z)' },
   { key: 'location_desc', label: 'Location (Z → A)' },
   { key: 'box', label: 'Box ID (Low → High)' },
@@ -504,6 +507,7 @@ function buildRetrievalItems(itemDocs, boxDocs) {
     const imageUrls = resolveItemImageUrls(item);
 
     const retrievalItem = {
+      quantity: item.quantity, missing: item.missing || { quantity: 0, revision: 0 },
       id,
       name,
       description,
@@ -625,8 +629,9 @@ function filterRetrievalItems(
   });
 }
 
-function sortRetrievalItems(items, sortKey = 'location') {
+function sortRetrievalItems(items, sortKey = 'location', shuffleSeed = '') {
   const key = normalizeSort(sortKey);
+  if (key === 'random') return seededRetrievalShuffle(items, shuffleSeed);
   const safeItems = Array.isArray(items) ? [...items] : [];
   const descending = key.endsWith('_desc');
   const baseKey = descending ? key.slice(0, -5) : key;
@@ -689,6 +694,7 @@ function sortRetrievalItems(items, sortKey = 'location') {
 function toClientItem(item) {
   return {
     id: item.id,
+    quantity: item.quantity, missing: item.missing || { quantity: 0, revision: 0 },
     name: item.name,
     description: item.description,
     notes: item.notes,
@@ -724,6 +730,7 @@ function buildRetrievalBoxes(boxDocs = [], itemDocs = []) {
       uniqueTrimmedValues(item?.tags),
     ]),
   );
+  const missingById = new Map(itemDocs.map(item => [String(item._id), Number(item.missing?.quantity || 0)]));
   const maps = buildBoxMaps(safeBoxes);
   const childCountByParentId = new Map();
 
@@ -819,6 +826,7 @@ function buildRetrievalBoxes(boxDocs = [], itemDocs = []) {
         itemTags,
         tagKeys,
         directItemCount,
+        directMissingCount: (box.items || []).filter(id => missingById.get(String(id)) > 0).length,
         childBoxCount,
         searchText,
       };
@@ -835,7 +843,7 @@ function buildRetrievalBoxes(boxDocs = [], itemDocs = []) {
     });
 }
 
-function collectBoxFilterOptions(boxes, locations = []) {
+function collectBoxFilterOptions(boxes, locations = [], tagSource = 'items') {
   const locationLabelByKey = new Map();
   const roomLabelByKey = new Map(locations.filter((location) => location?.room).map((location) => [normalizeFacetKey(location.room), location.room]));
   const tagLabelByKey = new Map();
@@ -846,7 +854,8 @@ function collectBoxFilterOptions(boxes, locations = []) {
       locationLabelByKey.set(box.locationKey, firstNonEmpty(box.locationLabel, UNKNOWN_LOCATION_LABEL));
     }
 
-    for (const tag of Array.isArray(box.itemTags) ? box.itemTags : []) {
+    const tags = tagSource === 'box' ? box.tags : box.itemTags;
+    for (const tag of Array.isArray(tags) ? tags : []) {
       const tagKey = normalizeFacetKey(tag);
       if (tagKey && !tagLabelByKey.has(tagKey)) tagLabelByKey.set(tagKey, tag);
     }
@@ -872,6 +881,7 @@ function filterRetrievalBoxes(
     roomFilters = [],
     tagFilters = [],
     tagOperator = 'or',
+    tagSource = 'items',
   }
 ) {
   const normalizedQuery = normalizeText(query);
@@ -886,7 +896,7 @@ function filterRetrievalBoxes(
     }
 
     if (
-      !matchesTagFilters(item.tagKeys, tagFilters, tagOperator)
+      !matchesTagFilters(tagSource === 'box' ? item.tags.map(normalizeFacetKey) : item.tagKeys, tagFilters, tagOperator)
     ) {
       return false;
     }
@@ -911,8 +921,9 @@ function filterRetrievalBoxes(
   });
 }
 
-function sortRetrievalBoxes(items, sortKey = 'location') {
+function sortRetrievalBoxes(items, sortKey = 'location', shuffleSeed = '') {
   const key = normalizeBoxSort(sortKey);
+  if (key === 'random') return seededRetrievalShuffle(items, shuffleSeed);
   const descending = key.endsWith('_desc');
   const baseKey = descending ? key.slice(0, -5) : key;
   const direction = descending ? -1 : 1;
@@ -952,14 +963,19 @@ function toClientBox(item) {
     boxPath: item.boxPath,
     tags: item.tags,
     directItemCount: item.directItemCount,
+    directMissingCount: item.directMissingCount || 0,
     childBoxCount: item.childBoxCount,
   };
+}
+
+function normalizeExactTags(value) {
+  return [...new Set((Array.isArray(value) ? value : [value]).map(normalizeFacetKey).filter(Boolean))];
 }
 
 async function getRetrievalItemsPage(params = {}) {
   const query = toTrimmed(params.q);
   const categoryFilters = normalizeFilterValues(params.category);
-  const tagFilters = normalizeFilterValues(params.tag);
+  const tagFilters = params.exactTag ? normalizeExactTags(params.exactTag) : normalizeFilterValues(params.tag);
   const tagOperator = String(params.tagOperator || '').trim().toLowerCase() === 'and'
     ? 'and'
     : 'or';
@@ -973,7 +989,7 @@ async function getRetrievalItemsPage(params = {}) {
   const [rawItemDocs, boxDocs] = await Promise.all([
     Item.find(ACTIVE_ITEM_FILTER)
       .select(
-        '_id name description notes maintenanceNotes category tags location image imagePath primaryOwnerName keepPriority orphanedAt isConsumable usageHistory checkHistory maintenanceHistory'
+        '_id quantity missing name description notes maintenanceNotes category tags location image imagePath primaryOwnerName keepPriority orphanedAt isConsumable usageHistory checkHistory maintenanceHistory'
       )
       .lean(),
     Box.find().select('_id box_id label isComplexBox compartments itemCompartments description notes location locationId parentBox items')
@@ -992,7 +1008,7 @@ async function getRetrievalItemsPage(params = {}) {
     keepPriorityFilters,
   });
 
-  const sortedItems = sortRetrievalItems(filteredItems, sort);
+  const sortedItems = sortRetrievalItems(filteredItems, sort, params.shuffleSeed);
   const total = sortedItems.length;
   const pagedItems = sortedItems.slice(offset, offset + limit).map(toClientItem);
 
@@ -1013,7 +1029,7 @@ async function getRetrievalBoxesPage(params = {}) {
   const boxIdPrefix = normalizeBoxIdPrefix(params.boxPrefix);
   const roomFilters = normalizeFilterValues(params.room);
   const locationFilters = normalizeFilterValues(params.location);
-  const tagFilters = normalizeFilterValues(params.tag);
+  const tagFilters = params.exactTag ? normalizeExactTags(params.exactTag) : normalizeFilterValues(params.tag);
   const tagOperator = String(params.tagOperator || '').trim().toLowerCase() === 'and'
     ? 'and'
     : 'or';
@@ -1027,7 +1043,7 @@ async function getRetrievalBoxesPage(params = {}) {
       .populate('locationId', 'room vicinity specifics exactSpot')
       .lean(),
     Item.find(ACTIVE_ITEM_FILTER)
-      .select('_id quantity notes maintenanceNotes valueCents tags')
+      .select('_id quantity missing notes maintenanceNotes valueCents tags')
       .lean(),
     Location.find().select('room').lean(),
   ]);
@@ -1040,9 +1056,10 @@ async function getRetrievalBoxesPage(params = {}) {
     roomFilters,
     tagFilters,
     tagOperator,
+    tagSource: params.tagSource,
   });
 
-  const sortedBoxes = sortRetrievalBoxes(filteredBoxes, sort);
+  const sortedBoxes = sortRetrievalBoxes(filteredBoxes, sort, params.shuffleSeed);
   const total = sortedBoxes.length;
   const pagedBoxes = sortedBoxes.slice(offset, offset + limit).map(toClientBox);
   const analytics = calculateBoxCollectionStats({
@@ -1060,11 +1077,13 @@ async function getRetrievalBoxesPage(params = {}) {
     sort,
     sortOptions: RETRIEVAL_BOX_SORT_OPTIONS,
     hasMore: offset + pagedBoxes.length < total,
-    filters: collectBoxFilterOptions(retrievalBoxes, locationDocs),
+    filters: collectBoxFilterOptions(retrievalBoxes, locationDocs, params.tagSource),
   };
 }
 
 module.exports = {
+  normalizeExactTags,
+  collectBoxFilterOptions,
   getRetrievalItemsPage,
   getRetrievalBoxesPage,
   buildRetrievalBoxes,

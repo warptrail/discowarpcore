@@ -1,51 +1,30 @@
-import { panelStyles, controlStyles } from '../../styles/primitives';
+import { quietSectionStyles, consoleControlStyles } from './IntakeConsole.styles';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { getItemHomeHref } from '../../api/itemDetails';
-import { MOBILE_BREAKPOINT, MOBILE_FONT_SM, MOBILE_FONT_XS } from '../../styles/tokens';
+import { MOBILE_BREAKPOINT, MOBILE_FONT_SM } from '../../styles/tokens';
 import { formatItemCategory } from '../../util/itemCategories';
 import { getItemThumbnailUrl } from '../../util/itemImage';
 
 const Panel = styled.section`
+  ${quietSectionStyles}
   min-width: 0;
   border-top: 1px solid var(--dw-border);
-  border-bottom: 1px solid var(--dw-border);
-  background: var(--dw-surface);
-
-  ${panelStyles}
-  border-left: 3px solid var(--dw-amber);
 `;
 
 const Header = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  ${consoleControlStyles}
   width: 100%;
-  gap: 0.5rem;
-  min-height: 44px;
-  padding: 0.34rem 0.15rem;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
+  justify-content: space-between;
   text-align: left;
-
-  &:hover { background: var(--dw-surface-raised); }
-  &:focus-visible { outline: 2px solid var(--box-neon); outline-offset: -2px; }
-
-  ${controlStyles}
+  padding-inline: 0;
 `;
 
 const Title = styled.h3`
   margin: 0;
-  font-size: 0.8rem;
-  letter-spacing: 0.01em;
-  text-transform: none;
-  color: rgba(var(--box-neon-rgb), 0.84);
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${MOBILE_FONT_XS};
-  }
+  color: var(--dw-text-secondary);
+  font: 500 .8rem/1.3 var(--dw-font-ui);
 `;
 
 const Count = styled.span`

@@ -365,6 +365,7 @@ export default function ImageAssetField({
   renderTokensDisabled = false,
   compact = false,
   mobileHeaderPreview = false,
+  workspacePage = '',
 }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const normalizedState = useMemo(
@@ -385,14 +386,14 @@ export default function ImageAssetField({
 
   return (
     <Field className={className} $compact={compact}>
-      <HeaderRow>
-        <Title>{title}</Title>
+      {workspacePage !== 'render' ? <HeaderRow>
+        <Title>{workspacePage === 'render' ? 'Image rendering' : title}</Title>
         {toTrimmed(variantLabel) ? (
           <VariantBadge>{toTrimmed(variantLabel)}</VariantBadge>
         ) : null}
-      </HeaderRow>
+      </HeaderRow> : null}
 
-      <BodyRow
+      {workspacePage !== 'render' ? <BodyRow
         $compact={compact}
         $hasImage={hasImage}
         $mobileHeaderPreview={mobileHeaderPreview}
@@ -428,17 +429,22 @@ export default function ImageAssetField({
             {extraActions.map((action) => renderStandardAction(action, compact))}
           </ActionGrid>
 
-          <RenderTokenControls
+          {workspacePage !== 'photo' ? <RenderTokenControls
             renderTokens={renderTokens}
             renderTokenOptions={renderTokenOptions}
             renderTokenModeOptions={renderTokenModeOptions}
             onRenderTokenChange={onRenderTokenChange}
             disabled={renderTokensDisabled}
             compact={compact}
-          />
+          /> : null}
 
         </ActionStack>
-      </BodyRow>
+      </BodyRow> : <><RenderTokenControls
+        renderTokens={renderTokens} renderTokenOptions={renderTokenOptions}
+        renderTokenModeOptions={renderTokenModeOptions} onRenderTokenChange={onRenderTokenChange}
+        disabled={renderTokensDisabled} compact={compact} standalone
+        footer={renderStandardAction(processAction, compact)}
+      /></>}
 
       {lines.map((line) => {
         if (line.loading || line.badge) {

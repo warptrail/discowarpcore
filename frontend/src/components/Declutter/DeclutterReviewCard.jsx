@@ -1,9 +1,15 @@
+import CompactTagRow from '../Tags/CompactTagRow';
 import { useState } from 'react';
 
 import * as S from './Declutter.styles';
+import * as R from './DeclutterReviewCard.styles';
+import DeclutterGlyph from './DeclutterGlyph';
+import DeclutterReviewPhoto from './DeclutterReviewPhoto';
+import DeclutterReviewDecisions from './DeclutterReviewDecisions';
 import DeclutterDecisionPill from './DeclutterDecisionPill';
+import { formatPrimaryOwner } from '../../util/itemOwners';
+import { getDeclutterItemTheme } from './declutterItemTheme';
 import {
-  DECISION_OPTIONS,
   getItemBoxLabel,
   getItemCategoryLabel,
   getItemKeepPriorityLabel,
@@ -14,18 +20,6 @@ import {
   getItemTags,
   getSessionItemItem,
 } from './declutterUtils';
-
-const REVIEW_DECISIONS = DECISION_OPTIONS.filter((option) => option.value !== 'pending');
-const PRIMARY_DECISIONS = REVIEW_DECISIONS.filter((option) => ['keep', 'toss'].includes(option.value));
-const SECONDARY_DECISIONS = REVIEW_DECISIONS.filter((option) => !['keep', 'toss'].includes(option.value));
-const DECISION_ICONS = {
-  keep: '🛡',
-  toss: '🗑',
-  donate: '💙',
-  sell: '🏷',
-  gift: '🎁',
-  unsure: '?',
-};
 
 export default function DeclutterReviewCard({
   sessionItem,
@@ -53,6 +47,7 @@ export default function DeclutterReviewCard({
   const itemName = getItemName(item);
   const previewImageUrl = getItemPreviewImageUrl(item);
   const tags = getItemTags(item);
+  const theme = getDeclutterItemTheme(item);
   const partner = player === 'discofish'
     ? { name: 'Laserfox', icon: '🦊' }
     : { name: 'Discofish', icon: '🐟' };
@@ -64,127 +59,92 @@ export default function DeclutterReviewCard({
   };
 
   return (
-    <S.ReviewShell>
+    <R.Shell style={theme} data-declutter-review data-declutter-candidate={sessionItem.id || sessionItem._id}>
       {canUndo || onSkip ? (
-        <S.UtilityRow>
+        <R.Utility>
           <S.ProgressText>{progressText}</S.ProgressText>
           <S.ModeGroup>
             {canUndo ? (
-              <S.Button type="button" $tone="default" onClick={() => onUndo?.()}>
+              <R.QuietButton type="button" onClick={() => onUndo?.()}>
                 Undo Last Decision
-              </S.Button>
+              </R.QuietButton>
             ) : null}
             {onSkip ? (
-              <S.Button type="button" $tone="warning" onClick={() => onSkip?.()}>
-                Skip
-              </S.Button>
+              <R.QuietButton type="button" onClick={() => onSkip?.()}>
+                Skip <DeclutterGlyph name="skip" />
+              </R.QuietButton>
             ) : null}
           </S.ModeGroup>
-        </S.UtilityRow>
+        </R.Utility>
       ) : null}
 
       {sessionItem.partnerHasVoted ? (
-        <S.PartnerWaiting role="status">
+        <R.Partner role="status">
           <S.PartnerWaitingIcon aria-hidden="true">{partner.icon}</S.PartnerWaitingIcon>
           <div>
             <strong>{partner.name} has reviewed this item</strong>
             <span>Your decisions stay private until you choose.</span>
           </div>
-          <S.PrivacyBadge aria-label="Partner decision is hidden">▣</S.PrivacyBadge>
-        </S.PartnerWaiting>
+          <S.PrivacyBadge aria-label="Partner decision is hidden"><DeclutterGlyph name="lock" /></S.PrivacyBadge>
+        </R.Partner>
       ) : null}
 
-      <S.ReviewCard
+      <R.Card
         $commitDirection={commitDirection}
       >
-        <S.ReviewImageFrame>
-          {previewImageUrl ? (
-            <S.ReviewImage src={previewImageUrl} alt={itemName} />
-          ) : (
-            'No Image'
-          )}
-        </S.ReviewImageFrame>
+        <R.Identity>
+          <div>
+            <R.Title>{itemName}</R.Title>
+            {getItemCategoryLabel(item) ? <R.Facts>{getItemCategoryLabel(item)}</R.Facts> : null}
+            {sessionItem.nominatedBy ? (
+              <R.Attribution>Added by {formatPrimaryOwner(sessionItem.nominatedBy)}</R.Attribution>
+            ) : null}
+          </div>
+          <DeclutterDecisionPill decision={sessionItem.decision} />
+        </R.Identity>
 
-        <S.ReviewBody>
-          <S.ReviewTitleRow>
-            <div>
-              <S.ReviewTitle>{itemName}</S.ReviewTitle>
-              <S.ItemLocationLine>
-                {getItemBoxLabel(item)}
-                {getItemLocationLabel(item) ? ` • ${getItemLocationLabel(item)}` : ''}
-                {getItemCategoryLabel(item) ? ` • ${getItemCategoryLabel(item)}` : ''}
-              </S.ItemLocationLine>
-            </div>
-            <DeclutterDecisionPill decision={sessionItem.decision} />
-          </S.ReviewTitleRow>
+        <R.Context>
+          <DeclutterReviewPhoto src={previewImageUrl} name={itemName} />
+          <R.Placement>
+            <R.BoxIdentity>
+              <strong>{item.box?.box_id ? `#${item.box.box_id}` : item.box ? 'Assigned box' : 'Items Adrift'}</strong>
+              <span>{item.box?.label || getItemBoxLabel(item)}</span>
+            </R.BoxIdentity>
+            <R.Location><small>Location</small><span>{getItemLocationLabel(item) || 'No location recorded'}</span></R.Location>
+          </R.Placement>
+        </R.Context>
 
-          <S.FactGrid>
-            <S.Fact>
-              <S.FactLabel>Owner</S.FactLabel>
-              <S.FactValue>{getItemOwnerLabel(item) || 'Shared / unassigned'}</S.FactValue>
-            </S.Fact>
-            <S.Fact>
-              <S.FactLabel>Keep Priority</S.FactLabel>
-              <S.FactValue>{getItemKeepPriorityLabel(item) || 'Unspecified'}</S.FactValue>
-            </S.Fact>
-          </S.FactGrid>
+        <R.Details>
+          <R.Metadata>
+            <div><dt>Owner</dt><dd>{getItemOwnerLabel(item) || 'Shared / unassigned'}</dd></div>
+            <div><dt>Keep Priority</dt><dd>{getItemKeepPriorityLabel(item) || 'Unspecified'}</dd></div>
+          </R.Metadata>
 
           {tags.length ? (
-            <S.TagRow>
-              {tags.map((tag) => (
-                <S.TagChip key={tag}>{tag}</S.TagChip>
-              ))}
-            </S.TagRow>
+            <R.Tags aria-label="Item tags">
+              <CompactTagRow returnKey={`declutter:${sessionItem.id || sessionItem._id || item._id}`} tags={tags} name={itemName} />
+            </R.Tags>
           ) : null}
 
           {item.notes || item.description ? (
-            <S.SmallText>{item.notes || item.description}</S.SmallText>
+            <R.Description>{item.notes || item.description}</R.Description>
           ) : null}
+        </R.Details>
 
-          <S.DecisionPrompt>What should happen to this?</S.DecisionPrompt>
-          <S.PrimaryDecisionGrid>
-            {PRIMARY_DECISIONS.map((option) => (
-              <S.DecisionButton
-                key={option.value}
-                type="button"
-                $tone={option.tone}
-                $primary
-                disabled={Boolean(savingDecision || commitDirection)}
-                onClick={() => commitDecision(option.value)}
-              >
-                <span aria-hidden="true">{DECISION_ICONS[option.value]}</span>
-                {commitDirection === option.value ? 'Saving...' : option.label}
-              </S.DecisionButton>
-            ))}
-          </S.PrimaryDecisionGrid>
-          <S.SecondaryDecisionGrid>
-            {SECONDARY_DECISIONS.map((option) => (
-              <S.DecisionButton
-                key={option.value}
-                type="button"
-                $tone={option.tone}
-                disabled={Boolean(savingDecision || commitDirection)}
-                onClick={() => commitDecision(option.value)}
-              >
-                <span aria-hidden="true">{DECISION_ICONS[option.value]}</span>
-                {commitDirection === option.value ? 'Saving...' : option.label}
-              </S.DecisionButton>
-            ))}
-          </S.SecondaryDecisionGrid>
+        <DeclutterReviewDecisions commitDirection={commitDirection} savingDecision={savingDecision} onDecision={commitDecision} />
 
-          <S.NoteDisclosure>
-            <summary>Add a private note</summary>
-            <S.NotesBlock>
-              <S.FieldLabel>Review note</S.FieldLabel>
-              <S.Textarea
-                value={notesDraft}
-                onChange={(event) => onNotesDraftChange?.(event.target.value)}
-                placeholder="Optional context for your decision"
-              />
-            </S.NotesBlock>
-          </S.NoteDisclosure>
-        </S.ReviewBody>
-      </S.ReviewCard>
-    </S.ReviewShell>
+        <R.Note>
+          <summary>Add a private note</summary>
+          <S.NotesBlock>
+            <S.FieldLabel>Review note</S.FieldLabel>
+            <S.Textarea
+              value={notesDraft}
+              onChange={(event) => onNotesDraftChange?.(event.target.value)}
+              placeholder="Optional context for your decision"
+            />
+          </S.NotesBlock>
+        </R.Note>
+      </R.Card>
+    </R.Shell>
   );
 }

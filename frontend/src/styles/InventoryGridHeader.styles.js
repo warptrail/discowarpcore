@@ -27,10 +27,10 @@ export const HeaderShell = styled.section`
   display: grid;
   gap: 0.38rem;
   min-width: 0;
-  margin-bottom: -0.4rem;
+  margin-bottom: 0;
 
   @media (max-width: 700px) {
-    margin-top: -0.55rem;
+    margin-top: 0;
     margin-bottom: 0;
     margin-inline: 0;
     width: 100%;
@@ -38,81 +38,6 @@ export const HeaderShell = styled.section`
   }
   font-family: var(--dw-font-ui);
   & :is(button, a, input, select):focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
-`;
-
-// One coordinated color family per page load; rerenders keep the artwork stable.
-const railBaseHue = Math.floor(Math.random() * 360);
-const railColor = (offset, saturation = 78, lightness = 68) =>
-  `hsl(${(railBaseHue + offset) % 360} ${saturation}% ${lightness}%)`;
-const railGradients = [
-  `linear-gradient(105deg, ${railColor(0)}, ${railColor(55, 85, 65)} 32%, ${railColor(135)} 68%, ${railColor(210)})`,
-  `linear-gradient(115deg, ${railColor(150)}, ${railColor(230, 85, 66)} 55%, ${railColor(290)})`,
-  `linear-gradient(125deg, ${railColor(285)}, ${railColor(335, 85, 70)} 50%, ${railColor(35)})`,
-];
-
-const consoleRailHue = keyframes`
-  0%, 100% { filter: hue-rotate(0deg); }
-  33% { filter: hue-rotate(18deg); }
-  66% { filter: hue-rotate(-12deg); }
-`;
-
-export const ControlConsole = styled.div`
-  position: relative;
-  display: grid;
-  grid-template-areas:
-    'utility utility'
-    'telemetry telemetry';
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.12rem 0.5rem;
-  width: 100%;
-  min-width: 0;
-  margin: 0;
-  padding: 0.28rem 0.55rem 0.65rem 0.55rem;
-  overflow: visible;
-  border: 1px solid rgba(104, 154, 186, 0.32);
-  border-radius: var(--dw-radius);
-  background: color-mix(in srgb, var(--dw-surface-raised) 92%, var(--dw-amber) 8%);
-  box-shadow: none;
-
-  @media (min-width: 660px) {
-    display: grid;
-    grid-template-areas:
-      'utility utility'
-      'telemetry telemetry';
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-    gap: 0.18rem 0.36rem;
-    padding: 0.3rem 0.55rem 0.68rem 0.55rem;
-  }
-
-  @media (max-width: 560px) {
-    gap: 0.12rem 0.3rem;
-    padding: 0.25rem 0.55rem 0.64rem;
-  }
-
-  @media (max-width: 700px) {
-    border-inline: 0;
-    border-bottom: 0;
-    border-radius: 0;
-    box-shadow: none;
-  }
-  border-left: 0;
-  &::after {
-    content: '';
-    position: absolute;
-    inset: auto 0 0;
-    height: 6px;
-    border-bottom-left-radius: 10px;
-    animation: ${consoleRailHue} 28s ease-in-out infinite;
-    background-image: ${railGradients.join(', ')};
-    background-size: calc(100% - 88px) 100%, 52px 100%, 24px 100%;
-    background-position: left center, right 30px center, right center;
-    background-repeat: no-repeat;
-    pointer-events: none;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    &::after { animation: none; filter: none; }
-  }
 `;
 
 const finderCollapse = keyframes`
@@ -359,61 +284,6 @@ export const Title = styled.h2`
   color: ${toneAlpha(LCARS.text, 'f2')};
 `;
 
-export const TelemetryRow = styled.div`
-  position: static;
-  grid-area: telemetry;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.16rem 0.34rem;
-  max-width: 100%;
-  margin: 0;
-  padding: 0.06rem 0.18rem 0;
-  border: 0;
-  background: transparent;
-  color: ${LCARS.textDim};
-  font-family: var(--dw-font-ui);
-  font-size: 0.75rem;
-  font-weight: 650;
-  letter-spacing: normal;
-  opacity: 0.82;
-  pointer-events: none;
-  white-space: nowrap;
-  text-transform: none;
-  text-shadow: none;
-
-  @media (min-width: 660px) {
-    grid-area: telemetry;
-    justify-self: stretch;
-    flex: 0 0 auto;
-    flex-wrap: nowrap;
-    min-height: 14px;
-    gap: 0.12rem;
-    width: 100%;
-    padding: 0.06rem 0.08rem;
-    border-top: 0;
-    border-left: 0;
-    background: transparent;
-    opacity: 0.82;
-    font-size: 0.75rem;
-    letter-spacing: normal;
-  }
-
-  @media (max-width: 560px) {
-    display: none;
-  }
-
-  @media (min-width: 800px) {
-    gap: 0.16rem 0.34rem;
-    padding-right: 0.48rem;
-    letter-spacing: normal;
-  }
-  opacity: 1;
-  color: var(--dw-text-secondary);
-  @media (min-width: 660px) { opacity: 1; flex-wrap: wrap; }
-`;
-
 export const MobileTelemetryValue = styled.span`
   display: none;
   overflow: hidden;
@@ -437,31 +307,6 @@ export const MobileTelemetryValue = styled.span`
   color: var(--dw-text-secondary);
   font-weight: 600;
   @media (prefers-reduced-motion: reduce) { animation: none; }
-`;
-
-export const TelemetryLine = styled.span`
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.28rem;
-  min-width: 0;
-
-  @media (max-width: 560px) {
-    gap: 0.22rem;
-  }
-`;
-
-export const TelemetryValue = styled.span`
-  color: ${({ $tone }) =>
-    $tone === 'boxes'
-      ? toneAlpha(LCARS.root, 'ee')
-      : $tone === 'items'
-        ? toneAlpha(LCARS.amber, 'ee')
-        : toneAlpha(LCARS.lilac, 'ee')};
-`;
-
-export const Sep = styled.span`
-  color: ${toneAlpha(LCARS.textDim, 'b8')};
 `;
 
 export const SearchSortRow = styled.div`
@@ -510,12 +355,12 @@ export const UtilityRow = styled.div`
   min-height: var(--dw-control-height);
   margin: 0;
 
-  @media (min-width: 660px) {
+  @media (min-width: 561px) {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     align-items: stretch;
     gap: 0.38rem;
-    width: 100%;
+    width: auto;
   }
 
   @media (max-width: 560px) {
@@ -655,6 +500,10 @@ export const OrphanToggleButton = styled.button`
   &:active {
     transform: translateY(1px);
   }
+  &:focus-visible {
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: 2px;
+  }
   @media (pointer: coarse) { min-height: 44px; }
 `;
 
@@ -714,11 +563,12 @@ export const FilterCount = styled.span`
 `;
 
 export const FilterPanel = styled.div`
+  grid-area: filters;
   display: grid;
   gap: 0.4rem;
   min-width: 0;
   max-height: ${({ $scrollable }) => ($scrollable ? 'min(58dvh, 520px)' : 'none')};
-  padding: 0.5rem 0.08rem 0.06rem;
+  padding: 0.2rem 0 0;
   border: 0;
   border-top: 1px solid ${toneAlpha(LCARS.teal, '32')};
   border-radius: 0;
@@ -821,9 +671,9 @@ export const AdvancedFiltersIcon = styled.span`
 
 export const AdvancedFilters = styled.div`
   display: grid;
-  gap: 0.48rem;
+  gap: 0.25rem;
   min-width: 0;
-  padding: 0 0.38rem 0.38rem;
+  padding: 0;
 `;
 
 export const SortControlRow = styled.div`
@@ -842,20 +692,17 @@ export const SortDirectionButton = styled.button`
   min-width: 38px;
   min-height: var(--dw-control-height);
   align-self: end;
-  border: 1px solid
-    ${({ $descending }) =>
-      $descending ? toneAlpha(LCARS.amber, 'b4') : toneAlpha(LCARS.root, '9a')};
-  border-radius: 5px;
-  color: ${({ $descending }) =>
-    $descending ? toneAlpha(LCARS.amber, 'f4') : toneAlpha(LCARS.root, 'ec')};
-  background: ${({ $descending }) =>
-    $descending ? 'rgba(232, 177, 92, 0.08)' : 'rgba(127, 215, 255, 0.05)'};
+  border: 1px solid var(--dw-border-soft);
+  border-radius: var(--dw-radius-sm);
+  color: var(--dw-text-secondary);
+  background: transparent;
   box-shadow: none;
   font-size: 1.18rem;
   font-weight: 650;
   line-height: 1;
   text-shadow: none;
   cursor: pointer;
+  svg { width: 16px; height: 16px; }
   transition:
     border-color 130ms ease,
     color 130ms ease,
@@ -865,9 +712,8 @@ export const SortDirectionButton = styled.button`
 
   &:hover,
   &:focus-visible {
-    border-color: ${({ $descending }) =>
-      $descending ? toneAlpha(LCARS.amber, 'e0') : toneAlpha(LCARS.root, 'd0')};
-    color: ${toneAlpha(LCARS.text, 'f2')};
+    border-color: var(--dw-cyan);
+    color: var(--dw-cyan);
     box-shadow: none;
   }
 
@@ -1124,14 +970,14 @@ export const BoxLocatorClear = styled.button`
 `;
 
 export const PrimaryFinderRow = styled.div`
+  grid-area: finder;
   display: grid;
-  grid-template-columns: minmax(7.5rem, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: stretch;
   gap: 0.38rem;
   min-width: 0;
 
   @media (max-width: 720px) {
-    grid-template-columns: minmax(6.5rem, 1fr) auto 40px;
     gap: 0.26rem;
   }
 
@@ -1142,14 +988,7 @@ export const PrimaryFinderRow = styled.div`
 `;
 
 export const UnifiedFinderWorkspace = styled.div`
-  display: grid;
-  gap: 0.18rem;
-  min-width: 0;
-  width: 100%;
-
-  @media (max-width: 560px) {
-    gap: 0;
-  }
+  display: contents;
 `;
 
 export const PrimarySearchGroup = styled.label`
@@ -1157,6 +996,7 @@ export const PrimarySearchGroup = styled.label`
   align-items: center;
   min-width: 0;
   min-height: var(--dw-control-height);
+  > * { flex: 1; min-width: 0; }
 
   ${SearchInput} {
     min-height: var(--dw-control-height);

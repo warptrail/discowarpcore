@@ -75,12 +75,12 @@ const SelectedTag = styled.button`
   font-family: var(--dw-font-ui);
   &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
   flex: 0 0 auto;
-  padding: 0.25rem 0.36rem;
+  padding: 2px 6px;
   border: 1px solid rgba(76, 198, 193, 0.4);
   border-radius: 2px;
   color: #c9fff7;
   background: rgba(76, 198, 193, 0.1);
-  font: 760 0.75rem/1 var(--dw-font-ui);
+  font: 500 .75rem/1.3 var(--dw-font-ui);
   cursor: pointer;
   white-space: nowrap;
 
@@ -88,7 +88,7 @@ const SelectedTag = styled.button`
     margin-left: 0.25rem;
     color: rgba(226, 239, 245, 0.58);
   }
-  min-height: var(--dw-control-height);
+  min-height: 26px;
 `;
 
 const Results = styled.ul`
@@ -290,6 +290,7 @@ export default function RetrievalTagNebula({
           autoComplete="off"
           spellCheck={false}
           onFocus={() => setOpen(true)}
+          onBlur={() => setOpen(false)}
           onChange={(event) => {
             setQuery(event.target.value);
             setOpen(true);

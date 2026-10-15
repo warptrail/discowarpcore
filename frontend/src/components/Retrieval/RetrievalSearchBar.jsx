@@ -4,6 +4,7 @@ export default function RetrievalSearchBar({
   id = 'retrieval-search',
   value,
   onChange,
+  onKeyDown,
   label = 'Search Inventory',
   placeholder = 'Search by item, notes, tags, category, box, or location',
   hint = 'Broad match across name, description, notes, tags, category, box, and location.',
@@ -16,6 +17,7 @@ export default function RetrievalSearchBar({
         type="search"
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        onKeyDown={onKeyDown}
         placeholder={placeholder}
         autoComplete="off"
       />

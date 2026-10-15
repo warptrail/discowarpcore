@@ -9,8 +9,9 @@ import {
   normalizeItemCategory,
 } from '../util/itemCategories';
 import {
-  KEEP_PRIORITY_REMOVAL_OPTIONS,
-  KEEP_PRIORITY_SCALE_OPTIONS,
+  getKeepPriorityOptions,
+  getItemKeepPriority,
+  isKeepPriorityLocked,
 } from '../util/keepPriority';
 import { USD_DECIMAL_PATTERN } from '../util/usdMoney';
 
@@ -210,24 +211,12 @@ export default function ItemEditFieldsForm({
           Keep Priority:
           <S.Select
             name="keepPriority"
-            value={formData.keepPriority || ''}
+            value={getItemKeepPriority(formData)} disabled={isKeepPriorityLocked(formData)}
             onChange={onFieldChange}
           >
-            <option value="">Unspecified</option>
-            <optgroup label="Priority Scale">
-              {KEEP_PRIORITY_SCALE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Removal Planning">
-              {KEEP_PRIORITY_REMOVAL_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </optgroup>
+            {getKeepPriorityOptions(formData).map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
           </S.Select>
         </S.Label>
 

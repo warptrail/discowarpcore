@@ -1,3 +1,4 @@
+import DeclutterDepartureSummary from './DeclutterDepartureSummary';
 import * as S from './Declutter.styles';
 import {
   getItemCategoryLabel,
@@ -154,6 +155,7 @@ export default function DeclutterCandidateLane({
                   </S.CandidateMetaGroup>
                 ) : null}
               </S.CandidateMetaGrid>
+              {itemIsGone ? <DeclutterDepartureSummary item={item} /> : null}
               {!compact && !cardView && candidate.notes ? <S.SmallText>Your private note: {candidate.notes}</S.SmallText> : null}
               {!compact && !cardView && candidate.sharedNotes ? <S.SmallText>Shared note: {candidate.sharedNotes}</S.SmallText> : null}
             </div>

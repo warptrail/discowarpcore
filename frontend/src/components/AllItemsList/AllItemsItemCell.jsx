@@ -1,3 +1,4 @@
+import MissingStatus from '../MissingItems/MissingStatus';
 import React from 'react';
 import * as S from './AllItemsList.styles';
 
@@ -83,7 +84,7 @@ export default function AllItemsItemCell({
               ↗
             </S.ItemOpenButton>
           ) : null}
-        </S.NameRow>
+        </S.NameRow><MissingStatus item={item} home />
 
         {owner ? <S.NameMeta>{`Owner: ${owner}`}</S.NameMeta> : null}
         {keepPriorityLabel || !batchFocused ? (

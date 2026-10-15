@@ -21,6 +21,7 @@ const logRoutes = require('./routes/logs');
 const mediaRoutes = require('./routes/media');
 const intakeBatchRoutes = require('./routes/intakeBatches');
 const declutterDeckRoutes = require('./routes/declutterDeck');
+const loadoutRoutes = require('./routes/loadouts');
 const {
   backendRequestLogger,
   serializeError,
@@ -29,10 +30,12 @@ const {
 const { backfillBoxLocations } = require('./services/locationService');
 const { recoverQueuedMediaJobs } = require('./services/mediaJobService');
 const { backfillMissingMediaIds } = require('./services/mediaProcessingService');
+const { tagsJsonReplacer } = require('./utils/tagSerialization');
 
 const PORT = process.env.PORT || 7610;
 const HOST = process.env.HOST || '0.0.0.0';
 const app = express();
+app.set('json replacer', tagsJsonReplacer);
 const FRONTEND_DIST = path.join(__dirname, '../frontend/dist');
 const FRONTEND_INDEX = path.join(FRONTEND_DIST, 'index.html');
 
@@ -74,6 +77,7 @@ app.use('/api/logs', logRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/intake-batches', intakeBatchRoutes);
 app.use('/api/declutter-deck', declutterDeckRoutes);
+app.use('/api/loadouts', loadoutRoutes);
 
 app.use('/assets', express.static(path.join(FRONTEND_DIST, 'assets'), {
   maxAge: '1y',

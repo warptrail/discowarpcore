@@ -1,3 +1,5 @@
+import MissingStatus from './MissingItems/MissingStatus';
+import CompactTagRow from './Tags/CompactTagRow';
 import React, { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import * as S from '../styles/ItemDetails.styles';
@@ -454,6 +456,7 @@ export default function ItemDetails({
             <S.TopSectionContext>
               <S.HeaderBand>
                 <S.TitleBlock>
+                  <MissingStatus item={resolvedItemData} home />
                   <S.HeaderMeta $compact>
                     {showStatusPill ? (
                       <S.StatePill $tone={isGone ? 'coral' : 'amber'}>
@@ -493,11 +496,7 @@ export default function ItemDetails({
                 label="Tags"
                 value={
                   tagList.length ? (
-                    <S.TagList>
-                      {tagList.map((tag, idx) => (
-                        <S.TagChip key={`${tag}-${idx}`}>{tag}</S.TagChip>
-                      ))}
-                    </S.TagList>
+                    <CompactTagRow returnKey={`box-item:${resolvedItemData?._id || itemId}:details`} tags={tagList} name={resolvedItemData?.name} boxId={resolvedBoxId} />
                   ) : (
                     <S.MutedValue>—</S.MutedValue>
                   )

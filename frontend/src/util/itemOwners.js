@@ -28,3 +28,8 @@ export function formatPrimaryOwner(value) {
   const normalized = normalizePrimaryOwner(value);
   return ITEM_OWNERS.find((owner) => owner.id === normalized)?.label || normalized;
 }
+
+export function matchesPrimaryOwner(value, filter = 'all') {
+  const selected = normalizePrimaryOwner(filter).toLowerCase();
+  return selected === 'all' || normalizePrimaryOwner(value).toLowerCase() === selected;
+}

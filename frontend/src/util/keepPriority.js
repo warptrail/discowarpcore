@@ -22,7 +22,7 @@ const KEEP_PRIORITY_LABELS = {
   medium: 'Medium',
   high: 'High',
   essential: 'Essential',
-  decommissioned: 'Decommissioned',
+  decommissioned: 'Removal/decommissioned',
 };
 
 export function normalizeKeepPriority(value) {
@@ -54,4 +54,18 @@ export function keepPriorityTone(value) {
 
 export function isDecommissionedKeepPriority(value) {
   return normalizeKeepPriority(value) === 'decommissioned';
+}
+
+export function isKeepPriorityLocked(item) {
+  return String(item?.item_status || '').toLowerCase() === 'gone';
+}
+
+export function getKeepPriorityOptions(item) {
+  return isKeepPriorityLocked(item)
+    ? [{ value: 'decommissioned', label: 'Removal/decommissioned' }]
+    : [{ value: '', label: 'Unspecified' }, ...KEEP_PRIORITY_SCALE_OPTIONS];
+}
+
+export function getItemKeepPriority(item) {
+  return isKeepPriorityLocked(item) ? 'decommissioned' : normalizeKeepPriority(item?.keepPriority);
 }

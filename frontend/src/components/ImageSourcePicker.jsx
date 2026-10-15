@@ -1,6 +1,7 @@
 import { controlStyles } from '../styles/primitives';
 import React, { useRef } from 'react';
 import styled from 'styled-components';
+import useMobileCameraCapture from '../hooks/useMobileCameraCapture';
 
 const PickerButton = styled.button`
   min-height: 44px;
@@ -29,9 +30,12 @@ export default function ImageSourcePicker({
   source = 'default',
 }) {
   const inputRef = useRef(null);
+  const cameraSource = source === 'camera' || Boolean(capture);
+  const cameraAvailable = useMobileCameraCapture(cameraSource);
+  const actionDisabled = disabled || (cameraSource && !cameraAvailable);
 
   const openPicker = () => {
-    if (disabled) return;
+    if (actionDisabled) return;
     inputRef.current?.click();
   };
 
@@ -44,7 +48,8 @@ export default function ImageSourcePicker({
 
   const action = {
     label,
-    disabled,
+    disabled: actionDisabled,
+    title: cameraSource && !cameraAvailable ? 'Camera unavailable here. Choose a photo instead.' : undefined,
     onClick: openPicker,
   };
 
@@ -56,7 +61,8 @@ export default function ImageSourcePicker({
         <PickerButton
           type="button"
           onClick={action.onClick}
-          disabled={disabled}
+          disabled={actionDisabled}
+          title={action.title}
         >
           {label}
         </PickerButton>
@@ -66,9 +72,9 @@ export default function ImageSourcePicker({
         ref={inputRef}
         type="file"
         accept={accept}
-        capture={capture}
+        capture={cameraSource && cameraAvailable ? (capture || 'environment') : undefined}
         onChange={handlePickedFile}
-        disabled={disabled}
+        disabled={actionDisabled}
         style={{ display: 'none' }}
       />
     </div>

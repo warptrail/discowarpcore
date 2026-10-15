@@ -65,9 +65,9 @@ async function migrate(db, { apply = false, backupRoot = path.resolve(__dirname,
   return { ...report, snapshotPath, verified: true };
 }
 
-async function assertApiStopped() {
+async function assertApiStopped(port = 7610) {
   const listening = await new Promise((resolve, reject) => {
-    const socket = net.connect({ host: '127.0.0.1', port: 7610 });
+    const socket = net.connect({ host: '127.0.0.1', port });
     socket.setTimeout(2000);
     socket.once('connect', () => { socket.destroy(); resolve(true); });
     socket.once('error', (error) => {
@@ -77,7 +77,7 @@ async function assertApiStopped() {
     });
     socket.once('timeout', () => { socket.destroy(); reject(new Error('Could not verify that dev API is stopped')); });
   });
-  if (listening) throw new Error('Stop the development backend through Tarot before --apply; then awaken it after migration.');
+  if (listening) throw new Error(`API port ${port} is listening; stop its verified owner before --apply and start it after migration.`);
 }
 
 async function main() {
@@ -97,4 +97,4 @@ async function main() {
   } finally { await client.close(); }
 }
 if (require.main === module) main().catch((error) => { console.error(error.message); process.exitCode = 1; });
-module.exports = { migrate, findConflicts };
+module.exports = { migrate, findConflicts, assertApiStopped };

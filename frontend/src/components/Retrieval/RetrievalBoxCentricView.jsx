@@ -1,3 +1,4 @@
+import useMissingInventoryRefresh from '../MissingItems/useMissingInventoryRefresh';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchBoxTreeByShortId } from '../../api/boxes';
 import {
@@ -8,17 +9,19 @@ import { compareNumericBoxIds, normalizeBoxId } from '../../util/boxLocator';
 import { getItemMicroThumbnailUrl } from '../../util/itemImage';
 import { MOBILE_BREAKPOINT } from '../../styles/tokens';
 import * as S from './Retrieval.styles';
-import { getBoxTheme, getBoxThemeCssVars } from '../../util/inventoryColorTheme';
 import {
   normalizeRetrievalBoxesPage,
   normalizeRetrievalFilterOptions,
   normalizeRetrievalSortOptions,
 } from './retrievalModel';
 import RetrievalSearchForm from './RetrievalSearchForm';
-import RetrievalBoxThumbnail from './RetrievalBoxThumbnail';
+import RetrievalConsolePortal from './RetrievalConsoleControls';
+import useRetrievalBrowseSort from './useRetrievalBrowseSort';
+import RetrievalBoxResultRow from './RetrievalBoxResultRow';
 import { BOX_RECORD_UPDATED_EVENT } from '../../constants/inventoryFinderEvents';
 
 const DEFAULT_BOX_SORT_OPTIONS = [
+  { key: 'random', label: 'Shuffled' },
   { key: 'location', label: 'Location (A → Z)' },
   { key: 'location_desc', label: 'Location (Z → A)' },
   { key: 'box', label: 'Box ID (Low → High)' },
@@ -96,11 +99,6 @@ function useMediaQuery(query) {
   }, [query]);
 
   return matches;
-}
-
-function formatCount(count, singular, plural) {
-  const safeCount = Number.isFinite(Number(count)) ? Number(count) : 0;
-  return `${safeCount} ${safeCount === 1 ? singular : plural}`;
 }
 
 function BoxInspectContent({
@@ -195,7 +193,12 @@ export default function RetrievalBoxCentricView({
   setActiveRetrievalItem,
   finderMinimized = false,
   onFinderDetachedChange,
+  presentation = 'cards',
+  onPresentationChange,
+  desktop = false,
+  tagScope = null,
 }) {
+  const scopedTag = tagScope?.key || '';
   const initialPersistedState = persistedState && typeof persistedState === 'object'
     ? persistedState
     : null;
@@ -224,6 +227,9 @@ export default function RetrievalBoxCentricView({
   const [selectedRooms, setSelectedRooms] = useState(() =>
     normalizeTagSelection(initialPersistedState?.selectedRooms),
   );
+  const [selectedLocations, setSelectedLocations] = useState(() =>
+    normalizeTagSelection(initialPersistedState?.selectedLocations),
+  );
   const [selectedTags, setSelectedTags] = useState(() =>
     normalizeTagSelection(initialPersistedState?.selectedTags || initialPersistedState?.selectedTag),
   );
@@ -231,9 +237,9 @@ export default function RetrievalBoxCentricView({
     normalizeTagOperator(initialPersistedState?.tagOperator),
   );
   const [sortOptions, setSortOptions] = useState(DEFAULT_BOX_SORT_OPTIONS);
-  const [selectedSort, setSelectedSort] = useState(() =>
-    String(initialPersistedState?.selectedSort || 'location'),
-  );
+  const { selectedSort, setSelectedSort, shuffleSeed, reshuffle } = useRetrievalBrowseSort({
+    q: searchValue, boxIdPrefix, rooms: selectedRooms, locations: selectedLocations, tags: selectedTags,
+  }, 'box');
   const [filterOptions, setFilterOptions] = useState(EMPTY_FILTER_OPTIONS);
   const [selectedBoxId, setSelectedBoxId] = useState(() =>
     normalizeBoxId(initialPersistedState?.selectedBoxId) || '',
@@ -253,17 +259,25 @@ export default function RetrievalBoxCentricView({
       q: debouncedSearchValue,
       boxIdPrefix: debouncedBoxIdPrefix,
       rooms: selectedRooms,
-      tags: selectedTags,
-      tagOperator,
+      locations: selectedLocations,
+      tags: scopedTag ? tagScope.tags : selectedTags,
+      tagOperator: scopedTag ? tagScope.operator : tagOperator,
+      tagSource: scopedTag ? 'box' : undefined,
+      exactTag: scopedTag ? tagScope.tags : undefined,
       sort: selectedSort,
+      shuffleSeed: selectedSort === 'random' ? shuffleSeed : '',
     }),
     [
       debouncedBoxIdPrefix,
       debouncedSearchValue,
       selectedRooms,
+      selectedLocations,
       selectedSort,
+      shuffleSeed,
       selectedTags,
       tagOperator,
+      scopedTag,
+      tagScope,
     ],
   );
 
@@ -293,6 +307,7 @@ export default function RetrievalBoxCentricView({
       boxIdPrefix,
       selectedRooms,
       selectedTags,
+      selectedLocations,
       tagOperator,
       selectedSort,
       selectedBoxId,
@@ -305,6 +320,7 @@ export default function RetrievalBoxCentricView({
     searchValue,
     selectedBoxId,
     selectedRooms,
+    selectedLocations,
     selectedSort,
     selectedTags,
     tagOperator,
@@ -424,7 +440,7 @@ export default function RetrievalBoxCentricView({
     return () => {
       controller.abort();
     };
-  }, [onAnalyticsChange, queryKey, queryState]);
+  }, [onAnalyticsChange, queryKey, queryState, setSelectedSort]);
 
   useEffect(() => {
     if (loading) return;
@@ -473,6 +489,21 @@ export default function RetrievalBoxCentricView({
     },
     [isMobile],
   );
+
+  useMissingInventoryRefresh(async () => {
+    const key = queryKeyRef.current;
+    try {
+      const payload = await fetchRetrievalBoxesPage({ ...queryState, limit: Math.max(boxes.length, limit), offset: 0 });
+      if (queryKeyRef.current !== key) return;
+      setBoxes(normalizeRetrievalBoxesPage(payload.boxes));
+      setTotal(Number(payload.total) || 0);
+      setHasMore(Boolean(payload.hasMore));
+      if (selectedBoxId) {
+        const record = await fetchBoxTreeByShortId(selectedBoxId);
+        if (queryKeyRef.current === key) setSelectedBoxDetails(record.tree || record);
+      }
+    } catch (failure) { setError(failure.message || 'Could not refresh box placement.'); }
+  });
 
   const selectedBoxSummary = useMemo(() => {
     const normalizedSelected = normalizeBoxId(selectedBoxId);
@@ -631,20 +662,28 @@ export default function RetrievalBoxCentricView({
   }, [onRestoreReadyChange, restoreReady]);
 
   return (
-    <S.PageShell>
+    <S.PageShell $mode="boxes">
+      <RetrievalConsolePortal mode={mode} onModeChange={onModeChange} shown={boxes.length} total={total} loading={loading || loadingMore}
+        scope={tagScope ? { ...tagScope, options: filterOptions.tags } : null}
+        presentation={presentation} onPresentationChange={onPresentationChange} desktop={desktop}
+        />
       <RetrievalSearchForm
+        desktop={desktop}
         mode={mode}
+        scope={tagScope ? { ...tagScope, options: filterOptions.tags } : null}
         onModeChange={onModeChange}
         searchValue={searchValue}
         onSearchChange={setSearchValue}
-        searchLabel="Find Boxes"
-        searchPlaceholder="Search box name, location, or item tag"
+        searchLabel={tagScope ? 'Search This Tag' : 'Find Boxes'}
+        searchPlaceholder={tagScope ? `Search boxes tagged #${tagScope.label}` : 'Search box name, location, or item tag'}
         boxIdPrefix={boxIdPrefix}
         onBoxIdPrefixChange={setBoxIdPrefix}
         filterOptions={filterOptions}
         selectedBoxRooms={selectedRooms}
+        selectedBoxLocations={selectedLocations}
         selectedBoxTags={selectedTags}
         onBoxRoomsChange={setSelectedRooms}
+        onBoxLocationsChange={setSelectedLocations}
         onBoxTagAdd={addSelectedTag}
         onBoxTagRemove={removeSelectedTag}
         tagOperator={tagOperator}
@@ -652,19 +691,14 @@ export default function RetrievalBoxCentricView({
         sortOptions={sortOptions}
         selectedSort={selectedSort}
         onSortChange={setSelectedSort}
+        onReshuffle={reshuffle} shuffled={selectedSort === 'random'} loading={loading || loadingMore}
         finderMinimized={finderMinimized}
         onFinderDetachedChange={onFinderDetachedChange}
       />
 
       {error ? <S.ErrorState role="alert">{error}</S.ErrorState> : null}
 
-      <S.ResultsPanel>
-        <S.ResultsHeader>
-          <S.ResultsCount>
-            {boxes.length} shown / {total} boxes
-          </S.ResultsCount>
-        </S.ResultsHeader>
-
+      <S.ResultsPanel $headerless>
         {loading ? (
           <S.LoadingState>Loading box retrieval results…</S.LoadingState>
         ) : !boxes.length ? (
@@ -675,44 +709,16 @@ export default function RetrievalBoxCentricView({
               {groupedBoxes.map((group) => (
                 <S.LocationSection key={group.location}>
                   <S.LocationSectionLabel>{group.location}</S.LocationSectionLabel>
-                  <S.BoxList>
+                  <S.BoxList $presentation={presentation}>
                     {group.boxes.map((box) => {
                       const normalizedId = normalizeBoxId(box?.boxId);
                       const isActive = normalizedId === normalizeBoxId(selectedBoxId);
                       const inlinePanelId = `retrieval-box-inline-${normalizedId || box.id}`;
-                      const rowTones = getBoxTheme(box?.boxId);
                       return (
                         <S.BoxListItem key={box.id}>
-                          <S.BoxListRow
-                            type="button"
-                            onClick={() => handleSelectBox(normalizedId)}
-                            $active={isActive}
-                            style={getBoxThemeCssVars(rowTones)}
-                            $boxColorRgb={rowTones.baseRgb}
-                            $boxMutedRgb={rowTones.mutedRgb}
-                            aria-expanded={isMobile ? isActive : undefined}
-                            aria-controls={isMobile ? inlinePanelId : undefined}
-                          >
-                            <RetrievalBoxThumbnail box={box} />
-                            <S.BoxRowCopy>
-                              <S.BoxRowLabel>{box.boxLabel}{box.isComplexBox ? ' · Complex box' : ''}</S.BoxRowLabel>
-                              <S.BoxRowLocation $boxLocationRgb={rowTones.locationRgb}>
-                                <strong>{box.locationLabel || 'Unknown'}</strong>
-                              </S.BoxRowLocation>
-                              {box.tags.length ? (
-                                <S.BoxRowTags title={box.tags.map((tag) => `#${tag}`).join(' ')}>
-                                  {box.tags.map((tag) => `#${tag}`).join(' ')}
-                                </S.BoxRowTags>
-                              ) : null}
-                              <S.BoxRowMeta>
-                                <span>{formatCount(box.directItemCount, 'item', 'items')}</span>
-                                {box.childBoxCount > 0 ? <span>· {formatCount(box.childBoxCount, 'child box', 'child boxes')}</span> : null}
-                              </S.BoxRowMeta>
-                            </S.BoxRowCopy>
-                            <S.RowBoxNumber aria-label={`Box ${box.boxId}`}>
-                              {box.boxId || '—'}
-                            </S.RowBoxNumber>
-                          </S.BoxListRow>
+                          <RetrievalBoxResultRow box={box} isActive={isActive}
+                            onSelect={() => handleSelectBox(normalizedId)} isMobile={isMobile}
+                            panelId={inlinePanelId} presentation={presentation} />
 
                           {isMobile && isActive ? (
                             <S.MobileInlineInspectPanel id={inlinePanelId}>

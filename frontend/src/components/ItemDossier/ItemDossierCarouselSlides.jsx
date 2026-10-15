@@ -1,3 +1,4 @@
+import CompactTagRow from '../Tags/CompactTagRow';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -332,15 +333,7 @@ export function OverviewSlide({
             {description ? <S.OverviewDescription>{description}</S.OverviewDescription> : null}
             {tagList.length ? (
               <S.OverviewTags aria-label="Item tags">
-                {tagList.map((tag) => (
-                  <S.OverviewTagLink
-                    key={tag}
-                    as={Link}
-                    to={`/tags/${encodeURIComponent(tag)}`}
-                  >
-                    #{tag}
-                  </S.OverviewTagLink>
-                ))}
+                <CompactTagRow returnKey={`dossier:${boxId || ''}:${itemName}`} tags={tagList} name={itemName} boxId={boxId || ''} />
               </S.OverviewTags>
             ) : null}
           </S.OverviewIdentity>

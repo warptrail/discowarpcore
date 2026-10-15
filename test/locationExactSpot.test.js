@@ -27,8 +27,8 @@ test('migration detects normalized duplicates and invalid hierarchy without rewr
   assert.equal(source[0].exactSpot, path.exactSpot);
 });
 test('migration refuses production, remote hosts and ambiguous databases', () => {
-  assert.throws(() => assertDevelopmentResetTarget('mongodb://127.0.0.1/discowarpcore'), /suffix required/);
-  assert.throws(() => assertDevelopmentResetTarget('mongodb://remote/discowarpcore_dev'), /non-loopback/);
+  assert.throws(() => assertDevelopmentResetTarget('mongodb://127.0.0.1/discowarpcore', { hostname: 'development-fixture', env: {} }), /suffix required/);
+  assert.throws(() => assertDevelopmentResetTarget('mongodb://remote/discowarpcore_dev', { hostname: 'development-fixture', env: {} }), /non-loopback/);
   assert.throws(() => assertDevelopmentResetTarget('mongodb://127.0.0.1/discowarpcore_dev', { hostname: 'neonazoth' }), /Production/);
 });
 test('frontend clears descendants only when a parent is blank and scopes suggestions', async () => {

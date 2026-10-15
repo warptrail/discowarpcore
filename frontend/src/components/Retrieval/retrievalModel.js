@@ -1,4 +1,5 @@
 import { getItemHomeHref } from '../../api/itemDetails';
+import { getTagHref } from '../../util/tagNavigation';
 import { formatItemCategory, normalizeItemCategory } from '../../util/itemCategories';
 import {
   formatKeepPriorityLabel,
@@ -32,8 +33,7 @@ export const normalizeRetrievalFacetKey = (value) => normalizeText(value);
 const normalizeFacetKey = normalizeRetrievalFacetKey;
 
 export function getRetrievalTagHref(value) {
-  const key = normalizeRetrievalFacetKey(value);
-  return key ? `/tags/${encodeURIComponent(key)}` : '/retrieval';
+  return getTagHref(value);
 }
 
 const compareLabel = (a, b) =>
@@ -646,6 +646,7 @@ export function normalizeRetrievalItemsPage(rawItems) {
 
       return {
         id,
+        quantity: rawItem.quantity, missing: rawItem.missing || { quantity: 0, revision: 0 },
         name: firstNonEmpty(rawItem?.name, 'Unnamed item'),
         description: firstNonEmpty(rawItem?.description),
         notes: firstNonEmpty(rawItem?.notes),
@@ -733,6 +734,7 @@ export function normalizeRetrievalBoxesPage(rawBoxes) {
         locationKey: normalizeFacetKey(locationLabel),
         boxPath,
         directItemCount,
+        directMissingCount: Number(rawBox?.directMissingCount) || 0,
         childBoxCount,
         boxHref: boxId ? getBoxHref(boxId) : '',
       };

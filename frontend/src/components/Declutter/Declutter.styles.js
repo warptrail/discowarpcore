@@ -464,6 +464,11 @@ export const DecisionPill = styled.span`
 export const QueueGrid = styled.div`
   display: grid;
   gap: 0.58rem;
+  @media (min-width: 1100px) {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 480px), 1fr));
+    gap: 12px;
+    > ${ModeBar}, > ${StatusPanel} { grid-column: 1 / -1; }
+  }
 `;
 
 export const QueueItem = styled.article`
@@ -954,6 +959,11 @@ export const ActionTableHeader = styled.div`
 
 export const ActionTable = styled.div`
   display: grid;
+  @media (min-width: 1100px) {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 480px), 1fr));
+    gap: 12px;
+    padding: 12px;
+  }
 `;
 
 export const ActionTableRow = styled.article`
@@ -970,6 +980,11 @@ export const ActionTableRow = styled.article`
   @media (max-width: 820px) {
     gap: 0.42rem 0.58rem;
     padding: 0.68rem;
+  }
+  @media (min-width: 1100px) {
+    border: 1px solid var(--dw-border-soft);
+    border-radius: var(--dw-radius-sm);
+    &:last-child { border-bottom: 1px solid var(--dw-border-soft); }
   }
 `;
 
@@ -2811,4 +2826,23 @@ export const CompactHoldButton = styled.button`
   width: auto;
   max-width: 100%;
   white-space: normal;
+`;
+
+export const ReviewWorkspace = styled.div`
+  display: contents;
+  @media (min-width: 1100px) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 16px;
+    align-items: start;
+    > ${ReviewShell} { grid-column: 1; grid-row: 1 / span 3; }
+    > ${QueueProgress} { grid-column: 2; grid-row: 1; }
+    > ${WorkflowGrid} { grid-column: 2; grid-row: 2; grid-template-columns: minmax(0, 1fr); }
+    ${WorkflowLaneTitle} {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas: 'title' 'count' 'reset';
+      > span:last-of-type { justify-self: start; white-space: normal; }
+      > button { width: 100%; min-width: 0; }
+    }
+  }
 `;

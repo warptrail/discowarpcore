@@ -1,6 +1,9 @@
 import { normalizeBoxId } from './boxLocator.js';
 import { normalizeItemCategory } from './itemCategories.js';
 import { normalizeKeepPriority } from './keepPriority.js';
+import { matchesOperationsLocation } from './operationsLocationFilter.js';
+import { matchesPrimaryOwner } from './itemOwners.js';
+import { getItemSearchText } from './inventorySearch.js';
 
 const normalize = (value) => String(value || '').trim().toLowerCase();
 
@@ -39,30 +42,18 @@ export function filterOrphanedItems(
   const normalizedLocation = normalize(selectedLocation?.name || locationFilter);
 
   return (items || []).filter((item) => {
-    const haystack = normalize(
-      [
-        item?.name,
-        item?.label,
-        item?.description,
-        item?.notes,
-        item?.category,
-        item?.location,
-        item?.primaryOwnerName,
-        item?.keepPriority,
-        ...(Array.isArray(item?.tags) ? item.tags : []),
-      ]
-        .filter(Boolean)
-        .join(' '),
-    );
+    const haystack = getItemSearchText(item);
     const matchesTerms = terms.every((term) => haystack.includes(term));
     const matchesCategory =
       normalizedCategory === 'all' ||
       normalizeItemCategory(item?.category) === normalizedCategory;
     const matchesLocation =
-      locationFilter === 'all' || normalize(item?.location) === normalizedLocation;
+      typeof locationFilter === 'object'
+        ? matchesOperationsLocation(item, locationFilter)
+        : locationFilter === 'all' || normalize(item?.location) === normalizedLocation;
     const matchesOwner =
       normalizedOwner === 'all' ||
-      normalize(item?.primaryOwnerName) === normalizedOwner;
+      matchesPrimaryOwner(item?.primaryOwnerName, normalizedOwner);
     const matchesPriority =
       !normalizedPriority ||
       normalizeKeepPriority(item?.keepPriority) === normalizedPriority;
@@ -76,4 +67,3 @@ export function filterOrphanedItems(
     );
   });
 }
-

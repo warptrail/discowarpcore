@@ -1,3 +1,4 @@
+import useTagReturnSnapshot from '../hooks/useTagReturnSnapshot';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
@@ -32,10 +33,12 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
   const addressMatch = String(routeAddress || '').match(/^(\d{3})([A-Z])$/i);
   const shortId = addressMatch ? addressMatch[1] : routeAddress;
   const routeCompartment = addressMatch?.[2]?.toUpperCase() || '';
+  const source = useTagReturnSnapshot();
+  const restoredBox = source?.boxBrowseState?.boxId === shortId ? source.boxBrowseState : null;
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [boxImageRefreshToken, setBoxImageRefreshToken] = useState(0);
-  const [treeViewMode, setTreeViewMode] = useState('full');
+  const [treeViewMode, setTreeViewMode] = useState(restoredBox?.treeViewMode === 'condensed' ? 'condensed' : 'full');
 
   useEffect(() => {
     if (!routeCompartment) return;
@@ -72,7 +75,7 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
     ? flatItems.filter((item) => String(item.parentBoxMongoId) === String(tree?._id) && getItemCompartment(tree, item) === selectedCompartment)
     : flatItems;
   const scopedTree = selectedCompartment ? { ...tree, compartmentKey: selectedCompartment, items: (tree.items || []).filter((item) => getItemCompartment(tree, item) === selectedCompartment), childBoxes: [] } : tree;
-  const search = useBoxWorkspaceSearch({ shortId, items: compartmentItems });
+  const search = useBoxWorkspaceSearch({ shortId, items: compartmentItems, initialState: restoredBox?.search });
   const hasChildBoxes = Array.isArray(tree?.childBoxes) && tree.childBoxes.length > 0;
   const browseTab = activeTab === 'tree' ? 'tree' : 'flat';
   const managementOpen = activeTab === 'edit';
@@ -89,16 +92,16 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
     triggerFlash,
     handleOpen,
     handleFlash,
-  } = useItemEffects();
+  } = useItemEffects(restoredBox?.openItemId || null);
 
   useLayoutEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || source) return;
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-  }, [shortId]);
+  }, [shortId, source]);
 
   useEffect(() => {
-    setTreeViewMode('full');
-  }, [shortId]);
+    setTreeViewMode(restoredBox?.treeViewMode === 'condensed' ? 'condensed' : 'full');
+  }, [shortId, restoredBox?.treeViewMode]);
 
   useEffect(() => {
     if (!tree) return undefined;
@@ -249,7 +252,8 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
   const boxThemeStyle = getBoxThemeCssVars(getBoxTheme(shortId));
 
   return (
-    <S.Wrap style={boxThemeStyle}>
+    <S.Wrap style={boxThemeStyle} data-box-browse-state={JSON.stringify({ boxId: shortId, openItemId, treeViewMode,
+      search: { mode: search.mode, query: search.query, sortMode: search.sortMode, sortDirection: search.sortDirection } })}>
       <S.Content>
         {tree && (
           <>
@@ -322,11 +326,13 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
             />
             <BoxManagementSheet
               open={managementOpen}
+              paginated={activePanel === 'edit'}
               boxId={shortId}
               title={tree?.label ?? tree?.name ?? 'Box'}
               onClose={handleCloseManagement}
             >
               <BoxActionPanel
+                paginatedDetails
                 box={tree}
                 boxTree={tree}
                 boxMongoId={tree._id}

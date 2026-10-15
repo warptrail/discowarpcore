@@ -1,9 +1,9 @@
 import { useContext, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { editItem } from '../../api/editItem';
 import { ITEM_CATEGORIES, formatItemCategory } from '../../util/itemCategories';
 import { ToastContext } from '../Toast';
 import * as S from './QuickPeekItemEditor.styles';
+import CustomSelect from '../CustomSelect';
 
 export default function QuickPeekItemEditor({ item, field, label, children, onSaved }) {
   const [editing, setEditing] = useState(false);
@@ -12,6 +12,12 @@ export default function QuickPeekItemEditor({ item, field, label, children, onSa
   const [saving, setSaving] = useState(false);
   const busy = useRef(false);
   const cancelled = useRef(false);
+  const triggerRef = useRef(null);
+  const cancel = () => {
+    cancelled.current = true;
+    setEditing(false);
+    requestAnimationFrame(() => triggerRef.current?.focus());
+  };
   const { showToast } = useContext(ToastContext) || {};
   const original = field === 'tags' ? (item.tags || []).join(', ') : String(item[field] ?? '');
   const open = () => { cancelled.current = false; setDraft(original); setError(''); setEditing(true); };
@@ -37,33 +43,29 @@ export default function QuickPeekItemEditor({ item, field, label, children, onSa
       showToast?.({ variant: 'danger', title: 'SAVE FAILED', message, timeoutMs: 5000 });
     } finally { busy.current = false; setSaving(false); }
   };
-  const trigger = <S.FieldTrigger type="button" aria-label={`Edit ${label}`} onClick={open}>{children || `Add ${label.toLowerCase()}`}</S.FieldTrigger>;
+  const trigger = <S.FieldTrigger ref={triggerRef} type="button" aria-label={`Edit ${label}`} onClick={open}>{children || `Add ${label.toLowerCase()}`}</S.FieldTrigger>;
   if (!editing) return trigger;
   const props = {
     autoFocus: true, 'aria-label': label, value: draft, disabled: saving,
     onChange: (event) => { setDraft(event.target.value); setError(''); },
-    onBlur: () => { void save(); },
+    onBlur: (event) => {
+      if (event.relatedTarget?.closest('[data-cancel-field-edit]')) return;
+      void save();
+    },
     onKeyDown: (event) => {
       if (event.nativeEvent.isComposing) return;
-      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); cancelled.current = true; setEditing(false); }
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); cancel(); }
       if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void save(); }
     },
   };
-  return <>{trigger}{createPortal(<S.EditorOverlay onMouseDown={(event) => {
-    if (event.target === event.currentTarget) void save();
+  return <S.AttributeEditor role="group" aria-label={`Edit ${label}`} onKeyDown={(event) => {
+    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); cancel(); }
   }}>
-    <S.EditorDialog role="dialog" aria-modal="true" aria-label={`Edit ${label}`} onKeyDown={(event) => {
-      if (event.key === 'Tab') { event.preventDefault(); void save(); }
-      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); cancelled.current = true; setEditing(false); }
-    }}>
-    <S.Heading>{label}<S.CancelEdit type="button" aria-label="Cancel field edit" disabled={saving} onMouseDown={(event) => event.preventDefault()} onClick={() => { cancelled.current = true; setEditing(false); }}>×</S.CancelEdit></S.Heading>
-    <S.InlineEditor>
-    {field === 'category' ? <S.Select {...props} onChange={(event) => { setDraft(event.target.value); void save(event.target.value); }}>
-      {ITEM_CATEGORIES.map((category) => <option key={category} value={category}>{formatItemCategory(category)}</option>)}
-    </S.Select> : ['description', 'tags'].includes(field) ? <S.TextArea {...props} rows={field === 'description' ? 3 : 2} /> : <S.Input {...props} type={field === 'quantity' ? 'number' : 'text'} min={field === 'quantity' ? 1 : undefined} />}
+    {field === 'category' ? <CustomSelect variant="prism" tone="var(--box-primary)" value={draft} disabled={saving} ariaLabel={label}
+      options={ITEM_CATEGORIES.map((category) => ({ value: category, label: formatItemCategory(category) }))}
+      onChange={(value) => { setDraft(value); void save(value); }} /> : ['description', 'tags'].includes(field) ? <S.TextArea {...props} rows={field === 'description' ? 3 : 2} /> : <S.Input {...props} type={field === 'quantity' ? 'number' : 'text'} min={field === 'quantity' ? 1 : undefined} />}
     {saving ? <S.Hint>Saving…</S.Hint> : <S.Hint>{field === 'tags' ? 'Comma-separated · ' : ''}Enter or leave field to save · Esc cancels</S.Hint>}
+    <S.AttributeCancel data-cancel-field-edit type="button" disabled={saving} onMouseDown={(event) => event.preventDefault()} onClick={cancel}>Cancel</S.AttributeCancel>
     {error ? <S.Error role="alert">{error}</S.Error> : null}
-  </S.InlineEditor>
-    </S.EditorDialog>
-  </S.EditorOverlay>, document.getElementById('operations-box-quick-peek') || document.body)}</>;
+  </S.AttributeEditor>;
 }

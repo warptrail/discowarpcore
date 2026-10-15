@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import CompactTagRow from '../Tags/CompactTagRow';
+import MissingStatus from '../MissingItems/MissingStatus';
 import * as S from './Retrieval.styles';
-import RetrievalExpandedPanel from './RetrievalExpandedPanel';
+import RetrievalCompactSummary from './RetrievalCompactSummary';
 import {
   getBoxTheme,
   getBoxThemeCssVars,
@@ -14,21 +15,11 @@ function shouldSkipRowToggle(target) {
 export default function RetrievalResultRow({
   item,
   isExpanded = false,
-  detailResource,
-  activeSectionKey,
   onToggle,
-  onSectionChange,
   onPreviewImage,
-  onLifecycleAction,
-  itemNavigationState,
   compact = false,
+  smallCard = false,
 }) {
-  const [panelMounted, setPanelMounted] = useState(isExpanded);
-
-  useEffect(() => {
-    if (isExpanded) setPanelMounted(true);
-  }, [isExpanded]);
-
   if (!item) return null;
   const panelId = `retrieval-row-panel-${item.id}`;
 
@@ -62,6 +53,9 @@ export default function RetrievalResultRow({
     ? `${boxNumber ? `#${boxNumber}` : ''}${boxNumber && boxName ? ' · ' : ''}${boxName}`
     : 'Orphaned';
   const locationSummary = hasKnownLocation ? locationLabel : 'Unknown';
+  const tagPreview = Array.isArray(item.tags)
+    ? item.tags.map((tag) => String(tag || '').trim()).filter(Boolean).map((tag) => `#${tag}`).join(' ')
+    : '';
   const compactMeta = [
     item?.categoryKey && item?.categoryKey !== 'uncategorized'
       ? String(item.categoryLabel || '').trim()
@@ -81,10 +75,24 @@ export default function RetrievalResultRow({
     }
   };
 
+  const thumbnail = hasImage ? (
+    <S.ThumbPreviewButton type="button" onClick={handleThumbClick}
+      aria-label={`Preview image for ${item.name}`} data-thumb-surface="true">
+      <S.ThumbImage src={imageUrl} alt={`${item.name} thumbnail`} loading="lazy" />
+    </S.ThumbPreviewButton>
+  ) : (
+    <S.ThumbFrame data-thumb-surface="true">
+      <S.ThumbPlaceholder>{smallCard ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
+        <rect x="3" y="3" width="18" height="18" rx="3" /><path d="m4 17 5-5 4 4 3-3 4 4" />
+      </svg> : 'No Image'}</S.ThumbPlaceholder>
+    </S.ThumbFrame>
+  );
+
   return (
     <S.ResultCard
       id={`retrieval-result-${item.id}`}
       $expanded={isExpanded}
+      $docked
       $compact={compact}
       style={boxThemeStyle}
     >
@@ -94,11 +102,10 @@ export default function RetrievalResultRow({
           onClick={handleToggle}
           aria-expanded={isExpanded}
           aria-controls={panelId}
-          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} details for ${item.name}`}
-          $expanded={isExpanded}
+          aria-label={`${isExpanded ? 'Close' : 'Open'} item panel for ${item.name}`}
         >
           <S.AsciiBranch aria-hidden="true">{isExpanded ? '└─' : '├─'}</S.AsciiBranch>
-          <S.AsciiItemName>{item.name}</S.AsciiItemName>
+          <S.AsciiItemName>{item.name}</S.AsciiItemName><MissingStatus item={item} home />
           <S.AsciiPlacement aria-hidden="true">
             {' · '}{hasKnownBox ? boxSummary : 'NO BOX'}{' @ '}{locationSummary}
           </S.AsciiPlacement>
@@ -110,39 +117,20 @@ export default function RetrievalResultRow({
         onKeyDown={handleSummaryKeyDown}
         aria-expanded={isExpanded}
         aria-controls={panelId}
-        aria-label={`${isExpanded ? 'Collapse' : 'Expand'} box context for ${item.name}`}
+        aria-label={`${isExpanded ? 'Close' : 'Open'} item panel for ${item.name}`}
+        title={smallCard ? item.name : undefined}
+        aria-description={smallCard ? `${boxSummary} · Location: ${locationSummary}` : undefined}
         role="button"
         tabIndex={0}
-        $expanded={isExpanded}
       >
-        <S.SummaryTop>
-          <S.RowMain $expanded={isExpanded}>
-            {!isExpanded ? (
-              hasImage ? (
-                <S.ThumbPreviewButton
-                  type="button"
-                  onClick={handleThumbClick}
-                  aria-label={`Preview image for ${item.name}`}
-                  data-thumb-surface="true"
-                >
-                  <S.ThumbImage
-                    src={imageUrl}
-                    alt={`${item.name} thumbnail`}
-                    loading="lazy"
-                  />
-                </S.ThumbPreviewButton>
-              ) : (
-                <S.ThumbFrame data-thumb-surface="true">
-                  <S.ThumbPlaceholder>No Image</S.ThumbPlaceholder>
-                </S.ThumbFrame>
-              )
-            ) : (
-              <S.ExpandedRowMarker aria-hidden="true" />
-            )}
+        {smallCard ? <RetrievalCompactSummary thumbnail={thumbnail} boxNumber={boxNumber}
+          status={<MissingStatus item={item} home />} name={item.name} location={locationSummary} boxTitle={boxSummary} /> : <S.SummaryTop>
+          <S.RowMain>
+            {thumbnail}
 
-            <S.BadgeStack $expanded={isExpanded}>
+            <S.BadgeStack $hasTags={Boolean(tagPreview)}>
               <S.ItemLineSlot>
-                <S.ItemLine>{item.name}</S.ItemLine>
+                <S.ItemLine>{item.name}</S.ItemLine><MissingStatus item={item} home />
               </S.ItemLineSlot>
 
               {compactMeta.length ? (
@@ -151,47 +139,27 @@ export default function RetrievalResultRow({
                 </S.CompactMetaLine>
               ) : null}
 
-              {!isExpanded ? (
-                <S.CollapsedPlacementTable>
+              <S.CollapsedPlacementTable>
                   <S.CollapsedBoxName title={boxSummary}>{boxName || (hasKnownBox ? 'Box' : 'Items Adrift')}</S.CollapsedBoxName>
                   <S.CollapsedLocationValue $unknown={!hasKnownLocation} title={`Location: ${locationSummary}`}>
                     {locationSummary}
                   </S.CollapsedLocationValue>
-                </S.CollapsedPlacementTable>
-              ) : null}
+                  {tagPreview ? (
+                    <S.CollapsedTagPreview aria-label={`Item tags: ${tagPreview}`} title={tagPreview}>
+                      <CompactTagRow tags={item.tags} name={item.name || 'item'} />
+                    </S.CollapsedTagPreview>
+                  ) : null}
+              </S.CollapsedPlacementTable>
             </S.BadgeStack>
-            {!isExpanded ? (
-              <S.RowBoxNumber aria-label={boxNumber ? `Box ${boxNumber}` : 'No box assigned'} title={boxSummary}>
+            <S.RowBoxNumber aria-label={boxNumber ? `Box ${boxNumber}` : 'No box assigned'} title={boxSummary}>
                 {boxNumber || '—'}
-              </S.RowBoxNumber>
-            ) : null}
+            </S.RowBoxNumber>
           </S.RowMain>
 
-        </S.SummaryTop>
+        </S.SummaryTop>}
       </S.SummaryButton>
       )}
 
-      <S.ExpandedPanelTransition
-        $open={isExpanded}
-        aria-hidden={!isExpanded}
-        inert={!isExpanded ? true : undefined}
-      >
-        <S.ExpandedPanelTransitionClip>
-          {panelMounted ? (
-            <RetrievalExpandedPanel
-              item={item}
-              panelId={panelId}
-              detailResource={detailResource}
-              themeStyle={boxThemeStyle}
-              activeSectionKey={activeSectionKey}
-              onSectionChange={onSectionChange}
-              onLifecycleAction={onLifecycleAction}
-              onPreviewImage={onPreviewImage}
-              itemNavigationState={itemNavigationState}
-            />
-          ) : null}
-        </S.ExpandedPanelTransitionClip>
-      </S.ExpandedPanelTransition>
     </S.ResultCard>
   );
 }

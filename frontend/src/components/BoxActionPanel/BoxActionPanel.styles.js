@@ -21,6 +21,14 @@ export const PanelContainer = styled.div`
     padding: 0;
     border-radius: 0;
   }
+
+  ${({ $paged }) => $paged && css`
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: visible;
+  `}
 `;
 
 export const WorkspaceRail = styled.div`
@@ -55,6 +63,7 @@ export const BackButton = styled.button`
     outline-offset: 2px;
   }
   &:disabled { opacity: .55; cursor: wait; }
+  ${({ $paged }) => $paged && css`width: 40px; min-height: 44px;`}
 `;
 
 export const WorkspaceContext = styled.span`
@@ -570,6 +579,16 @@ export const DetailsPanel = styled.div`
         margin-bottom: 10px;
       `}
   }
+
+  ${({ $paged, $open }) => $paged && $open && css`
+    && {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      margin-bottom: 0;
+      transition: none;
+    }
+  `}
 `;
 
 export const ExportPanelContainer = styled.section`

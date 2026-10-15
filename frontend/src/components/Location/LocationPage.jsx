@@ -1,89 +1,48 @@
-import { useContext, useMemo, useRef, useState } from 'react';
-import { EMPTY_LOCATION, updateLocationDraft } from '../../util/locationStructure';
+import { useState } from 'react';
 import useLocationRegistry from '../../hooks/useLocationRegistry';
-import { ToastContext } from '../Toast';
-import LocationEditor from './LocationEditor';
+import LocationConsolePortal from './LocationConsolePortal';
+import LocationEditorSheet from './LocationEditorSheet';
+import LocationSearchSheet from './LocationSearchSheet';
 import LocationList from './LocationList';
 import LocationHierarchyChart from './LocationHierarchyChart';
-import LocationMapScope from './LocationMapScope';
-import { getLocationMapScope, LOCATION_MAP_TIERS, locationLabel } from './locationHierarchy';
+import useLocationMapScope from './useLocationMapScope';
+import useLocationActions from './useLocationActions';
+import useLocationBranchEditor from './useLocationBranchEditor';
+import { scopeAfterBranchChange } from './locationBranchEditing';
 import * as S from './Location.styles';
 
-const EMPTY = EMPTY_LOCATION;
 export default function LocationPage() {
-  const registry = useLocationRegistry();
-  const toast = useContext(ToastContext);
-  const editor = useRef(null);
-  const [requestedScope, setRequestedScope] = useState(EMPTY);
-  const [draft, setDraft] = useState(EMPTY);
-  const [editingId, setEditingId] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState({ text: '', error: false });
-  const { scope, options, locations: visible } = useMemo(() => getLocationMapScope(registry.locations, requestedScope), [registry.locations, requestedScope]);
-  const changeScope = (level, value) => {
-    const next = { ...scope, [level]: value };
-    const index = LOCATION_MAP_TIERS.findIndex((tier) => tier.key === level);
-    for (const tier of LOCATION_MAP_TIERS.slice(index + 1)) next[tier.key] = '';
-    setRequestedScope(next);
+  const registry = useLocationRegistry({ refreshOnMount: true });
+  const map = useLocationMapScope(registry.locations);
+  const editor = useLocationActions(registry, map.choose);
+  const branchEditor = useLocationBranchEditor(registry, (node, scope, mode) => map.choose(scopeAfterBranchChange(map.scope, node, scope, mode), false), editor.cancelDelete);
+  const busy = editor.busy || branchEditor.busy || Boolean(branchEditor.editing);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchMode, setSearchMode] = useState('search');
+  const [query, setQuery] = useState('');
+  const openSearch = mode => {
+    editor.cancelDelete(); setSearchMode(mode); setSearchOpen(true);
   };
-  const clear = () => { setDraft(EMPTY); setEditingId(''); };
-  const edit = (location) => {
-    setEditingId(location._id);
-    setDraft({ room: location.room, vicinity: location.vicinity || '', specifics: location.specifics || '', exactSpot: location.exactSpot || '' });
-    setMessage({ text: '', error: false });
-    editor.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
-    editor.current?.querySelector('input')?.focus({ preventScroll: true });
-  };
-  const save = async (event) => {
-    event.preventDefault();
-    if (busy) return;
-    setBusy(true);
-    setMessage({ text: '', error: false });
-    try {
-      const saved = editingId ? await registry.renameLocationInline(editingId, draft) : await registry.createLocationInline(draft);
-      setRequestedScope({ ...EMPTY, room: saved.room });
-      setMessage({ text: `${editingId ? 'Saved' : 'Ready'}: ${locationLabel(saved)}`, error: false });
-      clear();
-    } catch (error) {
-      setMessage({ text: error.message || 'Could not save location.', error: true });
-    } finally { setBusy(false); }
-  };
-  const remove = async (location) => {
-    toast?.hideToast?.();
-    setBusy(true);
-    try {
-      await registry.deleteLocationInline(location._id);
-      if (editingId === location._id) clear();
-      setMessage({ text: `Deleted ${locationLabel(location)}.`, error: false });
-    } catch (error) {
-      setMessage({ text: error.message || 'Could not delete location.', error: true });
-    } finally { setBusy(false); }
-  };
-  const requestDelete = (location) => toast?.showToast?.({
-    title: 'Delete location?', message: locationLabel(location), variant: 'warning', sticky: true,
-    actions: [
-      { label: 'Delete location', onClick: () => void remove(location), kind: 'primary' },
-      { label: 'Cancel', onClick: () => toast.hideToast(), kind: 'ghost' },
-    ],
-  });
-  return (
-    <S.Page>
-      <S.Hero><h1>Location</h1><p>Chart your house from Room → Vicinity → Specifics → Exact Spot.
-        Save a room alone, an area within it, or an exact storage spot, then use those locations when assigning boxes.</p></S.Hero>
-      <LocationMapScope scope={scope} options={options} pathCount={visible.length}
-        loading={registry.loading} busy={busy} onChange={changeScope} onReset={() => setRequestedScope(EMPTY)}
-        onRefresh={() => registry.refreshLocations().catch(() => {})} />
-      {registry.error && <S.Message $error role="alert">{registry.error} Use Refresh to try again.</S.Message>}
-      {message.text && <S.Message $error={message.error} role={message.error ? 'alert' : 'status'}>{message.text}</S.Message>}
-      {!registry.loading && <LocationHierarchyChart locations={visible} />}
-      <S.Layout>
-        <LocationList locations={visible} editingId={editingId} busy={busy} onEdit={edit} onDelete={requestDelete} />
-        <div ref={editor} style={{ scrollMarginTop: 'calc(var(--dw-header-height, 80px) + 1rem)' }}>
-          <LocationEditor locations={registry.locations} draft={draft} editingId={editingId} busy={busy}
-            onChange={(name, value) => setDraft((current) => updateLocationDraft(current, name, value))}
-            onSave={save} onCancel={clear} />
-        </div>
-      </S.Layout>
-    </S.Page>
-  );
+  const choose = location => { setSearchOpen(false); map.choose(location); };
+  const editFromSearch = location => { setSearchOpen(false); editor.edit(location); };
+  return <S.Page>
+    <LocationConsolePortal scope={map.scope} shown={map.locations.length} total={registry.locations.length} loading={registry.loading}
+      busy={busy} modalOpen={searchOpen || editor.editorOpen} searchOpen={searchOpen}
+      toast={editor.toast} onToastClose={editor.dismissToast} onSearch={() => openSearch('search')} onBrowse={() => openSearch('scope')}
+      onAdd={editor.add} onReset={() => map.reset()} onParent={(level, value) => map.change(level, value, true)} />
+    <S.Hero><div><S.Eyebrow>LOCATION / REGISTRY</S.Eyebrow><h1>House atlas</h1></div></S.Hero>
+    <S.DesktopLayout>
+      <LocationHierarchyChart locations={map.locations} allLocations={registry.locations} loading={registry.loading} atlasRef={map.atlasRef}
+        onFocusRoom={room => map.choose({ room })} branchEditor={branchEditor} onDeleteBranch={editor.requestDelete} onEditPath={editor.edit}
+        disabled={editor.busy || editor.editorOpen || searchOpen} />
+      <S.Layout><LocationList locations={map.locations} editingId={editor.editingId} busy={busy}
+        onEdit={editor.edit} onDelete={editor.requestDelete} /></S.Layout>
+    </S.DesktopLayout>
+    {searchOpen ? <LocationSearchSheet locations={registry.locations} query={query} onQuery={setQuery} mode={searchMode}
+      scope={map.scope} options={map.options} pathCount={map.locations.length} loading={registry.loading} error={registry.error} busy={editor.busy}
+      onChangeScope={map.change} onReset={() => map.reset(false)} onRefresh={() => registry.refreshLocations().catch(() => {})}
+      onChoose={choose} onEdit={editFromSearch} onDone={() => { setSearchOpen(false); map.focusMap(); }} onClose={() => setSearchOpen(false)} /> : null}
+    {editor.editorOpen ? <LocationEditorSheet locations={registry.locations} draft={editor.draft} editingId={editor.editingId}
+      busy={editor.busy} message={editor.message} onChange={editor.changeDraft} onSave={editor.save} onClear={editor.clear} onClose={editor.close} /> : null}
+  </S.Page>;
 }

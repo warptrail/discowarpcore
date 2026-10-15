@@ -18,11 +18,13 @@ export async function fetchRetrievalItemsPage(
     q = '',
     categories = [],
     tags = [],
+    exactTag,
     tagOperator = 'or',
     locations = [],
     owners = [],
     keepPriorities = [],
     sort = '',
+    shuffleSeed = '',
     limit = DEFAULT_RETRIEVAL_LIMIT,
     offset = 0,
   },
@@ -34,11 +36,13 @@ export async function fetchRetrievalItemsPage(
 
   appendCsvParam(params, 'category', categories);
   appendCsvParam(params, 'tag', tags);
+  if (exactTag) (Array.isArray(exactTag) ? exactTag : [exactTag]).forEach(tag => params.append('exactTag', tag));
   if (tags.length > 1 && tagOperator === 'and') params.set('tagOperator', 'and');
   appendCsvParam(params, 'location', locations);
   appendCsvParam(params, 'owner', owners);
   appendCsvParam(params, 'keepPriority', keepPriorities);
   if (String(sort || '').trim()) params.set('sort', String(sort).trim());
+  if (sort === 'random' && shuffleSeed) params.set('shuffleSeed', String(shuffleSeed).slice(0, 96));
 
   params.set('limit', String(limit));
   params.set('offset', String(offset));
@@ -59,10 +63,13 @@ export async function fetchRetrievalBoxesPage(
     q = '',
     boxIdPrefix = '',
     tags = [],
+    exactTag,
     tagOperator = 'or',
+    tagSource,
     locations = [],
     rooms = [],
     sort = '',
+    shuffleSeed = '',
     limit = DEFAULT_RETRIEVAL_LIMIT,
     offset = 0,
   },
@@ -75,10 +82,13 @@ export async function fetchRetrievalBoxesPage(
   if (normalizedBoxIdPrefix) params.set('boxPrefix', normalizedBoxIdPrefix);
 
   appendCsvParam(params, 'tag', tags);
+  if (exactTag) (Array.isArray(exactTag) ? exactTag : [exactTag]).forEach(tag => params.append('exactTag', tag));
+  if (tagSource === 'box') params.set('tagSource', 'box');
   if (tags.length > 1 && tagOperator === 'and') params.set('tagOperator', 'and');
   appendCsvParam(params, 'location', locations);
   appendCsvParam(params, 'room', rooms);
   if (String(sort || '').trim()) params.set('sort', String(sort).trim());
+  if (sort === 'random' && shuffleSeed) params.set('shuffleSeed', String(shuffleSeed).slice(0, 96));
   params.set('limit', String(limit));
   params.set('offset', String(offset));
 

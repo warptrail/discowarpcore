@@ -16,6 +16,8 @@ export default function useRetrievalItemDetails(activeItemId) {
   const resourcesRef = useRef(resourcesById);
   const requestRef = useRef(null);
   const mutationOverlayRef = useRef({});
+  const activeItemRef = useRef(activeItemId);
+  activeItemRef.current = activeItemId;
 
   const updateResource = useCallback((itemId, updater) => {
     const id = normalizeItemId(itemId);
@@ -37,7 +39,10 @@ export default function useRetrievalItemDetails(activeItemId) {
       if (!itemId) return;
 
       const cached = resourcesRef.current[itemId] || EMPTY_DETAIL_RESOURCE;
-      if (!force && (cached.status === 'loading' || cached.status === 'ready')) {
+      const pending = requestRef.current;
+      const hasLiveRequest = pending?.itemId === itemId && !pending.controller.signal.aborted;
+      // Cleanup can abort a request while its cached status still says loading.
+      if (!force && (cached.status === 'ready' || (cached.status === 'loading' && hasLiveRequest))) {
         return;
       }
 
@@ -155,6 +160,20 @@ export default function useRetrievalItemDetails(activeItemId) {
   }, []);
 
   const activeId = normalizeItemId(activeItemId);
+  const refreshPlacement = useCallback(() => {
+    const selectedId = normalizeItemId(activeItemRef.current);
+    // Box movement can change inherited placement for every cached item. Retain
+    // local item-field patches, but let the server resolve the box hierarchy anew.
+    for (const overlay of Object.values(mutationOverlayRef.current)) {
+      for (const key of ['box', 'breadcrumb', 'inheritedLocation', 'resolvedLocation', 'resolvedBoxLocation']) delete overlay[key];
+    }
+    setResourcesById((current) => {
+      const next = selectedId && current[selectedId] ? { [selectedId]: current[selectedId] } : {};
+      resourcesRef.current = next;
+      return next;
+    });
+    if (selectedId) void loadDetails(selectedId, { force: true });
+  }, [loadDetails]);
   const detailResource = useMemo(() => {
     const resource = activeId
       ? resourcesById[activeId] || EMPTY_DETAIL_RESOURCE
@@ -169,5 +188,6 @@ export default function useRetrievalItemDetails(activeItemId) {
     detailResource,
     merge,
     remove,
+    refreshPlacement,
   };
 }

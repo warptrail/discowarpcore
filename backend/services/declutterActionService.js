@@ -403,7 +403,7 @@ async function reopenActionRound(candidateId, { player, reason = '' } = {}) {
   return candidate;
 }
 
-async function completeAction(candidateId, { disposition, notes = '' } = {}) {
+async function completeAction(candidateId, { disposition, notes = '', saleDetails, giftDetails, player } = {}) {
   const candidate = await DeclutterCandidate.findById(candidateId);
   if (!candidate || candidate.deckState !== 'action') throw Object.assign(new Error('Action candidate was not found.'), { status: 404 });
   const expectedDisposition = getCompletionDispositionForRoute(candidate.stagingRoute);
@@ -415,6 +415,9 @@ async function completeAction(candidateId, { disposition, notes = '' } = {}) {
     disposition,
     dispositionAt: actionCompletedAt,
     dispositionNotes: notes,
+    player,
+    ...(saleDetails!==undefined ? {saleDetails} : {}),
+    ...(giftDetails!==undefined ? {giftDetails} : {}),
     lastActiveBoxId: candidate.preActionBoxId,
   });
   if (!item) throw Object.assign(new Error('Inventory item was not found.'), { status: 404 });

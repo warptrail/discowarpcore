@@ -60,3 +60,34 @@ test('tier legend counts full identities while preserving coarse paths', async (
     { room: 'Kitchen', vicinity: 'Shelf', specifics: '', exactSpot: '' },
   ]), { room: 2, vicinity: 2, specifics: 1, exactSpot: 2 });
 });
+
+test('branch explorer keeps full ancestry and equivalent parents without merging rooms', async () => {
+  const { buildLocationBranches } = await model;
+  const rooms = buildLocationBranches([
+    { room: 'Garage', vicinity: 'Shelf', specifics: 'Top', exactSpot: 'Front' },
+    { room: ' garage ', vicinity: ' shelf ', specifics: 'Top', exactSpot: 'Back' },
+    { room: 'Kitchen', vicinity: 'Shelf', specifics: 'Top', exactSpot: 'Front' },
+    { room: 'Office' },
+  ]);
+  assert.deepEqual(rooms.map((room) => room.label), ['Garage', 'Kitchen', 'Office']);
+  assert.equal(rooms[0].children.length, 1);
+  assert.equal(rooms[0].pathCount, 2);
+  const spots = rooms[0].children[0].children[0].children;
+  assert.deepEqual(spots.map((spot) => spot.label), ['Back', 'Front']);
+  assert.deepEqual(spots[0].path, ['Garage', 'Shelf', 'Top', 'Back']);
+  assert.notEqual(rooms[0].children[0].key, rooms[1].children[0].key);
+  assert.deepEqual(rooms[2].children, []);
+});
+
+test('branch explorer does not invent missing tiers and sorts numbered branches naturally', async () => {
+  const { buildLocationBranches } = await model;
+  const rooms = buildLocationBranches([
+    { room: 'Room 10', vicinity: '', specifics: 'Unassigned tier', exactSpot: 'Not a valid branch' },
+    { room: 'Room 2', vicinity: 'Drawer 10' },
+    { room: 'Room 2', vicinity: 'Drawer 2' },
+    { room: '', vicinity: 'No room' },
+  ]);
+  assert.deepEqual(rooms.map((room) => room.label), ['Room 2', 'Room 10']);
+  assert.deepEqual(rooms[0].children.map((node) => node.label), ['Drawer 2', 'Drawer 10']);
+  assert.deepEqual(rooms[1].children, []);
+});

@@ -1,6 +1,6 @@
-import { controlStyles } from '../../styles/primitives';
+import { primaryCommandStyles } from './IntakeConsole.styles';
 import React, { useMemo, useState } from 'react';
-import styled, { css } from 'styled-components';
+import styled from 'styled-components';
 import { API_BASE } from '../../api/API_BASE';
 import { MOBILE_BREAKPOINT } from '../../styles/tokens';
 import { getItemThumbnailUrl } from '../../util/itemImage';
@@ -14,23 +14,15 @@ const ROUTING_COMMAND_THEME = {
 
 
 const Command = styled.section`
-  --route-primary-rgb: ${({ $primaryRgb }) => $primaryRgb || '100, 220, 213'};
-  --route-secondary-rgb: ${({ $secondaryRgb }) => $secondaryRgb || '167, 182, 255'};
-  --route-neon-rgb: ${({ $neonRgb }) => $neonRgb || '217, 255, 250'};
-  --route-neon: ${({ $neon }) => $neon || '#d9fffa'};
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.55rem;
+  gap: 12px;
   width: min(100%, 390px);
   min-width: 0;
-  padding: 0.42rem;
-  border: 1px solid var(--dw-border);
-  border-left: 4px solid rgb(var(--route-secondary-rgb));
-  border-radius: var(--dw-radius-sm);
-  background: var(--dw-surface);
-  box-shadow: none;
-
+  padding: 8px 0;
+  border-bottom: 1px solid var(--dw-border-soft);
+  background: transparent;
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: 100%;
   }
@@ -101,55 +93,9 @@ const ItemMeta = styled.div`
 `;
 
 const ActionButton = styled.button`
+  ${primaryCommandStyles}
   min-width: 116px;
-  min-height: 44px;
-  padding: 0.45rem 0.65rem;
-  border: 1px solid ${({ $ready }) =>
-    $ready ? 'rgba(var(--route-primary-rgb), 0.94)' : 'rgba(var(--route-primary-rgb), 0.38)'};
-  border-radius: var(--dw-radius-sm);
-  background: ${({ $ready }) =>
-    $ready
-      ? 'var(--dw-surface-raised)'
-      : 'rgba(12, 24, 30, 0.72)'};
-  color: ${({ $ready }) => ($ready ? 'var(--route-neon)' : 'rgba(var(--route-secondary-rgb), 0.68)')};
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.055em;
-  line-height: 1.1;
-  text-transform: none;
-  cursor: pointer;
-  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
-
-  ${({ $ready }) =>
-    $ready &&
-    css`
-      animation: none;
-    `}
-
-  &:hover:not(:disabled) {
-    border-color: rgba(var(--route-neon-rgb), 0.98);
-    background: var(--dw-surface);
-    transform: translateY(-1px);
-  }
-
-  &:focus-visible {
-    outline: 2px solid #a78bfa;
-    outline-offset: 2px;
-  }
-
-  &:disabled {
-    border-color: rgba(123, 154, 157, 0.34);
-    background: var(--dw-surface-raised);
-    color: rgba(185, 207, 207, 0.54);
-    cursor: not-allowed;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-    animation: none;
-  }
-
-  ${controlStyles}
+  font-size: .75rem;
 `;
 
 const StateText = styled.div`

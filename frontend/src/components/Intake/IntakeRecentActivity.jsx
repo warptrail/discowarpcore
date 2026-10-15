@@ -1,6 +1,6 @@
-import { panelStyles, controlStyles } from '../../styles/primitives';
+import { quietSectionStyles, consoleControlStyles } from './IntakeConsole.styles';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import styled, { css, keyframes } from 'styled-components';
+import styled from 'styled-components';
 import { getBoxColorTones } from '../Retrieval/boxColors';
 import { hexToRgbString } from '../../util/inventoryColorTheme';
 import IntakeActivityFiltersSheet from './IntakeActivityFiltersSheet';
@@ -22,37 +22,22 @@ const BATCH_ACCENTS = [
   '#4D96FF',
 ];
 
-const activitySelectionPulse = keyframes`
-  0%,
-  100% {
-    opacity: 0.3;
-  }
-
-  50% {
-    opacity: 0.9;
-  }
-`;
-
 function getBatchAccentRgb(index) {
   return hexToRgbString(BATCH_ACCENTS[index % BATCH_ACCENTS.length]);
 }
 
 const Panel = styled.section`
+  ${quietSectionStyles}
   min-width: 0;
-  background: var(--dw-surface);
   overflow: visible;
-
-  ${panelStyles}
-  border-left: 3px solid var(--dw-amber);
 `;
 
 const Body = styled.div`
-  padding: 0.5rem 0.25rem;
   display: grid;
-  gap: 0.34rem;
+  gap: 0;
+  padding-block: 8px;
   max-height: min(48vh, 360px);
   overflow: auto;
-
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     max-height: none;
     overflow: visible;
@@ -60,72 +45,24 @@ const Body = styled.div`
 `;
 
 const Row = styled.div`
-  position: relative;
   --activity-accent-rgb: ${({ $accentRgb }) => $accentRgb || '119, 213, 255'};
-  border: 1px solid var(--dw-border);
-  border-radius: var(--dw-radius-sm);
-  padding: 0.32rem 0.38rem;
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) 72px;
   align-items: center;
-  column-gap: 0.55rem;
+  gap: 12px;
   min-height: 68px;
-  background: var(--dw-surface-raised);
-  background:
-    var(--dw-surface);
-  cursor: ${({ $clickable }) => ($clickable ? 'pointer' : 'default')};
-  border-color: ${({ $active, $accentRgb, $clickable }) =>
-    $active
-      ? `rgba(${$accentRgb || '119, 213, 255'}, 0.88)`
-      : $accentRgb
-        ? `rgba(${$accentRgb}, 0.58)`
-        : $clickable
-          ? 'rgba(94, 126, 158, 0.5)'
-          : 'rgba(79, 105, 136, 0.4)'};
-  box-shadow: ${({ $active, $accentRgb }) =>
-    $active
-      ? `inset 4px 0 0 rgb(${$accentRgb || '119, 213, 255'}), 0 0 0 1px rgba(${$accentRgb || '119, 213, 255'}, 0.22)`
-      : $accentRgb
-        ? `inset 3px 0 0 rgb(${$accentRgb})`
-        : 'none'};
-  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
-
-  &::after {
-    content: '';
-    position: absolute;
-    z-index: 0;
-    inset: -1px;
-    border: 1px solid var(--dw-border);
-    border-radius: var(--dw-radius-sm);
-    box-shadow: none;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  > * {
-    position: relative;
-    z-index: 1;
-  }
-
-  ${({ $active }) =>
-    $active &&
-    css`
-      &::after {
-        animation: ${activitySelectionPulse} 2.8s ease-in-out infinite;
-      }
-    `}
-
+  padding: 8px;
+  border-bottom: 1px solid var(--dw-border-soft);
+  border-radius: 0;
+  background: transparent;
+  cursor: ${({ $clickable }) => $clickable ? 'pointer' : 'default'};
+  ${({ $active }) => $active && 'background: rgba(var(--activity-accent-rgb), .08); box-shadow: inset 0 -1px rgb(var(--activity-accent-rgb));'}
   &:hover {
-    ${({ $clickable }) => ($clickable ? 'filter: brightness(1.07);' : '')}
+    ${({ $clickable }) => $clickable && 'background: var(--dw-surface-raised);'}
   }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-
-    &::after {
-      animation: none;
-      opacity: ${({ $active }) => ($active ? 0.56 : 0)};
-    }
+  &:focus-visible {
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: -2px;
   }
 `;
 
@@ -233,16 +170,11 @@ const LocatorToken = styled.div`
   display: grid;
   align-content: center;
   justify-items: center;
-  gap: 0.26rem;
+  gap: 4px;
   align-self: stretch;
-  border-left: 1px solid var(--dw-border);
-  color: ${({ $boxNeonRgb }) => `rgba(${$boxNeonRgb || '119, 213, 255'}, 1)`};
-  text-shadow: ${({ $boxNeonRgb }) => `0 0 6px rgba(${$boxNeonRgb || '119, 213, 255'}, 0.34)`};
-  font-family: var(--dw-font-ui);
-  font-size: 1.05rem;
-  line-height: 1;
-  font-weight: 820;
-  letter-spacing: 0.03em;
+  border-left: 1px solid var(--dw-border-soft);
+  color: ${({ $boxNeonRgb }) => `rgb(${$boxNeonRgb || '119, 213, 255'})`};
+  font: 500 .85rem/1.2 var(--dw-font-data);
   white-space: nowrap;
 `;
 
@@ -278,23 +210,10 @@ const StateText = styled.div`
 `;
 
 const LoadMoreButton = styled.button`
+  ${consoleControlStyles}
   width: 100%;
-  min-height: 40px;
-  border: 1px solid var(--dw-border);
-  border-radius: var(--dw-radius-sm);
-  background: var(--dw-surface);
-  color: #8adfd7;
-  font: inherit;
-  font-size: 0.7rem;
-  font-weight: 760;
-  letter-spacing: 0.01em;
-  text-transform: none;
-  cursor: pointer;
-
-  &:hover { color: #d8fffa; border-color: rgba(138, 223, 215, 0.7); }
-  &:focus-visible { outline: 2px solid #a78bfa; outline-offset: 2px; }
-
-  ${controlStyles}
+  color: var(--dw-cyan);
+  font-size: .75rem;
 `;
 
 function getItemTimestamp(item) {

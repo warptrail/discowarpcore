@@ -78,3 +78,30 @@ export function countLocationTiers(locations) {
     return [field, paths.size];
   }));
 }
+
+// A hierarchy node keeps its full ancestry, so identically named shelves in
+// different rooms remain distinct. Labels come only from registered tiers.
+export function buildLocationBranches(locations = []) {
+  const roots = new Map();
+  for (const location of locations) {
+    let siblings = roots;
+    const path = [];
+    for (const tier of LOCATION_MAP_TIERS) {
+      const label = clean(location[tier.key]);
+      if (!label) break;
+      path.push(label);
+      const identity = JSON.stringify(path.map(key));
+      if (!siblings.has(identity)) {
+        siblings.set(identity, { key: identity, label, tier: tier.key, path: [...path], pathCount: 0, children: new Map() });
+      }
+      const node = siblings.get(identity);
+      node.pathCount += 1;
+      path[path.length - 1] = node.label;
+      siblings = node.children;
+    }
+  }
+  const ordered = (nodes) => [...nodes.values()]
+    .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }))
+    .map((node) => ({ ...node, children: ordered(node.children) }));
+  return ordered(roots);
+}

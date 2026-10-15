@@ -1,69 +1,49 @@
-import { controlStyles, inputStyles } from '../../styles/primitives';
+import { consoleControlStyles, consoleFieldStyles, insetStageStyles } from './IntakeConsole.styles';
 import styled from 'styled-components';
 import { APP_VISUAL_THEME } from '../../styles/tokens';
 import CustomSelect from '../CustomSelect';
 import IntakeFilterValue from './IntakeFilterValue';
 
 const Header = styled.header`
-  position: relative;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem 0.65rem;
-  border-bottom: 1px solid var(--dw-border);
-  background: var(--dw-surface);
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: -1px;
-    right: 15%;
-    width: 38%;
-    height: 5px;
-    border-radius: 0 0 6px 6px;
-    background: var(--dw-surface);
-  }
-
-  @media (max-width: 440px) { padding: 0.85rem 0.5rem; gap: 0.7rem; }
+  gap: 12px;
+  padding: 8px 0 16px;
+  border-bottom: 1px solid var(--dw-border-soft);
 `;
 
 const Title = styled.h3`
   margin: 0;
   color: var(--dw-text);
-  font-size: clamp(1.25rem, 3.8vw, 1.8rem);
-  font-weight: 750;
-  line-height: 1.05;
-  letter-spacing: 0.01em;
-  text-transform: none;
-
+  font: 600 1.25rem/1.2 var(--dw-font-ui);
   span {
     display: block;
-    margin-bottom: 0.25rem;
     color: var(--dw-text-muted);
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
+    font-size: .75rem;
+    font-weight: 400;
+    margin-bottom: 4px;
   }
 `;
 
 const Counter = styled.span`
   margin-left: auto;
-  color: var(--dw-cyan);
-  font-family: var(--dw-font-ui);
-  font-size: 1.25rem;
+  color: var(--dw-text-muted);
+  font: 400 .8rem/1 var(--dw-font-data);
 `;
 
 const Controls = styled.div`
-  padding: 1rem 0.5rem 0.65rem;
+  padding: 16px 0 8px;
   border-bottom: 1px solid var(--dw-border-soft);
-  @media (max-width: 440px) { padding: 0.8rem 0.35rem; }
 `;
 
 const Fields = styled.div`
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0.9rem;
-  @media (max-width: 440px) { grid-template-columns: minmax(0, 1fr); gap: 0.75rem; }
+  @media (max-width: 360px) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+  }
 `;
 
 const Field = styled.div`
@@ -75,47 +55,42 @@ const Field = styled.div`
 const Label = styled.div`
   display: flex;
   align-items: center;
-  min-height: 22px;
-  padding-left: 0.55rem;
-  margin-bottom: 0.22rem;
-  border-left: 2px solid var(--field-tone);
-  border-radius: 5px 0 0 0;
-  color: var(--field-tone);
-  font-family: var(--dw-font-ui);
-  font-size: 0.75rem;
-  letter-spacing: 0.01em;
-  text-transform: none;
+  min-height: 44px;
+  color: var(--dw-text-muted);
+  font-size: .75rem;
 `;
 
 const Well = styled.div`
+  ${insetStageStyles}
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
-  align-items: center;
-  min-height: 46px;
-  border: 1px solid var(--dw-border);
-  border-left: 2px solid var(--field-tone);
-  border-radius: var(--dw-radius-sm);
-  background: var(--dw-surface);
-  box-shadow: none;
-
-  > div { min-width: 0; }
+  grid-template-columns: 32px minmax(0, 1fr);
+  min-height: 44px;
+  padding-inline: 8px;
+  gap: 4px;
+  > div {
+    min-width: 0;
+  }
   button[aria-haspopup='listbox'] {
     min-height: 44px;
     border: 0;
     background: transparent;
     box-shadow: none;
-    border-radius: var(--dw-radius-sm);
-    font-size: 0.86rem;
-    padding: 0.5rem 0.7rem;
+    border-radius: 0;
+    font-size: .85rem;
+    font-weight: 400;
   }
   input {
     min-height: 44px;
-    padding: 0.5rem 0.7rem;
+    padding: 8px;
+    border: 0;
     background: transparent;
-    font-size: 0.84rem;
-    border-radius: var(--dw-radius-sm);
+    box-shadow: none;
+    border-radius: 0;
   }
-  button[aria-haspopup='listbox']:focus-visible { outline: 2px solid var(--field-tone); outline-offset: -2px; }
+  button[aria-haspopup='listbox']:focus-visible {
+    outline: 2px solid var(--dw-cyan);
+    outline-offset: -2px;
+  }
 `;
 
 const ScopeControls = styled.div`
@@ -125,103 +100,56 @@ const ScopeControls = styled.div`
 `;
 
 const ScopeButton = styled.button`
+  ${consoleControlStyles}
   flex: 1;
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
   min-width: 0;
-  min-height: 44px;
-  padding: 0.5rem 0.7rem;
-  border: 0;
-  background: transparent;
-  color: var(--dw-text);
-  font: inherit;
-  font-size: 0.88rem;
+  padding: 8px;
   text-align: left;
-  cursor: pointer;
-  span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: -2px; }
-
-  ${controlStyles}
+  font-size: .85rem;
+  span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 `;
 
 const IconButton = styled.button`
-  display: grid;
-  place-items: center;
+  ${consoleControlStyles}
   flex: 0 0 44px;
-  min-height: 44px;
   padding: 0;
-  border: 0;
-  border-left: 1px solid var(--dw-border);
-  background: transparent;
   color: var(--dw-cyan);
-  font: inherit;
   font-size: 1.2rem;
-  cursor: pointer;
-  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: -2px; }
-
-  ${controlStyles}
 `;
 
 const SearchInput = styled.input`
-  width: 100%;
+  ${consoleFieldStyles}
   min-width: 0;
-  box-sizing: border-box;
-  border: 0;
-  color: var(--dw-text);
-  font: inherit;
-  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: -2px; }
-
-  ${inputStyles}
 `;
 
 const Operator = styled.div`
   min-width: 0;
-  margin-top: -4px;
   > div > button[aria-haspopup='listbox'] {
-    min-height: 26px;
-    padding: 0 0.45rem 0 0;
+    min-height: 44px;
+    padding: 8px 0;
     border: 0;
     background: transparent;
     box-shadow: none;
-    color: var(--field-tone);
-    font-family: var(--dw-font-ui);
-    font-size: 0.75rem;
-    letter-spacing: 0.01em;
-    text-transform: none;
+    color: var(--dw-text-muted);
+    font-size: .75rem;
+    font-weight: 400;
   }
 `;
 
 const Footer = styled.div`
   display: flex;
   justify-content: flex-end;
-  margin-top: 1rem;
-  padding-top: 0.35rem;
-  border-top: 1px solid var(--dw-border-soft);
+  margin-top: 12px;
 `;
 
 const Reset = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  min-height: 44px;
-  padding: 0.2rem 0.7rem;
-  border: 0;
-  background: transparent;
-  color: var(--dw-text-secondary);
-  font: inherit;
-  font-size: 0.75rem;
-  letter-spacing: 0.01em;
-  text-transform: none;
-  cursor: pointer;
-  &:hover { color: var(--dw-text); }
-  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: -2px; }
-
-  ${controlStyles}
-  flex: 0 0 auto;
-  width: auto;
-  justify-self: start;
+  ${consoleControlStyles}
+  font-size: .75rem;
 `;
 
 function RoutingIcon({ kind, size = 24 }) {

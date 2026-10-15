@@ -6,9 +6,9 @@ export const Chip = styled.span`
   display: inline-flex;
   align-items: center;
   gap: 0.22rem;
-  min-height: 30px;
+  min-height: 26px;
   max-width: 100%;
-  padding: 0.18rem 0.28rem 0.18rem 0.5rem;
+  padding: 0 0.28rem 0 0.5rem;
   border-radius: var(--dw-radius-sm);
   font-family: var(--dw-font-ui);
   font-size: 0.75rem;
@@ -43,8 +43,8 @@ export const Chip = styled.span`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.18rem;
-    min-height: 29px;
-    padding: 0.18rem 0.22rem 0.18rem 0.42rem;
+    min-height: 26px;
+    padding: 0 0.22rem 0 0.42rem;
     border-radius: var(--dw-radius-sm);
     font-size: ${MOBILE_FONT_SM};
   }
@@ -59,6 +59,8 @@ export const Text = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  &[href] { color: inherit; text-decoration: none; }
+  &[href]:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: -2px; }
 
   ${({ $status }) =>
     $status === 'deleted' &&
@@ -76,8 +78,8 @@ export const RemoveButton = styled.button`
   font-family: var(--dw-font-ui);
   font-size: 0.82rem;
   line-height: 1;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 24px;
+  min-height: 24px;
   padding: 0;
   color: var(--dw-text-secondary);
   text-align: center;
@@ -92,7 +94,7 @@ export const RemoveButton = styled.button`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    min-width: 44px;
-    min-height: 44px;
+    min-width: 26px;
+    min-height: 26px;
   }
 `;

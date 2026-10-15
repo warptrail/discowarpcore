@@ -1,6 +1,6 @@
 import { useCallback, useContext, useMemo, useState } from 'react';
 
-import { nominateDeclutterCandidates } from '../../api/declutterDeck';
+import useDeclutterNomination, { PROFILE_REQUIRED } from '../../hooks/useDeclutterNomination';
 import { ToastContext } from '../Toast';
 
 function normalizeItemIds(itemIds = []) {
@@ -10,7 +10,8 @@ function normalizeItemIds(itemIds = []) {
 }
 
 export default function useAllItemsDeclutterDeck({ enabled = false, selectedItemIds = [], onAdded }) {
-  const { showToast } = useContext(ToastContext) || {};
+  const { showToast, hideToast } = useContext(ToastContext) || {};
+  const nominate = useDeclutterNomination({ showToast, hideToast });
   const selectedIds = useMemo(() => normalizeItemIds(selectedItemIds), [selectedItemIds]);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState('');
@@ -20,7 +21,7 @@ export default function useAllItemsDeclutterDeck({ enabled = false, selectedItem
     try {
       setAdding(true);
       setError('');
-      const results = await nominateDeclutterCandidates(selectedIds);
+      const results = await nominate(selectedIds);
       const reopened = results.filter((result) => result.reopened).length;
       const added = results.filter((result) => result.created).length;
       showToast?.({
@@ -31,13 +32,14 @@ export default function useAllItemsDeclutterDeck({ enabled = false, selectedItem
       });
       onAdded?.();
     } catch (err) {
+      if (err?.code === PROFILE_REQUIRED) return;
       const message = err?.message || 'Could not add selected items to the Declutter Deck.';
       setError(message);
       showToast?.({ variant: 'danger', title: 'Declutter add failed', message, timeoutMs: 5200 });
     } finally {
       setAdding(false);
     }
-  }, [onAdded, selectedIds, showToast]);
+  }, [onAdded, selectedIds, showToast, nominate]);
 
   return { enabled, selectedCount: selectedIds.length, adding, error, addSelectedToDeck };
 }

@@ -1,3 +1,5 @@
+import { selectReviewCandidate } from './declutterTagReturn';
+import useTagReturnSnapshot from '../../hooks/useTagReturnSnapshot';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
@@ -16,6 +18,10 @@ import {
   DECLUTTER_PLAYERS,
 } from '../../api/declutterDeck';
 import * as S from './Declutter.styles';
+import * as C from './DeclutterConsole.styles';
+import {publishDeclutterOverview} from './declutterOverview';
+import DeclutterDeckNavigation from './DeclutterDeckNavigation';
+import DeclutterQueueOverview from './DeclutterQueueOverview';
 import DeclutterCandidateLane from './DeclutterCandidateLane';
 import DeclutterProgressPanel from './DeclutterProgressPanel';
 import DeclutterReviewCard from './DeclutterReviewCard';
@@ -24,6 +30,7 @@ import DeclutterActionsPanel from './DeclutterActionsPanel';
 import DeclutterHoldButton from './DeclutterHoldButton';
 import DeclutterSystemCollectionCard from './DeclutterSystemCollectionCard';
 import DeclutterDiscussionSheet from './DeclutterDiscussionSheet';
+import DeclutterDiscussionLane from './DeclutterDiscussionLane';
 import {
   DECLUTTER_PLAYER_CHANGE_EVENT,
   getStoredDeclutterPlayer,
@@ -45,6 +52,9 @@ function hasPlayerDecided(candidate, votePlayer, activePlayer) {
 }
 
 export default function DeclutterDeckPage() {
+  const source = useTagReturnSnapshot();
+  const restoredDraftRef = useRef(false);
+  const [preferredCandidateId, setPreferredCandidateId] = useState(source?.declutterCandidateId || '');
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedMode = searchParams.get('mode') || 'deck';
   const routeMode = DECLUTTER_MODES.has(requestedMode) ? requestedMode : 'deck';
@@ -80,6 +90,7 @@ export default function DeclutterDeckPage() {
   }, [routeMode]);
 
   const loadDeck = useCallback(async ({ silent = false } = {}) => {
+    if (!player) { setLoading(false); return; }
     if (activePlayerRef.current !== player) return;
     const request = ++deckRequestRef.current;
     const isCurrent = () => request === deckRequestRef.current && activePlayerRef.current === player;
@@ -99,12 +110,13 @@ export default function DeclutterDeckPage() {
 
   useEffect(() => {
     const syncPlayer = (event) => {
-      if (event.detail?.playerId && event.detail.playerId !== activePlayerRef.current) {
-        activePlayerRef.current = event.detail.playerId;
+      if ((event.detail?.playerId || '') !== activePlayerRef.current) {
+        activePlayerRef.current = event.detail?.playerId || '';
         deckRequestRef.current += 1;
         setDeck(null);
         setNotesDraft('');
-        setPlayer(event.detail.playerId);
+        setPreferredCandidateId('');
+        setPlayer(event.detail?.playerId || '');
       }
     };
     window.addEventListener(DECLUTTER_PLAYER_CHANGE_EVENT, syncPlayer);
@@ -112,7 +124,7 @@ export default function DeclutterDeckPage() {
   }, []);
 
   useEffect(() => {
-    if (mode !== 'actions') return undefined;
+    if (!player || mode !== 'actions') return undefined;
     let isAlive = true;
     (async () => {
       try {
@@ -125,7 +137,7 @@ export default function DeclutterDeckPage() {
     return () => {
       isAlive = false;
     };
-  }, [mode]);
+  }, [mode,player]);
 
   const mergeCandidate = useCallback((updated) => {
     if (!updated?.id || activePlayerRef.current !== player) return;
@@ -197,8 +209,8 @@ export default function DeclutterDeckPage() {
     [deck?.actionCandidates, isReviewableCandidate]
   );
   const currentCandidate = useMemo(
-    () => activeCandidates.find((candidate) => candidate.needsMyVote) || null,
-    [activeCandidates]
+    () => selectReviewCandidate(activeCandidates, preferredCandidateId),
+    [activeCandidates, preferredCandidateId]
   );
   const awaitingPartnerCandidates = useMemo(
     () => activeCandidates.filter((candidate) => !candidate.needsMyVote),
@@ -236,15 +248,26 @@ export default function DeclutterDeckPage() {
   const waitingForMeCount = waitingForMeCandidates.length;
 
   useEffect(() => {
-    setNotesDraft(currentCandidate?.notes || '');
-  }, [currentCandidate?.id, currentCandidate?.notes]);
+    publishDeclutterOverview({player,loading,error,review:waitingForMeCount,
+      discussion:deck?.counts?.discussion || 0,actions:deck?.counts?.action || 0,waiting:awaitingPartnerCount});
+  },[player,loading,error,waitingForMeCount,deck?.counts?.discussion,deck?.counts?.action,awaitingPartnerCount]);
+  useEffect(()=>()=>publishDeclutterOverview(null),[]);
+
+  useEffect(() => {
+    if (source?.declutterCandidateId && currentCandidate?.id === source.declutterCandidateId && !restoredDraftRef.current) {
+      setNotesDraft(source.declutterNotesDraft ?? currentCandidate.notes ?? '');
+      restoredDraftRef.current = true;
+    } else setNotesDraft(currentCandidate?.notes || '');
+  }, [currentCandidate?.id, currentCandidate?.notes, source]);
 
   const handleVote = async (vote) => {
+    if (!activePlayerRef.current) return false;
     if (!currentCandidate?.id) return;
     try {
       setSaving(currentCandidate.id);
       setError('');
       const updated = await voteOnDeclutterCandidate(currentCandidate.id, { player, vote, notes: notesDraft });
+      setPreferredCandidateId('');
       const itemName = currentCandidate?.item?.name || 'Item';
       const itemId = String(currentCandidate?.item?.id || currentCandidate?.itemId || '').trim();
       const item = currentCandidate?.item || null;
@@ -300,6 +323,7 @@ export default function DeclutterDeckPage() {
 
   const handleSkip = () => {
     if (!currentCandidate?.id) return;
+    setPreferredCandidateId('');
     setDeck((current) => {
       if (!current) return current;
       const candidateId = String(currentCandidate.id);
@@ -320,6 +344,7 @@ export default function DeclutterDeckPage() {
   };
 
   const handleReopen = async (candidate) => {
+    if (!activePlayerRef.current) return false;
     try {
       setSaving(candidate.id);
       setError('');
@@ -356,6 +381,7 @@ export default function DeclutterDeckPage() {
   }, [setSearchParams]);
 
   const handleResolveDiscussion = async ({ choice, notes }) => {
+    if (!activePlayerRef.current) return false;
     if (!discussionCandidate?.id) return;
     try {
       setSaving(discussionCandidate.id);
@@ -388,6 +414,7 @@ export default function DeclutterDeckPage() {
   };
 
   const handleResetVote = async (candidate) => {
+    if (!activePlayerRef.current) return false;
     try {
       setSaving(candidate.id);
       setError('');
@@ -408,6 +435,7 @@ export default function DeclutterDeckPage() {
   };
 
   const handleResetAllVotes = async () => {
+    if (!activePlayerRef.current) return false;
     try {
       setSaving('reset-all');
       setError('');
@@ -430,11 +458,12 @@ export default function DeclutterDeckPage() {
   const openActions = () => selectMode('actions');
 
   const handleAction = async (candidate, action, payload = {}) => {
+    if (!activePlayerRef.current) return false;
     const actions = {
       reroute: () => rerouteDeclutterAction(candidate.id, { ...payload, player }),
       restore: () => restoreDeclutterActionAsKeep(candidate.id, { player }),
       reopen: () => reopenDeclutterAction(candidate.id, { player }),
-      complete: () => completeDeclutterAction(candidate.id, payload),
+      complete: () => completeDeclutterAction(candidate.id, { ...payload, player }),
     };
     try {
       setSaving(candidate.id);
@@ -448,70 +477,30 @@ export default function DeclutterDeckPage() {
           : 'The inventory placement and workflow state were updated.',
       });
       await loadDeck({ silent: true });
+      return true;
     } catch (err) {
       setError(err?.message || 'Failed to update the action.');
+      return {error:err?.message || 'Failed to update the action.'};
     } finally {
       setSaving('');
     }
   };
 
+  if (!player) return <S.PageShell><S.StatusPanel role="status">Choose Discofish or Laserfox in navigation to use Declutter.</S.StatusPanel></S.PageShell>;
   if (loading) return <S.PageShell><S.StatusPanel>Shuffling the Declutter Deck...</S.StatusPanel></S.PageShell>;
 
   return (
-    <S.DeclutterSurface $player={player}>
-      <S.ModeBar>
-        <S.ModeGroup>
-          <S.ModeButton type="button" $active={mode === 'deck'} aria-pressed={mode === 'deck'} onClick={() => selectMode('deck')}>▣ Review <S.ModeCount>{waitingForMeCount}</S.ModeCount></S.ModeButton>
-          <S.ModeButton type="button" $active={mode === 'discussion'} aria-pressed={mode === 'discussion'} onClick={() => selectMode('discussion')}>▤ Discuss <S.ModeCount>{deck?.counts?.discussion || 0}</S.ModeCount></S.ModeButton>
-          <S.ModeButton type="button" $active={mode === 'actions'} aria-pressed={mode === 'actions'} onClick={openActions}>⚡ Actions <S.ModeCount>{deck?.counts?.action || 0}</S.ModeCount></S.ModeButton>
-          <S.ModeButton type="button" $active={mode === 'progress'} aria-pressed={mode === 'progress'} onClick={() => selectMode('progress')}>▥ Progress</S.ModeButton>
-        </S.ModeGroup>
-        <S.ProgressText $health={error ? 'error' : 'healthy'} role="status">
-          {error
-            ? 'Deck needs attention'
-            : awaitingPartnerCount
-              ? `Shared deck healthy · ${awaitingPartnerCount} waiting on your partner`
-              : 'Shared deck is current'}
-        </S.ProgressText>
-      </S.ModeBar>
+    <C.Surface $player={player}>
+      <DeclutterDeckNavigation mode={mode}
+        counts={{ deck: waitingForMeCount, discussion: deck?.counts?.discussion || 0, actions: deck?.counts?.action || 0 }}
+        awaitingPartnerCount={awaitingPartnerCount} error={error} onSelect={selectMode} />
 
       {error ? <S.ErrorState role="alert">{error}</S.ErrorState> : null}
 
       {mode === 'deck' ? (
-        <>
-          <S.QueueProgress>
-            <S.QueueProgressTop>
-              <span>Your queue</span>
-              <S.QueueProgressButton
-                type="button"
-                aria-haspopup="dialog"
-                aria-expanded={isWaitingOverlayOpen}
-                onClick={() => setIsWaitingOverlayOpen(true)}
-              >
-                {waitingForMeCount} waiting
-              </S.QueueProgressButton>
-            </S.QueueProgressTop>
-            <S.QueueScoreboard aria-label="Declutter decisions by player">
-              {DECLUTTER_PLAYERS.map((queuePlayer) => (
-                <S.QueuePlayerRow key={queuePlayer.id}>
-                  <S.QueuePlayerLabel $player={queuePlayer.id}>
-                    <span aria-hidden="true">{queuePlayer.icon}</span>
-                    {queuePlayer.label}
-                  </S.QueuePlayerLabel>
-                  <S.QueueSegments $columns={Math.min(20, Math.max(1, activeCandidates.length))}>
-                    {activeCandidates.map((candidate, index) => (
-                      <S.QueueSegment
-                        key={`${queuePlayer.id}-${candidate.id}`}
-                        $player={queuePlayer.id}
-                        $decided={index < playerDecisionCounts[queuePlayer.id]}
-                        title={`${queuePlayer.label}: ${playerDecisionCounts[queuePlayer.id]} of ${activeCandidates.length} active decisions complete`}
-                      />
-                    ))}
-                  </S.QueueSegments>
-                </S.QueuePlayerRow>
-              ))}
-            </S.QueueScoreboard>
-          </S.QueueProgress>
+        <S.ReviewWorkspace>
+          <DeclutterQueueOverview candidates={activeCandidates} decisionCounts={playerDecisionCounts}
+            waitingCount={waitingForMeCount} open={isWaitingOverlayOpen} onOpen={() => setIsWaitingOverlayOpen(true)} />
           {isWaitingOverlayOpen ? (
             <DeclutterWaitingOverlay
               candidates={waitingForMeCandidates}
@@ -566,25 +555,12 @@ export default function DeclutterDeckPage() {
             candidates={actionCandidates}
             onOpen={openActions}
           />
-        </>
+        </S.ReviewWorkspace>
       ) : mode === 'discussion' ? (
-        <DeclutterCandidateLane
-          title="Talk it out"
+        <DeclutterDiscussionLane
           candidates={discussionCandidates}
-          emptyText="No split votes right now."
           busyCandidateId={saving}
-          renderActions={(candidate) => (
-            <S.QueueActions>
-              <S.Button
-                type="button"
-                $tone="warning"
-                disabled={saving === candidate.id}
-                onClick={() => openDiscussion(candidate)}
-              >
-                Resolve together
-              </S.Button>
-            </S.QueueActions>
-          )}
+          onResolve={openDiscussion}
         />
       ) : mode === 'actions' ? (
         <DeclutterActionsPanel
@@ -618,6 +594,6 @@ export default function DeclutterDeckPage() {
           onReopen={handleReopenFromDiscussion}
         />
       ) : null}
-    </S.DeclutterSurface>
+    </C.Surface>
   );
 }

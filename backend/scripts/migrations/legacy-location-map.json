@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "description": "Reviewed mappings from the October 2026 local production copy. Match whole labels, case-insensitively; never infer an unlisted path.",
+  "entries": [
+    { "source": "Garage", "target": { "room": "Garage" }, "reason": "Room only; do not assume the existing North Shelf path." },
+    { "source": "Garage - Dark Corner", "target": { "room": "Garage", "vicinity": "Dark Corner" }, "reason": "The legacy delimiter names a sublocation of Garage." },
+    { "source": "Office", "target": { "room": "Office" }, "reason": "Room only." },
+    { "source": "Office Bookshelf", "target": { "room": "Office", "vicinity": "Bookshelf" }, "reason": "Bookshelf is a named area within the recorded Office." },
+    { "source": "Office Closet", "target": { "room": "Office", "vicinity": "Closet" }, "reason": "Closet is a named area within the recorded Office." },
+    { "source": "Living Room", "target": { "room": "Living Room" }, "reason": "Room only." },
+    { "source": "Bedroom Closet", "target": { "room": "Bedroom", "vicinity": "Closet" }, "reason": "User-confirmed hierarchy: Bedroom is the room and Closet is its second tier." },
+    { "source": "Coat Closet", "target": { "room": "Coat Closet" }, "reason": "Preserve the existing space name; its containing room is not recorded." },
+    { "source": "Front Porch", "target": { "room": "Front Porch" }, "reason": "Room-level named space." },
+    { "source": "Main Floor Bathroom", "target": { "room": "Main Floor Bathroom" }, "reason": "Preserve the named room; floor is not a schema tier." },
+    { "source": "Kitchen", "target": { "room": "Kitchen" }, "reason": "Room only; do not assume Pantry or Top Shelf." }
+  ]
+}

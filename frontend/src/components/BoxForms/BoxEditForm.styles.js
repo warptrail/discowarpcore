@@ -59,6 +59,18 @@ export const Card = styled.form`
       display: none;
     }
   }
+
+  ${({ $paged }) => $paged && css`
+    && {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      padding: 0;
+      gap: 8px;
+      border: 0;
+    }
+  `}
 `;
 
 export const ConsoleHeader = styled.div`

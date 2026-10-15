@@ -145,9 +145,11 @@ export default function NewItemPostSaveDetails({
               type="button"
               onClick={() => selectField(field)}
               aria-expanded={openField === field}
+              aria-label={`Edit ${editorLabel}`}
+              title={rowLabel(field, idleLabel, item)}
             >
               <span>{rowLabel(field, idleLabel, item)}</span>
-              <span>{openField === field ? 'Close' : '›'}</span>
+              <span aria-hidden="true">{openField === field ? 'Close' : '›'}</span>
             </DetailToggle>
             {openField === field ? (
               <DetailEditor>

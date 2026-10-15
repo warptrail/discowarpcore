@@ -4,13 +4,13 @@ import EditItemExternalLinksSection from '../EditItemDetailsForm/EditItemExterna
 import EditItemTagsSection from '../EditItemDetailsForm/EditItemTagsSection';
 import CustomSelect from '../CustomSelect';
 import QuantityInput from '../QuantityInput';
+import { ITEM_DROPDOWN_EDITORS } from '../../util/itemFieldSelection';
 import {
   ITEM_CATEGORIES,
   formatItemCategory,
 } from '../../util/itemCategories';
 import {
-  KEEP_PRIORITY_REMOVAL_OPTIONS,
-  KEEP_PRIORITY_SCALE_OPTIONS,
+  getKeepPriorityOptions,
 } from '../../util/keepPriority';
 import { PRIMARY_OWNER_OPTIONS } from '../../util/itemOwners';
 import { normalizeDateInputValue } from '../../util/itemHistory';
@@ -131,7 +131,7 @@ function LinksEditor({ draft, onChange }) {
   );
 }
 
-function FieldControl({ descriptor, draft, onChange, saving }) {
+export function FieldControl({ descriptor, draft, onChange, saving, selectVariant, compact = false, selectProps = {} }) {
   if (descriptor.editor === 'textarea') {
     return (
       <FormS.TextArea
@@ -157,8 +157,11 @@ function FieldControl({ descriptor, draft, onChange, saving }) {
   if (descriptor.editor === 'category') {
     return (
       <CustomSelect
+        {...selectProps}
+        variant={selectVariant}
         value={draft || ''}
         ariaLabel={descriptor.label}
+        disabled={saving}
         options={ITEM_CATEGORIES.map((category) => ({
           value: category,
           label: formatItemCategory(category),
@@ -169,22 +172,15 @@ function FieldControl({ descriptor, draft, onChange, saving }) {
   }
 
   if (descriptor.editor === 'keep-priority') {
-    const priorityOptions = [
-      { value: '', label: 'Unspecified' },
-      ...KEEP_PRIORITY_SCALE_OPTIONS.map((option) => ({
-        value: option.value,
-        label: `Priority // ${option.label}`,
-      })),
-      ...KEEP_PRIORITY_REMOVAL_OPTIONS.map((option) => ({
-        value: option.value,
-        label: `Removal // ${option.label}`,
-      })),
-    ];
+    const priorityOptions = getKeepPriorityOptions();
 
     return (
       <CustomSelect
+        {...selectProps}
+        variant={selectVariant}
         value={draft || ''}
         ariaLabel={descriptor.label}
+        disabled={saving}
         options={priorityOptions}
         onChange={onChange}
       />
@@ -194,8 +190,11 @@ function FieldControl({ descriptor, draft, onChange, saving }) {
   if (descriptor.editor === 'condition') {
     return (
       <CustomSelect
+        {...selectProps}
+        variant={selectVariant}
         value={draft || 'unknown'}
         ariaLabel={descriptor.label}
+        disabled={saving}
         options={toCustomSelectOptions(CONDITION_OPTIONS)}
         onChange={onChange}
       />
@@ -205,8 +204,11 @@ function FieldControl({ descriptor, draft, onChange, saving }) {
   if (descriptor.editor === 'acquisition-type') {
     return (
       <CustomSelect
+        {...selectProps}
+        variant={selectVariant}
         value={draft || 'unknown'}
         ariaLabel={descriptor.label}
+        disabled={saving}
         options={toCustomSelectOptions(ACQUISITION_OPTIONS)}
         onChange={onChange}
       />
@@ -216,10 +218,12 @@ function FieldControl({ descriptor, draft, onChange, saving }) {
   if (descriptor.editor === 'primary-owner') {
     return (
       <CustomSelect
+        {...selectProps}
+        variant={selectVariant}
         value={draft || ''}
         ariaLabel={descriptor.label}
-        options={PRIMARY_OWNER_OPTIONS}
         disabled={saving}
+        options={PRIMARY_OWNER_OPTIONS}
         optionAccent
         ownerStyle
         onChange={onChange}
@@ -230,6 +234,8 @@ function FieldControl({ descriptor, draft, onChange, saving }) {
   if (descriptor.editor === 'quantity') {
     return (
       <QuantityInput
+        compact={compact}
+        disabled={saving}
         value={draft ?? 1}
         onChange={onChange}
         min={1}
@@ -292,7 +298,7 @@ function FieldControl({ descriptor, draft, onChange, saving }) {
   }
 
   if (descriptor.editor === 'tags') {
-    return <EditItemTagsSection tags={draft || []} onTagsChange={onChange} />;
+    return <EditItemTagsSection tags={Array.isArray(draft) ? draft : []} onTagsChange={onChange} />;
   }
 
   if (descriptor.editor === 'links') {
@@ -326,22 +332,28 @@ export default function ItemFieldEditor({
   onChange,
   onSave,
   onRequestDiscard,
+  autoFocus = true,
+  commitSelections = true,
+  commitTextOnTab = true,
+  editNotesImmediately = false,
+  selectVariant = 'default',
 }) {
   const rootRef = useRef(null);
-  const [notesEditing, setNotesEditing] = useState(false);
+  const [notesEditing, setNotesEditing] = useState(editNotesImmediately);
   const titleId = `item-field-editor-${descriptor.key}-title`;
 
   useEffect(() => {
-    setNotesEditing(false);
-  }, [descriptor.key]);
+    setNotesEditing(editNotesImmediately);
+  }, [descriptor.key, editNotesImmediately]);
 
   useEffect(() => {
+    if (!autoFocus) return;
     const root = rootRef.current;
     const focusTarget = root?.querySelector(
       'textarea, input:not([type="hidden"]), select, button',
     );
     focusTarget?.focus({ preventScroll: true });
-  }, [descriptor.key]);
+  }, [autoFocus, descriptor.key]);
 
   useEffect(() => {
     if (!notesEditing || descriptor.editor !== 'notes') return;
@@ -349,12 +361,15 @@ export default function ItemFieldEditor({
   }, [descriptor.editor, notesEditing]);
 
   const handleKeyDown = (event) => {
+    // Tag inputs consume Enter to stage a chip, and selects use it to choose.
+    // Those events must not also submit the surrounding field editor.
+    if (event.defaultPrevented) return;
     if (event.nativeEvent.isComposing || event.repeat) return;
 
     const commitTextField = descriptor.editor === 'text'
       && event.target.tagName === 'INPUT'
       && !event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey
-      && (event.key === 'Enter' || event.key === 'Tab');
+      && (event.key === 'Enter' || (commitTextOnTab && event.key === 'Tab'));
     if (commitTextField) {
       event.preventDefault();
       if (!saving) {
@@ -423,10 +438,11 @@ export default function ItemFieldEditor({
             descriptor={descriptor}
             draft={draft}
             saving={saving}
+            selectVariant={selectVariant}
             onChange={(value) => {
               if (saving) return;
               onChange(value);
-              if (descriptor.editor === 'primary-owner') {
+              if (ITEM_DROPDOWN_EDITORS.has(descriptor.editor) && commitSelections) {
                 void onSave?.({ value, commitSelection: true });
               }
             }}

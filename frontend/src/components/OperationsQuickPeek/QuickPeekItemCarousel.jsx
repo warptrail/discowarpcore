@@ -1,4 +1,8 @@
+import QuickPeekItemFacts from './QuickPeekItemFacts';
+import QuickPeekItemTags from './QuickPeekItemTags';
+import MissingStatus from '../MissingItems/MissingStatus';
 import React, { useEffect, useState } from 'react';
+import { getItemPlaceholderGradientStyle } from '../../util/itemPlaceholderGradient';
 import {
   getItemOriginalImageUrl,
   getItemPreviewImageCandidates,
@@ -7,11 +11,6 @@ import RetrievalImageLightbox from '../Retrieval/RetrievalImageLightbox';
 import * as S from './OperationsQuickPeek.styles';
 import QuickPeekItemEditor from './QuickPeekItemEditor';
 import { getItemOwnershipContext } from '../../util/itemOwnership';
-
-function quantityLabel(item) {
-  const quantity = Number(item?.quantity);
-  return Number.isFinite(quantity) ? quantity : 1;
-}
 
 function getTags(item) {
   if (Array.isArray(item?.tags)) return item.tags.filter(Boolean);
@@ -34,7 +33,7 @@ function ItemPreviewImage({ item, name }) {
   }, [candidateKey]);
 
   if (!source) {
-    return <S.ItemCarouselImageFallback aria-hidden="true">ITEM</S.ItemCarouselImageFallback>;
+    return <S.ItemCarouselImageFallback aria-hidden="true" style={getItemPlaceholderGradientStyle(item)} />;
   }
 
   return (
@@ -79,18 +78,13 @@ export default function QuickPeekItemCarousel({
   canSelectNext,
   onPrevious,
   onNext,
-  inDeclutterDeck = false,
-  declutterPending = false,
-  onToggleDeclutterDeck,
-  onOpenNotes,
+  notePanel = null,
 }) {
   const itemId = String(item?._id || item?.id || '');
   const lightboxImageUrl = getItemOriginalImageUrl(item);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const name = String(item?.name || item?.label || 'Untitled item').trim();
-  const category = String(item?.category || '').trim();
   const description = String(item?.description || '').trim();
-  const itemNotes = String(item?.notes || '').trim();
   const tags = getTags(item);
   const edit = (field, label, content) => <QuickPeekItemEditor item={item} field={field} label={label} onSaved={onItemUpdated}>{content}</QuickPeekItemEditor>;
 
@@ -111,9 +105,9 @@ export default function QuickPeekItemCarousel({
         <S.ItemCarouselMedia
           $interactive={Boolean(lightboxImageUrl)}
         >
-          <ItemPreviewImage item={item} name={name} />
+          {notePanel || <ItemPreviewImage item={item} name={name} />}
 
-          {lightboxImageUrl ? (
+          {!notePanel && lightboxImageUrl ? (
             <S.ItemCarouselLightboxTrigger
               type="button"
               aria-label={`Open original image for ${name}`}
@@ -121,7 +115,7 @@ export default function QuickPeekItemCarousel({
             />
           ) : null}
 
-        <S.ItemCarouselArrow
+        {!notePanel ? <><S.ItemCarouselArrow
           type="button"
           aria-label="Previous item"
           $side="previous"
@@ -139,15 +133,14 @@ export default function QuickPeekItemCarousel({
           onClick={onNext}
         >
           ⟩
-        </S.ItemCarouselArrow>
+        </S.ItemCarouselArrow></> : null}
         </S.ItemCarouselMedia>
 
-        <S.ItemCarouselBody>
+        <S.ItemCarouselBody data-tag-scroll-key="operations-peek-item">
           <S.ItemCarouselIdentity>
+            <MissingStatus item={item} home />
             <S.ItemCarouselName>{edit('name', 'Name', name)}</S.ItemCarouselName>
-            <S.ItemCarouselMeta>
-              <div>{edit('quantity', 'Quantity', `QTY ${quantityLabel(item)}`)}</div>
-            </S.ItemCarouselMeta>
+            <QuickPeekItemFacts key={itemId} item={item} onSaved={onItemUpdated} />
           </S.ItemCarouselIdentity>
 
           {(
@@ -156,14 +149,6 @@ export default function QuickPeekItemCarousel({
                 <S.ItemCarouselDetail>
                   <S.ItemCarouselAnnotationLine>
                     <S.MetaLabel>Description</S.MetaLabel>
-                    {itemNotes ? (
-                      <S.ItemCarouselNoteButton
-                        type="button"
-                        aria-label={`Open notes for ${name}`}
-                        title="Open item notes"
-                        onClick={onOpenNotes}
-                      >N</S.ItemCarouselNoteButton>
-                    ) : null}
                   </S.ItemCarouselAnnotationLine>
                   <S.ItemCarouselDescription as="div" title={description}>
                     {edit('description', 'Description', description)}
@@ -171,25 +156,8 @@ export default function QuickPeekItemCarousel({
                 </S.ItemCarouselDetail>
               )}
               {(
-                <S.ItemCarouselDetail>
-                  <S.ItemCarouselCategoryLine>
-                    <S.MetaLabel>Category</S.MetaLabel>
-                    <S.ItemCarouselCategoryValue as="div">{edit('category', 'Category', category)}</S.ItemCarouselCategoryValue>
-                    <S.ItemCarouselDeckButton
-                      type="button"
-                      $active={inDeclutterDeck}
-                      aria-label={inDeclutterDeck ? `Remove ${name} from Declutter Deck` : `Add ${name} to Declutter Deck`}
-                      aria-pressed={inDeclutterDeck}
-                      title={inDeclutterDeck ? 'Remove from Declutter Deck' : 'Add from Declutter Deck'}
-                      disabled={declutterPending || !itemId || item?.item_status === 'gone'}
-                      onClick={onToggleDeclutterDeck}
-                    >Deck</S.ItemCarouselDeckButton>
-                  </S.ItemCarouselCategoryLine>
-                </S.ItemCarouselDetail>
-              )}
-              {(
                 <S.ItemCarouselTags aria-label="Item tags">
-                  {edit('tags', 'Tags', tags.map((tag) => `#${tag}`).join(' '))}
+                  <QuickPeekItemTags key={itemId} item={item} tags={tags} name={name} description={description} onSaved={onItemUpdated} />
                 </S.ItemCarouselTags>
               )}
             </S.ItemCarouselDetails>

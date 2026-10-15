@@ -78,7 +78,7 @@ function buildBaseBreadcrumb(item, itemId) {
 
   return [
     home,
-    { key: 'orphaned', kind: 'link', to: '/all-items', label: 'Items Adrift' },
+    { key: 'orphaned', kind: 'link', to: '/operations?peek=adrift', label: 'Items Adrift' },
     {
       key: 'item-current',
       kind: 'current',

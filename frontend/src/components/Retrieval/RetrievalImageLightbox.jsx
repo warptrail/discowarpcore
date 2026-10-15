@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useRef } from 'react';
 import { createPortal } from 'react-dom';
+import useDialogFocus from '../../hooks/useDialogFocus';
 import * as S from './Retrieval.styles';
 
 export default function RetrievalImageLightbox({
@@ -9,17 +10,8 @@ export default function RetrievalImageLightbox({
   presentation = 'default',
   onClose,
 }) {
-  useEffect(() => {
-    if (!isOpen) return undefined;
-
-    const handleKeyDown = (event) => {
-      if (event.key !== 'Escape') return;
-      if (typeof onClose === 'function') onClose();
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  const dialogRef = useRef(null);
+  useDialogFocus(dialogRef, onClose, isOpen && Boolean(imageSrc));
 
   if (!isOpen || !imageSrc) return null;
 
@@ -27,12 +19,14 @@ export default function RetrievalImageLightbox({
 
   const lightbox = (
     <S.LightboxBackdrop
-      role="dialog"
-      aria-modal="true"
-      aria-label={title ? `Image preview for ${title}` : 'Image preview'}
       onClick={onClose}
     >
       <S.LightboxPanel
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title ? `Image preview for ${title}` : 'Image preview'}
+        tabIndex={-1}
         $presentation={presentation}
         onClick={(event) => event.stopPropagation()}
       >
@@ -40,7 +34,6 @@ export default function RetrievalImageLightbox({
           type="button"
           onClick={onClose}
           aria-label="Close image preview"
-          autoFocus
         >
           ×
         </S.LightboxCloseButton>

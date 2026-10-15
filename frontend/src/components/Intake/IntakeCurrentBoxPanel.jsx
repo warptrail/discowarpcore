@@ -1,4 +1,4 @@
-import { panelStyles } from '../../styles/primitives';
+import { quietSectionStyles } from './IntakeConsole.styles';
 import React from 'react';
 import styled from 'styled-components';
 import { getBoxTheme, getBoxThemeCssVars } from '../../util/inventoryColorTheme';
@@ -9,26 +9,11 @@ import IntakeDestinationPhotoDisclosure from './IntakeDestinationPhotoDisclosure
 import IntakeDestinationSummary from './IntakeDestinationSummary';
 
 const Panel = styled.section`
+  ${quietSectionStyles}
   display: grid;
-  gap: 0.7rem;
+  gap: 16px;
   min-width: 0;
-  padding: 0.8rem;
-  border: 1px solid var(--dw-border);
-  border-radius: var(--dw-radius-sm);
-  background:
-    var(--dw-surface);
-  box-shadow: none;
-
-  @media (max-width: 700px) {
-    padding: 0.7rem;
-  }
-
-  @media (min-width: 760px) {
-    padding: 0.9rem 1rem;
-  }
-
-  ${panelStyles}
-  border-left: 3px solid var(--box-primary, #8A8175);
+  padding: 8px 0;
 `;
 
 const EmptyState = styled.div`
@@ -38,19 +23,14 @@ const EmptyState = styled.div`
 `;
 
 const EmptyEyebrow = styled.span`
-  color: var(--dw-violet);
-  font: 800 0.75rem/1.2 var(--dw-font-ui);
-  letter-spacing: 0.01em;
-  text-transform: none;
+  color: var(--dw-text-muted);
+  font: 400 .75rem/1.3 var(--dw-font-ui);
 `;
 
 const EmptyTitle = styled.h2`
   margin: 0;
   color: var(--dw-text);
-  font-size: clamp(1.35rem, 5vw, 1.9rem);
-  font-weight: 820;
-  letter-spacing: -0.025em;
-  line-height: 1.1;
+  font: 600 1.3rem/1.2 var(--dw-font-ui);
 `;
 
 const SelectorRegion = styled.div`

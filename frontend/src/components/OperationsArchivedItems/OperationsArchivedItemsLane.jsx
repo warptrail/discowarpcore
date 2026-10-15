@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { getItemHomeHref } from '../../api/itemDetails';
 import { getItemMicroThumbnailUrl } from '../../util/itemImage';
 import { formatItemCategory } from '../../util/itemCategories';
@@ -61,7 +60,6 @@ export default function OperationsArchivedItemsLane({
           {items.map((item) => <ArchivedItemRow key={item._id} item={item} />)}
         </S.ItemList>
       ) : null}
-      <S.AllItemsLink to="/all-items?status=gone">Open complete archive <span aria-hidden="true">➜</span></S.AllItemsLink>
     </S.Lane>
   );
 }

@@ -1,4 +1,4 @@
-import { controlStyles } from '../../styles/primitives';
+import { consoleControlStyles } from './IntakeConsole.styles';
 import React from 'react';
 import styled from 'styled-components';
 import IntakeCurrentBoxImagePanel from './IntakeCurrentBoxImagePanel';
@@ -8,28 +8,15 @@ const Disclosure = styled.section`
 `;
 
 const Toggle = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  ${consoleControlStyles}
   width: 100%;
-  min-height: 42px;
-  border: 0;
-  background: transparent;
-  color: rgba(var(--box-secondary-rgb), 0.8);
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  padding: 0.3rem 0;
+  justify-content: space-between;
+  font-size: .75rem;
   text-align: left;
-  text-transform: none;
-
-  span:last-child { color: var(--box-neon); font-size: 0.85rem; }
-  &:hover { color: var(--box-neon); }
-  &:focus-visible { outline: 2px solid var(--box-neon); outline-offset: -2px; }
-
-  ${controlStyles}
+  padding-inline: 0;
+  span:last-child {
+    color: var(--dw-cyan);
+  }
 `;
 
 const Content = styled.div`

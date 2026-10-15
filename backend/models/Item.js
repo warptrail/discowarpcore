@@ -170,13 +170,42 @@ const itemLinkSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const saleDetailsSchema = new mongoose.Schema({
+  buyer:{type:String,trim:true,maxlength:300,default:''},
+  paymentType:{type:String,enum:['','dollars','trade'],default:''},
+  amountCents:{type:Number,default:null,validate:isNonNegativeIntegerOrNull},
+  tradedFor:{type:String,trim:true,maxlength:1000,default:''},
+}, {_id:false,timestamps:true});
+const giftDetailsSchema = new mongoose.Schema({
+  recipient:{type:String,trim:true,maxlength:300,default:''},
+  occasion:{type:String,trim:true,maxlength:1000,default:''},
+}, {_id:false,timestamps:true});
+const departureRevisionSchema = new mongoose.Schema({
+  field:{type:String,enum:['saleDetails','giftDetails'],required:true},
+  at:{type:Date,required:true}, actor:{type:String,default:''},
+  changedFields:[String],before:mongoose.Schema.Types.Mixed,after:mongoose.Schema.Types.Mixed,
+}, {_id:false});
+
 const itemSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, default: '' },
     quantity: { type: Number, default: 1 },
+    missing: {
+      quantity: { type: Number, default: 0, min: 0 },
+      revision: { type: Number, default: 0, min: 0 },
+      reportedAt: { type: Date, default: null },
+      reportedBy: { type: String, default: '' },
+      note: { type: String, default: '' },
+    },
+    missingHistory: { type: [{
+      action: { type: String, enum: ['report', 'correction', 'found', 'departed'] },
+      profile: String, at: Date, before: Number, after: Number, revision: Number, note: String,
+      placement: mongoose.Schema.Types.Mixed, fromPlacement: mongoose.Schema.Types.Mixed,
+    }], default: undefined },
+    mutationLease: { type: new mongoose.Schema({ token: String, until: Date }, { _id: false }), select: false, default: undefined },
     description: { type: String, default: '' },
     notes: { type: String, default: '' },
-    tags: { type: [String], default: [] },
+    tags: { type: [{ type: String, lowercase: true }], default: [] },
     links: { type: [itemLinkSchema], default: [], set: normalizeItemLinks },
     imagePath: { type: String, default: '' },
     image: {
@@ -238,6 +267,9 @@ const itemSchema = new mongoose.Schema(
     },
     disposition_at: { type: Date, default: null },
     disposition_notes: { type: String, default: '' },
+    saleDetails:{type:saleDetailsSchema,default:undefined},
+    giftDetails:{type:giftDetailsSchema,default:undefined},
+    departureDetailsHistory:{type:[departureRevisionSchema],default:undefined},
     declutterReadiness: {
       type: String,
       enum: DECLUTTER_READINESS_VALUES,
@@ -321,9 +353,17 @@ const itemSchema = new mongoose.Schema(
   }
 );
 
+itemSchema.index({ 'missing.quantity': 1, 'missing.reportedAt': -1 });
+itemSchema.virtual('isMissing').get(function () { return this.item_status !== 'gone' && (this.missing?.quantity || 0) > 0; });
+// Leases are internal coordination, never part of the inventory API.
+for (const option of ['toObject', 'toJSON']) {
+  itemSchema.set(option, { virtuals: true, transform: (_doc, ret) => { delete ret.mutationLease; if (ret.item_status === 'gone') ret.keepPriority = 'decommissioned'; return ret; } });
+}
+
 itemSchema.pre('validate', function normalizeDispositionFields(next) {
   const status = this.item_status || 'active';
   if (status === 'gone') {
+    this.keepPriority = 'decommissioned';
     if (!this.disposition) {
       this.invalidate(
         'disposition',

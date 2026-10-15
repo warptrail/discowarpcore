@@ -1,5 +1,6 @@
 import { API_BASE } from './API_BASE';
 import { ITEM_OWNERS } from '../util/itemOwners';
+import { normalizeHouseholdProfile } from '../util/householdProfile';
 
 const DECK_PATH = '/api/declutter-deck';
 
@@ -100,6 +101,8 @@ export async function fetchDeclutterHistory({ filter = 'all', route = '', player
 }
 
 export async function nominateDeclutterCandidates(itemIds, { nominatedBy = '' } = {}) {
+  const nominator = normalizeHouseholdProfile(nominatedBy);
+  if (!nominator) throw new Error('Choose a household profile before adding to the Declutter Deck.');
   const ids = Array.from(new Set((Array.isArray(itemIds) ? itemIds : [itemIds])
     .map((itemId) => String(itemId || '').trim())
     .filter(Boolean)));
@@ -107,7 +110,7 @@ export async function nominateDeclutterCandidates(itemIds, { nominatedBy = '' } 
   for (const itemId of ids) {
     results.push(await sendJson(`${DECK_PATH}/candidates`, {
       method: 'POST',
-      body: { itemId, nominatedBy },
+      body: { itemId, nominatedBy: nominator },
     }));
   }
   return results;

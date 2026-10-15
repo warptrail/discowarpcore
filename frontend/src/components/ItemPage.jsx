@@ -1,3 +1,6 @@
+import useMissingInventoryRefresh from './MissingItems/useMissingInventoryRefresh';
+import ItemPageWorkspace from './ItemPageWorkspace';
+import { ITEM_DROPDOWN_EDITORS } from '../util/itemFieldSelection';
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
   useLocation,
@@ -68,7 +71,7 @@ const getItemConsoleThemeStyle = (item) => {
     ...getBoxThemeCssVars(getBoxTheme(ownership.boxId)),
     ...getItemThemeCssVars(getItemTheme(ownership.boxId, itemId, {
       selected: true,
-      varied: true,
+      varied: false,
     })),
   };
   if (String(item?.item_status || '').trim().toLowerCase() !== 'gone') {
@@ -141,6 +144,7 @@ export default function ItemPage() {
   const [lifecycleBusy, setLifecycleBusy] = useState(false);
   const [mediaEditorOpen, setMediaEditorOpen] = useState(false);
   const [pendingFieldSuccess, setPendingFieldSuccess] = useState(null);
+  const [savedFieldKey, setSavedFieldKey] = useState('');
   const [imageRefreshToken, setImageRefreshToken] = useState(0);
   const [processedPreviewUrl, setProcessedPreviewUrl] = useState('');
   const lastImageLifecycleStatusRef = useRef('');
@@ -201,7 +205,8 @@ export default function ItemPage() {
 
     window.requestAnimationFrame(() => {
       const trigger = document.querySelector(`[data-item-field="${normalized}"]`);
-      trigger?.focus({ preventScroll: true });
+      const target = trigger?.querySelector('[role="combobox"], input') || trigger;
+      target?.focus({ preventScroll: true });
     });
   }, []);
 
@@ -303,7 +308,7 @@ export default function ItemPage() {
       if (err?.name !== 'AbortError') {
         if (!isCurrentLoad()) return null;
         console.error('fetch item failed:', err);
-        setItem(null);
+        if (!preserveLoading) setItem(null);
         setNotFound(false);
         setError(err?.message || 'Failed to load item.');
       }
@@ -312,6 +317,7 @@ export default function ItemPage() {
       if (!preserveLoading && isCurrentLoad()) setLoading(false);
     }
   }, [itemId, parseErrorMessage]);
+  useMissingInventoryRefresh(() => loadItem({ preserveLoading: true }));
 
   useEffect(() => {
     const abort = new AbortController();
@@ -327,13 +333,20 @@ export default function ItemPage() {
     itemId: savedItemId,
     undoPayload,
     updated,
+    stayInRow = false,
+    quiet = false,
   }) => {
     if (!updated) return;
 
     setItem(updated);
     setMediaEditorOpen(false);
-    updateEditRoute('', { replace: true });
-    restoreFieldTriggerFocus(fieldKey);
+    if (!stayInRow) {
+      updateEditRoute('', { replace: true });
+      restoreFieldTriggerFocus(fieldKey);
+    }
+    // The permanent stepper owns its save cue; keep the context header steady.
+    if (quiet) setSavedFieldKey(fieldKey);
+    if (stayInRow || quiet) return;
     setPendingFieldSuccess({
       descriptor,
       fieldKey,
@@ -348,6 +361,14 @@ export default function ItemPage() {
     fieldKey: activeFieldKey,
     onSaved: handleFieldSaved,
   });
+  // Persistent dropdowns no longer need an edit route or a page-wide edit lock.
+  // Keep old direct links compatible once their item workspace has mounted.
+  useEffect(() => {
+    if (!loading && item?._id && !fieldEditor.isDirty && !fieldEditor.saving
+      && ITEM_DROPDOWN_EDITORS.has(fieldEditor.descriptor?.editor)) {
+      updateEditRoute('', { replace: true });
+    }
+  }, [loading, item?._id, fieldEditor.isDirty, fieldEditor.saving, fieldEditor.descriptor?.editor, updateEditRoute]);
 
   useEffect(() => {
     if (!fieldEditor.error) return;
@@ -382,6 +403,7 @@ export default function ItemPage() {
   const handleRequestField = useCallback((fieldKey) => {
     const normalized = String(fieldKey || '').trim().toLocaleLowerCase();
     if (!normalized) return;
+    setSavedFieldKey('');
 
     if (normalized === fieldEditor.descriptor?.key) {
       requestDiscardBefore(() => {
@@ -826,7 +848,6 @@ export default function ItemPage() {
 
   useEffect(() => {
     if (loading || error || notFound || !item?._id) return undefined;
-    if (fieldEditor.isActive) return undefined;
     if (
       activeToastId &&
       activeToastId !== 'item-page-actions'
@@ -1299,7 +1320,7 @@ export default function ItemPage() {
     ...getBoxThemeCssVars(getBoxTheme(ownership.boxId)),
     ...getItemThemeCssVars(getItemTheme(ownership.boxId, item?._id, {
       selected: true,
-      varied: true,
+      varied: false,
     })),
   };
   const lifecyclePanel = (
@@ -1314,9 +1335,8 @@ export default function ItemPage() {
 
   return (
     <S.Page style={pageThemeStyle}>
-      <S.PageMainGrid ref={workspaceRef}>
-        <S.PageVisualColumn>
-          <ItemPageImageHero
+      <ItemPageWorkspace item={item} workspaceRef={workspaceRef} editing={fieldEditor.isActive} hierarchy={viewMode === 'hierarchy'} mediaEditing={mediaEditorOpen} onLeaveHierarchy={() => setViewMode('all')} onEdit={handleRequestField}
+        media={<>          <ItemPageImageHero
             item={item}
             imageUrlOverride={processedPreviewUrl}
             imageRefreshToken={imageRefreshToken}
@@ -1353,7 +1373,8 @@ export default function ItemPage() {
           ) : null}
 
 
-          <ItemButtonBar
+</>}
+        commands={<>          <ItemButtonBar
         item={item}
         pending={containerPending || fieldEditor.isActive}
         error={containerError}
@@ -1369,10 +1390,8 @@ export default function ItemPage() {
         onDeclutter={toggleDeclutterDeck}
           />
           {lifecyclePanel}
-        </S.PageVisualColumn>
-
-        <S.PageDataColumn>
-          <ItemPageConsoleView
+</>}
+        fields={<>          <ItemPageConsoleView
             fieldEditor={fieldEditor.isActive ? fieldEditor : null}
             item={item}
             itemId={itemId}
@@ -1380,10 +1399,12 @@ export default function ItemPage() {
             onRequestDiscard={handleRequestCloseField}
             onRequestEdit={handleRequestField}
             onSave={fieldEditor.save}
+            savedFieldKey={savedFieldKey}
+            onRowFieldSaved={handleFieldSaved}
             viewMode={viewMode}
           />
-        </S.PageDataColumn>
-      </S.PageMainGrid>
+</>}
+      />
 
 
 

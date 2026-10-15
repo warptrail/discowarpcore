@@ -1,3 +1,5 @@
+import CompactTagRow from '../Tags/CompactTagRow';
+import MissingStatus from '../MissingItems/MissingStatus';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getItemHomeHref } from '../../api/itemDetails';
@@ -92,7 +94,7 @@ function TerminalItemPreview({ item, itemId }) {
       <S.PreviewContent>
         <S.PreviewIdentity>
           <div>
-            <S.PreviewName>{name}</S.PreviewName>
+            <S.PreviewName>{name}</S.PreviewName><MissingStatus item={item} home />
             <S.PreviewMeta>
               <code>QTY {getItemQuantity(item)}</code>
               {category ? <span>{category}</span> : null}
@@ -121,7 +123,7 @@ function TerminalItemPreview({ item, itemId }) {
             ) : null}
             {tags.length > 0 ? (
               <S.PreviewTags aria-label="Item tags">
-                {tags.map((tag) => <span key={tag}>#{tag}</span>)}
+                <CompactTagRow tags={tags} name={name} />
               </S.PreviewTags>
             ) : null}
           </S.PreviewDetails>
@@ -185,7 +187,7 @@ export default function TerminalItemTable({
                   >
                     <ItemMicroThumbnail item={item} />
                     <S.ItemIdentity>
-                      <S.ItemName>{name}</S.ItemName>
+                      <S.ItemName>{name}</S.ItemName><MissingStatus item={item} />
                       {category ? <S.MobileCategory>{category}</S.MobileCategory> : null}
                     </S.ItemIdentity>
                     <S.ItemCategory>{category || '—'}</S.ItemCategory>

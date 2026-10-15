@@ -294,7 +294,7 @@ async function patchItem(req, res) {
     res.json({ ok: true, data: refreshed });
   } catch (err) {
     console.error('❌ Error updating item:', err);
-    res.status(400).json({ error: 'Failed to update item' });
+    res.status(err.status || 400).json({ error: err.message || 'Failed to update item' });
   }
 }
 

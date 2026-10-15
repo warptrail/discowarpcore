@@ -1,6 +1,6 @@
 import * as S from './Retrieval.styles';
 
-export default function ActiveFilterChips({ chips = [], onRemove, onClearAll }) {
+export default function ActiveFilterChips({ chips = [], onRemove, onClearAll, showClearAll = true }) {
   const safeChips = Array.isArray(chips) ? chips : [];
   if (!safeChips.length) return null;
 
@@ -19,9 +19,9 @@ export default function ActiveFilterChips({ chips = [], onRemove, onClearAll }) 
         </S.ActiveChip>
       ))}
 
-      <S.ClearFiltersButton type="button" onClick={onClearAll}>
+      {showClearAll && <S.ClearFiltersButton type="button" onClick={onClearAll}>
         Clear all
-      </S.ClearFiltersButton>
+      </S.ClearFiltersButton>}
     </S.ActiveChipsWrap>
   );
 }

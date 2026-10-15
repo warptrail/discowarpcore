@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import styled from 'styled-components';
 
 const Panel = styled.div`
   min-width: 0;
-  padding: .3rem;
-  border: 1px solid rgba(127, 215, 255, .18);
+  padding: ${({ $compact }) => $compact ? '.15rem' : '.3rem'};
+  border: 1px solid ${({ $accented }) => $accented ? 'color-mix(in srgb, var(--room-control-accent) 38%, transparent)' : 'rgba(127, 215, 255, .18)'};
   border-radius: var(--dw-radius-sm);
-  background: rgba(8, 17, 27, .45);
+  background: ${({ $accented }) => $accented ? 'color-mix(in srgb, var(--room-control-accent) 8%, var(--dw-surface))' : 'rgba(8, 17, 27, .45)'};
 `;
 const Heading = styled.div`
   display: flex;
@@ -33,8 +33,16 @@ const Toggle = styled(Control)`
   flex: 1;
   min-width: 0;
   text-align: left;
+  color: ${({ $accented }) => $accented ? 'var(--room-control-accent)' : 'var(--dw-text)'};
   > span { flex: 1; min-width: 0; overflow-wrap: anywhere; color: rgba(204, 220, 230, .7); font-weight: 450; }
-  > svg { flex-shrink: 0; transform: rotate(${({ $open }) => $open ? '180deg' : '0deg'}); }
+  ${({ $dense }) => $dense && `
+    > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  `}
+  > svg { flex-shrink: 0; }
+  > svg:last-child { transform: rotate(${({ $open }) => $open ? '180deg' : '0deg'}); }
+  ${({ $accented }) => $accented && `
+    &:hover { background: color-mix(in srgb, var(--room-control-accent) 10%, transparent); }
+  `}
 `;
 const Track = styled.div`
   display: flex;
@@ -52,35 +60,44 @@ const Room = styled(Control)`
   background: ${({ $selected }) => $selected ? 'rgba(127, 215, 255, .14)' : 'rgba(24, 39, 56, .65)'};
 `;
 
-export default function RetrievalRoomCarousel({ options = [], selectedKeys = [], onChange }) {
-  const [open, setOpen] = useState(false);
-  const labels = selectedKeys.map((key) => options.find((option) => option.key === key)?.label || key);
-  const summary = labels.length ? labels.join(' · ') : 'All rooms';
+export function RetrievalRoomOptions({ options = [], selectedKeys = [], onChange, multiple = true, id, ariaLabel = 'Filter by rooms' }) {
   return (
-    <Panel>
+    <Track id={id} role="group" aria-label={ariaLabel}>
+      {options.map(({ key, label }) => {
+        const selected = selectedKeys.includes(key);
+        return <Room key={key} type="button" aria-pressed={selected} $selected={selected}
+          onClick={() => onChange?.(selected ? selectedKeys.filter((value) => value !== key) : multiple ? [...selectedKeys, key] : [key])}>
+          {label}
+        </Room>;
+      })}
+      {!options.length && <Control as="span">No rooms available</Control>}
+    </Track>
+  );
+}
+
+export default function RetrievalRoomCarousel({ options = [], selectedKeys = [], onChange, label = 'Rooms', summary: selectedSummary, defaultOpen = false, compact = false, dense = false, accent = null, icon = null, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const contentId = useId();
+  const labels = selectedKeys.map((key) => options.find((option) => option.key === key)?.label || key);
+  const summary = selectedSummary ?? (labels.length ? labels.join(' · ') : 'All rooms');
+  return (
+    <Panel $compact={compact} $accented={Boolean(accent)} style={accent ? { '--room-control-accent': accent } : undefined}>
       <Heading>
-        <Toggle type="button" aria-expanded={open} aria-controls="retrieval-room-carousel"
-          $open={open} onClick={() => setOpen((current) => !current)}>
-          Rooms <span>{summary}</span>
+        <Toggle type="button" aria-expanded={open} aria-controls={contentId}
+          $open={open} $dense={dense} title={dense ? `${label}: ${summary}` : undefined}
+          $accented={Boolean(accent)} onClick={() => setOpen((current) => !current)}>
+          {icon}{label} <span>{summary}</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="1.5" />
           </svg>
         </Toggle>
         {selectedKeys.length > 0 && (
-          <Control type="button" aria-label="Clear selected rooms" title="Clear selected rooms" onClick={() => onChange?.([])}>×</Control>
+          <Control type="button" aria-label={`Clear selected ${label.toLowerCase()}`} title={`Clear selected ${label.toLowerCase()}`} onClick={() => onChange?.([])}>×</Control>
         )}
       </Heading>
       {open && (
-        <Track id="retrieval-room-carousel" role="group" aria-label="Filter by rooms">
-          {options.map(({ key, label }) => {
-            const selected = selectedKeys.includes(key);
-            return <Room key={key} type="button" aria-pressed={selected} $selected={selected}
-              onClick={() => onChange?.(selected ? selectedKeys.filter((value) => value !== key) : [...selectedKeys, key])}>
-              {label}
-            </Room>;
-          })}
-          {!options.length && <Control as="span">No rooms available</Control>}
-        </Track>
+        children ? <div id={contentId}>{children}</div> :
+          <RetrievalRoomOptions id={contentId} options={options} selectedKeys={selectedKeys} onChange={onChange} />
       )}
     </Panel>
   );
