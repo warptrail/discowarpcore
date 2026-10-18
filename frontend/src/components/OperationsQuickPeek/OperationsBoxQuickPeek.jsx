@@ -1,3 +1,4 @@
+import CabinetShelfPicker from '../BoxForms/CabinetShelfPicker';
 import useTagReturnSnapshot from '../../hooks/useTagReturnSnapshot';
 import QuickPeekBoxEditor from './QuickPeekBoxEditor';
 import useOperationsDockGeometry from '../OperationsInventory/useOperationsDockGeometry';
@@ -77,6 +78,7 @@ export default function OperationsBoxQuickPeek({
   onShowItems,
   onClose,
   onDismiss,
+  onShelfChange,
   onOpenFullBox,
   onItemSaved,
   boxFieldEdit, onCloseBoxField, onBoxSaved,
@@ -112,6 +114,8 @@ export default function OperationsBoxQuickPeek({
   const description = String(box?.description || '').trim();
   const notes = String(box?.notes || '').trim();
   const childBoxes = Array.isArray(box?.childBoxes) ? box.childBoxes : [];
+  const sectionIsLeaf = box.kind === 'cabinet' && (!box.shelves?.length || Boolean(box.compartmentKey?.slice(1)));
+  const addTarget = sectionIsLeaf ? { ...box.ownerBox, compartmentKey: box.compartmentKey } : box;
   const items = useMemo(
     () => (Array.isArray(box?.items) ? box.items : []),
     [box?.items],
@@ -477,6 +481,8 @@ export default function OperationsBoxQuickPeek({
   };
 
   return createPortal(
+    <>
+    <S.PageBlur aria-hidden="true" />
     <S.Deck
       data-peek-expanded={expanded}
       ref={sheetRef}
@@ -496,6 +502,7 @@ export default function OperationsBoxQuickPeek({
         '--operations-dock-left': `${dockLeft}px`,
       }}
     >
+      <S.DeckHeading>
       <QuickPeekBoxHeader
         docked={docked}
         box={box}
@@ -506,7 +513,7 @@ export default function OperationsBoxQuickPeek({
           <QuickPeekItemActionPanel
             embedded
             key={selectedQuickPeekItemId}
-            box={box}
+            box={selectedQuickPeekItemWithDeckState?.ownerBoxMongoId ? { _id: selectedQuickPeekItemWithDeckState.ownerBoxMongoId, box_id: selectedQuickPeekItemWithDeckState.ownerBoxId } : box}
             onMoved={() => { backToItemList(); onItemSaved?.(); }}
             item={selectedQuickPeekItemWithDeckState}
             onItemUpdated={(updatedItem) => {
@@ -548,6 +555,8 @@ export default function OperationsBoxQuickPeek({
         onSearchScroll={scrollQuickPeekContent}
       />
 
+      {box.kind === "cabinet" && !itemSelection.selectedItem ? <CabinetShelfPicker boxId={box.box_id} cabinetKey={box.compartmentKey[0]} parentLabel={box.label} ownerBox={box.ownerBox} shelves={box.shelves} selectedKeys={box.selectedShelfKeys} onChange={onShelfChange} /> : null}
+      </S.DeckHeading>
       <S.DeckContent
         ref={contentRef}
         id="quick-peek-view"
@@ -602,7 +611,7 @@ export default function OperationsBoxQuickPeek({
         ) : (
           <>
             <S.ItemsHeader>
-              <span>{isAdrift ? 'Unboxed items' : 'Direct items'}</span>
+              <span>{isAdrift ? 'Unboxed items' : box.kind === 'cabinet' ? 'Contents' : 'Direct items'}</span>
               <S.ItemsHeaderMeta>
                 <S.ItemsCount>
                   {visibleItems.length}{' '}
@@ -652,17 +661,17 @@ export default function OperationsBoxQuickPeek({
           </>
         )}
       </S.DeckContent>
-      {boxFieldEdit && boxFieldEdit.boxMongoId === String(box._id) ? (
+      {box.kind !== "cabinet" && boxFieldEdit && boxFieldEdit.boxMongoId === String(box._id) ? (
         <QuickPeekBoxEditor key={`${box._id}-${boxFieldEdit.field}`} box={box}
           field={boxFieldEdit.field} onClose={onCloseBoxField} onSaved={onBoxSaved} />
       ) : null}
 
       {!itemSelection.selectedItem ? (
         <QuickPeekControlCenter
-          addItemsControl={<QuickPeekAddItems key={boxId} box={box} expanded={expanded} onItemsChanged={onItemSaved} />}
+          addItemsControl={box.kind === "cabinet" && !sectionIsLeaf ? null : <QuickPeekAddItems key={box.address || boxId} box={addTarget} expanded={expanded} onItemsChanged={onItemSaved} />}
           navigationControls={
             <QuickPeekHeaderControls embedded expanded={expanded} docked={docked}
-              onToggleExpanded={handleDetentClick} onClose={onDismiss || onClose}
+              onToggleExpanded={handleDetentClick}
               onPointerDown={handlePointerDown} onPointerUp={finishGesture} onPointerCancel={cancelGesture} />
           }
           notesOpen={noteReaderOpen}
@@ -683,7 +692,8 @@ export default function OperationsBoxQuickPeek({
           onOpenFullBox={onOpenFullBox}
         />
       ) : null}
-    </S.Deck>,
+    </S.Deck>
+    </>,
     portalTarget || document.body,
   );
 }

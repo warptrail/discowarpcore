@@ -1,9 +1,8 @@
 import React from 'react';
 import * as S from '../styles/InventoryGridHeader.styles';
-import { normalizeBoxId } from '../util/boxLocator';
+import { normalizeBoxAddress, parseBoxAddress } from '../util/boxAddress';
 import BoxIdPrefixInput from './BoxIdPrefixInput';
 
-const MAX_PREFIX_LENGTH = 3;
 
 function pluralizeBoxes(count) {
   const safeCount = Math.max(0, Number(count) || 0);
@@ -11,7 +10,7 @@ function pluralizeBoxes(count) {
 }
 
 function getScopeReadout({ query, visibleBoxCount, exactMatch }) {
-  const normalized = normalizeBoxId(query).slice(0, MAX_PREFIX_LENGTH);
+  const normalized = normalizeBoxAddress(query);
 
   if (!normalized) return 'All boxes';
   if (normalized.length === 1) {
@@ -20,7 +19,7 @@ function getScopeReadout({ query, visibleBoxCount, exactMatch }) {
   if (normalized.length === 2) {
     return `${normalized}X · ${pluralizeBoxes(visibleBoxCount)}`;
   }
-  if (!exactMatch) return 'No matching box';
+  if (!exactMatch) return 'Invalid or unknown address';
 
   const label = String(exactMatch?.label || exactMatch?.name || 'Untitled box').trim();
   return `#${normalized} · ${label}`;
@@ -35,7 +34,7 @@ export default function BoxLocatorControl({
   onActivateExact,
   compact = false,
 }) {
-  const normalizedQuery = normalizeBoxId(query).slice(0, MAX_PREFIX_LENGTH);
+  const normalizedQuery = normalizeBoxAddress(query);
   const readout = getScopeReadout({
     query: normalizedQuery,
     visibleBoxCount,
@@ -43,19 +42,23 @@ export default function BoxLocatorControl({
   });
 
   const updateQuery = (value) => {
-    onQueryChange?.(normalizeBoxId(value).slice(0, MAX_PREFIX_LENGTH));
+    onQueryChange?.(normalizeBoxAddress(value));
   };
 
+  const invalid = Boolean(normalizedQuery && (!parseBoxAddress(normalizedQuery) || (normalizedQuery.length >= 3 && !exactMatch)));
   return (
     <S.BoxLocatorScope $active={Boolean(normalizedQuery)} $compact={compact} title={compact ? readout : undefined}>
       <S.BoxLocatorInputGroup $compact={compact}>
         <S.ControlLabel>Box locator</S.ControlLabel>
+        <S.BoxLocatorInputFrame>
         <BoxIdPrefixInput
           inputAs={S.BoxLocatorInput}
           $compact={compact}
           id="bx-locator"
           namePrefix="box_scope"
-          maxLength={MAX_PREFIX_LENGTH}
+          maxLength={32}
+          aria-invalid={invalid || undefined}
+          title={invalid ? readout : "Box, cabinet, or shelf address (up to 504Z99)"}
           value={normalizedQuery}
           onChange={(event) => updateQuery(event.target.value)}
           onPaste={(event) => {
@@ -65,19 +68,21 @@ export default function BoxLocatorControl({
           onKeyDown={(event) => {
             if (event.key === 'Enter' && exactMatch) {
               event.preventDefault();
-              onActivateExact?.();
+              onActivateExact?.(event.currentTarget.value);
             }
             if (event.key === 'Escape' && normalizedQuery) {
               event.preventDefault();
               updateQuery('');
             }
           }}
-          placeholder="000"
-          ariaLabel="Three-digit box scope locator"
+          placeholder=""
+          ariaLabel="Box address scope locator"
         />
+        {!normalizedQuery ? <S.BoxLocatorClockHint aria-hidden="true">000</S.BoxLocatorClockHint> : null}
+        </S.BoxLocatorInputFrame>
       </S.BoxLocatorInputGroup>
 
-      <S.BoxLocatorReadout aria-live="polite" title={readout} $compact={compact}>
+      <S.BoxLocatorReadout aria-live="polite" title={readout} $compact={compact && !invalid}>
         <span>{readout}</span>
         {normalizedQuery && normalizedQuery.length < 3 ? (
           <small>{matchingRootCount} matching roots</small>

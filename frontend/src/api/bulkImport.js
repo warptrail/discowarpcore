@@ -1,3 +1,5 @@
+import { parseBoxAddress, normalizeBoxAddress } from '../util/boxAddress';
+import { flattenCompartments } from '../util/boxCompartments';
 import { API_BASE } from './API_BASE';
 
 async function readJson(response) {
@@ -19,13 +21,12 @@ function buildApiError({
 }
 
 export async function resolveBoxByShortId(shortId, opts = {}) {
-  const normalizedShortId = String(shortId || '').trim();
-  if (!/^\d{3}$/.test(normalizedShortId)) {
-    throw new Error('Box ID must be exactly 3 digits.');
-  }
+  const normalizedShortId = normalizeBoxAddress(shortId);
+  const parsed = parseBoxAddress(shortId);
+  if (!parsed?.complete) throw new Error('Use a complete box or shelf address.');
 
   const res = await fetch(
-    `${API_BASE}/api/boxes/resolve-short-id/${encodeURIComponent(normalizedShortId)}`,
+    `${API_BASE}/api/boxes/by-short-id/${encodeURIComponent(normalizedShortId)}`,
     { signal: opts.signal },
   );
 
@@ -42,7 +43,9 @@ export async function resolveBoxByShortId(shortId, opts = {}) {
     });
   }
 
-  return body?.box || null;
+  const box = body?.box || null;
+  if (box?.isComplexBox && !flattenCompartments(box).some(row => row.key === parsed.compartmentKey && !row.children?.length)) throw new Error('Choose a leaf storage address, such as 504B2.');
+  return box ? { ...box, address: normalizedShortId } : null;
 }
 
 export async function bulkCreateItems(

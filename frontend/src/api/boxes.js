@@ -106,7 +106,7 @@ export async function fetchBoxTreeByShortId(shortId, { signal } = {}) {
   console.log('Response status:', res.status);
 
   const json = await res.json();
-  console.log('Raw JSON from API:', json);
+  if (!res.ok) throw new Error(json.error?.message || json.error || 'Address not found');
 
   return json.box ?? json.data ?? json;
 }

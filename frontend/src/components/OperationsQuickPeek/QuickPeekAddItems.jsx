@@ -30,7 +30,7 @@ export default function QuickPeekAddItems({ box, expanded, onItemsChanged }) {
     showPlacementUndo({
       item: { ...payload.item, compartmentKey: payload.sourceCompartmentKey },
       box: payload.sourceBox || { systemType: 'orphaned', label: 'Items Adrift' },
-      destBoxId: box._id, destLabel: `#${box.box_id} ${box.label || ''}`,
+      destBoxId: box._id, destLabel: `#${box.box_id}${box.compartmentKey || ''} ${box.label || ''}`,
       onMoved: onItemsChanged, showToast,
     });
     setView(null);
@@ -45,13 +45,13 @@ export default function QuickPeekAddItems({ box, expanded, onItemsChanged }) {
     {view !== null ? createPortal(
       <S.Overlay $expanded={expanded} onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
         <S.Dialog ref={dialogRef} id={dialogId} tabIndex={-1} role="dialog" aria-modal="true"
-          aria-label={isAdrift ? 'Create unboxed item' : `Add items to box ${box.box_id}`} aria-busy={busy}>
+          aria-label={isAdrift ? 'Create unboxed item' : `Add items to #${box.box_id}${box.compartmentKey || ''}`} aria-busy={busy}>
           <S.Header>
             {view !== 'menu' && !isAdrift ? <Button type="button" aria-label="Back to add item choices"
               title="Back" disabled={busy} onClick={() => setView('menu')}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6" /></svg>
             </Button> : null}
-            <S.Identity>{isAdrift ? 'Items Adrift' : <><code>#{box.box_id}</code>{box.label || 'Untitled box'}</>}
+            <S.Identity>{isAdrift ? 'Items Adrift' : <><code>#{box.box_id}{box.compartmentKey}</code>{box.label || 'Untitled box'}</>}
               {view !== 'menu' ? <small>{view === 'create' ? 'Create here' : 'Move here'}</small> : null}
             </S.Identity>
             <Button type="button" aria-label="Close add item flow" title="Close" disabled={busy} onClick={close}>

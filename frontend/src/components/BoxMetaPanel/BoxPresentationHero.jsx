@@ -66,7 +66,9 @@ export default function BoxPresentationHero({
           >
             <S.CurrentBoxId>{boxId}</S.CurrentBoxId>
             <S.CurrentBoxMain>
-              <S.CurrentBoxTitle>{title}{box?.isComplexBox ? ' · Complex box' : ''}</S.CurrentBoxTitle><MissingBoxStatus box={box} />
+              <S.CurrentBoxTitle>{title}</S.CurrentBoxTitle>
+              {box?.isComplexBox ? <S.CurrentBoxKind>Complex box</S.CurrentBoxKind> : null}
+              <MissingBoxStatus box={box} />
               <S.CurrentBoxInfoRow>
                 <S.CurrentBoxLocationChip $variant="location" $empty={!location}>
                   <S.CurrentBoxLocationLabel $variant="location" $empty={!location}>

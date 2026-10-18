@@ -1,3 +1,4 @@
+import ItemThumbnailMedia from '../ItemThumbnailMedia';
 import CompactTagRow from '../Tags/CompactTagRow';
 import MissingStatus from '../MissingItems/MissingStatus';
 import * as S from './Retrieval.styles';
@@ -78,13 +79,11 @@ export default function RetrievalResultRow({
   const thumbnail = hasImage ? (
     <S.ThumbPreviewButton type="button" onClick={handleThumbClick}
       aria-label={`Preview image for ${item.name}`} data-thumb-surface="true">
-      <S.ThumbImage src={imageUrl} alt={`${item.name} thumbnail`} loading="lazy" />
+      <ItemThumbnailMedia item={item} sources={[imageUrl]} imageAs={S.ThumbImage} alt={`${item.name} thumbnail`} />
     </S.ThumbPreviewButton>
   ) : (
     <S.ThumbFrame data-thumb-surface="true">
-      <S.ThumbPlaceholder>{smallCard ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
-        <rect x="3" y="3" width="18" height="18" rx="3" /><path d="m4 17 5-5 4 4 3-3 4 4" />
-      </svg> : 'No Image'}</S.ThumbPlaceholder>
+      <ItemThumbnailMedia item={item} sources={[]} />
     </S.ThumbFrame>
   );
 
@@ -140,10 +139,11 @@ export default function RetrievalResultRow({
               ) : null}
 
               <S.CollapsedPlacementTable>
-                  <S.CollapsedBoxName title={boxSummary}>{boxName || (hasKnownBox ? 'Box' : 'Items Adrift')}</S.CollapsedBoxName>
+                  <S.CollapsedBoxName title={item.placementTrail || boxSummary}>{boxName || (hasKnownBox ? 'Box' : 'Items Adrift')}</S.CollapsedBoxName>
                   <S.CollapsedLocationValue $unknown={!hasKnownLocation} title={`Location: ${locationSummary}`}>
                     {locationSummary}
                   </S.CollapsedLocationValue>
+                  {item.placementTrail?.includes(' > ') ? <S.CompactMetaLine title={item.placementTrail}>{item.placementTrail}</S.CompactMetaLine> : null}
                   {tagPreview ? (
                     <S.CollapsedTagPreview aria-label={`Item tags: ${tagPreview}`} title={tagPreview}>
                       <CompactTagRow tags={item.tags} name={item.name || 'item'} />

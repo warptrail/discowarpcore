@@ -1,3 +1,4 @@
+const { withBoxMutationLock } = require('../utils/boxMutationLock');
 const { withItemMutationLock } = require('../utils/itemMutationLock');
 // services/boxItemService.js
 const Box = require('../models/Box');
@@ -88,7 +89,7 @@ async function logItemMovedEvent({
  * - Clear orphaning flags + location (box owns location)
  */
 async function attachItemToBox(options) {
-  return withItemMutationLock(options.itemId, () => attachItemToBoxUnlocked(options), options.mutationToken);
+  return withItemMutationLock(options.itemId, () => withBoxMutationLock(() => attachItemToBoxUnlocked(options)), options.mutationToken);
 }
 async function attachItemToBoxUnlocked({ itemId, boxId, compartmentKey, suppressMoveLog = false }) {
   const [item, destinationBox, sourceBox] = await Promise.all([
@@ -193,7 +194,7 @@ async function attachItemToBoxUnlocked({ itemId, boxId, compartmentKey, suppress
  * - If the item is no longer in ANY box, mark as orphaned and wipe location
  */
 async function removeItemFromBox(boxId, itemId) {
-  return withItemMutationLock(itemId, () => removeItemFromBoxUnlocked(boxId, itemId));
+  return withItemMutationLock(itemId, () => withBoxMutationLock(() => removeItemFromBoxUnlocked(boxId, itemId)));
 }
 async function removeItemFromBoxUnlocked(boxId, itemId, reason = 'remove_item_from_box') {
   const [item, sourceBox] = await Promise.all([
@@ -228,6 +229,9 @@ async function removeItemFromBoxUnlocked(boxId, itemId, reason = 'remove_item_fr
  * - New items start with orphan flags cleared by the attach primitive
  */
 async function createItemInBox(boxId, itemPayload) {
+  return withBoxMutationLock(() => createItemInBoxUnlocked(boxId, itemPayload));
+}
+async function createItemInBoxUnlocked(boxId, itemPayload) {
   if (!itemPayload || !itemPayload.name)
     throw new Error('Item name is required');
 

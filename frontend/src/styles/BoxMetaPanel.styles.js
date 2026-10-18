@@ -456,10 +456,10 @@ export const CurrentBox = styled.div`
 
 export const CurrentBoxId = styled.span`
   font-family: var(--dw-font-data);
-  font-size: 1.08rem;
+  font-size: 2rem;
   font-weight: 700;
   letter-spacing: 0.01em;
-  line-height: 1;
+  line-height: 1.15;
   padding: 3px 0;
   border-radius: 0;
   color: var(--box-neon, rgba(109, 201, 196, 0.78));
@@ -467,7 +467,7 @@ export const CurrentBoxId = styled.span`
   border: 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: ${MOBILE_FONT_SM};
+    font-size: 1.65rem;
     letter-spacing: 0.01em;
     padding: 3px 0;
   }
@@ -548,17 +548,21 @@ export const CurrentBoxTag = styled.span`
 `;
 
 export const CurrentBoxTitle = styled.span`
-  color: var(--box-neon, #edf3ff);
-  font-size: clamp(1.05rem, 2.2vw, 1.28rem);
+  color: var(--dw-text);
+  font-size: clamp(1.15rem, 2.2vw, 1.4rem);
   font-weight: 700;
   letter-spacing: -0.015em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: 0.9rem;
+    font-size: 1.1rem;
   }
+`;
+
+export const CurrentBoxKind = styled.span`
+  color: var(--box-primary); font: 500 .8rem/1.4 var(--dw-font-ui);
 `;
 
 export const CompactDescription = styled.p`

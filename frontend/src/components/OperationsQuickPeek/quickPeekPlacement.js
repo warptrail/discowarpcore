@@ -1,3 +1,4 @@
+import { getLeafCompartments } from '../../util/boxCompartments';
 import { API_BASE } from '../../api/API_BASE';
 
 export async function changePlacement(itemId, sourceBoxId, destBoxId, compartmentKey) {
@@ -24,7 +25,7 @@ export function showPlacementUndo({ item, box, destBoxId, destLabel, onMoved, sh
       if (undoPending) return;
       undoPending = true;
       try {
-        await changePlacement(itemId, destBoxId, source, item.compartmentKey || item.box?.compartmentKey || (box.isComplexBox ? 'A' : undefined));
+        await changePlacement(itemId, destBoxId, source, item.compartmentKey || item.box?.compartmentKey || (source && box?.isComplexBox ? getLeafCompartments(box)[0]?.key : undefined));
         onMoved?.();
         showToast?.({ variant: 'success', title: 'MOVE UNDONE', message: `${item.name} returned to ${isAdrift ? 'Items Adrift' : box.label || box.box_id}.`, timeoutMs: 2600 });
       } catch (failure) {

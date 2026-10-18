@@ -1,12 +1,9 @@
+import { normalizeBoxAddress } from '../../util/boxAddress';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { bulkCreateItems, resolveBoxByShortId } from '../../api/bulkImport';
 import { BULK_IMPORT_ITEM_NAME_MAX_LENGTH, parseBulkImportText } from './bulkImportParser';
 
-function normalizeBoxInput(rawValue) {
-  return String(rawValue || '')
-    .replace(/\D+/g, '')
-    .slice(0, 3);
-}
+const normalizeBoxInput = normalizeBoxAddress;
 
 function isPlainTextFile(file) {
   const mime = String(file?.type || '').toLowerCase();
@@ -29,7 +26,7 @@ function defaultParseResult() {
 
 function formatBoxLabel(box) {
   if (!box) return '';
-  const base = `#${box.box_id} — ${box.label || 'Box'}`;
+  const base = `#${box.address || box.box_id} — ${box.label || 'Box'}`;
   const location = String(box.location || '').trim();
   return location ? `${base} (${location})` : base;
 }
@@ -118,7 +115,7 @@ export default function useBulkImportText() {
     if (!fileName) return 'Select a plain text file to begin.';
     if (!hasParsedItems) return 'No valid non-empty lines were found.';
     if (boxShortId && boxState.status !== 'valid') {
-      return 'Enter a valid 3-digit box ID, or clear the field for orphaned import.';
+      return 'Enter a valid box or shelf address, or clear the field for orphaned import.';
     }
     return '';
   }, [boxShortId, boxState.status, fileName, hasParsedItems]);
@@ -204,7 +201,7 @@ export default function useBulkImportText() {
 
       const destination = result?.destination || null;
       const successMessage = destination
-        ? `Imported ${createdCount} items into #${destination.box_id} — ${destination.label || 'Box'}.`
+        ? `Imported ${createdCount} items into #${destination.address || destination.box_id} — ${destination.label || 'Box'}.`
         : `Imported ${createdCount} orphaned items.`;
 
       const truncationSuffix =

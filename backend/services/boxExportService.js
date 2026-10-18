@@ -1,5 +1,5 @@
 const Box = require('../models/Box');
-const { getCompartments, itemPlacement } = require('../utils/boxCompartments');
+const { getCompartments, getChildBoxCompartment, itemPlacement } = require('../utils/boxCompartments');
 const Item = require('../models/Item');
 const { withNormalizedItemCategory } = require('../utils/itemCategory');
 const { formatLocationName } = require('../utils/locationName');
@@ -13,6 +13,7 @@ const BOX_EXPORT_CSV_COLUMNS = [
   'box_id',
   'box_label',
   'compartment',
+  'placement_address',
   'item_id',
   'item_name',
   'quantity',
@@ -320,6 +321,7 @@ function buildBoxCsvRowsFromPayload(payload) {
     box_id: boxId,
     box_label: boxLabel,
     compartment: String(item?.compartmentKey || ''),
+    placement_address: String(item?.placementLabel || `${boxId}${item?.compartmentKey || ''}`),
     item_id: String(item?.mongoId || ''),
     item_name: String(item?.name || ''),
     quantity: item?.quantity ?? '',
@@ -348,7 +350,7 @@ function renderChildBoxesSection(childBoxes) {
       return `
         <tr>
           <td class="nowrap">${escapeHtml(child?.boxId || '')}</td>
-          <td>${escapeHtml(child?.label || '')}</td>
+          <td>${escapeHtml(child?.label || '')}${child.parentPlacementLabel ? `<div class="muted">Stored in #${escapeHtml(child.parentPlacementLabel)}</div>` : '<div class="muted">Placement unspecified</div>'}</td>
           <td>${escapeHtml(child?.location || '')}</td>
           <td>${escapeHtml(tags)}</td>
         </tr>
@@ -383,6 +385,7 @@ function renderItemsSection(items) {
         <tr>
           <td class="item-main">
             <div class="item-name">${escapeHtml(item?.name || '')}</div>
+            ${item?.placementLabel ? `<div class="muted">#${escapeHtml(item.placementLabel)}</div>` : ''}
           </td>
           <td class="num-cell">${escapeHtml(item?.quantity ?? '')}</td>
           <td>${escapeHtml(item?.category || '')}</td>
@@ -626,6 +629,7 @@ function buildBoxHtmlFromPayload(payload, { qrPngDataUrl = '' } = {}) {
         text-align: center;
       }
 
+      .muted { color: #444; font-size: 0.85em; }
       .item-name {
         font-weight: 600;
         line-height: 1.22;
@@ -931,7 +935,7 @@ async function buildBoxJsonExport(
 
   const root = await Box.findById(boxMongoId)
     .populate('locationId', 'room vicinity specifics exactSpot')
-    .select('_id box_id label name isComplexBox compartments itemCompartments description notes location locationId tags parentBox items')
+    .select('_id box_id label name isComplexBox compartments itemCompartments childBoxCompartments description notes location locationId tags parentBox items')
     .lean();
 
   if (!root) {
@@ -940,7 +944,7 @@ async function buildBoxJsonExport(
 
   const directChildBoxesDocs = await Box.find({ parentBox: root._id })
     .populate('locationId', 'room vicinity specifics exactSpot')
-    .select('_id box_id label name isComplexBox compartments itemCompartments description notes location locationId tags')
+    .select('_id box_id label name isComplexBox compartments itemCompartments childBoxCompartments description notes location locationId tags')
     .sort({ box_id: 1, _id: 1 })
     .lean();
 
@@ -963,7 +967,12 @@ async function buildBoxJsonExport(
     .filter(Boolean)
     .map((item) => ({ ...formatExportItem(item), ...itemPlacement(root, item._id) }));
 
-  const directChildBoxes = directChildBoxesDocs.map(formatExportChildBox);
+  const directChildBoxes = directChildBoxesDocs.map((child) => {
+    const key = getChildBoxCompartment(root, child._id);
+    return { ...formatExportChildBox(child), parentCompartmentKey: key,
+      parentPlacementLabel: key ? `${root.box_id}${key}` : root.isComplexBox ? '' : root.box_id,
+      isComplexBox: Boolean(child.isComplexBox), compartments: getCompartments(child) };
+  });
   const breadcrumb = await buildBreadcrumbPath(root);
   const generatedAt = new Date().toISOString();
   const shortId = normalizeShortId(root.box_id);
@@ -989,6 +998,8 @@ async function buildBoxJsonExport(
       label: normalizeBoxLabel(root),
       isComplexBox: Boolean(root.isComplexBox),
       compartments: getCompartments(root),
+      itemCompartments: root.itemCompartments || {},
+      childBoxCompartments: root.childBoxCompartments || {},
       description: String(root?.description || ''),
       notes: String(root?.notes || ''),
       generatedAt,

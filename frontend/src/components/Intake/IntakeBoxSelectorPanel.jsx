@@ -1,3 +1,5 @@
+import { parseBoxAddress } from '../../util/boxAddress';
+import { getLeafCompartments } from '../../util/boxCompartments';
 import { quietSectionStyles, consoleControlStyles, consoleFieldStyles } from './IntakeConsole.styles';
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
@@ -321,10 +323,10 @@ export default function IntakeBoxSelectorPanel({
     const searchTerms = getSearchTerms(search);
     const location = normalize(locationFilter);
     const tag = normalize(tagFilter);
-    const numericPrefix = /^\d{1,3}/.exec(search)?.[0] || '';
-    const prioritizesBoxId = numericPrefix.length > 0;
 
-    return boxes
+    const destinations = boxes.flatMap(box => box.isComplexBox ? getLeafCompartments(box).map(row => ({ ...box, compartmentKey: row.key, address: `${box.box_id}${row.key}`, label: `${row.parentLabel || box.label} · ${row.label || row.key}` })) : [box]);
+    const address = parseBoxAddress(search);
+    return destinations
       .map((box, index) => {
       const boxId = normalize(box?.box_id);
       const boxLocation = normalize(
@@ -332,7 +334,7 @@ export default function IntakeBoxSelectorPanel({
       );
       const tags = Array.isArray(box?.tags) ? box.tags.map(normalize) : [];
       const searchableText = getBoxSearchText(box);
-      const matchesShortId = prioritizesBoxId && boxId.startsWith(numericPrefix);
+      const matchesShortId = address && String(box.address || boxId).toUpperCase().startsWith(address.address);
       const matchesFuzzySearch =
         !searchTerms.length ||
         searchTerms.every((term) => searchableText.includes(term));
@@ -510,16 +512,17 @@ export default function IntakeBoxSelectorPanel({
         ) : (
           pagedBoxes.map((box) => {
             const key = String(box?._id || '');
+            const resultKey = `${key}:${box.compartmentKey || ''}`;
             const imageUrl = getBoxImageUrl(box);
             const boxTheme = getBoxTheme(box?.box_id);
 
             return (
               <ResultButton
-                key={key || `${box?.box_id || 'box'}-${box?.label || 'unnamed'}`}
+                key={resultKey}
                 type="button"
                 $active={key === String(selectedBoxId || '')}
                 style={getBoxThemeCssVars(boxTheme)}
-                onClick={() => onSelectBox?.(key)}
+                onClick={() => onSelectBox?.(key, box.compartmentKey)}
               >
                 <Thumb>
                   {imageUrl ? <ThumbImage src={imageUrl} alt="" /> : (
@@ -531,7 +534,7 @@ export default function IntakeBoxSelectorPanel({
 
                 <Identity>
                   <Name>{box?.label || 'Unnamed Box'}</Name>
-                  <ShortId>#{box?.box_id || '---'}</ShortId>
+                  <ShortId>#{box?.address || box?.box_id || '---'}</ShortId>
                 </Identity>
                 <ResultChevron aria-hidden="true">›</ResultChevron>
               </ResultButton>

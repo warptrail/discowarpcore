@@ -1,3 +1,4 @@
+import BoxAddressClockHint from '../../styles/BoxAddressClockHint';
 import styled, { css, keyframes } from 'styled-components';
 import { Link } from 'react-router-dom';
 import { controlStyles, inputStyles, panelStyles } from '../../styles/primitives';
@@ -483,23 +484,8 @@ export const BoxPrefixInput = styled.input`
   font-family: var(--dw-font-data);
 `;
 
-const boxPrefixClockBlink = keyframes`
-  0%, 100% { opacity: 0.85; }
-  50% { opacity: 0.28; }
-`;
-
-export const BoxPrefixClockHint = styled.span`
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: var(--dw-text-secondary);
-  font: 850 0.92rem/1 var(--dw-font-data);
-  font-variant-numeric: tabular-nums;
-  pointer-events: none;
-  animation: ${boxPrefixClockBlink} 2s steps(2, end) infinite;
+export const BoxPrefixClockHint = styled(BoxAddressClockHint)`
   @media (max-width: ${MOBILE_BREAKPOINT}) { font-size: 0.94rem; }
-  @media (prefers-reduced-motion: reduce) { animation: none; opacity: 0.85; }
 `;
 
 export const SearchHint = styled.p`
@@ -1585,6 +1571,8 @@ export const BoxRowLabel = styled.span`
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
+
+  ${({ $section }) => $section && css`display: block; overflow: visible; overflow-wrap: anywhere; -webkit-line-clamp: unset;`}
 `;
 
 export const BoxRowContext = styled.span`

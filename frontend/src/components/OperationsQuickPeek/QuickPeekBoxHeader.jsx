@@ -34,7 +34,7 @@ export default function QuickPeekBoxHeader({
 }) {
   const searchInputRef = useRef(null);
   const searchScrollGestureRef = useRef(null);
-  const boxId = String(box?.box_id || '').trim();
+  const boxId = String(box?.address || box?.box_id || '').trim();
   const isAdrift = box?.systemType === 'orphaned';
   const label = String(box?.label || box?.name || 'Untitled box').trim();
 
@@ -87,6 +87,17 @@ export default function QuickPeekBoxHeader({
       onPointerCancel={onPointerCancel}
       onClickCapture={onGestureClickCapture}
     >
+      <S.CapCloseButton
+        type="button"
+        aria-label={docked ? 'Close box inspector' : 'Close box quick peek'}
+        title="Close panel"
+        onPointerDown={(event) => event.stopPropagation()}
+        onPointerUp={(event) => event.stopPropagation()}
+        onPointerCancel={(event) => event.stopPropagation()}
+        onClick={(event) => { event.stopPropagation(); onClose?.(); }}
+      >
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" /></svg>
+      </S.CapCloseButton>
       {imageUrl ? (
         <S.DeckCapArtwork
           aria-hidden="true"
@@ -175,7 +186,7 @@ export default function QuickPeekBoxHeader({
       </S.CapIdentityStack>
       {itemFocused ? <QuickPeekHeaderControls itemControls={itemActionPanel}
         itemFocused={itemFocused} isAdrift={isAdrift} expanded={expanded} docked={docked}
-        onReturnToItems={onReturnToItems} onToggleExpanded={onToggleExpanded} onClose={onClose}
+        onReturnToItems={onReturnToItems} onToggleExpanded={onToggleExpanded}
         onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel} /> : null}
     </S.DeckCap>
   );

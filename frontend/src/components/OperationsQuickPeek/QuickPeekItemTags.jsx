@@ -8,7 +8,7 @@ import { addQuickPeekTag, removeQuickPeekTag, quickPeekTagRows } from './quickPe
 
 const Shell = styled.div`min-width: 0; display: grid; gap: 4px;`;
 const AddRow = styled.div`
-  display: grid; grid-template-columns: minmax(0, 1fr) 44px 44px; gap: 2px; align-items: center;
+  display: grid; grid-template-columns: ${({ $editing }) => $editing ? 'minmax(0, 1fr) 44px' : '44px'}; gap: 2px; align-items: center;
   input { box-sizing: border-box; min-width: 0; width: 100%; height: 36px; padding: 0 8px;
     border: 1px solid rgba(var(--box-primary-rgb), .24); border-radius: 4px;
     background: var(--dw-background); color: var(--dw-text); font: 400 .8rem var(--dw-font-ui); }
@@ -39,7 +39,9 @@ function getKnownTags() {
 }
 
 export default function QuickPeekItemTags({ item, tags, name, description, onSaved }) {
-  const [removing, setRemoving] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const inputRef = useRef(null);
+  const toggleRef = useRef(null);
   const [value, setValue] = useState('');
   const [saving, setSaving] = useState(false);
   const [hint, setHint] = useState('');
@@ -47,10 +49,12 @@ export default function QuickPeekItemTags({ item, tags, name, description, onSav
   const busy = useRef(false);
   const listId = useId();
   useEffect(() => {
+    if (!editing) return;
+    inputRef.current?.focus();
     let alive = true;
     getKnownTags().then(values => { if (alive) setOptions(values); }).catch(error => { if (alive) setHint(error.message); });
     return () => { alive = false; };
-  }, []);
+  }, [editing]);
   const save = async (next, message) => {
     if (!next || busy.current) return;
     busy.current = true; setSaving(true); setHint('');
@@ -69,24 +73,29 @@ export default function QuickPeekItemTags({ item, tags, name, description, onSav
     if (!next) { if (inputValue.trim()) setHint('That tag is already recorded.'); return; }
     return save(next, 'Tag added.');
   };
+  const close = () => {
+    if (busy.current) return;
+    setEditing(false); setValue(''); setHint('');
+    toggleRef.current?.focus();
+  };
   return <Shell>
     {tags.length > 0 && <CompactTagRow returnKey={`operations-item:${item._id || item.id}`} tags={tags} name={name}
-      maxRows={quickPeekTagRows(description)} editable onRemove={removing ? tag => save(removeQuickPeekTag(tags, tag), 'Tag removed.') : undefined}
+      maxRows={quickPeekTagRows(description)} editable={editing} onRemove={editing ? tag => save(removeQuickPeekTag(tags, tag), 'Tag removed.') : undefined}
       disabled={saving} />}
-    <AddRow as="form" onSubmit={event => {
+    <AddRow as="form" id={`${listId}-editor`} $editing={editing} onSubmit={event => {
       event.preventDefault();
-      return add(event.currentTarget.querySelector('input').value);
+      if (editing) return add(event.currentTarget.querySelector('input').value);
     }}>
-      <input aria-label="Add item tag" placeholder="Add tag…" value={value} list={listId} disabled={saving}
+      {editing && <><input ref={inputRef} aria-label="Add item tag" placeholder="Add tag…" value={value} list={listId} disabled={saving}
         onChange={event => { setValue(event.target.value); setHint(''); }}
-        onFocus={() => { getKnownTags().then(setOptions).catch(error => setHint(error.message)); }} onKeyDown={event => {
+        onKeyDown={event => {
           if (event.nativeEvent.isComposing) return;
           if (event.key === 'Enter') event.stopPropagation();
-          if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setValue(''); setRemoving(false); }
+          if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(); }
         }} />
       <datalist id={listId}>{options.map(tag => <option key={tag} value={tag} />)}</datalist>
-      <button type="button" disabled={saving || !value.trim()} aria-label="Add tag" onClick={() => add()}>+</button>
-      <button type="button" disabled={saving || !tags.length} aria-label="Toggle tag removal" aria-pressed={removing} title={removing ? 'Finish removing tags' : 'Remove tags'} onClick={() => setRemoving(current => !current)}>
+      </>}
+      <button ref={toggleRef} type="button" disabled={saving} aria-label={editing ? 'Finish editing item tags' : 'Edit item tags'} aria-pressed={editing} aria-expanded={editing} aria-controls={`${listId}-editor`} title={editing ? 'Finish editing tags' : 'Edit tags'} onClick={() => { if (editing) close(); else setEditing(true); }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m4 16 11-11 4 4-11 11-5 1zM13 7l4 4" /></svg>
       </button>
     </AddRow>

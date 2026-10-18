@@ -8,14 +8,14 @@ const searchText = (values) => normalize(values.filter(Boolean).join(' '));
 export function getItemSearchText(item) {
   return searchText([
     item?.name, item?.label, item?.description, item?.notes, item?.category,
-    item?.location, item?.primaryOwnerName, item?.keepPriority, ...tags(item),
+    item?.placementLabel, item?.placementTrail, item?.location, item?.primaryOwnerName, item?.keepPriority, ...tags(item),
   ]);
 }
 
 export function getBoxSearchText(box, locationPath = []) {
   const location = typeof box?.locationId === 'object' ? box.locationId : null;
   return searchText([
-    box?.box_id, box?.label, box?.name, box?.location, ...locationPath,
+    box?.box_id, box?.address, ...(box?.compartments || []).flatMap(row => [row.label, `${box.box_id}${row.key}`, ...(row.children || []).map(child => `${box.box_id}${child.key} ${child.label}`)]), box?.label, box?.name, box?.location, ...locationPath,
     ...LOCATION_LEVELS.map((level) => location?.[level]),
     box?.description, box?.notes, ...tags(box),
   ]);
@@ -46,7 +46,7 @@ export function countMatchingInventoryBoxes(boxes, matches) {
       const identity = typeof key === 'object' ? key : String(key);
       if (seen.has(identity)) continue;
       seen.add(identity);
-      if (matches(box)) count += 1;
+      if (box.kind !== "cabinet" && matches(box)) count += 1;
       count += visit(box.childBoxes);
     }
     return count;

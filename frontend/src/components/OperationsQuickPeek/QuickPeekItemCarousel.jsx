@@ -2,7 +2,7 @@ import QuickPeekItemFacts from './QuickPeekItemFacts';
 import QuickPeekItemTags from './QuickPeekItemTags';
 import MissingStatus from '../MissingItems/MissingStatus';
 import React, { useEffect, useState } from 'react';
-import { getItemPlaceholderGradientStyle } from '../../util/itemPlaceholderGradient';
+import InventoryObjectShape from '../InventoryObjectShape';
 import {
   getItemOriginalImageUrl,
   getItemPreviewImageCandidates,
@@ -20,7 +20,7 @@ function getTags(item) {
     .filter(Boolean);
 }
 
-function ItemPreviewImage({ item, name }) {
+export function ItemPreviewImage({ item, name }) {
   const candidates = getItemPreviewImageCandidates(item);
   const candidateKey = candidates.join('\n');
   const [candidateIndex, setCandidateIndex] = useState(0);
@@ -33,7 +33,9 @@ function ItemPreviewImage({ item, name }) {
   }, [candidateKey]);
 
   if (!source) {
-    return <S.ItemCarouselImageFallback aria-hidden="true" style={getItemPlaceholderGradientStyle(item)} />;
+    return <S.ItemCarouselImageFallback aria-hidden="true">
+      <InventoryObjectShape item={item} />
+    </S.ItemCarouselImageFallback>;
   }
 
   return (

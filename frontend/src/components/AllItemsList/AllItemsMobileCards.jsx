@@ -1,6 +1,7 @@
+import ItemThumbnailMedia from '../ItemThumbnailMedia';
 import TagLinks from '../TagLinks';
 import MissingStatus from '../MissingItems/MissingStatus';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getItemHomeHref } from '../../api/itemDetails';
 import * as S from './AllItemsList.styles';
@@ -17,31 +18,8 @@ function getItemHref(itemId) {
   }
 }
 
-function MobileThumbnail({ src, fallbackSrc }) {
-  const [currentSrc, setCurrentSrc] = useState(src);
-
-  useEffect(() => {
-    setCurrentSrc(src);
-  }, [src]);
-
-  if (!currentSrc) {
-    return <S.MobileThumbPlaceholder aria-hidden="true">∅</S.MobileThumbPlaceholder>;
-  }
-
-  return (
-    <S.MobileThumbImage
-      src={currentSrc}
-      alt=""
-      loading="lazy"
-      decoding="async"
-      fetchPriority="low"
-      onError={() => {
-        setCurrentSrc((failedSrc) => (
-          fallbackSrc && failedSrc !== fallbackSrc ? fallbackSrc : ''
-        ));
-      }}
-    />
-  );
+function MobileThumbnail({ item, src, fallbackSrc }) {
+  return <ItemThumbnailMedia item={item} sources={[src, fallbackSrc].filter(Boolean)} imageAs={S.MobileThumbImage} />;
 }
 
 function resolveCardProcessingState({
@@ -175,9 +153,9 @@ function MobileItemCard({
           <S.MobileCondensedRow>
             <S.MobileThumbFrame $large $accentColor={accentColor} $accentActive={accentActive}>
               {thumbnailUrl ? (
-                <MobileThumbnail src={thumbnailUrl} fallbackSrc={originalImageUrl} />
+                <MobileThumbnail item={item} src={thumbnailUrl} fallbackSrc={originalImageUrl} />
               ) : (
-                <S.MobileThumbPlaceholder aria-hidden="true">∅</S.MobileThumbPlaceholder>
+                <ItemThumbnailMedia item={item} />
               )}
             </S.MobileThumbFrame>
             <S.MobileCondensedText>
@@ -252,7 +230,7 @@ function MobileItemCard({
                 $accentColor={accentColor}
                 $accentActive={accentActive}
               >
-                <MobileThumbnail src={thumbnailUrl} fallbackSrc={originalImageUrl} />
+                <MobileThumbnail item={item} src={thumbnailUrl} fallbackSrc={originalImageUrl} />
               </S.MobileThumbFrame>
             </S.MobileThumbButton>
           ) : (
@@ -261,7 +239,7 @@ function MobileItemCard({
               $accentColor={accentColor}
               $accentActive={accentActive}
             >
-              <S.MobileThumbPlaceholder aria-hidden="true">∅</S.MobileThumbPlaceholder>
+              <ItemThumbnailMedia item={item} />
             </S.MobileThumbFrame>
           )}
           <S.MobileNameBlock>

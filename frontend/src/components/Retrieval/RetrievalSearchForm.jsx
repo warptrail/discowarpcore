@@ -60,7 +60,7 @@ const PrimaryRow = styled.div`
 
 export default function RetrievalSearchForm({
   mode = 'items', scope, searchValue, onSearchChange, searchLabel, searchPlaceholder,
-  boxIdPrefix, onBoxIdPrefixChange, filterOptions, activeChips, onCategoryChange,
+  boxIdPrefix, onBoxIdPrefixChange, onBoxAddressActivate, filterOptions, activeChips, onCategoryChange,
   onTagChange, onTagRemove, onLocationSelectionChange, onOwnerChange, onKeepPriorityChange,
   onRemoveChip, onClearAll, tagOperator, onTagOperatorChange, sortOptions, selectedSort,
   onSortChange, selectedBoxRooms, selectedBoxLocations, selectedBoxTags, onBoxRoomsChange,
@@ -73,10 +73,10 @@ export default function RetrievalSearchForm({
     useRetrievalFinderDock({ onFinderDetachedChange, desktop });
 
   const search = <RetrievalFinderPresence id="retrieval-search-panel" visible={!searchIsInConsole || !finderMinimized}>
-    <PrimaryRow $boxMode={isBoxMode} $mode={mode}>
+    <PrimaryRow $boxMode={true} $mode={mode}>
       <RetrievalSearchBar id="retrieval-main-search" value={searchValue} onChange={onSearchChange}
         label={searchLabel} placeholder={searchPlaceholder} hint="" />
-      {isBoxMode ? <RetrievalBoxIdPrefixField value={boxIdPrefix} onChange={onBoxIdPrefixChange} /> : null}
+      <RetrievalBoxIdPrefixField value={boxIdPrefix} onChange={onBoxIdPrefixChange} onActivate={onBoxAddressActivate} />
     </PrimaryRow>
   </RetrievalFinderPresence>;
 
@@ -104,7 +104,7 @@ export default function RetrievalSearchForm({
         onReshuffle={onReshuffle} shuffled={shuffled} loading={loading}
         onResetSearch={() => {
           onSearchChange?.('');
-          if (isBoxMode) onBoxIdPrefixChange?.('');
+          onBoxIdPrefixChange?.('');
         }}
       />
     </Form>

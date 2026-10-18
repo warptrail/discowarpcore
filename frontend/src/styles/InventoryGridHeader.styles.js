@@ -1,3 +1,4 @@
+import BoxAddressClockHint from './BoxAddressClockHint';
 import styled, { css, keyframes } from 'styled-components';
 import { controlStyles, inputStyles, panelStyles } from './primitives';
 import { Link } from 'react-router-dom';
@@ -859,9 +860,21 @@ export const BoxLocatorInputGroup = styled.label`
   `}
 `;
 
+export const BoxLocatorClockHint = styled(BoxAddressClockHint)`
+  font-size: 1.02rem;
+  font-weight: 650;
+`;
+
+export const BoxLocatorInputFrame = styled.span`
+  position: relative;
+  display: block;
+  width: max-content;
+  &:focus-within > ${BoxLocatorClockHint} { animation: none; opacity: 0.85; }
+`;
+
 export const BoxLocatorInput = styled.input`
   ${controlField};
-  width: 4.7rem;
+  width: 7.3rem;
   min-height: var(--dw-control-height);
   padding: 0.34rem 0.46rem;
   text-align: center;
@@ -886,8 +899,8 @@ export const BoxLocatorInput = styled.input`
 
   @media (max-width: 560px) {
     ${({ $compact }) => $compact && css`
-      width: 4rem;
-      max-width: 4rem;
+      width: 6.6rem;
+      max-width: 6.6rem;
       min-height: var(--dw-control-height);
       padding-block: 0.22rem;
       border: 0;

@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { styledComponents as Box } from '../../styles/BoxList.styles';
 export const Status = styled.span`
   display: inline-block; color: var(--dw-amber); font: 500 .78rem/1.5 var(--dw-font-ui);
   overflow-wrap: anywhere; white-space: normal;
@@ -22,11 +23,20 @@ export const Form = styled.form`
 `;
 export const ErrorText = styled.p`color:var(--dw-coral);`;
 export const Lane = styled.section`
-  margin:12px 0;padding:12px;border:1px solid var(--dw-border-soft);border-radius:12px;background:var(--dw-surface);
+  margin:12px 0;padding:0;border:0;border-radius:var(--dw-radius-sm);background:var(--dw-surface);
   color:var(--dw-text);min-width:0;
   h2 {margin:0;font-size:1rem;} p {font-size:.85rem;line-height:1.5;}
 `;
-export const Toggle = styled(Button)`width:100%;display:flex;justify-content:space-between;gap:12px;color:var(--dw-amber);text-align:left;`;
+export const Toggle = styled(Box.OrphanedAttentionLink)`
+  border: 0; border-left: 3px solid var(--dw-amber); overflow: visible;
+  ${Box.BoxBodyRow} { align-items: center; overflow: visible; }
+  ${Box.OrphanedAttentionCopy} { min-width: 0; }
+  ${Box.CardManifest} { display: flex; gap: 10px; }
+  &:hover { background: var(--dw-surface-raised); }
+`;
+export const VirtualKicker = styled(Box.OrphanedAttentionKicker)`color: var(--dw-amber);`;
+export const VirtualMeta = styled(Box.OrphanedAttentionMeta)`white-space: normal;`;
+export const LaneBody = styled.div`padding:12px;border-top:1px solid var(--dw-border-soft);min-width:0;`;
 export const List = styled.ul`list-style:none;margin:12px 0;padding:0;`;
 export const Row = styled.li`
   display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:12px 0;border-bottom:1px solid var(--dw-border-soft);

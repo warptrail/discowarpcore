@@ -1,3 +1,5 @@
+import { normalizeBoxAddress, parseBoxAddress } from '../util/boxAddress';
+import { buildBoxViewTree, scopeBoxViews, findAddressView, viewAddress, compareFamilyViews } from '../util/boxAddressViews';
 import { useMissingItems } from './MissingItems/MissingItemsContext';
 import MissingBoxStatus from './MissingItems/MissingBoxStatus';
 import MissingItemsLane from './MissingItems/MissingItemsLane';
@@ -22,7 +24,6 @@ import InventorySearchMatches from './InventorySearchMatches';
 import { normalizeItemCategory } from '../util/itemCategories';
 import { matchesPrimaryOwner } from '../util/itemOwners';
 import {
-  filterBoxTreeByIdPrefix,
   normalizeBoxId,
 } from '../util/boxLocator';
 import {
@@ -33,7 +34,6 @@ import OperationsBoxQuickPeek from './OperationsQuickPeek/OperationsBoxQuickPeek
 import useOperationsQuickPeek, {
   getOperationsBoxAnchorId,
 } from './OperationsQuickPeek/useOperationsQuickPeek';
-import TerminalItemTable from './OperationsTerminal/TerminalItemTable';
 import OperationsArchivedItemsLane from './OperationsArchivedItems/OperationsArchivedItemsLane';
 import OperationsBoxCard from './OperationsInventory/OperationsBoxCard';
 import OperationsDesktopTree from './OperationsInventory/OperationsDesktopTree';
@@ -80,7 +80,6 @@ export default function BoxList({
   const [searchParams, setSearchParams] = useSearchParams();
   const [quickCreatedBoxes, setQuickCreatedBoxes] = useState([]);
   const [viewMode, setViewMode] = useState('cards');
-  const [expandedTerminalBoxId, setExpandedTerminalBoxId] = useState('');
   const [searchQuery, setSearchQueryValue] = useState(() => searchParams.get('q') || '');
   const setSearchQuery = useCallback((value) => {
     setSearchQueryValue(value);
@@ -92,7 +91,7 @@ export default function BoxList({
     }, { replace: true, state: location.state });
   }, [location.state, setSearchParams]);
   useEffect(() => {
-    if (navigationType === 'POP') setSearchQueryValue(searchParams.get('q') || '');
+    if (navigationType === 'POP') { setSearchQueryValue(searchParams.get('q') || ''); }
   }, [navigationType, searchParams]);
   const [searchScope, setSearchScope] = useState('all');
   const density = 'compact';
@@ -112,9 +111,15 @@ export default function BoxList({
     (node) => hasMatchingDescendant(node, searchQuery, searchScope),
     [searchQuery, searchScope],
   );
-  const [boxLocatorQuery, setBoxLocatorQuery] = useState(() =>
-    normalizeBoxId(searchParams.get('boxPrefix')).slice(0, 1),
-  );
+  const boxLocatorQuery = normalizeBoxAddress(searchParams.get('addressScope') || searchParams.get('boxPrefix'));
+  const setBoxLocatorQuery = useCallback(value => {
+    setSearchParams(current => {
+      const next = new URLSearchParams(current);
+      next.delete('boxPrefix');
+      if (value) next.set('addressScope', value); else next.delete('addressScope');
+      return next;
+    }, { replace: true, state: location.state });
+  }, [setSearchParams, location.state]);
   const [sortBy, setSortBy] = useState('boxId');
   const [sortDirection, setSortDirection] = useState('asc');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -175,28 +180,29 @@ export default function BoxList({
     [mergedBoxes, effectiveOrphanedCount],
   );
 
-  const locatorFilteredBoxes = useMemo(
-    () => filterBoxTreeByIdPrefix(mergedBoxes, boxLocatorQuery),
-    [mergedBoxes, boxLocatorQuery],
-  );
-  const boxLocatorActive = normalizeBoxId(boxLocatorQuery).length > 0;
+  const addressQuery = parseBoxAddress(searchQuery);
+  const addressLikeQuery = /^#?\d{3}[a-z0-9]+$/i.test(searchQuery.trim());
+  const effectiveAddressScope = boxLocatorQuery || (addressQuery?.complete || addressLikeQuery ? normalizeBoxAddress(searchQuery) : '');
+  const effectiveTextQuery = addressQuery?.complete || addressLikeQuery ? '' : searchQuery;
+  const boxViews = useMemo(() => buildBoxViewTree(mergedBoxes), [mergedBoxes]);
+  const locatorFilteredBoxes = useMemo(() => scopeBoxViews(boxViews, effectiveAddressScope), [boxViews, effectiveAddressScope]);
+  const boxLocatorActive = Boolean(effectiveAddressScope);
 
   const controlledBoxes = useMemo(
     () =>
       applyTreeControls(locatorFilteredBoxes, {
-        searchQuery: boxLocatorActive ? '' : searchQuery,
-        searchScope: boxLocatorActive ? 'all' : searchScope,
+        searchQuery: effectiveTextQuery,
+        searchScope,
         sortBy,
         sortDirection,
-        categoryFilter: boxLocatorActive ? 'all' : categoryFilter,
-        locationFilter: boxLocatorActive ? 'all' : resolvedLocationFilter,
-        ownerFilter: boxLocatorActive ? 'all' : ownerFilter,
-        keepPriorityFilter: boxLocatorActive ? 'all' : keepPriorityFilter,
+        categoryFilter,
+        locationFilter: resolvedLocationFilter,
+        ownerFilter,
+        keepPriorityFilter,
       }),
     [
       locatorFilteredBoxes,
-      boxLocatorActive,
-      searchQuery,
+      effectiveTextQuery,
       searchScope,
       sortBy,
       sortDirection,
@@ -263,10 +269,7 @@ export default function BoxList({
     [controlledBoxes],
   );
   const visibleTopLevelCount = controlledBoxes.length;
-  const boxLocatorExactMatch = useMemo(() => {
-    const query = normalizeBoxId(boxLocatorQuery);
-    return query.length === 3 ? findBoxById(mergedBoxes, query) : null;
-  }, [boxLocatorQuery, mergedBoxes]);
+  const boxLocatorExactMatch = useMemo(() => findAddressView(mergedBoxes, effectiveAddressScope), [effectiveAddressScope, mergedBoxes]);
   const filteredTotalPages = Math.max(
     1,
     Math.ceil(visibleTopLevelCount / pageLimit),
@@ -288,14 +291,16 @@ export default function BoxList({
   }), [visibleOrphanedItems, selectedMissingItem]);
   const quickPeekBoxes = useMemo(
     () => {
-      const current = [adriftCollection, ...flattenPreviewBoxes(pagedVisibleBoxes)];
+      const current = [adriftCollection, ...flattenPreviewBoxes(boxViews)];
+      const exact = findAddressView(mergedBoxes, effectiveAddressScope);
+      if (exact && !current.some(box => viewAddress(box) === viewAddress(exact))) current.push(exact);
       if (selectedMissingItem?.box && !current.some(box => String(box._id) === String(selectedMissingItem.box._id))) {
         const home = flattenPreviewBoxes(mergedBoxes).find(box => String(box._id) === String(selectedMissingItem.box._id));
         if (home) current.push(home);
       }
       return current;
     },
-    [adriftCollection, pagedVisibleBoxes, selectedMissingItem, mergedBoxes],
+    [adriftCollection, boxViews, effectiveAddressScope, selectedMissingItem, mergedBoxes],
   );
   const quickPeek = useOperationsQuickPeek(quickPeekBoxes, {
     ready: effectiveTotalCount > 0 || mergedBoxes.length > 0 || orphanedItems.length > 0,
@@ -304,14 +309,12 @@ export default function BoxList({
     close: closeQuickPeek,
     dismiss: dismissQuickPeek,
     openBox: openQuickPeek,
-    selectedBoxId: quickPeekSelectedBoxId,
   } = quickPeek;
   useEffect(() => {
-    setBoxFieldEdit((current) => current && current.boxMongoId !== String(quickPeek.selectedBox?._id) ? null : current);
+    setBoxFieldEdit((current) => quickPeek.selectedBox?.kind === "cabinet" || (current && current.boxMongoId !== String(quickPeek.selectedBox?._id)) ? null : current);
   }, [quickPeek.selectedBox]);
   const [quickPeekSurface, setQuickPeekSurface] = useState('items');
-  const lastAutoActivatedLocatorRef = useRef('');
-  const autoOpenedPeekIdRef = useRef('');
+  const lastAutoActivatedLocatorRef = useRef(searchParams.has('peek') ? effectiveAddressScope : '');
   const appliedScrollRestoreRef = useRef('');
   const pendingPrimaryFinderFocusRef = useRef(null);
 
@@ -402,9 +405,8 @@ export default function BoxList({
   useEffect(() => {
     if (!showingArchivedItems) return;
     setBoxLocatorQuery('');
-    setExpandedTerminalBoxId('');
     closeQuickPeek();
-  }, [closeQuickPeek, showingArchivedItems]);
+  }, [closeQuickPeek, showingArchivedItems, setBoxLocatorQuery]);
 
   useEffect(() => {
     if (!searchParams.has('boxPrefix')) return;
@@ -415,7 +417,7 @@ export default function BoxList({
 
   useEffect(() => {
     onInventoryQueryChange?.({
-      q: boxLocatorActive ? '' : searchQuery,
+      q: '',
       sortBy,
     });
   }, [
@@ -535,38 +537,24 @@ export default function BoxList({
     );
   }, [handleCloseQuickPeek]);
 
-  const activateExactBox = useCallback(() => {
-    const exactId = normalizeBoxId(boxLocatorExactMatch?.box_id);
+  const activateExactBox = useCallback((value) => {
+    const exactMatch = typeof value === 'string' ? findAddressView(mergedBoxes, value) : boxLocatorExactMatch;
+    const exactId = viewAddress(exactMatch);
     if (!exactId) return;
     lastAutoActivatedLocatorRef.current = exactId;
-    autoOpenedPeekIdRef.current = exactId;
-    openQuickPeek(boxLocatorExactMatch);
-  }, [boxLocatorExactMatch, openQuickPeek]);
+    const anchor = document.getElementById(getOperationsBoxAnchorId(exactId));
+    anchor?.scrollIntoView({ block: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }, [boxLocatorExactMatch, mergedBoxes]);
 
   useEffect(() => {
-    const query = normalizeBoxId(boxLocatorQuery);
-    const autoPeekId = autoOpenedPeekIdRef.current;
-
-    if (query.length !== 3 || !boxLocatorExactMatch) {
+    if (dataLoading || !parseBoxAddress(effectiveAddressScope)?.complete || !boxLocatorExactMatch) {
       lastAutoActivatedLocatorRef.current = '';
-      if (autoPeekId && quickPeekSelectedBoxId === autoPeekId) {
-        autoOpenedPeekIdRef.current = '';
-        closeQuickPeek();
-      } else if (autoPeekId) {
-        autoOpenedPeekIdRef.current = '';
-      }
       return;
     }
-
-    if (lastAutoActivatedLocatorRef.current === query) return;
-    activateExactBox();
-  }, [
-    activateExactBox,
-    boxLocatorExactMatch,
-    boxLocatorQuery,
-    closeQuickPeek,
-    quickPeekSelectedBoxId,
-  ]);
+    if (lastAutoActivatedLocatorRef.current === effectiveAddressScope) return;
+    const timer = window.setTimeout(() => activateExactBox(effectiveAddressScope), 400);
+    return () => window.clearTimeout(timer);
+  }, [activateExactBox, boxLocatorExactMatch, dataLoading, effectiveAddressScope]);
 
   useEffect(() => {
     onPageChange?.(1);
@@ -586,14 +574,6 @@ export default function BoxList({
     if (currentPage <= filteredTotalPages) return;
     onPageChange?.(filteredTotalPages);
   }, [currentPage, filteredTotalPages, onPageChange]);
-
-  useEffect(() => {
-    setExpandedTerminalBoxId('');
-  }, [pagedVisibleBoxes, viewMode]);
-
-  const toggleTerminalBox = useCallback((boxId) => {
-    setExpandedTerminalBoxId((current) => (current === boxId ? '' : boxId));
-  }, []);
 
   return (
     <S.Container $quickPeekOpen={Boolean(quickPeek.selectedBox)}>
@@ -633,7 +613,7 @@ export default function BoxList({
       />
 
       <OperationsWorkspace>
-      <OperationsInventoryGrid ref={inventoryGridRef} $cards={viewMode === 'cards' && !showingArchivedItems}>
+      <OperationsInventoryGrid $lookupAddress={!quickPeek.selectedBox && boxLocatorExactMatch ? (boxLocatorExactMatch.scopedAddress || viewAddress(boxLocatorExactMatch)) : null} ref={inventoryGridRef} $cards={viewMode === 'cards' && !showingArchivedItems}>
       {showingArchivedItems ? (
         <OperationsArchivedItemsLane
           items={visibleArchivedItems}
@@ -655,32 +635,23 @@ export default function BoxList({
         ) : null
       )}
 
-      <MissingItemsLane />
+      <MissingItemsLane searchQuery={searchQuery} searchScope={searchScope} />
       {showingArchivedItems ? null : noData ? (
         <S.EmptyMessage>No boxes yet.</S.EmptyMessage>
       ) : hasNoMatches ? (
-        <S.EmptyMessage>No inventory matches the current search/filter.</S.EmptyMessage>
+        <S.EmptyMessage role={effectiveAddressScope ? 'alert' : undefined}>{effectiveAddressScope && (!parseBoxAddress(effectiveAddressScope) || (parseBoxAddress(effectiveAddressScope).complete && !boxLocatorExactMatch)) ? `Address #${effectiveAddressScope} is invalid or does not exist. Use a recorded cabinet and a shelf from 1 through 99.` : 'No inventory matches the current search/filter.'}</S.EmptyMessage>
       ) : (
         <>
           {viewMode === 'terminal' ? (
-            <S.TerminalTable role="tree" aria-label="Condensed box tree">
-              <S.TerminalHeader role="row">
-                <S.TerminalHeadCell>Box</S.TerminalHeadCell>
-                <S.TerminalHeadCell>Location</S.TerminalHeadCell>
-                <S.TerminalHeadCell>Signal</S.TerminalHeadCell>
-                <S.TerminalHeadCell>Children</S.TerminalHeadCell>
-                <S.TerminalHeadCell>Items</S.TerminalHeadCell>
-              </S.TerminalHeader>
+            <S.TerminalTable role="region" aria-label="Box directory">
               {pagedVisibleBoxes.map((node) => (
                 <CompactBranch
-                  key={node._id || node.box_id}
+                  key={node.resultKey || node._id || node.box_id}
                   node={node}
                   depth={0}
-                  searchQuery={searchQuery}
+                  searchQuery={effectiveTextQuery}
                   searchScope={searchScope}
                   density={density}
-                  expandedBoxId={expandedTerminalBoxId}
-                  onToggleBox={toggleTerminalBox}
                 />
               ))}
             </S.TerminalTable>
@@ -699,7 +670,7 @@ export default function BoxList({
               onToggle={toggleDesktopBranch}
               renderBox={(node, treeControls) => (
                 <Branch node={node} depth={treeControls.depth} desktop treeControls={treeControls}
-                  searchQuery={searchQuery} searchScope={searchScope} density={density}
+                  searchQuery={effectiveTextQuery} searchScope={searchScope} density={density}
                   selectedBoxId={quickPeek.selectedBoxId}
                   onOpenQuickPeek={handleOpenQuickPeek} onOpenPhotoQuickPeek={handleOpenPhotoQuickPeek}
                   onEditBoxField={handleEditBoxField} />
@@ -709,11 +680,11 @@ export default function BoxList({
             <>
               {pagedVisibleBoxes.map((node) => (
                 <Branch
-                  key={node._id || node.box_id}
+                  key={node.resultKey || node._id || node.box_id}
                   node={node}
                   depth={0}
                   desktop={desktop}
-                  searchQuery={searchQuery}
+                  searchQuery={effectiveTextQuery}
                   searchScope={searchScope}
                   density={density}
                   selectedBoxId={quickPeek.selectedBoxId}
@@ -739,7 +710,7 @@ export default function BoxList({
           </S.PaginationButton>
 
           <S.PaginationInfo
-            aria-label={`Page ${safeCurrentPage} of ${filteredTotalPages}. ${visibleTopLevelCount} matching top-level boxes. ${visibleBoxCount} of ${telemetry.totalBoxes} boxes shown.`}
+            aria-label={`Page ${safeCurrentPage} of ${filteredTotalPages}. ${visibleTopLevelCount} matching box and section rows. ${visibleBoxCount} of ${telemetry.totalBoxes} boxes shown.`}
           >
             {safeCurrentPage} / {filteredTotalPages}
           </S.PaginationInfo>
@@ -770,6 +741,7 @@ export default function BoxList({
           onOperationsDataRefreshRequest?.();
           if (updated.box_id !== quickPeek.selectedBox?.box_id) handleDismissQuickPeek();
         }}
+        onShelfChange={quickPeek.selectShelf}
         box={quickPeek.selectedBox}
         matchingItems={boxLocatorActive ? [] : getMatchingItems(quickPeek.selectedBox, searchQuery, searchScope)}
         position={quickPeek.selectedIndex + 1}
@@ -806,18 +778,15 @@ export default function BoxList({
 }
 
 
-function CompactBranch({
+export function CompactBranch({
   node,
   depth = 0,
   searchQuery = '',
   searchScope = 'all',
   density = 'compact',
-  expandedBoxId = '',
-  onToggleBox,
 }) {
   const [childrenExpanded, setChildrenExpanded] = useState(false);
   const childBoxes = Array.isArray(node.childBoxes) ? node.childBoxes : [];
-  const description = String(node?.description || '').trim();
   const isSystemContainer = !!node?.isSystemContainer;
   const isOrphanedContainer = node?.systemType === 'orphaned';
   const boxTheme = getBoxTheme(node?.box_id, {
@@ -828,17 +797,15 @@ function CompactBranch({
       : undefined,
   });
   const boxThemeStyle = getBoxThemeCssVars(boxTheme);
-  const itemQtyTotal = getNodeItemCount(node);
   const title = node.label || node.name || 'Untitled';
-  const route = isOrphanedContainer ? ORPHANED_CONTAINER_ROUTE : `/boxes/${node.box_id}`;
   const autoExpandChildren = hasMatchingDescendant(node, searchQuery, searchScope);
   const showChildren =
     childBoxes.length > 0 &&
     (depth < 2 || childrenExpanded || autoExpandChildren);
   const nestedCount = countDescendants(node);
-  const branchId = String(node?._id || node?.box_id || 'terminal-box');
-  const expanded = expandedBoxId === branchId;
-  const panelId = `terminal-items-${branchId.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+  const branchId = String(node?.resultKey || node?._id || node?.box_id || 'terminal-box');
+  const headingId = `terminal-box-${branchId.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+  const matchingItems = searchQuery.trim() ? getMatchingItems(node, searchQuery, searchScope) : node.items || [];
 
   const toggleChildren = (event) => {
     event.stopPropagation();
@@ -846,50 +813,30 @@ function CompactBranch({
   };
 
   return (
-    <S.TerminalBranch $depth={depth} style={boxThemeStyle}>
-      <S.TerminalRow
-        type="button"
-        role="treeitem"
-        aria-expanded={expanded}
-        aria-controls={panelId}
-        $depth={depth}
-        $isSystem={isSystemContainer}
-        $density={density}
-        onClick={() => onToggleBox?.(branchId)}
-      >
+    <S.TerminalBranch as="section" aria-labelledby={headingId} id={getOperationsBoxAnchorId(node.scopedAddress || viewAddress(node))} $depth={depth} style={boxThemeStyle}>
+      <S.TerminalGroupHeader>
+      <S.TerminalRow id={headingId} data-box-address={node.scopedAddress || viewAddress(node)}>
         <S.TerminalBoxCell $depth={depth}>
-          <S.TreeGlyph aria-hidden="true" $depth={depth} $expanded={expanded}>
-            ›
-          </S.TreeGlyph>
           <S.TerminalShortId $depth={depth} $isSystem={isSystemContainer}>
-            {isSystemContainer ? 'SYS' : `#${node.box_id}`}
+            {isSystemContainer ? 'SYS' : `#${viewAddress(node)}`}
           </S.TerminalShortId>
-          <S.TerminalTitle>{title}{node.isComplexBox ? ' · Complex box' : ''}</S.TerminalTitle><MissingBoxStatus box={node} />
+          <S.TerminalTitle>{title}{node.kind === "cabinet" ? ` · Section in #${node.box_id} · ${node.shelfCount} shelves` : node.isComplexBox ? " · Complex box" : ""}</S.TerminalTitle><MissingBoxStatus box={node} />
         </S.TerminalBoxCell>
-        <S.TerminalCell>{node.location || '-'}</S.TerminalCell>
-        <S.TerminalCell>{description || '-'}</S.TerminalCell>
-        <S.TerminalMetric>{isOrphanedContainer ? 'virtual' : childBoxes.length}</S.TerminalMetric>
-        <S.TerminalMetric>{itemQtyTotal}</S.TerminalMetric>
       </S.TerminalRow>
+      <S.TerminalOpenLink to={isOrphanedContainer ? ORPHANED_CONTAINER_ROUTE : `/boxes/${viewAddress(node)}`}
+        aria-label={`Open full box page for ${title}`} title="Open full box">↗</S.TerminalOpenLink>
+      </S.TerminalGroupHeader>
 
-      {getMatchingItems(node, searchQuery, searchScope).length > 0 ? (
+      {matchingItems.length > 0 ? (
         <InventorySearchMatches
-          items={getMatchingItems(node, searchQuery, searchScope)}
+          items={matchingItems}
           boxId={node.systemType === 'orphaned' ? 'adrift' : node.box_id}
           query={searchQuery}
           label={`Matching items in box ${node.box_id}`}
+          terminal
           nested
         />
       ) : null}
-      {expanded ? (
-        <TerminalItemTable
-          boxTitle={title}
-          boxHref={route}
-          panelId={panelId}
-          items={node.items}
-        />
-      ) : null}
-
       {childBoxes.length > 0 && depth >= 2 ? (
         <S.TerminalChildrenToggle
           type="button"
@@ -904,14 +851,12 @@ function CompactBranch({
         <S.TerminalChildren>
           {childBoxes.map((child) => (
             <CompactBranch
-              key={child._id || child.box_id}
+              key={child.resultKey || child._id || child.box_id}
               node={child}
               depth={depth + 1}
               searchQuery={searchQuery}
               searchScope={searchScope}
               density={density}
-              expandedBoxId={expandedBoxId}
-              onToggleBox={onToggleBox}
             />
           ))}
         </S.TerminalChildren>
@@ -962,7 +907,7 @@ function Branch({
   const nestedCount = countDescendants(node);
   const isSelected =
     !isSystemContainer &&
-    normalizeBoxId(node?.box_id) === normalizeBoxId(selectedBoxId);
+    (viewAddress(node) === selectedBoxId || (node.kind === 'cabinet' && viewAddress(node) === `${parseBoxAddress(selectedBoxId)?.boxId}${parseBoxAddress(selectedBoxId)?.cabinet}`));
 
   const go = (event) => {
     if (
@@ -997,7 +942,7 @@ function Branch({
       id={
         isSystemContainer
           ? undefined
-          : getOperationsBoxAnchorId(node?.box_id)
+          : getOperationsBoxAnchorId(node.scopedAddress || viewAddress(node))
       }
       $isRoot={isRoot}
       $depth={depth}
@@ -1017,7 +962,7 @@ function Branch({
           visibleTags, hiddenTagCount, description, matchingNotes, childBoxes,
           nestedToggle: childBoxes.length ? treeControls : null,
           matchingItems: treeControls ? matchingItems : undefined,
-          searchQuery, onEditBoxField,
+          searchQuery, onEditBoxField: node.kind === "cabinet" ? undefined : onEditBoxField,
         }} />
         {!treeControls && matchingItems.length > 0 ? (
           <InventorySearchMatches
@@ -1044,7 +989,7 @@ function Branch({
           <S.NodeChildren $depth={depth + 1} $density={density}>
             {childBoxes.map((child) => (
               <Branch
-                key={child._id || child.box_id}
+                key={child.resultKey || child._id || child.box_id}
                 node={child}
                 depth={depth + 1}
                 desktop={desktop}
@@ -1076,8 +1021,7 @@ function summarizeTree(nodes, orphanedCount = 0) {
 
   const walk = (list) => {
     for (const node of list || []) {
-      summary.totalBoxes += 1;
-      summary.totalItems += sumItemQty(node.items);
+      if (node.kind !== "cabinet") { summary.totalBoxes += 1; summary.totalItems += sumItemQty(node.items); }
       walk(node.childBoxes || []);
     }
   };
@@ -1189,6 +1133,9 @@ function sortNodes(nodes, sortBy, sortDirection = 'asc') {
   const directionFactor = sortDirection === 'desc' ? -1 : 1;
 
   list.sort((a, b) => {
+    if (a.box_id === b.box_id) return compareFamilyViews(a, b, sortBy, sortDirection);
+    const aFamily = a.ownerBox || a, bFamily = b.ownerBox || b;
+    a = aFamily; b = bFamily;
     const aName = normalize(a?.label || a?.name || '');
     const bName = normalize(b?.label || b?.name || '');
     let diff = 0;
@@ -1263,7 +1210,7 @@ function hasMatchingDescendant(node, searchQuery, searchScope) {
 
 function countDescendants(node) {
   return (node?.childBoxes || []).reduce(
-    (total, child) => total + 1 + countDescendants(child),
+    (total, child) => total + (child.kind === "cabinet" ? 0 : 1) + countDescendants(child),
     0,
   );
 }
@@ -1510,17 +1457,4 @@ function countMissingQuickCreatedBoxes(baseNodes, quickCreatedBoxes) {
   }
 
   return missing;
-}
-
-function findBoxById(nodes, boxId) {
-  const normalizedId = normalizeBoxId(boxId);
-  if (!normalizedId) return null;
-
-  for (const node of nodes || []) {
-    if (normalizeBoxId(node?.box_id) === normalizedId) return node;
-    const nestedMatch = findBoxById(node?.childBoxes, normalizedId);
-    if (nestedMatch) return nestedMatch;
-  }
-
-  return null;
 }

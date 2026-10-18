@@ -1,3 +1,7 @@
+import { normalizeBoxAddress, parseBoxAddress } from '../../util/boxAddress';
+import { cabinetView, viewAddress } from '../../util/boxAddressViews';
+import { collectPlacedItems } from '../../util/boxAddressViews';
+import { readShelfSelection, scopeBoxToShelves } from '../../util/shelfSelection';
 import useTagReturnSnapshot from '../../hooks/useTagReturnSnapshot';
 import {
   useCallback,
@@ -28,10 +32,7 @@ const PEEK_LABEL_GAP_PX = 8;
 const DESKTOP_PEEK_HEADER_GAP_PX = 10;
 const PEEK_ANCHOR_SETTLE_MS = 760;
 
-function normalizeBoxId(value) {
-  if (value === 'adrift') return 'adrift';
-  return String(value || '').replace(/\D/g, '').trim();
-}
+function normalizeBoxId(value) { return value === 'adrift' ? 'adrift' : normalizeBoxAddress(value); }
 
 export function getOperationsBoxAnchorId(boxId) {
   const normalizedId = normalizeBoxId(boxId);
@@ -54,24 +55,38 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
   const previewBoxes = useMemo(
     () =>
       (Array.isArray(boxes) ? boxes : []).filter(
-        (box) => normalizeBoxId(box?.box_id) && !box?.isSystemContainer,
+        (box) => normalizeBoxId(viewAddress(box)) && !box?.isSystemContainer,
       ),
     [boxes],
   );
 
   const selectedBoxId = normalizeBoxId(searchParams.get(PEEK_PARAM));
-  const selectedIndex = previewBoxes.findIndex(
-    (box) => normalizeBoxId(box?.box_id) === selectedBoxId,
-  );
-  const selectedBox = selectedIndex >= 0 ? previewBoxes[selectedIndex] : null;
+  const selectedAddress = parseBoxAddress(selectedBoxId);
+  const selectedIndex = previewBoxes.findIndex(box => viewAddress(box) === selectedBoxId || (selectedAddress?.shelf && viewAddress(box) === `${selectedAddress.boxId}${selectedAddress.cabinet}`));
+  const selectedRow = selectedIndex >= 0 ? previewBoxes[selectedIndex] : null;
+  const shelfParam = searchParams.get('shelves');
+  const selectedBox = useMemo(() => {
+    const parsed = parseBoxAddress(selectedBoxId);
+    if (parsed?.compartmentKey && selectedRow?.ownerBox) {
+      const view = cabinetView(selectedRow.ownerBox, parsed.compartmentKey);
+      if (!view) return null;
+      const selectedShelfKeys = readShelfSelection(shelfParam, parsed.cabinet, view.shelves, parsed.compartmentKey);
+      const scoped = scopeBoxToShelves(selectedRow.ownerBox, parsed.cabinet, selectedShelfKeys);
+      return { ...view, selectedShelfKeys, items: collectPlacedItems(scoped), childBoxes: scoped.childBoxes };
+    }
+    return selectedRow?.kind === 'box' ? { ...selectedRow.ownerBox, kind: 'box', address: selectedRow.address } : selectedRow;
+  }, [selectedRow, selectedBoxId, shelfParam]);
   const selectedBoxReady = Boolean(selectedBox);
 
   const writePeekParam = useCallback(
-    (boxId, { replace = false, state = location.state } = {}) => {
+    (boxId, { replace = false, state = location.state, addressScope, shelves = [] } = {}) => {
       const next = new URLSearchParams(searchParams);
       const normalizedId = normalizeBoxId(boxId);
       const currentId = normalizeBoxId(searchParams.get(PEEK_PARAM));
       const nextState = { ...(state || {}) };
+      if (addressScope) next.set('addressScope', addressScope);
+      next.delete('shelves');
+      if (normalizedId && shelves.length > 1) next.set('shelves', shelves.join(','));
 
       if (normalizedId) {
         next.set(PEEK_PARAM, normalizedId);
@@ -79,7 +94,7 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
         next.delete(PEEK_PARAM);
       }
 
-      if (!normalizedId || normalizedId !== currentId) {
+      if (!normalizedId || normalizedId !== currentId || next.get('shelves') !== searchParams.get('shelves')) {
         next.delete(QUICK_PEEK_ITEM_PARAM);
         delete nextState[QUICK_PEEK_ITEM_HISTORY_STATE];
       }
@@ -150,7 +165,7 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
 
   const openBox = useCallback(
     (box, triggerElement = null, { forceOpen = false } = {}) => {
-      const nextId = normalizeBoxId(box?.box_id);
+      const nextId = normalizeBoxId(box?.scopedAddress || viewAddress(box));
       if (!nextId) return;
 
       if (triggerElement instanceof HTMLElement) {
@@ -211,7 +226,7 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
       if (nextIndex < 0 || nextIndex >= previewBoxes.length) return;
 
       setTransitionDirection(offset > 0 ? 1 : -1);
-      writePeekParam(previewBoxes[nextIndex]?.box_id, { replace: true });
+      writePeekParam(viewAddress(previewBoxes[nextIndex]), { replace: true });
     },
     [
       previewBoxes,
@@ -258,9 +273,9 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
     let settleTimerId = 0;
 
     const alignSelectedRow = (behavior) => {
-      const anchor = document.getElementById(
-        getOperationsBoxAnchorId(selectedBoxId),
-      );
+      const parsed = parseBoxAddress(selectedBoxId);
+      const anchor = document.getElementById(getOperationsBoxAnchorId(selectedBoxId))
+        || (parsed?.cabinet && document.getElementById(getOperationsBoxAnchorId(`${parsed.boxId}${parsed.cabinet}`)));
       if (!anchor) return;
 
       const anchorRect = anchor.getBoundingClientRect();
@@ -379,6 +394,11 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
     canSelectNext:
       selectedIndex >= 0 && selectedIndex < previewBoxes.length - 1,
     openBox,
+    selectShelf: (keys) => {
+      const key = keys.length === 1 ? keys[0] : selectedBox.compartmentKey[0];
+      const address = `${selectedBox.box_id}${key}`;
+      writePeekParam(address, { shelves: keys, replace: false, addressScope: parseBoxAddress(searchParams.get('addressScope'))?.cabinet ? address : undefined });
+    },
     close,
     dismiss,
     openFullBox,

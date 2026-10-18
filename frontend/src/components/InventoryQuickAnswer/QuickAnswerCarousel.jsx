@@ -1,9 +1,9 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import ItemThumbnailMedia from '../ItemThumbnailMedia';
+import { useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getOperationsItemPeekNavigation } from '../../util/operationsItemNavigation';
 import { getFinderItemNavigation } from '../../util/finderItemNavigation';
 import { getBoxTheme, getBoxThemeCssVars } from '../../util/inventoryColorTheme';
-import { getItemMicroThumbnailCandidates } from '../../util/itemImage';
 import useLoopingCarousel from '../Carousel/useLoopingCarousel';
 import useAnswerCarouselDepth from './useAnswerCarouselDepth';
 import SearchHighlight from '../SearchHighlight';
@@ -11,15 +11,6 @@ import { getSearchTerms, getSearchExcerpt } from '../../util/searchHighlight';
 import { getAnswerMatchFields } from './answerMatchFields';
 import * as S from './QuickAnswerCarousel.styles';
 import FinderMatchFrame from './FinderMatchFrame';
-
-function ItemThumbnail({ item }) {
-  const candidates = getItemMicroThumbnailCandidates(item);
-  const [attempt, setAttempt] = useState(0);
-  return <S.Thumbnail>
-    {candidates[attempt] ? <img src={candidates[attempt]} alt="" draggable={false} loading="lazy" decoding="async" onError={() => setAttempt((index) => index + 1)} />
-      : <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3" /><path d="m4 17 5-5 4 4 3-3 4 4" /><circle cx="15" cy="8" r="2" /></svg>}
-  </S.Thumbnail>;
-}
 
 export default function QuickAnswerCarousel({ answers, query = '', index = 0, onSelect, focusOpen = false }) {
   const viewRef = useRef(null);
@@ -54,7 +45,7 @@ export default function QuickAnswerCarousel({ answers, query = '', index = 0, on
           draggable={false} data-carousel-item={mirror ? undefined : 'true'} aria-label={mirror ? undefined : `Locate ${answer.name}`} aria-haspopup={mirror ? undefined : 'dialog'}
           aria-description={!mirror && fields.length ? `Keyword matched in ${fields.map(({ label }) => label.toLowerCase()).join(', ')}` : undefined}
           aria-current={!mirror && answerIndex === index ? 'true' : undefined} title={answer.name}>
-          <ItemThumbnail key={getItemMicroThumbnailCandidates(answer.item)[0] || answer.id} item={answer.item} />
+          <S.Thumbnail><ItemThumbnailMedia item={answer.item} /></S.Thumbnail>
           <S.Details>
             <S.Name $hasHint={!!hint}><SearchHighlight text={answer.name} terms={terms} /></S.Name>
             <S.BoxName title={answer.boxLabel}><SearchHighlight text={answer.boxLabel || (answer.unboxed ? 'Items Adrift' : 'Box name not recorded')} terms={terms} /></S.BoxName>

@@ -1,3 +1,4 @@
+import ItemThumbnailMedia from '../ItemThumbnailMedia';
 import DeclutterDepartureSummary from './DeclutterDepartureSummary';
 import * as S from './Declutter.styles';
 import {
@@ -110,7 +111,7 @@ export default function DeclutterCandidateLane({
         return (
           <S.QueueItem key={candidateId} $compact={compact} $cardView={cardView}>
             <S.ThumbFrame $compact={compact} $cardView={cardView}>
-              {imageUrl ? <S.ThumbImage src={imageUrl} alt="" loading="lazy" /> : 'No Image'}
+              <ItemThumbnailMedia item={item} sources={imageUrl ? [imageUrl] : undefined} imageAs={S.ThumbImage} />
             </S.ThumbFrame>
             <div>
               {item?.id ? (

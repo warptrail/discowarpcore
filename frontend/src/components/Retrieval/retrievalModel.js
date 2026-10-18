@@ -665,6 +665,7 @@ export function normalizeRetrievalItemsPage(rawItems) {
         boxNumber: firstNonEmpty(rawItem?.boxNumber),
         compartmentKey: firstNonEmpty(rawItem?.compartmentKey),
         placementLabel: firstNonEmpty(rawItem?.placementLabel, rawItem?.boxNumber),
+        placementTrail: firstNonEmpty(rawItem?.placementTrail),
         boxName: firstNonEmpty(
           rawItem?.boxName,
           orphaned ? ORPHANED_BOX_NAME : '',
@@ -721,7 +722,10 @@ export function normalizeRetrievalBoxesPage(rawBoxes) {
         : 0;
 
       return {
-        id,
+        id, kind: rawBox.kind || "box", resultKey: rawBox.resultKey || `box:${id}`,
+        ownerBoxMongoId: rawBox.ownerBoxMongoId || id, address: rawBox.address || boxId,
+        compartmentKey: rawBox.compartmentKey || "", ownerBoxLabel: rawBox.ownerBoxLabel,
+        shelves: rawBox.shelves || [], shelfCount: rawBox.shelfCount || 0, scopedItemCount: rawBox.scopedItemCount,
         boxId,
         boxLabel,
         image: rawBox.image,
@@ -736,7 +740,7 @@ export function normalizeRetrievalBoxesPage(rawBoxes) {
         directItemCount,
         directMissingCount: Number(rawBox?.directMissingCount) || 0,
         childBoxCount,
-        boxHref: boxId ? getBoxHref(boxId) : '',
+        boxHref: boxId ? getBoxHref(rawBox.address || boxId) : '',
       };
     })
     .filter(Boolean);

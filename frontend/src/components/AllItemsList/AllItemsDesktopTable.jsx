@@ -1,5 +1,6 @@
+import ItemThumbnailMedia from '../ItemThumbnailMedia';
 import TagLinks from '../TagLinks';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getItemHomeHref } from '../../api/itemDetails';
 import * as S from './AllItemsList.styles';
@@ -15,31 +16,8 @@ function getItemHref(itemId) {
   }
 }
 
-function DesktopThumbnail({ src, fallbackSrc }) {
-  const [currentSrc, setCurrentSrc] = useState(src);
-
-  useEffect(() => {
-    setCurrentSrc(src);
-  }, [src]);
-
-  if (!currentSrc) {
-    return <S.ThumbPlaceholder aria-hidden="true">—</S.ThumbPlaceholder>;
-  }
-
-  return (
-    <S.ItemThumbImage
-      src={currentSrc}
-      alt=""
-      loading="lazy"
-      decoding="async"
-      fetchPriority="low"
-      onError={() => {
-        setCurrentSrc((failedSrc) => (
-          fallbackSrc && failedSrc !== fallbackSrc ? fallbackSrc : ''
-        ));
-      }}
-    />
-  );
+function DesktopThumbnail({ item, src, fallbackSrc }) {
+  return <ItemThumbnailMedia item={item} sources={[src, fallbackSrc].filter(Boolean)} imageAs={S.ItemThumbImage} />;
 }
 
 function renderBoxValue(meta, { accentColor = '', accentActive = false } = {}) {
@@ -247,11 +225,11 @@ function DesktopItemRow({
                 title={`Preview image for ${itemName}`}
               >
                 <S.ItemThumbFrame $accentColor={accentColor} $accentActive={accentActive}>
-                  <DesktopThumbnail src={thumbnailUrl} fallbackSrc={originalImageUrl} />
+                  <DesktopThumbnail item={item} src={thumbnailUrl} fallbackSrc={originalImageUrl} />
                 </S.ItemThumbFrame>
               </S.ItemThumbButton>
             ) : (
-              <S.ThumbPlaceholder aria-hidden="true">—</S.ThumbPlaceholder>
+              <S.ItemThumbFrame><ItemThumbnailMedia item={item} /></S.ItemThumbFrame>
             )}
           </S.OperatorThumbCell>
 

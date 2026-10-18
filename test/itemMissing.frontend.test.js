@@ -11,7 +11,9 @@ let loaded;
 async function components() {
   if (loaded) return loaded;
   const { outputFiles } = await requireFrontend('esbuild').build({
-    stdin: { contents: `export { default as Status } from './components/MissingItems/MissingStatus';
+    stdin: { contents: `export { default as Lane } from './components/MissingItems/MissingItemsLane';
+      export { default as Quantity } from './components/MissingItems/MissingQuantityField';
+      export { default as Status } from './components/MissingItems/MissingStatus';
       export { default as Actions } from './components/MissingItems/MissingActions';
       export { default as Alert } from './components/MissingItems/MissingAlertLink';
       export { default as BoxStatus } from './components/MissingItems/MissingBoxStatus';
@@ -73,4 +75,40 @@ test('fresh server records supersede older cached missing state and inventory qu
   const item = { _id: 'one', quantity: 5, missing: { quantity: 3, revision: 4 }, updatedAt: '2026-10-13T02:00:00Z' };
   const stale = { states: { one: { quantity: 4, missing: { quantity: 0, revision: 3 }, updatedAt: '2026-10-13T01:00:00Z' } } };
   assert.match(await render('Status', { item }, stale), /3 of 5 missing/);
+});
+
+test('report count control is absent for one item and exposes bounded One and All choices for multiples', async () => {
+  assert.equal(await render('Quantity', { bounds: { min: 1, max: 1 }, count: '1' }), '');
+  const html = await render('Quantity', { bounds: { min: 1, max: 5 }, count: '1', onChange: () => {} });
+  assert.match(html, /aria-label="Missing quantity"/);
+  assert.match(html, /min="1"/); assert.match(html, /max="5"/);
+  assert.match(html, />One</); assert.match(html, />All</);
+  const { Quantity } = await components();
+  let selected;
+  const tree = Quantity({ bounds: { min: 1, max: 5 }, count: '2', onChange: value => { selected = value; } });
+  const buttons = tree.props.children[1].props.children;
+  buttons[1].props.onClick(); assert.equal(selected, '1');
+  buttons[2].props.onClick(); assert.equal(selected, '5');
+});
+
+ test('Operations missing lane follows main item search and hides empty results', async () => {
+  const item = { _id: 'lamp', name: 'Flashlight', description: 'Emergency camping light', quantity: 2, missing: { quantity: 1, reportedAt: '2026-10-18T00:00:00Z' } };
+  const value = { items: [item], summary: { records: 1, objects: 1 }, loading: false };
+  assert.equal(await render('Lane', {}, { loading: false }), '');
+  assert.equal(await render('Lane', { searchQuery: 'socks' }, value), '');
+  assert.match(await render('Lane', { searchQuery: ' CAMPING ' }, value), /Missing Items/);
+  assert.equal(await render('Lane', { searchQuery: 'camping', searchScope: 'boxes' }, value), '');
+  assert.match(await render('Lane', { searchQuery: '' }, value), /Missing Items/);
+  const expanded = await render('Lane', { searchQuery: 'camping' }, value, '/operations?missing=1');
+  assert.match(expanded, /Flashlight/);
+  assert.match(expanded, /Search missing items/);
+  assert.match(expanded, /Found/);
+  const noMatch = { ...value, items: [...value.items, { ...item, _id: 'sock', name: 'Socks', description: 'Warm clothes' }] };
+  assert.doesNotMatch(await render('Lane', { searchQuery: 'camping' }, noMatch, '/operations?missing=1'), /Warm clothes|Quick peek at Socks/);
+});
+
+test('Operations missing lane retains failed-load feedback and retry', async () => {
+  const html = await render('Lane', {}, { loading: false, error: 'Unable to load reports' }, '/operations?missing=1');
+  assert.match(html, /Unable to load reports/);
+  assert.match(html, /Try again/);
 });

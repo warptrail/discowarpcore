@@ -1,3 +1,4 @@
+import ItemThumbnailMedia from '../ItemThumbnailMedia';
 import { quietSectionStyles, consoleControlStyles } from './IntakeConsole.styles';
 import React from 'react';
 import { Link } from 'react-router-dom';
@@ -165,7 +166,7 @@ export default function IntakeCurrentBoxItemsPanel({
             return (
               <Row key={item?._id || `${name}-${item?.createdAt || ''}`}>
                 <Thumb>
-                  {imageUrl ? <ThumbImage src={imageUrl} alt="" /> : 'No Img'}
+                  <ItemThumbnailMedia item={item} sources={imageUrl ? [imageUrl] : undefined} imageAs={ThumbImage} />
                 </Thumb>
 
                 <Body>

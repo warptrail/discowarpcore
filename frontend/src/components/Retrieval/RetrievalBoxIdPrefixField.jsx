@@ -1,34 +1,34 @@
 import BoxIdPrefixInput from '../BoxIdPrefixInput';
-import { normalizeBoxId } from '../../util/boxLocator';
+import { normalizeBoxAddress } from '../../util/boxAddress';
 import * as S from './Retrieval.styles';
 
-const MAX_BOX_PREFIX_LENGTH = 3;
 
-export default function RetrievalBoxIdPrefixField({ value = '', onChange }) {
-  const normalizedValue = normalizeBoxId(value).slice(0, MAX_BOX_PREFIX_LENGTH);
+export default function RetrievalBoxIdPrefixField({ value = '', onChange, onActivate }) {
+  const normalizedValue = normalizeBoxAddress(value);
   const updateValue = (nextValue) => {
-    onChange?.(normalizeBoxId(nextValue).slice(0, MAX_BOX_PREFIX_LENGTH));
+    onChange?.(normalizeBoxAddress(nextValue));
   };
 
   return (
     <S.BoxPrefixWrap $active={Boolean(normalizedValue)}>
-      <S.SearchLabel>Filter boxes by three-digit box number</S.SearchLabel>
+      <S.SearchLabel>Filter by box address</S.SearchLabel>
       <BoxIdPrefixInput
         inputAs={S.BoxPrefixInput}
         $active={Boolean(normalizedValue)}
         id="retrieval-console-box-prefix"
         namePrefix="retrieval_box_prefix"
         value={normalizedValue}
-        maxLength={MAX_BOX_PREFIX_LENGTH}
+        maxLength={32}
         placeholder=""
-        ariaLabel="Filter boxes by three-digit box number prefix"
-        title="Box number: 1 shows 1XX, 10 shows 10X, and 105 shows box 105"
+        ariaLabel="Filter boxes by box, cabinet, or shelf address"
+        title="Box address: 5, 504, 504B, or 504B2"
         onChange={(event) => updateValue(event.target.value)}
         onPaste={(event) => {
           event.preventDefault();
           updateValue(event.clipboardData?.getData('text') || '');
         }}
         onKeyDown={(event) => {
+          if (event.key === 'Enter') { event.preventDefault(); onActivate?.(); }
           if (event.key !== 'Escape' || !normalizedValue) return;
           event.preventDefault();
           updateValue('');

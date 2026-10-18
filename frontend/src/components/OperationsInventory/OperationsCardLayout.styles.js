@@ -66,13 +66,13 @@ export const desktopCardLayout = css`
   ${S.OrphanedAttentionTitle}, ${S.OrphanedAttentionMeta} { grid-column: 1 / -1; }
   ${S.OrphanedAttentionMeta} { white-space: normal; line-height: 18px; }
   ${S.OrphanedAttentionLink}[data-has-search-matches] {
-    height: 196px;
-    ${S.OrphanedAttentionCopy} > div { grid-column: 1 / -1; max-height: 64px; overflow: auto; }
+    height: 284px;
+    ${S.OrphanedAttentionCopy} > div { grid-column: 1 / -1; max-height: 144px; overflow: auto; }
   }
   ${S.NodeChildren} { margin-left: 8px; }
   ${S.BoxCard}[data-has-search-matches] {
-    height: 196px;
-    grid-template-rows: minmax(0, 1fr) 56px;
+    height: 284px;
+    grid-template-rows: minmax(0, 1fr) 144px;
     ${S.BoxContent} { padding: 4px 6px; }
     ${S.BoxHeader} { grid-template-rows: 20px 32px; min-height: 54px; gap: 2px 6px; }
     ${S.BoxTitle} { line-height: 16px; }
@@ -81,6 +81,17 @@ export const desktopCardLayout = css`
     ${S.LocationMetaValue} { line-height: 14px; }
   }
   ${S.BoxCard}[data-has-field-actions][data-has-search-matches] {
-    grid-template-rows: minmax(0, 1fr) 56px 40px;
+    grid-template-rows: minmax(0, 1fr) 144px 40px;
+  }
+`;
+
+// Section cards keep their full address and owner context readable at desktop density.
+export const desktopSectionLayout = css`
+  ${S.BoxCard}[data-result-kind='cabinet'] {
+    height: auto;
+    min-height: 160px;
+    ${S.BoxHeader} { grid-template-rows: 20px auto; min-height: 0; }
+    ${S.BoxTitle} { display: block; overflow: visible; -webkit-line-clamp: unset; }
+    ${S.SecondaryMeta} { display: block; white-space: normal; overflow-wrap: anywhere; line-height: 1.4; }
   }
 `;

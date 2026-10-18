@@ -1,3 +1,8 @@
+import { useSearchParams, useLocation } from 'react-router-dom';
+import { normalizeBoxAddress, parseBoxAddress } from '../../util/boxAddress';
+import { readShelfSelection, scopeBoxToShelves } from '../../util/shelfSelection';
+import { collectPlacedItems } from '../../util/boxAddressViews';
+import CabinetShelfPicker from '../BoxForms/CabinetShelfPicker';
 import useMissingInventoryRefresh from '../MissingItems/useMissingInventoryRefresh';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchBoxTreeByShortId } from '../../api/boxes';
@@ -5,8 +10,7 @@ import {
   DEFAULT_RETRIEVAL_LIMIT,
   fetchRetrievalBoxesPage,
 } from '../../api/retrieval';
-import { compareNumericBoxIds, normalizeBoxId } from '../../util/boxLocator';
-import { getItemMicroThumbnailUrl } from '../../util/itemImage';
+import ItemThumbnailMedia from '../ItemThumbnailMedia';
 import { MOBILE_BREAKPOINT } from '../../styles/tokens';
 import * as S from './Retrieval.styles';
 import {
@@ -73,7 +77,7 @@ function useDebouncedValue(value, delayMs) {
     };
   }, [value, delayMs]);
 
-  return debounced;
+  return [debounced, setDebounced];
 }
 
 function useMediaQuery(query) {
@@ -109,12 +113,14 @@ function BoxInspectContent({
   selectedBoxHref,
   onItemNavigate,
   retrievalReturnTo,
+  shelfPicker,
 }) {
   return (
     <>
+      {shelfPicker}
       <S.BoxInspectHeader>
         <S.BoxInspectSectionTitle>
-          Direct items · {boxDetailsLoading ? '…' : directItems.length}
+          {shelfPicker ? 'Contents' : 'Direct items'} · {boxDetailsLoading ? '…' : directItems.length}
         </S.BoxInspectSectionTitle>
         {selectedBoxHref ? (
           <S.BoxInspectHeaderLink to={selectedBoxHref}>
@@ -134,22 +140,12 @@ function BoxInspectContent({
             if (!itemId) return null;
 
             const quantity = Number(item?.quantity);
-            const thumbnailUrl = getItemMicroThumbnailUrl(item);
             const quantityLabel = Number.isFinite(quantity) ? `×${quantity}` : '';
 
             return (
               <S.BoxInspectRow key={`box-item-${itemId}`}>
-                <S.BoxInspectItemThumb $empty={!thumbnailUrl} aria-hidden="true">
-                  {thumbnailUrl ? (
-                    <img
-                      src={thumbnailUrl}
-                      alt=""
-                      loading="lazy"
-                      onError={(event) => {
-                        event.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  ) : <span>·</span>}
+                <S.BoxInspectItemThumb aria-hidden="true">
+                  <ItemThumbnailMedia item={item} />
                 </S.BoxInspectItemThumb>
                 <S.BoxInspectRowLink
                   to={`/items/${itemId}`}
@@ -165,7 +161,7 @@ function BoxInspectContent({
                     itemId,
                   })}
                 >
-                  {String(item?.name || 'Unnamed item').trim()}
+                  {String(item?.name || 'Unnamed item').trim()}{item.ownerBoxId ? <small> · #{item.placementLabel} · {item.placementTrail}</small> : null}
                 </S.BoxInspectRowLink>
                 {quantityLabel ? (
                   <S.BoxInspectRowMeta>{quantityLabel}</S.BoxInspectRowMeta>
@@ -198,6 +194,8 @@ export default function RetrievalBoxCentricView({
   desktop = false,
   tagScope = null,
 }) {
+  const [addressParams, setAddressParams] = useSearchParams();
+  const addressLocation = useLocation();
   const scopedTag = tagScope?.key || '';
   const initialPersistedState = persistedState && typeof persistedState === 'object'
     ? persistedState
@@ -205,6 +203,7 @@ export default function RetrievalBoxCentricView({
   const isMobile = useMediaQuery(`(max-width: ${MOBILE_BREAKPOINT})`);
   const [boxes, setBoxes] = useState([]);
   const [total, setTotal] = useState(0);
+  const [matchCounts, setMatchCounts] = useState(null);
   const initialPageLimitRef = useRef(Math.min(
     250,
     Math.max(
@@ -221,9 +220,20 @@ export default function RetrievalBoxCentricView({
   const [searchValue, setSearchValue] = useState(() =>
     String(initialPersistedState?.searchValue || ''),
   );
-  const [boxIdPrefix, setBoxIdPrefix] = useState(() =>
-    normalizeBoxId(initialPersistedState?.boxIdPrefix).slice(0, 3),
+  const [boxIdPrefix, setBoxIdPrefixValue] = useState(() =>
+    normalizeBoxAddress(addressParams.get('addressScope') || initialPersistedState?.boxIdPrefix),
   );
+  const scopeInUrl = addressParams.get('addressScope');
+  const previousScopeInUrl = useRef(scopeInUrl);
+  useEffect(() => {
+    if (previousScopeInUrl.current === scopeInUrl) return;
+    previousScopeInUrl.current = scopeInUrl;
+    setBoxIdPrefixValue(normalizeBoxAddress(scopeInUrl));
+  }, [scopeInUrl]);
+  const setBoxIdPrefix = value => {
+    setBoxIdPrefixValue(value);
+    setAddressParams(current => { const next = new URLSearchParams(current); if (value) next.set('addressScope', value); else next.delete('addressScope'); return next; }, { replace: true, state: addressLocation.state });
+  };
   const [selectedRooms, setSelectedRooms] = useState(() =>
     normalizeTagSelection(initialPersistedState?.selectedRooms),
   );
@@ -242,22 +252,41 @@ export default function RetrievalBoxCentricView({
   }, 'box');
   const [filterOptions, setFilterOptions] = useState(EMPTY_FILTER_OPTIONS);
   const [selectedBoxId, setSelectedBoxId] = useState(() =>
-    normalizeBoxId(initialPersistedState?.selectedBoxId) || '',
+    normalizeBoxAddress(addressParams.get('boxAddress') || initialPersistedState?.selectedBoxId) || '',
   );
+  useEffect(() => {
+    const value = addressParams.get('boxAddress');
+    setSelectedBoxId(normalizeBoxAddress(value));
+  }, [addressParams]);
   const [selectedBoxDetails, setSelectedBoxDetails] = useState(null);
   const [boxDetailsLoading, setBoxDetailsLoading] = useState(false);
   const [boxDetailsError, setBoxDetailsError] = useState('');
   const [boxRecordsRevision, setBoxRecordsRevision] = useState(0);
 
-  const debouncedSearchValue = useDebouncedValue(searchValue, 220);
-  const debouncedBoxIdPrefix = useDebouncedValue(boxIdPrefix, 120);
+  const [debouncedSearchValue] = useDebouncedValue(searchValue, 400);
+  const [debouncedBoxIdPrefix, activateAddressQuery] = useDebouncedValue(boxIdPrefix, 400);
+  const lastAddressLookup = useRef(addressParams.has('boxAddress')
+    ? boxIdPrefix || (parseBoxAddress(searchValue)?.complete ? searchValue : '')
+    : '');
+  useEffect(() => {
+    if (loading) return;
+    const lookup = debouncedBoxIdPrefix || (parseBoxAddress(debouncedSearchValue)?.complete ? debouncedSearchValue : '');
+    if (lookup === lastAddressLookup.current) return;
+    const parsed = parseBoxAddress(lookup);
+    if (!parsed?.complete) { lastAddressLookup.current = lookup; return; }
+    if (!boxes.some(box => box.address === parsed.address || (box.kind === 'cabinet' && box.address === `${parsed.boxId}${parsed.cabinet}`))) return;
+    lastAddressLookup.current = lookup;
+    setSelectedBoxId(parsed.address);
+    setAddressParams(current => { const next = new URLSearchParams(current); next.set('boxAddress', parsed.address); return next; }, { replace: true, state: addressLocation.state });
+  }, [boxes, loading, debouncedBoxIdPrefix, debouncedSearchValue, setAddressParams, addressLocation.state]);
   const loadMoreControllerRef = useRef(null);
   const queryKeyRef = useRef('');
 
   const queryState = useMemo(
     () => ({
       q: debouncedSearchValue,
-      boxIdPrefix: debouncedBoxIdPrefix,
+      addressScope: debouncedBoxIdPrefix,
+      includeCabinets: true,
       rooms: selectedRooms,
       locations: selectedLocations,
       tags: scopedTag ? tagScope.tags : selectedTags,
@@ -288,11 +317,11 @@ export default function RetrievalBoxCentricView({
 
   useEffect(() => {
     const handleBoxUpdated = (event) => {
-      const previousShortId = normalizeBoxId(event?.detail?.previousShortId);
-      const nextShortId = normalizeBoxId(event?.detail?.box?.box_id);
+      const previousShortId = normalizeBoxAddress(event?.detail?.previousShortId);
+      const nextShortId = normalizeBoxAddress(event?.detail?.box?.box_id);
       if (previousShortId && nextShortId) {
         setSelectedBoxId((current) =>
-          normalizeBoxId(current) === previousShortId ? nextShortId : current
+          normalizeBoxAddress(current) === previousShortId ? nextShortId : current
         );
       }
       setBoxRecordsRevision((current) => current + 1);
@@ -393,9 +422,7 @@ export default function RetrievalBoxCentricView({
       setTotal(0);
       setOffset(0);
       setHasMore(false);
-      setSelectedBoxDetails(null);
-      setBoxDetailsError('');
-      setBoxDetailsLoading(false);
+      setMatchCounts(null);
       onAnalyticsChange?.(null);
 
       try {
@@ -412,6 +439,7 @@ export default function RetrievalBoxCentricView({
 
         setBoxes(normalizeRetrievalBoxesPage(payload?.boxes));
         setTotal(Number(payload?.total) || 0);
+        setMatchCounts({ boxes: payload.physicalBoxMatches || 0, sections: payload.cabinetMatches || 0 });
         setLimit(Number(payload?.limit) || initialPageLimitRef.current);
         setOffset(Number(payload?.offset) || 0);
         setHasMore(Boolean(payload?.hasMore));
@@ -426,6 +454,7 @@ export default function RetrievalBoxCentricView({
         setError(loadError?.message || 'Failed to load retrieval boxes');
         setBoxes([]);
         setTotal(0);
+        setMatchCounts({ boxes: 0, sections: 0 });
         setHasMore(false);
         onAnalyticsChange?.(null);
       } finally {
@@ -447,7 +476,7 @@ export default function RetrievalBoxCentricView({
 
     const validIds = new Set(
       boxes
-        .map((box) => normalizeBoxId(box?.boxId))
+        .map((box) => normalizeBoxAddress(box?.address || box?.boxId))
         .filter(Boolean),
     );
 
@@ -460,8 +489,8 @@ export default function RetrievalBoxCentricView({
     }
 
     setSelectedBoxId((current) => {
-      const normalizedCurrent = normalizeBoxId(current);
-      if (normalizedCurrent && validIds.has(normalizedCurrent)) {
+      const normalizedCurrent = normalizeBoxAddress(current);
+      if (normalizedCurrent && (validIds.has(normalizedCurrent) || validIds.has(normalizedCurrent.replace(/[1-9]\d?$/, '')))) {
         return normalizedCurrent;
       }
 
@@ -469,17 +498,18 @@ export default function RetrievalBoxCentricView({
         return '';
       }
 
-      return normalizeBoxId(boxes[0]?.boxId);
+      return normalizeBoxAddress(boxes[0]?.address || boxes[0]?.boxId);
     });
   }, [boxes, isMobile, loading]);
 
   const handleSelectBox = useCallback(
     (rawBoxId) => {
-      const normalized = normalizeBoxId(rawBoxId);
+      const normalized = normalizeBoxAddress(rawBoxId);
       if (!normalized) return;
 
+      setAddressParams(current => { const next = new URLSearchParams(current); next.set('boxAddress', normalized); next.delete('shelves'); return next; }, { state: addressLocation.state });
       setSelectedBoxId((current) => {
-        const currentNormalized = normalizeBoxId(current);
+        const currentNormalized = normalizeBoxAddress(current);
         if (isMobile && currentNormalized === normalized) {
           return '';
         }
@@ -487,7 +517,7 @@ export default function RetrievalBoxCentricView({
         return normalized;
       });
     },
-    [isMobile],
+    [isMobile, setAddressParams, addressLocation.state],
   );
 
   useMissingInventoryRefresh(async () => {
@@ -496,28 +526,29 @@ export default function RetrievalBoxCentricView({
       const payload = await fetchRetrievalBoxesPage({ ...queryState, limit: Math.max(boxes.length, limit), offset: 0 });
       if (queryKeyRef.current !== key) return;
       setBoxes(normalizeRetrievalBoxesPage(payload.boxes));
+      setMatchCounts({ boxes: payload.physicalBoxMatches, sections: payload.cabinetMatches });
       setTotal(Number(payload.total) || 0);
       setHasMore(Boolean(payload.hasMore));
       if (selectedBoxId) {
-        const record = await fetchBoxTreeByShortId(selectedBoxId);
-        if (queryKeyRef.current === key) setSelectedBoxDetails(record.tree || record);
+        const record = await fetchBoxTreeByShortId(parseBoxAddress(selectedBoxId)?.boxId);
+        if (queryKeyRef.current === key) setSelectedBoxDetails(record);
       }
     } catch (failure) { setError(failure.message || 'Could not refresh box placement.'); }
   });
 
   const selectedBoxSummary = useMemo(() => {
-    const normalizedSelected = normalizeBoxId(selectedBoxId);
+    const normalizedSelected = normalizeBoxAddress(selectedBoxId);
     if (!normalizedSelected) return null;
 
     return (
       boxes.find(
-        (box) => normalizeBoxId(box?.boxId) === normalizedSelected,
+        (box) => normalizeBoxAddress(box?.address || box?.boxId) === normalizedSelected || (box.kind === 'cabinet' && box.address === `${parseBoxAddress(normalizedSelected)?.boxId}${parseBoxAddress(normalizedSelected)?.cabinet}`),
       ) || null
     );
   }, [boxes, selectedBoxId]);
 
   useEffect(() => {
-    const normalizedBoxId = normalizeBoxId(selectedBoxId);
+    const normalizedBoxId = normalizeBoxAddress(selectedBoxId);
     if (!normalizedBoxId) {
       setSelectedBoxDetails(null);
       setBoxDetailsError('');
@@ -533,7 +564,7 @@ export default function RetrievalBoxCentricView({
       setBoxDetailsError('');
 
       try {
-        const detail = await fetchBoxTreeByShortId(normalizedBoxId, {
+        const detail = await fetchBoxTreeByShortId(parseBoxAddress(normalizedBoxId)?.boxId, {
           signal: controller.signal,
         });
 
@@ -575,11 +606,7 @@ export default function RetrievalBoxCentricView({
     return Array.from(byLocation.entries())
       .map(([location, locationBoxes]) => ({
         location,
-        boxes: [...locationBoxes].sort((a, b) => {
-          const byId = compareNumericBoxIds(a?.boxId, b?.boxId);
-          if (byId !== 0) return byId;
-          return compareLabel(a?.boxLabel, b?.boxLabel);
-        }),
+        boxes: locationBoxes,
       }))
       .sort((a, b) => compareLabel(a.location, b.location));
   }, [boxes, selectedSort, sortOptions]);
@@ -615,10 +642,10 @@ export default function RetrievalBoxCentricView({
 
       setBoxes((current) => {
         const merged = [...current];
-        const existingIds = new Set(current.map((box) => normalizeBoxId(box.boxId)));
+        const existingIds = new Set(current.map((box) => normalizeBoxAddress(box.address || box.boxId)));
 
         for (const box of nextBoxes) {
-          const key = normalizeBoxId(box?.boxId);
+          const key = normalizeBoxAddress(box?.address || box?.boxId);
           if (!key || existingIds.has(key)) continue;
           existingIds.add(key);
           merged.push(box);
@@ -646,8 +673,17 @@ export default function RetrievalBoxCentricView({
   }, [hasMore, limit, loading, loadingMore, offset, queryState]);
 
   const selectedTree = selectedBoxDetails?.tree || null;
-  const directItems = Array.isArray(selectedTree?.items) ? selectedTree.items : [];
-  const selectedBoxHref = selectedBoxSummary?.boxHref || (selectedBoxId ? `/boxes/${selectedBoxId}` : '');
+  const selectedCompartment = parseBoxAddress(selectedBoxId)?.compartmentKey || '';
+  const selectedShelfKeys = readShelfSelection(addressParams.get('shelves'), selectedCompartment, selectedBoxSummary?.shelves || [], selectedCompartment);
+  const scopedTree = selectedCompartment ? scopeBoxToShelves(selectedTree, selectedCompartment, selectedShelfKeys) : selectedTree;
+  const directItems = selectedCompartment ? collectPlacedItems(scopedTree) : (selectedTree?.items || []);
+  const shelfPicker = selectedBoxSummary?.kind === 'cabinet' ? <CabinetShelfPicker boxId={selectedBoxSummary.boxId} cabinetKey={selectedBoxSummary.compartmentKey} parentLabel={selectedBoxSummary.boxLabel} ownerBox={boxDetailsLoading ? null : selectedTree} shelves={selectedBoxSummary.shelves} selectedKeys={selectedShelfKeys} onChange={keys => {
+    const key = keys.length === 1 ? keys[0] : selectedBoxSummary.compartmentKey[0];
+    const address = `${selectedBoxSummary.boxId}${key}`;
+    setSelectedBoxId(address);
+    setAddressParams(current => { const next = new URLSearchParams(current); next.set('boxAddress', address); next.delete('shelves'); if (keys.length > 1) next.set('shelves', keys.join(',')); if (parseBoxAddress(boxIdPrefix)?.cabinet) next.set('addressScope', address); return next; }, { state: addressLocation.state });
+  }} /> : null;
+  const selectedBoxHref = selectedBoxId ? `/boxes/${selectedBoxId}` : '';
   const hasSelection = Boolean(selectedBoxId);
   const restoreReady = !loading && (
     !hasSelection || (
@@ -663,7 +699,7 @@ export default function RetrievalBoxCentricView({
 
   return (
     <S.PageShell $mode="boxes">
-      <RetrievalConsolePortal mode={mode} onModeChange={onModeChange} shown={boxes.length} total={total} loading={loading || loadingMore}
+      <RetrievalConsolePortal boxMatches={matchCounts?.boxes} sectionMatches={matchCounts?.sections} mode={mode} onModeChange={onModeChange} shown={boxes.length} total={total} loading={loading || loadingMore}
         scope={tagScope ? { ...tagScope, options: filterOptions.tags } : null}
         presentation={presentation} onPresentationChange={onPresentationChange} desktop={desktop}
         />
@@ -678,6 +714,7 @@ export default function RetrievalBoxCentricView({
         searchPlaceholder={tagScope ? `Search boxes tagged #${tagScope.label}` : 'Search box name, location, or item tag'}
         boxIdPrefix={boxIdPrefix}
         onBoxIdPrefixChange={setBoxIdPrefix}
+        onBoxAddressActivate={() => activateAddressQuery(boxIdPrefix)}
         filterOptions={filterOptions}
         selectedBoxRooms={selectedRooms}
         selectedBoxLocations={selectedLocations}
@@ -699,10 +736,11 @@ export default function RetrievalBoxCentricView({
       {error ? <S.ErrorState role="alert">{error}</S.ErrorState> : null}
 
       <S.ResultsPanel $headerless>
+        {matchCounts ? <S.ExpandedMuted role="status">{matchCounts.boxes} boxes · {matchCounts.sections} sections</S.ExpandedMuted> : null}
         {loading ? (
           <S.LoadingState>Loading box retrieval results…</S.LoadingState>
         ) : !boxes.length ? (
-          <S.EmptyState>No boxes match the current search/filter.</S.EmptyState>
+          <S.EmptyState>No boxes or sections match the current search/filter.</S.EmptyState>
         ) : (
           <S.BoxCentricLayout>
             <S.BoxMapPanel>
@@ -711,11 +749,12 @@ export default function RetrievalBoxCentricView({
                   <S.LocationSectionLabel>{group.location}</S.LocationSectionLabel>
                   <S.BoxList $presentation={presentation}>
                     {group.boxes.map((box) => {
-                      const normalizedId = normalizeBoxId(box?.boxId);
-                      const isActive = normalizedId === normalizeBoxId(selectedBoxId);
+                      const normalizedId = normalizeBoxAddress(box?.address || box?.boxId);
+                      const parsedSelected = parseBoxAddress(selectedBoxId);
+                      const isActive = normalizedId === selectedBoxId || (box.kind === 'cabinet' && normalizedId === `${parsedSelected?.boxId}${parsedSelected?.cabinet}`);
                       const inlinePanelId = `retrieval-box-inline-${normalizedId || box.id}`;
                       return (
-                        <S.BoxListItem key={box.id}>
+                        <S.BoxListItem key={box.resultKey || box.id}>
                           <RetrievalBoxResultRow box={box} isActive={isActive}
                             onSelect={() => handleSelectBox(normalizedId)} isMobile={isMobile}
                             panelId={inlinePanelId} presentation={presentation} />
@@ -723,6 +762,7 @@ export default function RetrievalBoxCentricView({
                           {isMobile && isActive ? (
                             <S.MobileInlineInspectPanel id={inlinePanelId}>
                               <BoxInspectContent
+                                shelfPicker={shelfPicker}
                                 selectedBoxId={selectedBoxId}
                                 boxDetailsLoading={boxDetailsLoading}
                                 boxDetailsError={boxDetailsError}
@@ -747,6 +787,7 @@ export default function RetrievalBoxCentricView({
                   <S.ExpandedMuted>Select a box to inspect its contents.</S.ExpandedMuted>
                 ) : (
                   <BoxInspectContent
+                    shelfPicker={shelfPicker}
                     selectedBoxId={selectedBoxId}
                     boxDetailsLoading={boxDetailsLoading}
                     boxDetailsError={boxDetailsError}
@@ -772,7 +813,7 @@ export default function RetrievalBoxCentricView({
                 {loadingMore ? 'Loading…' : 'Load more'}
               </S.LoadMoreButton>
             ) : (
-              <S.ResultsEndState>All matching boxes loaded.</S.ResultsEndState>
+              <S.ResultsEndState>All matching rows loaded.</S.ResultsEndState>
             )}
           </S.ResultsFooter>
         ) : null}

@@ -1,3 +1,4 @@
+import { summarizeBoxInventory } from '../util/boxInventorySummary';
 // src/components/BoxMetaPanel.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import * as S from '../styles/BoxMetaPanel.styles';
@@ -158,6 +159,7 @@ export default function BoxMetaPanel({
     return [...normalized, { id: shortId, label: title, current: true }];
   }, [box, parentPath]);
 
+  const inventorySummary = useMemo(() => summarizeBoxInventory(box), [box]);
   const depth = crumbs.length - 1;
   const currentCrumb = crumbs[crumbs.length - 1];
   const descendantCount = useMemo(() => {
@@ -173,10 +175,11 @@ export default function BoxMetaPanel({
     if (!box) return;
     window.dispatchEvent(
       new CustomEvent(BOX_CONTEXT_STATE_EVENT, {
-        detail: { shortId, title, location, breadcrumb: crumbs },
+        detail: { shortId, title, location, breadcrumb: crumbs, metadata: inventorySummary },
       })
     );
-  }, [box, crumbs, location, shortId, title]);
+    return () => window.dispatchEvent(new CustomEvent(BOX_CONTEXT_STATE_EVENT, { detail: null }));
+  }, [box, crumbs, inventorySummary, location, shortId, title]);
 
   // Child box click
   const goBox = (id) => {

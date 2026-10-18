@@ -1,3 +1,4 @@
+import { normalizeBoxAddress } from '../util/boxAddress';
 import { API_BASE } from './API_BASE';
 
 export const DEFAULT_RETRIEVAL_LIMIT = 25;
@@ -16,6 +17,7 @@ function appendCsvParam(params, key, values) {
 export async function fetchRetrievalItemsPage(
   {
     q = '',
+    addressScope = '',
     categories = [],
     tags = [],
     exactTag,
@@ -33,6 +35,7 @@ export async function fetchRetrievalItemsPage(
   const params = new URLSearchParams();
   const query = String(q || '').trim();
   if (query) params.set('q', query);
+  if (addressScope) params.set('addressScope', normalizeBoxAddress(addressScope));
 
   appendCsvParam(params, 'category', categories);
   appendCsvParam(params, 'tag', tags);
@@ -52,7 +55,8 @@ export async function fetchRetrievalItemsPage(
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch retrieval items (${response.status})`);
+    const failure = await response.json().catch(() => ({}));
+    throw new Error(failure.error?.message || failure.error || failure.message || `Failed to fetch retrieval items (${response.status})`);
   }
 
   return response.json();
@@ -61,7 +65,9 @@ export async function fetchRetrievalItemsPage(
 export async function fetchRetrievalBoxesPage(
   {
     q = '',
+    addressScope = '',
     boxIdPrefix = '',
+    includeCabinets = false,
     tags = [],
     exactTag,
     tagOperator = 'or',
@@ -78,8 +84,10 @@ export async function fetchRetrievalBoxesPage(
   const params = new URLSearchParams();
   const query = String(q || '').trim();
   if (query) params.set('q', query);
-  const normalizedBoxIdPrefix = String(boxIdPrefix || '').replace(/\D/g, '').slice(0, 3);
-  if (normalizedBoxIdPrefix) params.set('boxPrefix', normalizedBoxIdPrefix);
+  if (addressScope) params.set('addressScope', normalizeBoxAddress(addressScope));
+  const scope = normalizeBoxAddress(addressScope || boxIdPrefix);
+  if (scope) params.set('addressScope', scope);
+  if (includeCabinets) params.set('includeCabinets', 'true');
 
   appendCsvParam(params, 'tag', tags);
   if (exactTag) (Array.isArray(exactTag) ? exactTag : [exactTag]).forEach(tag => params.append('exactTag', tag));
@@ -97,7 +105,8 @@ export async function fetchRetrievalBoxesPage(
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch retrieval boxes (${response.status})`);
+    const failure = await response.json().catch(() => ({}));
+    throw new Error(failure.error?.message || failure.error || failure.message || `Failed to fetch retrieval boxes (${response.status})`);
   }
 
   return response.json();

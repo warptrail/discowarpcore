@@ -1,0 +1,159 @@
+{
+  "version": 1,
+  "householdIdentity": "Disco Space Cove",
+  "productNameUnchanged": true,
+  "files": [
+    {
+      "file": "apple-touch-icon-180.png",
+      "width": 180,
+      "height": 180,
+      "alpha": false,
+      "bytes": 27469,
+      "sha256": "ddee315409441ca60c712a9d53cce5dbdddbd74b31c51fa25965ace845c3ee8b"
+    },
+    {
+      "file": "emblem-transparent-512.png",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 270828,
+      "sha256": "397fce6d804f0bd61194d3ce05eb7353a3cbe9ed96c9cc6bcd5e257e48beb289"
+    },
+    {
+      "file": "favicon-16.png",
+      "width": 16,
+      "height": 16,
+      "alpha": false,
+      "bytes": 371,
+      "sha256": "11490e29e2b27c2787bced51cac0e07506206e3d4276ec95d58d689b6514a097"
+    },
+    {
+      "file": "favicon-32.png",
+      "width": 32,
+      "height": 32,
+      "alpha": false,
+      "bytes": 848,
+      "sha256": "53880a772b89d489c919e8f49a4aced4453e69afe9b169e0d987c07c609fc751"
+    },
+    {
+      "file": "favicon-48.png",
+      "width": 48,
+      "height": 48,
+      "alpha": false,
+      "bytes": 1444,
+      "sha256": "9adc0ddc6caac677d0d1106d56e40f03b79fff1e301a8dca67da942c17264877"
+    },
+    {
+      "file": "icon-1024.png",
+      "width": 1024,
+      "height": 1024,
+      "alpha": false,
+      "bytes": 584044,
+      "sha256": "d6ee039255ff348db2216391fb39de500abaeaeae0382226d6d3ad27f97a9904"
+    },
+    {
+      "file": "icon-128.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false,
+      "bytes": 15396,
+      "sha256": "9cebf287f574c41085abd82a27918f127a05f55948f852e8406e5441073e31b9"
+    },
+    {
+      "file": "icon-192.png",
+      "width": 192,
+      "height": 192,
+      "alpha": false,
+      "bytes": 30639,
+      "sha256": "b9563c86efa4c93915518238fe8057b77bff3e0614bc425143b81fe9e8748480"
+    },
+    {
+      "file": "icon-256.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false,
+      "bytes": 50902,
+      "sha256": "bab3b62ebd077e2d4a683bdca6bfc5866410e829bc9024fc5561e8f60b91723b"
+    },
+    {
+      "file": "icon-512.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false,
+      "bytes": 178606,
+      "sha256": "a205dcc8d5c3bf2a10558cf090130a31b12c46a02b52a1e1a9ebe90563656bb3"
+    },
+    {
+      "file": "icon-64.png",
+      "width": 64,
+      "height": 64,
+      "alpha": false,
+      "bytes": 4903,
+      "sha256": "c6e3a75b8c0904fec9a21e1a5b06c8817b5c828a2421ade534c4300be8ae32d7"
+    },
+    {
+      "file": "icon-maskable-192.png",
+      "width": 192,
+      "height": 192,
+      "alpha": false,
+      "bytes": 16205,
+      "sha256": "cf6091cb4ab4c66b0fb20542ae7bdd0eca17ad55aadeb51e6f34eb7e58a9ebd6"
+    },
+    {
+      "file": "icon-maskable-512.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false,
+      "bytes": 90053,
+      "sha256": "167f565b8eb794a91caad30f30318a3e6db7adc68df5e7b595900ba9e52a1c6b"
+    },
+    {
+      "file": "lockup-approved-navy.png",
+      "width": 1750,
+      "height": 430,
+      "alpha": false,
+      "bytes": 778825,
+      "sha256": "ad4567909dbffa0cc3a4052ea25613df664922232d52a8ba58f119e8ee0b953a"
+    },
+    {
+      "file": "lockup-transparent-480.png",
+      "width": 480,
+      "height": 116,
+      "alpha": true,
+      "bytes": 39911,
+      "sha256": "d1aea19e43ebe77c4faeebf7dca436b9a32d8e06977201ded6e0846c68f440ec"
+    },
+    {
+      "file": "lockup-transparent-960.png",
+      "width": 960,
+      "height": 231,
+      "alpha": true,
+      "bytes": 131513,
+      "sha256": "bc3e260c2efb1d637cbfbf00a563d0dcfacece6f4acc8be124ac056fc6138ee5"
+    },
+    {
+      "file": "lockup-transparent.png",
+      "width": 1870,
+      "height": 450,
+      "alpha": true,
+      "bytes": 407602,
+      "sha256": "987677da6a96fb4ea7ef84ea30ff3570b8aac889e80a5a187770770ead461d68"
+    },
+    {
+      "file": "star-transparent-256.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "bytes": 32176,
+      "sha256": "507d52ae228ea1e65484a9c8177d3b2ae6d0e936bde4f1330f80eda0b14b0235"
+    },
+    {
+      "file": "wordmark-transparent.png",
+      "width": 1355,
+      "height": 200,
+      "alpha": true,
+      "bytes": 131202,
+      "sha256": "f0a716c9edc148f4f7680274e1993822e5269cc5aa8f3b2b1d468345ee19a65b"
+    }
+  ]
+}

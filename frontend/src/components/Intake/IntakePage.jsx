@@ -1,3 +1,4 @@
+import { getLeafCompartments } from '../../util/boxCompartments';
 import IntakeDestinationContext from './IntakeDestinationContext';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -263,6 +264,7 @@ export default function IntakePage({ boxes = [] }) {
 
   const [selectedBoxId, setSelectedBoxId] = useState(() => quickCaptureDraft
     ? quickCaptureDraft.targetBoxId : readStoredCurrentBoxId());
+  const [selectedCompartmentKey, setSelectedCompartmentKey] = useState(() => { try { return JSON.parse(localStorage.getItem('intake.placement') || '{}'); } catch { return {}; } });
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [activeAction, setActiveAction] = useState('');
   const [activeWorkspaceView, setActiveWorkspaceView] = useState('new');
@@ -309,12 +311,12 @@ export default function IntakePage({ boxes = [] }) {
     return sortBoxes(flat);
   }, [boxes, boxImageOverrides, createdBoxes]);
 
-  const currentBox = useMemo(
-    () =>
-      flattenedBoxes.find((box) => String(box?._id || '') === String(selectedBoxId || '')) ||
-      null,
-    [flattenedBoxes, selectedBoxId],
-  );
+  const currentBox = useMemo(() => {
+    const box = flattenedBoxes.find(box => String(box?._id || '') === String(selectedBoxId || ''));
+    if (!box) return null;
+    const key = selectedCompartmentKey.boxId === selectedBoxId ? selectedCompartmentKey.key : '';
+    return key && getLeafCompartments(box).some(row => row.key === key) ? { ...box, compartmentKey: key } : box;
+  }, [flattenedBoxes, selectedBoxId, selectedCompartmentKey]);
   const currentBoxTheme = useMemo(
     () => getBoxTheme(currentBox?.box_id || currentBox?.shortId),
     [currentBox?.box_id, currentBox?.shortId],
@@ -651,7 +653,10 @@ export default function IntakePage({ boxes = [] }) {
     [mergedIntakeItems, moveSeedItemId],
   );
 
-  const handleSelectBox = (nextBoxId) => {
+  const handleSelectBox = (nextBoxId, compartmentKey = '') => {
+    const placement = { boxId: String(nextBoxId || ''), key: compartmentKey };
+    setSelectedCompartmentKey(placement);
+    try { localStorage.setItem('intake.placement', JSON.stringify(placement)); } catch { /* Storage may be disabled. */ }
     const normalized = String(nextBoxId || '').trim();
     setSelectedBoxId(normalized);
     setSelectorOpen(false);
@@ -665,7 +670,7 @@ export default function IntakePage({ boxes = [] }) {
 
     const selected = flattenedBoxes.find((box) => String(box?._id) === normalized);
     if (selected?.box_id) {
-      setStatusMessage(`Intake now targeting box #${selected.box_id}.`);
+      setStatusMessage(`Intake now targeting #${selected.box_id}${compartmentKey}.`);
     } else {
       setStatusMessage('Intake box updated.');
     }
@@ -709,7 +714,7 @@ export default function IntakePage({ boxes = [] }) {
     }
   }, []);
 
-  const handleItemMutation = useCallback(({ message, item, itemId, destBoxId, sourceBoxId, sourceBox } = {}) => {
+  const handleItemMutation = useCallback(({ message, item, itemId, destBoxId, sourceBoxId, sourceBox, sourceCompartmentKey } = {}) => {
     if (message) {
       setStatusMessage(message);
     }
@@ -818,6 +823,7 @@ export default function IntakePage({ boxes = [] }) {
                     itemId: movedItemId,
                     sourceBoxId: movedDestBoxId,
                     destBoxId: movedSourceBoxId,
+                    compartmentKey: sourceCompartmentKey,
                   }),
                 });
 
@@ -834,6 +840,8 @@ export default function IntakePage({ boxes = [] }) {
                   ...(normalized || item || {}),
                   _id: movedItemId,
                   boxId: movedSourceBoxId,
+                  compartmentKey: sourceCompartmentKey || '',
+                  placementLabel: `${undoDestination?.box_id || sourceBox?.box_id || ''}${sourceCompartmentKey || ''}`,
                   box: undoDestination
                     ? {
                         _id: undoDestination._id,

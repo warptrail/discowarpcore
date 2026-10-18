@@ -30,10 +30,11 @@ const boxSchema = new mongoose.Schema({
   declutterIsDefault: { type: Boolean, default: false },
   isComplexBox: { type: Boolean, default: false },
   compartments: {
-    type: [{ _id: false, key: String, label: String }],
+    type: [{ _id: false, key: String, label: String, children: { type: [{ _id: false, key: String, label: String }], default: undefined } }],
     default: function () { return this.isComplexBox ? [{ key: 'A', label: '' }, { key: 'B', label: '' }] : []; },
   },
   itemCompartments: { type: Map, of: String, default: {} },
+  childBoxCompartments: { type: Map, of: String, default: {} },
   isGiftBox: { type: Boolean, default: false, index: true },
   imagePath: { type: String, default: '' },
   image: {

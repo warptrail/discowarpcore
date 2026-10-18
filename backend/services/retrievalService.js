@@ -1,8 +1,9 @@
+const { createAddressIndex, buildAddressViews, viewInScope, parseBoxAddress } = require('../utils/inventoryAddressViews');
 const Item = require('../models/Item');
 const Box = require('../models/Box');
 const Location = require('../models/Location');
 const { formatLocationName } = require('../utils/locationName');
-const { itemPlacement, getCompartments } = require('../utils/boxCompartments');
+const { itemPlacement, getCompartments, getChildBoxCompartment } = require('../utils/boxCompartments');
 const MediaState = require('../models/MediaState');
 const path = require('path');
 const { MEDIA_ROOT, toMediaUrl } = require('../config/media');
@@ -705,6 +706,7 @@ function toClientItem(item) {
     boxNumber: item.boxNumber,
     compartmentKey: item.compartmentKey,
     placementLabel: item.placementLabel,
+    placementTrail: item.placementTrail,
     boxName: item.boxName,
     boxPath: item.boxPath,
     locationLabel: item.locationLabel,
@@ -796,8 +798,12 @@ function buildRetrievalBoxes(boxDocs = [], itemDocs = []) {
       ).sort(compareLabel);
       const tagKeys = itemTags.map((tag) => normalizeFacetKey(tag));
       const childBoxCount = childCountByParentId.get(mongoId) || 0;
+      const parent = maps.byId.get(String(box.parentBox));
+      const parentCompartmentKey = getChildBoxCompartment(parent, box._id);
+      const parentPlacementLabel = parentCompartmentKey ? `${parent.box_id}${parentCompartmentKey}` : '';
       const searchText = buildSearchText([
         boxId,
+        parentPlacementLabel,
         boxLabel,
         description,
         notes,
@@ -815,6 +821,8 @@ function buildRetrievalBoxes(boxDocs = [], itemDocs = []) {
         imagePath: box.imagePath,
         isComplexBox: Boolean(box.isComplexBox),
         compartments: getCompartments(box),
+        parentCompartmentKey,
+        parentPlacementLabel,
         description,
         notes,
         locationLabel,
@@ -951,12 +959,17 @@ function sortRetrievalBoxes(items, sortKey = 'location', shuffleSeed = '') {
 function toClientBox(item) {
   return {
     id: item.id,
+    kind: item.kind || "box", resultKey: item.resultKey, ownerBoxMongoId: item.ownerBoxMongoId,
+    address: item.address || item.boxId, compartmentKey: item.compartmentKey || "",
+    ownerBoxLabel: item.ownerBoxLabel, shelfCount: item.shelfCount, shelves: item.shelves, scopedItemCount: item.scopedItemCount,
     boxId: item.boxId,
     boxLabel: item.boxLabel,
     image: item.image,
     imagePath: item.imagePath,
     isComplexBox: Boolean(item.isComplexBox),
     compartments: item.compartments || [],
+    parentCompartmentKey: item.parentCompartmentKey || '',
+    parentPlacementLabel: item.parentPlacementLabel || '',
     description: item.description,
     notes: item.notes,
     locationLabel: item.locationLabel,
@@ -973,7 +986,10 @@ function normalizeExactTags(value) {
 }
 
 async function getRetrievalItemsPage(params = {}) {
-  const query = toTrimmed(params.q);
+  if (/^#?\d{3}[a-z0-9]+$/i.test(toTrimmed(params.q)) && !parseBoxAddress(params.q)) throw Object.assign(new Error('Invalid address. Shelves run from 1 through 99.'), { status: 400 });
+  const addressQuery = parseBoxAddress(params.q);
+  const addressScope = params.addressScope || (addressQuery?.complete ? addressQuery.address : '');
+  const query = addressQuery?.complete ? '' : toTrimmed(params.q);
   const categoryFilters = normalizeFilterValues(params.category);
   const tagFilters = params.exactTag ? normalizeExactTags(params.exactTag) : normalizeFilterValues(params.tag);
   const tagOperator = String(params.tagOperator || '').trim().toLowerCase() === 'and'
@@ -992,12 +1008,17 @@ async function getRetrievalItemsPage(params = {}) {
         '_id quantity missing name description notes maintenanceNotes category tags location image imagePath primaryOwnerName keepPriority orphanedAt isConsumable usageHistory checkHistory maintenanceHistory'
       )
       .lean(),
-    Box.find().select('_id box_id label isComplexBox compartments itemCompartments description notes location locationId parentBox items')
+    Box.find().select('_id box_id label isComplexBox compartments itemCompartments childBoxCompartments description notes location locationId parentBox items')
       .populate('locationId', 'room vicinity specifics exactSpot').lean(),
   ]);
   const itemDocs = await attachMediaStateSummariesForRetrieval(rawItemDocs);
 
-  const retrievalItems = buildRetrievalItems(itemDocs, boxDocs);
+  const addressIndex = createAddressIndex(boxDocs, itemDocs);
+  const scope = addressIndex.resolve(addressScope);
+  const retrievalItems = buildRetrievalItems(itemDocs, boxDocs).map(item => {
+    const trail = addressIndex.trail(addressIndex.byId.get(item.boxId), item.id);
+    return { ...item, placementTrail: trail, searchText: `${item.searchText} ${trail.toLowerCase()}` };
+  }).filter(item => !scope || (scope.itemIds ? scope.itemIds.has(item.id) : scope.boxIds.has(item.boxId)));
   const filteredItems = filterRetrievalItems(retrievalItems, {
     query,
     categoryFilters,
@@ -1025,7 +1046,10 @@ async function getRetrievalItemsPage(params = {}) {
 }
 
 async function getRetrievalBoxesPage(params = {}) {
-  const query = toTrimmed(params.q);
+  if (/^#?\d{3}[a-z0-9]+$/i.test(toTrimmed(params.q)) && !parseBoxAddress(params.q)) throw Object.assign(new Error('Invalid address. Shelves run from 1 through 99.'), { status: 400 });
+  const addressQuery = parseBoxAddress(params.q);
+  const addressScope = params.addressScope || (addressQuery?.complete ? addressQuery.address : '');
+  const query = addressQuery?.complete ? '' : toTrimmed(params.q);
   const boxIdPrefix = normalizeBoxIdPrefix(params.boxPrefix);
   const roomFilters = normalizeFilterValues(params.room);
   const locationFilters = normalizeFilterValues(params.location);
@@ -1039,17 +1063,26 @@ async function getRetrievalBoxesPage(params = {}) {
 
   const [boxDocs, itemDocs, locationDocs] = await Promise.all([
     Box.find()
-      .select('_id box_id label isComplexBox compartments itemCompartments name isComplexBox description notes tags image imagePath location locationId parentBox items')
+      .select('_id box_id label isComplexBox compartments itemCompartments childBoxCompartments name isComplexBox description notes tags image imagePath location locationId parentBox items')
       .populate('locationId', 'room vicinity specifics exactSpot')
       .lean(),
     Item.find(ACTIVE_ITEM_FILTER)
-      .select('_id quantity missing notes maintenanceNotes valueCents tags')
+      .select('_id name description category quantity missing notes maintenanceNotes valueCents tags')
       .lean(),
     Location.find().select('room').lean(),
   ]);
 
-  const retrievalBoxes = buildRetrievalBoxes(boxDocs, itemDocs);
-  const filteredBoxes = filterRetrievalBoxes(retrievalBoxes, {
+  const addressIndex = createAddressIndex(boxDocs, itemDocs);
+  const scope = addressIndex.resolve(addressScope);
+  const physicalRows = buildRetrievalBoxes(boxDocs, itemDocs);
+  const retrievalBoxes = buildAddressViews(physicalRows, addressIndex, params.includeCabinets === 'true' || params.includeCabinets === true).map(row => {
+    if (!scope?.itemIds) return row;
+    const scopedItemIds = row.scopedItemIds.filter(id => scope.itemIds.has(id));
+    const scopeBoxIds = row.scopeBoxIds.filter(id => scope.boxIds.has(id));
+    return { ...row, scopedItemIds, scopeBoxIds, scopedItemCount: scopedItemIds.length,
+      ...(row.boxId === scope.boxId && scope.compartmentKey ? { directItemCount: (scope.owner.items || []).filter(id => scopedItemIds.includes(String(id))).length } : {}) };
+  });
+  const filteredBoxes = filterRetrievalBoxes(retrievalBoxes.filter(row => viewInScope(row, scope)), {
     query,
     boxIdPrefix,
     locationFilters,
@@ -1059,17 +1092,20 @@ async function getRetrievalBoxesPage(params = {}) {
     tagSource: params.tagSource,
   });
 
-  const sortedBoxes = sortRetrievalBoxes(filteredBoxes, sort, params.shuffleSeed);
+  const familyOrder = new Map(sortRetrievalBoxes(physicalRows, sort, params.shuffleSeed).map((row, index) => [row.id, index]));
+  const sortedBoxes = [...filteredBoxes].sort((a, b) => familyOrder.get(a.id) - familyOrder.get(b.id) || (a.address || a.boxId).localeCompare(b.address || b.boxId, undefined, { numeric: true }));
   const total = sortedBoxes.length;
   const pagedBoxes = sortedBoxes.slice(offset, offset + limit).map(toClientBox);
   const analytics = calculateBoxCollectionStats({
-    boxes: boxDocs,
+    boxes: boxDocs.map(box => ({ ...box, items: (box.items || []).filter(id => filteredBoxes.some(row => row.scopedItemIds.includes(String(id)))) })),
     items: itemDocs,
-    includedBoxIds: filteredBoxes.map((box) => box.id),
+    includedBoxIds: [...new Set(filteredBoxes.flatMap(row => row.scopeBoxIds))],
   });
 
   return {
     boxes: pagedBoxes,
+    physicalBoxMatches: filteredBoxes.filter(row => row.kind === "box").length,
+    cabinetMatches: filteredBoxes.filter(row => row.kind === "cabinet").length,
     analytics,
     total,
     limit,

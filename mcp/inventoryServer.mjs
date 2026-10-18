@@ -59,7 +59,9 @@ server.registerTool(
       'Search active inventory items or boxes using names, tags, categories, locations, owners, and other existing retrieval filters. This tool is read-only.',
     inputSchema: {
       kind: z.enum(['items', 'boxes']).default('items'),
-      query: z.string().optional().describe('Free-text item or box search.'),
+      query: z.string().optional().describe('Free-text or standalone address lookup.'),
+      address_scope: z.string().optional().describe('Box prefix or complete box, cabinet, or shelf address, up to 504Z99.'),
+      include_cabinets: z.boolean().optional().describe('Include cabinet view rows in box results; cabinet keys are not database IDs.'),
       category: z.string().optional().describe('Item category or comma-separated categories.'),
       tag: z.string().optional().describe('Item tag or comma-separated tags.'),
       tag_operator: z.enum(['or', 'and']).optional(),
@@ -74,7 +76,9 @@ server.registerTool(
   (input) => run(() => {
     if (input.kind === 'boxes') {
       return api.searchBoxes({
+        includeCabinets: input.include_cabinets,
         q: input.query,
+        addressScope: input.address_scope,
         location: input.location,
         limit: input.limit,
         offset: input.offset,
@@ -83,6 +87,7 @@ server.registerTool(
 
     return api.searchItems({
       q: input.query,
+        addressScope: input.address_scope,
       category: input.category,
       tag: input.tag,
       tagOperator: input.tag_operator,
@@ -113,7 +118,7 @@ server.registerTool(
   {
     title: 'Get inventory box',
     description:
-      'Fetch a box by its short box id, optionally including ancestors, statistics, and flattened contents. This tool is read-only.',
+      'Fetch a physical box or a recorded cabinet/shelf address (such as 504B2, maximum 504Z99), optionally including ancestors, statistics, and flattened contents. This tool is read-only.',
     inputSchema: {
       short_id: z.string().min(1),
       include_ancestors: z.boolean().default(true),

@@ -1,3 +1,4 @@
+import ItemThumbnailMedia from '../ItemThumbnailMedia';
 import { inputStyles, controlStyles } from '../../styles/primitives';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import styled, { css } from 'styled-components';
@@ -436,7 +437,7 @@ export default function IntakeMoveExistingTab({
         body: JSON.stringify({
           itemId,
           destBoxId,
-          ...(compact && currentBox.isComplexBox ? { compartmentKey } : {}),
+          ...(compact && currentBox.isComplexBox ? { compartmentKey: currentBox.compartmentKey || compartmentKey } : {}),
         }),
       });
 
@@ -445,10 +446,12 @@ export default function IntakeMoveExistingTab({
         throw new Error(body?.error || body?.message || `Move failed (${response.status})`);
       }
 
-      const movedMessage = `Moved ${item?.name || 'item'} to box #${currentBox?.box_id || '---'}.`;
+      const destinationKey = currentBox.isComplexBox ? currentBox.compartmentKey || compartmentKey : '';
+      const movedMessage = `Moved ${item?.name || 'item'} to #${currentBox?.box_id || '---'}${destinationKey}.`;
       const movedItem = {
         ...item,
         boxId: destBoxId,
+        compartmentKey: destinationKey, placementLabel: `${currentBox.box_id}${destinationKey}`,
         box: {
           _id: destBoxId,
           box_id: currentBox?.box_id,
@@ -558,12 +561,12 @@ export default function IntakeMoveExistingTab({
             const imageUrl = getItemImageUrl(item);
             const tags = Array.isArray(item?.tags) ? item.tags : [];
             const itemAlreadyInCurrent =
-              String(item?.box?._id || item?.boxId || '') === String(currentBox?._id || '');
+              String(item?.box?._id || item?.boxId || '') === String(currentBox?._id || '') && (!currentBox?.isComplexBox || (item.compartmentKey || item.box?.compartmentKey) === (currentBox.compartmentKey || compartmentKey));
 
             return (
               <Row key={id || `${item?.name || 'item'}-${item?.createdAt || ''}`}>
                 <Thumb>
-                  {imageUrl ? <ThumbImage src={imageUrl} alt="" /> : 'No Img'}
+                  <ItemThumbnailMedia item={item} sources={imageUrl ? [imageUrl] : undefined} imageAs={ThumbImage} />
                 </Thumb>
 
                 <Body>

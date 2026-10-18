@@ -34,6 +34,9 @@ const { tagsJsonReplacer } = require('./utils/tagSerialization');
 
 const PORT = process.env.PORT || 7610;
 const HOST = process.env.HOST || '0.0.0.0';
+// Production can expose Ethernet and loopback without listening on Wi-Fi.
+const LISTEN_HOSTS = [...new Set((process.env.LISTEN_HOSTS || HOST)
+  .split(',').map((host) => host.trim()).filter(Boolean))];
 const app = express();
 app.set('json replacer', tagsJsonReplacer);
 const FRONTEND_DIST = path.join(__dirname, '../frontend/dist');
@@ -136,16 +139,16 @@ async function startServer() {
     console.error('⚠️ Media job recovery failed:', err);
   }
 
-  app.listen(PORT, HOST, () => {
-    writeBackendLog('info', 'server.started', {
-      host: HOST,
-      port: Number(PORT),
-      processId: process.pid,
+  for (const host of LISTEN_HOSTS) {
+    app.listen(PORT, host, () => {
+      writeBackendLog('info', 'server.started', {
+        host,
+        port: Number(PORT),
+        processId: process.pid,
+      });
+      console.log(`🚀 Server running at http://${host}:${PORT}`);
     });
-    console.log(`🚀 Server running at:
-  • http://localhost:${PORT}
-  • http://<your-local-ip>:${PORT}`);
-  });
+  }
 }
 
 process.on('uncaughtExceptionMonitor', (error, origin) => {

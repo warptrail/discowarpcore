@@ -1,3 +1,4 @@
+import ItemThumbnailMedia from '../ItemThumbnailMedia';
 import * as S from './Declutter.styles';
 import DeclutterDecisionPill from './DeclutterDecisionPill';
 import {
@@ -75,11 +76,7 @@ export default function DeclutterSessionItemList({
           return (
             <S.QueueItem key={getSessionItemKey(sessionItem)}>
               <S.ThumbFrame>
-                {thumbnailUrl ? (
-                  <S.ThumbImage src={thumbnailUrl} alt="" loading="lazy" />
-                ) : (
-                  'No Image'
-                )}
+                <ItemThumbnailMedia item={item} sources={thumbnailUrl ? [thumbnailUrl] : undefined} imageAs={S.ThumbImage} />
               </S.ThumbFrame>
 
               <div>

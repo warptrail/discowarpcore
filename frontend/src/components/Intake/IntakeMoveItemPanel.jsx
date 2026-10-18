@@ -1,3 +1,4 @@
+import ItemThumbnailMedia from '../ItemThumbnailMedia';
 import { panelStyles, controlStyles, inputStyles } from '../../styles/primitives';
 import BoxCompartmentSelect from '../BoxForms/BoxCompartmentSelect';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -501,7 +502,7 @@ export default function IntakeMoveItemPanel({
                         }}
                       >
                         <Thumb>
-                          {imageUrl ? <ThumbImage src={imageUrl} alt="" /> : 'No Img'}
+                          <ItemThumbnailMedia item={item} sources={imageUrl ? [imageUrl] : undefined} imageAs={ThumbImage} />
                         </Thumb>
                         <div>
                           <OptionTitle>{item?.name || 'Unnamed item'}</OptionTitle>

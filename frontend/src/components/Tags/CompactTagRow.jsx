@@ -38,7 +38,7 @@ const Bubble = styled.span`
     &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: -2px; } }
   > span a { white-space: normal; overflow-wrap: anywhere; }
 `;
-export default function CompactTagRow({ tags = [], name = 'record', boxId, className, returnKey, maxRows = 1, editable = false, onRemove, disabled = false }) {
+export default function CompactTagRow({ tags = [], name = 'record', boxId, className, returnKey, maxRows = 1, editable = false, onRemove, disabled = false, searchQuery = '' }) {
   const id = useId();
   const source = useTagReturnSnapshot();
   const popupKey = returnKey || `${name}:${boxId || ''}:${tags.join('|')}`;
@@ -66,7 +66,7 @@ export default function CompactTagRow({ tags = [], name = 'record', boxId, class
     const observer = new ResizeObserver(check);
     observer.observe(preview);
     return () => observer.disconnect();
-  }, [tags, maxRows]);
+  }, [tags, maxRows, searchQuery]);
   useLayoutEffect(() => {
     const snapshot = restoreRef.current;
     if (!snapshot || !triggerRef.current || !triggerRef.current.getClientRects().length) return undefined;
@@ -117,11 +117,11 @@ export default function CompactTagRow({ tags = [], name = 'record', boxId, class
     return () => { observer.disconnect(); window.removeEventListener('resize', place); window.removeEventListener('scroll', onScroll, true); };
   }, [open, overflow]);
   return <Summary $rows={rows} className={className} style={boxId !== undefined ? getBoxThemeCssVars(getBoxTheme(boxId)) : undefined} onClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
-    <Preview ref={previewRef} $visible={visible} $rows={rows} $maxRows={maxRows}><TagLinks tags={tags} editable={editable} onRemove={onRemove} disabled={disabled} /></Preview>
+    <Preview ref={previewRef} $visible={visible} $rows={rows} $maxRows={maxRows}><TagLinks tags={tags} searchQuery={searchQuery} editable={editable} onRemove={onRemove} disabled={disabled} /></Preview>
     {(overflow || restoreTrigger) && <More ref={triggerRef} type="button" popoverTarget={id} aria-label={`Show all tags for ${name}`}>…</More>}
     <Bubble ref={bubbleRef} data-tag-popup={popupKey} data-tag-return-scroll={restoreTrigger ? source?.scrollY : undefined} onToggle={event => { const next = event.currentTarget.matches(':popover-open'); setOpen(next); if (!next) setRestoreTrigger(false); }} id={id} popover="auto" role="dialog" aria-label={`All tags for ${name}`} style={position}>
       <header>Tags<button type="button" popoverTarget={id} popoverTargetAction="hide" aria-label="Close tag list">×</button></header>
-      <TagLinks tags={tags} editable={editable} onRemove={onRemove} disabled={disabled} />
+      <TagLinks tags={tags} searchQuery={searchQuery} editable={editable} onRemove={onRemove} disabled={disabled} />
     </Bubble>
   </Summary>;
 }

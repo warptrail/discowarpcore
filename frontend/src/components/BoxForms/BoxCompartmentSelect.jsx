@@ -1,5 +1,6 @@
+import { useEffect } from 'react';
 import styled from 'styled-components';
-import { getCompartments } from '../../util/boxCompartments';
+import { flattenCompartments } from '../../util/boxCompartments';
 
 const Field = styled.label`
   display: grid; gap: 0.35rem; color: var(--dw-text-secondary); font-size: 0.85rem;
@@ -8,11 +9,15 @@ const Field = styled.label`
 `;
 
 export default function BoxCompartmentSelect({ box, value = 'A', onChange, disabled = false }) {
-  const compartments = getCompartments(box);
+  const compartments = flattenCompartments(box);
+  const selectedValue = compartments.find((row) => row.key === value && !row.children?.length)?.key || compartments.find((row) => !row.children?.length)?.key || '';
+  useEffect(() => {
+    if (selectedValue && selectedValue !== value) onChange(selectedValue);
+  }, [selectedValue, value, onChange]);
   if (!compartments.length) return null;
   return <Field>Compartment
-    <select value={compartments.some((row) => row.key === value) ? value : 'A'} onChange={(event) => onChange(event.target.value)} disabled={disabled}>
-      {compartments.map((row) => <option key={row.key} value={row.key}>{box.box_id}{row.key} · {row.label || `Compartment ${row.key}`}</option>)}
+    <select value={selectedValue} onChange={(event) => onChange(event.target.value)} disabled={disabled}>
+      {compartments.map((row) => <option key={row.key} value={row.key} disabled={!!row.children?.length}>{box.box_id}{row.key} · {row.label || `Compartment ${row.key}`}</option>)}
     </select>
   </Field>;
 }

@@ -1,5 +1,6 @@
+import BoxConsoleMetadata from './BoxConsoleMetadata';
 import MissingAlertLink from './MissingItems/MissingAlertLink';
-import { Fragment, useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { css, keyframes } from 'styled-components';
 import { joinedWorkspaceHeader } from '../styles/workspaceBoundaries';
@@ -17,6 +18,7 @@ import OperationsConsoleLog from './OperationsFilters/OperationsConsoleLog';
 import LocationConsoleHost from './Location/LocationConsoleHost';
 import { ToastContext } from './Toast';
 import HomeCommandIcon from './HomeCommandIcon';
+import HouseholdBrand from './HouseholdBrand';
 import operationsNavIcon from '../assets/nav-icon-concepts-v1/logoist/operations.svg';
 import retrievalNavIcon from '../assets/nav-icon-concepts-v1/logoist/retrieval.svg';
 import intakeNavIcon from '../assets/nav-icon-concepts-v1/logoist/intake.svg';
@@ -160,7 +162,9 @@ const Brand = styled(Link)`
 display: inline-flex;
   align-items: center;
   min-width: 0;
-  min-height: 40px;
+  min-height: 44px;
+  flex: 1 1 240px;
+  max-width: 240px;
   color: var(--dw-text);
   text-decoration: none;
   border-radius: var(--dw-radius-sm);
@@ -205,26 +209,6 @@ const RetrievalMiniNavLink = styled(Link)`
   ${retrievalMiniControl}
 `;
 
-
-const Title = styled.div`
-  display: flex;
-  flex-direction: column;
-  line-height: 1.05;
-  min-width: 0;
-`;
-
-const Big = styled.div`
-color: var(--dw-text);
-  font-family: var(--dw-font-ui);
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: -0.035em;
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  @media (max-width: ${MOBILE_BREAKPOINT}) { font-size: 1rem; }
-`;
 
 const MobileMenuToggle = styled.button`
 display: none;
@@ -500,45 +484,6 @@ const BoxConsoleTrailingContext = styled.span`
   }
 `;
 
-const BoxConsoleBreadcrumb = styled.nav`
-  display: inline-flex;
-  align-items: center;
-  min-width: 0;
-  max-width: 100%;
-  gap: 0.28rem;
-  overflow: hidden;
-`;
-
-const BoxConsoleCrumb = styled(Link)`
-  display: inline-flex;
-  align-items: center;
-  min-width: 0;
-  color: var(--box-muted);
-  font-weight: 760;
-  text-decoration: none;
-
-  &:hover {
-    color: var(--box-neon);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-`;
-
-const BoxConsoleCurrentCrumb = styled.span`
-  min-width: 0;
-  overflow: hidden;
-  color: var(--box-muted);
-  font-weight: 760;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const BoxConsoleCrumbSeparator = styled.span`
-  flex: 0 0 auto;
-  color: rgba(var(--box-secondary-rgb), 0.62);
-  font-family: ui-monospace, monospace;
-`;
-
 function BoxConsoleIdleMessage({
   shortId,
   title,
@@ -546,44 +491,15 @@ function BoxConsoleIdleMessage({
   query,
   matchCount,
   breadcrumb = [],
+  metadata,
   onReturnHome,
 }) {
   const hasQuery = Boolean(query);
   const countLabel = `${matchCount} ${matchCount === 1 ? 'match' : 'matches'}`;
   const trailingContext = hasQuery ? countLabel : location;
 
-  if (!hasQuery && breadcrumb.length > 0) {
-    return (
-      <BoxConsoleBreadcrumb aria-label="Box breadcrumb">
-        <BoxConsoleCrumb
-          to="/operations"
-          title="Operations home"
-          aria-label="Go to Operations home"
-          onClick={onReturnHome}
-        >
-          <HomeCommandIcon alt="" aria-hidden="true" />
-        </BoxConsoleCrumb>
-        {breadcrumb.map((crumb, index) => {
-          const id = String(crumb?.id || '').trim();
-          const label = String(crumb?.label || 'Box').trim() || 'Box';
-          const isCurrent = index === breadcrumb.length - 1;
-          return (
-            <Fragment key={`${id}:${index}`}>
-              <BoxConsoleCrumbSeparator aria-hidden="true">›</BoxConsoleCrumbSeparator>
-              {isCurrent ? (
-                <BoxConsoleCurrentCrumb title={`${id ? `#${id} / ` : ''}${label}`}>
-                  {id ? `#${id} / ` : ''}{label}
-                </BoxConsoleCurrentCrumb>
-              ) : (
-                <BoxConsoleCrumb to={`/boxes/${encodeURIComponent(id)}`}>
-                  {id ? `#${id} / ` : ''}{label}
-                </BoxConsoleCrumb>
-              )}
-            </Fragment>
-          );
-        })}
-      </BoxConsoleBreadcrumb>
-    );
+  if (!hasQuery && metadata) {
+    return <BoxConsoleMetadata shortId={shortId} breadcrumb={breadcrumb} metadata={metadata} onReturnHome={onReturnHome} />;
   }
 
   return (
@@ -1207,16 +1123,14 @@ export default function Header() {
           {!isItemPage ? <DesktopPageTitle>{/^\/tags?\//.test(location.pathname) ? 'Tag inventory' : desktopEntries.find((entry) => entry.active)?.label || (isBoxDetailPage ? 'Box inventory' : 'Item details')}</DesktopPageTitle> : null}
           <Brand
             to="/operations"
-            aria-label="Disco Warp Core"
-            title="Disco Warp Core"
+            aria-label="Disco Space Cove — Operations home"
+            title="Disco Space Cove — Operations home"
             onClick={(event) => {
               event.preventDefault();
               returnToOperationsHome();
             }}
           >
-            <Title>
-              <Big>Disco Warp Core</Big>
-            </Title>
+            <HouseholdBrand />
           </Brand>
 
           {isRetrievalWorkspace ? (
@@ -1525,6 +1439,7 @@ export default function Header() {
                     }
                     matchCount={boxFinderState.matchCount}
                     breadcrumb={boxContext.breadcrumb}
+                    metadata={boxContext.metadata}
                     onReturnHome={(event) => {
                       event.preventDefault();
                       returnToOperationsHome();

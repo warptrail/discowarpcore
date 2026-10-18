@@ -1,4 +1,4 @@
-// Stable visual variation shared by compact thumbnails and their full preview.
+// Stable visual variation for compact thumbnails and gradient-based item media.
 export function getItemPlaceholderGradientStyle(item) {
   const identity = String(item?._id || item?.id || item?.name || item?.label || 'item');
   let seed = 2166136261;

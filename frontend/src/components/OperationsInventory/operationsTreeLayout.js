@@ -1,6 +1,6 @@
 // Identity and ancestry belong to the tree, independently of card presentation.
 // Compartments can later supply their own node identity without becoming boxes.
-export const getTreeNodeKey = (node) => String(node?._id || node?.box_id || '');
+export const getTreeNodeKey = (node) => String(node?.resultKey || node?._id || node?.box_id || '');
 export const getNestedTrayId = (node) => `operations-nested-tray-${encodeURIComponent(getTreeNodeKey(node))}`;
 export const getNestedToggleId = (node) => `operations-nested-toggle-${encodeURIComponent(getTreeNodeKey(node))}`;
 

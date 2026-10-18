@@ -42,12 +42,12 @@ const Count = styled.div`
   }
 `;
 export function RetrievalConsoleControls({ mode = 'items', onModeChange, shown = 0, total = 0, loading = false, scope,
-  presentation = 'cards', onPresentationChange, desktop = false }) {
-  const noun = mode === 'boxes' ? scope ? 'tagged boxes' : 'boxes' : scope ? 'tagged items' : 'items';
+  presentation = 'cards', onPresentationChange, desktop = false, boxMatches, sectionMatches }) {
+  const noun = mode === 'boxes' ? sectionMatches !== undefined ? 'rows' : scope ? 'tagged boxes' : 'boxes' : scope ? 'tagged items' : 'items';
   const label = `${shown} shown / ${total} ${noun}`;
   const hasView = Boolean(onPresentationChange);
   const count = <Count role="status" aria-label={label} title={label} aria-busy={loading}>
-    <strong>{shown} / {total}</strong><span>{noun}</span>
+    <strong>{shown} / {total}</strong><span>{mode === "boxes" && sectionMatches !== undefined ? `${boxMatches} boxes · ${sectionMatches} sections` : noun}</span>
   </Count>;
   const viewToggle = hasView ? <RetrievalViewToggle presentation={presentation} onChange={onPresentationChange} desktop={desktop} /> : null;
   return <Controls $mode={mode} $hasView={hasView} $tagScope={Boolean(scope)} aria-label="Retrieval console controls">

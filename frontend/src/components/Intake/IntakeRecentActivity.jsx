@@ -1,3 +1,4 @@
+import ItemThumbnailMedia from '../ItemThumbnailMedia';
 import { quietSectionStyles, consoleControlStyles } from './IntakeConsole.styles';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
@@ -624,7 +625,7 @@ export default function IntakeRecentActivity({
                 }}
               >
                 <Thumb $missing={!imageUrl} aria-hidden={!imageUrl}>
-                  {imageUrl ? <ThumbImage src={imageUrl} alt="" /> : null}
+                  <ItemThumbnailMedia item={item} sources={imageUrl ? [imageUrl] : undefined} imageAs={ThumbImage} />
                 </Thumb>
 
                 <RowBody>

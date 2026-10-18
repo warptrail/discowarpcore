@@ -1,3 +1,4 @@
+import BoxCompartmentSelect from '../BoxForms/BoxCompartmentSelect';
 import { primaryCommandStyles } from './IntakeConsole.styles';
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
@@ -133,6 +134,8 @@ export default function IntakeRapidActions({
   onItemMoved,
   onComplete,
 }) {
+  const [compartmentKey, setCompartmentKey] = useState('A');
+  const targetCompartment = currentBox?.compartmentKey || compartmentKey;
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
@@ -142,8 +145,8 @@ export default function IntakeRapidActions({
   const itemInCurrentBox = useMemo(
     () =>
       Boolean(currentBoxId) &&
-      String(selectedItem?.box?._id || selectedItem?.boxId || '') === currentBoxId,
-    [currentBoxId, selectedItem?.box?._id, selectedItem?.boxId],
+      String(selectedItem?.box?._id || selectedItem?.boxId || '') === currentBoxId && (!currentBox?.isComplexBox || (selectedItem.compartmentKey || selectedItem.box?.compartmentKey) === targetCompartment),
+    [currentBoxId, selectedItem?.box?._id, selectedItem?.boxId, selectedItem?.box?.compartmentKey, selectedItem?.compartmentKey, currentBox?.isComplexBox, targetCompartment],
   );
   const sourceBox = getSourceBox(selectedItem);
   const sourceBoxId = String(sourceBox?._id || selectedItem?.boxId || '').trim();
@@ -154,7 +157,7 @@ export default function IntakeRapidActions({
     (currentBoxId ? !itemInCurrentBox : !itemAlreadyAdrift),
   );
   const imageUrl = getItemImageUrl(selectedItem);
-  const destinationId = String(currentBox?.box_id || '').trim();
+  const destinationId = `${currentBox?.box_id || ''}${currentBox?.isComplexBox ? targetCompartment : ''}`;
   const destinationTheme = ROUTING_COMMAND_THEME;
   const destinationLabel = destinationId ? `#${destinationId}` : 'Items Adrift';
   const buttonLabel = busy
@@ -194,7 +197,7 @@ export default function IntakeRapidActions({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(
           currentBoxId
-            ? { itemId: selectedItemId, destBoxId: currentBoxId }
+            ? { itemId: selectedItemId, destBoxId: currentBoxId, ...(currentBox.isComplexBox ? { compartmentKey: targetCompartment } : {}) }
             : { itemId: selectedItemId },
         ),
       });
@@ -211,6 +214,7 @@ export default function IntakeRapidActions({
       onItemMoved?.({
         itemId: selectedItemId,
         destBoxId: currentBoxId,
+        sourceCompartmentKey: selectedItem.compartmentKey || selectedItem.box?.compartmentKey,
         sourceBoxId,
         sourceBox: sourceBox
           ? {
@@ -222,10 +226,13 @@ export default function IntakeRapidActions({
         item: {
           ...selectedItem,
           boxId: currentBoxId,
+          compartmentKey: currentBox?.isComplexBox ? targetCompartment : '',
+          placementLabel: currentBoxId ? destinationId : '',
           box: currentBoxId
             ? {
                 _id: currentBoxId,
                 box_id: currentBox?.box_id,
+                compartmentKey: currentBox?.isComplexBox ? targetCompartment : '',
                 label: currentBox?.label,
               }
             : null,
@@ -241,7 +248,7 @@ export default function IntakeRapidActions({
   };
 
   return (
-    <Command
+    <><BoxCompartmentSelect box={currentBox?.compartmentKey ? null : currentBox} value={compartmentKey} onChange={setCompartmentKey} disabled={busy} /><Command
       aria-label="Move selected item to current box"
       $primaryRgb={destinationTheme.primaryRgb}
       $secondaryRgb={destinationTheme.secondaryRgb}
@@ -264,6 +271,6 @@ export default function IntakeRapidActions({
         {buttonLabel}
       </ActionButton>
       {error || status ? <StateText $error={Boolean(error)}>{error || status}</StateText> : null}
-    </Command>
+    </Command></>
   );
 }

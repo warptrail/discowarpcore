@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import houseCommandIcon from '../assets/house-command-icon.webp';
 
 const Icon = styled.img`
   display: block;
@@ -12,7 +11,7 @@ const Icon = styled.img`
 export default function HomeCommandIcon({ size, alt = '', style, ...props }) {
   return (
     <Icon
-      src={houseCommandIcon}
+      src="/brand/disco-space-cove/emblem-transparent-512.png"
       alt={alt}
       {...props}
       style={{ ...style, ...(size ? { '--home-icon-size': size } : {}) }}

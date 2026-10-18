@@ -107,7 +107,7 @@ export default function useNestBoxSectionData({
     };
   }, [open, sourceBoxMongoId]);
 
-  const chooseDest = async (b) => {
+  const chooseDest = async (b, parentCompartmentKey) => {
     if (!b?._id) return;
 
     const isSelf =
@@ -115,7 +115,7 @@ export default function useNestBoxSectionData({
     const isDesc = descendantIds.has(String(b._id));
     const isCurrentParent =
       currentParentId != null && String(b._id) === String(currentParentId);
-    if (isSelf || isDesc || isCurrentParent) return;
+    if (isSelf || isDesc || (isCurrentParent && parentCompartmentKey === localBoxTree?.parentCompartmentKey)) return;
 
     setSelectedId(b._id);
     setBusy(true);
@@ -144,6 +144,7 @@ export default function useNestBoxSectionData({
 
       const result = await updateBoxById(sourceBoxMongoId, {
         parentBox: b._id,
+        parentCompartmentKey,
       });
 
       setLocalBoxTree((prev) =>
@@ -151,6 +152,7 @@ export default function useNestBoxSectionData({
           ? {
               ...prev,
               parentBox: { _id: b._id, box_id: b.box_id, label: b.label },
+              parentCompartmentKey,
             }
           : prev,
       );
@@ -161,9 +163,11 @@ export default function useNestBoxSectionData({
         result,
         sourceBoxId: sourceBoxMongoId,
         previousParentId,
+        previousParentCompartmentKey: localBoxTree?.parentCompartmentKey || "",
         previousParentLabel,
         previousParentShortId,
         nextParentId: String(b._id),
+        nextParentCompartmentKey: parentCompartmentKey || "",
         nextParentLabel: b.label ?? null,
         nextParentShortId: b.box_id ?? null,
       });

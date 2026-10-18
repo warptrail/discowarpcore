@@ -1,11 +1,10 @@
 import React from 'react';
 import { getItemHomeHref } from '../../api/itemDetails';
-import { getItemMicroThumbnailUrl } from '../../util/itemImage';
+import ItemThumbnailMedia from '../ItemThumbnailMedia';
 import { formatItemCategory } from '../../util/itemCategories';
 import * as S from './OperationsArchivedItemsLane.styles';
 
 function ArchivedItemRow({ item }) {
-  const imageUrl = getItemMicroThumbnailUrl(item);
   const quantity = Math.max(1, Number(item?.quantity) || 1);
   const box = item?.operationsBox;
   const context = box?.box_id
@@ -15,7 +14,7 @@ function ArchivedItemRow({ item }) {
   return (
     <S.ItemLink to={getItemHomeHref(item._id)}>
       <S.Thumbnail aria-hidden="true">
-        {imageUrl ? <img src={imageUrl} alt="" loading="lazy" decoding="async" /> : <span>◇</span>}
+        <ItemThumbnailMedia item={item} boxId={box?.box_id} />
       </S.Thumbnail>
       <S.ItemCopy>
         <S.ItemName>{item?.name || 'Untitled item'}</S.ItemName>

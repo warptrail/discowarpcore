@@ -1,3 +1,6 @@
+const { parseBoxAddress } = require('../../shared/boxAddress.mjs');
+const { resolveCompartment } = require('../utils/boxCompartments');
+const { withBoxMutationLock } = require('../utils/boxMutationLock');
 const { withItemMutationLock } = require('../utils/itemMutationLock');
 const { missingCount, buildMissingUpdate } = require('../utils/itemMissing');
 // services/itemService.js
@@ -1108,7 +1111,9 @@ function sanitizeSourceFileName(value) {
   return collapsedWhitespace.slice(0, BULK_IMPORT_SOURCE_FILENAME_MAX_LENGTH);
 }
 
-async function bulkCreateItems({
+async function bulkCreateItems(input) { return withBoxMutationLock(() => bulkCreateItemsUnlocked(input)); }
+
+async function bulkCreateItemsUnlocked({
   itemNames = undefined,
   names = undefined,
   boxShortId = '',
@@ -1124,6 +1129,7 @@ async function bulkCreateItems({
       : [];
   const safeSourceFileName = sanitizeSourceFileName(sourceFileName);
   let destinationBox = null;
+  let compartmentKey = '';
 
   if (normalizedBoxShortId || normalizedBoxId) {
     const shortIdCandidate =
@@ -1131,14 +1137,15 @@ async function bulkCreateItems({
       (/^\d{3}$/.test(normalizedBoxId) ? normalizedBoxId : '');
 
     if (shortIdCandidate) {
-      if (!/^\d{3}$/.test(shortIdCandidate)) {
-        const err = new Error('boxShortId must be exactly 3 digits.');
+      const address = parseBoxAddress(shortIdCandidate);
+      if (!address?.complete) {
+        const err = new Error('Use a complete box or leaf storage address, such as 504B2.');
         err.status = 400;
         throw err;
       }
 
-      destinationBox = await Box.findOne({ box_id: shortIdCandidate })
-        .select('_id box_id label')
+      destinationBox = await Box.findOne({ box_id: address.boxId })
+        .select('_id box_id label isComplexBox compartments')
         .lean();
 
       if (!destinationBox) {
@@ -1146,6 +1153,8 @@ async function bulkCreateItems({
         err.status = 400;
         throw err;
       }
+      if (destinationBox.isComplexBox && !address.compartmentKey) throw Object.assign(new Error('Choose a leaf storage address for this complex box.'), { status: 400 });
+      compartmentKey = resolveCompartment(destinationBox, address.compartmentKey);
     } else {
       if (!Box.isValidId(normalizedBoxId)) {
         const err = new Error('boxId must be a valid Mongo ObjectId.');
@@ -1154,7 +1163,7 @@ async function bulkCreateItems({
       }
 
       destinationBox = await Box.findById(normalizedBoxId)
-        .select('_id box_id label')
+        .select('_id box_id label isComplexBox compartments')
         .lean();
 
       if (!destinationBox) {
@@ -1165,6 +1174,7 @@ async function bulkCreateItems({
     }
   }
 
+  if (destinationBox?.isComplexBox && !compartmentKey) throw Object.assign(new Error('Choose a leaf storage address for this complex box.'), { status: 400 });
   const { cleanedNames, ignoredCount, truncatedCount } =
     normalizeBulkImportNames(itemNamesInput);
 
@@ -1188,7 +1198,7 @@ async function bulkCreateItems({
   if (destinationBox && createdItemIds.length) {
     await Box.updateOne(
       { _id: destinationBox._id },
-      { $addToSet: { items: { $each: createdItemIds } } }
+      { $addToSet: { items: { $each: createdItemIds } }, ...(compartmentKey ? { $set: Object.fromEntries(createdItemIds.map(id => [`itemCompartments.${id}`, compartmentKey])) } : {}) }
     );
   }
 
@@ -1223,6 +1233,7 @@ async function bulkCreateItems({
           type: 'box',
           box_id: String(destinationBox._id),
           box_label: toBoxRefForEvents.label,
+          compartmentKey, placementLabel: `${destinationBox.box_id}${compartmentKey}`,
         }
       : {
           type: 'orphaned',
@@ -1271,6 +1282,7 @@ async function bulkCreateItems({
       ? {
           _id: String(destinationBox._id),
           box_id: destinationBox.box_id,
+          address: `${destinationBox.box_id}${compartmentKey}`, compartmentKey,
           label: destinationBox.label || 'Box',
         }
       : null,

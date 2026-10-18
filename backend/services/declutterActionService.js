@@ -1,7 +1,7 @@
 const DeclutterCandidate = require('../models/DeclutterCandidate');
 const Item = require('../models/Item');
 const Box = require('../models/Box');
-const { getItemCompartment, getCompartments } = require('../utils/boxCompartments');
+const { getItemCompartment, getLeafCompartments } = require('../utils/boxCompartments');
 const { attachItemToBox, detachItem } = require('./boxItemService');
 const { markItemGone } = require('./itemService');
 const { writeBackendLog, serializeError } = require('../utils/backendLogger');
@@ -257,7 +257,7 @@ async function restorePreActionPlacement(candidate) {
   if (candidate.resolution === 'kept' || (!candidate.preActionPlacementRecorded && !candidate.preActionBoxId)) return;
   const box = candidate.preActionBoxId ? await Box.findById(candidate.preActionBoxId).lean() : null;
   if (box) {
-    const compartmentKey = getCompartments(box).some((row) => row.key === candidate.preActionCompartmentKey)
+    const compartmentKey = getLeafCompartments(box).some((row) => row.key === candidate.preActionCompartmentKey)
       ? candidate.preActionCompartmentKey : undefined;
     await attachItemToBox({ itemId: candidate.itemId, boxId: box._id, compartmentKey });
   } else {

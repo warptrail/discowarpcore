@@ -1,5 +1,8 @@
-import { useContext, useRef, useState } from 'react';
-import ObsidianPrismSheet from '../Sheets/ObsidianPrismSheet';
+import { useContext, useId, useRef, useState } from 'react';
+import MissingQuantityField from './MissingQuantityField';
+import * as Sheet from './MissingItemSheet.styles';
+import { getRetrievalItemPanelTheme } from '../Retrieval/retrievalItemPanelTheme';
+import { initialMissingQuantity, missingQuantityBounds, isValidMissingQuantity } from '../../util/missingQuantity';
 import MoveItemToOtherBox from '../MoveItemToOtherBox';
 import HouseholdProfileSwitcher from '../HouseholdProfile/HouseholdProfileSwitcher';
 import { useHouseholdProfile } from '../HouseholdProfile/HouseholdProfileContext';
@@ -11,7 +14,10 @@ export default function MissingItemSheet({ item: initialItem, mode, onClose, onS
   const [item, setItem] = useState(initialItem);
   const found = mode === 'found';
   const missing = Number(item.missing?.quantity || 0);
-  const [count, setCount] = useState(found ? String(missing) : mode === 'correction' ? String(missing) : missing ? String(missing) : item.quantity === 1 ? '1' : '');
+  const [count, setCount] = useState(String(initialMissingQuantity(item, mode)));
+  const bounds = missingQuantityBounds(item, mode);
+  const formId = useId();
+  const [discardRequested, setDiscardRequested] = useState(false);
   const [note, setNote] = useState(found ? '' : item.missing?.note || '');
   const [newHome, setNewHome] = useState(false);
   const [destination, setDestination] = useState(null);
@@ -23,6 +29,9 @@ export default function MissingItemSheet({ item: initialItem, mode, onClose, onS
   const [conflict, setConflict] = useState(null);
   const { profileId, getProfileId } = useHouseholdProfile();
   const { showToast } = useContext(ToastContext) || {};
+  const dirty = count !== String(initialMissingQuantity(initialItem, mode)) || note !== (found ? '' : initialItem.missing?.note || '') || newHome || confirmed;
+  const beforeClose = () => { if (busy.current) return false; if (dirty) { setDiscardRequested(true); return false; } return true; };
+  const cancel = () => { if (beforeClose()) onClose(); };
   const home = item.box ? `#${item.box.placementLabel || item.box.box_id} · ${item.box.label}` : 'Intentionally unboxed / Items Adrift';
   const validQuantity = Number.isSafeInteger(item.quantity) && item.quantity > 0;
   const recoveredAll = Number(count) === missing;
@@ -32,7 +41,7 @@ export default function MissingItemSheet({ item: initialItem, mode, onClose, onS
     event.preventDefault();
     if (busy.current) return;
     if (!getProfileId()) { setError('Choose a household profile before saving.'); return; }
-    if (count === '') { setError('Enter a whole-number count.'); return; }
+    if (!isValidMissingQuantity(count, bounds)) { setError(`Choose a whole number from ${bounds.min} to ${bounds.max}.`); return; }
     if (found && (!confirmed || (newHome && (!destination || !wholeRecord || !recoveredAll)))) { setError('Confirm where the recovered objects were put away.'); return; }
     busy.current = true; setPending(true); setError('');
     try {
@@ -50,17 +59,24 @@ export default function MissingItemSheet({ item: initialItem, mode, onClose, onS
       showToast?.({ id: 'missing-item-feedback', variant: 'danger', title: 'Could not save Missing Items', message: err.message, sticky: true });
     } finally { busy.current = false; setPending(false); }
   };
-  return <ObsidianPrismSheet title={found ? 'Found and put away' : mode === 'correction' ? 'Correct missing report' : 'Report missing'}
-    context={item.name} compact centered layer={2} returnFocusSelector="[data-app-header] button, #route-content" onClose={onClose} beforeClose={() => !busy.current}>
-    <S.Form onSubmit={submit}>
-      <p><strong>{item.name}</strong><br /><small>Recorded home: {home}<br />{item.inheritedLocation || item.box?.location || item.location || 'Location not recorded'}</small></p>
+  const title = found ? 'Found and put away' : mode === 'correction' ? 'Correct missing report' : 'Report missing';
+  const theme = getRetrievalItemPanelTheme({ ...item, boxNumber: item.box?.box_id || item.boxNumber, placementLabel: item.box?.placementLabel || item.placementLabel });
+  const changeCount = value => { setCount(value); setConfirmed(false); setWholeRecord(false); };
+  return <Sheet.ReportSheet title={item.name} eyebrow={title} style={theme}
+    compact centered layer={2} returnFocusSelector="[data-app-header] button, #route-content" onClose={onClose} beforeClose={beforeClose}
+    footer={<Sheet.Footer>
+      {discardRequested ? <><p role="alert">Discard this unsaved {found ? 'recovery' : 'report'}?</p>
+        <Sheet.Cancel type="button" onClick={() => setDiscardRequested(false)}>Keep editing</Sheet.Cancel>
+        <Sheet.Submit type="button" onClick={onClose}>Discard changes</Sheet.Submit></>
+        : <><Sheet.Cancel type="button" disabled={pending} onClick={cancel}>Cancel</Sheet.Cancel>
+        <Sheet.Submit type="submit" form={formId} disabled={pending || !validQuantity || !profileId || Boolean(conflict) || !isValidMissingQuantity(count, bounds)}>{pending ? 'Saving…' : found ? 'Confirm recovery' : mode === 'correction' ? 'Save correction' : 'Report missing'}</Sheet.Submit></>}
+    </Sheet.Footer>}>
+    <Sheet.ReportForm id={formId} onSubmit={submit}>
+      <Sheet.Placement><span>{home}</span><small>{item.inheritedLocation || item.box?.location || item.location || 'Location not recorded'}</small></Sheet.Placement>
       {!profileId && <><p>Choose who is recording this update.</p><HouseholdProfileSwitcher /></>}
       {!validQuantity && <S.ErrorText role="alert">Correct the inventory quantity to a positive whole number before reporting missing objects.</S.ErrorText>}
-      <label>{found ? 'How many recovered objects have you put away?' : 'Total currently missing'}
-        <input required type="number" step="1" min={found || mode === 'report' ? 1 : 0} max={found ? missing : item.quantity}
-          value={count} onChange={e => { setCount(e.target.value); setConfirmed(false); setWholeRecord(false); }} disabled={pending || !validQuantity} />
-      </label>
-      <small>Inventory quantity: {item.quantity}. Currently reported missing: {missing}.</small>
+      <MissingQuantityField bounds={bounds} count={count} onChange={changeCount} disabled={pending || !validQuantity}
+        found={found} correction={mode === 'correction'} />
       {mode === 'correction' && <p>Correcting this count does not record a recovery. Enter zero to cancel an erroneous report.</p>}
       {found && <>
         <p>Only confirm after putting the recovered objects away. Cancel if they are still on a table or in transit.</p>
@@ -77,8 +93,6 @@ export default function MissingItemSheet({ item: initialItem, mode, onClose, onS
       <label>Optional note<textarea rows="3" maxLength="2000" value={note} disabled={pending} onChange={e => setNote(e.target.value)} /></label>
       {error && <S.ErrorText role="alert">{error}</S.ErrorText>}
       {conflict && <S.Button type="button" onClick={reload}>Review refreshed record</S.Button>}
-      <S.Actions><S.Button type="submit" disabled={pending || !validQuantity || !profileId || Boolean(conflict) || (found && missing === 0)}>{pending ? 'Saving…' : found ? 'Confirm recovery' : 'Save report'}</S.Button>
-        <S.Button type="button" disabled={pending} onClick={onClose}>Cancel</S.Button></S.Actions>
-    </S.Form>
-  </ObsidianPrismSheet>;
+    </Sheet.ReportForm>
+  </Sheet.ReportSheet>;
 }

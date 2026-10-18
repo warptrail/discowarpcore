@@ -1,10 +1,10 @@
+import ItemThumbnailMedia from '../ItemThumbnailMedia';
 import CompactTagRow from '../Tags/CompactTagRow';
 import MissingStatus from '../MissingItems/MissingStatus';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getItemHomeHref } from '../../api/itemDetails';
 import {
-  getItemMicroThumbnailUrl,
   getItemThumbnailUrl,
 } from '../../util/itemImage';
 import * as S from './TerminalItemTable.styles';
@@ -31,30 +31,7 @@ function getItemTags(item) {
 }
 
 function ItemMicroThumbnail({ item }) {
-  const microUrl = getItemMicroThumbnailUrl(item);
-  const fallbackUrl = getItemThumbnailUrl(item);
-  const [source, setSource] = useState(microUrl);
-
-  useEffect(() => {
-    setSource(microUrl);
-  }, [microUrl]);
-
-  if (!source) return <S.MicroThumbnailFallback aria-hidden="true" />;
-
-  return (
-    <S.MicroThumbnail
-      src={source}
-      alt=""
-      width="30"
-      height="30"
-      loading="lazy"
-      decoding="async"
-      onError={() => {
-        if (fallbackUrl && source !== fallbackUrl) setSource(fallbackUrl);
-        else setSource('');
-      }}
-    />
-  );
+  return <S.MicroThumbnail as="span"><ItemThumbnailMedia item={item} /></S.MicroThumbnail>;
 }
 
 function ItemPreviewImage({ item, name }) {

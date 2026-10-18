@@ -95,7 +95,6 @@ export const Thumbnail = styled.span`
   display: grid; place-items: center; width: 58px; height: 68px; overflow: hidden;
   border-radius: 3px; background: var(--dw-surface); color: var(--dw-text-muted);
   img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-  svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.4; }
 `;
 export const Details = styled.span`
   display: grid; align-content: center; gap: .1rem; min-width: 0; padding-right: .3rem;

@@ -721,7 +721,7 @@ export default function ItemRow({
             {selectionMode ? <S.RowSelectionState aria-hidden="true" $selected={selected}>{selected ? '✓' : ''}</S.RowSelectionState> : null}
             <S.RowMain $showThumb={!presentationOpen}>
               {!presentationOpen && (
-                <ItemRowThumbnail sources={collapsedThumbSources} name={name} itemId={_id || item?.id || name}
+                <ItemRowThumbnail item={item} sources={collapsedThumbSources} name={name} itemId={_id || item?.id || name}
                   boxId={ownership.boxId} quantityLabel={quantityLabel} />
               )}
 

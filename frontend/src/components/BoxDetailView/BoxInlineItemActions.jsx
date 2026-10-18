@@ -1,3 +1,4 @@
+import { getLeafCompartments } from '../../util/boxCompartments';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 
 import IntakeQuickItemMaker from '../Intake/IntakeQuickItemMaker';
@@ -27,10 +28,12 @@ export default function BoxInlineItemActions({
     const mongoId = String(box?._id ?? box?.id ?? '').trim();
     if (!mongoId) return null;
 
+    const leaves = getLeafCompartments(box);
+    const compartmentKey = leaves.find((row) => row.key === box?.compartmentKey)?.key || leaves.find((row) => row.key.startsWith(box?.compartmentKey || ''))?.key || leaves[0]?.key || '';
     return {
       _id: mongoId,
-      compartmentKey: box?.compartmentKey || (box?.isComplexBox ? 'A' : ''),
-      placementLabel: `${box?.box_id || ''}${box?.compartmentKey || (box?.isComplexBox ? 'A' : '')}`,
+      compartmentKey,
+      placementLabel: `${box?.box_id || ''}${compartmentKey}`,
       isComplexBox: Boolean(box?.isComplexBox),
       compartments: box?.compartments,
       box_id: String(box?.box_id ?? box?.shortId ?? '').trim(),

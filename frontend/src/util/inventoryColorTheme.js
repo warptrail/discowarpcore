@@ -1,3 +1,4 @@
+import { parseBoxAddress } from './boxAddress.js';
 import { getMutedVariant, getNeonVariant } from '../styles/tokens.js';
 
 const BOX_SHORT_ID_PATTERN = /^\d{3}$/;
@@ -264,7 +265,7 @@ function buildTheme(preset, metadata) {
 }
 
 export function getBoxTheme(shortId, options = {}) {
-  const normalized = String(shortId ?? '').trim();
+  const normalized = parseBoxAddress(shortId)?.boxId || String(shortId ?? '').trim();
   const neutralKind =
     options.kind === 'system' || options.kind === 'orphaned'
       ? options.kind

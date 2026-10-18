@@ -1,6 +1,8 @@
 MONGO_URI=mongodb://127.0.0.1:27017/discowarpcore
 PORT=7610
 HOST=0.0.0.0
+# Optional: bind only selected addresses (overrides HOST). Keep loopback for health/proxy access.
+# LISTEN_HOSTS=127.0.0.1,192.168.1.37
 # Optional: override where media files are stored (can be a mounted volume in containers)
 # MEDIA_ROOT=./backend/media
 # Optional: objectGlow subprocess overrides

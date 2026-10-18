@@ -1,8 +1,9 @@
+import { normalizeBoxAddress, parseBoxAddress } from '../util/boxAddress';
 import { inputStyles } from '../styles/primitives';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styled, { css } from 'styled-components';
 import { getBoxTheme, getBoxThemeCssVars } from '../util/inventoryColorTheme';
-import { getCompartments } from '../util/boxCompartments';
+import { flattenCompartments } from '../util/boxCompartments';
 import BoxIdPrefixInput from './BoxIdPrefixInput';
 import { fetchItemMoveLogs } from '../api/logs';
 import {
@@ -11,12 +12,10 @@ import {
 } from '../styles/tokens';
 import {
   compareNumericBoxIds,
-  matchesBoxIdPrefix,
-  normalizeBoxId,
 } from '../util/boxLocator';
 import { DECLUTTER_BOX_PURPOSE_LABELS } from '../util/declutterBoxPurpose';
 
-const MAX_PREFIX_LENGTH = 6;
+const MAX_PREFIX_LENGTH = 32;
 const RECENT_DEST_LIMIT = 5;
 
 const Container = styled.div`
@@ -419,7 +418,7 @@ export default function MoveItemToOtherBox({
     onBoxSelected?.({
       destBoxId: box._id,
       compartmentKey,
-      destLabel: box.label,
+      destLabel: `#${box.box_id}${compartmentKey || ''} · ${box.label || 'Untitled box'}`,
       destShortId: `${box.box_id}${compartmentKey || ''}`,
       isOrphanedDestination: false,
       toState: 'boxed',
@@ -482,7 +481,7 @@ export default function MoveItemToOtherBox({
 
   const filteredBoxes = useMemo(() => {
     return normalizedBoxes.filter((box) =>
-      matchesBoxIdPrefix(box?.box_id, boxIdPrefix),
+      !boxIdPrefix || (parseBoxAddress(boxIdPrefix) && box.box_id.startsWith(parseBoxAddress(boxIdPrefix).boxId) && (!parseBoxAddress(boxIdPrefix).compartmentKey || flattenCompartments(box).some(row => row.key === parseBoxAddress(boxIdPrefix).compartmentKey))),
     );
   }, [boxIdPrefix, normalizedBoxes]);
 
@@ -524,7 +523,7 @@ export default function MoveItemToOtherBox({
     });
   }, [filteredBoxes, recentBoxes, suggestedBoxes, suggestedOnly]);
 
-  const hasFilter = normalizeBoxId(boxIdPrefix).length > 0;
+  const hasFilter = normalizeBoxAddress(boxIdPrefix).length > 0;
   const hasAnyMatches = suggestedBoxes.length > 0
     || recentBoxes.length > 0
     || remainingBoxes.length > 0;
@@ -535,13 +534,13 @@ export default function MoveItemToOtherBox({
       key={box._id || `${box.box_id}-${box.label}`}
       style={getBoxThemeCssVars(getBoxTheme(box.box_id))}
       role="button"
-      tabIndex={disabled ? -1 : 0}
-      aria-disabled={disabled}
+      tabIndex={disabled || box.isComplexBox ? -1 : 0}
+      aria-disabled={disabled || box.isComplexBox}
       onClick={() => {
-        if (!disabled) handleSelect(box);
+        if (!disabled && !box.isComplexBox) handleSelect(box);
       }}
       onKeyDown={(e) => {
-        if (disabled) return;
+        if (disabled || box.isComplexBox) return;
         if (e.key !== 'Enter' && e.key !== ' ') return;
         e.preventDefault();
         handleSelect(box);
@@ -559,8 +558,8 @@ export default function MoveItemToOtherBox({
         </MetaPill>
       </MetaLane>
     </BoxItem>
-    {getCompartments(box).map((row) => <BoxItem as="li" key={row.key} style={{ ...getBoxThemeCssVars(getBoxTheme(box.box_id)), marginLeft: '1rem' }}>
-      <button type="button" disabled={disabled} onClick={() => handleSelect(box, row.key)} style={{ background: 'transparent', color: 'inherit', border: 0, minHeight: 44, textAlign: 'left', cursor: 'pointer', width: '100%' }}>
+    {flattenCompartments(box).filter(row => !parseBoxAddress(boxIdPrefix)?.compartmentKey || row.key.startsWith(parseBoxAddress(boxIdPrefix).compartmentKey)).map((row) => <BoxItem as="li" key={row.key} style={{ ...getBoxThemeCssVars(getBoxTheme(box.box_id)), marginLeft: '1rem' }}>
+      <button type="button" disabled={disabled || !!row.children?.length} onClick={() => handleSelect(box, row.key)} style={{ background: 'transparent', color: 'inherit', border: 0, minHeight: 44, textAlign: 'left', cursor: 'pointer', width: '100%' }}>
         #{box.box_id}{row.key} · {row.label || `Compartment ${row.key}`}
       </button>
     </BoxItem>)}
@@ -568,7 +567,7 @@ export default function MoveItemToOtherBox({
   );
 
   const handleFilterChange = (event) => {
-    const next = normalizeBoxId(event.target.value).slice(0, MAX_PREFIX_LENGTH);
+    const next = normalizeBoxAddress(event.target.value);
     setBoxIdPrefix(next);
   };
 
@@ -586,8 +585,8 @@ export default function MoveItemToOtherBox({
             maxLength={MAX_PREFIX_LENGTH}
             value={boxIdPrefix}
             onChange={handleFilterChange}
-            placeholder={compact ? 'Move to box #…' : 'Type box ID prefix (e.g. 107)'}
-            ariaLabel="Destination box ID prefix search"
+            placeholder={compact ? 'Move to box #…' : 'Box address (e.g. 504B2)'}
+            ariaLabel="Destination box, cabinet, or shelf address"
           />
           {compact ? filterTrailingControl : null}
         </FilterPanel>

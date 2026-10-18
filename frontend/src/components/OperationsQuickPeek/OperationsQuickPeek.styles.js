@@ -89,12 +89,26 @@ const undockAndDescend = keyframes`
   }
 `;
 
+export const PageBlur = styled.div`
+  display: none;
+  @media (max-width: 767px) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 179;
+    pointer-events: none;
+    background: rgba(8, 14, 23, .08);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
+`;
+
 export const Deck = styled.aside`
   --quick-peek-expanded-height: min(
     82dvh,
     max(0px, calc(100dvh - var(--operations-quick-peek-top, 0px)))
   );
-  --quick-peek-collapsed-height: min(54dvh, var(--quick-peek-expanded-height));
+  --quick-peek-collapsed-height: min(calc(54dvh + 20px), var(--quick-peek-expanded-height));
   --quick-peek-collapsed-shift: max(
     0px,
     calc(var(--quick-peek-expanded-height) - var(--quick-peek-collapsed-height))
@@ -122,6 +136,21 @@ export const Deck = styled.aside`
   border-bottom: 0;
   border-radius: var(--dw-radius);
   box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(226, 245, 255, 0.22);
+  &::before {
+    content: '';
+    position: absolute;
+    z-index: 10;
+    top: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    border-radius: var(--dw-radius) var(--dw-radius) 0 0;
+    background: rgba(${COLORS.accentRgb}, .85);
+    box-shadow:
+      0 -2px 8px rgba(${COLORS.accentRgb}, .48),
+      0 -7px 22px rgba(${COLORS.accentRgb}, .26);
+    pointer-events: none;
+  }
   &, & * {
     scrollbar-width: none !important;
     &::-webkit-scrollbar { display: none; width: 0; height: 0; }
@@ -196,6 +225,10 @@ export const Deck = styled.aside`
   }
 `;
 
+export const DeckHeading = styled.div`
+  order: 0; min-width: 0;
+`;
+
 export const DeckCap = styled.header`
   order: 0;
   position: relative;
@@ -213,6 +246,10 @@ export const DeckCap = styled.header`
   user-select: none;
 
   @media (max-width: 767px) {
+    background:
+      linear-gradient(115deg, rgba(${COLORS.accentRgb}, .32), transparent 60%),
+      linear-gradient(245deg, rgba(${COLORS.secondaryRgb}, .28), transparent 75%),
+      var(--dw-surface);
     cursor: grab;
     &:active { cursor: grabbing; }
   }
@@ -252,6 +289,7 @@ export const QuickPeekSearchDock = styled.div`
   grid-template-columns: 1.5rem minmax(0, 1fr) 44px;
   align-items: center;
   height: 44px;
+  margin-right: 44px;
   border: 1px solid rgba(${COLORS.accentRgb}, 0.58);
   border-radius: 6px;
   color: ${COLORS.text};
@@ -326,6 +364,7 @@ export const CapNavigation = styled.div`
   align-items: center;
   gap: 0.25rem;
   min-height: 44px;
+  margin-right: 38px;
 `;
 
 export const CapIconButton = styled.button`
@@ -360,6 +399,16 @@ export const CapIconButton = styled.button`
   &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 1px; }
   &:disabled { opacity: 0.25; cursor: default; }
   @media (prefers-reduced-motion: reduce) { transition: none; }
+`;
+
+// Keep the visible mark tiny, with a separate full-size corner hit target.
+export const CapCloseButton = styled(CapIconButton)`
+  position: absolute;
+  z-index: 4;
+  top: 4px;
+  right: 0;
+
+  svg { width: 12px; height: 12px; stroke-width: 1.5; }
 `;
 
 export const CapIdentityStack = styled.div`
@@ -1026,24 +1075,6 @@ export const ItemThumbnail = styled.img`
   background: var(--dw-surface);
 `;
 
-const itemPlaceholderGradient = css`
-  background:
-    radial-gradient(ellipse at var(--peek-gradient-origin), rgba(${COLORS.accentRgb}, 0.9), transparent 78%),
-    radial-gradient(ellipse at var(--peek-gradient-secondary-origin), rgba(var(--box-secondary-rgb, 103, 239, 200), 0.65), transparent 68%),
-    linear-gradient(var(--peek-gradient-angle), rgba(${COLORS.accentRgb}, 0.65), rgba(${COLORS.accentRgb}, 0.14)),
-    var(--dw-surface);
-`;
-
-export const ItemThumbnailFallback = styled.span`
-  grid-column: 1;
-  grid-row: 1 / span 2;
-  width: 30px;
-  height: 30px;
-  border: 1px solid rgba(${COLORS.accentRgb}, 0.12);
-  border-radius: 4px;
-  ${itemPlaceholderGradient}
-`;
-
 export const ItemName = styled.strong`
   grid-column: 2;
   min-width: 0;
@@ -1111,6 +1142,11 @@ export const ItemCarouselCard = styled.div`
   background: var(--dw-surface);
   box-shadow: none;
 
+  &:has([data-inventory-object]) {
+    height: 100%;
+    grid-template-rows: minmax(0, 1fr) minmax(0, auto);
+  }
+
   @media (min-width: 768px) {
     display: grid;
     grid-template-rows: auto minmax(0, auto);
@@ -1134,6 +1170,11 @@ export const ItemCarouselMedia = styled.div`
   overflow: hidden;
   background: var(--dw-surface);
   cursor: ${({ $interactive }) => ($interactive ? 'zoom-in' : 'default')};
+
+  &:has([data-inventory-object]) {
+    height: 100%;
+    aspect-ratio: auto;
+  }
 
   &:focus-visible {
     outline: 2px solid rgba(${COLORS.accentRgb}, 0.9);
@@ -1553,12 +1594,28 @@ export const ItemCarouselImageBackdrop = styled.img`
 export const ItemCarouselImageFallback = styled.div`
   display: grid;
   place-items: center;
-  position: relative;
+  position: absolute;
+  inset: 0;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: 12px 44px 20px;
   z-index: 2;
   width: 100%;
   height: 100%;
   color: rgba(230, 237, 243, 0.3);
-  ${itemPlaceholderGradient}
+  background: var(--dw-surface-raised, #162332);
+  > svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: 240px;
+    max-height: 240px;
+    min-width: 0;
+    min-height: 0;
+    object-fit: contain;
+    overflow: hidden;
+  }
   font-family: var(--dw-font-ui);
   font-size: 0.75rem;
   letter-spacing: normal;
@@ -1568,7 +1625,7 @@ export const ItemCarouselIdentity = styled.div`
   min-width: 0;
   display: grid;
   gap: 0.3rem;
-  padding-bottom: 10px;
+  padding-bottom: 4px;
   border-bottom: 1px solid ${COLORS.line};
 `;
 
@@ -1582,18 +1639,20 @@ export const ItemCarouselName = styled.h3`
 `;
 
 export const ItemCarouselMeta = styled.div`
-  display: grid; grid-template-columns: 156px minmax(0, 1fr); gap: 8px;
-  margin-top: 10px; align-items: start;
+  display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 12px;
+  margin-top: 2px; align-items: start;
 `;
 export const ItemFact = styled.div`
   --domain-rgb: var(--box-primary-rgb);
-  min-width: 0; padding: 6px 8px; border-radius: 6px;
-  background: rgba(var(--box-primary-rgb), .06);
+  min-width: 0; padding: 0;
+  background: transparent;
   color: var(--dw-text); font: 500 .85rem/1.4 var(--dw-font-ui);
-  > button { min-height: 28px; }
+  [data-item-field='category'] button[role='combobox'] {
+    border: 0; border-radius: 0; padding-inline: 0; background: transparent;
+  }
 `;
 export const ItemFactLabel = styled.span`
-  display: block; color: var(--box-primary); font: 400 .75rem/1.3 var(--dw-font-ui); margin-bottom: 2px;
+  display: block; color: var(--box-primary); font: 400 .75rem/1.3 var(--dw-font-ui); margin-bottom: 0;
 `;
 
 export const ItemCarouselDetails = styled.div`
@@ -1632,13 +1691,15 @@ export const ItemCarouselAnnotationLine = styled.div`
 export const ItemCarouselDescription = styled.p`
   margin: 0;
   font-size: 0.85rem;
-  line-height: 1.32;
-  button { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
-  cursor: text;
-
-  @media (max-width: 767px) {
-    -webkit-line-clamp: 2;
+  line-height: 1.45;
+  button {
+    display: block;
+    width: 100%;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    line-height: inherit;
   }
+  cursor: text;
 `;
 
 export const ItemCarouselCategoryLine = styled.div`

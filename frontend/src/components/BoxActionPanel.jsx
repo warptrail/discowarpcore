@@ -334,6 +334,8 @@ export default function BoxActionPanel({
             try {
               await updateBoxById(boxMongoId, {
                 parentBox: previousParentId || null,
+                parentCompartmentKey: nestEvent.previousParentCompartmentKey || "",
+                restoreUnspecifiedPlacement: !nestEvent.previousParentCompartmentKey,
               });
               await refreshAfterNestMutation();
               hideToast?.();

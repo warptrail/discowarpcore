@@ -1209,49 +1209,26 @@ const TerminalBranch = styled.div`
   min-width: 0;
 `;
 
-const TerminalRow = styled.button`
-  ${terminalGrid};
-  position: relative;
-  min-width: 0;
-  min-height: var(--dw-control-height);
-  width: 100%;
-  padding: 0.34rem 0.62rem;
-  border: 0;
-  border-bottom: 1px solid rgba(127, 215, 255, 0.1);
-  background: var(--dw-surface);
-  cursor: pointer;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  transition:
-    background 140ms ease,
-    box-shadow 140ms ease,
-    color 140ms ease;
-
-  ${({ $isSystem }) =>
-    $isSystem &&
-    css`
-      border-bottom-style: dashed;
-      background: var(--dw-surface);
-    `}
-
-  &:hover {
-    background: var(--dw-surface);
-    box-shadow: none;
-  }
-
-  &:focus-visible {
-    outline: 1px solid ${boxToneAlpha(0.74)};
-    outline-offset: -2px;
-  }
+const TerminalGroupHeader = styled.div`
+  display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center;
+`;
+const TerminalOpenLink = styled(Link)`
+  display: grid; place-items: center; width: 44px; height: 44px;
+  color: var(--dw-text-secondary); text-decoration: none; font-size: .85rem;
+  &:hover { color: var(--dw-cyan); }
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: -2px; }
 `;
 
-const TerminalBoxCell = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.42rem;
-  min-width: 0;
-  padding-left: ${({ $depth = 0 }) => `${Math.min($depth, 6) * 18}px`};`;
+const TerminalRow = styled.h3`
+  min-width: 0; margin: 0; padding: 8px 6px 3px;
+  color: var(--dw-text-secondary); font: 300 .95rem/1.5 var(--dw-font-ui);
+  letter-spacing: .12em;
+  text-align: left;
+`;
+
+const TerminalBoxCell = styled.span`
+  display: flex; align-items: baseline; gap: .7rem; min-width: 0;
+`;
 
 const TreeGlyph = styled.span`
   flex: 0 0 auto;
@@ -1268,32 +1245,16 @@ const TreeGlyph = styled.span`
 `;
 
 const TerminalShortId = styled.span`
-  flex: 0 0 auto;
-  color: ${boxTone};
-  border: 1px solid ${boxToneAlpha(0.52)};
-  border-radius: 3px;
-  padding: 0.08rem 0.3rem;
-  font-size: 0.75rem;
-  font-weight: 650;
-  line-height: 1.2;
-
-  ${({ $isSystem }) =>
-    $isSystem &&
-    css`
-      color: ${boxTone};
-      border-color: ${boxToneAlpha(0.58)};
-    `}
-  font-family: var(--dw-font-data);
+  flex: 0 0 auto; color: ${boxTone};
+  font: 300 .8rem/1.5 var(--dw-font-data);
+  letter-spacing: .08em;
 `;
 
 const TerminalTitle = styled.span`
-  min-width: 0;
-  color: ${toneAlpha(LCARS.text, 'f2')};
-  font-size: 0.82rem;
-  font-weight: 650;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex: 1; min-width: 0; color: var(--dw-text-secondary);
+  font-size: .95rem; font-weight: 300;
+  letter-spacing: .12em;
+  white-space: normal; overflow-wrap: anywhere;
 `;
 
 const TerminalCell = styled.span`
@@ -1342,6 +1303,7 @@ const TerminalChildrenToggle = styled.button`
 `;
 
 const TerminalChildren = styled.div`
+  margin-left: 14px;
   display: grid;
   min-width: 0;
 `;
@@ -1509,6 +1471,8 @@ export const styledComponents = {
   TerminalHeader,
   TerminalHeadCell,
   TerminalBranch,
+  TerminalGroupHeader,
+  TerminalOpenLink,
   TerminalRow,
   TerminalBoxCell,
   TreeGlyph,

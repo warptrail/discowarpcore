@@ -1,5 +1,5 @@
-import styled from 'styled-components';
-import { desktopCardLayout } from './OperationsCardLayout.styles';
+import styled, { css } from 'styled-components';
+import { desktopCardLayout, desktopSectionLayout } from './OperationsCardLayout.styles';
 import { styledComponents as S } from '../../styles/BoxList.styles';
 
 export const OperationsWorkspace = styled.div`
@@ -15,6 +15,12 @@ export const OperationsWorkspace = styled.div`
 
 const OperationsInventoryGrid = styled.div`
   display: contents;
+  ${({ $lookupAddress }) => $lookupAddress && css`
+    [data-box-address="${$lookupAddress}"] {
+      outline: 1px dashed rgba(var(--box-accent-rgb, 103, 217, 211), 0.7);
+      outline-offset: 3px;
+    }
+  `}
   @media (min-width: 1100px) {
     display: ${({ $cards }) => $cards ? 'grid' : 'flex'};
     flex-direction: column;
@@ -25,6 +31,7 @@ const OperationsInventoryGrid = styled.div`
     > ${S.NodeSection} { margin-top: 0; }
     > ${S.PaginationBar}, > ${S.EmptyMessage} { grid-column: 1 / -1; }
     ${({ $cards }) => $cards && desktopCardLayout}
+    ${({ $cards }) => $cards && desktopSectionLayout}
   }
 `;
 

@@ -1,5 +1,6 @@
 import MissingAlertLink from '../MissingItems/MissingAlertLink';
 import styled from 'styled-components';
+import HouseholdBrand from '../HouseholdBrand';
 import { Link } from 'react-router-dom';
 import HouseholdProfileSwitcher from '../HouseholdProfile/HouseholdProfileSwitcher';
 
@@ -21,7 +22,11 @@ const Rail = styled.nav`
   @media (min-width: 1600px) { inset: 24px auto 24px 24px; }
 `;
 const Brand = styled(Link)`
-  padding: 8px 4px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 4px 4px 12px;
   color: var(--dw-text);
   font-size: 1rem;
   font-weight: 700;
@@ -29,6 +34,8 @@ const Brand = styled(Link)`
   text-decoration: none;
   border-bottom: 1px solid var(--dw-border-soft);
   margin-bottom: 6px;
+  flex-shrink: 0;
+  &:focus-visible { outline: 2px solid var(--dw-cyan); outline-offset: 2px; }
 `;
 const Entry = styled(Link)`
   display: flex;
@@ -59,7 +66,9 @@ const ProfileSlot = styled.div`margin-top: auto; padding-top: 12px;`;
 export default function DesktopNavigation({ entries, onNavigate, onHome }) {
   return (
     <Rail aria-label="Desktop primary navigation">
-      <Brand to="/operations" onClick={onHome}>Disco Warp Core</Brand>
+      <Brand to="/operations" onClick={onHome} aria-label="Disco Space Cove — Operations home" title="Disco Space Cove — Operations home">
+        <HouseholdBrand stacked />
+      </Brand>
       {entries.map(({ path, label, icon, active }) => (
         <Entry key={path} to={path} aria-current={active ? 'page' : undefined} onClick={onNavigate}>
           <img src={icon} alt="" />{label}

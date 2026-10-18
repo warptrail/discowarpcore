@@ -3,7 +3,7 @@ import * as Controls from './QuickPeekItemControls.styles';
 // Navigation and item actions share one rail, but keep their existing controllers.
 export default function QuickPeekHeaderControls({
   itemControls, itemFocused, isAdrift, expanded, docked, onReturnToItems,
-  onToggleExpanded, onClose, onPointerDown, onPointerUp, onPointerCancel,
+  onToggleExpanded, onPointerDown, onPointerUp, onPointerCancel,
   embedded = false,
 }) {
   return <Controls.Toolbar $header={!embedded} $embedded={embedded} role="group" aria-label="Quick Peek controls"
@@ -30,9 +30,5 @@ export default function QuickPeekHeaderControls({
         <path d={expanded ? 'M4 9h5V4M20 15h-5v5M9 9 3 3m12 12 6 6' : 'M9 3H3v6m12 12h6v-6M3 3l7 7m11 11-7-7'} />
       </svg>
     </Controls.Button> : null}
-    <Controls.Button type="button" aria-label={docked ? 'Close box inspector' : 'Close box quick peek'}
-      title="Close panel" onClick={onClose}>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
-    </Controls.Button>
   </Controls.Toolbar>;
 }

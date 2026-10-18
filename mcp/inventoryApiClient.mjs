@@ -117,6 +117,7 @@ export function createInventoryApiClient({
 
     searchItems({
       q,
+      addressScope,
       category,
       tag,
       tagOperator,
@@ -130,6 +131,7 @@ export function createInventoryApiClient({
       return request('/retrieval/items', {
         query: {
           q,
+          addressScope,
           category,
           tag,
           tagOperator,
@@ -143,9 +145,9 @@ export function createInventoryApiClient({
       });
     },
 
-    searchBoxes({ q, location, limit, offset } = {}) {
+    searchBoxes({ q, addressScope, includeCabinets, location, limit, offset } = {}) {
       return request('/retrieval/boxes', {
-        query: { q, location, limit, offset },
+        query: { q, addressScope, includeCabinets, location, limit, offset },
       });
     },
 

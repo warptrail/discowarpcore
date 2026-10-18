@@ -1,3 +1,4 @@
+import SectionBadge from '../BoxForms/SectionBadge';
 import { useEffect, useRef, useState } from 'react';
 import { BOX_CARD_FIELDS } from '../OperationsQuickPeek/operationsBoxFields';
 import { createPortal } from 'react-dom';
@@ -20,12 +21,12 @@ export function TreeNode({ node, root = false, expandedKeys, isSearchExpanded, o
         aria-expanded={expanded} aria-controls={childId} disabled={isSearchExpanded(node)} onClick={() => onToggle(node)}>
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d={expanded ? 'M2 4l4 4 4-4' : 'M4 2l4 4-4 4'} stroke="currentColor" /></svg>
       </button> : <span aria-hidden="true" style={{ width: 32, flexShrink: 0 }} />}
-      <S.Select type="button" aria-label={`Inspect box ${node.box_id}, ${name}`} onClick={event => onInspect(node, event.currentTarget)}>
-        <code>{node.box_id}</code><strong>{name}</strong><span>{quantity} {quantity === 1 ? 'item' : 'items'}</span>
+      <S.Select type="button" aria-label={`Inspect box ${node.address || node.box_id}, ${name}`} onClick={event => onInspect(node, event.currentTarget)}>
+        <code>{node.address || node.box_id}</code><strong>{name}{node.kind === "cabinet" ? <> · <SectionBadge compartmentKey={node.compartmentKey} /></> : null}</strong><span>{quantity} {quantity === 1 ? 'item' : 'items'}</span>
       </S.Select>
-      {onEditBoxField ? <S.Edit ref={editRef} type="button" aria-label={`Edit fields for box ${node.box_id}`} aria-expanded={editing} aria-controls={`${childId}-fields`} onClick={() => setEditing(current => !current)}>⋯</S.Edit> : null}
+      {onEditBoxField && node.kind !== "cabinet" ? <S.Edit ref={editRef} type="button" aria-label={`Edit fields for box ${node.box_id}`} aria-expanded={editing} aria-controls={`${childId}-fields`} onClick={() => setEditing(current => !current)}>⋯</S.Edit> : null}
     </S.Row>
-    {editing ? <S.Fields id={`${childId}-fields`} role="group" data-tree-field-actions aria-label={`Edit box ${node.box_id} fields`} onKeyDown={event => {
+    {editing && node.kind !== "cabinet" ? <S.Fields id={`${childId}-fields`} role="group" data-tree-field-actions aria-label={`Edit box ${node.box_id} fields`} onKeyDown={event => {
       if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setEditing(false); requestAnimationFrame(() => editRef.current?.focus()); }
     }}>
       {BOX_CARD_FIELDS.map(field => <button key={field.key} type="button" aria-label={`Edit box ${node.box_id} ${field.label}`}

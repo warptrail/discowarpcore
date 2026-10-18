@@ -184,13 +184,13 @@ export function BulkImportTextWorkspace({ controller }) {
   return (
     <Panel>
       <Section>
-        <Label htmlFor="bulk-import-box-id">Destination Box ID (Optional)</Label>
+        <Label htmlFor="bulk-import-box-id">Destination address (Optional)</Label>
         <BoxIdInput
           id="bulk-import-box-id"
           type="text"
-          inputMode="numeric"
+          inputMode="text"
           autoComplete="off"
-          placeholder="101"
+          placeholder="504B2"
           value={boxShortId}
           onChange={handleBoxInputChange}
           $state={boxState.status}

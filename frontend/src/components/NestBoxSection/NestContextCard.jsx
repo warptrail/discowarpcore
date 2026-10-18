@@ -40,6 +40,10 @@ export default function NestContextCard({
         ))}
       </S.Breadcrumb>
 
+      {currentParentId ? <S.Hint>
+        {localBoxTree?.parentCompartmentKey ? `Parent compartment / shelf: ${localBoxTree.parentCompartmentKey}` : 'Placement unspecified'}
+      </S.Hint> : null}
+
       {!currentParentId && (
         <S.Hint>This box is already on the floor (no parent).</S.Hint>
       )}

@@ -111,7 +111,7 @@ export function getVisibleBoxes({
       (b) =>
         !descendantIds.has(String(b?._id)) &&
         String(b?._id) !== String(sourceBoxMongoId) &&
-        (currentParentId == null || String(b?._id) !== String(currentParentId)),
+        (currentParentId == null || String(b?._id) !== String(currentParentId) || b.isComplexBox),
     )
     .sort((a, b) => {
       const da = depthById.get(String(a?._id)) ?? 0;

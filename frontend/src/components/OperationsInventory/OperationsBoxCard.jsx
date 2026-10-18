@@ -1,3 +1,4 @@
+import SectionBadge from '../BoxForms/SectionBadge';
 import CompactTagRow from '../Tags/CompactTagRow';
 import MissingBoxStatus from '../MissingItems/MissingBoxStatus';
 import { styledComponents as S } from '../../styles/BoxList.styles';
@@ -16,10 +17,13 @@ export default function OperationsBoxCard({ model }) {
     visibleTags, description, matchingNotes, childBoxes, nestedToggle, matchingItems, searchQuery, onEditBoxField,
   } = model;
   const hasMatches = Boolean(matchingItems?.length);
+  const physicalChildCount = node.directChildBoxCount ?? childBoxes.filter(child => child.kind !== "cabinet").length;
   const title = isOrphanedContainer ? 'Items Adrift' : node.label || node.name || 'Untitled';
   const searchTerms = getSearchTerms(searchQuery);
   return (
     <S.BoxCard
+      data-box-address={node.scopedAddress || node.address || node.box_id}
+      data-result-kind={node.kind || "box"}
       data-has-field-actions={Boolean(onEditBoxField && !isSystemContainer) || undefined}
       data-has-search-matches={hasMatches || undefined}
       as="div"
@@ -30,7 +34,7 @@ export default function OperationsBoxCard({ model }) {
       aria-label={
         isOrphanedContainer
           ? 'Open Items Adrift'
-          : `Preview box ${node.box_id}, ${
+          : `Preview box ${node.address || node.box_id}, ${
               node.label || node.name || 'Untitled'
             }`
       }
@@ -60,7 +64,7 @@ export default function OperationsBoxCard({ model }) {
               ) : (
                 <>
                   <S.ShortIdMarker>#</S.ShortIdMarker>
-                  <S.ShortIdDigits>{node.box_id}</S.ShortIdDigits>
+                  <S.ShortIdDigits>{node.address || node.box_id}</S.ShortIdDigits>
                 </>
               )}
             </S.ShortId>
@@ -78,6 +82,7 @@ export default function OperationsBoxCard({ model }) {
             </S.BoxTitle>
           </S.BoxHeader><MissingBoxStatus box={node} />
 
+          {node.kind === "cabinet" ? <S.SecondaryMeta style={{ whiteSpace: "normal", overflowWrap: "anywhere" }}><SectionBadge compartmentKey={node.compartmentKey} /> · in #{node.box_id} {node.ownerBoxLabel} · {node.shelfCount ? `${node.shelfCount} shelves` : "Single storage space"}</S.SecondaryMeta> : null}
           {node.isComplexBox ? <S.SecondaryMeta>Complex box</S.SecondaryMeta> : null}
           <S.BoxMetaRow>
             <S.LocationMeta>
@@ -98,7 +103,7 @@ export default function OperationsBoxCard({ model }) {
 
           {!hasMatches && visibleTags.length > 0 && (
             <S.TagRow style={{ width: '100%', maxWidth: '100%' }}>
-              <CompactTagRow tags={node.tags || visibleTags} name={title} boxId={node.box_id || ''} />
+              <CompactTagRow searchQuery={searchQuery} tags={node.tags || visibleTags} name={title} boxId={node.box_id || ''} />
             </S.TagRow>
           )}
 
@@ -109,11 +114,11 @@ export default function OperationsBoxCard({ model }) {
           ) : null}
 
           <S.BoxFooter>
-            {isOrphanedContainer || childBoxes.length > 0 ? (
+            {isOrphanedContainer || physicalChildCount > 0 ? (
               <S.StatPill $variant="boxes" $isRoot={isRoot} $depth={depth}>
                 {isOrphanedContainer
                   ? 'virtual'
-                  : `${childBoxes.length} ${childBoxes.length === 1 ? 'box' : 'boxes'}`}
+                  : `${physicalChildCount} ${physicalChildCount === 1 ? 'box' : 'boxes'}`}
               </S.StatPill>
             ) : null}
             <S.StatPill $variant="items" $isRoot={isRoot} $depth={depth}>
@@ -132,8 +137,8 @@ export default function OperationsBoxCard({ model }) {
       {onEditBoxField && !isSystemContainer ? <OperationsCardFields box={node} onEdit={onEditBoxField} /> : null}
       <S.CardManifest aria-hidden="true" $isRoot={isRoot} $depth={depth}>
         {onEditBoxField && node.isComplexBox ? <span>Complex ·</span> : null}
-        {isOrphanedContainer || childBoxes.length > 0 ? <>
-          <span>{isOrphanedContainer ? 'virtual' : `${childBoxes.length} ${childBoxes.length === 1 ? 'box' : 'boxes'}`}</span>
+        {isOrphanedContainer || physicalChildCount > 0 ? <>
+          <span>{isOrphanedContainer ? 'virtual' : `${physicalChildCount} ${physicalChildCount === 1 ? 'box' : 'boxes'}`}</span>
           <S.CardManifestMuted>//</S.CardManifestMuted>
         </> : null}
         <span>{itemQtyTotal} {itemQtyTotal === 1 ? 'item' : 'items'}</span>

@@ -20,3 +20,15 @@ test('retrieval preserves complex status without inheriting it into nested boxes
   assert.equal(rows.find((row) => row.boxId === '123').isComplexBox, true);
   assert.equal(rows.find((row) => row.boxId === '124').isComplexBox, false);
 });
+
+test('retrieval exposes and searches a physical child’s shelf without making it complex', () => {
+  const rows = buildRetrievalBoxes([
+    { _id: 'kitchen', box_id: '504', label: 'Kitchen', isComplexBox: true, compartments: [{ key: 'A', label: '' }, { key: 'B', label: 'Cabinet', children: [{ key: 'B1', label: 'Top' }, { key: 'B2', label: 'Middle' }] }], childBoxCompartments: { jewelry: 'B2' }, items: [] },
+    { _id: 'jewelry', box_id: '505', label: 'Jewelry', parentBox: 'kitchen', items: [] },
+  ]);
+  const child = rows.find((row) => row.boxId === '505');
+  assert.equal(child.parentCompartmentKey, 'B2');
+  assert.equal(child.parentPlacementLabel, '504B2');
+  assert.ok(child.searchText.includes('504b2'));
+  assert.equal(child.isComplexBox, false);
+});

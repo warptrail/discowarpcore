@@ -10,10 +10,10 @@ const { MemoryRouter } = frontendRequire('react-router-dom');
 const { ServerStyleSheet } = frontendRequire('styled-components');
 const esbuild = frontendRequire('esbuild');
 const h = React.createElement;
-async function load(file, portal = false) {
+async function load(file, portal = false, reactOverride = null) {
   const { outputFiles } = await esbuild.build({ entryPoints: [path.join(frontend, 'src', file)], bundle: true, write: false, format: 'cjs', platform: 'node', mainFields: ['module', 'main'], external: ['react', 'react-dom', 'react-router-dom', 'styled-components'], jsx: 'automatic', loader: { '.webp': 'dataurl', '.csv': 'text' }, define: { 'import.meta.env': '{}' }, logLevel: 'silent' });
   const module = { exports: {} };
-  new Function('require', 'module', 'exports', outputFiles[0].text)((id) => id === 'styled-components' ? Object.assign(frontendRequire(id).default, frontendRequire(id)) : portal && id === 'react-dom' ? { createPortal: (child) => child } : frontendRequire(id), module, module.exports);
+  new Function('require', 'module', 'exports', outputFiles[0].text)((id) => id === 'react' && reactOverride ? reactOverride : id === 'styled-components' ? Object.assign(frontendRequire(id).default, frontendRequire(id)) : portal && id === 'react-dom' ? { createPortal: (child) => child } : frontendRequire(id), module, module.exports);
   return module.exports;
 }
 function render(Component, props = {}) {
@@ -149,24 +149,30 @@ test('inline match rows embed an accessible full-item icon without a separate bu
   for (const compact of [false, true]) {
     const { html, css } = render(Matches, { items, query: 'fish', boxId: '102', compact });
     assert.equal((html.match(/<li(?:\s|>)/g) || []).length, 2);
-    assert.equal((html.match(/<a /g) || []).length, 4);
+    assert.equal((html.match(/<a /g) || []).length, 6, 'item links and existing tag links remain available');
     assert.equal((html.match(/title="Open full item page"/g) || []).length, 2);
     const pageAction = html.match(/<a[^>]*aria-label="Open item page for Fish beach towel"[^>]*><svg/);
     assert.ok(pageAction && pageAction[0].includes('href="/items/fish"'));
     assert.ok(html.includes('peek=102&amp;item=fish'));
     assert.ok(!html.includes('>Open item page<') && !html.includes('>Open<'));
     assert.ok(!/<a[^>]*>(?:(?!<\/a>).)*<a/s.test(html), 'links remain siblings');
-    assert.ok(compact ? html.includes('Details: A fish towel') && html.includes('Tags: fish')
-      : html.includes('Matched in details') && html.includes('Matched in tags'));
+    assert.ok(html.includes('Details: A fish towel'));
+    assert.ok(!html.includes('Tags: fish'));
+    assert.ok(html.includes('data-search-match="true"'));
+    assert.ok(css.includes('font-size:.875rem')); 
+    assert.ok(!html.includes('Matched in '));
+    assert.ok(/<mark[^>]*>fish<\/mark>/.test(html));
+    assert.ok(css.includes('color:#7df3ff') && css.includes('font-weight:700'));
+    assert.ok(!/<b[^>]*>Details/.test(html));
     assert.ok(css.includes('position:absolute;top:10px;right:6px'));
     assert.ok(css.includes('width:44px;height:44px'));
     assert.ok(css.includes('padding-right:44px'));
     assert.ok(css.includes('background:transparent'));
     if (compact) {
-      assert.ok(css.includes('top:2px;right:0'));
-      assert.ok(css.includes('min-height:48px;box-sizing:border-box'));
-      assert.ok(css.includes('padding:3px 48px 3px 6px'));
-      assert.ok(css.includes('white-space:normal;overflow-wrap:anywhere'));
+      assert.ok(css.includes('height:144px'));
+      assert.ok(css.includes('grid-template-rows:minmax(0, 1fr) 28px'));
+      assert.ok(css.includes('-webkit-line-clamp:2'));
+      assert.ok(css.includes('overflow-wrap:anywhere'));
       assert.ok(html.includes('tabindex="0"') && !html.includes('Matched in tags'));
     }
   }
@@ -637,4 +643,162 @@ test('Location selections retain reset without duplicating descendant chips', as
   assert.ok(!html.includes('Remove Location:'));
   assert.ok(!/aria-label="Reset all filters"[^>]*disabled/.test(html));
   assert.match(html, /data-filters-active="false"/);
+});
+
+ test('search tag chips move matches first, preserve links and emphasize the whole tag', async () => {
+  const { default: TagLinks } = await load('components/TagLinks.jsx');
+  const { html, css } = render(TagLinks, { tags: ['camping', 'fairy lights', 'tools', 'LIGHTS spare'], searchQuery: ' LiGhTs ' });
+  assert.ok(html.indexOf('#fairy lights') < html.indexOf('#lights spare'));
+  assert.ok(html.indexOf('#lights spare') < html.indexOf('#camping'));
+  assert.ok(html.indexOf('#camping') < html.indexOf('#tools'));
+  assert.equal((html.match(/data-search-match="true"/g) || []).length, 2);
+  assert.ok(!html.includes('<mark'));
+  assert.ok(css.includes('font-size:.875rem') && css.includes('border-color:#7df3ff'));
+  const plain = render(TagLinks, { tags: ['camping', 'lights'], searchQuery: '' }).html;
+  assert.ok(plain.indexOf('#camping') < plain.indexOf('#lights'));
+  assert.ok(!plain.includes('data-search-match'));
+});
+
+test('procedural object geometry is deterministic, varied and bounded', async () => {
+  const { getInventoryObjectShape } = await load('util/inventoryObjectShape.js');
+  const shape = getInventoryObjectShape({name:'Solar Lights'});
+  assert.deepEqual(shape, getInventoryObjectShape({name:'Solar Lights'}));
+  const variations = new Set(Array.from({ length: 30 }, (_, i) => JSON.stringify(getInventoryObjectShape({name:`item-${i}`}))));
+  assert.equal(variations.size, 30);
+  for (const face of shape) for (const pair of face.points.split(' ')) {
+    const [x, y] = pair.split(',').map(Number);
+    assert.ok(x >= 0 && x <= 120 && y >= 0 && y <= 110);
+  }
+});
+
+test('Quick Peek photo fallback displays a seeded object on solid navy and retains real photos', async () => {
+  const { ItemPreviewImage } = await load('components/OperationsQuickPeek/QuickPeekItemCarousel.jsx');
+  const noPhoto = render(ItemPreviewImage, { item: { _id: 'solar-lights' }, name: 'Solar Lights' });
+  assert.ok(noPhoto.html.includes('data-inventory-object') && noPhoto.html.includes('<polygon'));
+  assert.ok(noPhoto.css.includes('background:var(--dw-surface-raised, #162332)'));
+  assert.ok(!noPhoto.css.includes('gradient'));
+  const item = { _id: 'solar-lights', image: { display: { url: '/media/solar.webp' } } };
+  const photo = render(ItemPreviewImage, { item, name: 'Solar Lights' });
+  assert.ok(photo.html.includes('/media/solar.webp'));
+  assert.ok(!photo.html.includes('data-inventory-object'));
+  // Exhaust every candidate to exercise the same branch reached after image errors.
+  const exhaustedReact = { ...React, useState: () => [999, () => {}] };
+  const exhausted = await load('components/OperationsQuickPeek/QuickPeekItemCarousel.jsx', false, exhaustedReact);
+  assert.ok(render(exhausted.ItemPreviewImage, { item, name: 'Solar Lights' }).html.includes('data-inventory-object'));
+});
+
+test('Quick Peek mobile detent, backdrop, colorful cap and contained SVG preserve desktop geometry', async () => {
+  const styles = await load('components/OperationsQuickPeek/OperationsQuickPeek.styles.js');
+  const deck = render(styles.Deck).css;
+  assert.ok(deck.includes('min(calc(54dvh + 20px), var(--quick-peek-expanded-height))'));
+  assert.ok(deck.includes('--quick-peek-collapsed-height:auto'));
+  const blur = render(styles.PageBlur).css;
+  assert.ok(/@media\s*\(max-width:\s*767px\)/.test(blur));
+  assert.ok(blur.includes('backdrop-filter:blur(3px)') && blur.includes('pointer-events:none'));
+  const cap = render(styles.DeckCap).css;
+  assert.ok(cap.includes('linear-gradient(115deg') && cap.includes('linear-gradient(245deg'));
+  const fallback = render(styles.ItemCarouselImageFallback).css;
+  assert.ok(fallback.includes('position:absolute;inset:0'));
+  assert.ok(fallback.includes('width:100%;height:100%') && fallback.includes('object-fit:contain'));
+  const { default: Shape } = await load('components/InventoryObjectShape.jsx');
+  assert.ok(render(Shape, { identity: 'solar' }).html.includes('preserveAspectRatio="xMidYMid meet"'));
+});
+
+test('Operations empty locator shares Retrieval clock blink without animating entered addresses', async () => {
+  const { default: Locator } = await load('components/BoxLocatorControl.jsx');
+  const empty = render(Locator, { compact: true });
+  assert.ok(empty.html.includes('>000</span>'));
+  assert.ok(empty.html.includes('aria-label="Box address scope locator"'));
+  assert.ok(empty.css.includes('2s steps(2, end) infinite'));
+  assert.ok(empty.css.includes('opacity:0.28') && empty.css.includes('opacity:0.85'));
+  assert.ok(/prefers-reduced-motion:\s*reduce/.test(empty.css));
+  assert.ok(empty.css.includes(':focus-within'));
+  assert.ok(!render(Locator, { query: '504B2', exactMatch: { label: 'Shelf' } }).html.includes('>000</span>'));
+  const retrieval = await load('components/Retrieval/RetrievalBoxIdPrefixField.jsx');
+  assert.ok(render(retrieval.default).css.includes('2s steps(2, end) infinite'));
+});
+
+test('Quick Peek top light edge belongs to outer sheet and does not intercept controls', async () => {
+  const { Deck } = await load('components/OperationsQuickPeek/OperationsQuickPeek.styles.js');
+  const css = render(Deck).css;
+  assert.ok(css.includes('overflow:visible'));
+  assert.ok(css.includes('::before{content:') && css.includes('top:-1px;left:0;right:0;height:2px'));
+  assert.ok(css.includes('0 -2px 8px rgba(var(--box-primary-rgb, 76, 198, 193), .48)'));
+  assert.ok(css.includes('0 -7px 22px rgba(var(--box-primary-rgb, 76, 198, 193), .26)'));
+  assert.ok(css.includes('pointer-events:none'));
+});
+
+test('Terminal compact matches omit metadata snippets while Cards preserve description-only matches', async () => {
+  const { default: Matches } = await load('components/InventorySearchMatches.jsx');
+  const items = [{_id:'fixture',name:'Inflatable decoration',description:'These lights are solar powered',notes:'Spare lights',tags:['lights','camping']}];
+  const terminal = render(Matches,{items,query:'lights',boxId:'122',terminal:true});
+  assert.ok(terminal.html.includes('Inflatable decoration'));
+  assert.ok(terminal.html.includes('data-inventory-object') && terminal.html.includes('#lights'));
+  assert.ok(!terminal.html.includes('These lights are solar powered') && !terminal.html.includes('Spare lights'));
+  assert.ok(terminal.html.includes('peek=122&amp;item=fixture'));
+  assert.ok(terminal.css.includes('min-height:48px;box-sizing:border-box') && terminal.css.includes('height:auto'));
+  const cards = render(Matches,{items,query:'lights',boxId:'122'});
+  assert.ok(cards.html.includes('These lights are solar powered'));
+  const {getMatchingInventoryItems} = await load('util/inventorySearch.js');
+  const descriptionOnly={...items[0],tags:[],notes:''};
+  const matched=getMatchingInventoryItems({items:[descriptionOnly]},'solar');
+  assert.equal(matched.length,1);
+  const hiddenSnippet=render(Matches,{items:matched,query:'solar',boxId:'122',terminal:true}).html;
+  assert.ok(hiddenSnippet.includes('Inflatable decoration') && !hiddenSnippet.includes('solar powered'));
+});
+
+test('Terminal title leads tag hierarchy without changing Cards tag emphasis', async () => {
+  const {default: Matches}=await load('components/InventorySearchMatches.jsx');
+  const props={items:[{_id:'one',name:'Solar Lights',tags:['camping','lights']}],query:'lights',boxId:'401'};
+  const terminal=render(Matches,{...props,terminal:true});
+  assert.ok(terminal.css.includes('font-size:.94rem;font-weight:750'));
+  assert.ok(terminal.css.includes('font-size:.75rem;font-weight:500'));
+  assert.ok(terminal.css.includes('font-size:.7rem;font-weight:400'));
+  assert.ok(terminal.html.includes('#lights') && !terminal.html.includes('#camping'));
+  assert.ok(!render(Matches,props).css.includes('font-size:.94rem;font-weight:750'));
+});
+
+test('Terminal box groups are passive directory headings and item links retain Quick Peek', async () => {
+  const {CompactBranch}=await load('components/BoxList.jsx');
+  const node={_id:'fixture-box',box_id:'122',label:'Random Festival Stuff',items:[{_id:'fixture-item',name:'Solar Lights',tags:['camping','lights']}],childBoxes:[]};
+  const {html,css}=render(CompactBranch,{node,searchQuery:'LiGhT'});
+  assert.match(html,/<h3[^>]*data-box-address="122"/);
+  assert.ok(!html.includes('role="treeitem"') && !html.includes('›'));
+  assert.ok(html.includes('peek=122&amp;item=fixture-item'));
+  assert.ok(html.includes('#lights') && !html.includes('#camping'));
+  assert.ok(css.includes('margin-left:16px') && css.includes('overflow-wrap:anywhere'));
+  const idle=render(CompactBranch,{node,searchQuery:''}).html;
+  assert.ok(idle.includes('Solar Lights') && !idle.includes('#lights') && !idle.includes('#camping'));
+  const {default:Matches}=await load('components/InventorySearchMatches.jsx');
+  assert.ok(render(Matches,{items:node.items,query:'light'}).html.includes('#camping'));
+});
+
+test('Terminal parent headings use light tracked titles with responsive wrapping', async()=>{
+ const {styledComponents:S}=await load('styles/BoxList.styles.js');
+ const title=render(S.TerminalTitle).css;
+ assert.ok(title.includes('font-size:.95rem;font-weight:300'));
+ assert.ok(title.includes('letter-spacing:.12em')&&title.includes('flex:1'));
+ assert.ok(title.includes('white-space:normal;overflow-wrap:anywhere'));
+ const number=render(S.TerminalShortId).css;
+ assert.ok(number.includes('300 .8rem/1.5')&&number.includes('letter-spacing:.08em'));
+});
+
+test('Cards matching items show only valid multiple quantities in a quiet footer',async()=>{
+ const {default:Matches}=await load('components/InventorySearchMatches.jsx');
+ const props={items:[{_id:'one',name:'Solar Lights',quantity:12,description:'Solar lights camping'}],query:'lights',boxId:'401'};
+ const card=render(Matches,props);assert.ok(card.html.includes('aria-label="Quantity: 12"')&&card.html.includes('×12'));
+ assert.ok(card.html.includes('peek=401&amp;item=one'));
+ for(const quantity of [1,0,-2,1.5,undefined,'bad']) assert.ok(!render(Matches,{...props,items:[{...props.items[0],quantity}]}).html.includes('aria-label="Quantity:'));
+ assert.ok(!render(Matches,{...props,terminal:true}).html.includes('aria-label="Quantity:'));
+});
+
+test('inline result captions stay accessible without visible generated headings',async()=>{
+ const {default:Matches}=await load('components/InventorySearchMatches.jsx');
+ for(const props of [{},{compact:true},{terminal:true}]){
+  const result=render(Matches,{items:[{_id:'one',name:'Solar Lights',quantity:12}],query:'lights',label:'Matching items in box 122',boxId:'122',...props});
+  assert.ok(result.html.includes('aria-label="Matching items in box 122"'));
+  assert.ok(result.html.includes('Solar')&&result.html.includes('peek=122&amp;item=one'));
+  assert.ok(!result.css.includes('content:attr(aria-label)'));
+  assert.ok(!result.html.includes('>Matching items in box 122<'));
+ }
 });

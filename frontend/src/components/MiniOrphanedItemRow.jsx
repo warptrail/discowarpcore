@@ -1,9 +1,9 @@
+import ItemThumbnailMedia from './ItemThumbnailMedia';
 import React from 'react';
 import { Link } from 'react-router-dom';
 
 import { getItemHomeHref } from '../api/itemDetails';
 import { formatItemCategory } from '../util/itemCategories';
-import { getItemMicroThumbnailUrl } from '../util/itemImage';
 import * as S from './MiniOrphanedList.styles';
 
 export default function MiniOrphanedItemRow({
@@ -17,14 +17,13 @@ export default function MiniOrphanedItemRow({
 }) {
   const itemId = String(item?._id || '').trim();
   const itemName = String(item?.name || '').trim() || '(Unnamed Item)';
-  const imageUrl = getItemMicroThumbnailUrl(item);
   const categoryLabel = formatItemCategory(item?.category);
   const locationLabel = String(item?.location || '').trim();
 
   return (
     <S.ItemRow>
       <S.ThumbFrame aria-hidden="true">
-        {imageUrl ? <S.ThumbImage src={imageUrl} alt="" /> : <S.ThumbPlaceholder />}
+        <ItemThumbnailMedia item={item} imageAs={S.ThumbImage} />
       </S.ThumbFrame>
 
       <S.ItemIdentity>

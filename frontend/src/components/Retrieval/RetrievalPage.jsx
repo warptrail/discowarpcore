@@ -1,3 +1,4 @@
+import { normalizeBoxAddress } from '../../util/boxAddress';
 import { readTagCollection, getTagCollectionNavigation } from '../../util/tagCollection';
 import useMissingInventoryRefresh from '../MissingItems/useMissingInventoryRefresh';
 import { applyRetrievalItemUpdate } from './retrievalItemControlModel';
@@ -6,6 +7,7 @@ import {
   useLocation,
   useNavigate,
   useParams,
+  useSearchParams,
 } from 'react-router-dom';
 import {
   DEFAULT_RETRIEVAL_LIMIT,
@@ -260,7 +262,7 @@ function sanitizeBoxModeState(rawState) {
   const loadedCount = Number(source.loadedCount);
   return {
     searchValue: String(source.searchValue || ''),
-    boxIdPrefix: String(source.boxIdPrefix || '').replace(/\D/g, '').slice(0, 3),
+    boxIdPrefix: normalizeBoxAddress(source.boxIdPrefix),
     selectedLocation: String(source.selectedLocation || ''),
     selectedRooms: sanitizeFilterValues(source.selectedRooms),
     selectedLocations: sanitizeFilterValues(source.selectedLocations),
@@ -417,7 +419,7 @@ export default function RetrievalPage() {
       : null;
 
   const [retrievalMode, setRetrievalMode] = useState(() =>
-    sanitizeMode(initialSnapshot?.mode),
+    new URLSearchParams(location.search).has('boxAddress') ? 'boxes' : sanitizeMode(initialSnapshot?.mode),
   );
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
@@ -427,6 +429,9 @@ export default function RetrievalPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
+  const [scopeParams, setScopeParams] = useSearchParams();
+  const addressScope = normalizeBoxAddress(scopeParams.get('addressScope'));
+  const changeAddressScope = value => setScopeParams(current => { const next = new URLSearchParams(current); if (value) next.set('addressScope', value); else next.delete('addressScope'); return next; }, { replace: true, state: location.state });
   const [searchValue, setSearchValue] = useState(() =>
     String(initialItemState?.searchValue || ''),
   );
@@ -483,7 +488,7 @@ export default function RetrievalPage() {
   const finderFiltersActive = hasRetrievalFinderFilters(retrievalMode === 'boxes' ? {
     q: boxModeState.searchValue, boxIdPrefix: boxModeState.boxIdPrefix,
     rooms: boxModeState.selectedRooms, locations: boxModeState.selectedLocations, tags: hasTagScope ? collection.tags : boxModeState.selectedTags,
-  } : { ...activeFilters, q: searchValue, tags: hasTagScope ? collection.tags : activeFilters.tags });
+  } : { ...activeFilters, boxIdPrefix: addressScope, q: searchValue, tags: hasTagScope ? collection.tags : activeFilters.tags });
 
   useEffect(() => {
     window.dispatchEvent(
@@ -518,6 +523,7 @@ export default function RetrievalPage() {
   const queryState = useMemo(
     () => ({
       q: debouncedSearchValue,
+      addressScope,
       categories: activeFilters.categories,
       tags: hasTagScope ? collection.tags : activeFilters.tags,
       exactTag: hasTagScope ? collection.tags : undefined,
@@ -528,7 +534,7 @@ export default function RetrievalPage() {
       sort: selectedSort,
       shuffleSeed: selectedSort === 'random' ? shuffleSeed : '',
     }),
-    [debouncedSearchValue, activeFilters, hasTagScope, collection, selectedSort, shuffleSeed, tagOperator],
+    [addressScope, debouncedSearchValue, activeFilters, hasTagScope, collection, selectedSort, shuffleSeed, tagOperator],
   );
 
   const tagScope = useMemo(() => {
@@ -1410,6 +1416,7 @@ export default function RetrievalPage() {
         scope={tagScope} loading={loading || loadingMore} presentation={visiblePresentation} onPresentationChange={setResultsPresentation} desktop={desktop}
         />
       <RetrievalSearchForm
+        boxIdPrefix={addressScope} onBoxIdPrefixChange={changeAddressScope}
         desktop={desktop}
         mode={retrievalMode}
         onModeChange={setRetrievalMode}

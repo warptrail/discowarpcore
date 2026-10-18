@@ -1,3 +1,4 @@
+import ItemThumbnailMedia from '../ItemThumbnailMedia';
 import MissingStatus from '../MissingItems/MissingStatus';
 import React from 'react';
 import * as S from './AllItemsList.styles';
@@ -49,17 +50,9 @@ export default function AllItemsItemCell({
         </S.ItemSelectionToggle>
       ) : null}
 
-      {thumbnailUrl ? (
-        <S.ItemThumbFrame aria-hidden="true">
-          <S.ItemThumbImage
-            src={thumbnailUrl}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            fetchPriority="low"
-          />
-        </S.ItemThumbFrame>
-      ) : null}
+      <S.ItemThumbFrame aria-hidden="true">
+        <ItemThumbnailMedia item={item} sources={thumbnailUrl ? [thumbnailUrl] : undefined} imageAs={S.ItemThumbImage} />
+      </S.ItemThumbFrame>
 
       <S.ItemCellBody>
         <S.NameRow>

@@ -1,3 +1,4 @@
+import { getLeafCompartments, compartmentLabel } from '../../util/boxCompartments';
 import React from 'react';
 import * as S from './NestBoxSection.styles';
 import { getBoxTheme, getBoxThemeCssVars } from '../../util/inventoryColorTheme';
@@ -16,19 +17,19 @@ export default function NestDestinationGrid({
   return (
     <>
       <S.Grid>
-        {visibleBoxes.map((b) => (
+        {visibleBoxes.flatMap((box) => box.isComplexBox ? getLeafCompartments(box).map((leaf) => ({ ...box, _placementKey: leaf.key, _placementLabel: compartmentLabel(leaf) })) : [box]).map((b) => (
           <S.BoxBtn
-            key={b._id}
+            key={`${b._id}:${b._placementKey || ""}`}
             style={getBoxThemeCssVars(getBoxTheme(b.box_id))}
             $selected={selectedId === b._id}
             $disabled={busy}
             disabled={busy}
-            onClick={() => onChooseDest(b)}
-            title={`Nest into ${b.label} (#${b.box_id})`}
+            onClick={() => onChooseDest(b, b._placementKey)}
+            title={`Nest into ${b.label} (#${b.box_id}${b._placementKey || ''})`}
           >
             <div style={{ fontWeight: 700 }}>{b.label}</div>
             <S.Meta>
-              #{b.box_id} &middot; {b._id}
+              #{b.box_id}{b._placementKey || ""}{b._placementLabel ? ` · ${b._placementLabel}` : ""}
             </S.Meta>
             {(() => {
               const depth = depthById.get(String(b._id)) ?? 0;

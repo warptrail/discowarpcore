@@ -1,9 +1,6 @@
 import MissingStatus from '../MissingItems/MissingStatus';
-import React, { useEffect, useState } from 'react';
-import { getItemPlaceholderGradientStyle } from '../../util/itemPlaceholderGradient';
-import {
-  getItemMicroThumbnailCandidates,
-} from '../../util/itemImage';
+import React from 'react';
+import ItemThumbnailMedia from '../ItemThumbnailMedia';
 import * as S from './OperationsQuickPeek.styles';
 
 const DATE_FIELDS = {
@@ -59,33 +56,6 @@ function quantityLabel(item) {
   return Number.isFinite(quantity) ? quantity : 1;
 }
 
-function QuickPeekItemThumbnail({ item }) {
-  const candidates = getItemMicroThumbnailCandidates(item);
-  const candidateKey = candidates.join('\n');
-  const [candidateIndex, setCandidateIndex] = useState(0);
-  const source = candidates[candidateIndex] || '';
-
-  useEffect(() => {
-    setCandidateIndex(0);
-  }, [candidateKey]);
-
-  if (!source) {
-    return <S.ItemThumbnailFallback aria-hidden="true" style={getItemPlaceholderGradientStyle(item)} />;
-  }
-
-  return (
-    <S.ItemThumbnail
-      src={source}
-      alt=""
-      width="30"
-      height="30"
-      loading="lazy"
-      decoding="async"
-      onError={() => setCandidateIndex((current) => current + 1)}
-    />
-  );
-}
-
 export default function QuickPeekItemList({
   items = [],
   matchingItems = [],
@@ -118,7 +88,7 @@ export default function QuickPeekItemList({
               aria-label={`Preview ${name}`}
               onClick={() => onSelectItem?.(item)}
             >
-              <QuickPeekItemThumbnail item={item} />
+              <S.ItemThumbnail as="span"><ItemThumbnailMedia item={item} /></S.ItemThumbnail>
               <S.ItemName>{name}</S.ItemName><MissingStatus item={item} />
               {category || matches.has(item) ? (
                 <S.ItemCategory>
@@ -126,6 +96,7 @@ export default function QuickPeekItemList({
                   {matches.has(item) && category ? ' · ' : ''}{category}
                 </S.ItemCategory>
               ) : null}
+              {item.ownerBoxId ? <S.ItemCategory title={item.placementTrail}>#{item.placementLabel}</S.ItemCategory> : null}
               <S.ItemQuantity aria-label={`Quantity ${quantityLabel(item)}`}>
                 ×{quantityLabel(item)}
               </S.ItemQuantity>

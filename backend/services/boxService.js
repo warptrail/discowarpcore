@@ -1,6 +1,9 @@
+const { parseBoxAddress } = require('../../shared/boxAddress.mjs');
+const { flattenCompartments, compartmentContains } = require('../utils/boxCompartments');
+const { withBoxMutationLock } = require('../utils/boxMutationLock');
 // services/boxService.js
 const Box = require('../models/Box');
-const { DEFAULT_COMPARTMENTS, getCompartments, validateCompartments, withBoxCompartments } = require('../utils/boxCompartments');
+const { DEFAULT_COMPARTMENTS, getCompartments, validateCompartments, withBoxCompartments, reassignCompartments, resolveCompartment, getChildBoxCompartment } = require('../utils/boxCompartments');
 const Item = require('../models/Item');
 const Location = require('../models/Location');
 
@@ -345,6 +348,7 @@ async function getBoxByMongoId(id) {
   if (!box) return null;
   return {
     ...box,
+    parentCompartmentKey: await readParentPlacement(box),
     isComplexBox: Boolean(box.isComplexBox),
     compartments: getCompartments(box),
     locationId: box.locationId?._id ? String(box.locationId._id) : null,
@@ -372,6 +376,7 @@ async function getBoxByShortId(shortId) {
   if (!box) return null;
   return {
     ...box,
+    parentCompartmentKey: await readParentPlacement(box),
     isComplexBox: Boolean(box.isComplexBox),
     compartments: getCompartments(box),
     items: Array.isArray(box.items)
@@ -389,11 +394,11 @@ async function resolveBoxByShortId(shortId) {
   const normalized = raw.replace(/^0+/, '') || '0';
   const box =
     (await Box.findOne({ box_id: raw })
-      .select('_id box_id label name isComplexBox compartments itemCompartments description notes location locationId imagePath image')
+      .select('_id box_id label name isComplexBox compartments itemCompartments childBoxCompartments description notes location locationId imagePath image')
       .populate('locationId', 'room vicinity specifics exactSpot')
       .lean()) ||
     (await Box.findOne({ box_id: normalized })
-      .select('_id box_id label name isComplexBox compartments itemCompartments description notes location locationId imagePath image')
+      .select('_id box_id label name isComplexBox compartments itemCompartments childBoxCompartments description notes location locationId imagePath image')
       .populate('locationId', 'room vicinity specifics exactSpot')
       .lean());
 
@@ -415,6 +420,8 @@ async function resolveBoxByShortId(shortId) {
 }
 
 // ! Main Function
+function countPhysicalChildren(box) { return (box.childBoxes || []).reduce((sum, child) => sum + 1 + countPhysicalChildren(child), 0); }
+
 async function getBoxDataStructure(
   shortId,
   {
@@ -423,10 +430,27 @@ async function getBoxDataStructure(
     flat = 'none', // 'none' | 'items' | 'all'
   } = {},
 ) {
+  const parsedAddress = parseBoxAddress(shortId);
+  if (!parsedAddress?.complete) throw Object.assign(new Error('Use a complete box, cabinet, or shelf address.'), { status: 400 });
+  if (parsedAddress.compartmentKey) {
+    const owner = await getBoxDataStructure(parsedAddress.boxId, { includeAncestors, includeStats, flat: 'none' });
+    if (!owner) return null;
+    const key = parsedAddress.compartmentKey;
+    if (!flattenCompartments(owner.tree).some(row => row.key === key)) throw Object.assign(new Error(`Address #${parsedAddress.address} does not exist.`), { status: 404 });
+    const tree = { ...owner.tree,
+      address: parsedAddress.address, compartmentKey: key,
+      items: owner.tree.items.filter(item => compartmentContains(key, item.compartmentKey)),
+      childBoxes: owner.tree.childBoxes.filter(child => compartmentContains(key, child.parentCompartmentKey)) };
+    const scopedItems = flattenBoxes(tree);
+    return { ...owner, address: parsedAddress.address, compartmentKey: key, tree,
+      ...(includeStats ? { stats: { boxes: 1 + countPhysicalChildren(tree), uniqueItems: new Set(scopedItems.map(item => String(item.name || '').trim().toLowerCase())).size, totalItems: scopedItems.reduce((sum, item) => sum + (Number.isFinite(Number(item.quantity)) ? Number(item.quantity) : 1), 0) } } : {}),
+      ...(flat !== 'none' ? { flatItems: scopedItems } : {}) };
+  }
+  shortId = parsedAddress.boxId;
   // 1) Root box (by public short id)
   const root = await Box.findOne({ box_id: shortId })
     .select(
-      '_id box_id label name isComplexBox compartments itemCompartments description notes tags parentBox items location locationId imagePath image'
+      '_id box_id label name isComplexBox compartments itemCompartments childBoxCompartments description notes tags parentBox items location locationId imagePath image'
     )
     .lean();
   if (!root) return null;
@@ -440,7 +464,7 @@ async function getBoxDataStructure(
   while (frontier.length) {
     const children = await Box.find({ parentBox: { $in: frontier } })
       .select(
-        '_id box_id label name isComplexBox compartments itemCompartments description notes tags parentBox items location locationId imagePath image'
+        '_id box_id label name isComplexBox compartments itemCompartments childBoxCompartments description notes tags parentBox items location locationId imagePath image'
       )
       .lean();
 
@@ -490,6 +514,7 @@ async function getBoxDataStructure(
       isComplexBox: Boolean(node.isComplexBox),
       compartments: getCompartments(node),
       itemCompartments: node.itemCompartments || {},
+      childBoxCompartments: node.childBoxCompartments || {},
       description: node.description ?? null,
       notes: node.notes ?? null,
       tags: Array.isArray(node.tags)
@@ -500,6 +525,7 @@ async function getBoxDataStructure(
       imagePath: node.imagePath ?? '',
       image: node.image ?? null,
       parentBox: node.parentBox ? String(node.parentBox) : null,
+      parentCompartmentKey: getChildBoxCompartment(nodesById.get(String(node.parentBox)), node._id),
       locationId: node.locationId ? String(node.locationId) : null,
       location,
       inheritedLocation: ownLocation ? '' : location,
@@ -509,6 +535,7 @@ async function getBoxDataStructure(
   }
   const rootAncestorLocation = await findNearestAncestorLocation(root);
   const tree = link(root, rootAncestorLocation);
+  tree.parentCompartmentKey = await readParentPlacement(root);
 
   // 5) Optional: ancestors for breadcrumb (root → … → parent)
   let ancestors;
@@ -630,16 +657,19 @@ async function getBoxTreeByShortId(shortId) {
       isComplexBox: Boolean(node.isComplexBox),
       compartments: getCompartments(node),
       itemCompartments: node.itemCompartments || {},
+      childBoxCompartments: node.childBoxCompartments || {},
       locationId: node.locationId ? String(node.locationId) : null,
       location,
       inheritedLocation: ownLocation ? '' : location,
       items: withBoxCompartments({ ...node, items: itemDocs }).items,
+      parentCompartmentKey: getChildBoxCompartment(byId.get(String(node.parentBox)), node._id),
       childBoxes,
     };
   }
 
   const rootAncestorLocation = await findNearestAncestorLocation(root);
   const tree = link(root, rootAncestorLocation);
+  tree.parentCompartmentKey = await readParentPlacement(root);
 
   // (Optional small cleanup) strip __v if you don’t want it in the response
   // const stripMeta = (n) => ({
@@ -658,7 +688,7 @@ async function getAllBoxes({ q = '', sortBy = '' } = {}) {
   const boxes = await Box.find()
     .populate({
       path: 'parentBox',
-      select: '_id box_id description', // 👈 Only these fields
+      select: '_id box_id description isComplexBox compartments childBoxCompartments', // 👈 Only these fields
     })
     .populate('locationId', 'room vicinity specifics exactSpot')
     .populate({ path: 'items', match: ACTIVE_ITEM_FILTER })
@@ -666,6 +696,7 @@ async function getAllBoxes({ q = '', sortBy = '' } = {}) {
   const filtered = boxes
     .map((box) => ({
       ...box,
+      parentCompartmentKey: getChildBoxCompartment(box.parentBox, box._id),
     isComplexBox: Boolean(box.isComplexBox),
     compartments: getCompartments(box),
       items: Array.isArray(box.items)
@@ -702,6 +733,7 @@ async function populateChildren(box, ancestorLocation = '') {
     let child = children[i];
     // Populate items inside the child box
     child = withLocation(child, locationNameMap);
+    child.parentCompartmentKey = getChildBoxCompartment(box, child._id);
     const ownLocation = String(child.location || '').trim();
     child.location = ownLocation || ancestorLocation;
     child.inheritedLocation = ownLocation ? '' : child.location;
@@ -813,21 +845,65 @@ async function getBoxesByParent(parentId) {
     .populate('parentBox')
     .populate('locationId', 'room vicinity specifics exactSpot')
     .lean();
-  return boxes.map((box) => ({
+  return Promise.all(boxes.map(async (box) => ({
     ...box,
+    parentCompartmentKey: await readParentPlacement(box),
     isComplexBox: Boolean(box.isComplexBox),
     compartments: getCompartments(box),
     locationId: box.locationId?._id ? String(box.locationId._id) : null,
     location: formatLocationName(box.locationId),
-  }));
+  })));
+}
+
+async function validateParentPlacement(parentId, key, existing, restoreUnspecified = false) {
+  if (!parentId) return;
+  const parent = await Box.findById(parentId).lean();
+  if (!parent) throw makeHttpError(404, 'BOX_NOT_FOUND', 'Destination box not found.');
+  if (!parent.isComplexBox) return;
+  if (!key && restoreUnspecified && existing) {
+    const { EventLog } = require('../models/EventLog');
+    const previousMove = await EventLog.findOne({
+      entity_type: 'box', entity_id: String(existing._id),
+      event_type: { $in: ['box_moved', 'box_nested', 'box_unnested'] },
+    }).sort({ created_at: -1, _id: -1 }).lean();
+    if (previousMove?.details?.from_box_id === String(parentId)
+      && previousMove.details.from_compartment === ''
+      && String(previousMove.details.to_box_id || '') === String(existing.parentBox || '')) return;
+  }
+  if (!key) throw makeHttpError(400, 'SHELF_REQUIRED', 'Choose a compartment or shelf for this nested box.');
+  resolveCompartment(parent, key);
+}
+
+async function saveParentPlacement(childId, previousParentId, parentId, key) {
+  if (previousParentId && String(previousParentId) !== String(parentId)) {
+    await Box.updateOne({ _id: previousParentId }, { $unset: { [`childBoxCompartments.${childId}`]: 1 } });
+  }
+  if (!parentId) return;
+  const parent = await Box.findById(parentId).lean();
+  const placement = parent?.isComplexBox && key ? resolveCompartment(parent, key) : '';
+  await Box.updateOne({ _id: parentId }, placement
+    ? { $set: { [`childBoxCompartments.${childId}`]: placement } }
+    : { $unset: { [`childBoxCompartments.${childId}`]: 1 } });
+}
+
+async function readParentPlacement(box) {
+  return box.parentBox ? getChildBoxCompartment(await Box.findById(box.parentBox).lean(), box._id) : '';
 }
 
 async function createBox(data) {
+  return withBoxMutationLock(() => createBoxUnlocked(data));
+}
+
+async function createBoxUnlocked(data) {
   const payload = { ...data };
   payload.isComplexBox = data?.isComplexBox === true;
   payload.compartments = payload.isComplexBox
     ? validateCompartments(data?.compartments || DEFAULT_COMPARTMENTS) : [];
   delete payload.itemCompartments;
+  delete payload.childBoxCompartments;
+  delete payload.compartmentReassignments;
+  delete payload.parentCompartmentKey;
+  await validateParentPlacement(payload.parentBox, data.parentCompartmentKey);
   payload.isGiftBox = data?.isGiftBox === true;
   if (payload.declutterPurpose === 'standard') payload.declutterIsDefault = false;
   if (
@@ -877,6 +953,7 @@ async function createBox(data) {
     payload.locationId = resolvedLocation.locationId;
   }
   const created = await Box.create(payload);
+  await saveParentPlacement(created._id, null, payload.parentBox, data.parentCompartmentKey);
   const createdPlain = toPlain(created);
   await markGiftIntentForBoxItems(createdPlain, 'gift_box_created');
   const createdRef = toBoxRef(createdPlain, 'Box');
@@ -906,12 +983,21 @@ async function createBox(data) {
     { label: `box_created:${createdRef.id}` }
   );
 
+  created.set('parentCompartmentKey', await readParentPlacement(createdPlain), { strict: false });
   return created;
 }
 
 async function updateBox(id, data) {
+  return withBoxMutationLock(() => updateBoxUnlocked(id, data));
+}
+
+async function updateBoxUnlocked(id, data) {
   const patch = { ...data };
   delete patch.itemCompartments;
+  delete patch.childBoxCompartments;
+  delete patch.compartmentReassignments;
+  delete patch.parentCompartmentKey;
+  delete patch.restoreUnspecifiedPlacement;
   if (Object.prototype.hasOwnProperty.call(patch, 'isComplexBox')) {
     patch.isComplexBox = patch.isComplexBox === true;
   }
@@ -964,11 +1050,14 @@ async function updateBox(id, data) {
     }
   }
   const existing = await Box.findById(id).lean();
+  const previousParentCompartmentKey = existing ? await readParentPlacement(existing) : '';
   if (existing) {
     const complex = patch.isComplexBox ?? existing.isComplexBox;
     if (complex && (patch.compartments || !existing.compartments?.length)) {
       patch.compartments = validateCompartments(patch.compartments || DEFAULT_COMPARTMENTS, existing.compartments || []);
       patchFields.add('compartments');
+      const children = await Box.find({ parentBox: id }).select('_id').lean();
+      Object.assign(patch, reassignCompartments(existing, patch.compartments, children.map((child) => child._id), data.compartmentReassignments));
     } else if (patch.compartments) {
       throw makeHttpError(400, 'NOT_COMPLEX', 'Enable complex box before editing compartments.');
     }
@@ -995,7 +1084,10 @@ async function updateBox(id, data) {
   //
   // The `in` operator checks for *property presence*, not truthiness.
   // This allows `{ parentBox: null }` to be treated as intentional.
-  if ('parentBox' in patch) {
+  if ('parentBox' in patch || 'parentCompartmentKey' in data) {
+    if (!('parentBox' in patch)) patch.parentBox = existing?.parentBox || null;
+    await validateParentPlacement(patch.parentBox, data.parentCompartmentKey, existing, data.restoreUnspecifiedPlacement === true);
+    delete patch.restoreUnspecifiedPlacement;
     const destId = patch.parentBox; // may be null
 
     // Load the existing box so we can compare current state
@@ -1009,7 +1101,7 @@ async function updateBox(id, data) {
     // Guard 1: prevent no-op moves
     // If the box is already nested in the requested parent,
     // this update would do nothing.
-    if (String(existing.parentBox ?? null) === String(destId ?? null)) {
+    if (String(existing.parentBox ?? null) === String(destId ?? null) && !('parentCompartmentKey' in data)) {
       const err = new Error(
         'Box is already nested in the specified parent (no-op move).',
       );
@@ -1054,7 +1146,9 @@ async function updateBox(id, data) {
   });
   if (!updated) return null;
 
+  if ('parentBox' in patch) await saveParentPlacement(id, existing.parentBox, patch.parentBox, data.parentCompartmentKey);
   const updatedPlain = toPlain(updated);
+  updated.set('parentCompartmentKey', await readParentPlacement(updatedPlain), { strict: false });
   if (
     updatedPlain.isGiftBox &&
     (patchFields.has('isGiftBox') || patchFields.has('items'))
@@ -1067,7 +1161,8 @@ async function updateBox(id, data) {
     existing.parentBox ?? null,
     updatedPlain.parentBox ?? null
   );
-  if (parentChanged) {
+  const nextParentCompartmentKey = await readParentPlacement(updatedPlain);
+  if (parentChanged || previousParentCompartmentKey !== nextParentCompartmentKey) {
     const fromParentId = toIdString(existing.parentBox);
     const toParentId = toIdString(updatedPlain.parentBox);
     const parentIds = [fromParentId, toParentId].filter(Boolean);
@@ -1114,6 +1209,8 @@ async function updateBox(id, data) {
           from_box_label: fromParentRef.label,
           to_box_id: toParentRef.id,
           to_box_label: toParentRef.label,
+          from_compartment: previousParentCompartmentKey,
+          to_compartment: nextParentCompartmentKey,
         },
       },
       { label: `${parentEventType}:${boxRef.id}` }
@@ -1176,6 +1273,7 @@ async function setBoxImage(id, image) {
   if (!updated) return null;
 
   const updatedPlain = toPlain(updated);
+  updated.set('parentCompartmentKey', await readParentPlacement(updatedPlain), { strict: false });
   const stalePaths = previousPaths.filter((entry) => !nextPaths.has(entry));
 
   await safeDeleteMediaFiles(stalePaths, {
@@ -1223,6 +1321,7 @@ async function clearBoxImage(id) {
   if (!updated) return null;
 
   const updatedPlain = toPlain(updated);
+  updated.set('parentCompartmentKey', await readParentPlacement(updatedPlain), { strict: false });
   const changedFields = computeChangedFields(current, updatedPlain, [
     'image',
     'imagePath',
@@ -1414,6 +1513,9 @@ async function deleteAllBoxes() {
 }
 
 async function releaseChildrenToFloor(boxId) {
+  return withBoxMutationLock(() => releaseChildrenToFloorUnlocked(boxId));
+}
+async function releaseChildrenToFloorUnlocked(boxId) {
   // Validate id
   if (!Box.isValidId(boxId)) {
     const err = new Error('Invalid box id');
@@ -1437,6 +1539,7 @@ async function releaseChildrenToFloor(boxId) {
 
   // Perform the one-level flatten (direct children only)
   const result = await Box.releaseChildrenToFloor(boxId);
+  await Box.updateOne({ _id: boxId }, { $set: { childBoxCompartments: {} } });
 
   const modifiedCount = result.modifiedCount ?? result.nModified ?? 0;
 

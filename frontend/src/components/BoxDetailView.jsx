@@ -1,3 +1,4 @@
+import { parseBoxAddress } from '../util/boxAddress';
 import useTagReturnSnapshot from '../hooks/useTagReturnSnapshot';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -5,7 +6,8 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import * as S from '../styles/BoxDetailView.styles';
 
 import BoxCompartments from './BoxDetailView/BoxCompartments';
-import { getCompartments, getItemCompartment } from '../util/boxCompartments';
+import { flattenCompartments, scopeBoxToCompartment } from '../util/boxCompartments';
+import flattenBoxes from '../util/flattenBoxes';
 import BoxMetaPanel from './BoxMetaPanel';
 import TabControlBar from './TabControlBar';
 
@@ -21,7 +23,6 @@ import {
 } from '../util/inventoryColorTheme';
 import BoxActionPanel from './BoxActionPanel';
 import {
-  BOX_CONTEXT_STATE_EVENT,
   BOX_RECORD_UPDATED_EVENT,
 } from '../constants/inventoryFinderEvents';
 
@@ -30,9 +31,9 @@ const VALID_PANELS = new Set(['empty', 'nest', 'edit', 'export', 'destroy']);
 
 export default function BoxDetailView({ parentPath, onNavigateBox }) {
   const { shortId: routeAddress } = useParams();
-  const addressMatch = String(routeAddress || '').match(/^(\d{3})([A-Z])$/i);
-  const shortId = addressMatch ? addressMatch[1] : routeAddress;
-  const routeCompartment = addressMatch?.[2]?.toUpperCase() || '';
+  const parsedAddress = parseBoxAddress(routeAddress);
+  const shortId = parsedAddress?.boxId || routeAddress;
+  const routeCompartment = parsedAddress?.compartmentKey || '';
   const source = useTagReturnSnapshot();
   const restoredBox = source?.boxBrowseState?.boxId === shortId ? source.boxBrowseState : null;
   const navigate = useNavigate();
@@ -70,13 +71,11 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
     refreshBox,
   } =
     useBoxDetailData(shortId);
-  const selectedCompartment = getCompartments(tree).some((row) => row.key === searchParams.get('compartment')) ? searchParams.get('compartment') : '';
-  const compartmentItems = selectedCompartment
-    ? flatItems.filter((item) => String(item.parentBoxMongoId) === String(tree?._id) && getItemCompartment(tree, item) === selectedCompartment)
-    : flatItems;
-  const scopedTree = selectedCompartment ? { ...tree, compartmentKey: selectedCompartment, items: (tree.items || []).filter((item) => getItemCompartment(tree, item) === selectedCompartment), childBoxes: [] } : tree;
+  const selectedCompartment = flattenCompartments(tree).some((row) => row.key === searchParams.get('compartment')) ? searchParams.get('compartment') : '';
+  const scopedTree = scopeBoxToCompartment(tree, selectedCompartment);
+  const compartmentItems = selectedCompartment ? flattenBoxes(scopedTree) : flatItems;
   const search = useBoxWorkspaceSearch({ shortId, items: compartmentItems, initialState: restoredBox?.search });
-  const hasChildBoxes = Array.isArray(tree?.childBoxes) && tree.childBoxes.length > 0;
+  const hasChildBoxes = Array.isArray(scopedTree?.childBoxes) && scopedTree.childBoxes.length > 0;
   const browseTab = activeTab === 'tree' ? 'tree' : 'flat';
   const managementOpen = activeTab === 'edit';
   const resultsRef = React.useRef(null);
@@ -103,21 +102,6 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
     setTreeViewMode(restoredBox?.treeViewMode === 'condensed' ? 'condensed' : 'full');
   }, [shortId, restoredBox?.treeViewMode]);
 
-  useEffect(() => {
-    if (!tree) return undefined;
-    window.dispatchEvent(
-      new CustomEvent(BOX_CONTEXT_STATE_EVENT, {
-        detail: {
-          shortId: String(tree?.box_id ?? tree?.shortId ?? ''),
-          title: String(tree?.label ?? tree?.name ?? 'Box'),
-          location: String(
-            tree?.location ?? tree?.locationName ?? ''
-          ).trim(),
-        },
-      })
-    );
-    return () => window.dispatchEvent(new CustomEvent(BOX_CONTEXT_STATE_EVENT, { detail: null }));
-  }, [tree]);
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -251,6 +235,8 @@ export default function BoxDetailView({ parentPath, onNavigateBox }) {
 
   const boxThemeStyle = getBoxThemeCssVars(getBoxTheme(shortId));
 
+  const requestedCompartment = routeCompartment || searchParams.get('compartment');
+  if (!loading && tree && requestedCompartment && !flattenCompartments(tree).some(row => row.key === requestedCompartment)) return <S.ErrorBanner role="alert">Address #{shortId}{requestedCompartment} does not exist. Choose a recorded cabinet or shelf.</S.ErrorBanner>;
   return (
     <S.Wrap style={boxThemeStyle} data-box-browse-state={JSON.stringify({ boxId: shortId, openItemId, treeViewMode,
       search: { mode: search.mode, query: search.query, sortMode: search.sortMode, sortDirection: search.sortDirection } })}>
