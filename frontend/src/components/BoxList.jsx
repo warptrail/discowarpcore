@@ -316,7 +316,6 @@ export default function BoxList({
   const [quickPeekSurface, setQuickPeekSurface] = useState('items');
   const lastAutoActivatedLocatorRef = useRef(searchParams.has('peek') ? effectiveAddressScope : '');
   const appliedScrollRestoreRef = useRef('');
-  const pendingPrimaryFinderFocusRef = useRef(null);
 
   useLayoutEffect(() => {
     const restoreRequest = location.state?.[OPERATIONS_SCROLL_RESTORE_STATE];
@@ -513,21 +512,8 @@ export default function BoxList({
 
   const handlePrimaryFinderInteraction = useCallback((input) => {
     if (desktop || !quickPeek.selectedBox || !(input instanceof HTMLInputElement)) return;
-    pendingPrimaryFinderFocusRef.current = input;
     handleCloseQuickPeek();
   }, [desktop, handleCloseQuickPeek, quickPeek.selectedBox]);
-
-  useEffect(() => {
-    if (quickPeek.selectedBox || !pendingPrimaryFinderFocusRef.current) return undefined;
-
-    const input = pendingPrimaryFinderFocusRef.current;
-    pendingPrimaryFinderFocusRef.current = null;
-    const frameId = window.requestAnimationFrame(() => {
-      if (input.isConnected) input.focus({ preventScroll: true });
-    });
-
-    return () => window.cancelAnimationFrame(frameId);
-  }, [quickPeek.selectedBox]);
 
   useEffect(() => {
     window.addEventListener(OPERATIONS_QUICK_PEEK_CLOSE_EVENT, handleCloseQuickPeek);

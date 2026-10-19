@@ -1,0 +1,37 @@
+✔ expanded finder starts at its existing top and stays bounded across responsive layouts (0.656625ms)
+✔ finder bounds tolerate missing, offscreen and near-bottom anchors without clipping controls (0.81175ms)
+✔ URL selection wins while expanded and remembered selection survives collapse in the same query (0.094625ms)
+✔ pinned finder opens item-only focus, preserving search and filters but removing normal Quick Peek (1.351583ms)
+✔ cycling finder matches preserves the original close history entry (0.097042ms)
+✔ closing an incoming finder deep link only removes focus and keeps other route state (1.483584ms)
+✔ universal Operations search covers box identity, placement and hidden metadata (0.965375ms)
+✔ boxed and unboxed item field coverage agrees with the finder and result list (1.651416ms)
+✔ matching box count includes empty direct matches and nested owners, not contextual parents or duplicates (0.209584ms)
+✔ search retains literal phrase matching and ignores opaque database and media attributes (0.082833ms)
+✔ dismissal clears box and item history markers without mutating unrelated route state (1.253209ms)
+✔ direct links and box-only views also reset without needing history entries (0.064375ms)
+✔ the whole header identity, including its buttons, can start a primary-pointer drag (0.629167ms)
+✔ search, editor and action controls remain independent, while Resize still accepts drags (0.085916ms)
+✔ header swipes suppress only their follow-up pointer click and retain normal/keyboard clicks (4.107083ms)
+✔ up, down, down expands, collapses, then dismisses Quick Peek (0.887708ms)
+✔ a downward swipe from short view still closes immediately (0.073459ms)
+✔ an upward swipe in tall view keeps it tall, and zero movement does nothing (0.056708ms)
+✔ swipes use the detent helper while explicit Close keeps whole-panel dismissal (0.14225ms)
+✔ literal keyword highlights are case-insensitive, repeated and HTML-safe (1.710375ms)
+✔ empty and overlapping terms never loop or duplicate the text (0.100833ms)
+✔ compact excerpts retain the matching keyword, including at the end of long metadata (0.123375ms)
+✔ hidden item and box fields provide labelled real match clues (0.159625ms)
+✔ a deliberate downward header swipe dismisses while a tap or short pull stays open (1.489416ms)
+✔ upward, sideways and mostly diagonal swipes keep the item panel open (0.089875ms)
+✔ a release from another pointer cannot dismiss an active header gesture (0.051667ms)
+✔ the sheet tracks the downward pointer distance and returns toward its resting edge when pulled back (0.064959ms)
+✔ a second grab continues from the current visual offset without jumping (0.050791ms)
+✔ Close and other interactive header controls retain their normal pointer behavior (0.627042ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 106.996584

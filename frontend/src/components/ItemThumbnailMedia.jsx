@@ -13,7 +13,8 @@ const Frame = styled.span`
   > svg { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; object-fit: contain; }
 `;
 
-function ThumbnailContent({ item, candidates, alt, imageAs: Image = 'img' }) {
+function ThumbnailContent({ item, candidates, alt, imageAs = 'img' }) {
+  const Image = imageAs;
   const [attempt, setAttempt] = useState(0);
   return candidates[attempt]
     ? <Image src={candidates[attempt]} alt={alt} loading="lazy" decoding="async" draggable={false} onError={() => setAttempt(current => current + 1)} />

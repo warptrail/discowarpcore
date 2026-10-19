@@ -30,10 +30,8 @@ export default function QuickPeekBoxHeader({
   searchQuery,
   onSearchChange,
   onSearchClose,
-  onSearchScroll,
 }) {
   const searchInputRef = useRef(null);
-  const searchScrollGestureRef = useRef(null);
   const boxId = String(box?.address || box?.box_id || '').trim();
   const isAdrift = box?.systemType === 'orphaned';
   const label = String(box?.label || box?.name || 'Untitled box').trim();
@@ -43,44 +41,10 @@ export default function QuickPeekBoxHeader({
     searchInputRef.current?.focus({ preventScroll: true });
   }, [searchOpen]);
 
-  const handleSearchPointerDown = (event) => {
-    event.stopPropagation();
-    if (event.pointerType !== 'touch') return;
-    searchScrollGestureRef.current = {
-      pointerId: event.pointerId,
-      lastY: event.clientY,
-    };
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-  };
-
-  const handleSearchPointerMove = (event) => {
-    event.stopPropagation();
-    const gesture = searchScrollGestureRef.current;
-    if (!gesture || gesture.pointerId !== event.pointerId) return;
-
-    const deltaY = gesture.lastY - event.clientY;
-    if (Math.abs(deltaY) < 1) return;
-    event.preventDefault();
-    gesture.lastY = event.clientY;
-    onSearchScroll?.(deltaY);
-  };
-
-  const finishSearchPointerGesture = (event) => {
-    event.stopPropagation();
-    if (searchScrollGestureRef.current?.pointerId === event.pointerId) {
-      searchScrollGestureRef.current = null;
-    }
-  };
-
-  const handleSearchWheel = (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    onSearchScroll?.(event.deltaY);
-  };
-
   return (
     <S.DeckCap
       $expanded={expanded}
+      $searchOpen={searchOpen}
       onPointerDown={onPointerDown}
       onPointerDownCapture={onGestureStartCapture}
       onPointerUp={onPointerUp}
@@ -109,11 +73,6 @@ export default function QuickPeekBoxHeader({
         <S.QuickPeekSearchDock
           role="search"
           aria-label={isAdrift ? 'Search Items Adrift' : `Search direct items in box ${boxId}`}
-          onPointerDown={handleSearchPointerDown}
-          onPointerMove={handleSearchPointerMove}
-          onPointerUp={finishSearchPointerGesture}
-          onPointerCancel={finishSearchPointerGesture}
-          onWheel={handleSearchWheel}
         >
           <S.QuickPeekSearchGlyph aria-hidden="true">⌕</S.QuickPeekSearchGlyph>
           <S.QuickPeekSearchInput

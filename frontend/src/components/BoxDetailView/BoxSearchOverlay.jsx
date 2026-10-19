@@ -152,20 +152,22 @@ export default function BoxSearchOverlay({
 
   useEffect(() => {
     if (mode !== 'expanded') return undefined;
-    inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
     const onKey = (event) => {
       if (event.key === 'Escape') onMinimize();
     };
-    const onPointer = (event) => {
-      if (panelRef.current?.contains(event.target)) return;
+    const onOutsideClick = (event) => {
+      // A selected sort option can unmount before this document listener runs.
+      if (event.composedPath().includes(panelRef.current)) return;
       if (event.target.closest?.('[data-box-finder-trigger]')) return;
       onMinimize();
     };
     document.addEventListener('keydown', onKey);
-    document.addEventListener('pointerdown', onPointer);
+    // A swipe through results is scrolling, not an outside tap to dismiss.
+    document.addEventListener('click', onOutsideClick);
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.removeEventListener('pointerdown', onPointer);
+      document.removeEventListener('click', onOutsideClick);
     };
   }, [mode, onMinimize]);
 
@@ -205,7 +207,13 @@ export default function BoxSearchOverlay({
         >
           {sortDirection === 'desc' ? '↓' : '↑'}
         </DirectionToggle>
-        <Clear type="button" onClick={onClear}>Clear</Clear>
+        <Clear type="button"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => {
+            onClear();
+            inputRef.current?.focus({ preventScroll: true });
+          }}
+        >Clear</Clear>
       </Tools>
       {query && matchCount === 0 ? (
         <Empty>Nothing in this box matches yet. Try one simpler word.</Empty>

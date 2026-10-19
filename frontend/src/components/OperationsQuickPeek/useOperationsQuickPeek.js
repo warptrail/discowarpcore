@@ -320,6 +320,9 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
 
     const preventBackgroundScroll = (event) => {
       const target = event.target;
+      // Native caret/selection gestures must survive the page's scroll lock.
+      if (event.type === 'touchmove' && target instanceof Element &&
+          target.closest('input, textarea, [contenteditable="true"]')) return;
       const scrollRegion =
         target instanceof Element
           ? target.closest('[data-quick-peek-scroll-region]')
@@ -363,6 +366,12 @@ export default function useOperationsQuickPeek(boxes = [], { ready = true } = {}
     previousSelectedIdRef.current = selectedBoxId;
 
     if (!previousId || selectedBoxId || !triggerRef.current) return;
+    // Dismissal can finish after a user has already focused the main finder.
+    // Restore the trigger only when focus was left in the closing panel/body.
+    const active = document.activeElement;
+    if (active && active !== document.body && active !== document.documentElement &&
+        !active.closest('#operations-box-quick-peek')) return;
+    if (!triggerRef.current.isConnected) return;
     triggerRef.current.focus?.({ preventScroll: true });
   }, [selectedBoxId]);
 

@@ -58,7 +58,7 @@ const ItemPageLink = styled(Link)`
   svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.5; }
 `;
 
-export function getCardMatchExcerpt(item, terms) {
+function getCardMatchExcerpt(item, terms) {
   const fields = [['Details',item.description],['Notes',item.notes],['Label',item.label],['Category',item.category],['Location',item.location],['Owner',item.primaryOwnerName],['Keep priority',item.keepPriority]];
   const match = fields.find(([,value]) => terms.some(term => String(value || '').toLowerCase().includes(term)));
   const [label,text] = match || ['Details',item.description || ''];

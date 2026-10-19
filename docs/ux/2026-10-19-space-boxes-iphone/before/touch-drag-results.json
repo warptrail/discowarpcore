@@ -1,0 +1,172 @@
+{
+  "testedAt": "2026-10-19T00:28:24.966Z",
+  "engine": "Desktop Chromium 151.0.7922.34 touch emulation; NO iOS keyboard",
+  "before": {
+    "y": 0,
+    "active": true,
+    "fontSize": "16px",
+    "value": "cable",
+    "selection": [
+      5,
+      5
+    ],
+    "touchAction": "none",
+    "region": {
+      "top": 0,
+      "height": 271,
+      "total": 548
+    },
+    "viewport": {
+      "height": 844,
+      "vvHeight": 844,
+      "offsetTop": 0,
+      "scale": 1
+    }
+  },
+  "after": {
+    "y": 0,
+    "active": true,
+    "fontSize": "16px",
+    "value": "cable",
+    "selection": [
+      5,
+      5
+    ],
+    "touchAction": "none",
+    "region": {
+      "top": 50,
+      "height": 271,
+      "total": 548
+    },
+    "viewport": {
+      "height": 844,
+      "vvHeight": 844,
+      "offsetTop": 0,
+      "scale": 1
+    }
+  },
+  "touch": [
+    {
+      "type": "pointerdown",
+      "pointerType": "touch",
+      "target": "INPUT",
+      "defaultPrevented": false,
+      "regionTop": 10
+    },
+    {
+      "type": "gotpointercapture",
+      "pointerType": "touch",
+      "target": "DIV",
+      "defaultPrevented": false,
+      "regionTop": 10
+    },
+    {
+      "type": "pointermove",
+      "pointerType": "touch",
+      "target": "DIV",
+      "defaultPrevented": true,
+      "regionTop": 10
+    },
+    {
+      "type": "pointermove",
+      "pointerType": "touch",
+      "target": "DIV",
+      "defaultPrevented": true,
+      "regionTop": 20
+    },
+    {
+      "type": "pointermove",
+      "pointerType": "touch",
+      "target": "DIV",
+      "defaultPrevented": true,
+      "regionTop": 30
+    },
+    {
+      "type": "pointermove",
+      "pointerType": "touch",
+      "target": "DIV",
+      "defaultPrevented": true,
+      "regionTop": 40
+    },
+    {
+      "type": "pointermove",
+      "pointerType": "touch",
+      "target": "DIV",
+      "defaultPrevented": true,
+      "regionTop": 50
+    },
+    {
+      "type": "pointerup",
+      "pointerType": "touch",
+      "target": "DIV",
+      "defaultPrevented": false,
+      "regionTop": 50
+    },
+    {
+      "type": "lostpointercapture",
+      "pointerType": "touch",
+      "target": "DIV",
+      "defaultPrevented": false,
+      "regionTop": 50
+    }
+  ],
+  "resultsSwipe": {
+    "before": {
+      "y": 0,
+      "active": true,
+      "fontSize": "16px",
+      "value": "cable",
+      "selection": [
+        5,
+        5
+      ],
+      "touchAction": "none",
+      "region": {
+        "top": 50,
+        "height": 271,
+        "total": 548
+      },
+      "viewport": {
+        "height": 844,
+        "vvHeight": 844,
+        "offsetTop": 0,
+        "scale": 1
+      }
+    },
+    "after": {
+      "y": 0,
+      "active": true,
+      "fontSize": "16px",
+      "value": "cable",
+      "selection": [
+        5,
+        5
+      ],
+      "touchAction": "none",
+      "region": {
+        "top": 135,
+        "height": 271,
+        "total": 548
+      },
+      "viewport": {
+        "height": 844,
+        "vvHeight": 844,
+        "offsetTop": 0,
+        "scale": 1
+      }
+    }
+  },
+  "navigation": {
+    "fullBox": {
+      "path": "/boxes/117"
+    },
+    "returned": {
+      "path": "/operations",
+      "search": "?q=cable&peek=117",
+      "query": "cable",
+      "peek": true
+    }
+  },
+  "blocked": [],
+  "errors": []
+}

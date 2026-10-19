@@ -193,20 +193,6 @@ export default function OperationsBoxQuickPeek({
     });
   }, [hasItemQuery, itemQueryTerms, items]);
 
-  const scrollQuickPeekContent = useCallback((deltaY) => {
-    const scrollRegion = contentRef.current;
-    if (!scrollRegion || !Number.isFinite(deltaY)) return;
-
-    const maximumScrollTop = Math.max(
-      0,
-      scrollRegion.scrollHeight - scrollRegion.clientHeight,
-    );
-    scrollRegion.scrollTop = Math.min(
-      maximumScrollTop,
-      Math.max(0, scrollRegion.scrollTop + deltaY),
-    );
-  }, []);
-
   const closeQuickSearch = useCallback(() => {
     setQuickSearchOpen(false);
     setItemQuery('');
@@ -552,7 +538,6 @@ export default function OperationsBoxQuickPeek({
         searchQuery={itemQuery}
         onSearchChange={setItemQuery}
         onSearchClose={closeQuickSearch}
-        onSearchScroll={scrollQuickPeekContent}
       />
 
       {box.kind === "cabinet" && !itemSelection.selectedItem ? <CabinetShelfPicker boxId={box.box_id} cabinetKey={box.compartmentKey[0]} parentLabel={box.label} ownerBox={box.ownerBox} shelves={box.shelves} selectedKeys={box.selectedShelfKeys} onChange={onShelfChange} /> : null}

@@ -27,7 +27,6 @@ export default function useBoxWorkspaceSearch({ shortId, items, initialState }) 
   const [sortDirection, setSortDirection] = useState(initialState?.sortDirection || 'asc');
   const initialShortIdRef = useRef(shortId);
   const restorePendingRef = useRef(Boolean(initialState));
-  const openScrollYRef = useRef(0);
   const normalizedQuery = normalizeItemQuery(query);
 
   const visibleItems = useMemo(() => {
@@ -56,7 +55,6 @@ export default function useBoxWorkspaceSearch({ shortId, items, initialState }) 
   }, [items, normalizedQuery, sortDirection, sortMode]);
 
   const expand = useCallback(() => {
-    openScrollYRef.current = window.scrollY;
     setMode('expanded');
   }, []);
   const minimize = useCallback(() => setMode((current) =>
@@ -65,7 +63,6 @@ export default function useBoxWorkspaceSearch({ shortId, items, initialState }) 
   const toggle = useCallback(() => {
     setMode((current) => {
       if (current === 'expanded') return 'minimized';
-      openScrollYRef.current = window.scrollY;
       return 'expanded';
     });
   }, []);
@@ -73,7 +70,6 @@ export default function useBoxWorkspaceSearch({ shortId, items, initialState }) 
     setQuery('');
     setSortMode('treeOrder');
     setSortDirection('asc');
-    setMode('closed');
   }, []);
 
   useEffect(() => {
@@ -108,15 +104,6 @@ export default function useBoxWorkspaceSearch({ shortId, items, initialState }) 
       },
     }));
   }, [mode, query, shortId, sortDirection, sortMode, visibleItems.length]);
-
-  useEffect(() => {
-    if (mode !== 'expanded') return undefined;
-    const onScroll = () => {
-      if (Math.abs(window.scrollY - openScrollYRef.current) > 24) minimize();
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [minimize, mode]);
 
   return {
     mode,

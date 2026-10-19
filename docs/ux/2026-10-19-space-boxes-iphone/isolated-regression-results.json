@@ -1,0 +1,85 @@
+{
+  "scope": "Isolated desktop engines. No actual iOS keyboard. No backend requests.",
+  "results": [
+    {
+      "engine": "webkit",
+      "name": "main search keeps focus and a middle caret throughout delayed close",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "name": "explicit Close restores the box trigger",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "name": "closing never overrides another deliberately focused control",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "name": "touch selection events stay uncancelled under Quick Peek scroll lock",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "name": "full-box search survives scroll and height changes with focus and node intact",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "name": "touch Clear retains focus, replacement works, and sort stays usable",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "name": "Escape, Enter, toggle and outside tap still dismiss search",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "name": "reduced-motion dismissal retains the main finder focus",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "name": "main search keeps focus and a middle caret throughout delayed close",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "name": "explicit Close restores the box trigger",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "name": "closing never overrides another deliberately focused control",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "name": "touch selection events stay uncancelled under Quick Peek scroll lock",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "name": "full-box search survives scroll and height changes with focus and node intact",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "name": "touch Clear retains focus, replacement works, and sort stays usable",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "name": "Escape, Enter, toggle and outside tap still dismiss search",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "name": "reduced-motion dismissal retains the main finder focus",
+      "status": "passed"
+    }
+  ]
+}

@@ -242,8 +242,8 @@ export const DeckCap = styled.header`
   border-radius: var(--dw-radius) var(--dw-radius) 0 0;
   background: var(--dw-surface);
   box-shadow: inset 0 1px 0 rgba(223, 243, 255, .08), 0 3px 8px rgba(0, 0, 0, .16);
-  touch-action: none;
-  user-select: none;
+  touch-action: ${({ $searchOpen }) => $searchOpen ? 'pan-x pinch-zoom' : 'none'};
+  user-select: ${({ $searchOpen }) => $searchOpen ? 'auto' : 'none'};
 
   @media (max-width: 767px) {
     background:
@@ -295,7 +295,6 @@ export const QuickPeekSearchDock = styled.div`
   color: ${COLORS.text};
   background: var(--dw-surface);
   box-shadow: none;
-  touch-action: none;
   animation: ${settle} 180ms cubic-bezier(0.22, 1, 0.36, 1);
 
   &:focus-within {
@@ -327,6 +326,8 @@ export const QuickPeekSearchInput = styled.input`
   background: transparent;
   font: 700 0.75rem/1.2 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   letter-spacing: normal;
+  user-select: text;
+  -webkit-user-select: text;
 
   &::placeholder {
     color: ${COLORS.dim};

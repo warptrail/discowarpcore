@@ -1,0 +1,2184 @@
+{
+  "testedAt": "2026-10-19T00:27:26.908Z",
+  "engine": "Playwright desktop WebKit 26.5",
+  "scope": "390x844 / 390x500 mobile viewport + touch emulation. NO iOS software keyboard.",
+  "results": [
+    {
+      "name": "operations-type-edit-clear-replace",
+      "status": "completed",
+      "details": {
+        "typed": {
+          "path": "/operations",
+          "search": "?q=cable",
+          "y": 0,
+          "height": 3493,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "operations-main-search",
+          "input": {
+            "id": "operations-main-search",
+            "value": "cable",
+            "selection": [
+              5,
+              5
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 73.9375,
+              "bottom": 117.9375,
+              "height": 44,
+              "width": 212.09375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 262.8125,
+            "height": 262.8125,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 6
+        },
+        "middleEdit": {
+          "path": "/operations",
+          "search": "?q=caxble",
+          "y": 0,
+          "height": 844,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "operations-main-search",
+          "input": {
+            "id": "operations-main-search",
+            "value": "caxble",
+            "selection": [
+              3,
+              3
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 73.9375,
+              "bottom": 117.9375,
+              "height": 44,
+              "width": 212.09375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 262.8125,
+            "height": 262.8125,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 0
+        },
+        "cleared": {
+          "path": "/operations",
+          "search": "",
+          "y": 0,
+          "height": 6667,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "operations-main-search",
+          "input": {
+            "id": "operations-main-search",
+            "value": "",
+            "selection": [
+              0,
+              0
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 73.9375,
+              "bottom": 117.9375,
+              "height": 44,
+              "width": 212.09375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 262.8125,
+            "height": 262.8125,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 69
+        },
+        "replaced": {
+          "path": "/operations",
+          "search": "?q=cable",
+          "y": 0,
+          "height": 3493,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "operations-main-search",
+          "input": {
+            "id": "operations-main-search",
+            "value": "cable",
+            "selection": [
+              5,
+              5
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 73.9375,
+              "bottom": 117.9375,
+              "height": 44,
+              "width": 212.09375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 262.8125,
+            "height": 262.8125,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 6
+        },
+        "sameNode": true,
+        "events": [
+          {
+            "t": 24,
+            "type": "visualViewport-resize",
+            "y": 0,
+            "active": "BODY",
+            "height": 844,
+            "offsetTop": 0,
+            "scale": 1
+          },
+          {
+            "t": 1620,
+            "type": "pointerdown",
+            "y": 0,
+            "active": "BODY",
+            "target": "operations-main-search",
+            "pointerType": "touch",
+            "defaultPrevented": false
+          },
+          {
+            "t": 1621,
+            "type": "pointerup",
+            "y": 0,
+            "active": "BODY",
+            "target": "operations-main-search",
+            "pointerType": "touch",
+            "defaultPrevented": false
+          },
+          {
+            "t": 1622,
+            "type": "focusin",
+            "y": 0,
+            "active": "operations-main-search",
+            "target": "operations-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 1631,
+            "type": "input",
+            "y": 0,
+            "active": "operations-main-search",
+            "target": "operations-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 2444,
+            "type": "input",
+            "y": 0,
+            "active": "operations-main-search",
+            "target": "operations-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 2716,
+            "type": "input",
+            "y": 0,
+            "active": "operations-main-search",
+            "target": "operations-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 2849,
+            "type": "input",
+            "y": 0,
+            "active": "operations-main-search",
+            "target": "operations-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 2967,
+            "type": "input",
+            "y": 0,
+            "active": "operations-main-search",
+            "target": "operations-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 3509,
+            "type": "input",
+            "y": 0,
+            "active": "operations-main-search",
+            "target": "operations-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 3531,
+            "type": "input",
+            "y": 0,
+            "active": "operations-main-search",
+            "target": "operations-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 3681,
+            "type": "input",
+            "y": 0,
+            "active": "operations-main-search",
+            "target": "operations-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 4245,
+            "type": "input",
+            "y": 0,
+            "active": "operations-main-search",
+            "target": "operations-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 4474,
+            "type": "input",
+            "y": 0,
+            "active": "operations-main-search",
+            "target": "operations-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 4588,
+            "type": "input",
+            "y": 0,
+            "active": "operations-main-search",
+            "target": "operations-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 4685,
+            "type": "input",
+            "y": 0,
+            "active": "operations-main-search",
+            "target": "operations-main-search",
+            "defaultPrevented": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "operations-scroll-results-with-input-focused",
+      "status": "completed",
+      "details": {
+        "before": {
+          "path": "/operations",
+          "search": "?q=cable",
+          "y": 0,
+          "height": 3493,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "operations-main-search",
+          "input": {
+            "id": "operations-main-search",
+            "value": "cable",
+            "selection": [
+              5,
+              5
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 73.9375,
+              "bottom": 117.9375,
+              "height": 44,
+              "width": 212.09375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 262.8125,
+            "height": 262.8125,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 6
+        },
+        "down": {
+          "path": "/operations",
+          "search": "?q=cable",
+          "y": 280,
+          "height": 3493,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "operations-main-search",
+          "input": {
+            "id": "operations-main-search",
+            "value": "cable",
+            "selection": [
+              5,
+              5
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 73.9375,
+              "bottom": 117.9375,
+              "height": 44,
+              "width": 212.09375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 262.8125,
+            "height": 262.8125,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 6
+        },
+        "up": {
+          "path": "/operations",
+          "search": "?q=cable",
+          "y": 0,
+          "height": 3493,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "operations-main-search",
+          "input": {
+            "id": "operations-main-search",
+            "value": "cable",
+            "selection": [
+              5,
+              5
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 73.9375,
+              "bottom": 117.9375,
+              "height": 44,
+              "width": 212.09375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 262.8125,
+            "height": 262.8125,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 6
+        },
+        "events": [
+          {
+            "t": 5197,
+            "type": "scroll",
+            "y": 280,
+            "active": "operations-main-search"
+          },
+          {
+            "t": 5297,
+            "type": "pointermove",
+            "y": 280,
+            "active": "operations-main-search",
+            "target": "operations-main-search",
+            "pointerType": "mouse",
+            "defaultPrevented": false
+          },
+          {
+            "t": 5709,
+            "type": "scroll",
+            "y": 0,
+            "active": "operations-main-search"
+          },
+          {
+            "t": 5807,
+            "type": "pointermove",
+            "y": 0,
+            "active": "operations-main-search",
+            "target": "operations-main-search",
+            "pointerType": "mouse",
+            "defaultPrevented": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "operations-open-box-then-retap-primary-search",
+      "status": "completed",
+      "details": {
+        "boxId": "117",
+        "opened": {
+          "path": "/operations",
+          "search": "?q=cable&peek=117",
+          "y": 77,
+          "height": 4046,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "operations-box-quick-peek",
+          "input": {
+            "id": "operations-main-search",
+            "value": "cable",
+            "selection": [
+              5,
+              5
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 73.9375,
+              "bottom": 117.9375,
+              "height": 44,
+              "width": 212.09375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 262.8125,
+            "height": 262.8125,
+            "width": 390
+          },
+          "quick": {
+            "top": 368.255615234375,
+            "bottom": 941.239990234375,
+            "height": 572.984375,
+            "width": 390
+          },
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 6
+        },
+        "immediate": {
+          "path": "/operations",
+          "search": "?q=cable&peek=117",
+          "y": 0,
+          "height": 4046,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "operations-main-search",
+          "input": {
+            "id": "operations-main-search",
+            "value": "cable",
+            "selection": [
+              5,
+              5
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 73.9375,
+              "bottom": 117.9375,
+              "height": 44,
+              "width": 212.09375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 262.8125,
+            "height": 262.8125,
+            "width": 390
+          },
+          "quick": {
+            "top": 368.255615234375,
+            "bottom": 941.239990234375,
+            "height": 572.984375,
+            "width": 390
+          },
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 6
+        },
+        "settled": {
+          "path": "/operations",
+          "search": "?q=cable",
+          "y": 0,
+          "height": 3493,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "operations-main-search",
+          "input": {
+            "id": "operations-main-search",
+            "value": "cable",
+            "selection": [
+              5,
+              5
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 73.9375,
+              "bottom": 117.9375,
+              "height": 44,
+              "width": 212.09375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 262.8125,
+            "height": 262.8125,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 6
+        },
+        "events": [
+          {
+            "t": 8162,
+            "type": "scroll",
+            "y": 0,
+            "active": "operations-box-quick-peek"
+          },
+          {
+            "t": 8164,
+            "type": "pointerdown",
+            "y": 0,
+            "active": "operations-box-quick-peek",
+            "target": "operations-main-search",
+            "pointerType": "touch",
+            "defaultPrevented": false
+          },
+          {
+            "t": 8209,
+            "type": "pointerup",
+            "y": 0,
+            "active": "operations-box-quick-peek",
+            "target": "operations-main-search",
+            "pointerType": "touch",
+            "defaultPrevented": false
+          },
+          {
+            "t": 8210,
+            "type": "focusout",
+            "y": 0,
+            "active": "BODY",
+            "target": "operations-box-quick-peek",
+            "defaultPrevented": false
+          },
+          {
+            "t": 8210,
+            "type": "focusin",
+            "y": 0,
+            "active": "operations-main-search",
+            "target": "operations-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 8836,
+            "type": "focus-call",
+            "y": 0,
+            "active": "operations-main-search",
+            "target": "Preview [inventory control]",
+            "stack": [
+              "@http://127.0.0.1:7611/src/components/OperationsQuickPeek/useOperationsQuickPeek.js:366:31",
+              "react-stack-bottom-frame@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:17478:26",
+              "runWithFiberInDEV@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:1487:23",
+              "commitHookEffectListMount@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:8460:139"
+            ]
+          },
+          {
+            "t": 8851,
+            "type": "focusout",
+            "y": 0,
+            "active": "BODY",
+            "target": "operations-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 8851,
+            "type": "focusin",
+            "y": 0,
+            "active": "Preview [inventory control]",
+            "target": "Preview [inventory control]",
+            "defaultPrevented": false
+          },
+          {
+            "t": 8853,
+            "type": "focus-call",
+            "y": 0,
+            "active": "Preview [inventory control]",
+            "target": "operations-main-search",
+            "stack": [
+              "@http://127.0.0.1:7611/src/components/BoxList.jsx:490:41"
+            ]
+          },
+          {
+            "t": 8854,
+            "type": "focusout",
+            "y": 0,
+            "active": "BODY",
+            "target": "Preview [inventory control]",
+            "defaultPrevented": false
+          },
+          {
+            "t": 8854,
+            "type": "focusin",
+            "y": 0,
+            "active": "operations-main-search",
+            "target": "operations-main-search",
+            "defaultPrevented": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "quick-peek-search-edit-scroll-close-and-back",
+      "status": "completed",
+      "details": {
+        "controls": [
+          {
+            "id": "",
+            "label": "Toggle Quick Peek item search"
+          }
+        ],
+        "searchOpened": {
+          "path": "/operations",
+          "search": "?q=cable&peek=117",
+          "y": 0,
+          "height": 4046,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "INPUT",
+          "input": {
+            "id": "operations-main-search",
+            "value": "cable",
+            "selection": [
+              5,
+              5
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 73.9375,
+              "bottom": 117.9375,
+              "height": 44,
+              "width": 212.09375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 262.8125,
+            "height": 262.8125,
+            "width": 390
+          },
+          "quick": {
+            "top": 368.255615234375,
+            "bottom": 941.239990234375,
+            "height": 572.984375,
+            "width": 390
+          },
+          "quickSearch": true,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 6
+        },
+        "edited": "ca",
+        "beforeScroll": {
+          "top": 0,
+          "height": 271,
+          "total": 2900
+        },
+        "afterScroll": {
+          "top": 100,
+          "height": 271,
+          "total": 2900
+        },
+        "searchClosed": {
+          "path": "/operations",
+          "search": "?q=cable&peek=117",
+          "y": 0,
+          "height": 4046,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "operations-box-quick-peek",
+          "input": {
+            "id": "operations-main-search",
+            "value": "cable",
+            "selection": [
+              5,
+              5
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 73.9375,
+              "bottom": 117.9375,
+              "height": 44,
+              "width": 212.09375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 262.8125,
+            "height": 262.8125,
+            "width": 390
+          },
+          "quick": {
+            "top": 368.255615234375,
+            "bottom": 941.239990234375,
+            "height": 572.984375,
+            "width": 390
+          },
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 6
+        },
+        "afterBack": {
+          "path": "/operations",
+          "search": "?q=cable",
+          "y": 0,
+          "height": 3493,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "DIV",
+          "input": {
+            "id": "operations-main-search",
+            "value": "cable",
+            "selection": [
+              5,
+              5
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 73.9375,
+              "bottom": 117.9375,
+              "height": 44,
+              "width": 212.09375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 262.8125,
+            "height": 262.8125,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 6
+        },
+        "events": [
+          {
+            "t": 9096,
+            "type": "focusout",
+            "y": 0,
+            "active": "BODY",
+            "target": "operations-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 9096,
+            "type": "focusin",
+            "y": 0,
+            "active": "Preview [inventory control]",
+            "target": "Preview [inventory control]",
+            "defaultPrevented": false
+          },
+          {
+            "t": 9117,
+            "type": "focus-call",
+            "y": 0,
+            "active": "Preview [inventory control]",
+            "target": "operations-box-quick-peek",
+            "stack": [
+              "@http://127.0.0.1:7611/src/components/OperationsQuickPeek/OperationsBoxQuickPeek.jsx:271:28",
+              "react-stack-bottom-frame@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:17478:26",
+              "runWithFiberInDEV@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:1487:23",
+              "commitHookEffectListMount@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:8460:139"
+            ]
+          },
+          {
+            "t": 9117,
+            "type": "focusout",
+            "y": 0,
+            "active": "BODY",
+            "target": "Preview [inventory control]",
+            "defaultPrevented": false
+          },
+          {
+            "t": 9117,
+            "type": "focusin",
+            "y": 0,
+            "active": "operations-box-quick-peek",
+            "target": "operations-box-quick-peek",
+            "defaultPrevented": false
+          },
+          {
+            "t": 9118,
+            "type": "focus-call",
+            "y": 0,
+            "active": "operations-box-quick-peek",
+            "target": "operations-box-quick-peek",
+            "stack": [
+              "@http://127.0.0.1:7611/src/components/OperationsQuickPeek/OperationsBoxQuickPeek.jsx:271:28",
+              "react-stack-bottom-frame@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:17478:26",
+              "runWithFiberInDEV@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:1487:23",
+              "commitHookEffectListMount@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:8460:139"
+            ]
+          },
+          {
+            "t": 9135,
+            "type": "scrollTo",
+            "y": 0,
+            "active": "operations-box-quick-peek",
+            "args": [
+              {
+                "top": 77.828125,
+                "behavior": "smooth"
+              }
+            ],
+            "stack": [
+              "alignSelectedRow@http://127.0.0.1:7611/src/components/OperationsQuickPeek/useOperationsQuickPeek.js:296:22",
+              "@http://127.0.0.1:7611/src/components/OperationsQuickPeek/useOperationsQuickPeek.js:303:23"
+            ]
+          },
+          {
+            "t": 9159,
+            "type": "scroll",
+            "y": 13,
+            "active": "operations-box-quick-peek"
+          },
+          {
+            "t": 9175,
+            "type": "scroll",
+            "y": 47,
+            "active": "operations-box-quick-peek"
+          },
+          {
+            "t": 9192,
+            "type": "scroll",
+            "y": 67,
+            "active": "operations-box-quick-peek"
+          },
+          {
+            "t": 9209,
+            "type": "scroll",
+            "y": 75,
+            "active": "operations-box-quick-peek"
+          },
+          {
+            "t": 9226,
+            "type": "scroll",
+            "y": 77,
+            "active": "operations-box-quick-peek"
+          },
+          {
+            "t": 10047,
+            "type": "scroll",
+            "y": 0,
+            "active": "operations-box-quick-peek"
+          },
+          {
+            "t": 10050,
+            "type": "focusout",
+            "y": 0,
+            "active": "BODY",
+            "target": "operations-box-quick-peek",
+            "defaultPrevented": false
+          },
+          {
+            "t": 10075,
+            "type": "focus-call",
+            "y": 0,
+            "active": "BODY",
+            "target": "Find an item in [inventory control]",
+            "stack": [
+              "@http://127.0.0.1:7611/src/components/OperationsQuickPeek/QuickPeekBoxHeader.jsx:59:34",
+              "react-stack-bottom-frame@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:17478:26",
+              "runWithFiberInDEV@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:1487:23",
+              "commitHookEffectListMount@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:8460:139"
+            ]
+          },
+          {
+            "t": 10078,
+            "type": "focusin",
+            "y": 0,
+            "active": "Find an item in [inventory control]",
+            "target": "Find an item in [inventory control]",
+            "defaultPrevented": false
+          },
+          {
+            "t": 10137,
+            "type": "input",
+            "y": 0,
+            "active": "Find an item in [inventory control]",
+            "target": "Find an item in [inventory control]",
+            "defaultPrevented": false
+          },
+          {
+            "t": 10558,
+            "type": "input",
+            "y": 0,
+            "active": "Find an item in [inventory control]",
+            "target": "Find an item in [inventory control]",
+            "defaultPrevented": false
+          },
+          {
+            "t": 10581,
+            "type": "input",
+            "y": 0,
+            "active": "Find an item in [inventory control]",
+            "target": "Find an item in [inventory control]",
+            "defaultPrevented": false
+          },
+          {
+            "t": 10597,
+            "type": "input",
+            "y": 0,
+            "active": "Find an item in [inventory control]",
+            "target": "Find an item in [inventory control]",
+            "defaultPrevented": false
+          },
+          {
+            "t": 10698,
+            "type": "pointerdown",
+            "y": 0,
+            "active": "Find an item in [inventory control]",
+            "target": "Close Quick Peek item search",
+            "pointerType": "touch",
+            "defaultPrevented": false
+          },
+          {
+            "t": 10698,
+            "type": "pointerup",
+            "y": 0,
+            "active": "Find an item in [inventory control]",
+            "target": "Close Quick Peek item search",
+            "pointerType": "touch",
+            "defaultPrevented": false
+          },
+          {
+            "t": 10699,
+            "type": "focusout",
+            "y": 0,
+            "active": "BODY",
+            "target": "Find an item in [inventory control]",
+            "defaultPrevented": false
+          },
+          {
+            "t": 10699,
+            "type": "focusin",
+            "y": 0,
+            "active": "operations-box-quick-peek",
+            "target": "operations-box-quick-peek",
+            "defaultPrevented": false
+          },
+          {
+            "t": 10724,
+            "type": "focus-call",
+            "y": 0,
+            "active": "BODY",
+            "target": "Preview [inventory control]",
+            "stack": [
+              "@http://127.0.0.1:7611/src/components/OperationsQuickPeek/useOperationsQuickPeek.js:366:31",
+              "react-stack-bottom-frame@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:17478:26",
+              "runWithFiberInDEV@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:1487:23",
+              "commitHookEffectListMount@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:8460:139"
+            ]
+          },
+          {
+            "t": 10735,
+            "type": "focusin",
+            "y": 0,
+            "active": "Preview [inventory control]",
+            "target": "Preview [inventory control]",
+            "defaultPrevented": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "full-box-search-scroll-and-clear",
+      "status": "completed",
+      "details": {
+        "typed": {
+          "path": "/boxes/117",
+          "search": "",
+          "y": 0,
+          "height": 5699,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "INPUT",
+          "input": {
+            "id": "",
+            "value": "a",
+            "selection": [
+              1,
+              1
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 202.953125,
+              "bottom": 252.953125,
+              "height": 50,
+              "width": 344
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 157.1875,
+            "height": 157.1875,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": true,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 0
+        },
+        "edit": {
+          "path": "/boxes/117",
+          "search": "",
+          "y": 0,
+          "height": 5108,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "INPUT",
+          "input": {
+            "id": "",
+            "value": "ca",
+            "selection": [
+              1,
+              1
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 202.953125,
+              "bottom": 252.953125,
+              "height": 50,
+              "width": 344
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 157.1875,
+            "height": 157.1875,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": true,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 0
+        },
+        "before": {
+          "path": "/boxes/117",
+          "search": "",
+          "y": 0,
+          "height": 5699,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "INPUT",
+          "input": {
+            "id": "",
+            "value": "a",
+            "selection": [
+              1,
+              1
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 202.953125,
+              "bottom": 252.953125,
+              "height": 50,
+              "width": 344
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 157.1875,
+            "height": 157.1875,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": true,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 0
+        },
+        "after": {
+          "path": "/boxes/117",
+          "search": "",
+          "y": 0,
+          "height": 5669,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "BODY",
+          "input": null,
+          "header": {
+            "top": 0,
+            "bottom": 126.90625,
+            "height": 126.90625,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 0
+        },
+        "afterClear": {
+          "path": "/boxes/117",
+          "search": "",
+          "y": 0,
+          "height": 5699,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "BODY",
+          "input": null,
+          "header": {
+            "top": 0,
+            "bottom": 157.1875,
+            "height": 157.1875,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 0
+        },
+        "events": [
+          {
+            "t": 14,
+            "type": "visualViewport-resize",
+            "y": 0,
+            "active": "BODY",
+            "height": 844,
+            "offsetTop": 0,
+            "scale": 1
+          },
+          {
+            "t": 462,
+            "type": "scrollTo",
+            "y": 0,
+            "active": "BODY",
+            "args": [
+              {
+                "top": 0,
+                "left": 0,
+                "behavior": "auto"
+              }
+            ],
+            "stack": [
+              "@http://127.0.0.1:7611/src/components/BoxDetailView.jsx:104:20",
+              "react-stack-bottom-frame@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:17478:26",
+              "runWithFiberInDEV@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:1487:23",
+              "commitHookEffectListMount@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:8460:139"
+            ]
+          },
+          {
+            "t": 464,
+            "type": "scrollTo",
+            "y": 0,
+            "active": "BODY",
+            "args": [
+              {
+                "top": 0,
+                "left": 0,
+                "behavior": "auto"
+              }
+            ],
+            "stack": [
+              "@http://127.0.0.1:7611/src/components/BoxDetailView.jsx:104:20",
+              "react-stack-bottom-frame@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:17478:26",
+              "runWithFiberInDEV@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:1487:23",
+              "commitHookEffectListMount@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:8460:139"
+            ]
+          },
+          {
+            "t": 1337,
+            "type": "focus-call",
+            "y": 0,
+            "active": "BODY",
+            "target": "Search [inventory control]",
+            "stack": [
+              "@http://127.0.0.1:7611/src/components/BoxDetailView/BoxSearchOverlay.jsx:176:28",
+              "react-stack-bottom-frame@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:17478:26",
+              "runWithFiberInDEV@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:1487:23",
+              "commitHookEffectListMount@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:8460:139"
+            ]
+          },
+          {
+            "t": 1337,
+            "type": "focusin",
+            "y": 0,
+            "active": "Search [inventory control]",
+            "target": "Search [inventory control]",
+            "defaultPrevented": false
+          },
+          {
+            "t": 1424,
+            "type": "input",
+            "y": 0,
+            "active": "Search [inventory control]",
+            "target": "Search [inventory control]",
+            "defaultPrevented": false
+          },
+          {
+            "t": 1730,
+            "type": "input",
+            "y": 0,
+            "active": "Search [inventory control]",
+            "target": "Search [inventory control]",
+            "defaultPrevented": false
+          },
+          {
+            "t": 1822,
+            "type": "input",
+            "y": 0,
+            "active": "Search [inventory control]",
+            "target": "Search [inventory control]",
+            "defaultPrevented": false
+          },
+          {
+            "t": 1924,
+            "type": "input",
+            "y": 0,
+            "active": "Search [inventory control]",
+            "target": "Search [inventory control]",
+            "defaultPrevented": false
+          },
+          {
+            "t": 2080,
+            "type": "scroll",
+            "y": 25,
+            "active": "Search [inventory control]"
+          },
+          {
+            "t": 2168,
+            "type": "scroll",
+            "y": 0,
+            "active": "BODY"
+          },
+          {
+            "t": 2572,
+            "type": "focus-call",
+            "y": 0,
+            "active": "BODY",
+            "target": "Search [inventory control]",
+            "stack": [
+              "@http://127.0.0.1:7611/src/components/BoxDetailView/BoxSearchOverlay.jsx:176:28",
+              "react-stack-bottom-frame@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:17478:26",
+              "runWithFiberInDEV@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:1487:23",
+              "commitHookEffectListMount@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:8460:139"
+            ]
+          },
+          {
+            "t": 2572,
+            "type": "focusin",
+            "y": 0,
+            "active": "Search [inventory control]",
+            "target": "Search [inventory control]",
+            "defaultPrevented": false
+          },
+          {
+            "t": 2918,
+            "type": "focusout",
+            "y": 0,
+            "active": "BODY",
+            "target": "Search [inventory control]",
+            "defaultPrevented": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "retrieval-type-edit-clear-replace-scroll",
+      "status": "completed",
+      "details": {
+        "typed": {
+          "path": "/retrieval",
+          "search": "",
+          "y": 0,
+          "height": 2461,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "retrieval-main-search",
+          "input": {
+            "id": "retrieval-main-search",
+            "value": "cable",
+            "selection": [
+              5,
+              5
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 129.359375,
+              "bottom": 173.359375,
+              "height": 44,
+              "width": 248.59375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 333.359375,
+            "height": 333.359375,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 15
+        },
+        "edit": {
+          "path": "/retrieval",
+          "search": "",
+          "y": 0,
+          "height": 2461,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "retrieval-main-search",
+          "input": {
+            "id": "retrieval-main-search",
+            "value": "caxble",
+            "selection": [
+              3,
+              3
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 129.359375,
+              "bottom": 173.359375,
+              "height": 44,
+              "width": 248.59375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 333.359375,
+            "height": 333.359375,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 15
+        },
+        "cleared": {
+          "path": "/retrieval",
+          "search": "",
+          "y": 0,
+          "height": 2461,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "retrieval-main-search",
+          "input": {
+            "id": "retrieval-main-search",
+            "value": "",
+            "selection": [
+              0,
+              0
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 129.359375,
+              "bottom": 173.359375,
+              "height": 44,
+              "width": 248.59375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 333.359375,
+            "height": 333.359375,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 15
+        },
+        "replaced": {
+          "path": "/retrieval",
+          "search": "",
+          "y": 0,
+          "height": 2461,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "retrieval-main-search",
+          "input": {
+            "id": "retrieval-main-search",
+            "value": "cable",
+            "selection": [
+              5,
+              5
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 129.359375,
+              "bottom": 173.359375,
+              "height": 44,
+              "width": 248.59375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 333.359375,
+            "height": 333.359375,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 15
+        },
+        "sameNode": true,
+        "scrolled": {
+          "path": "/retrieval",
+          "search": "",
+          "y": 254,
+          "height": 2455,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "retrieval-main-search",
+          "input": {
+            "id": "retrieval-main-search",
+            "value": "cable",
+            "selection": [
+              5,
+              5
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 123.359375,
+              "bottom": 167.359375,
+              "height": 44,
+              "width": 248.59375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 327.359375,
+            "height": 327.359375,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 15
+        },
+        "events": [
+          {
+            "t": 19,
+            "type": "visualViewport-resize",
+            "y": 0,
+            "active": "BODY",
+            "height": 844,
+            "offsetTop": 0,
+            "scale": 1
+          },
+          {
+            "t": 1461,
+            "type": "pointerdown",
+            "y": 0,
+            "active": "BODY",
+            "target": "retrieval-main-search",
+            "pointerType": "touch",
+            "defaultPrevented": false
+          },
+          {
+            "t": 1462,
+            "type": "pointerup",
+            "y": 0,
+            "active": "BODY",
+            "target": "retrieval-main-search",
+            "pointerType": "touch",
+            "defaultPrevented": false
+          },
+          {
+            "t": 1463,
+            "type": "focusin",
+            "y": 0,
+            "active": "retrieval-main-search",
+            "target": "retrieval-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 1469,
+            "type": "input",
+            "y": 0,
+            "active": "retrieval-main-search",
+            "target": "retrieval-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 1601,
+            "type": "input",
+            "y": 0,
+            "active": "retrieval-main-search",
+            "target": "retrieval-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 1699,
+            "type": "input",
+            "y": 0,
+            "active": "retrieval-main-search",
+            "target": "retrieval-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 1795,
+            "type": "input",
+            "y": 0,
+            "active": "retrieval-main-search",
+            "target": "retrieval-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 1889,
+            "type": "input",
+            "y": 0,
+            "active": "retrieval-main-search",
+            "target": "retrieval-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 2515,
+            "type": "input",
+            "y": 0,
+            "active": "retrieval-main-search",
+            "target": "retrieval-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 2531,
+            "type": "input",
+            "y": 0,
+            "active": "retrieval-main-search",
+            "target": "retrieval-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 2544,
+            "type": "input",
+            "y": 0,
+            "active": "retrieval-main-search",
+            "target": "retrieval-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 2552,
+            "type": "input",
+            "y": 0,
+            "active": "retrieval-main-search",
+            "target": "retrieval-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 2559,
+            "type": "input",
+            "y": 0,
+            "active": "retrieval-main-search",
+            "target": "retrieval-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 2566,
+            "type": "input",
+            "y": 0,
+            "active": "retrieval-main-search",
+            "target": "retrieval-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 2572,
+            "type": "input",
+            "y": 0,
+            "active": "retrieval-main-search",
+            "target": "retrieval-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 3084,
+            "type": "scroll",
+            "y": 260,
+            "active": "retrieval-main-search"
+          },
+          {
+            "t": 3148,
+            "type": "scroll",
+            "y": 259,
+            "active": "retrieval-main-search"
+          },
+          {
+            "t": 3164,
+            "type": "scroll",
+            "y": 258,
+            "active": "retrieval-main-search"
+          },
+          {
+            "t": 3188,
+            "type": "scroll",
+            "y": 257,
+            "active": "retrieval-main-search"
+          },
+          {
+            "t": 3221,
+            "type": "scroll",
+            "y": 256,
+            "active": "retrieval-main-search"
+          },
+          {
+            "t": 3254,
+            "type": "scroll",
+            "y": 255,
+            "active": "retrieval-main-search"
+          },
+          {
+            "t": 3291,
+            "type": "scroll",
+            "y": 255,
+            "active": "retrieval-main-search"
+          },
+          {
+            "t": 3304,
+            "type": "scroll",
+            "y": 254,
+            "active": "retrieval-main-search"
+          },
+          {
+            "t": 3393,
+            "type": "pointermove",
+            "y": 254,
+            "active": "retrieval-main-search",
+            "target": "retrieval-main-search",
+            "pointerType": "mouse",
+            "defaultPrevented": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "retrieval-open-close-item-panel",
+      "status": "completed",
+      "details": {
+        "opened": {
+          "path": "/retrieval",
+          "search": "",
+          "y": 0,
+          "height": 2254,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "SECTION",
+          "input": {
+            "id": "retrieval-main-search",
+            "value": "cable",
+            "selection": [
+              5,
+              5
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 0,
+              "bottom": 0,
+              "height": 0,
+              "width": 0
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 126.125,
+            "height": 126.125,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "hidden",
+          "results": 14
+        },
+        "closed": {
+          "path": "/retrieval",
+          "search": "",
+          "y": 0,
+          "height": 2260,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "DIV",
+          "input": {
+            "id": "retrieval-main-search",
+            "value": "cable",
+            "selection": [
+              5,
+              5
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 0,
+              "bottom": 0,
+              "height": 0,
+              "width": 0
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 132.125,
+            "height": 132.125,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 15
+        },
+        "events": [
+          {
+            "t": 3605,
+            "type": "scroll",
+            "y": 0,
+            "active": "retrieval-main-search"
+          },
+          {
+            "t": 3611,
+            "type": "focusout",
+            "y": 0,
+            "active": "BODY",
+            "target": "retrieval-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 3611,
+            "type": "focusin",
+            "y": 0,
+            "active": "Open item panel [inventory control]",
+            "target": "Open item panel [inventory control]",
+            "defaultPrevented": false
+          },
+          {
+            "t": 3772,
+            "type": "focus-call",
+            "y": 0,
+            "active": "Close item panel [inventory control]",
+            "target": "Close item panel [inventory control]",
+            "stack": [
+              "@http://127.0.0.1:7611/src/hooks/useDialogFocus.js:67:28",
+              "react-stack-bottom-frame@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:17484:20",
+              "runWithFiberInDEV@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:1487:23",
+              "commitHookEffectListUnmount@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:8502:134"
+            ]
+          },
+          {
+            "t": 3814,
+            "type": "focus-call",
+            "y": 0,
+            "active": "Close item panel [inventory control]",
+            "target": "AC power cord bundle",
+            "stack": []
+          },
+          {
+            "t": 3814,
+            "type": "focusout",
+            "y": 0,
+            "active": "BODY",
+            "target": "Close item panel [inventory control]",
+            "defaultPrevented": false
+          },
+          {
+            "t": 3814,
+            "type": "focusin",
+            "y": 0,
+            "active": "AC power cord bundle",
+            "target": "AC power cord bundle",
+            "defaultPrevented": false
+          },
+          {
+            "t": 4592,
+            "type": "focus-call",
+            "y": 0,
+            "active": "BODY",
+            "target": "Open item panel [inventory control]",
+            "stack": [
+              "@http://127.0.0.1:7611/src/hooks/useDialogFocus.js:67:28",
+              "react-stack-bottom-frame@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:17484:20",
+              "runWithFiberInDEV@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:1487:23",
+              "commitHookEffectListUnmount@http://127.0.0.1:7611/node_modules/.vite/deps/react-dom_client.js:8502:134"
+            ]
+          },
+          {
+            "t": 4592,
+            "type": "focusin",
+            "y": 0,
+            "active": "Open item panel [inventory control]",
+            "target": "Open item panel [inventory control]",
+            "defaultPrevented": false
+          },
+          {
+            "t": 4603,
+            "type": "focus-call",
+            "y": 0,
+            "active": "Open item panel [inventory control]",
+            "target": "Open item panel [inventory control]",
+            "stack": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "desktop-height-resize-with-search-focused-no-ios-keyboard",
+      "status": "completed",
+      "details": {
+        "before": {
+          "path": "/retrieval",
+          "search": "",
+          "y": 0,
+          "height": 2461,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "retrieval-main-search",
+          "input": {
+            "id": "retrieval-main-search",
+            "value": "cable",
+            "selection": [
+              5,
+              5
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 129.359375,
+              "bottom": 173.359375,
+              "height": 44,
+              "width": 248.59375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 333.359375,
+            "height": 333.359375,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 15
+        },
+        "shorter": {
+          "path": "/retrieval",
+          "search": "",
+          "y": 0,
+          "height": 2461,
+          "viewport": {
+            "width": 390,
+            "height": 500,
+            "vvHeight": 500,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "retrieval-main-search",
+          "input": {
+            "id": "retrieval-main-search",
+            "value": "cable",
+            "selection": [
+              5,
+              5
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 129.359375,
+              "bottom": 173.359375,
+              "height": 44,
+              "width": 248.59375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 333.359375,
+            "height": 333.359375,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 15
+        },
+        "restored": {
+          "path": "/retrieval",
+          "search": "",
+          "y": 0,
+          "height": 2461,
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "vvHeight": 844,
+            "vvTop": 0,
+            "scale": 1
+          },
+          "active": "retrieval-main-search",
+          "input": {
+            "id": "retrieval-main-search",
+            "value": "cable",
+            "selection": [
+              5,
+              5
+            ],
+            "fontSize": "16px",
+            "rect": {
+              "top": 129.359375,
+              "bottom": 173.359375,
+              "height": 44,
+              "width": 248.59375
+            }
+          },
+          "header": {
+            "top": 0,
+            "bottom": 333.359375,
+            "height": 333.359375,
+            "width": 390
+          },
+          "quick": null,
+          "quickSearch": false,
+          "boxSearch": false,
+          "bodyPosition": "",
+          "bodyOverflow": "",
+          "results": 15
+        },
+        "events": [
+          {
+            "t": 5009,
+            "type": "focusout",
+            "y": 0,
+            "active": "BODY",
+            "target": "Open item panel [inventory control]",
+            "defaultPrevented": false
+          },
+          {
+            "t": 5410,
+            "type": "pointerdown",
+            "y": 0,
+            "active": "BODY",
+            "target": "retrieval-main-search",
+            "pointerType": "touch",
+            "defaultPrevented": false
+          },
+          {
+            "t": 5410,
+            "type": "pointerup",
+            "y": 0,
+            "active": "BODY",
+            "target": "retrieval-main-search",
+            "pointerType": "touch",
+            "defaultPrevented": false
+          },
+          {
+            "t": 5411,
+            "type": "focusin",
+            "y": 0,
+            "active": "retrieval-main-search",
+            "target": "retrieval-main-search",
+            "defaultPrevented": false
+          },
+          {
+            "t": 5419,
+            "type": "visualViewport-resize",
+            "y": 0,
+            "active": "retrieval-main-search",
+            "height": 500,
+            "offsetTop": 0,
+            "scale": 1
+          },
+          {
+            "t": 5826,
+            "type": "visualViewport-resize",
+            "y": 0,
+            "active": "retrieval-main-search",
+            "height": 844,
+            "offsetTop": 0,
+            "scale": 1
+          }
+        ]
+      }
+    }
+  ],
+  "errors": [],
+  "blocked": []
+}
